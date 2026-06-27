@@ -1,0 +1,42 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+
+# next.js
+/.next/
+/out/
+/build
+next-env.d.ts
+
+# production
+/dist
+
+# env (keep the example committed)
+.env
+.env*.local
+.env.development
+.env.production
+!.env.example
+
+# debug / logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# drizzle
+/drizzle/meta
+
+# os / editor
+.DS_Store
+*.pem
+.vscode/*
+!.vscode/extensions.json
+.idea
+
+# misc
+/coverage
+*.tsbuildinfo
+/playwright-report
+/test-results

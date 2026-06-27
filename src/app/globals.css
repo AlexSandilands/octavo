@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+/* Design tokens. Keep the palette restrained and editorial — see
+   docs/DESIGN_HANDOVER.md and docs/design-principles.md. Real values land once
+   the design phase settles; these are neutral placeholders. */
+@theme {
+  --color-paper: #fbfaf7;
+  --color-ink: #1a1a17;
+  --color-muted: #6b6b64;
+  --color-line: #e6e3dc;
+  --color-accent: #1d4ed8;
+
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --font-serif: ui-serif, Georgia, "Times New Roman", serif;
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  /* Comfortable defaults for an older audience. */
+  font-size: 17px;
+  line-height: 1.7;
+}

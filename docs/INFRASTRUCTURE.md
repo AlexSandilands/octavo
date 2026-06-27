@@ -1,0 +1,98 @@
+# Infrastructure — digital club magazine
+
+Concise reference for what's needed, how it's set up, and what it costs. The developer owns these
+accounts (the "landlord" role); the club never touches them.
+
+## Components
+
+| Piece | Service | Role |
+|---|---|---|
+| App hosting | Railway | Runs the Next.js app + on-demand PDF generation |
+| Database | Railway Postgres | Members, issues, pages, blocks |
+| File storage | Cloudflare R2 | WebP images + cached PDFs (zero egress fees) |
+| CDN + DNS | Cloudflare | Caches assets, serves the domain |
+| Domain | Any registrar (or Cloudflare) | e.g. clubmag.org |
+| Email | Resend (or Postmark) | Magic links + new-issue blasts (~1,000/issue) |
+| Auth | Auth.js (in-app) | Magic-link sign-in, Postgres adapter — no separate service |
+| Monitoring | Sentry + UptimeRobot | Errors + uptime alerts to the developer |
+
+## How it fits together
+
+```
+Member ── Cloudflare (DNS/CDN) ── Railway (Next.js + Postgres)
+                                      │
+                      images/PDFs ────┼──── Cloudflare R2  (via S3 API)
+                      emails      ────┴──── Resend         (via API/SMTP)
+```
+
+- App talks to **Postgres** via `DATABASE_URL` (injected by Railway).
+- App reads/writes **R2** with the S3-compatible SDK; public images served from R2 behind Cloudflare.
+- App sends **email** via the provider's API; the sending domain is verified with DNS records.
+- **Auth.js** issues magic links through the same email provider, sessions stored in Postgres.
+
+## Setup order (one-time)
+
+1. **Domain** — register; add it to Cloudflare; point nameservers at Cloudflare.
+2. **Cloudflare R2** — create a bucket; generate an S3 API token (access key + secret); note the
+   account ID and public bucket URL.
+3. **Railway** — create a project; deploy the app from the repo; add the Postgres plugin; set env
+   vars (below).
+4. **Email** — create the provider account; verify the sending domain by adding its **SPF, DKIM,
+   and DMARC** records in Cloudflare DNS (do this carefully — it's what keeps blasts out of spam);
+   get the API key.
+5. **Auth** — set `AUTH_SECRET`; wire Auth.js to the email provider + Postgres adapter.
+6. **Monitoring** — add the Sentry DSN; create an UptimeRobot monitor on the site URL with email/
+   SMS alerts to the developer.
+7. **Deploy** — confirm a test magic-link email arrives and an image upload lands in R2.
+
+### Note on PDF generation
+PDF export uses headless Chromium (Playwright). It needs system dependencies in the container — use
+Railway's Nixpacks/Docker config to install them, or run PDF generation as a small separate Railway
+service if it bloats the main app's memory.
+
+## Environment variables (app)
+
+```
+DATABASE_URL=            # from Railway Postgres
+AUTH_SECRET=             # random 32+ char secret
+APP_URL=                 # https://clubmag.org
+
+R2_ACCOUNT_ID=
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+R2_BUCKET=
+R2_PUBLIC_URL=           # https://images.clubmag.org (Cloudflare-proxied)
+
+EMAIL_API_KEY=           # Resend/Postmark key
+EMAIL_FROM=              # "Club Magazine <hello@clubmag.org>"
+
+SENTRY_DSN=
+```
+
+## Estimated costs
+
+At ~1,000 members and roughly monthly issues:
+
+| Service | Plan | Est. cost |
+|---|---|---|
+| Railway | Hobby ($5 base + usage) | ~$5–20 / mo |
+| Cloudflare R2 | Free tier (10 GB) covers it | ~$0 |
+| Cloudflare CDN/DNS | Free | $0 |
+| Email (Resend) | Pro (no daily cap, 50k/mo) | ~$20 / mo |
+| Monitoring | Sentry + UptimeRobot free tiers | $0 |
+| Domain | annual | ~$12 / yr |
+
+**≈ $25–40 / month + ~$12 / year.**
+
+Notes:
+- Email is the one cost that scales with membership. Resend free tier (3k/mo, 100/day) can't do a
+  1,000-recipient blast in one go, so budget the ~$20 Pro plan. Postmark (~$15/mo) is an alternative.
+- Storage and bandwidth stay effectively free for a long time — R2 has no egress fees and issues
+  are small (a typical issue ≈ 2–4 MB).
+- If membership grows past a few thousand, the email tier is the first thing to revisit; everything
+  else has plenty of headroom.
+
+## Recurring landlord tasks (rare)
+- Keep domain auto-renew on and billing cards current (a lapse takes the site down).
+- Apply dependency/security updates occasionally.
+- Watch Sentry/UptimeRobot alerts; check email deliverability if blasts start hitting spam.
