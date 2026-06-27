@@ -9,8 +9,8 @@ import type { Block } from "@/lib/blocks";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import { ImageBlockControl } from "./image-upload";
 import { ImageLayoutControls } from "./image-layout";
-import { TextSizeControl } from "./text-size-control";
 import { HeadingLevelControl } from "./heading-level-control";
+import { RichTextEditor } from "./rich-text-editor";
 
 // One block in the editor canvas: the themed BlockView (editable) wrapped in the
 // editing chrome — a faint hover outline, a darker selected outline, a left
@@ -62,6 +62,9 @@ export function EditorBlock({
   return (
     <div
       ref={setNodeRef}
+      // Marks block content so the canvas pan-drag skips it (the block stays
+      // selectable, editable and draggable); see onPanDown in editor.tsx.
+      data-editor-block
       style={{
         ...blockFlowStyle(block, cover),
         ...(floated && !isDragging ? { zIndex: 5 } : {}),
@@ -123,9 +126,9 @@ export function EditorBlock({
               )}
             </div>
           ) : block.type === "text" && !cover ? (
-            <div className="absolute bottom-full left-0 z-20 mb-2">
-              <TextSizeControl size={block.size ?? "m"} onChange={onChange} />
-            </div>
+            // The text block's toolbar (size + formatting) lives inside the
+            // rich-text editor below, so nothing is rendered here.
+            null
           ) : block.type === "heading" && !cover ? (
             <div className="absolute bottom-full left-0 z-20 mb-2">
               <HeadingLevelControl
@@ -150,13 +153,22 @@ export function EditorBlock({
         </>
       )}
 
-      <BlockView
-        block={block}
-        theme={theme}
-        edit={{ onChange }}
-        images={images}
-        variant={cover ? "cover" : undefined}
-      />
+      {block.type === "text" && !cover ? (
+        <RichTextEditor
+          value={block.text}
+          size={block.size ?? "m"}
+          selected={selected}
+          onChange={onChange}
+        />
+      ) : (
+        <BlockView
+          block={block}
+          theme={theme}
+          edit={{ onChange }}
+          images={images}
+          variant={cover ? "cover" : undefined}
+        />
+      )}
     </div>
   );
 }

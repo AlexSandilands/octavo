@@ -53,6 +53,9 @@ const INSERT: { type: BlockType; label: string; icon: IconName }[] = [
   { type: "sponsor", label: "Sponsor", icon: "banner" },
 ];
 
+const MIN_ZOOM = 0.6;
+const MAX_ZOOM = 3;
+
 export type EditorIssue = {
   id: string;
   number: number;
@@ -140,25 +143,145 @@ export function Editor({
     return () => clearTimeout(t);
   }, [title, theme, issue.id]);
 
-  // Scale the fixed PAGE_W×PAGE_H canvas to fit the editor stage, exactly as the
-  // reader does — so the editor is a faithful, to-scale preview. Content past the
-  // bottom edge stays visible for editing; PageFrame's boundary marks the clip.
+  // Scale the fixed PAGE_W×PAGE_H canvas to fit the editor stage (zoom=1), exactly
+  // as the reader does — so the editor is a faithful, to-scale preview — then let
+  // a wheel/drag zoom+pan ride on top. No scrollbars: content past the page edge
+  // is reached by dragging the canvas. PageFrame's boundary marks the clip.
   const canvasRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(0.75);
+  const [fitScale, setFitScale] = useState(0.75);
+  const [zoom, setZoom] = useState(1);
   useEffect(() => {
     const el = canvasRef.current;
     if (!el) return;
     const update = () => {
-      const availH = el.clientHeight - 56;
-      const availW = el.clientWidth - 56;
+      const availH = el.clientHeight - 80;
+      const availW = el.clientWidth - 80;
       const s = Math.min(availH / PAGE_H, availW / PAGE_W);
-      setScale(Math.max(0.5, Math.min(1.4, s)));
+      setFitScale(Math.max(0.5, Math.min(1.4, s)));
     };
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  const scale = fitScale * zoom;
+
+  // Drag to move the canvas, wheel to zoom at the cursor — same model as the
+  // reader. Latest values are mirrored into refs for the native (non-passive)
+  // wheel handler, which can't close over fresh state.
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [panning, setPanning] = useState(false);
+  const zoomRef = useRef(zoom);
+  const panRef = useRef(pan);
+  const fitScaleRef = useRef(fitScale);
+  zoomRef.current = zoom;
+  panRef.current = pan;
+  fitScaleRef.current = fitScale;
+  // Set on a moved drag so the click that follows a pan doesn't deselect.
+  const suppressClick = useRef(false);
+
+  // Keep at least a sliver of the page on screen so it can't be lost.
+  const clampPan = (p: { x: number; y: number }, zoomVal: number) => {
+    const el = canvasRef.current;
+    if (!el) return p;
+    const sc = fitScaleRef.current * zoomVal;
+    const keep = 90;
+    const maxX = Math.max(0, (PAGE_W * sc + el.clientWidth) / 2 - keep);
+    const maxY = Math.max(0, (PAGE_H * sc + el.clientHeight) / 2 - keep);
+    return {
+      x: Math.min(maxX, Math.max(-maxX, p.x)),
+      y: Math.min(maxY, Math.max(-maxY, p.y)),
+    };
+  };
+
+  // Zoom to `next`, holding a focal point (offset from the canvas centre) fixed.
+  const applyZoom = (nextRaw: number, focalX = 0, focalY = 0) => {
+    const prev = zoomRef.current;
+    const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, nextRaw));
+    if (next === prev) return;
+    const f = next / prev;
+    const p = panRef.current;
+    setZoom(next);
+    setPan(
+      clampPan(
+        { x: f * p.x + (1 - f) * focalX, y: f * p.y + (1 - f) * focalY },
+        next,
+      ),
+    );
+  };
+
+  useEffect(() => {
+    const el = canvasRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const rect = el.getBoundingClientRect();
+      const focalX = e.clientX - rect.left - rect.width / 2;
+      const focalY = e.clientY - rect.top - rect.height / 2;
+      applyZoom(zoomRef.current * Math.exp(-e.deltaY * 0.0015), focalX, focalY);
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+    // applyZoom reads refs, so it never goes stale; bind once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Click-drag to move the canvas, started only on blank areas so blocks stay
+  // selectable, editable and draggable (dnd-kit owns their pointer events).
+  const drag = useRef<{
+    x: number;
+    y: number;
+    px: number;
+    py: number;
+    moved: boolean;
+  } | null>(null);
+  const onPanDown = (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    suppressClick.current = false;
+    if ((e.target as HTMLElement).closest("[data-editor-block]")) return;
+    const el = canvasRef.current;
+    if (!el) return;
+    drag.current = {
+      x: e.clientX,
+      y: e.clientY,
+      px: pan.x,
+      py: pan.y,
+      moved: false,
+    };
+    el.setPointerCapture(e.pointerId);
+    setPanning(true);
+  };
+  const onPanMove = (e: React.PointerEvent) => {
+    const d = drag.current;
+    if (!d) return;
+    if (Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 3)
+      d.moved = true;
+    setPan(
+      clampPan(
+        { x: d.px + (e.clientX - d.x), y: d.py + (e.clientY - d.y) },
+        zoom,
+      ),
+    );
+  };
+  const onPanUp = (e: React.PointerEvent) => {
+    const d = drag.current;
+    if (!d) return;
+    if (d.moved) suppressClick.current = true;
+    drag.current = null;
+    setPanning(false);
+    try {
+      canvasRef.current?.releasePointerCapture(e.pointerId);
+    } catch {
+      // pointer already released
+    }
+  };
+
+  // Reset zoom/pan to the fitted view when switching pages.
+  useEffect(() => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  }, [curPage]);
 
   // Escape deselects the current block (click-off on the canvas does too).
   useEffect(() => {
@@ -362,10 +485,26 @@ export function Editor({
 
           <div
             ref={canvasRef}
-            onClick={() => setSel(null)}
-            className="flex flex-1 items-start justify-center overflow-auto p-7"
+            onClick={() => {
+              // A drag-pan ends in a click; don't let it deselect the block.
+              if (suppressClick.current) {
+                suppressClick.current = false;
+                return;
+              }
+              setSel(null);
+            }}
+            onPointerDown={onPanDown}
+            onPointerMove={onPanMove}
+            onPointerUp={onPanUp}
+            onPointerCancel={onPanUp}
+            className={`flex flex-1 items-center justify-center overflow-hidden p-10 ${
+              panning ? "cursor-grabbing select-none" : "cursor-grab"
+            }`}
           >
-            <div className="shadow-[0_10px_30px_rgba(40,36,28,0.14)]">
+            <div
+              className="shadow-[0_10px_30px_rgba(40,36,28,0.14)]"
+              style={{ transform: `translate(${pan.x}px, ${pan.y}px)` }}
+            >
               <ScaledPage scale={scale}>
                 <PageFrame
                   theme={themeName}

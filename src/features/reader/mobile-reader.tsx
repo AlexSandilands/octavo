@@ -6,6 +6,7 @@ import { Icon } from "@/components/icons";
 import { site } from "@/lib/site";
 import { textSizeScale, type Block, type IssueContent } from "@/lib/blocks";
 import type { ImageMap } from "@/lib/images";
+import { richTextToHtml } from "@/lib/rich-text";
 import { BlockImage } from "@/features/blocks/block-view";
 
 // Mobile reader: the whole issue as one flowing column (also the accessibility
@@ -180,12 +181,11 @@ function MobileBlock({
           {block.text}
         </p>
       ) : (
-        <p
-          className="text-body mb-4 font-serif whitespace-pre-line"
+        <div
+          className="text-body rich-text mb-4 font-serif"
           style={{ fontSize: m * textSizeScale(block.size), lineHeight: 1.62 }}
-        >
-          {block.text}
-        </p>
+          dangerouslySetInnerHTML={{ __html: richTextToHtml(block.text) }}
+        />
       );
     case "image": {
       const resolved = block.imageId ? images[block.imageId] : undefined;

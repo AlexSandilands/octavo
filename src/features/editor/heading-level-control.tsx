@@ -1,8 +1,8 @@
 import { HEADING_LEVELS, type HeadingLevel } from "@/lib/blocks";
 
 // Rank picker for a selected heading block, shown in its floating toolbar (see
-// editor-block.tsx) — mirrors TextSizeControl. Switches a heading between the
-// big page/feature title, an article section head, and a small run-in sub-head.
+// editor-block.tsx). Switches a heading between the big page/feature title, an
+// article section head, and a small run-in sub-head.
 export function HeadingLevelControl({
   level,
   onChange,

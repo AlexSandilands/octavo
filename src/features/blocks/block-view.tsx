@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { textSizePx, type Block } from "@/lib/blocks";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
+import { richTextToHtml } from "@/lib/rich-text";
 import { Editable } from "./editable";
 
 export type Theme = "Classic" | "Modern";
@@ -179,13 +180,15 @@ export function BlockView({
     }
 
     case "text":
+      // Body text is authored as constrained rich HTML in the editor (see
+      // RichTextEditor); here it renders read-only, sanitised. Editing this
+      // block goes through RichTextEditor in editor-block.tsx, not `f()`.
       return (
-        <p
-          className="text-body font-serif whitespace-pre-line"
+        <div
+          className="text-body font-serif rich-text"
           style={{ fontSize: textSizePx(block.size), lineHeight: 1.62 }}
-        >
-          {f("text", block.text, "Write your paragraph…")}
-        </p>
+          dangerouslySetInnerHTML={{ __html: richTextToHtml(block.text) }}
+        />
       );
 
     case "image": {

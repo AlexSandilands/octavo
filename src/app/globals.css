@@ -84,3 +84,51 @@ body {
 .editable:focus-visible {
   outline: none;
 }
+
+/* Rich body text (bold/italic/underline, links, lists, paragraphs). Shared by
+   the read-only renderers and the editor's Tiptap surface so they look
+   identical. Tailwind's preflight strips list markers, so set them here. */
+.rich-text p {
+  margin: 0 0 0.55em;
+}
+.rich-text > :last-child {
+  margin-bottom: 0;
+}
+.rich-text ul,
+.rich-text ol {
+  margin: 0 0 0.55em;
+  padding-left: 1.5em;
+}
+.rich-text ul {
+  list-style: disc;
+}
+.rich-text ol {
+  list-style: decimal;
+}
+.rich-text li {
+  margin: 0.12em 0;
+}
+.rich-text li p {
+  margin: 0;
+}
+.rich-text a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.rich-text u {
+  text-decoration: underline;
+}
+
+/* The Tiptap editing surface: no focus box (the block's ring is the indicator),
+   and a stable minimum height so an empty paragraph stays clickable. */
+.ProseMirror {
+  outline: none;
+  white-space: pre-wrap;
+}
+.ProseMirror:focus {
+  outline: none;
+}
+.ProseMirror p:empty::after {
+  content: "\00a0";
+}

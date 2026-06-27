@@ -95,6 +95,26 @@ const ICONS: Record<string, ReactNode> = {
       <path d="M9 8h6M9 12h6M9 16h4" />
     </>
   ),
+  listBullet: (
+    <>
+      <circle cx="5" cy="7" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="5" cy="12" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="5" cy="17" r="1.1" fill="currentColor" stroke="none" />
+      <path d="M9 7h11M9 12h11M9 17h11" />
+    </>
+  ),
+  link: (
+    <>
+      <path d="M10 13.5a3.5 3.5 0 005 0l3-3a3.5 3.5 0 00-5-5l-1.4 1.4" />
+      <path d="M14 10.5a3.5 3.5 0 00-5 0l-3 3a3.5 3.5 0 005 5l1.4-1.4" />
+    </>
+  ),
+  fullscreen: (
+    <path d="M9 4H5a1 1 0 00-1 1v4M15 4h4a1 1 0 011 1v4M9 20H5a1 1 0 01-1-1v-4M15 20h4a1 1 0 001-1v-4" />
+  ),
+  fullscreenExit: (
+    <path d="M4 9h4V5M20 9h-4V5M4 15h4v4M20 15h-4v4" />
+  ),
 };
 
 export type IconName = keyof typeof ICONS;
