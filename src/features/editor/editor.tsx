@@ -6,10 +6,12 @@ import { Icon, type IconName } from "@/components/icons";
 import {
   makeBlock,
   makePage,
+  PAGE_TEMPLATES,
   type Block,
   type BlockType,
   type IssueContent,
   type Page,
+  type PageTemplate,
 } from "@/lib/blocks";
 import {
   DndContext,
@@ -61,6 +63,7 @@ export function Editor({ issue }: { issue: EditorIssue }) {
   const [sel, setSel] = useState<string | null>(initialPages[0]?.blocks[0]?.id ?? null);
   const [pub, setPub] = useState(false);
   const [status, setStatus] = useState<"saved" | "saving">("saved");
+  const [addMenu, setAddMenu] = useState(false);
 
   // Drag from the handle, or move with the keyboard once the handle is focused.
   // A small distance threshold lets a plain click on the handle still select.
@@ -169,15 +172,18 @@ export function Editor({ issue }: { issue: EditorIssue }) {
     if (sel === id) setSel(null);
   };
 
-  const addPage = () => {
-    setPages((ps) => [...ps, makePage()]);
+  const addPage = (template: PageTemplate = "blank") => {
+    setPages((ps) => [...ps, makePage(template)]);
     setCurPage(pages.length);
     setSel(null);
+    setAddMenu(false);
   };
-  const deletePage = () => {
+  const deletePage = (index: number) => {
     if (pages.length <= 1) return;
-    setPages((ps) => ps.filter((_, i) => i !== curPage));
-    setCurPage((c) => Math.max(0, Math.min(c, pages.length - 2)));
+    setPages((ps) => ps.filter((_, i) => i !== index));
+    // Keep the current page valid as the list shrinks: shift selection left if
+    // we removed the active page or one before it.
+    setCurPage((c) => Math.min(c > index ? c - 1 : c, pages.length - 2));
     setSel(null);
   };
 
@@ -233,40 +239,71 @@ export function Editor({ issue }: { issue: EditorIssue }) {
             Pages
           </span>
           {pages.map((p, i) => (
-            <button
-              key={p.id}
-              onClick={() => {
-                setCurPage(i);
-                setSel(null);
-              }}
-              className={`bg-page relative h-[108px] w-[84px] rounded-[3px] p-2.5 text-left ${
-                i === curPage
-                  ? "border-accent border-2 shadow-[0_2px_6px_rgba(40,36,28,0.12)]"
-                  : "border border-[#e0d9c9]"
-              }`}
-            >
-              <div className="h-2 w-[80%] rounded-[2px] bg-[#e0d9c9]" />
-              <div className="mt-1.5 h-1 w-[90%] rounded-[2px] bg-[#ece6da]" />
-              <span className="text-faint absolute right-2 bottom-1.5 font-sans text-[9px] font-semibold">
-                {i + 1}
-              </span>
-            </button>
+            <div key={p.id} className="group relative">
+              <button
+                onClick={() => {
+                  setCurPage(i);
+                  setSel(null);
+                }}
+                className={`bg-page relative block h-[108px] w-[84px] rounded-[3px] p-2.5 text-left ${
+                  i === curPage
+                    ? "border-accent border-2 shadow-[0_2px_6px_rgba(40,36,28,0.12)]"
+                    : "border border-[#e0d9c9]"
+                }`}
+              >
+                <div className="h-2 w-[80%] rounded-[2px] bg-[#e0d9c9]" />
+                <div className="mt-1.5 h-1 w-[90%] rounded-[2px] bg-[#ece6da]" />
+                <span className="text-faint absolute right-2 bottom-1.5 font-sans text-[9px] font-semibold">
+                  {i + 1}
+                </span>
+              </button>
+              {pages.length > 1 && (
+                <button
+                  onClick={() => deletePage(i)}
+                  title={`Delete page ${i + 1}`}
+                  aria-label={`Delete page ${i + 1}`}
+                  className="bg-paper text-faint2 hover:text-warn hover:border-warn absolute -top-2 -right-2 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-[#e0d9c9] opacity-0 shadow-sm transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+                >
+                  <Icon name="trash" size={13} strokeWidth={1.8} />
+                </button>
+              )}
+            </div>
           ))}
-          <button
-            onClick={addPage}
-            className="text-faint hover:border-accent hover:text-accent flex h-10 w-[84px] items-center justify-center gap-1.5 rounded-[3px] border-[1.5px] border-dashed border-[#c9c1b1] font-sans text-[11px] font-semibold"
-          >
-            <Icon name="plus" size={14} strokeWidth={1.8} />
-            Add
-          </button>
-          {pages.length > 1 && (
+          <div className="relative">
             <button
-              onClick={deletePage}
-              className="text-faint2 hover:text-warn mt-1 font-sans text-[11px]"
+              onClick={() => setAddMenu((v) => !v)}
+              aria-expanded={addMenu}
+              className="text-faint hover:border-accent hover:text-accent flex h-10 w-[84px] items-center justify-center gap-1.5 rounded-[3px] border-[1.5px] border-dashed border-[#c9c1b1] font-sans text-[11px] font-semibold"
             >
-              Delete page {curPage + 1}
+              <Icon name="plus" size={14} strokeWidth={1.8} />
+              Add
             </button>
-          )}
+            {addMenu && (
+              <>
+                {/* Click-off backdrop */}
+                <div
+                  className="fixed inset-0 z-20"
+                  onClick={() => setAddMenu(false)}
+                />
+                <div className="bg-card absolute top-0 left-[92px] z-30 w-56 overflow-hidden rounded-lg border border-[#e0d9c9] shadow-[0_12px_32px_rgba(40,36,28,0.18)]">
+                  {PAGE_TEMPLATES.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => addPage(t.id)}
+                      className="block w-full px-3.5 py-2.5 text-left hover:bg-[#f4f8f5]"
+                    >
+                      <div className="text-ink font-sans text-[13px] font-semibold">
+                        {t.label}
+                      </div>
+                      <div className="text-faint2 mt-0.5 font-sans text-[11px] leading-snug">
+                        {t.description}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-1 flex-col overflow-hidden bg-[#ece7dc]">

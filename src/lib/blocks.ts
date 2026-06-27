@@ -73,8 +73,81 @@ export function makeBlock(type: BlockType): Block {
   }
 }
 
-export function makePage(): Page {
-  return { id: createId(), blocks: [] };
+// Page templates the editor offers from the "Add page" menu. "blank" is the
+// plain page; the rest are cover layouts pre-filled with arranged blocks so the
+// author starts from a finished-looking design and edits in place. Covers are
+// composed from ordinary blocks, so they render through the same theme and
+// reader path as every other page — no special-casing downstream.
+export type PageTemplate =
+  | "blank"
+  | "cover-classic"
+  | "cover-feature"
+  | "cover-minimal";
+
+export const PAGE_TEMPLATES: {
+  id: PageTemplate;
+  label: string;
+  description: string;
+}[] = [
+  { id: "blank", label: "Blank page", description: "Start with nothing." },
+  {
+    id: "cover-classic",
+    label: "Classic cover",
+    description: "Masthead, title, photo and a tagline.",
+  },
+  {
+    id: "cover-feature",
+    label: "Feature cover",
+    description: "Photo-led with a bold headline.",
+  },
+  {
+    id: "cover-minimal",
+    label: "Minimal cover",
+    description: "Just a title and a date line.",
+  },
+];
+
+export function makePage(template: PageTemplate = "blank"): Page {
+  const id = createId();
+  const bid = () => createId();
+  switch (template) {
+    case "cover-classic":
+      return {
+        id,
+        blocks: [
+          { id: bid(), type: "heading", kicker: "Members' Magazine", title: "Spring Issue" },
+          { id: bid(), type: "image", caption: "Cover photograph" },
+          {
+            id: bid(),
+            type: "text",
+            text: "A short, evocative line that sets the tone for this issue.",
+          },
+        ],
+      };
+    case "cover-feature":
+      return {
+        id,
+        blocks: [
+          { id: bid(), type: "image", caption: "Cover photograph" },
+          { id: bid(), type: "heading", kicker: "In this issue", title: "The Headline Story" },
+          {
+            id: bid(),
+            type: "text",
+            text: "A standfirst that draws the reader into the lead feature.",
+          },
+        ],
+      };
+    case "cover-minimal":
+      return {
+        id,
+        blocks: [
+          { id: bid(), type: "heading", kicker: "Volume One", title: "The Issue Title" },
+          { id: bid(), type: "text", text: "Spring 2026" },
+        ],
+      };
+    case "blank":
+      return { id, blocks: [] };
+  }
 }
 
 export function emptyIssueContent(): IssueContent {
