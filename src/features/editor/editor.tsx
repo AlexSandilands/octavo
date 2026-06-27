@@ -11,7 +11,24 @@ import {
   type IssueContent,
   type Page,
 } from "@/lib/blocks";
-import { BlockEdit } from "./block-edit";
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { type Theme } from "@/features/blocks/block-view";
+import { PageFrame } from "@/features/blocks/page-frame";
+import { EditorBlock } from "./editor-block";
 import {
   publishIssueAction,
   saveIssueAction,
@@ -45,6 +62,13 @@ export function Editor({ issue }: { issue: EditorIssue }) {
   const [pub, setPub] = useState(false);
   const [status, setStatus] = useState<"saved" | "saving">("saved");
 
+  // Drag from the handle, or move with the keyboard once the handle is focused.
+  // A small distance threshold lets a plain click on the handle still select.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
   // Debounced autosave of content.
   const firstContent = useRef(true);
   useEffect(() => {
@@ -71,20 +95,21 @@ export function Editor({ issue }: { issue: EditorIssue }) {
     return () => clearTimeout(t);
   }, [title, theme, issue.id]);
 
-  // Size the editing page to the canvas (fixed text, bigger page) — same idea
-  // as the reader. Width is derived from height so the page keeps A4-ish shape;
-  // minHeight lets it grow as blocks are added.
+  // Size the editing page to the canvas exactly as the reader sizes one of its
+  // pages: same aspect ratio, fixed dimensions, fixed text. The page is then a
+  // faithful preview — content past its bottom edge stays visible for editing
+  // but PageFrame's boundary marker shows where the reader will clip.
   const canvasRef = useRef<HTMLDivElement>(null);
-  const [pageDim, setPageDim] = useState({ w: 440, minH: 560 });
+  const [pageDim, setPageDim] = useState({ w: 427, h: 560 });
   useEffect(() => {
     const el = canvasRef.current;
     if (!el) return;
-    const RATIO = 392 / 592;
+    const RATIO = 451 / 592; // ~15% wider than A-series; matches the reader
     const update = () => {
       const availH = el.clientHeight - 56;
       const availW = el.clientWidth - 56;
       const h = Math.max(460, Math.min(availH, availW / RATIO));
-      setPageDim({ w: Math.round(h * RATIO), minH: Math.round(h) });
+      setPageDim({ w: Math.round(h * RATIO), h: Math.round(h) });
     };
     update();
     const ro = new ResizeObserver(update);
@@ -92,6 +117,16 @@ export function Editor({ issue }: { issue: EditorIssue }) {
     return () => ro.disconnect();
   }, []);
 
+  // Escape deselects the current block (click-off on the canvas does too).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSel(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const themeName: Theme = theme === "modern" ? "Modern" : "Classic";
   const page = pages[curPage] ?? pages[0];
 
   const editPage = (fn: (p: Page) => Page) =>
@@ -118,6 +153,17 @@ export function Editor({ issue }: { issue: EditorIssue }) {
       arr[j] = a;
       return { ...p, blocks: arr };
     });
+  const onDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    editPage((p) => {
+      const from = p.blocks.findIndex((b) => b.id === active.id);
+      const to = p.blocks.findIndex((b) => b.id === over.id);
+      if (from < 0 || to < 0) return p;
+      return { ...p, blocks: arrayMove(p.blocks, from, to) };
+    });
+  };
+
   const removeBlock = (id: string) => {
     editPage((p) => ({ ...p, blocks: p.blocks.filter((b) => b.id !== id) }));
     if (sel === id) setSel(null);
@@ -242,47 +288,50 @@ export function Editor({ issue }: { issue: EditorIssue }) {
 
           <div
             ref={canvasRef}
+            onClick={() => setSel(null)}
             className="flex flex-1 items-start justify-center overflow-auto p-7"
           >
-            <div
-              style={{ width: pageDim.w, minHeight: pageDim.minH }}
-              className="bg-page flex flex-col gap-2.5 px-9 py-8 shadow-[0_10px_30px_rgba(40,36,28,0.14)]"
-            >
-              {page && page.blocks.length === 0 && (
-                <div className="text-faint2 py-16 text-center font-serif text-sm">
-                  This page is empty. Add a block above.
-                </div>
-              )}
-              {page?.blocks.map((b) => (
-                <div
-                  key={b.id}
-                  onClick={() => setSel(b.id)}
-                  className={`relative -mx-2 cursor-text rounded px-3.5 py-3 ${
-                    b.type === "sponsor"
-                      ? ""
-                      : b.id === sel
-                        ? "bg-[#fcfbf7]"
-                        : ""
-                  }`}
-                  style={{
-                    border: b.id === sel ? "2px solid #1d4d3e" : "2px solid transparent",
-                  }}
+            <div className="shadow-[0_10px_30px_rgba(40,36,28,0.14)]">
+              <PageFrame
+                theme={themeName}
+                w={pageDim.w}
+                h={pageDim.h}
+                issueNo={issue.number}
+                pageNo={curPage + 1}
+                clip={false}
+                boundary
+              >
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={onDragEnd}
                 >
-                  {b.id === sel && (
-                    <>
-                      <span className="bg-accent text-paper absolute -top-2.5 left-3 rounded-[3px] px-1.5 py-[3px] font-sans text-[9px] font-semibold tracking-[0.1em] uppercase">
-                        {b.type}
-                      </span>
-                      <div className="absolute top-1/2 -right-8 flex -translate-y-1/2 flex-col gap-1">
-                        <Ctrl icon="arrowUp" title="Move up" onClick={() => moveBlock(b.id, -1)} />
-                        <Ctrl icon="arrowDown" title="Move down" onClick={() => moveBlock(b.id, 1)} />
-                        <Ctrl icon="trash" title="Delete" danger onClick={() => removeBlock(b.id)} />
-                      </div>
-                    </>
-                  )}
-                  <BlockEdit block={b} onChange={(patch) => updateBlock(b.id, patch)} />
-                </div>
-              ))}
+                  <SortableContext
+                    items={(page?.blocks ?? []).map((b) => b.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="relative flex flex-col gap-3.5">
+                      {page && page.blocks.length === 0 && (
+                        <div className="text-faint2 py-16 text-center font-serif text-sm">
+                          This page is empty. Add a block above.
+                        </div>
+                      )}
+                      {page?.blocks.map((b) => (
+                        <EditorBlock
+                          key={b.id}
+                          block={b}
+                          theme={themeName}
+                          selected={b.id === sel}
+                          onSelect={() => setSel(b.id)}
+                          onChange={(patch) => updateBlock(b.id, patch)}
+                          onMove={(dir) => moveBlock(b.id, dir)}
+                          onRemove={() => removeBlock(b.id)}
+                        />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+              </PageFrame>
             </div>
           </div>
         </div>
@@ -299,36 +348,6 @@ export function Editor({ issue }: { issue: EditorIssue }) {
         />
       )}
     </div>
-  );
-}
-
-function Ctrl({
-  icon,
-  title,
-  onClick,
-  danger,
-}: {
-  icon: IconName;
-  title: string;
-  onClick: () => void;
-  danger?: boolean;
-}) {
-  return (
-    <button
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick();
-      }}
-      title={title}
-      aria-label={title}
-      className={`flex h-6 w-6 items-center justify-center rounded-[5px] border border-[#e0d9c9] bg-white ${
-        danger
-          ? "text-warn hover:border-warn"
-          : "text-muted hover:border-accent hover:text-accent"
-      }`}
-    >
-      <Icon name={icon} size={13} strokeWidth={1.9} />
-    </button>
   );
 }
 

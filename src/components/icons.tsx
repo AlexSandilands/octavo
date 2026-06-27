@@ -54,6 +54,16 @@ const ICONS: Record<string, ReactNode> = {
     </>
   ),
   heading: <path d="M6 4v16M18 4v16M6 12h12" />,
+  grip: (
+    <>
+      <circle cx="9" cy="6" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="6" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="12" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="12" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="18" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="18" r="1.1" fill="currentColor" stroke="none" />
+    </>
+  ),
   image: (
     <>
       <rect x="3" y="5" width="18" height="14" rx="2" />

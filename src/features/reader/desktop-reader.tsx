@@ -6,8 +6,9 @@ import { Icon } from "@/components/icons";
 import { site } from "@/lib/site";
 import type { IssueContent, Page } from "@/lib/blocks";
 import { BlockView, type Theme } from "@/features/blocks/block-view";
+import { PageFrame } from "@/features/blocks/page-frame";
 
-const PAGE_RATIO = 392 / 592; // width / height of a single page
+const PAGE_RATIO = 451 / 592; // width / height of a single page (~15% wider than A-series)
 
 type TocEntry = { label: string; page: number };
 
@@ -42,7 +43,7 @@ export function DesktopReader({
   // larger page simply holds more of it — no magnifying of type or borders.
   // `zoom` then multiplies that fitted size; >1 overflows and the stage scrolls.
   const stageRef = useRef<HTMLDivElement>(null);
-  const [fit, setFit] = useState({ w: 392, h: 592 });
+  const [fit, setFit] = useState({ w: 451, h: 592 });
   const [zoom, setZoom] = useState(1);
   useEffect(() => {
     const el = stageRef.current;
@@ -279,30 +280,15 @@ function PageView({
   issueNo: number;
   pageNo: number;
 }) {
-  const isClassic = theme === "Classic";
   return (
-    <div
-      style={{ width: w, height: h }}
-      className={`bg-page relative overflow-hidden px-10 pt-10 ${
-        side === "left" ? "border-r border-[#efe7d8]" : ""
-      }`}
+    <PageFrame
+      theme={theme}
+      w={w}
+      h={h}
+      issueNo={issueNo}
+      pageNo={page ? pageNo : undefined}
+      side={side}
     >
-      {isClassic ? (
-        <>
-          <div className="pointer-events-none absolute inset-3.5 border border-[#dcd1b6]" />
-          <div className="pointer-events-none absolute inset-[17px] border border-[#e8e0cb]" />
-          <div className="text-faint2 pointer-events-none absolute top-5 right-3.5 left-3.5 text-center font-sans text-[8px] tracking-[0.32em] uppercase">
-            {site.name} · No. {issueNo}
-          </div>
-        </>
-      ) : (
-        <div
-          className={`bg-accent pointer-events-none absolute top-0 bottom-0 w-[5px] ${
-            side === "left" ? "left-0" : "right-0"
-          }`}
-        />
-      )}
-
       {page && (
         <div className="relative flex flex-col gap-3.5">
           {page.blocks.map((b) => (
@@ -310,11 +296,6 @@ function PageView({
           ))}
         </div>
       )}
-
-      <div className="text-faint2 absolute right-10 bottom-4 left-10 flex justify-between font-sans text-[10px] font-medium tracking-[0.12em] uppercase">
-        <span>{side === "left" ? site.name : `No. ${issueNo}`}</span>
-        <span>{page ? pageNo : ""}</span>
-      </div>
-    </div>
+    </PageFrame>
   );
 }

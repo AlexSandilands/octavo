@@ -71,3 +71,16 @@ body {
     #1d4a3c 20px
   );
 }
+
+/* Placeholder for empty in-place editable fields in the admin editor. */
+.editable:empty::before {
+  content: attr(data-placeholder);
+  color: var(--color-faint2);
+  pointer-events: none;
+}
+
+/* The block's selection outline is the focus indicator, so the editable field
+   itself shows no tight focus box (which would clip the text against its edge). */
+.editable:focus-visible {
+  outline: none;
+}
