@@ -6,7 +6,7 @@ import { Icon } from "@/components/icons";
 import { site } from "@/lib/site";
 import { textSizeScale, type Block, type IssueContent } from "@/lib/blocks";
 import type { ImageMap } from "@/lib/images";
-import { richTextToHtml } from "@/lib/rich-text";
+import { externalHref, richTextToHtml } from "@/lib/rich-text";
 import { BlockImage } from "@/features/blocks/block-view";
 
 // Mobile reader: the whole issue as one flowing column (also the accessibility
@@ -226,8 +226,9 @@ function MobileBlock({
         </figure>
       );
     }
-    case "sponsor":
-      return (
+    case "sponsor": {
+      const link = externalHref(block.href ?? "");
+      const card = (
         <div className="bg-tint my-4 flex items-center gap-3 rounded-md p-4">
           <div className="bg-card text-faint flex h-12 w-24 flex-none items-center justify-center rounded font-mono text-[10px]">
             SPONSOR
@@ -239,8 +240,26 @@ function MobileBlock({
             <div className="text-accent-ink font-sans text-base font-semibold">
               {block.name}
             </div>
+            {link && (
+              <div className="text-accent font-sans text-[13px] font-medium">
+                Visit the store →
+              </div>
+            )}
           </div>
         </div>
       );
+      return link ? (
+        <a
+          href={link}
+          target="_blank"
+          rel="noopener noreferrer nofollow"
+          className="block no-underline"
+        >
+          {card}
+        </a>
+      ) : (
+        card
+      );
+    }
   }
 }

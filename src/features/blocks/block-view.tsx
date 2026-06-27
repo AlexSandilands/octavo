@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { textSizePx, type Block } from "@/lib/blocks";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
-import { richTextToHtml } from "@/lib/rich-text";
+import { externalHref, richTextToHtml } from "@/lib/rich-text";
 import { Editable } from "./editable";
 
 export type Theme = "Classic" | "Modern";
@@ -232,8 +232,12 @@ export function BlockView({
       );
     }
 
-    case "sponsor":
-      return classic ? (
+    case "sponsor": {
+      // Read-only: if the sponsor has a (validated) link, the whole card is the
+      // anchor so members can tap it. In the editor the href is an editable
+      // field instead, so we never wrap it in a link there.
+      const link = edit ? null : externalHref(block.href ?? "");
+      const card = classic ? (
         <div className="border-hair border p-5 text-center">
           <div className="text-faint2 font-sans text-[9px] font-semibold tracking-[0.24em] uppercase">
             With thanks to our patron
@@ -242,7 +246,7 @@ export function BlockView({
             {block.logoId ? "LOGO" : "SPONSOR LOGO"}
           </div>
           <div className="text-accent mt-3 font-serif text-sm italic">
-            {f("name", block.name, "Sponsor name")} {!edit && block.href && "→"}
+            {f("name", block.name, "Sponsor name")} {link && "→"}
           </div>
           {edit && (
             <div className="text-accent mt-1 font-sans text-[12px]">
@@ -267,7 +271,7 @@ export function BlockView({
                 {f("href", block.href ?? "", "https://link (optional)")}
               </div>
             ) : (
-              block.href && (
+              link && (
                 <div className="text-accent mt-1 font-sans text-[13px] font-medium">
                   Visit the store →
                 </div>
@@ -276,5 +280,18 @@ export function BlockView({
           </div>
         </div>
       );
+      return link ? (
+        <a
+          href={link}
+          target="_blank"
+          rel="noopener noreferrer nofollow"
+          className="block no-underline"
+        >
+          {card}
+        </a>
+      ) : (
+        card
+      );
+    }
   }
 }

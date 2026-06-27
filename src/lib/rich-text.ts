@@ -37,13 +37,30 @@ function escapeAttr(s: string): string {
     .replace(/>/g, "&gt;");
 }
 
-// Only http(s) and mailto links survive; javascript:, data: and relative hrefs
-// are dropped (the anchor stays, the href doesn't).
+// Normalise a user-entered value into a safe external href, or null if it can't
+// be one. http(s)/mailto pass through; a scheme-less host (example.com,
+// www.x.org, //x.org) is assumed https — so authors don't have to type the
+// protocol — while any other scheme (javascript:, data:, tel:…) and bare
+// relative paths are rejected. Shared by the sanitiser, the sponsor block and
+// the editor's link tool so they all agree on what counts as a link.
+export function externalHref(raw: string): string | null {
+  const v = raw.trim();
+  if (!v) return null;
+  if (/^(https?:|mailto:)/i.test(v)) return v;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(v)) return null; // some other scheme — drop it
+  if (v.startsWith("//")) return `https:${v}`;
+  // Looks like a hostname (has a dot, no spaces) → assume https.
+  if (/^[a-z0-9-]+(\.[a-z0-9-]+)+(\/|$|\?|#)/i.test(v)) return `https://${v}`;
+  return null;
+}
+
+// Pull the href out of an anchor's attributes and validate it. javascript:,
+// data: and bare relative hrefs are dropped (the anchor stays, the href
+// doesn't); scheme-less hostnames are upgraded to https.
 function safeHref(attrs: string): string | null {
   const m = attrs.match(/href\s*=\s*("([^"]*)"|'([^']*)'|([^\s"'>]+))/i);
   if (!m) return null;
-  const href = (m[2] ?? m[3] ?? m[4] ?? "").trim();
-  return /^(https?:|mailto:)/i.test(href) ? href : null;
+  return externalHref(m[2] ?? m[3] ?? m[4] ?? "");
 }
 
 // Allowlist sanitiser. Authoring is admin-only and the source is Tiptap (a

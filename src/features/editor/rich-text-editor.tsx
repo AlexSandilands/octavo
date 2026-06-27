@@ -5,7 +5,7 @@ import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Icon } from "@/components/icons";
 import { TEXT_SIZES, textSizePx, type TextSize } from "@/lib/blocks";
-import { richTextToHtml } from "@/lib/rich-text";
+import { externalHref, richTextToHtml } from "@/lib/rich-text";
 import { Underline, Link } from "./rich-text-marks";
 
 // The editing surface for a body-text block. A Tiptap editor styled to match the
@@ -84,16 +84,20 @@ function Toolbar({
     setLinkOpen(true);
   };
   const applyLink = () => {
-    const href = linkValue.trim();
+    const raw = linkValue.trim();
+    // Upgrade scheme-less URLs (example.com → https://example.com) and reject
+    // anything that can't be a safe link, so the stored href always survives
+    // the reader's sanitiser.
+    const href = externalHref(raw);
     if (!href) {
       editor.chain().focus().extendMarkRange("link").unsetMark("link").run();
     } else if (editor.state.selection.empty) {
-      // No selection: insert the URL as its own linked text.
+      // No selection: insert the URL (as typed) as its own linked text.
       editor
         .chain()
         .focus()
         .insertContent(
-          `<a href="${href.replace(/"/g, "&quot;")}">${href}</a> `,
+          `<a href="${href.replace(/"/g, "&quot;")}">${raw}</a> `,
         )
         .run();
     } else {

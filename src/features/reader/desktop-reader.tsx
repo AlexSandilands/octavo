@@ -270,6 +270,8 @@ export function DesktopReader({
   // grabbing the corner of a real page); presses elsewhere fall through to pan.
   const onSpreadPointerDown = (e: React.PointerEvent) => {
     if (turn) return;
+    // A link in the edge band must stay clickable — don't hijack it for a turn.
+    if ((e.target as HTMLElement).closest("a")) return;
     const rect = spreadRef.current?.getBoundingClientRect();
     if (!rect) return;
     const edge = rect.width * 0.16;
