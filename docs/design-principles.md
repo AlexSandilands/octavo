@@ -1,8 +1,8 @@
 # Design principles & engineering best practices
 
 The standards every change in this project follows. Optimised for a small, maintainable
-Next.js app that one developer can keep alive long-term (see the "landlord" model in
-`INFRASTRUCTURE.md`). Bias toward boring, obvious, and simple over clever.
+Next.js app that one developer can keep alive long-term with minimal ongoing maintenance.
+Bias toward boring, obvious, and simple over clever.
 
 ---
 
@@ -62,8 +62,8 @@ src/
 
 - Tailwind v4. Use the design tokens in `globals.css` (`--color-*`, `--font-*`) — no
   hardcoded hex or magic numbers scattered through components.
-- Respect the editorial visual direction in `DESIGN_HANDOVER.md`: restrained palette,
-  strong type hierarchy, generous whitespace, hairline borders, no gradient/glass slop.
+- Hold the editorial visual direction: restrained palette, strong type hierarchy, generous
+  whitespace, hairline borders, no gradient/glass slop.
 - Extract repeated class strings into small components, not copy-paste.
 
 ## 7. Accessibility (first-class — the audience is older and phone-heavy)

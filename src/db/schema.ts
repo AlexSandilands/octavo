@@ -9,6 +9,7 @@ import {
   pgEnum,
 } from "drizzle-orm/pg-core";
 import { createId } from "@/lib/id";
+import type { IssueContent } from "@/lib/blocks";
 
 // ── Auth.js tables (magic-link / email provider) ────────────────────────────
 // `users` doubles as the club member record (see is_admin, subscribed).
@@ -45,35 +46,19 @@ export const verificationTokens = pgTable(
 
 export const issueStatus = pgEnum("issue_status", ["draft", "published"]);
 
+// The whole pages→blocks tree lives in `content` as one JSONB document — the
+// source of truth. Validated with zod at the edges (see src/lib/blocks.ts).
 export const issues = pgTable("issues", {
   id: text("id").primaryKey().$defaultFn(createId),
   number: integer("number").notNull(),
   title: text("title").notNull(),
   theme: text("theme").notNull().default("classic"),
   status: issueStatus("status").notNull().default("draft"),
+  content: jsonb("content").$type<IssueContent>().notNull().default({ pages: [] }),
   coverImageId: text("cover_image_id"),
   publishedAt: timestamp("published_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
-export const pages = pgTable("pages", {
-  id: text("id").primaryKey().$defaultFn(createId),
-  issueId: text("issue_id")
-    .notNull()
-    .references(() => issues.id, { onDelete: "cascade" }),
-  order: integer("order").notNull(),
-});
-
-// A block's `payload` shape depends on `type` (heading | text | image | sponsor).
-// Validate payloads with zod at the edges; see docs/design-principles.md.
-export const blocks = pgTable("blocks", {
-  id: text("id").primaryKey().$defaultFn(createId),
-  pageId: text("page_id")
-    .notNull()
-    .references(() => pages.id, { onDelete: "cascade" }),
-  order: integer("order").notNull(),
-  type: text("type").notNull(),
-  payload: jsonb("payload").notNull(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const images = pgTable("images", {

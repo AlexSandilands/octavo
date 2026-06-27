@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: magazine
+      POSTGRES_PASSWORD: magazine
+      POSTGRES_DB: magazine
+    ports:
+      - "5432:5432"
+    volumes:
+      - magazine-pgdata:/var/lib/postgresql/data
+
+volumes:
+  magazine-pgdata:

@@ -5,19 +5,23 @@ flipbook on desktop or a clean scroll on mobile. Magic-link access, no passwords
 
 ## Docs
 
-- [Product spec](docs/SPEC.md) — what it is, data model, roadmap.
+- [Architecture](docs/architecture.md) — system overview, directory map, data flow, routes.
+- [Database](docs/database.md) — schema, content/block model, migrations, seeding.
 - [Design principles](docs/design-principles.md) — engineering + design rules (read first).
-- [Design handover](docs/DESIGN_HANDOVER.md) — UI surfaces + visual direction.
-- [Infrastructure](docs/INFRASTRUCTURE.md) — services, setup, env vars, costs.
+- `docs/planning/` — transient background (spec, design handover, infra notes, implementation plan).
 
 ## Getting started
 
 ```bash
 npm install
-cp .env.example .env   # then fill in (see docs/INFRASTRUCTURE.md)
-npm run db:push        # apply schema to your Postgres
-npm run dev
+docker compose up -d   # local Postgres (see docker-compose.yml)
+npm run db:migrate     # apply schema
+npm run db:seed        # sample issue so the reader has content
+npm run dev            # http://localhost:3000
 ```
+
+Branding + `DATABASE_URL` live in `.env.local` (git-ignored). See `.env.example`
+for all keys and `docs/INFRASTRUCTURE.md` for production setup.
 
 ## Stack
 

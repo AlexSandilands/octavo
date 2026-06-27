@@ -6,16 +6,26 @@ scroll (mobile). Magic-link auth.
 
 ## Read before working
 
+Core docs (long-lived — keep current):
+- `docs/architecture.md` — system overview, directory map, data flow, routes, env.
+- `docs/database.md` — schema, the content/block model, migrations, seeding.
 - `docs/design-principles.md` — **engineering + design rules. Follow these on every change.**
-- `docs/SPEC.md` — product spec, data model, roadmap.
-- `docs/INFRASTRUCTURE.md` — services, setup, env vars, costs.
-- `docs/DESIGN_HANDOVER.md` — UI surfaces and visual direction.
+
+`docs/planning/` is **transient** background (product spec, design handover, infra/cost notes,
+implementation plan) — useful history, not current truth; will be removed once superseded.
 
 ## Commands
 
+- `docker compose up -d` — local Postgres
 - `npm run dev` — local dev server
+- `npm run db:migrate` / `db:seed` / `db:generate` / `db:studio` — Drizzle (see `docs/database.md`)
 - `npm run lint` / `npm run format` — lint / format
-- `npm run db:generate` / `db:migrate` / `db:push` / `db:studio` — Drizzle
+
+## Status
+
+Library, reader, dashboard and editor are **DB-backed** (editor autosaves; reader renders saved
+issues). Still stubbed: auth (`/admin` ungated), image upload, email, PDF, real page-curl, and
+members/sponsors persistence. Routes + directory map are in `docs/architecture.md`.
 
 ## Stack
 

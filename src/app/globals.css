@@ -1,17 +1,36 @@
 @import "tailwindcss";
 
-/* Design tokens. Keep the palette restrained and editorial — see
-   docs/DESIGN_HANDOVER.md and docs/design-principles.md. Real values land once
-   the design phase settles; these are neutral placeholders. */
+/* Design system from docs/claude-design — editorial, paper + one accent.
+   Tokens drive Tailwind utilities (bg-paper, text-accent, font-serif, ...). */
 @theme {
-  --color-paper: #fbfaf7;
-  --color-ink: #1a1a17;
-  --color-muted: #6b6b64;
-  --color-line: #e6e3dc;
-  --color-accent: #1d4ed8;
+  --color-paper: #f4f0e8;
+  --color-page: #faf7f0;
+  --color-card: #fbf9f4;
+  --color-stage: #efe9dd;
+  --color-tint: #e8efe9;
 
-  --font-sans: ui-sans-serif, system-ui, sans-serif;
-  --font-serif: ui-serif, Georgia, "Times New Roman", serif;
+  --color-accent: #1d4d3e;
+  --color-accent-strong: #184034;
+  --color-accent-ink: #143a2e;
+  --color-accent-soft: #3f6b5b;
+  --color-cream: #cfe0d6;
+
+  --color-ink: #20201c;
+  --color-body: #2a2722;
+  --color-muted: #56524a;
+  --color-faint: #8a857b;
+  --color-faint2: #a8a292;
+
+  --color-line: #e6e0d3;
+  --color-line-soft: #efe9dc;
+  --color-hair: #ddd6c8;
+
+  --color-warn: #a9762e;
+  --color-warn-soft: #f3ece0;
+
+  --font-serif: var(--font-newsreader), Georgia, serif;
+  --font-sans: var(--font-hanken), system-ui, sans-serif;
+  --font-mono: var(--font-plex), ui-monospace, monospace;
 }
 
 :root {
@@ -22,7 +41,33 @@ body {
   background: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-sans);
-  /* Comfortable defaults for an older audience. */
   font-size: 17px;
-  line-height: 1.7;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Comfortable, visible focus for an older audience. */
+*:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Placeholder "photo" fill used wherever real imagery will go. */
+.photo-fill {
+  background-image: repeating-linear-gradient(
+    135deg,
+    #ebe5d6 0,
+    #ebe5d6 10px,
+    #e6dfd0 10px,
+    #e6dfd0 20px
+  );
+}
+.photo-fill-green {
+  background-image: repeating-linear-gradient(
+    135deg,
+    #214f41 0,
+    #214f41 10px,
+    #1d4a3c 10px,
+    #1d4a3c 20px
+  );
 }
