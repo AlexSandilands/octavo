@@ -9,6 +9,10 @@ export const headingBlockSchema = z.object({
   type: z.literal("heading"),
   kicker: z.string().default(""),
   title: z.string().default(""),
+  // Heading rank: "main" is the big page/feature title, "section" an article
+  // sub-head, "paragraph" a small run-in sub-head. Optional → "main" so existing
+  // headings keep their look. (Cover pages ignore this and use the hero style.)
+  level: z.enum(["main", "section", "paragraph"]).optional(),
 });
 
 export const textBlockSchema = z.object({
@@ -83,12 +87,25 @@ export const TEXT_SIZES: { value: TextSize; label: string }[] = [
 ];
 
 export function textSizePx(size: TextSize = "m"): number {
-  return { s: 15, m: 17, l: 20, xl: 24 }[size];
+  // Absolute px on the ≈A4 design canvas (PAGE_W×PAGE_H ≈ A4 in points), so
+  // these read like print point sizes: M ≈ normal 11pt A4 body, S a touch
+  // smaller, L/XL for emphasis. The whole page scales to the viewport, so on
+  // screen they render proportionally smaller than these raw numbers.
+  return { s: 11, m: 13, l: 15, xl: 18 }[size];
 }
 
 export function textSizeScale(size: TextSize = "m"): number {
   return { s: 0.88, m: 1, l: 1.18, xl: 1.42 }[size];
 }
+
+export type HeadingLevel = "main" | "section" | "paragraph";
+
+// The heading-rank choices offered in the editor (mirrors TEXT_SIZES).
+export const HEADING_LEVELS: { value: HeadingLevel; label: string }[] = [
+  { value: "main", label: "Main" },
+  { value: "section", label: "Section" },
+  { value: "paragraph", label: "Para" },
+];
 
 export function makeBlock(type: BlockType): Block {
   const id = createId();

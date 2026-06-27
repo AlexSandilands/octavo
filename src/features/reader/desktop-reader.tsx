@@ -21,7 +21,12 @@ function buildToc(pages: Page[]): TocEntry[] {
   const toc: TocEntry[] = [];
   pages.forEach((p, i) => {
     for (const b of p.blocks) {
-      if (b.type === "heading" && b.title.trim()) {
+      // Run-in paragraph sub-heads are too granular for the contents list.
+      if (
+        b.type === "heading" &&
+        b.title.trim() &&
+        (b.level ?? "main") !== "paragraph"
+      ) {
         toc.push({ label: b.title, page: i + 1 });
       }
     }

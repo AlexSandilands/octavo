@@ -85,7 +85,7 @@ export function BlockView({
           )}
           <div
             className="text-ink mt-5 font-serif leading-[1.03]"
-            style={{ fontSize: 50 }}
+            style={{ fontSize: 68 }}
           >
             {f("title", block.title, "Cover title")}
           </div>
@@ -99,7 +99,7 @@ export function BlockView({
     }
     if (block.type === "text") {
       return (
-        <p className="text-muted text-center font-serif text-[20px] leading-relaxed whitespace-pre-line italic">
+        <p className="text-muted text-center font-serif text-[24px] leading-relaxed whitespace-pre-line italic">
           {f("text", block.text, "Add a tagline or date…")}
         </p>
       );
@@ -107,35 +107,76 @@ export function BlockView({
   }
 
   switch (block.type) {
-    case "heading":
-      return classic ? (
-        <div className="text-center">
-          {(edit || block.kicker) && (
-            <div className="text-accent font-serif text-sm italic">
-              {f("kicker", block.kicker, "Kicker")}
-            </div>
-          )}
-          <div className="text-ink mt-1.5 font-serif text-3xl leading-tight">
-            {f("title", block.title, "Heading")}
+    case "heading": {
+      const level = block.level ?? "main";
+      // Kicker (eyebrow) sits above main/section titles; paragraph sub-heads
+      // omit it. One element, themed, reused across the levels below.
+      const kicker = (edit || block.kicker) && level !== "paragraph" && (
+        <div
+          className={
+            classic
+              ? "text-accent font-serif text-[13px] italic"
+              : "text-accent font-sans text-[10px] font-semibold tracking-[0.2em] uppercase"
+          }
+        >
+          {f("kicker", block.kicker, "Kicker")}
+        </div>
+      );
+
+      // Small run-in sub-head — themed but level-agnostic in layout.
+      if (level === "paragraph") {
+        return (
+          <div
+            className={
+              classic
+                ? "text-ink font-serif text-[15px] leading-snug font-semibold"
+                : "text-accent font-sans text-[12px] font-semibold tracking-[0.08em] uppercase"
+            }
+          >
+            {f("title", block.title, "Sub-heading")}
           </div>
-          <div className="mt-3 flex items-center justify-center gap-2.5">
-            <div className="h-px w-10 bg-[#cfc6b4]" />
-            <div className="bg-accent h-1 w-1 rotate-45" />
-            <div className="h-px w-10 bg-[#cfc6b4]" />
+        );
+      }
+
+      if (classic) {
+        return level === "section" ? (
+          <div className="border-t border-[#e0d9c9] pt-3.5">
+            {kicker}
+            <div className="text-ink font-serif text-[24px] leading-tight">
+              {f("title", block.title, "Section heading")}
+            </div>
+          </div>
+        ) : (
+          <div className="text-center">
+            {kicker}
+            <div className="text-ink mt-1.5 font-serif text-[32px] leading-tight">
+              {f("title", block.title, "Heading")}
+            </div>
+            <div className="mt-3 flex items-center justify-center gap-2.5">
+              <div className="h-px w-10 bg-[#cfc6b4]" />
+              <div className="bg-accent h-1 w-1 rotate-45" />
+              <div className="h-px w-10 bg-[#cfc6b4]" />
+            </div>
+          </div>
+        );
+      }
+
+      return level === "section" ? (
+        <div className="border-accent border-t-[2px] pt-2.5">
+          {kicker}
+          <div className="text-ink mt-1 font-serif text-[24px] leading-tight tracking-tight">
+            {f("title", block.title, "Section heading")}
           </div>
         </div>
       ) : (
         <div className="border-accent border-t-[3px] pt-3">
-          {(edit || block.kicker) && (
-            <div className="text-accent font-sans text-[11px] font-semibold tracking-[0.2em] uppercase">
-              {f("kicker", block.kicker, "Kicker")}
-            </div>
-          )}
+          {kicker}
           <div className="text-ink mt-2.5 font-serif text-[32px] leading-none tracking-tight">
             {f("title", block.title, "Heading")}
           </div>
         </div>
       );
+    }
 
     case "text":
       return (

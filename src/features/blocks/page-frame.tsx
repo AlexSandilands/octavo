@@ -4,9 +4,13 @@ import type { Theme } from "./block-view";
 // The fixed design canvas every page is authored and rendered at. The reader and
 // editor never change these px — they render the page at this size and scale the
 // whole thing as a unit (see ScaledPage), so type, images and spacing always
-// keep their proportions. (~15% wider than A-series.)
-export const PAGE_W = 451;
-export const PAGE_H = 592;
+// keep their proportions. Sized generously (≈A4 proportions) so a real page of
+// content — heading, several paragraphs, an image — fits comfortably and body
+// type can be set small without overflowing. Type/spacing are authored in
+// absolute px against these dimensions, so enlarging the canvas makes the same
+// content occupy a smaller, more page-like fraction.
+export const PAGE_W = 640;
+export const PAGE_H = 900;
 
 // Renders a fixed PAGE_W×PAGE_H page scaled to `scale`, reserving the scaled box
 // in layout so neighbours flow correctly. transform-origin top-left keeps the

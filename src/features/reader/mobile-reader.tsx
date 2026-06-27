@@ -23,7 +23,9 @@ export function MobileReader({
   const blocks: Block[] = content.pages.flatMap((p) => p.blocks);
   const headings = blocks.filter(
     (b): b is Extract<Block, { type: "heading" }> =>
-      b.type === "heading" && b.title.trim() !== "",
+      b.type === "heading" &&
+      b.title.trim() !== "" &&
+      (b.level ?? "main") !== "paragraph",
   );
 
   return (
@@ -132,9 +134,23 @@ function MobileBlock({
   cover?: boolean;
 }) {
   switch (block.type) {
-    case "heading":
+    case "heading": {
+      const level = block.level ?? "main";
+      // Paragraph sub-heads: small, bold, no kicker — distinct from body.
+      if (!cover && level === "paragraph") {
+        return (
+          <h3
+            className="text-ink mt-4 mb-1.5 font-serif font-semibold leading-snug"
+            style={{ fontSize: m + 2 }}
+          >
+            {block.title}
+          </h3>
+        );
+      }
+      // main/cover get the largest type; section sits between it and the body.
+      const fontSize = cover ? m + 22 : level === "section" ? m + 7 : m + 13;
       return (
-        <div className={cover ? "mb-4" : "mb-3"}>
+        <div className={cover ? "mb-4" : "mb-3 mt-1"}>
           {block.kicker && (
             <div
               className={`text-accent mb-2 font-sans font-semibold uppercase ${
@@ -148,12 +164,13 @@ function MobileBlock({
           )}
           <h2
             className="text-ink font-serif leading-[1.1]"
-            style={{ fontSize: cover ? m + 22 : m + 12 }}
+            style={{ fontSize }}
           >
             {block.title}
           </h2>
         </div>
       );
+    }
     case "text":
       return cover ? (
         <p
