@@ -1,6 +1,13 @@
-// Seed the local database with a sample issue so the reader has content.
+// Seed the database with ten issues of threaded pétanque content (see
+// seed-data.ts) and the images they reference, processed from /assets the same
+// way the editor processes uploads (WebP, longest edge ≤ 2000px) and written to
+// the local-disk storage backend the reader serves from.
+//
 // Run: npm run db:seed  (after `docker compose up -d` and `npm run db:migrate`)
-import type { IssueContent } from "../lib/blocks";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
+import sharp from "sharp";
+import { buildIssues, SEED_ASSETS, type SeedImages } from "./seed-data";
 
 // Load .env.local before importing modules that read process.env.
 try {
@@ -10,61 +17,58 @@ try {
 }
 
 const id = () => crypto.randomUUID();
+const UPLOAD_ROOT = path.join(process.cwd(), ".data", "uploads");
 
-const longGame: IssueContent = {
-  pages: [
-    {
-      id: id(),
-      blocks: [
-        { id: id(), type: "heading", kicker: "Editorial", title: "A Note on Winter" },
-        { id: id(), type: "text", text: "There is a particular pleasure to a winter morning on the piste: the gravel firm underfoot, breath hanging in the air, and the slow ceremony of measuring a point that no one will concede." },
-        { id: id(), type: "image", caption: "Frost on the terrain, early.", align: "full", width: 100 },
-      ],
-    },
-    {
-      id: id(),
-      blocks: [
-        { id: id(), type: "heading", kicker: "Report", title: "The Winter Doubles" },
-        { id: id(), type: "text", text: "By the second end it was clear the terrain would do most of the talking. The rain of the week before had left the far rink slow and honest; the near rink ran fast and full of opinions." },
-        { id: id(), type: "text", text: "In the end a single boule, eleven millimetres closer than its rival, decided the title. The measure took four minutes. Nobody breathed." },
-        { id: id(), type: "sponsor", name: "Example Sponsor Co.", href: "https://example.com" },
-      ],
-    },
-    {
-      id: id(),
-      blocks: [
-        { id: id(), type: "heading", kicker: "Technique", title: "Reading the Ground" },
-        { id: id(), type: "text", text: "New players think the game is in the hand. It is not — it is in the eye, and the eye is trained on the ground, not the target." },
-        { id: id(), type: "image", caption: "The donnée and the roll.", align: "full", width: 100 },
-      ],
-    },
-  ],
-};
+// Mirror src/lib/image-processing.ts (can't import it: it pulls in `server-only`,
+// which throws outside a React Server environment). WebP, EXIF-rotated, capped.
+async function processAndStore(file: string, name: string) {
+  const input = await readFile(path.join(process.cwd(), "assets", file));
+  const { data, info } = await sharp(input, { failOn: "error" })
+    .rotate()
+    .resize({
+      width: 2000,
+      height: 2000,
+      fit: "inside",
+      withoutEnlargement: true,
+    })
+    .webp({ quality: 82 })
+    .toBuffer({ resolveWithObject: true });
+
+  // Same key shape the app uses; served at /api/images/<key> in local mode.
+  const key = `seed/${name}.webp`;
+  const dest = path.join(UPLOAD_ROOT, key);
+  await mkdir(path.dirname(dest), { recursive: true });
+  await writeFile(dest, data);
+  return { key, width: info.width, height: info.height };
+}
 
 async function main() {
   const { db } = await import("./index");
-  const { issues } = await import("./schema");
+  const { issues, images } = await import("./schema");
 
+  // Pre-mint an id per logical image so the content blocks can reference them.
+  const imageIds = Object.fromEntries(
+    SEED_ASSETS.map((a) => [a.key, id()]),
+  ) as SeedImages;
+
+  // Wipe (images first — they FK onto issues).
+  await db.delete(images);
   await db.delete(issues);
-  await db.insert(issues).values([
-    {
-      number: 14,
-      title: "The Long Game",
-      theme: "classic",
-      status: "published",
-      content: longGame,
-      publishedAt: new Date(),
-    },
-    {
-      number: 15,
-      title: "Untitled draft",
-      theme: "classic",
-      status: "draft",
-      content: { pages: [{ id: id(), blocks: [] }] },
-    },
-  ]);
 
-  console.log("Seeded 1 published issue (No. 14) and 1 draft (No. 15).");
+  // Process + store each asset, then record it.
+  const imageRows = [];
+  for (const a of SEED_ASSETS) {
+    const { key, width, height } = await processAndStore(a.file, a.key);
+    imageRows.push({ id: imageIds[a.key], key, width, height, issueId: null });
+  }
+  await db.insert(images).values(imageRows);
+
+  const rows = buildIssues(imageIds);
+  await db.insert(issues).values(rows);
+
+  console.log(
+    `Seeded ${rows.length} published issues and ${imageRows.length} images.`,
+  );
   process.exit(0);
 }
 
