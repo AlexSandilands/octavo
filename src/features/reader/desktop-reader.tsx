@@ -323,14 +323,21 @@ function PageView({
       side={side}
     >
       {page && (
-        <div className="relative flow-root">
+        <div
+          className={
+            page.cover
+              ? "flex min-h-full flex-col justify-center"
+              : "relative flow-root"
+          }
+        >
           {page.blocks.map((b) => (
-            <div key={b.id} style={blockFlowStyle(b)}>
+            <div key={b.id} style={blockFlowStyle(b, page.cover)}>
               <BlockView
                 block={b}
                 theme={theme}
                 textSize={dtext}
                 images={images}
+                variant={page.cover ? "cover" : undefined}
               />
             </div>
           ))}

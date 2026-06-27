@@ -10,7 +10,19 @@ import type { Block } from "@/lib/blocks";
 const GAP = 14; // px — matches the old flex gap-3.5
 const FLOAT_GUTTER = 18; // px between a floated image and the wrapping text
 
-export function blockFlowStyle(block: Block): CSSProperties {
+export function blockFlowStyle(block: Block, cover = false): CSSProperties {
+  // Cover pages never wrap text around floats: every block is centred and
+  // stacked, images sized by their width and centred. The page itself is
+  // vertically centred by the cover container (see the readers / editor).
+  if (cover) {
+    const base: CSSProperties = { marginBottom: 24 };
+    if (block.type === "image") {
+      const width = block.width ?? 100;
+      return { ...base, width: `${width}%`, marginInline: "auto" };
+    }
+    return base;
+  }
+
   const base: CSSProperties = { marginBottom: GAP };
 
   if (block.type === "heading") return { ...base, clear: "both" };

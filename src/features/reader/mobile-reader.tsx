@@ -59,9 +59,22 @@ export function MobileReader({
       </header>
 
       <article className="flex-1 px-5 pt-6 pb-10">
-        {blocks.map((b) => (
-          <MobileBlock key={b.id} block={b} m={m} images={images} />
-        ))}
+        {content.pages.map((p) =>
+          p.cover ? (
+            <section
+              key={p.id}
+              className="border-line-soft mb-8 border-b py-8 text-center"
+            >
+              {p.blocks.map((b) => (
+                <MobileBlock key={b.id} block={b} m={m} images={images} cover />
+              ))}
+            </section>
+          ) : (
+            p.blocks.map((b) => (
+              <MobileBlock key={b.id} block={b} m={m} images={images} />
+            ))
+          ),
+        )}
       </article>
 
       {drawer && (
@@ -111,32 +124,47 @@ function MobileBlock({
   block,
   m,
   images,
+  cover,
 }: {
   block: Block;
   m: number;
   images: ImageMap;
+  cover?: boolean;
 }) {
   switch (block.type) {
     case "heading":
       return (
-        <div className="mb-3">
+        <div className={cover ? "mb-4" : "mb-3"}>
           {block.kicker && (
-            <div className="text-accent mb-2 font-sans text-[11px] font-semibold tracking-[0.2em] uppercase">
+            <div
+              className={`text-accent mb-2 font-sans font-semibold uppercase ${
+                cover
+                  ? "text-[12px] tracking-[0.3em]"
+                  : "text-[11px] tracking-[0.2em]"
+              }`}
+            >
               {block.kicker}
             </div>
           )}
           <h2
             className="text-ink font-serif leading-[1.1]"
-            style={{ fontSize: m + 12 }}
+            style={{ fontSize: cover ? m + 22 : m + 12 }}
           >
             {block.title}
           </h2>
         </div>
       );
     case "text":
-      return (
+      return cover ? (
         <p
-          className="text-body mb-4 font-serif"
+          className="text-muted mb-3 font-serif whitespace-pre-line italic"
+          style={{ fontSize: m + 2, lineHeight: 1.6 }}
+        >
+          {block.text}
+        </p>
+      ) : (
+        <p
+          className="text-body mb-4 font-serif whitespace-pre-line"
           style={{ fontSize: m, lineHeight: 1.62 }}
         >
           {block.text}

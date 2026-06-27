@@ -17,6 +17,7 @@ import { ImageLayoutControls } from "./image-layout";
 export function EditorBlock({
   block,
   theme,
+  cover,
   selected,
   issueId,
   images,
@@ -28,6 +29,7 @@ export function EditorBlock({
 }: {
   block: Block;
   theme: Theme;
+  cover?: boolean;
   selected: boolean;
   issueId: string;
   images: ImageMap;
@@ -47,11 +49,20 @@ export function EditorBlock({
     isDragging,
   } = useSortable({ id: block.id });
 
+  // A floated (inline left/right) image is an earlier sibling than the text that
+  // wraps it, so the text block's box paints on top and swallows clicks on the
+  // image. Lift the floated image above the wrapping text so it stays
+  // selectable (and its hover ring isn't hidden behind the text box).
+  const floated =
+    block.type === "image" &&
+    (block.align === "left" || block.align === "right");
+
   return (
     <div
       ref={setNodeRef}
       style={{
-        ...blockFlowStyle(block),
+        ...blockFlowStyle(block, cover),
+        ...(floated && !isDragging ? { zIndex: 5 } : {}),
         transform: CSS.Translate.toString(transform),
         transition,
       }}
@@ -131,6 +142,7 @@ export function EditorBlock({
         theme={theme}
         edit={{ onChange }}
         images={images}
+        variant={cover ? "cover" : undefined}
       />
     </div>
   );

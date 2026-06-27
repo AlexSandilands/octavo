@@ -48,6 +48,7 @@ export function BlockView({
   textSize = 17,
   edit,
   images,
+  variant,
 }: {
   block: Block;
   theme: Theme;
@@ -55,6 +56,8 @@ export function BlockView({
   edit?: BlockEditHandlers;
   /** imageId → resolved R2 image; absent ids render as the photo placeholder. */
   images?: ImageMap;
+  /** "cover" switches headings/text to the oversized, centred cover treatment. */
+  variant?: "cover";
 }) {
   const classic = theme === "Classic";
 
@@ -69,6 +72,41 @@ export function BlockView({
     ) : (
       value
     );
+
+  // Cover pages render headings and body text much larger and centred; images
+  // and sponsors fall through to the normal rendering (already centred, and
+  // sized/centred by `blockFlowStyle`'s cover branch).
+  if (variant === "cover") {
+    if (block.type === "heading") {
+      return (
+        <div className="text-center">
+          {(edit || block.kicker) && (
+            <div className="text-accent font-sans text-[12px] font-semibold tracking-[0.34em] uppercase">
+              {f("kicker", block.kicker, "Masthead")}
+            </div>
+          )}
+          <div
+            className="text-ink mt-5 font-serif leading-[1.03]"
+            style={{ fontSize: 50 }}
+          >
+            {f("title", block.title, "Cover title")}
+          </div>
+          <div className="mt-7 flex items-center justify-center gap-3">
+            <div className="h-px w-16 bg-[#cfc6b4]" />
+            <div className="bg-accent h-1.5 w-1.5 rotate-45" />
+            <div className="h-px w-16 bg-[#cfc6b4]" />
+          </div>
+        </div>
+      );
+    }
+    if (block.type === "text") {
+      return (
+        <p className="text-muted text-center font-serif text-[20px] leading-relaxed whitespace-pre-line italic">
+          {f("text", block.text, "Add a tagline or date…")}
+        </p>
+      );
+    }
+  }
 
   switch (block.type) {
     case "heading":
@@ -104,7 +142,7 @@ export function BlockView({
     case "text":
       return (
         <p
-          className="text-body font-serif"
+          className="text-body font-serif whitespace-pre-line"
           style={{ fontSize: textSize, lineHeight: 1.62 }}
         >
           {f("text", block.text, "Write your paragraph…")}

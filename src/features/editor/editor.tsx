@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Icon, type IconName } from "@/components/icons";
 import {
   makeBlock,
@@ -32,6 +33,7 @@ import type { ImageMap, ResolvedImage } from "@/lib/images";
 import { type Theme } from "@/features/blocks/block-view";
 import { PageFrame } from "@/features/blocks/page-frame";
 import { EditorBlock } from "./editor-block";
+import { PublishModal } from "./publish-modal";
 import {
   publishIssueAction,
   saveIssueAction,
@@ -80,6 +82,19 @@ export function Editor({
   const [pub, setPub] = useState(false);
   const [status, setStatus] = useState<"saved" | "saving">("saved");
   const [addMenu, setAddMenu] = useState(false);
+  const router = useRouter();
+
+  // Flush the latest content + meta to the server *now*, bypassing the debounce.
+  // Navigating to Preview (or publishing) before the 800ms autosave fires would
+  // otherwise drop the most recent edits — they'd reload stale from the DB.
+  const flushSave = async () => {
+    setStatus("saving");
+    await Promise.all([
+      saveIssueAction(issue.id, { pages }),
+      saveMetaAction(issue.id, { title, theme }),
+    ]);
+    setStatus("saved");
+  };
 
   // Drag from the handle, or move with the keyboard once the handle is focused.
   // A small distance threshold lets a plain click on the handle still select.
@@ -153,6 +168,8 @@ export function Editor({
   const editPage = (fn: (p: Page) => Page) =>
     setPages((ps) => ps.map((p, i) => (i === curPage ? fn(p) : p)));
 
+  const toggleCover = () =>
+    editPage((p) => ({ ...p, cover: !p.cover }));
   const addBlock = (type: BlockType) => {
     const blk = makeBlock(type);
     editPage((p) => ({ ...p, blocks: [...p.blocks, blk] }));
@@ -244,12 +261,23 @@ export function Editor({
             Theme: {theme}
             <Icon name="chevronDown" size={14} strokeWidth={1.8} />
           </button>
-          <Link
-            href={`/read/${issue.number}`}
+          <button
+            onClick={async () => {
+              // Open the preview in a new tab so the editor stays mounted with
+              // its unsaved in-memory state — closing the tab returns you to the
+              // editor exactly as you left it (no stale back-navigation render).
+              // The blank tab is opened in the click gesture to dodge popup
+              // blockers, then pointed at the reader once the save lands.
+              const tab = window.open("", "_blank");
+              await flushSave();
+              const url = `/read/${issue.number}`;
+              if (tab) tab.location.href = url;
+              else router.push(url);
+            }}
             className="border-hair text-ink flex h-10 items-center rounded-lg border-[1.5px] bg-white px-4 font-sans text-sm font-semibold"
           >
             Preview
-          </Link>
+          </button>
           <button
             onClick={() => setPub(true)}
             className="bg-accent text-paper flex h-10 items-center rounded-lg px-5 font-sans text-sm font-semibold shadow-[0_2px_8px_rgba(29,77,62,0.25)]"
@@ -347,6 +375,21 @@ export function Editor({
                 {b.label}
               </button>
             ))}
+            <div className="ml-auto flex items-center">
+              <button
+                onClick={toggleCover}
+                aria-pressed={Boolean(page?.cover)}
+                title="Lay this page out as a cover"
+                className={`flex h-[34px] items-center gap-1.5 rounded-[7px] border px-3.5 font-sans text-[13px] font-semibold ${
+                  page?.cover
+                    ? "border-accent bg-accent text-paper"
+                    : "text-ink border-[#e0d9c9] bg-white hover:border-accent hover:bg-[#f4f8f5]"
+                }`}
+              >
+                <Icon name="doc" size={15} />
+                Cover page
+              </button>
+            </div>
           </div>
 
           <div
@@ -373,7 +416,13 @@ export function Editor({
                     items={(page?.blocks ?? []).map((b) => b.id)}
                     strategy={verticalListSortingStrategy}
                   >
-                    <div className="relative flow-root">
+                    <div
+                      className={
+                        page?.cover
+                          ? "flex min-h-full flex-col justify-center"
+                          : "relative flow-root"
+                      }
+                    >
                       {page && page.blocks.length === 0 && (
                         <div className="text-faint2 py-16 text-center font-serif text-sm">
                           This page is empty. Add a block above.
@@ -384,6 +433,7 @@ export function Editor({
                           key={b.id}
                           block={b}
                           theme={themeName}
+                          cover={page.cover}
                           selected={b.id === sel}
                           issueId={issue.id}
                           images={images}
@@ -408,55 +458,12 @@ export function Editor({
           number={issue.number}
           onClose={() => setPub(false)}
           onConfirm={async () => {
+            await flushSave();
             await publishIssueAction(issue.id);
             setPub(false);
           }}
         />
       )}
-    </div>
-  );
-}
-
-function PublishModal({
-  number,
-  onClose,
-  onConfirm,
-}: {
-  number: number;
-  onClose: () => void;
-  onConfirm: () => void;
-}) {
-  return (
-    <div className="absolute inset-0 flex items-center justify-center bg-[rgba(32,32,28,0.4)] p-4">
-      <div className="bg-card w-[480px] overflow-hidden rounded-[10px] shadow-[0_24px_60px_rgba(0,0,0,0.3)]">
-        <div className="px-8 pt-7">
-          <div className="text-accent font-sans text-[10px] font-semibold tracking-[0.2em] uppercase">
-            Publish &amp; send
-          </div>
-          <h2 className="text-ink mt-3 font-serif text-[27px] leading-tight">
-            Publish issue No. {number}?
-          </h2>
-          <p className="text-muted mt-2.5 font-sans text-[15px] leading-relaxed">
-            This marks the issue published so members can read it. (Email blasts
-            arrive in a later phase.)
-          </p>
-        </div>
-        <div className="flex justify-end gap-3 px-8 pt-6 pb-6">
-          <button
-            onClick={onClose}
-            className="border-hair text-ink flex h-12 items-center rounded-lg border-[1.5px] bg-white px-5 font-sans text-[15px] font-semibold"
-          >
-            Keep as draft
-          </button>
-          <button
-            onClick={onConfirm}
-            className="bg-accent text-paper flex h-12 items-center gap-2 rounded-lg px-6 font-sans text-[15px] font-semibold shadow-[0_2px_10px_rgba(29,77,62,0.3)]"
-          >
-            <Icon name="check" size={18} strokeWidth={1.8} />
-            Publish
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

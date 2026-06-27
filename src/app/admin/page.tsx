@@ -4,6 +4,7 @@ import { Pill } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { EmptyIssues } from "@/components/empty-states";
 import { listIssues } from "@/server/issues";
+import { DeleteIssueButton } from "@/features/admin/delete-issue-button";
 import { createIssueAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -66,6 +67,7 @@ export default async function AdminDashboard() {
               >
                 Edit
               </Link>
+              <DeleteIssueButton id={i.id} title={i.title} />
             </div>
           ))}
         </div>

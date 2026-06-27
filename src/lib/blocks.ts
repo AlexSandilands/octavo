@@ -46,6 +46,11 @@ export const blockSchema = z.discriminatedUnion("type", [
 
 export const pageSchema = z.object({
   id: z.string(),
+  // A cover page is laid out and styled differently from a normal page —
+  // vertically centred, oversized hero type, every block centred (see the
+  // "cover" variant in BlockView and `blockFlowStyle`). Optional + defaults to a
+  // normal page, so existing issues are unaffected.
+  cover: z.boolean().optional(),
   blocks: z.array(blockSchema),
 });
 
@@ -79,10 +84,9 @@ export function makeBlock(type: BlockType): Block {
 }
 
 // Page templates the editor offers from the "Add page" menu. "blank" is the
-// plain page; the rest are cover layouts pre-filled with arranged blocks so the
-// author starts from a finished-looking design and edits in place. Covers are
-// composed from ordinary blocks, so they render through the same theme and
-// reader path as every other page — no special-casing downstream.
+// plain page; the rest are cover layouts. Covers carry `cover: true` so the
+// reader and editor render them with the dedicated cover treatment (centred,
+// oversized hero type) — see `makePage` and the "cover" variant in BlockView.
 export type PageTemplate =
   | "blank"
   | "cover-classic"
@@ -119,22 +123,21 @@ export function makePage(template: PageTemplate = "blank"): Page {
     case "cover-classic":
       return {
         id,
+        cover: true,
         blocks: [
-          { id: bid(), type: "heading", kicker: "Members' Magazine", title: "Spring Issue" },
-          { id: bid(), type: "image", caption: "Cover photograph", align: "full", width: 100 },
-          {
-            id: bid(),
-            type: "text",
-            text: "A short, evocative line that sets the tone for this issue.",
-          },
+          { id: bid(), type: "heading", kicker: "The Members' Magazine", title: "Spring Issue" },
+          { id: bid(), type: "image", caption: "", align: "full", width: 55 },
+          { id: bid(), type: "text", text: "Official Club Newsletter" },
+          { id: bid(), type: "text", text: "Spring 2026" },
         ],
       };
     case "cover-feature":
       return {
         id,
+        cover: true,
         blocks: [
-          { id: bid(), type: "image", caption: "Cover photograph", align: "full", width: 100 },
           { id: bid(), type: "heading", kicker: "In this issue", title: "The Headline Story" },
+          { id: bid(), type: "image", caption: "", align: "full", width: 70 },
           {
             id: bid(),
             type: "text",
@@ -145,6 +148,7 @@ export function makePage(template: PageTemplate = "blank"): Page {
     case "cover-minimal":
       return {
         id,
+        cover: true,
         blocks: [
           { id: bid(), type: "heading", kicker: "Volume One", title: "The Issue Title" },
           { id: bid(), type: "text", text: "Spring 2026" },

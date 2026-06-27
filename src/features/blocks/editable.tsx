@@ -24,7 +24,8 @@ export function Editable({
 
   useLayoutEffect(() => {
     const el = ref.current;
-    if (el && el.textContent !== value) el.textContent = value;
+    // Seed via innerText so saved line breaks (\n) render as real breaks.
+    if (el && el.innerText !== value) el.innerText = value;
     // Mount-only on purpose — see the note above.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -38,8 +39,10 @@ export function Editable({
       contentEditable
       suppressContentEditableWarning
       data-placeholder={placeholder}
-      onInput={(e) => onChange(e.currentTarget.textContent ?? "")}
-      className={`editable block w-full cursor-text outline-none ${className ?? ""}`}
+      // innerText (not textContent) so the line breaks the author types with
+      // Enter are captured as \n and survive the round-trip to the reader.
+      onInput={(e) => onChange(e.currentTarget.innerText)}
+      className={`editable block w-full cursor-text whitespace-pre-wrap outline-none ${className ?? ""}`}
     />
   );
 }
