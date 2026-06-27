@@ -71,6 +71,24 @@ const ICONS: Record<string, ReactNode> = {
       <path d="M21 16l-5-5L5 19" />
     </>
   ),
+  wrapLeft: (
+    <>
+      <rect x="3" y="4.5" width="8" height="7" rx="1" />
+      <path d="M13 6h8M13 10h8M3 15h18M3 19h18" />
+    </>
+  ),
+  wrapRight: (
+    <>
+      <rect x="13" y="4.5" width="8" height="7" rx="1" />
+      <path d="M3 6h8M3 10h8M3 15h18M3 19h18" />
+    </>
+  ),
+  breakText: (
+    <>
+      <rect x="3" y="4.5" width="18" height="7" rx="1" />
+      <path d="M3 15h18M3 19h18" />
+    </>
+  ),
   doc: (
     <>
       <path d="M6 3h9l3 3v15H6z" />

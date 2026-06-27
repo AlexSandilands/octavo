@@ -5,10 +5,18 @@ import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { site } from "@/lib/site";
 import type { Block, IssueContent } from "@/lib/blocks";
+import type { ImageMap } from "@/lib/images";
+import { BlockImage } from "@/features/blocks/block-view";
 
 // Mobile reader: the whole issue as one flowing column (also the accessibility
 // fallback). Same block data as the flipbook, presented single-column.
-export function MobileReader({ content }: { content: IssueContent }) {
+export function MobileReader({
+  content,
+  images,
+}: {
+  content: IssueContent;
+  images: ImageMap;
+}) {
   const [m, setM] = useState(19);
   const [drawer, setDrawer] = useState(false);
 
@@ -52,7 +60,7 @@ export function MobileReader({ content }: { content: IssueContent }) {
 
       <article className="flex-1 px-5 pt-6 pb-10">
         {blocks.map((b) => (
-          <MobileBlock key={b.id} block={b} m={m} />
+          <MobileBlock key={b.id} block={b} m={m} images={images} />
         ))}
       </article>
 
@@ -99,7 +107,15 @@ export function MobileReader({ content }: { content: IssueContent }) {
   );
 }
 
-function MobileBlock({ block, m }: { block: Block; m: number }) {
+function MobileBlock({
+  block,
+  m,
+  images,
+}: {
+  block: Block;
+  m: number;
+  images: ImageMap;
+}) {
   switch (block.type) {
     case "heading":
       return (
@@ -126,14 +142,34 @@ function MobileBlock({ block, m }: { block: Block; m: number }) {
           {block.text}
         </p>
       );
-    case "image":
+    case "image": {
+      const resolved = block.imageId ? images[block.imageId] : undefined;
+      // Phones don't wrap text around floats (too cramped for the audience):
+      // honour the chosen size and align the (smaller) image left/right/centre.
+      const width = block.width ?? 100;
+      const align = block.align ?? "full";
+      const sized = width < 100;
+      const alignClass = sized
+        ? align === "left"
+          ? "mr-auto"
+          : align === "right"
+            ? "ml-auto"
+            : "mx-auto"
+        : "";
       return (
-        <figure className="my-3">
-          <div className="photo-fill flex h-[180px] items-center justify-center border border-[#e2dccf]">
-            <span className="bg-page text-faint px-2 py-1 font-mono text-[11px]">
-              {block.caption || "PHOTO"}
-            </span>
-          </div>
+        <figure
+          className={`my-3 ${alignClass}`}
+          style={sized ? { width: `${width}%` } : undefined}
+        >
+          {resolved ? (
+            <BlockImage image={resolved} alt={block.caption} />
+          ) : (
+            <div className="photo-fill flex h-[180px] items-center justify-center border border-[#e2dccf]">
+              <span className="bg-page text-faint px-2 py-1 font-mono text-[11px]">
+                {block.caption || "PHOTO"}
+              </span>
+            </div>
+          )}
           {block.caption && (
             <figcaption
               className="text-faint mt-2 font-sans"
@@ -144,6 +180,7 @@ function MobileBlock({ block, m }: { block: Block; m: number }) {
           )}
         </figure>
       );
+    }
     case "sponsor":
       return (
         <div className="bg-tint my-4 flex items-center gap-3 rounded-md p-4">

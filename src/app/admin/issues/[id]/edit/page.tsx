@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { Editor } from "@/features/editor/editor";
 import { getIssue } from "@/server/issues";
+import { resolveIssueImages } from "@/server/images";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,8 @@ export default async function EditIssuePage({
   const issue = await getIssue(id);
   if (!issue) notFound();
 
+  const images = await resolveIssueImages(issue.content);
+
   return (
     <Editor
       issue={{
@@ -22,6 +25,7 @@ export default async function EditIssuePage({
         theme: issue.theme,
         content: issue.content,
       }}
+      images={images}
     />
   );
 }

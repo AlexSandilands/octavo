@@ -28,6 +28,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import type { ImageMap, ResolvedImage } from "@/lib/images";
 import { type Theme } from "@/features/blocks/block-view";
 import { PageFrame } from "@/features/blocks/page-frame";
 import { EditorBlock } from "./editor-block";
@@ -52,15 +53,30 @@ export type EditorIssue = {
   content: IssueContent;
 };
 
-export function Editor({ issue }: { issue: EditorIssue }) {
+export function Editor({
+  issue,
+  images: initialImages,
+}: {
+  issue: EditorIssue;
+  images: ImageMap;
+}) {
   const initialPages =
     issue.content.pages.length > 0 ? issue.content.pages : [makePage()];
 
   const [pages, setPages] = useState<Page[]>(initialPages);
+  // imageId → resolved image, seeded from the server and grown as uploads land,
+  // so the canvas previews an image the moment it's uploaded.
+  const [images, setImages] = useState<ImageMap>(initialImages);
+  const registerImage = (imageId: string, image: ResolvedImage) =>
+    setImages((m) => ({ ...m, [imageId]: image }));
   const [title, setTitle] = useState(issue.title);
-  const [theme, setTheme] = useState(issue.theme === "modern" ? "modern" : "classic");
+  const [theme, setTheme] = useState(
+    issue.theme === "modern" ? "modern" : "classic",
+  );
   const [curPage, setCurPage] = useState(0);
-  const [sel, setSel] = useState<string | null>(initialPages[0]?.blocks[0]?.id ?? null);
+  const [sel, setSel] = useState<string | null>(
+    initialPages[0]?.blocks[0]?.id ?? null,
+  );
   const [pub, setPub] = useState(false);
   const [status, setStatus] = useState<"saved" | "saving">("saved");
   const [addMenu, setAddMenu] = useState(false);
@@ -69,7 +85,9 @@ export function Editor({ issue }: { issue: EditorIssue }) {
   // A small distance threshold lets a plain click on the handle still select.
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
   );
 
   // Debounced autosave of content.
@@ -140,10 +158,12 @@ export function Editor({ issue }: { issue: EditorIssue }) {
     editPage((p) => ({ ...p, blocks: [...p.blocks, blk] }));
     setSel(blk.id);
   };
-  const updateBlock = (id: string, patch: Record<string, string>) =>
+  const updateBlock = (id: string, patch: Record<string, string | number>) =>
     editPage((p) => ({
       ...p,
-      blocks: p.blocks.map((b) => (b.id === id ? ({ ...b, ...patch } as Block) : b)),
+      blocks: p.blocks.map((b) =>
+        b.id === id ? ({ ...b, ...patch } as Block) : b,
+      ),
     }));
   const moveBlock = (id: string, dir: -1 | 1) =>
     editPage((p) => {
@@ -191,7 +211,11 @@ export function Editor({ issue }: { issue: EditorIssue }) {
     <div className="bg-card relative flex min-h-screen flex-col">
       <header className="border-line flex h-[60px] flex-none items-center justify-between border-b px-6">
         <div className="flex items-center gap-3.5">
-          <Link href="/admin" className="text-muted" aria-label="Back to issues">
+          <Link
+            href="/admin"
+            className="text-muted"
+            aria-label="Back to issues"
+          >
             <Icon name="chevronLeft" size={20} />
           </Link>
           <input
@@ -212,7 +236,9 @@ export function Editor({ issue }: { issue: EditorIssue }) {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setTheme((t) => (t === "classic" ? "modern" : "classic"))}
+            onClick={() =>
+              setTheme((t) => (t === "classic" ? "modern" : "classic"))
+            }
             className="border-hair text-ink hover:border-accent flex h-10 items-center gap-2 rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-sm font-medium capitalize"
           >
             Theme: {theme}
@@ -347,7 +373,7 @@ export function Editor({ issue }: { issue: EditorIssue }) {
                     items={(page?.blocks ?? []).map((b) => b.id)}
                     strategy={verticalListSortingStrategy}
                   >
-                    <div className="relative flex flex-col gap-3.5">
+                    <div className="relative flow-root">
                       {page && page.blocks.length === 0 && (
                         <div className="text-faint2 py-16 text-center font-serif text-sm">
                           This page is empty. Add a block above.
@@ -359,10 +385,13 @@ export function Editor({ issue }: { issue: EditorIssue }) {
                           block={b}
                           theme={themeName}
                           selected={b.id === sel}
+                          issueId={issue.id}
+                          images={images}
                           onSelect={() => setSel(b.id)}
                           onChange={(patch) => updateBlock(b.id, patch)}
                           onMove={(dir) => moveBlock(b.id, dir)}
                           onRemove={() => removeBlock(b.id)}
+                          onRegisterImage={registerImage}
                         />
                       ))}
                     </div>

@@ -22,6 +22,11 @@ export const imageBlockSchema = z.object({
   type: z.literal("image"),
   imageId: z.string().optional(), // resolved to an R2 image later
   caption: z.string().default(""),
+  // Layout: "full" breaks the text (block, full column width); "left"/"right"
+  // float the image so the following text wraps beside it. `width` is a percent
+  // of the text column.
+  align: z.enum(["full", "left", "right"]).default("full"),
+  width: z.number().min(20).max(100).default(100),
 });
 
 export const sponsorBlockSchema = z.object({
@@ -67,7 +72,7 @@ export function makeBlock(type: BlockType): Block {
         text: "Write your paragraph here. The theme takes care of the type, spacing and rules.",
       };
     case "image":
-      return { id, type, caption: "" };
+      return { id, type, caption: "", align: "full", width: 100 };
     case "sponsor":
       return { id, type, name: "Sponsor name" };
   }
@@ -116,7 +121,7 @@ export function makePage(template: PageTemplate = "blank"): Page {
         id,
         blocks: [
           { id: bid(), type: "heading", kicker: "Members' Magazine", title: "Spring Issue" },
-          { id: bid(), type: "image", caption: "Cover photograph" },
+          { id: bid(), type: "image", caption: "Cover photograph", align: "full", width: 100 },
           {
             id: bid(),
             type: "text",
@@ -128,7 +133,7 @@ export function makePage(template: PageTemplate = "blank"): Page {
       return {
         id,
         blocks: [
-          { id: bid(), type: "image", caption: "Cover photograph" },
+          { id: bid(), type: "image", caption: "Cover photograph", align: "full", width: 100 },
           { id: bid(), type: "heading", kicker: "In this issue", title: "The Headline Story" },
           {
             id: bid(),

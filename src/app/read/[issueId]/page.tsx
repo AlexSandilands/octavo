@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { DesktopReader } from "@/features/reader/desktop-reader";
 import { MobileReader } from "@/features/reader/mobile-reader";
 import { getPublishedIssueByNumber } from "@/server/issues";
+import { resolveIssueImages } from "@/server/images";
 
 export const dynamic = "force-dynamic";
 
@@ -17,13 +18,19 @@ export default async function ReadPage({
     : null;
   if (!issue) notFound();
 
+  const images = await resolveIssueImages(issue.content);
+
   return (
     <>
       <div className="hidden md:block">
-        <DesktopReader content={issue.content} issueNo={issue.number} />
+        <DesktopReader
+          content={issue.content}
+          issueNo={issue.number}
+          images={images}
+        />
       </div>
       <div className="md:hidden">
-        <MobileReader content={issue.content} />
+        <MobileReader content={issue.content} images={images} />
       </div>
     </>
   );

@@ -1,13 +1,43 @@
+import Image from "next/image";
 import type { Block } from "@/lib/blocks";
+import type { ImageMap, ResolvedImage } from "@/lib/images";
 import { Editable } from "./editable";
 
 export type Theme = "Classic" | "Modern";
+
+// A resolved image, scaled to its container width at its natural aspect ratio.
+// next/image needs intrinsic dimensions; older records may lack them, so fall
+// back to a plain <img> in that case. Shared by the editor and both readers.
+export function BlockImage({
+  image,
+  alt,
+}: {
+  image: ResolvedImage;
+  alt: string;
+}) {
+  if (image.width && image.height) {
+    return (
+      <Image
+        src={image.url}
+        alt={alt}
+        width={image.width}
+        height={image.height}
+        sizes="(max-width: 768px) 100vw, 480px"
+        className="h-auto w-full"
+      />
+    );
+  }
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={image.url} alt={alt} className="h-auto w-full" />;
+}
 
 // How a block's editable fields are written back. When present, BlockView
 // renders its text in-place editable (admin editor); when absent, it renders
 // read-only (reader / PDF). One renderer → the editor looks exactly like the
 // reader, the only difference being you can click the text and type.
-export type BlockEditHandlers = { onChange: (patch: Record<string, string>) => void };
+export type BlockEditHandlers = {
+  onChange: (patch: Record<string, string | number>) => void;
+};
 
 // Read-only OR editable themed rendering of one block. Shared by the desktop
 // reader and the admin editor. Body text scales with `textSize` (the A−/A+
@@ -17,11 +47,14 @@ export function BlockView({
   theme,
   textSize = 17,
   edit,
+  images,
 }: {
   block: Block;
   theme: Theme;
   textSize?: number;
   edit?: BlockEditHandlers;
+  /** imageId → resolved R2 image; absent ids render as the photo placeholder. */
+  images?: ImageMap;
 }) {
   const classic = theme === "Classic";
 
@@ -78,14 +111,26 @@ export function BlockView({
         </p>
       );
 
-    case "image":
+    case "image": {
+      const resolved = block.imageId ? images?.[block.imageId] : undefined;
+      const photo = resolved ? (
+        <BlockImage image={resolved} alt={block.caption} />
+      ) : classic ? (
+        <div className="photo-fill flex h-[150px] items-center justify-center border border-[#e2dccf]">
+          <span className="bg-page text-faint px-2 py-1 font-mono text-[11px]">
+            {block.caption || "PHOTO"}
+          </span>
+        </div>
+      ) : (
+        <div className="photo-fill-green flex h-[150px] items-center justify-center">
+          <span className="text-cream bg-[rgba(20,40,30,0.4)] px-2 py-1 font-mono text-[11px]">
+            {block.caption || "PHOTO"}
+          </span>
+        </div>
+      );
       return classic ? (
         <figure>
-          <div className="photo-fill flex h-[150px] items-center justify-center border border-[#e2dccf]">
-            <span className="bg-page text-faint px-2 py-1 font-mono text-[11px]">
-              {block.caption || "PHOTO"}
-            </span>
-          </div>
+          {photo}
           {(edit || block.caption) && (
             <figcaption className="text-muted mt-2.5 text-center font-serif text-sm italic">
               {f("caption", block.caption, "Caption (optional)")}
@@ -94,11 +139,7 @@ export function BlockView({
         </figure>
       ) : (
         <figure>
-          <div className="photo-fill-green flex h-[150px] items-center justify-center">
-            <span className="text-cream bg-[rgba(20,40,30,0.4)] px-2 py-1 font-mono text-[11px]">
-              {block.caption || "PHOTO"}
-            </span>
-          </div>
+          {photo}
           {(edit || block.caption) && (
             <figcaption className="mt-2.5 flex items-start gap-2.5">
               <div className="bg-accent h-7 w-[3px] flex-none" />
@@ -109,6 +150,7 @@ export function BlockView({
           )}
         </figure>
       );
+    }
 
     case "sponsor":
       return classic ? (

@@ -5,7 +5,9 @@ import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { site } from "@/lib/site";
 import type { IssueContent, Page } from "@/lib/blocks";
+import type { ImageMap } from "@/lib/images";
 import { BlockView, type Theme } from "@/features/blocks/block-view";
+import { blockFlowStyle } from "@/features/blocks/layout";
 import { PageFrame } from "@/features/blocks/page-frame";
 
 const PAGE_RATIO = 451 / 592; // width / height of a single page (~15% wider than A-series)
@@ -27,9 +29,11 @@ function buildToc(pages: Page[]): TocEntry[] {
 export function DesktopReader({
   content,
   issueNo,
+  images,
 }: {
   content: IssueContent;
   issueNo: number;
+  images: ImageMap;
 }) {
   const pages = content.pages;
   const toc = buildToc(pages);
@@ -92,7 +96,11 @@ export function DesktopReader({
 
       {collapsed ? (
         <aside className="bg-card border-line flex w-[54px] flex-none flex-col items-center gap-4 border-r py-5">
-          <Link href="/" title="Back to library" className="text-muted hover:text-accent">
+          <Link
+            href="/"
+            title="Back to library"
+            className="text-muted hover:text-accent"
+          >
             <Icon name="chevronLeft" size={20} />
           </Link>
           <div className="bg-line h-px w-6" />
@@ -167,15 +175,38 @@ export function DesktopReader({
       <div ref={stageRef} className="relative flex-1 overflow-auto">
         <div className="flex min-h-full min-w-full items-center justify-center p-6">
           <div className="flex shadow-[0_18px_40px_rgba(40,36,28,0.18)]">
-            <PageView page={left} side="left" theme={theme} dtext={dtext} w={pageW} h={pageH} issueNo={issueNo} pageNo={spread * 2 + 1} />
-            <PageView page={right} side="right" theme={theme} dtext={dtext} w={pageW} h={pageH} issueNo={issueNo} pageNo={spread * 2 + 2} />
+            <PageView
+              page={left}
+              side="left"
+              theme={theme}
+              dtext={dtext}
+              w={pageW}
+              h={pageH}
+              issueNo={issueNo}
+              pageNo={spread * 2 + 1}
+              images={images}
+            />
+            <PageView
+              page={right}
+              side="right"
+              theme={theme}
+              dtext={dtext}
+              w={pageW}
+              h={pageH}
+              issueNo={issueNo}
+              pageNo={spread * 2 + 2}
+              images={images}
+            />
           </div>
         </div>
       </div>
 
       <div className="group absolute inset-x-0 bottom-0 flex justify-center px-4 pt-12 pb-4">
         <div className="flex items-center gap-1.5 rounded-full bg-[#211f1a] px-2.5 py-2 text-[#e7e2d6] opacity-20 shadow-[0_8px_24px_rgba(0,0,0,0.28)] transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
-          <CtrlBtn onClick={() => setSpread(Math.max(0, spread - 1))} title="Previous">
+          <CtrlBtn
+            onClick={() => setSpread(Math.max(0, spread - 1))}
+            title="Previous"
+          >
             <Icon name="chevronLeft" size={18} strokeWidth={1.7} />
           </CtrlBtn>
           <span className="min-w-[76px] text-center font-sans text-[13px] text-[#cfc9bb]">
@@ -270,6 +301,7 @@ function PageView({
   h,
   issueNo,
   pageNo,
+  images,
 }: {
   page?: Page;
   side: "left" | "right";
@@ -279,6 +311,7 @@ function PageView({
   h: number;
   issueNo: number;
   pageNo: number;
+  images: ImageMap;
 }) {
   return (
     <PageFrame
@@ -290,9 +323,16 @@ function PageView({
       side={side}
     >
       {page && (
-        <div className="relative flex flex-col gap-3.5">
+        <div className="relative flow-root">
           {page.blocks.map((b) => (
-            <BlockView key={b.id} block={b} theme={theme} textSize={dtext} />
+            <div key={b.id} style={blockFlowStyle(b)}>
+              <BlockView
+                block={b}
+                theme={theme}
+                textSize={dtext}
+                images={images}
+              />
+            </div>
           ))}
         </div>
       )}

@@ -24,8 +24,10 @@ implementation plan) — useful history, not current truth; will be removed once
 ## Status
 
 Library, reader, dashboard and editor are **DB-backed** (editor autosaves; reader renders saved
-issues). Still stubbed: auth (`/admin` ungated), image upload, email, PDF, real page-curl, and
-members/sponsors persistence. Routes + directory map are in `docs/architecture.md`.
+issues). Images are **real**: the editor uploads (WebP via sharp) and the reader serves them — to R2
+when configured, otherwise a local-disk fallback (`.data/uploads`) so it works with no cloud setup.
+Still stubbed: auth (`/admin` ungated), email, PDF, real page-curl, and members/sponsors
+persistence. Routes + directory map are in `docs/architecture.md`.
 
 ## Stack
 

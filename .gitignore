@@ -35,6 +35,9 @@ yarn-error.log*
 !.vscode/extensions.json
 .idea
 
+# local dev storage (image upload filesystem fallback)
+/.data
+
 # misc
 /coverage
 *.tsbuildinfo

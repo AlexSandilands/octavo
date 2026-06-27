@@ -14,7 +14,7 @@ This doc is the fast orientation for the codebase. For data specifics see
 | Framework | Next.js 15 (App Router), React 19, TypeScript |
 | Styling | Tailwind v4 (tokens in `src/app/globals.css`) |
 | Database | Postgres via Drizzle ORM |
-| Object storage | Cloudflare R2 (images + PDFs) — *not wired yet* |
+| Object storage | Cloudflare R2 — images wired (WebP via sharp); local-disk fallback in dev; PDFs later |
 | Auth | Auth.js magic link — *not wired yet* |
 | Email | Resend — *not wired yet* |
 | Hosting | Railway (app + Postgres) |
@@ -30,6 +30,7 @@ src/
     admin/             dashboard, members, sponsors
       actions.ts       server actions (mutations)
       issues/[id]/edit editor (standalone full-screen)
+    api/admin/images/  image upload route handler (multipart → sharp → R2)
   components/          shared presentational UI (ui.tsx, icons.tsx, admin-shell, ...)
   features/            feature modules with their own UI/logic
     blocks/            BlockView — themed read-only block renderer
@@ -39,10 +40,15 @@ src/
   db/                  Drizzle schema, client, seed
   lib/                 framework-agnostic helpers
     blocks.ts          the canonical content model (zod + types)
+    images.ts          ImageMap type + content imageId traversal
+    storage.ts         storage facade: R2 if configured, else local disk
+    r2.ts              R2/S3 client (server-only): upload, keyToUrl
+    local-storage.ts   dev fallback: .data/uploads on the filesystem
+    image-processing.ts sharp: normalise uploads to WebP
     site.ts            branding from NEXT_PUBLIC_* env
     env.ts             validated server env
     id.ts              id generator
-  server/              server-only data access (issues.ts)
+  server/              server-only data access (issues.ts, images.ts)
 ```
 
 ## The content model (central concept)
@@ -81,6 +87,8 @@ Reader / library / dashboard (server components)
 | `/admin` | dynamic | Issue dashboard |
 | `/admin/issues/[id]/edit` | dynamic | Editor, by issue **id** |
 | `/admin/members`, `/admin/sponsors` | static | members = sample data; sponsors = placeholder |
+| `POST /api/admin/images` | route handler | Upload: multipart → sharp WebP → storage → `images` row |
+| `GET /api/images/[...key]` | route handler | Serves the local dev storage fallback (unused when R2 is set) |
 
 DB-backed routes set `export const dynamic = "force-dynamic"` so they always read fresh and aren't
 prerendered at build. **`/admin` is currently ungated** — auth is the next phase.
@@ -99,9 +107,10 @@ values are set in Railway. `.env.example` lists every key.
 
 ## What's real vs stubbed
 
-Real: the editor authors and autosaves to the DB; the reader/library/dashboard render real data.
-Stubbed/deferred: auth, image upload, email, PDF export, real page-curl, members/sponsors
-persistence. The full sequence lives in `docs/planning/IMPLEMENTATION_PLAN.md` (transient).
+Real: the editor authors and autosaves to the DB; the reader/library/dashboard render real data;
+images upload to R2 and render in both editor and reader.
+Stubbed/deferred: auth, email, PDF export, real page-curl, members/sponsors persistence. The full
+sequence lives in `docs/planning/IMPLEMENTATION_PLAN.md` (transient).
 
 ## Docs
 

@@ -4,7 +4,11 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Icon, type IconName } from "@/components/icons";
 import { BlockView, type Theme } from "@/features/blocks/block-view";
+import { blockFlowStyle } from "@/features/blocks/layout";
 import type { Block } from "@/lib/blocks";
+import type { ImageMap, ResolvedImage } from "@/lib/images";
+import { ImageBlockControl } from "./image-upload";
+import { ImageLayoutControls } from "./image-layout";
 
 // One block in the editor canvas: the themed BlockView (editable) wrapped in the
 // editing chrome — a faint hover outline, a darker selected outline, a left
@@ -14,18 +18,24 @@ export function EditorBlock({
   block,
   theme,
   selected,
+  issueId,
+  images,
   onSelect,
   onChange,
   onMove,
   onRemove,
+  onRegisterImage,
 }: {
   block: Block;
   theme: Theme;
   selected: boolean;
+  issueId: string;
+  images: ImageMap;
   onSelect: () => void;
-  onChange: (patch: Record<string, string>) => void;
+  onChange: (patch: Record<string, string | number>) => void;
   onMove: (dir: -1 | 1) => void;
   onRemove: () => void;
+  onRegisterImage: (imageId: string, image: ResolvedImage) => void;
 }) {
   const {
     attributes,
@@ -40,7 +50,11 @@ export function EditorBlock({
   return (
     <div
       ref={setNodeRef}
-      style={{ transform: CSS.Translate.toString(transform), transition }}
+      style={{
+        ...blockFlowStyle(block),
+        transform: CSS.Translate.toString(transform),
+        transition,
+      }}
       onClick={(e) => {
         // Keep the click from reaching the canvas, which deselects.
         e.stopPropagation();
@@ -74,18 +88,50 @@ export function EditorBlock({
 
       {selected && (
         <>
-          <span className="bg-accent text-paper absolute bottom-full left-0 z-10 mb-2 rounded-[3px] px-1.5 py-[3px] font-sans text-[9px] font-semibold tracking-[0.1em] uppercase">
-            {block.type}
-          </span>
+          {block.type === "image" ? (
+            <div className="border-hair absolute bottom-full left-0 z-20 mb-2 flex items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap shadow-[0_4px_14px_rgba(40,36,28,0.16)]">
+              <ImageBlockControl
+                issueId={issueId}
+                hasImage={Boolean(block.imageId)}
+                onUploaded={(imageId, image) => {
+                  onChange({ imageId });
+                  onRegisterImage(imageId, image);
+                }}
+              />
+              {block.imageId && (
+                <>
+                  <span className="bg-line h-5 w-px" />
+                  <ImageLayoutControls
+                    align={block.align ?? "full"}
+                    width={block.width ?? 100}
+                    onChange={onChange}
+                  />
+                </>
+              )}
+            </div>
+          ) : (
+            <span className="bg-accent text-paper absolute bottom-full left-0 z-10 mb-2 rounded-[3px] px-1.5 py-[3px] font-sans text-[9px] font-semibold tracking-[0.1em] uppercase">
+              {block.type}
+            </span>
+          )}
           <div className="absolute top-1/2 -right-9 z-10 flex -translate-y-1/2 flex-col gap-1">
             <Ctrl icon="arrowUp" title="Move up" onClick={() => onMove(-1)} />
-            <Ctrl icon="arrowDown" title="Move down" onClick={() => onMove(1)} />
+            <Ctrl
+              icon="arrowDown"
+              title="Move down"
+              onClick={() => onMove(1)}
+            />
             <Ctrl icon="trash" title="Delete" danger onClick={onRemove} />
           </div>
         </>
       )}
 
-      <BlockView block={block} theme={theme} edit={{ onChange }} />
+      <BlockView
+        block={block}
+        theme={theme}
+        edit={{ onChange }}
+        images={images}
+      />
     </div>
   );
 }

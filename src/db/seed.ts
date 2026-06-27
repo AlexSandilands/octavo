@@ -18,7 +18,7 @@ const longGame: IssueContent = {
       blocks: [
         { id: id(), type: "heading", kicker: "Editorial", title: "A Note on Winter" },
         { id: id(), type: "text", text: "There is a particular pleasure to a winter morning on the piste: the gravel firm underfoot, breath hanging in the air, and the slow ceremony of measuring a point that no one will concede." },
-        { id: id(), type: "image", caption: "Frost on the terrain, early." },
+        { id: id(), type: "image", caption: "Frost on the terrain, early.", align: "full", width: 100 },
       ],
     },
     {
@@ -35,7 +35,7 @@ const longGame: IssueContent = {
       blocks: [
         { id: id(), type: "heading", kicker: "Technique", title: "Reading the Ground" },
         { id: id(), type: "text", text: "New players think the game is in the hand. It is not — it is in the eye, and the eye is trained on the ground, not the target." },
-        { id: id(), type: "image", caption: "The donnée and the roll." },
+        { id: id(), type: "image", caption: "The donnée and the roll.", align: "full", width: 100 },
       ],
     },
   ],
