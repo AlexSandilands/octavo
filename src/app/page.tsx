@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { Wordmark, Avatar } from "@/components/ui";
 import { site } from "@/lib/site";
+import { coverPageOf, type Page } from "@/lib/blocks";
 import { listIssues } from "@/server/issues";
+import { resolveIssueImages } from "@/server/images";
 import { LatestIssue } from "@/features/library/latest-issue";
 import { ArchiveGrid } from "@/features/library/archive-grid";
 
@@ -12,6 +14,13 @@ export default async function LibraryPage() {
   const published = all.filter((i) => i.status === "published");
   const latest = published[0];
   const archive = published.slice(1);
+
+  // Resolve every cover's images in one query, then render each issue's cover
+  // page as its thumbnail (shared map; extra ids are harmless per thumb).
+  const covers = published
+    .map((i) => coverPageOf(i.content))
+    .filter((p): p is Page => Boolean(p));
+  const coverImages = await resolveIssueImages({ pages: covers });
 
   return (
     <main className="mx-auto max-w-5xl px-5 py-6 sm:px-8 sm:py-10">
@@ -32,7 +41,9 @@ export default async function LibraryPage() {
 
       {!latest ? (
         <section className="py-20 text-center">
-          <h1 className="text-ink font-serif text-3xl">No issues published yet</h1>
+          <h1 className="text-ink font-serif text-3xl">
+            No issues published yet
+          </h1>
           <p className="text-muted mt-3 font-sans">
             The first issue of {site.name} will appear here once it&apos;s
             published.
@@ -45,8 +56,23 @@ export default async function LibraryPage() {
             title={latest.title}
             content={latest.content}
             publishedAt={latest.publishedAt}
+            theme={latest.theme}
+            cover={coverPageOf(latest.content)}
+            images={coverImages}
           />
-          {archive.length > 0 && <ArchiveGrid items={archive} />}
+          {archive.length > 0 && (
+            <ArchiveGrid
+              items={archive.map((i) => ({
+                id: i.id,
+                number: i.number,
+                title: i.title,
+                publishedAt: i.publishedAt,
+                theme: i.theme,
+                cover: coverPageOf(i.content),
+              }))}
+              images={coverImages}
+            />
+          )}
         </>
       )}
     </main>

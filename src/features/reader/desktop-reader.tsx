@@ -74,11 +74,22 @@ export function DesktopReader({
 
   const scale = fitScale * zoom;
 
-  const maxSpread = Math.max(0, Math.ceil(pages.length / 2) - 1);
-  const left = pages[spread * 2];
-  const right = pages[spread * 2 + 1];
-  const label = `${spread * 2 + 1}–${spread * 2 + 2} / ${pages.length}`;
-  const go = (page: number) => setSpread(Math.floor((page - 1) / 2));
+  // Like a real magazine, the cover (page 1) stands alone, then the rest pair up
+  // into spreads: view 0 = [cover], view k≥1 = pages 2k & 2k+1.
+  const n = pages.length;
+  const isCover = spread === 0;
+  const leftIdx = isCover ? 0 : 2 * spread - 1;
+  const left = pages[leftIdx];
+  const right = isCover ? undefined : pages[leftIdx + 1];
+  const maxSpread = n <= 1 ? 0 : Math.ceil((n - 1) / 2);
+  const leftNo = leftIdx + 1;
+  const label = isCover
+    ? `1 / ${n}`
+    : leftNo + 1 <= n
+      ? `${leftNo}–${leftNo + 1} / ${n}`
+      : `${leftNo} / ${n}`;
+  const viewOf = (page: number) => (page <= 1 ? 0 : Math.ceil((page - 1) / 2));
+  const go = (page: number) => setSpread(viewOf(page));
 
   return (
     <div className="bg-stage relative flex h-screen overflow-hidden">
@@ -155,7 +166,7 @@ export function DesktopReader({
               </p>
             )}
             {toc.map((t) => {
-              const active = Math.floor((t.page - 1) / 2) === spread;
+              const active = viewOf(t.page) === spread;
               return (
                 <button
                   key={`${t.page}-${t.label}`}
@@ -182,24 +193,38 @@ export function DesktopReader({
       <div ref={stageRef} className="relative flex-1 overflow-auto">
         <div className="flex min-h-full min-w-full items-center justify-center p-6">
           <div className="flex shadow-[0_18px_40px_rgba(40,36,28,0.18)]">
-            <PageView
-              page={left}
-              side="left"
-              theme={theme}
-              scale={scale}
-              issueNo={issueNo}
-              pageNo={spread * 2 + 1}
-              images={images}
-            />
-            <PageView
-              page={right}
-              side="right"
-              theme={theme}
-              scale={scale}
-              issueNo={issueNo}
-              pageNo={spread * 2 + 2}
-              images={images}
-            />
+            {isCover ? (
+              <PageView
+                page={left}
+                side="right"
+                theme={theme}
+                scale={scale}
+                issueNo={issueNo}
+                pageNo={1}
+                images={images}
+              />
+            ) : (
+              <>
+                <PageView
+                  page={left}
+                  side="left"
+                  theme={theme}
+                  scale={scale}
+                  issueNo={issueNo}
+                  pageNo={leftNo}
+                  images={images}
+                />
+                <PageView
+                  page={right}
+                  side="right"
+                  theme={theme}
+                  scale={scale}
+                  issueNo={issueNo}
+                  pageNo={leftNo + 1}
+                  images={images}
+                />
+              </>
+            )}
           </div>
         </div>
       </div>

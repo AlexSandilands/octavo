@@ -216,6 +216,24 @@ export function makePage(template: PageTemplate = "blank"): Page {
   }
 }
 
+// Every issue opens with a cover page (enforced — see the editor), followed by a
+// blank page to start writing on.
 export function emptyIssueContent(): IssueContent {
-  return { pages: [makePage()] };
+  return { pages: [makePage("cover-classic"), makePage("blank")] };
+}
+
+// Ensure a page list always begins with a cover page (the magazine's front
+// cover). Used on load and after edits in the editor so the invariant holds, and
+// relied on by the reader (cover shown standalone as page one) and the library
+// (cover rendered as the issue thumbnail).
+export function ensureCoverFirst(pages: Page[]): Page[] {
+  if (pages.length === 0 || pages[0]!.cover) return pages;
+  return [{ ...pages[0]!, cover: true }, ...pages.slice(1)];
+}
+
+// The issue's front cover page (the first one flagged `cover`), if any. Returns
+// undefined for legacy issues without a cover — callers fall back to a
+// placeholder rather than showing a content page as the cover.
+export function coverPageOf(content: IssueContent): Page | undefined {
+  return content.pages.find((p) => p.cover);
 }

@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { Button, Kicker, Label } from "@/components/ui";
 import { site } from "@/lib/site";
-import type { IssueContent } from "@/lib/blocks";
+import type { IssueContent, Page } from "@/lib/blocks";
+import type { ImageMap } from "@/lib/images";
+import { CoverThumb } from "./cover-thumb";
 import { issueMonth, issueSections } from "./contents";
 
 type LatestIssueProps = {
@@ -9,6 +11,9 @@ type LatestIssueProps = {
   title: string;
   content: IssueContent;
   publishedAt: Date | null;
+  theme: string;
+  cover?: Page;
+  images: ImageMap;
 };
 
 // The library hero: the cover as a physical object on the left, and an editorial
@@ -18,6 +23,9 @@ export function LatestIssue({
   title,
   content,
   publishedAt,
+  theme,
+  cover,
+  images,
 }: LatestIssueProps) {
   const pageCount = content.pages.length;
   const month = issueMonth(publishedAt);
@@ -29,21 +37,33 @@ export function LatestIssue({
       <Link
         href={`/read/${number}`}
         aria-label={`Read ${title}`}
-        className="group relative block h-[330px]"
+        className="group relative block self-start"
       >
         {/* Stacked page edges peeking out behind the cover. */}
         <div className="absolute inset-y-2 -right-[3px] w-[3px] rounded-r-[3px] bg-[#ded7c7]" />
         <div className="absolute inset-y-1 -right-[6px] w-[3px] rounded-r-[3px] bg-[#ece6d8]" />
-        <div className="photo-fill-green relative flex h-full flex-col justify-between overflow-hidden rounded-[5px] p-5 shadow-[0_18px_38px_-14px_rgba(20,40,33,0.55)] transition-transform duration-300 group-hover:-translate-y-1">
-          {/* Spine: a darker strip and a hairline highlight down the binding. */}
-          <div className="absolute inset-y-0 left-0 w-[7px] bg-black/20" />
-          <div className="absolute inset-y-0 left-[7px] w-px bg-white/10" />
-          <div className="text-cream font-serif text-[13px] tracking-[0.1em]">
-            {site.name} · No. {number}
-          </div>
-          <div className="text-paper font-serif text-4xl leading-[0.96]">
-            {title}
-          </div>
+        <div className="relative overflow-hidden rounded-[5px] shadow-[0_18px_38px_-14px_rgba(20,40,33,0.45)] transition-transform duration-300 group-hover:-translate-y-1">
+          {cover ? (
+            <CoverThumb
+              page={cover}
+              theme={theme}
+              images={images}
+              issueNo={number}
+              width={240}
+            />
+          ) : (
+            // Legacy issues without a cover page keep the stylised book panel.
+            <div className="photo-fill-green relative flex h-[330px] flex-col justify-between p-5">
+              <div className="absolute inset-y-0 left-0 w-[7px] bg-black/20" />
+              <div className="absolute inset-y-0 left-[7px] w-px bg-white/10" />
+              <div className="text-cream font-serif text-[13px] tracking-[0.1em]">
+                {site.name} · No. {number}
+              </div>
+              <div className="text-paper font-serif text-4xl leading-[0.96]">
+                {title}
+              </div>
+            </div>
+          )}
         </div>
       </Link>
 

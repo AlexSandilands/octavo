@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Icon, type IconName } from "@/components/icons";
 import {
+  ensureCoverFirst,
   makeBlock,
   makePage,
   type Block,
@@ -67,8 +68,11 @@ export function Editor({
   issue: EditorIssue;
   images: ImageMap;
 }) {
-  const initialPages =
-    issue.content.pages.length > 0 ? issue.content.pages : [makePage()];
+  const initialPages = ensureCoverFirst(
+    issue.content.pages.length > 0
+      ? issue.content.pages
+      : [makePage("cover-classic")],
+  );
 
   const [pages, setPages] = useState<Page[]>(initialPages);
   // imageId → resolved image, seeded from the server and grown as uploads land,
@@ -171,7 +175,11 @@ export function Editor({
   const editPage = (fn: (p: Page) => Page) =>
     setPages((ps) => ps.map((p, i) => (i === curPage ? fn(p) : p)));
 
-  const toggleCover = () => editPage((p) => ({ ...p, cover: !p.cover }));
+  // The first page is always the cover, so it can't be toggled off.
+  const toggleCover = () => {
+    if (curPage === 0) return;
+    editPage((p) => ({ ...p, cover: !p.cover }));
+  };
   const addBlock = (type: BlockType) => {
     const blk = makeBlock(type);
     editPage((p) => ({ ...p, blocks: [...p.blocks, blk] }));
@@ -221,14 +229,15 @@ export function Editor({
   // list shuffles (curPage is an index, so it has to follow the moved page).
   const reorderPages = (from: number, to: number) => {
     const activeId = pages[curPage]?.id;
-    const next = arrayMove(pages, from, to);
+    // ensureCoverFirst: whatever lands in position 1 becomes the cover.
+    const next = ensureCoverFirst(arrayMove(pages, from, to));
     setPages(next);
     const newCur = next.findIndex((p) => p.id === activeId);
     if (newCur >= 0) setCurPage(newCur);
   };
   const deletePage = (index: number) => {
     if (pages.length <= 1) return;
-    setPages((ps) => ps.filter((_, i) => i !== index));
+    setPages((ps) => ensureCoverFirst(ps.filter((_, i) => i !== index)));
     // Keep the current page valid as the list shrinks: shift selection left if
     // we removed the active page or one before it.
     setCurPage((c) => Math.min(c > index ? c - 1 : c, pages.length - 2));
@@ -332,13 +341,18 @@ export function Editor({
             <div className="ml-auto flex items-center">
               <button
                 onClick={toggleCover}
+                disabled={curPage === 0}
                 aria-pressed={Boolean(page?.cover)}
-                title="Lay this page out as a cover"
+                title={
+                  curPage === 0
+                    ? "The first page is always the cover"
+                    : "Lay this page out as a cover"
+                }
                 className={`flex h-[34px] items-center gap-1.5 rounded-[7px] border px-3.5 font-sans text-[13px] font-semibold ${
                   page?.cover
                     ? "border-accent bg-accent text-paper"
                     : "text-ink border-[#e0d9c9] bg-white hover:border-accent hover:bg-[#f4f8f5]"
-                }`}
+                } ${curPage === 0 ? "cursor-default opacity-90" : ""}`}
               >
                 <Icon name="doc" size={15} />
                 Cover page
