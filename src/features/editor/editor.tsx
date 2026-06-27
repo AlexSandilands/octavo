@@ -7,7 +7,6 @@ import { Icon, type IconName } from "@/components/icons";
 import {
   makeBlock,
   makePage,
-  PAGE_TEMPLATES,
   type Block,
   type BlockType,
   type IssueContent,
@@ -31,8 +30,14 @@ import {
 } from "@dnd-kit/sortable";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import { type Theme } from "@/features/blocks/block-view";
-import { PageFrame } from "@/features/blocks/page-frame";
+import {
+  PageFrame,
+  ScaledPage,
+  PAGE_W,
+  PAGE_H,
+} from "@/features/blocks/page-frame";
 import { EditorBlock } from "./editor-block";
+import { PageRail } from "./page-rail";
 import { PublishModal } from "./publish-modal";
 import {
   publishIssueAction,
@@ -131,21 +136,19 @@ export function Editor({
     return () => clearTimeout(t);
   }, [title, theme, issue.id]);
 
-  // Size the editing page to the canvas exactly as the reader sizes one of its
-  // pages: same aspect ratio, fixed dimensions, fixed text. The page is then a
-  // faithful preview — content past its bottom edge stays visible for editing
-  // but PageFrame's boundary marker shows where the reader will clip.
+  // Scale the fixed PAGE_W×PAGE_H canvas to fit the editor stage, exactly as the
+  // reader does — so the editor is a faithful, to-scale preview. Content past the
+  // bottom edge stays visible for editing; PageFrame's boundary marks the clip.
   const canvasRef = useRef<HTMLDivElement>(null);
-  const [pageDim, setPageDim] = useState({ w: 427, h: 560 });
+  const [scale, setScale] = useState(0.75);
   useEffect(() => {
     const el = canvasRef.current;
     if (!el) return;
-    const RATIO = 451 / 592; // ~15% wider than A-series; matches the reader
     const update = () => {
       const availH = el.clientHeight - 56;
       const availW = el.clientWidth - 56;
-      const h = Math.max(460, Math.min(availH, availW / RATIO));
-      setPageDim({ w: Math.round(h * RATIO), h: Math.round(h) });
+      const s = Math.min(availH / PAGE_H, availW / PAGE_W);
+      setScale(Math.max(0.5, Math.min(1.4, s)));
     };
     update();
     const ro = new ResizeObserver(update);
@@ -168,8 +171,7 @@ export function Editor({
   const editPage = (fn: (p: Page) => Page) =>
     setPages((ps) => ps.map((p, i) => (i === curPage ? fn(p) : p)));
 
-  const toggleCover = () =>
-    editPage((p) => ({ ...p, cover: !p.cover }));
+  const toggleCover = () => editPage((p) => ({ ...p, cover: !p.cover }));
   const addBlock = (type: BlockType) => {
     const blk = makeBlock(type);
     editPage((p) => ({ ...p, blocks: [...p.blocks, blk] }));
@@ -214,6 +216,15 @@ export function Editor({
     setCurPage(pages.length);
     setSel(null);
     setAddMenu(false);
+  };
+  // Reorder pages from the rail, keeping the page you're editing selected as the
+  // list shuffles (curPage is an index, so it has to follow the moved page).
+  const reorderPages = (from: number, to: number) => {
+    const activeId = pages[curPage]?.id;
+    const next = arrayMove(pages, from, to);
+    setPages(next);
+    const newCur = next.findIndex((p) => p.id === activeId);
+    if (newCur >= 0) setCurPage(newCur);
   };
   const deletePage = (index: number) => {
     if (pages.length <= 1) return;
@@ -288,77 +299,20 @@ export function Editor({
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        <div className="bg-paper border-line flex w-[150px] flex-none flex-col items-center gap-3 border-r py-4">
-          <span className="text-faint w-full pl-[18px] font-sans text-[10px] font-semibold tracking-[0.18em] uppercase">
-            Pages
-          </span>
-          {pages.map((p, i) => (
-            <div key={p.id} className="group relative">
-              <button
-                onClick={() => {
-                  setCurPage(i);
-                  setSel(null);
-                }}
-                className={`bg-page relative block h-[108px] w-[84px] rounded-[3px] p-2.5 text-left ${
-                  i === curPage
-                    ? "border-accent border-2 shadow-[0_2px_6px_rgba(40,36,28,0.12)]"
-                    : "border border-[#e0d9c9]"
-                }`}
-              >
-                <div className="h-2 w-[80%] rounded-[2px] bg-[#e0d9c9]" />
-                <div className="mt-1.5 h-1 w-[90%] rounded-[2px] bg-[#ece6da]" />
-                <span className="text-faint absolute right-2 bottom-1.5 font-sans text-[9px] font-semibold">
-                  {i + 1}
-                </span>
-              </button>
-              {pages.length > 1 && (
-                <button
-                  onClick={() => deletePage(i)}
-                  title={`Delete page ${i + 1}`}
-                  aria-label={`Delete page ${i + 1}`}
-                  className="bg-paper text-faint2 hover:text-warn hover:border-warn absolute -top-2 -right-2 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-[#e0d9c9] opacity-0 shadow-sm transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
-                >
-                  <Icon name="trash" size={13} strokeWidth={1.8} />
-                </button>
-              )}
-            </div>
-          ))}
-          <div className="relative">
-            <button
-              onClick={() => setAddMenu((v) => !v)}
-              aria-expanded={addMenu}
-              className="text-faint hover:border-accent hover:text-accent flex h-10 w-[84px] items-center justify-center gap-1.5 rounded-[3px] border-[1.5px] border-dashed border-[#c9c1b1] font-sans text-[11px] font-semibold"
-            >
-              <Icon name="plus" size={14} strokeWidth={1.8} />
-              Add
-            </button>
-            {addMenu && (
-              <>
-                {/* Click-off backdrop */}
-                <div
-                  className="fixed inset-0 z-20"
-                  onClick={() => setAddMenu(false)}
-                />
-                <div className="bg-card absolute top-0 left-[92px] z-30 w-56 overflow-hidden rounded-lg border border-[#e0d9c9] shadow-[0_12px_32px_rgba(40,36,28,0.18)]">
-                  {PAGE_TEMPLATES.map((t) => (
-                    <button
-                      key={t.id}
-                      onClick={() => addPage(t.id)}
-                      className="block w-full px-3.5 py-2.5 text-left hover:bg-[#f4f8f5]"
-                    >
-                      <div className="text-ink font-sans text-[13px] font-semibold">
-                        {t.label}
-                      </div>
-                      <div className="text-faint2 mt-0.5 font-sans text-[11px] leading-snug">
-                        {t.description}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
+        <PageRail
+          pages={pages}
+          curPage={curPage}
+          addMenu={addMenu}
+          onSelectPage={(i) => {
+            setCurPage(i);
+            setSel(null);
+          }}
+          onReorder={reorderPages}
+          onAddPage={addPage}
+          onDeletePage={deletePage}
+          onToggleAddMenu={() => setAddMenu((v) => !v)}
+          onCloseAddMenu={() => setAddMenu(false)}
+        />
 
         <div className="flex flex-1 flex-col overflow-hidden bg-[#ece7dc]">
           <div className="bg-paper border-line flex h-[52px] flex-none items-center gap-2.5 border-b px-5">
@@ -398,56 +352,58 @@ export function Editor({
             className="flex flex-1 items-start justify-center overflow-auto p-7"
           >
             <div className="shadow-[0_10px_30px_rgba(40,36,28,0.14)]">
-              <PageFrame
-                theme={themeName}
-                w={pageDim.w}
-                h={pageDim.h}
-                issueNo={issue.number}
-                pageNo={curPage + 1}
-                clip={false}
-                boundary
-              >
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={onDragEnd}
+              <ScaledPage scale={scale}>
+                <PageFrame
+                  theme={themeName}
+                  w={PAGE_W}
+                  h={PAGE_H}
+                  issueNo={issue.number}
+                  pageNo={curPage + 1}
+                  clip={false}
+                  boundary
                 >
-                  <SortableContext
-                    items={(page?.blocks ?? []).map((b) => b.id)}
-                    strategy={verticalListSortingStrategy}
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={onDragEnd}
                   >
-                    <div
-                      className={
-                        page?.cover
-                          ? "flex min-h-full flex-col justify-center"
-                          : "relative flow-root"
-                      }
+                    <SortableContext
+                      items={(page?.blocks ?? []).map((b) => b.id)}
+                      strategy={verticalListSortingStrategy}
                     >
-                      {page && page.blocks.length === 0 && (
-                        <div className="text-faint2 py-16 text-center font-serif text-sm">
-                          This page is empty. Add a block above.
-                        </div>
-                      )}
-                      {page?.blocks.map((b) => (
-                        <EditorBlock
-                          key={b.id}
-                          block={b}
-                          theme={themeName}
-                          cover={page.cover}
-                          selected={b.id === sel}
-                          issueId={issue.id}
-                          images={images}
-                          onSelect={() => setSel(b.id)}
-                          onChange={(patch) => updateBlock(b.id, patch)}
-                          onMove={(dir) => moveBlock(b.id, dir)}
-                          onRemove={() => removeBlock(b.id)}
-                          onRegisterImage={registerImage}
-                        />
-                      ))}
-                    </div>
-                  </SortableContext>
-                </DndContext>
-              </PageFrame>
+                      <div
+                        className={
+                          page?.cover
+                            ? "flex min-h-full flex-col justify-center"
+                            : "relative flow-root"
+                        }
+                      >
+                        {page && page.blocks.length === 0 && (
+                          <div className="text-faint2 py-16 text-center font-serif text-sm">
+                            This page is empty. Add a block above.
+                          </div>
+                        )}
+                        {page?.blocks.map((b) => (
+                          <EditorBlock
+                            key={b.id}
+                            block={b}
+                            theme={themeName}
+                            cover={page.cover}
+                            selected={b.id === sel}
+                            issueId={issue.id}
+                            images={images}
+                            onSelect={() => setSel(b.id)}
+                            onChange={(patch) => updateBlock(b.id, patch)}
+                            onMove={(dir) => moveBlock(b.id, dir)}
+                            onRemove={() => removeBlock(b.id)}
+                            onRegisterImage={registerImage}
+                          />
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                </PageFrame>
+              </ScaledPage>
             </div>
           </div>
         </div>

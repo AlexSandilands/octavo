@@ -15,6 +15,11 @@ export const textBlockSchema = z.object({
   id: z.string(),
   type: z.literal("text"),
   text: z.string().default(""),
+  // Body-text size, authored per block. Optional so existing content keeps the
+  // default. The page is a fixed design canvas that scales as a unit, so this is
+  // an absolute size on desktop/print; the reflowing mobile reader treats it as
+  // a multiplier on its adjustable base size.
+  size: z.enum(["s", "m", "l", "xl"]).optional(),
 });
 
 export const imageBlockSchema = z.object({
@@ -64,6 +69,26 @@ export type Page = z.infer<typeof pageSchema>;
 export type IssueContent = z.infer<typeof issueContentSchema>;
 
 export const BLOCK_TYPES: BlockType[] = ["heading", "text", "image", "sponsor"];
+
+export type TextSize = "s" | "m" | "l" | "xl";
+
+// The per-text-block size choices offered in the editor, and the two ways a
+// size resolves: absolute px on the fixed-canvas desktop/print page, and a
+// relative multiplier in the reflowing mobile reader.
+export const TEXT_SIZES: { value: TextSize; label: string }[] = [
+  { value: "s", label: "S" },
+  { value: "m", label: "M" },
+  { value: "l", label: "L" },
+  { value: "xl", label: "XL" },
+];
+
+export function textSizePx(size: TextSize = "m"): number {
+  return { s: 15, m: 17, l: 20, xl: 24 }[size];
+}
+
+export function textSizeScale(size: TextSize = "m"): number {
+  return { s: 0.88, m: 1, l: 1.18, xl: 1.42 }[size];
+}
 
 export function makeBlock(type: BlockType): Block {
   const id = createId();
@@ -125,7 +150,12 @@ export function makePage(template: PageTemplate = "blank"): Page {
         id,
         cover: true,
         blocks: [
-          { id: bid(), type: "heading", kicker: "The Members' Magazine", title: "Spring Issue" },
+          {
+            id: bid(),
+            type: "heading",
+            kicker: "The Members' Magazine",
+            title: "Spring Issue",
+          },
           { id: bid(), type: "image", caption: "", align: "full", width: 55 },
           { id: bid(), type: "text", text: "Official Club Newsletter" },
           { id: bid(), type: "text", text: "Spring 2026" },
@@ -136,7 +166,12 @@ export function makePage(template: PageTemplate = "blank"): Page {
         id,
         cover: true,
         blocks: [
-          { id: bid(), type: "heading", kicker: "In this issue", title: "The Headline Story" },
+          {
+            id: bid(),
+            type: "heading",
+            kicker: "In this issue",
+            title: "The Headline Story",
+          },
           { id: bid(), type: "image", caption: "", align: "full", width: 70 },
           {
             id: bid(),
@@ -150,7 +185,12 @@ export function makePage(template: PageTemplate = "blank"): Page {
         id,
         cover: true,
         blocks: [
-          { id: bid(), type: "heading", kicker: "Volume One", title: "The Issue Title" },
+          {
+            id: bid(),
+            type: "heading",
+            kicker: "Volume One",
+            title: "The Issue Title",
+          },
           { id: bid(), type: "text", text: "Spring 2026" },
         ],
       };

@@ -1,5 +1,5 @@
 import Image from "next/image";
-import type { Block } from "@/lib/blocks";
+import { textSizePx, type Block } from "@/lib/blocks";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import { Editable } from "./editable";
 
@@ -45,14 +45,12 @@ export type BlockEditHandlers = {
 export function BlockView({
   block,
   theme,
-  textSize = 17,
   edit,
   images,
   variant,
 }: {
   block: Block;
   theme: Theme;
-  textSize?: number;
   edit?: BlockEditHandlers;
   /** imageId → resolved R2 image; absent ids render as the photo placeholder. */
   images?: ImageMap;
@@ -143,7 +141,7 @@ export function BlockView({
       return (
         <p
           className="text-body font-serif whitespace-pre-line"
-          style={{ fontSize: textSize, lineHeight: 1.62 }}
+          style={{ fontSize: textSizePx(block.size), lineHeight: 1.62 }}
         >
           {f("text", block.text, "Write your paragraph…")}
         </p>

@@ -19,12 +19,12 @@ both `drizzle.config.ts` and `src/db/seed.ts` call `process.loadEnvFile(".env.lo
 
 ## Tables
 
-| Table | Purpose |
-|---|---|
-| `issues` | One row per edition. Holds `content` (the pages→blocks JSON), `number`, `title`, `theme`, `status` (`draft`/`published`), `publishedAt`, timestamps. |
-| `images` | Uploaded image metadata (R2 key, dimensions). *Used once the image pipeline lands.* |
-| `users` | Member record — doubles as the auth user (`isAdmin`, `subscribed`). *Used once auth lands.* |
-| `sessions`, `verification_tokens` | Auth.js tables. *Used once auth lands.* |
+| Table                             | Purpose                                                                                                                                              |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `issues`                          | One row per edition. Holds `content` (the pages→blocks JSON), `number`, `title`, `theme`, `status` (`draft`/`published`), `publishedAt`, timestamps. |
+| `images`                          | Uploaded image metadata (R2 key, dimensions). _Used once the image pipeline lands._                                                                  |
+| `users`                           | Member record — doubles as the auth user (`isAdmin`, `subscribed`). _Used once auth lands._                                                          |
+| `sessions`, `verification_tokens` | Auth.js tables. _Used once auth lands._                                                                                                              |
 
 Issues are keyed by `id` (internal) but addressed publicly by `number` (e.g. `/read/14`).
 
@@ -34,12 +34,27 @@ The whole pages→blocks tree is stored as **one JSONB document** in `issues.con
 `IssueContent`:
 
 ```ts
-IssueContent = { pages: { id, blocks: Block[] }[] }
+IssueContent = { pages: { id, cover?, blocks: Block[] }[] }
 Block = Heading | Text | Image | Sponsor   // discriminated union on `type`
 ```
 
 Defined as zod schemas + inferred types in [`src/lib/blocks.ts`](../src/lib/blocks.ts) and applied to
 the column via `jsonb(...).$type<IssueContent>()`.
+
+A page may set `cover: true` — it then renders through the dedicated cover
+treatment (vertically centred, oversized hero type) in both readers and the
+editor, rather than the normal flow. A `Text` block carries an optional `size`
+(`s|m|l|xl`); since the page is a **fixed design canvas** that scales as a whole
+(see below), that size is absolute px on desktop/print and a relative multiplier
+in the reflowing mobile reader. Both fields are optional, so older content
+parses unchanged.
+
+**Pages are a fixed canvas (`PAGE_W`×`PAGE_H` in `page-frame.tsx`).** The desktop
+reader and editor never resize the page or its type independently — they render
+at the canvas size and apply a single `transform: scale()` (via `ScaledPage`) so
+text, images and spacing always keep their proportions. Page count is therefore
+viewport-independent (faithful flipbook spreads + deterministic PDF). The mobile
+reader instead reflows into one column with its own A−/A+ control.
 
 **Why one JSONB document, not normalised `pages`/`blocks` tables:** it matches "blocks JSON is the
 source of truth", makes a save a single atomic write, and renders trivially. We don't need to query

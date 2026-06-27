@@ -8,9 +8,12 @@ import type { IssueContent, Page } from "@/lib/blocks";
 import type { ImageMap } from "@/lib/images";
 import { BlockView, type Theme } from "@/features/blocks/block-view";
 import { blockFlowStyle } from "@/features/blocks/layout";
-import { PageFrame } from "@/features/blocks/page-frame";
-
-const PAGE_RATIO = 451 / 592; // width / height of a single page (~15% wider than A-series)
+import {
+  PageFrame,
+  ScaledPage,
+  PAGE_W,
+  PAGE_H,
+} from "@/features/blocks/page-frame";
 
 type TocEntry = { label: string; page: number };
 
@@ -40,14 +43,14 @@ export function DesktopReader({
 
   const [spread, setSpread] = useState(0);
   const [collapsed, setCollapsed] = useState(false);
-  const [dtext, setDtext] = useState(17);
   const [theme, setTheme] = useState<Theme>("Classic");
 
-  // Size the page elements to fill the stage. Text stays a fixed size, so a
-  // larger page simply holds more of it — no magnifying of type or borders.
-  // `zoom` then multiplies that fitted size; >1 overflows and the stage scrolls.
+  // The page is a fixed PAGE_W×PAGE_H canvas; we only ever pick a scale that
+  // fits the spread to the stage, then `zoom` multiplies it. Everything on the
+  // page — type, images, spacing — scales together, so resizing never breaks the
+  // layout. (Accessibility: the mobile reader reflows; here, zoom magnifies.)
   const stageRef = useRef<HTMLDivElement>(null);
-  const [fit, setFit] = useState({ w: 451, h: 592 });
+  const [fitScale, setFitScale] = useState(0.7);
   const [zoom, setZoom] = useState(1);
   useEffect(() => {
     const el = stageRef.current;
@@ -55,8 +58,8 @@ export function DesktopReader({
     const update = () => {
       const availH = el.clientHeight - 72;
       const availW = el.clientWidth - 48;
-      const h = Math.max(360, Math.min(availH, availW / (2 * PAGE_RATIO)));
-      setFit({ w: Math.round(h * PAGE_RATIO), h: Math.round(h) });
+      const s = Math.min(availH / PAGE_H, availW / (2 * PAGE_W));
+      setFitScale(Math.max(0.4, s));
     };
     update();
     const ro = new ResizeObserver(update);
@@ -64,8 +67,7 @@ export function DesktopReader({
     return () => ro.disconnect();
   }, []);
 
-  const pageW = Math.round(fit.w * zoom);
-  const pageH = Math.round(fit.h * zoom);
+  const scale = fitScale * zoom;
 
   const maxSpread = Math.max(0, Math.ceil(pages.length / 2) - 1);
   const left = pages[spread * 2];
@@ -179,9 +181,7 @@ export function DesktopReader({
               page={left}
               side="left"
               theme={theme}
-              dtext={dtext}
-              w={pageW}
-              h={pageH}
+              scale={scale}
               issueNo={issueNo}
               pageNo={spread * 2 + 1}
               images={images}
@@ -190,9 +190,7 @@ export function DesktopReader({
               page={right}
               side="right"
               theme={theme}
-              dtext={dtext}
-              w={pageW}
-              h={pageH}
+              scale={scale}
               issueNo={issueNo}
               pageNo={spread * 2 + 2}
               images={images}
@@ -240,21 +238,6 @@ export function DesktopReader({
             />
           </div>
           <Divider />
-          <div className="flex items-center overflow-hidden rounded-full bg-[#34312a]">
-            <button
-              onClick={() => setDtext((d) => Math.max(14, d - 1))}
-              className="px-2.5 py-1.5 font-sans text-[13px] hover:bg-[#434037]"
-            >
-              A−
-            </button>
-            <div className="h-[18px] w-px bg-[#4d4940]" />
-            <button
-              onClick={() => setDtext((d) => Math.min(22, d + 1))}
-              className="px-2.5 py-1.5 font-sans text-[16px] font-semibold hover:bg-[#434037]"
-            >
-              A+
-            </button>
-          </div>
           <CtrlBtn title="Download PDF">
             <Icon name="download" size={17} />
           </CtrlBtn>
@@ -296,9 +279,7 @@ function PageView({
   page,
   side,
   theme,
-  dtext,
-  w,
-  h,
+  scale,
   issueNo,
   pageNo,
   images,
@@ -306,43 +287,42 @@ function PageView({
   page?: Page;
   side: "left" | "right";
   theme: Theme;
-  dtext: number;
-  w: number;
-  h: number;
+  scale: number;
   issueNo: number;
   pageNo: number;
   images: ImageMap;
 }) {
   return (
-    <PageFrame
-      theme={theme}
-      w={w}
-      h={h}
-      issueNo={issueNo}
-      pageNo={page ? pageNo : undefined}
-      side={side}
-    >
-      {page && (
-        <div
-          className={
-            page.cover
-              ? "flex min-h-full flex-col justify-center"
-              : "relative flow-root"
-          }
-        >
-          {page.blocks.map((b) => (
-            <div key={b.id} style={blockFlowStyle(b, page.cover)}>
-              <BlockView
-                block={b}
-                theme={theme}
-                textSize={dtext}
-                images={images}
-                variant={page.cover ? "cover" : undefined}
-              />
-            </div>
-          ))}
-        </div>
-      )}
-    </PageFrame>
+    <ScaledPage scale={scale}>
+      <PageFrame
+        theme={theme}
+        w={PAGE_W}
+        h={PAGE_H}
+        issueNo={issueNo}
+        pageNo={page ? pageNo : undefined}
+        side={side}
+      >
+        {page && (
+          <div
+            className={
+              page.cover
+                ? "flex min-h-full flex-col justify-center"
+                : "relative flow-root"
+            }
+          >
+            {page.blocks.map((b) => (
+              <div key={b.id} style={blockFlowStyle(b, page.cover)}>
+                <BlockView
+                  block={b}
+                  theme={theme}
+                  images={images}
+                  variant={page.cover ? "cover" : undefined}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </PageFrame>
+    </ScaledPage>
   );
 }

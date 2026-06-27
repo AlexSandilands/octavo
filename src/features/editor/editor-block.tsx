@@ -9,6 +9,7 @@ import type { Block } from "@/lib/blocks";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import { ImageBlockControl } from "./image-upload";
 import { ImageLayoutControls } from "./image-layout";
+import { TextSizeControl } from "./text-size-control";
 
 // One block in the editor canvas: the themed BlockView (editable) wrapped in the
 // editing chrome — a faint hover outline, a darker selected outline, a left
@@ -119,6 +120,10 @@ export function EditorBlock({
                   />
                 </>
               )}
+            </div>
+          ) : block.type === "text" && !cover ? (
+            <div className="absolute bottom-full left-0 z-20 mb-2">
+              <TextSizeControl size={block.size ?? "m"} onChange={onChange} />
             </div>
           ) : (
             <span className="bg-accent text-paper absolute bottom-full left-0 z-10 mb-2 rounded-[3px] px-1.5 py-[3px] font-sans text-[9px] font-semibold tracking-[0.1em] uppercase">

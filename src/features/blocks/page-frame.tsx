@@ -1,6 +1,42 @@
 import { site } from "@/lib/site";
 import type { Theme } from "./block-view";
 
+// The fixed design canvas every page is authored and rendered at. The reader and
+// editor never change these px — they render the page at this size and scale the
+// whole thing as a unit (see ScaledPage), so type, images and spacing always
+// keep their proportions. (~15% wider than A-series.)
+export const PAGE_W = 451;
+export const PAGE_H = 592;
+
+// Renders a fixed PAGE_W×PAGE_H page scaled to `scale`, reserving the scaled box
+// in layout so neighbours flow correctly. transform-origin top-left keeps the
+// scaled page pinned to the reserved box's corner.
+export function ScaledPage({
+  scale,
+  children,
+}: {
+  scale: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      style={{ width: PAGE_W * scale, height: PAGE_H * scale }}
+      className="flex-none"
+    >
+      <div
+        style={{
+          width: PAGE_W,
+          height: PAGE_H,
+          transform: `scale(${scale})`,
+          transformOrigin: "top left",
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
 // The chrome of a single magazine page: dimensions, themed decorations
 // (classic double border + masthead, or modern accent bar) and the running
 // footer. Shared by the reader spread and the admin editor so a page looks
@@ -61,7 +97,10 @@ export function PageFrame({
       </div>
 
       {boundary && (
-        <div className="pointer-events-none absolute inset-x-0" style={{ top: h }}>
+        <div
+          className="pointer-events-none absolute inset-x-0"
+          style={{ top: h }}
+        >
           <div className="border-warn border-t border-dashed" />
           <div className="flex justify-center">
             <span className="bg-warn text-paper rounded-b px-2 py-0.5 font-sans text-[9px] font-semibold tracking-[0.1em] uppercase">

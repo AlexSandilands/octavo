@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { site } from "@/lib/site";
-import type { Block, IssueContent } from "@/lib/blocks";
+import { textSizeScale, type Block, type IssueContent } from "@/lib/blocks";
 import type { ImageMap } from "@/lib/images";
 import { BlockImage } from "@/features/blocks/block-view";
 
@@ -165,7 +165,7 @@ function MobileBlock({
       ) : (
         <p
           className="text-body mb-4 font-serif whitespace-pre-line"
-          style={{ fontSize: m, lineHeight: 1.62 }}
+          style={{ fontSize: m * textSizeScale(block.size), lineHeight: 1.62 }}
         >
           {block.text}
         </p>
