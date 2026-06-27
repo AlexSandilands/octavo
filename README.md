@@ -16,7 +16,7 @@ flipbook on desktop or a clean scroll on mobile. Magic-link access, no passwords
 npm install
 docker compose up -d   # local Postgres (see docker-compose.yml)
 npm run db:migrate     # apply schema
-npm run db:seed        # sample issue so the reader has content
+npm run db:seed        # wipe + load 10 sample issues (with images) for the reader
 npm run dev            # http://localhost:3000
 ```
 

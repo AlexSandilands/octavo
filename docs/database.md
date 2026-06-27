@@ -8,7 +8,7 @@ Postgres, accessed through [Drizzle ORM](https://orm.drizzle.team). Schema lives
 ```bash
 docker compose up -d   # Postgres on localhost:5432 (see docker-compose.yml)
 npm run db:migrate     # apply migrations in drizzle/
-npm run db:seed        # sample issue so the reader has content
+npm run db:seed        # wipe + load 10 sample issues (with images) for the reader
 ```
 
 `DATABASE_URL` lives in `.env.local`. Next.js auto-loads it; `drizzle-kit` and the seed do not, so
