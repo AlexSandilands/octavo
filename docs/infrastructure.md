@@ -104,6 +104,20 @@ At ~1,000 members and roughly monthly issues:
 - If membership grows past a few thousand, the email tier is the first thing to
   revisit; everything else has plenty of headroom.
 
+## Accepted `npm audit` findings
+
+Reviewed 2026-07 after upgrading next / drizzle-orm / drizzle-kit / next-auth (which
+cleared the actionable findings, incl. a high in drizzle-orm). Two moderates remain,
+both **not exploitable here** — re-check on each dependency-update pass:
+
+- `esbuild <=0.24.2` (nested under drizzle-kit's deprecated `@esbuild-kit` loader,
+  which hard-pins it — npm overrides can't take). The advisory needs esbuild's HTTP
+  dev-server running; drizzle-kit only uses esbuild as a file loader. Dev machines only.
+- `postcss <8.5.10` (exact-pinned inside `next`). Build-time processing of our own
+  CSS; the XSS scenario needs attacker-controlled CSS. Clears when Next bumps it.
+
+Never run `npm audit fix --force` — it downgrades `next` to a 9.x "fix".
+
 ## Recurring landlord tasks (rare)
 
 - Keep domain auto-renew on and billing cards current (a lapse takes the site down).
