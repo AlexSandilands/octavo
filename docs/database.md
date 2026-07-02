@@ -7,7 +7,7 @@ Postgres, accessed through [Drizzle ORM](https://orm.drizzle.team). Schema lives
 
 ```bash
 docker compose up -d   # Postgres on localhost:5432 (see docker-compose.yml)
-npm run db:migrate     # apply migrations in drizzle/
+npm run db:push        # sync schema.ts straight into the DB (dev workflow — no migration files)
 npm run db:seed        # wipe + load 10 sample issues (with images) for the reader
 ```
 
@@ -81,11 +81,17 @@ Mutations are invoked via Server Actions in `src/app/admin/actions.ts`, which zo
 
 ## Changing the schema
 
+**During development** (no real users yet) we use `drizzle-kit push`, which diffs `schema.ts`
+directly against the DB — no migration files to manage:
+
 1. Edit `src/db/schema.ts`.
-2. `npm run db:generate` — writes a new SQL migration to `drizzle/` (no DB needed).
-3. `npm run db:migrate` — applies it. (`npm run db:push` skips migration files for quick local
-   iteration; `npm run db:studio` opens a browser DB UI.)
-4. Commit the generated migration file.
+2. `npm run db:push` — applies the changes in place. (`npm run db:studio` opens a browser DB UI.)
+
+The DB is disposable for now: if a change is awkward to apply, just wipe and re-seed.
+
+**Before launch**, once real data needs preserving, switch to versioned migrations:
+`npm run db:generate` writes a SQL migration to `drizzle/`, `npm run db:migrate` applies it, and
+the generated files get committed. (The `drizzle/` folder is gitignored until then.)
 
 ## Changing the content model
 

@@ -19,7 +19,7 @@ implementation plan) — useful history, not current truth; will be removed once
 
 - `docker compose up -d` — local Postgres
 - `npm run dev` — local dev server
-- `npm run db:migrate` / `db:seed` / `db:generate` / `db:studio` — Drizzle (see `docs/database.md`)
+- `npm run db:push` / `db:seed` / `db:studio` — Drizzle dev workflow (`db:generate`/`db:migrate` reserved for pre-launch migrations; see `docs/database.md`)
 - `npm run lint` / `npm run format` — lint / format
 
 ## Status
