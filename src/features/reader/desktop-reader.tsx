@@ -346,7 +346,11 @@ export function DesktopReader({
           }}
         >
           <div
-            style={{ position: "absolute", inset: 0, backfaceVisibility: "hidden" }}
+            style={{
+              position: "absolute",
+              inset: 0,
+              backfaceVisibility: "hidden",
+            }}
           >
             <PageView
               page={pages[frontIdx]}

@@ -1,12 +1,14 @@
 # Design handover — digital club magazine
 
 ## What this is
+
 A members-only digital magazine for a nationwide social club (~1,000 members, growing). A club
 admin publishes regular issues — mostly text and photos — that read like a real magazine. The
 product will later carry sponsors/advertising. Please design a coherent, high-fidelity UI system
 covering the surfaces below.
 
 ## Who uses it
+
 - **Readers (members):** audience skews **older** and reads heavily on **phones**. Legibility,
   large tap targets, obvious primary actions, and zero jargon are essential. Assume some users are
   not confident with technology.
@@ -14,8 +16,10 @@ covering the surfaces below.
   members, sponsors). The admin UI must feel calm and forgiving, not like a developer tool.
 
 ## Visual direction (important — read carefully)
+
 Aim for **sleek, modern, editorial** — the feel of a well-designed print magazine, not a SaaS
 dashboard. Specifically:
+
 - Strong **typographic hierarchy**: consider an elegant serif/display face for magazine mastheads
   and covers, paired with a clean, highly legible sans for UI and body. Real scale contrast.
 - **Restrained palette**: mostly neutral/paper tones with a single confident accent. Design a
@@ -40,7 +44,7 @@ Light mode only. Use crisp, consistent line icons.
    - Enter your email.
    - "Check your inbox" confirmation.
    - "That link expired — we've sent you a fresh one."
-   Warm, reassuring, dead simple. This is the first impression for non-technical users.
+     Warm, reassuring, dead simple. This is the first impression for non-technical users.
 
 2. **New-issue notification email.** The real front door — most members see this most often. Club
    branding, the issue title + cover thumbnail, a short intro line, and one big obvious
@@ -113,19 +117,23 @@ Light mode only. Use crisp, consistent line icons.
 - **Accessibility controls:** text-size (A− / A+) and high-contrast-friendly defaults in the reader.
 - **Image upload affordance:** drop zone + progress.
 - **Branding slots:** where the club logo and a brand accent colour live, so the magazine reads as
-  *theirs*, not generic.
+  _theirs_, not generic.
 
 ## Responsive
+
 Design three explicit modes, not one view shrunk down:
+
 - **Desktop:** flipbook with heading sidebar + hover control bar.
 - **Tablet:** flipbook, adapted controls.
 - **Mobile:** vertical reader with drawer TOC.
 
 ## Explicitly out of scope (do not design)
+
 Free drag-anywhere positioning, multi-column layouts, dark mode, and search. Keep these out so the
 v1 stays simple.
 
 ## Deliverable
+
 High-fidelity mockups of each surface above, unified by a single design system (type scale,
 colour, spacing, icon set, component library). Show the magazine reading view in **both themes**.
 Prioritise, in order: the reading view (desktop + mobile), the editor, the new-issue email, and the

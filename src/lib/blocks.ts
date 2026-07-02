@@ -3,12 +3,25 @@ import { createId } from "./id";
 
 // The canonical content model. Editor, reader and (later) PDF all speak this.
 // An issue is pages → ordered blocks; stored as one JSONB document on the issue.
+//
+// Every string is length-capped and the page/block arrays bounded, so a bad or
+// malicious save can't persist an unbounded document. The caps are far above
+// anything a real issue needs. Sponsor/link hrefs are capped but not
+// shape-validated here — rejecting a half-typed URL would break autosave — the
+// readers validate every href through `externalHref` before rendering it.
+
+const SHORT_TEXT_MAX = 300; // titles, kickers, captions, names
+const BODY_TEXT_MAX = 20_000; // one text block's rich-text HTML
+const HREF_MAX = 2_000;
+const ID_MAX = 64; // uuids (36 chars) with headroom
+const MAX_PAGES = 200;
+const MAX_BLOCKS_PER_PAGE = 100;
 
 export const headingBlockSchema = z.object({
-  id: z.string(),
+  id: z.string().max(ID_MAX),
   type: z.literal("heading"),
-  kicker: z.string().default(""),
-  title: z.string().default(""),
+  kicker: z.string().max(SHORT_TEXT_MAX).default(""),
+  title: z.string().max(SHORT_TEXT_MAX).default(""),
   // Heading rank: "main" is the big page/feature title, "section" an article
   // sub-head, "paragraph" a small run-in sub-head. Optional → "main" so existing
   // headings keep their look. (Cover pages ignore this and use the hero style.)
@@ -16,9 +29,9 @@ export const headingBlockSchema = z.object({
 });
 
 export const textBlockSchema = z.object({
-  id: z.string(),
+  id: z.string().max(ID_MAX),
   type: z.literal("text"),
-  text: z.string().default(""),
+  text: z.string().max(BODY_TEXT_MAX).default(""),
   // Body-text size, authored per block. Optional so existing content keeps the
   // default. The page is a fixed design canvas that scales as a unit, so this is
   // an absolute size on desktop/print; the reflowing mobile reader treats it as
@@ -27,10 +40,10 @@ export const textBlockSchema = z.object({
 });
 
 export const imageBlockSchema = z.object({
-  id: z.string(),
+  id: z.string().max(ID_MAX),
   type: z.literal("image"),
-  imageId: z.string().optional(), // resolved to an R2 image later
-  caption: z.string().default(""),
+  imageId: z.string().max(ID_MAX).optional(), // resolved to an R2 image later
+  caption: z.string().max(SHORT_TEXT_MAX).default(""),
   // Layout: "full" breaks the text (block, full column width); "left"/"right"
   // float the image so the following text wraps beside it. `width` is a percent
   // of the text column.
@@ -39,11 +52,11 @@ export const imageBlockSchema = z.object({
 });
 
 export const sponsorBlockSchema = z.object({
-  id: z.string(),
+  id: z.string().max(ID_MAX),
   type: z.literal("sponsor"),
-  name: z.string().default(""),
-  href: z.string().optional(),
-  logoId: z.string().optional(),
+  name: z.string().max(SHORT_TEXT_MAX).default(""),
+  href: z.string().max(HREF_MAX).optional(),
+  logoId: z.string().max(ID_MAX).optional(),
 });
 
 export const blockSchema = z.discriminatedUnion("type", [
@@ -54,17 +67,24 @@ export const blockSchema = z.discriminatedUnion("type", [
 ]);
 
 export const pageSchema = z.object({
-  id: z.string(),
+  id: z.string().max(ID_MAX),
   // A cover page is laid out and styled differently from a normal page —
   // vertically centred, oversized hero type, every block centred (see the
   // "cover" variant in BlockView and `blockFlowStyle`). Optional + defaults to a
   // normal page, so existing issues are unaffected.
   cover: z.boolean().optional(),
-  blocks: z.array(blockSchema),
+  blocks: z.array(blockSchema).max(MAX_BLOCKS_PER_PAGE),
 });
 
+// `version` marks which shape of the content model a document holds, so future
+// block-shape changes (e.g. sponsor blocks referencing a sponsors table) can
+// migrate old rows deliberately instead of guessing. Defaults to 1 so every
+// existing document parses as version 1 unchanged.
+export const CONTENT_VERSION = 1;
+
 export const issueContentSchema = z.object({
-  pages: z.array(pageSchema),
+  version: z.number().int().min(1).default(CONTENT_VERSION),
+  pages: z.array(pageSchema).max(MAX_PAGES),
 });
 
 export type Block = z.infer<typeof blockSchema>;
@@ -219,7 +239,10 @@ export function makePage(template: PageTemplate = "blank"): Page {
 // Every issue opens with a cover page (enforced — see the editor), followed by a
 // blank page to start writing on.
 export function emptyIssueContent(): IssueContent {
-  return { pages: [makePage("cover-classic"), makePage("blank")] };
+  return {
+    version: CONTENT_VERSION,
+    pages: [makePage("cover-classic"), makePage("blank")],
+  };
 }
 
 // Ensure a page list always begins with a cover page (the magazine's front

@@ -7,6 +7,7 @@ scroll (mobile). Magic-link auth.
 ## Read before working
 
 Core docs (long-lived — keep current):
+
 - `docs/architecture.md` — system overview, directory map, data flow, routes, env.
 - `docs/database.md` — schema, the content/block model, migrations, seeding.
 - `docs/design-principles.md` — **engineering + design rules. Follow these on every change.**

@@ -112,9 +112,7 @@ const ICONS: Record<string, ReactNode> = {
   fullscreen: (
     <path d="M9 4H5a1 1 0 00-1 1v4M15 4h4a1 1 0 011 1v4M9 20H5a1 1 0 01-1-1v-4M15 20h4a1 1 0 001-1v-4" />
   ),
-  fullscreenExit: (
-    <path d="M4 9h4V5M20 9h-4V5M4 15h4v4M20 15h-4v4" />
-  ),
+  fullscreenExit: <path d="M4 9h4V5M20 9h-4V5M4 15h4v4M20 15h-4v4" />,
 };
 
 export type IconName = keyof typeof ICONS;

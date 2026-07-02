@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { issueContentSchema } from "@/lib/blocks";
+import { z } from "zod";
+import { ensureCoverFirst, issueContentSchema } from "@/lib/blocks";
 import {
   createIssue,
   deleteIssue,
@@ -11,8 +12,24 @@ import {
   updateIssueMeta,
 } from "@/server/issues";
 
-// Mutations the admin UI calls. Inputs are validated here so adding auth later
-// is just a gate, not a rewrite (see docs/design-principles.md §9).
+// Mutations the admin UI calls. Server action arguments are attacker-controlled
+// JSON regardless of their TypeScript types, so every argument is re-validated
+// with zod here — adding auth later is just a gate, not a rewrite (see
+// docs/design-principles.md §9).
+
+const idSchema = z.string().uuid();
+
+// .strict() so unexpected keys are rejected, not silently written to columns.
+const metaSchema = z
+  .object({
+    title: z.string().max(200).optional(),
+    theme: z.enum(["classic", "modern"]).optional(),
+  })
+  .strict();
+
+export type SaveResult =
+  | { ok: true; revision: number }
+  | { ok: false; reason: "invalid" | "conflict" | "missing" };
 
 export async function createIssueAction() {
   const issue = await createIssue();
@@ -20,26 +37,45 @@ export async function createIssueAction() {
   redirect(`/admin/issues/${issue.id}/edit`);
 }
 
-export async function saveIssueAction(id: string, content: unknown) {
-  const parsed = issueContentSchema.parse(content);
-  await updateIssueContent(id, parsed);
+export async function saveIssueAction(
+  id: string,
+  content: unknown,
+  baseRevision: number,
+): Promise<SaveResult> {
+  const parsedId = idSchema.safeParse(id);
+  const parsedRevision = z.number().int().min(0).safeParse(baseRevision);
+  const parsedContent = issueContentSchema.safeParse(content);
+  if (!parsedId.success || !parsedRevision.success || !parsedContent.success) {
+    return { ok: false, reason: "invalid" };
+  }
+  // Re-apply the cover-first invariant server-side; the editor enforces it in
+  // the UI but the document must hold it regardless of the caller.
+  const doc = {
+    ...parsedContent.data,
+    pages: ensureCoverFirst(parsedContent.data.pages),
+  };
+  return updateIssueContent(parsedId.data, doc, parsedRevision.data);
 }
 
 export async function saveMetaAction(
   id: string,
   meta: { title?: string; theme?: string },
-) {
-  await updateIssueMeta(id, meta);
+): Promise<{ ok: boolean }> {
+  const parsedId = idSchema.safeParse(id);
+  const parsedMeta = metaSchema.safeParse(meta);
+  if (!parsedId.success || !parsedMeta.success) return { ok: false };
+  await updateIssueMeta(parsedId.data, parsedMeta.data);
   revalidatePath("/admin");
+  return { ok: true };
 }
 
 export async function publishIssueAction(id: string) {
-  await publishIssue(id);
+  await publishIssue(idSchema.parse(id));
   revalidatePath("/admin");
   revalidatePath("/");
 }
 
 export async function deleteIssueAction(id: string) {
-  await deleteIssue(id);
+  await deleteIssue(idSchema.parse(id));
   revalidatePath("/admin");
 }

@@ -29,6 +29,7 @@ Two roles, one auth system:
 - **Admin** — same login, plus an `isAdmin` flag that reveals the editor. (Admin is just a flagged member.)
 
 **Authentication: per-member magic link.**
+
 - Member enters their email → receives a one-click sign-in link → clicking it signs them in.
 - **The new-issue email IS the magic link.** When an issue is published, every member gets an email
   containing their personal sign-in link straight to the new issue. No separate "log in" step.
@@ -50,10 +51,10 @@ guaranteed reach to a defined club audience, not open-web visibility.
   - `text`
   - `image` (with optional caption)
   - `sponsor` (image + link, optional "active until" date)
-  - *(future: quote, divider, gallery, video)*
+  - _(future: quote, divider, gallery, video)_
 
 **Source of truth = blocks JSON.** An issue is stored as structured data (pages → blocks).
-Everything else (HTML view, PDF) is *derived* from it. This keeps issues editable forever,
+Everything else (HTML view, PDF) is _derived_ from it. This keeps issues editable forever,
 enables mobile reflow, and lets us auto-insert sponsors later.
 
 ---
@@ -66,7 +67,7 @@ Page-based, block-based, deliberately minimal.
 - **Insert toolbar:** add Heading / Text / Image / Sponsor block.
 - **Page canvas:** fixed-aspect page showing the blocks in order.
   - Each block has a drag handle to reorder, and up / down / delete controls when selected.
-  - The theme controls how blocks *look* — no manual fonts, colours, or positioning in v1.
+  - The theme controls how blocks _look_ — no manual fonts, colours, or positioning in v1.
 - **Top bar:** issue title, theme dropdown, Preview, Publish.
 - **Image blocks** run uploads through the WebP pipeline silently — admin just sees the photo.
 - **Publish** freezes the issue and triggers the member email blast.
@@ -81,6 +82,7 @@ styling are deferred — that's where "made it look messy" risk lives.
 Same blocks JSON, two presentations.
 
 **Desktop / tablet — flipbook.**
+
 - Real HTML pages flipped with a page-flip library (StPageFlip HTML mode). Crisp, selectable,
   accessible text; clickable sponsor links. No PDF, no rasterizing in the viewing path.
 - **Left sidebar: heading navigation.** Auto-built from the issue's `heading` blocks (like a table
@@ -91,6 +93,7 @@ Same blocks JSON, two presentations.
 - First spread paints fast; neighbouring pages prefetch so flips feel instant.
 
 **Mobile — reader mode.**
+
 - The same blocks rendered as one flowing vertical column. No page-flip (bad on small screens).
 - Large default type, high contrast, generous spacing, big tap targets — built for older eyes.
 - This is also the accessibility fallback on any device (reader-mode toggle in the control bar).

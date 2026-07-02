@@ -19,9 +19,9 @@ export default function SponsorsPage() {
           </div>
         </div>
         <p className="text-faint mt-2 max-w-md font-sans text-sm leading-relaxed">
-          When advertising goes live, sponsors will be managed here — logo, link,
-          and the dates each is active. Sponsor blocks already render in the
-          magazine theme.
+          When advertising goes live, sponsors will be managed here — logo,
+          link, and the dates each is active. Sponsor blocks already render in
+          the magazine theme.
         </p>
 
         <div className="mt-6 opacity-60">

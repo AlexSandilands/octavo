@@ -125,11 +125,10 @@ export function EditorBlock({
                 </>
               )}
             </div>
-          ) : block.type === "text" && !cover ? (
-            // The text block's toolbar (size + formatting) lives inside the
-            // rich-text editor below, so nothing is rendered here.
-            null
-          ) : block.type === "heading" && !cover ? (
+          ) : block.type === "text" &&
+            !cover ? // The text block's toolbar (size + formatting) lives inside the
+          // rich-text editor below, so nothing is rendered here.
+          null : block.type === "heading" && !cover ? (
             <div className="absolute bottom-full left-0 z-20 mb-2">
               <HeadingLevelControl
                 level={block.level ?? "main"}

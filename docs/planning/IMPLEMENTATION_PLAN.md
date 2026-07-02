@@ -4,7 +4,7 @@ Everything today is UI-only: the editor keeps React state that resets on refresh
 reader, dashboard and library all read `src/lib/sample-issue.ts`. Nothing reads or writes
 the database.
 
-**Priority (Phase 1):** the admin editor creates/edits issues and *persists* them locally,
+**Priority (Phase 1):** the admin editor creates/edits issues and _persists_ them locally,
 and the reader renders those saved issues. Everything else is sequenced after.
 
 ---
@@ -49,12 +49,14 @@ IssueContent = { pages: Page[] }                           // stored in issues.c
 ## Phase 1 — editor saves, reader renders (the vertical slice)
 
 ### 1. Database up locally
+
 - [ ] Add `docker-compose.yml` with a Postgres service; document `docker compose up -d`.
 - [ ] Put `DATABASE_URL` in `.env.local`.
 - [ ] Relax `src/lib/env.ts`: only `DATABASE_URL` (+ public branding) required now; make
       `AUTH_SECRET`, `R2_*`, `EMAIL_*` optional until their phases (otherwise the app can't boot).
 
 ### 2. Schema + migrations
+
 - [ ] In `src/db/schema.ts`: drop `pages` and `blocks` tables; add `content jsonb` (+ keep
       `number`, `title`, `theme`, `status`, `publishedAt`) on `issues`. Keep `users`/auth tables.
 - [ ] `npm run db:generate && npm run db:migrate` to create tables.
@@ -62,6 +64,7 @@ IssueContent = { pages: Page[] }                           // stored in issues.c
       converted to the block model, so the reader has something on day one.
 
 ### 3. Shared block model + renderers
+
 - [ ] `src/lib/blocks.ts` — zod schemas, types, `makeBlock(type)`, an `emptyIssueContent()`.
 - [ ] `src/features/blocks/` — per-theme presentational renderers: `<BlockView block theme />`
       covering heading/text/image/sponsor for Classic + Modern. Pure, no state.
@@ -69,16 +72,19 @@ IssueContent = { pages: Page[] }                           // stored in issues.c
       renderers (replacing the bespoke `Page` shape). Delete the divergent sample shape.
 
 ### 4. Data-access layer (server-only)
+
 - [ ] `src/server/issues.ts`: `listIssues()`, `getIssue(id)`, `createIssue()`,
       `updateIssueContent(id, content)`, `updateIssueMeta(id, {title,theme,...})`,
       `publishIssue(id)`, `deleteIssue(id)`. Drizzle queries; zod-validate all inputs.
 
 ### 5. Server actions (mutations the UI calls)
+
 - [ ] `src/app/admin/actions.ts` (`"use server"`): `createIssueAction` (insert draft → redirect
       to editor), `saveIssueAction(id, content, meta)`, `publishIssueAction(id)`,
       `deleteIssueAction(id)`. Each validates and calls the data layer, then `revalidatePath`.
 
 ### 6. Wire the editor to real data
+
 - [ ] Editor page (server) loads the issue via `getIssue(id)` and passes `content` to the client
       `Editor`.
 - [ ] `Editor` initialises state from props (not the hardcoded `INITIAL`), supports: add/edit/
@@ -90,6 +96,7 @@ IssueContent = { pages: Page[] }                           // stored in issues.c
 - [ ] Image block: store caption + placeholder only for now (real upload in Phase 4).
 
 ### 7. Wire dashboard, library, reader to the DB
+
 - [ ] `/admin` lists issues from `listIssues()`; "Create new issue" → `createIssueAction`.
 - [ ] `/` library reads published issues from the DB.
 - [ ] `/read/[issueId]` loads the issue from the DB and renders it (drafts viewable via admin
@@ -119,6 +126,7 @@ in the reader and see exactly what was authored, surviving a refresh and restart
 ---
 
 ## Notes / risks
+
 - The editor/reader content-model unification (decision 2) is the only non-trivial refactor in
   Phase 1; do it before wiring data so both sides speak the same shape.
 - Keep mutations server-side and zod-validated from the start (see `docs/design-principles.md`),

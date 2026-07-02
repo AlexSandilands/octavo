@@ -24,6 +24,7 @@ export default async function EditIssuePage({
         title: issue.title,
         theme: issue.theme,
         content: issue.content,
+        revision: issue.revision,
       }}
       images={images}
     />

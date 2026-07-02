@@ -6,7 +6,12 @@ import { Icon, type IconName } from "./icons";
 const NAV: { key: string; label: string; href: string; icon: IconName }[] = [
   { key: "issues", label: "Issues", href: "/admin", icon: "grid" },
   { key: "members", label: "Members", href: "/admin/members", icon: "users" },
-  { key: "sponsors", label: "Sponsors", href: "/admin/sponsors", icon: "banner" },
+  {
+    key: "sponsors",
+    label: "Sponsors",
+    href: "/admin/sponsors",
+    icon: "banner",
+  },
 ];
 
 export function AdminShell({

@@ -5,16 +5,16 @@ accounts (the "landlord" role); the club never touches them.
 
 ## Components
 
-| Piece | Service | Role |
-|---|---|---|
-| App hosting | Railway | Runs the Next.js app + on-demand PDF generation |
-| Database | Railway Postgres | Members, issues, pages, blocks |
-| File storage | Cloudflare R2 | WebP images + cached PDFs (zero egress fees) |
-| CDN + DNS | Cloudflare | Caches assets, serves the domain |
-| Domain | Any registrar (or Cloudflare) | e.g. clubmag.org |
-| Email | Resend (or Postmark) | Magic links + new-issue blasts (~1,000/issue) |
-| Auth | Auth.js (in-app) | Magic-link sign-in, Postgres adapter — no separate service |
-| Monitoring | Sentry + UptimeRobot | Errors + uptime alerts to the developer |
+| Piece        | Service                       | Role                                                       |
+| ------------ | ----------------------------- | ---------------------------------------------------------- |
+| App hosting  | Railway                       | Runs the Next.js app + on-demand PDF generation            |
+| Database     | Railway Postgres              | Members, issues, pages, blocks                             |
+| File storage | Cloudflare R2                 | WebP images + cached PDFs (zero egress fees)               |
+| CDN + DNS    | Cloudflare                    | Caches assets, serves the domain                           |
+| Domain       | Any registrar (or Cloudflare) | e.g. clubmag.org                                           |
+| Email        | Resend (or Postmark)          | Magic links + new-issue blasts (~1,000/issue)              |
+| Auth         | Auth.js (in-app)              | Magic-link sign-in, Postgres adapter — no separate service |
+| Monitoring   | Sentry + UptimeRobot          | Errors + uptime alerts to the developer                    |
 
 ## How it fits together
 
@@ -46,6 +46,7 @@ Member ── Cloudflare (DNS/CDN) ── Railway (Next.js + Postgres)
 7. **Deploy** — confirm a test magic-link email arrives and an image upload lands in R2.
 
 ### Note on PDF generation
+
 PDF export uses headless Chromium (Playwright). It needs system dependencies in the container — use
 Railway's Nixpacks/Docker config to install them, or run PDF generation as a small separate Railway
 service if it bloats the main app's memory.
@@ -73,18 +74,19 @@ SENTRY_DSN=
 
 At ~1,000 members and roughly monthly issues:
 
-| Service | Plan | Est. cost |
-|---|---|---|
-| Railway | Hobby ($5 base + usage) | ~$5–20 / mo |
-| Cloudflare R2 | Free tier (10 GB) covers it | ~$0 |
-| Cloudflare CDN/DNS | Free | $0 |
-| Email (Resend) | Pro (no daily cap, 50k/mo) | ~$20 / mo |
-| Monitoring | Sentry + UptimeRobot free tiers | $0 |
-| Domain | annual | ~$12 / yr |
+| Service            | Plan                            | Est. cost   |
+| ------------------ | ------------------------------- | ----------- |
+| Railway            | Hobby ($5 base + usage)         | ~$5–20 / mo |
+| Cloudflare R2      | Free tier (10 GB) covers it     | ~$0         |
+| Cloudflare CDN/DNS | Free                            | $0          |
+| Email (Resend)     | Pro (no daily cap, 50k/mo)      | ~$20 / mo   |
+| Monitoring         | Sentry + UptimeRobot free tiers | $0          |
+| Domain             | annual                          | ~$12 / yr   |
 
 **≈ $25–40 / month + ~$12 / year.**
 
 Notes:
+
 - Email is the one cost that scales with membership. Resend free tier (3k/mo, 100/day) can't do a
   1,000-recipient blast in one go, so budget the ~$20 Pro plan. Postmark (~$15/mo) is an alternative.
 - Storage and bandwidth stay effectively free for a long time — R2 has no egress fees and issues
@@ -93,6 +95,7 @@ Notes:
   else has plenty of headroom.
 
 ## Recurring landlord tasks (rare)
+
 - Keep domain auto-renew on and billing cards current (a lapse takes the site down).
 - Apply dependency/security updates occasionally.
 - Watch Sentry/UptimeRobot alerts; check email deliverability if blasts start hitting spam.

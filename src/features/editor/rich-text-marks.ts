@@ -14,9 +14,7 @@ export const Underline = Mark.create({
         style: "text-decoration",
         consuming: false,
         getAttrs: (value) =>
-          typeof value === "string" && value.includes("underline")
-            ? {}
-            : false,
+          typeof value === "string" && value.includes("underline") ? {} : false,
       },
     ];
   },
