@@ -118,12 +118,13 @@ values are set in Railway. `.env.example` lists every key.
 
 Real: the editor authors and autosaves to the DB; the reader/library/dashboard render real data;
 images upload to R2 and render in both editor and reader.
-Stubbed/deferred: auth, email, PDF export, real page-curl, members/sponsors persistence. The full
-sequence lives in `docs/planning/IMPLEMENTATION_PLAN.md` (transient).
+Stubbed/deferred: auth, email, PDF export, members/sponsors persistence. The phase
+sequence lives in [ROADMAP.md](ROADMAP.md); work is tracked as GitHub issues (one
+milestone per phase).
 
 ## Docs
 
 - [database.md](database.md) — schema, content model, migrations, seeding.
 - [design-principles.md](design-principles.md) — engineering + design rules (read before changes).
-- `planning/` — **transient** background (product spec, design handover, infra/cost notes,
-  implementation plan). Will be removed once superseded; don't treat as current truth.
+- [ROADMAP.md](ROADMAP.md) — phase ordering, product decisions, open questions.
+- [infrastructure.md](infrastructure.md) — hosting components, setup order, costs.

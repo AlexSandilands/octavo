@@ -8,7 +8,7 @@ import { z } from "zod";
 // directly instead of importing this module.
 //
 // Phase 1 only needs the database. Auth / R2 / email vars are optional for now
-// and become required as those phases land (see docs/IMPLEMENTATION_PLAN.md).
+// and become required as those phases land (see docs/ROADMAP.md).
 const schema = z.object({
   DATABASE_URL: z.string().min(1),
 

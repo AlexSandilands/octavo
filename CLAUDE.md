@@ -12,8 +12,15 @@ Core docs (long-lived — keep current):
 - `docs/database.md` — schema, the content/block model, migrations, seeding.
 - `docs/design-principles.md` — **engineering + design rules. Follow these on every change.**
 
-`docs/planning/` is **transient** background (product spec, design handover, infra/cost notes,
-implementation plan) — useful history, not current truth; will be removed once superseded.
+- `docs/ROADMAP.md` — phase ordering, product decisions, open questions.
+- `docs/infrastructure.md` — hosting components, setup order, costs (the "landlord" runbook).
+
+## Workflow
+
+Work is tracked as **GitHub issues** — one milestone per roadmap phase, one issue per task.
+Before starting an issue, read its milestone context in `docs/ROADMAP.md`; the issue brief
+gives intent + acceptance criteria, the current code is the source of truth for the *how*.
+Branch per issue; keep PRs reviewable.
 
 ## Commands
 
@@ -27,8 +34,8 @@ implementation plan) — useful history, not current truth; will be removed once
 Library, reader, dashboard and editor are **DB-backed** (editor autosaves; reader renders saved
 issues). Images are **real**: the editor uploads (WebP via sharp) and the reader serves them — to R2
 when configured, otherwise a local-disk fallback (`.data/uploads`) so it works with no cloud setup.
-Still stubbed: auth (`/admin` ungated), email, PDF, real page-curl, and members/sponsors
-persistence. Routes + directory map are in `docs/architecture.md`.
+Still stubbed: auth (`/admin` ungated), email, PDF, and members/sponsors persistence.
+Routes + directory map are in `docs/architecture.md`; phase plan in `docs/ROADMAP.md`.
 
 ## Stack
 
