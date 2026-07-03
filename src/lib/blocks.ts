@@ -54,6 +54,15 @@ export const imageBlockSchema = z.object({
 export const sponsorBlockSchema = z.object({
   id: z.string().max(ID_MAX),
   type: z.literal("sponsor"),
+  // Content v2: a sponsor block points at a managed sponsor (the `sponsors`
+  // table) by id, and the reader resolves its name/href/logo at render time.
+  // Optional so version-1 documents — which carry the inline fields below and no
+  // `sponsorId` — still parse and render unchanged (see the sponsor case in
+  // BlockView). New blocks placed via the editor picker set `sponsorId`; the
+  // editor's manual-entry fallback leaves it unset and uses the inline fields.
+  sponsorId: z.string().max(ID_MAX).optional(),
+  // Version-1 inline fields, retained as the fallback for legacy documents and
+  // for manual (unmanaged) entries. Kept optional so both shapes validate.
   name: z.string().max(SHORT_TEXT_MAX).default(""),
   href: z.string().max(HREF_MAX).optional(),
   logoId: z.string().max(ID_MAX).optional(),
@@ -77,10 +86,17 @@ export const pageSchema = z.object({
 });
 
 // `version` marks which shape of the content model a document holds, so future
-// block-shape changes (e.g. sponsor blocks referencing a sponsors table) can
-// migrate old rows deliberately instead of guessing. Defaults to 1 so every
-// existing document parses as version 1 unchanged.
-export const CONTENT_VERSION = 1;
+// block-shape changes can migrate old rows deliberately instead of guessing.
+//
+// v2 (issue #8): sponsor blocks gained `sponsorId` and now reference the
+// managed `sponsors` table. The bump is backward-compatible by construction —
+// the new field is optional and the v1 inline sponsor fields are retained — so
+// a version-1 document parses and renders unchanged, and is upgraded to v2 in
+// place the next time it is saved (the schema `.default`s the version). No
+// destructive rewrite of `issues.content` is needed. A future bump that is NOT
+// backward-compatible would instead ship a one-off migration keyed on `version`
+// (see docs/database.md "Changing the content model"). This is the template.
+export const CONTENT_VERSION = 2;
 
 export const issueContentSchema = z.object({
   version: z.number().int().min(1).default(CONTENT_VERSION),

@@ -1,8 +1,23 @@
 import Image from "next/image";
 import { textSizePx, type Block, type BlockPatch } from "@/lib/blocks";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
+import type { SponsorMap } from "@/lib/sponsors";
 import { externalHref, richTextToHtml } from "@/lib/rich-text";
 import { Editable } from "./editable";
+
+// A sponsor logo, contained within its fixed slot at whatever aspect it has.
+// A plain <img> (not next/image) because the slot is a fixed box and object-fit
+// does the work; logos are small, so intrinsic-size optimisation isn't worth it.
+function SponsorLogo({ logo, name }: { logo: ResolvedImage; name: string }) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={logo.url}
+      alt={name ? `${name} logo` : "Sponsor logo"}
+      className="h-full w-full object-contain"
+    />
+  );
+}
 
 export type Theme = "Classic" | "Modern";
 
@@ -48,6 +63,7 @@ export function BlockView({
   theme,
   edit,
   images,
+  sponsors,
   variant,
 }: {
   block: Block;
@@ -55,6 +71,8 @@ export function BlockView({
   edit?: BlockEditHandlers;
   /** imageId → resolved R2 image; absent ids render as the photo placeholder. */
   images?: ImageMap;
+  /** sponsorId → resolved managed sponsor; a missing id means it was deleted. */
+  sponsors?: SponsorMap;
   /** "cover" switches headings/text to the oversized, centred cover treatment. */
   variant?: "cover";
 }) {
@@ -242,22 +260,51 @@ export function BlockView({
     }
 
     case "sponsor": {
-      // Read-only: if the sponsor has a (validated) link, the whole card is the
-      // anchor so members can tap it. In the editor the href is an editable
-      // field instead, so we never wrap it in a link there.
-      const link = edit ? null : externalHref(block.href ?? "");
+      // v1→v2 compatibility lives here. A managed block (`sponsorId` set) resolves
+      // its name/href/logo from the sponsors map; a version-1 or manual block
+      // (no `sponsorId`) falls back to its inline fields, so legacy documents
+      // render through the identical code path they always did.
+      const managed = block.sponsorId ? sponsors?.[block.sponsorId] : undefined;
+      const isManaged = Boolean(block.sponsorId);
+      // A managed reference that no longer resolves means the sponsor was
+      // deleted. Read-only: hide the slot — a removed sponsor must not keep
+      // advertising. In the editor we keep it visible so the admin can re-pick
+      // or delete it (the picker control shows the "removed" state).
+      if (isManaged && !managed && !edit) return null;
+
+      const name = managed ? managed.name : block.name;
+      const href = managed ? managed.href : (block.href ?? "");
+      const logo = managed?.logo ?? null;
+      // Inline (manual/v1) name+href stay editable in place; a managed reference
+      // is edited through the picker control, so it renders read-only.
+      const editable = edit && !isManaged;
+      const link = edit ? null : externalHref(href ?? "");
+
       const card = classic ? (
         <div className="border-hair border p-5 text-center">
           <div className="text-faint2 font-sans text-[9px] font-semibold tracking-[0.24em] uppercase">
             With thanks to our patron
           </div>
-          <div className="mx-auto mt-3.5 flex h-12 w-40 items-center justify-center border border-dashed border-[#c9c1b1] font-mono text-[10px] text-[#8a857b]">
-            {block.logoId ? "LOGO" : "SPONSOR LOGO"}
+          <div
+            className={`mx-auto mt-3.5 flex h-12 w-40 items-center justify-center font-mono text-[10px] text-[#8a857b] ${
+              logo ? "" : "border border-dashed border-[#c9c1b1]"
+            }`}
+          >
+            {logo ? (
+              <SponsorLogo logo={logo} name={name} />
+            ) : isManaged ? (
+              "SPONSOR REMOVED"
+            ) : (
+              "SPONSOR LOGO"
+            )}
           </div>
           <div className="text-accent mt-3 font-serif text-sm italic">
-            {f((v) => ({ name: v }), block.name, "Sponsor name")} {link && "→"}
+            {editable
+              ? f((v) => ({ name: v }), block.name, "Sponsor name")
+              : name}{" "}
+            {link && "→"}
           </div>
-          {edit && (
+          {editable && (
             <div className="text-accent mt-1 font-sans text-[12px]">
               {f(
                 (v) => ({ href: v }),
@@ -269,17 +316,29 @@ export function BlockView({
         </div>
       ) : (
         <div className="bg-tint flex items-center gap-4 rounded-md p-4">
-          <div className="bg-card text-faint flex h-12 w-28 flex-none items-center justify-center rounded font-mono text-[10px]">
-            {block.logoId ? "LOGO" : "SPONSOR LOGO"}
+          <div
+            className={`text-faint flex h-12 w-28 flex-none items-center justify-center rounded font-mono text-[10px] ${
+              logo ? "bg-card overflow-hidden" : "bg-card"
+            }`}
+          >
+            {logo ? (
+              <SponsorLogo logo={logo} name={name} />
+            ) : isManaged ? (
+              "REMOVED"
+            ) : (
+              "SPONSOR LOGO"
+            )}
           </div>
           <div className="min-w-0 flex-1">
             <div className="text-accent-soft font-sans text-[9px] font-semibold tracking-[0.2em] uppercase">
               Sponsor
             </div>
             <div className="text-accent-ink mt-1 font-sans text-base font-semibold">
-              {f((v) => ({ name: v }), block.name, "Sponsor name")}
+              {editable
+                ? f((v) => ({ name: v }), block.name, "Sponsor name")
+                : name}
             </div>
-            {edit ? (
+            {editable ? (
               <div className="text-accent mt-1 font-sans text-[13px]">
                 {f(
                   (v) => ({ href: v }),

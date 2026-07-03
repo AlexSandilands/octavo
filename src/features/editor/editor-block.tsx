@@ -7,9 +7,11 @@ import { BlockView, type Theme } from "@/features/blocks/block-view";
 import { blockFlowStyle } from "@/features/blocks/layout";
 import type { Block, BlockPatch } from "@/lib/blocks";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
+import type { SponsorListItem, SponsorMap } from "@/lib/sponsors";
 import { ImageBlockControl } from "./image-upload";
 import { ImageLayoutControls } from "./image-layout";
 import { HeadingLevelControl } from "./heading-level-control";
+import { SponsorPicker } from "./sponsor-picker";
 import { RichTextEditor } from "./rich-text-editor";
 
 // One block in the editor canvas: the themed BlockView (editable) wrapped in the
@@ -23,6 +25,8 @@ export function EditorBlock({
   selected,
   issueId,
   images,
+  sponsors,
+  sponsorMap,
   onSelect,
   onChange,
   onMove,
@@ -35,6 +39,8 @@ export function EditorBlock({
   selected: boolean;
   issueId: string;
   images: ImageMap;
+  sponsors: SponsorListItem[];
+  sponsorMap: SponsorMap;
   onSelect: () => void;
   onChange: (patch: BlockPatch) => void;
   onMove: (dir: -1 | 1) => void;
@@ -135,6 +141,14 @@ export function EditorBlock({
                 onChange={onChange}
               />
             </div>
+          ) : block.type === "sponsor" ? (
+            <div className="border-hair absolute bottom-full left-0 z-20 mb-2 flex items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 shadow-[0_4px_14px_rgba(40,36,28,0.16)]">
+              <SponsorPicker
+                sponsorId={block.sponsorId}
+                sponsors={sponsors}
+                onChange={onChange}
+              />
+            </div>
           ) : (
             <span className="bg-accent text-paper absolute bottom-full left-0 z-10 mb-2 rounded-[3px] px-1.5 py-[3px] font-sans text-[9px] font-semibold tracking-[0.1em] uppercase">
               {block.type}
@@ -165,6 +179,7 @@ export function EditorBlock({
           theme={theme}
           edit={{ onChange }}
           images={images}
+          sponsors={sponsorMap}
           variant={cover ? "cover" : undefined}
         />
       )}
