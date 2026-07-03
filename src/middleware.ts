@@ -1,15 +1,39 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { safeNextPath } from "@/lib/next-path";
 
-// Edge gate for the members-only routes. It only checks for the *presence* of a
-// session cookie — it runs on the Edge runtime and can't reach Postgres to
-// validate a database session, so the in-component gates (requireMember /
-// requireAdmin in src/server/session.ts) stay the authority. Its jobs are:
-//   1. issue the sign-in redirect before any HTML streams, so signed-out
-//      visitors never see a flash of the route's loading skeleton (issue #5),
-//   2. carry the destination as ?next= so the emailed link returns members to
-//      the page they clicked.
-// A present-but-stale cookie passes here and is caught by the server gate.
+// This middleware does two jobs on every HTML-serving request:
+//
+//   1. Content-Security-Policy (per request). Stored rich text is sanitised at
+//      render time; this CSP is the backstop if that sanitiser is ever
+//      bypassed. A fresh nonce per request lets `script-src` drop
+//      'unsafe-inline' entirely, so an injected inline <script> or
+//      onerror=/onclick= handler will NOT execute — only Next's own
+//      nonce-tagged bootstrap runs, and 'strict-dynamic' lets that bootstrap
+//      load the app chunks. Next reads the nonce from the request-side CSP
+//      header (below) to tag those scripts. This is the real XSS backstop the
+//      old comment only claimed to be.
+//      Not covered: `style-src` keeps 'unsafe-inline' because the readers set
+//      inline styles legitimately (per-block layout), so injected *style*
+//      attributes still apply — acceptable, as CSS alone can't run script here
+//      with `script-src` locked down. `img-src` allows the R2 origin so served
+//      uploads load. Dev keeps 'unsafe-eval' for React Fast Refresh.
+//
+//   2. Edge auth gate for the members-only routes (`/`, `/read/*`, `/admin/*`).
+//      It only checks for the *presence* of a session cookie — it runs on the
+//      Edge runtime and can't reach Postgres to validate a database session,
+//      so the in-component gates (requireMember / requireAdmin in
+//      src/server/session.ts) stay the authority. Its jobs are:
+//        - issue the sign-in redirect before any HTML streams, so signed-out
+//          visitors never see a flash of the route's loading skeleton (#5),
+//        - carry the destination as ?next= so the emailed link returns members
+//          to the page they clicked.
+//      A present-but-stale cookie passes here and is caught by the server gate.
+//
+// The matcher now runs on all HTML routes (for the CSP), but the auth gate is
+// still scoped to the three gated prefixes via isGatedRoute() below.
+
+const r2 = process.env.R2_PUBLIC_URL;
+const isDev = process.env.NODE_ENV === "development";
 
 // Auth.js names the cookie differently by transport: dev (HTTP) uses the bare
 // name, production (HTTPS) the __Secure- prefix. Check both.
@@ -22,26 +46,78 @@ function hasSessionCookie(req: NextRequest): boolean {
   return SESSION_COOKIES.some((name) => req.cookies.has(name));
 }
 
-export function middleware(req: NextRequest) {
-  if (hasSessionCookie(req)) return NextResponse.next();
-
-  const { pathname, search } = req.nextUrl;
-  const signin = new URL("/signin", req.url);
-
-  // Member routes carry the return path; /admin mirrors requireAdminOrRedirect,
-  // which redirects to a bare /signin. safeNextPath is defence-in-depth — the
-  // path is our own request URL, but it strips control chars and rejects the
-  // library root (which needs no ?next=), matching the server gate.
-  if (!pathname.startsWith("/admin")) {
-    const next = safeNextPath(pathname + search);
-    if (next !== "/") signin.searchParams.set("next", next);
-  }
-
-  return NextResponse.redirect(signin, 307);
+// The three members-only prefixes the auth gate covers — unchanged from when
+// this lived in the matcher (`/`, `/read/:path*`, `/admin/:path*`).
+function isGatedRoute(pathname: string): boolean {
+  return (
+    pathname === "/" ||
+    pathname === "/read" ||
+    pathname.startsWith("/read/") ||
+    pathname === "/admin" ||
+    pathname.startsWith("/admin/")
+  );
 }
 
-// Gated routes only. Everything else — /signin, /api (own auth), _next, static
-// assets — is left untouched.
+function buildCsp(nonce: string): string {
+  return [
+    "default-src 'self'",
+    // Nonce + strict-dynamic replaces 'unsafe-inline': browsers that support
+    // strict-dynamic trust only nonce-tagged scripts and what they load.
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
+    // Kept 'unsafe-inline' deliberately — see the file header (inline block
+    // styles in the readers). Script injection is the real risk and is blocked
+    // above; inline CSS cannot execute code with script-src locked down.
+    "style-src 'self' 'unsafe-inline'",
+    `img-src 'self' data: blob:${r2 ? ` ${new URL(r2).origin}` : ""}`,
+    "font-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+  ].join("; ");
+}
+
+export function middleware(req: NextRequest) {
+  const { pathname, search } = req.nextUrl;
+
+  // Auth gate first: a redirect response renders no HTML, so it needs no CSP —
+  // the redirect *target* (/signin) gets its own pass through this middleware.
+  if (isGatedRoute(pathname) && !hasSessionCookie(req)) {
+    const signin = new URL("/signin", req.url);
+    // Member routes carry the return path; /admin mirrors
+    // requireAdminOrRedirect, which redirects to a bare /signin. safeNextPath
+    // is defence-in-depth — the path is our own request URL, but it strips
+    // control chars and rejects the library root (which needs no ?next=).
+    if (!pathname.startsWith("/admin")) {
+      const next = safeNextPath(pathname + search);
+      if (next !== "/") signin.searchParams.set("next", next);
+    }
+    return NextResponse.redirect(signin, 307);
+  }
+
+  // Per-request nonce. Next tags its inline bootstrap scripts by reading the
+  // nonce from the request-side CSP header, so it must be set on the *request*
+  // (via NextResponse.next({ request })), not only on the response. x-nonce is
+  // the convention for any Server Component that needs to read it back.
+  const nonce = btoa(crypto.randomUUID());
+  const csp = buildCsp(nonce);
+
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("content-security-policy", csp);
+
+  const res = NextResponse.next({ request: { headers: requestHeaders } });
+  res.headers.set("content-security-policy", csp);
+  return res;
+}
+
+// Run on everything except Next's static assets and the favicon: static files
+// carry their headers from next.config.ts and need no per-request nonce, and
+// excluding them keeps this off the hot asset path. The auth gate stays scoped
+// to the gated prefixes in code (isGatedRoute), so broadening the matcher for
+// the CSP does not gate any new route.
 export const config = {
-  matcher: ["/", "/read/:path*", "/admin/:path*"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$).*)",
+  ],
 };

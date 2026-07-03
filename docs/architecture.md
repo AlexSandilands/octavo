@@ -126,7 +126,7 @@ unsubscribe anyone. The `/unsubscribe` route sits outside the member gate by des
 | `/`                                 | dynamic       | Library — published issues. **Member session required**                                                                                  |
 | `/read/[issueId]`                   | dynamic       | Reader, by issue **number**, published only. **Member session required**                                                                 |
 | `/signin`                           | dynamic       | Email form; takes a validated same-origin `?next=` return path; doubles as the Auth.js error page (`?error=Verification` = expired link) |
-| `/signin/sent`                      | static        | Neutral "check your email" — same answer whether or not the address is a member's                                                        |
+| `/signin/sent`                      | dynamic       | Neutral "check your email" — same answer whether or not the address is a member's (dynamic only so the CSP nonce reaches it)             |
 | `/unsubscribe`                      | dynamic       | One-click unsubscribe from the new-issue email. **No session** — a signed `?token=` binds the user; GET shows a confirm button, a POST toggles the flag (see Publish → email)                                     |
 | `/api/auth/*`                       | route handler | Auth.js (sign-in POST, magic-link callback, session)                                                                                     |
 | `/admin`                            | dynamic       | Issue dashboard                                                                                                                          |
@@ -137,9 +137,11 @@ unsubscribe anyone. The `/unsubscribe` route sits outside the member gate by des
 | `POST /api/admin/images`            | route handler | Upload: multipart → sniff real format (SVG rejected) → sharp WebP → storage → `images` row                                               |
 | `GET /api/images/[...key]`          | route handler | Serves the local dev storage fallback (unused when R2 is set)                                                                            |
 
-Route-level `loading.tsx`/`error.tsx` cover `/`, `/read/[issueId]` and `/admin/*`; security
-headers (CSP, `frame-ancestors`, `nosniff`, referrer/permissions policies) are set globally in
-`next.config.ts`.
+Route-level `loading.tsx`/`error.tsx` cover `/`, `/read/[issueId]` and `/admin/*`. Static
+security headers (`nosniff`, `X-Frame-Options`, referrer/permissions policies) are set globally
+in `next.config.ts`; the CSP is set per request in `src/middleware.ts`, where `script-src` gets
+a fresh nonce (+ `'strict-dynamic'`) instead of `'unsafe-inline'` — the real XSS backstop behind
+the rich-text sanitiser.
 
 DB-backed routes set `export const dynamic = "force-dynamic"` so they always read fresh and aren't
 prerendered at build. **Everything except `/signin` and `/unsubscribe` is gated**: the library and
