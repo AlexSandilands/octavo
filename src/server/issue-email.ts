@@ -40,7 +40,7 @@ export function renderIssueEmailHtml({
   return `<body style="margin:0;padding:32px 16px;background:#f4f0e8;">
   <div style="max-width:480px;margin:0 auto;background:#fbf9f4;border:1px solid #e6e0d3;border-radius:16px;padding:40px 32px;font-family:Georgia,'Times New Roman',serif;color:#20201c;">
     <div style="font-size:22px;letter-spacing:.02em;">${name}</div>
-    <div style="margin-top:4px;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;letter-spacing:.2em;text-transform:uppercase;color:#8a857b;">${org}</div>
+    <div style="margin-top:4px;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;letter-spacing:.2em;text-transform:uppercase;color:#615c50;">${org}</div>
     <div style="margin-top:32px;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;letter-spacing:.2em;text-transform:uppercase;color:#1d4d3e;">New issue &middot; No. ${issueNumber}</div>
     <h1 style="margin:8px 0 0;font-size:30px;line-height:1.15;color:#20201c;">${title}</h1>
     <p style="margin:20px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:17px;line-height:1.6;color:#2a2722;">
@@ -56,10 +56,10 @@ export function renderIssueEmailHtml({
     <p style="margin:8px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.6;word-break:break-all;">
       <a href="${href}" style="color:#1d4d3e;">${href}</a>
     </p>
-    <p style="margin:32px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.6;color:#8a857b;">
+    <p style="margin:32px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.6;color:#615c50;">
       This link is just for you and works once. You&rsquo;re receiving this
       because you&rsquo;re a member of ${org}.
-      <a href="${unsub}" style="color:#8a857b;">Unsubscribe from these emails</a>.
+      <a href="${unsub}" style="color:#615c50;">Unsubscribe from these emails</a>.
     </p>
   </div>
 </body>`;

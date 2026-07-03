@@ -109,6 +109,9 @@ export function BlockView({
   // sized/centred by `blockFlowStyle`'s cover branch).
   if (variant === "cover") {
     if (block.type === "heading") {
+      // Read path emits a real heading so screen readers get a document outline;
+      // the editor keeps a <div> so it doesn't fight contentEditable.
+      const CoverTitle = edit ? "div" : "h2";
       return (
         <div className="text-center">
           {(edit || block.kicker) && (
@@ -116,12 +119,12 @@ export function BlockView({
               {f((v) => ({ kicker: v }), block.kicker, "Masthead")}
             </div>
           )}
-          <div
+          <CoverTitle
             className="text-ink mt-5 font-serif leading-[1.03]"
             style={{ fontSize: 68 }}
           >
             {f((v) => ({ title: v }), block.title, "Cover title")}
-          </div>
+          </CoverTitle>
           <div className="mt-7 flex items-center justify-center gap-3">
             <div className="h-px w-16 bg-[#cfc6b4]" />
             <div className="bg-accent h-1.5 w-1.5 rotate-45" />
@@ -142,6 +145,10 @@ export function BlockView({
   switch (block.type) {
     case "heading": {
       const level = block.level ?? "main";
+      // On the read path emit a real heading element (paragraph sub-heads → h3,
+      // everything else → h2) so screen readers get an outline; the editor keeps
+      // a <div> so semantics don't fight contentEditable. Mirrors mobile-reader.
+      const Title = edit ? "div" : level === "paragraph" ? "h3" : "h2";
       // Kicker (eyebrow) sits above main/section titles; paragraph sub-heads
       // omit it. One element, themed, reused across the levels below.
       const kicker = (edit || block.kicker) && level !== "paragraph" && (
@@ -159,7 +166,7 @@ export function BlockView({
       // Small run-in sub-head — themed but level-agnostic in layout.
       if (level === "paragraph") {
         return (
-          <div
+          <Title
             className={
               classic
                 ? "text-ink font-serif text-[15px] leading-snug font-semibold"
@@ -167,7 +174,7 @@ export function BlockView({
             }
           >
             {f((v) => ({ title: v }), block.title, "Sub-heading")}
-          </div>
+          </Title>
         );
       }
 
@@ -175,16 +182,16 @@ export function BlockView({
         return level === "section" ? (
           <div className="border-t border-[#e0d9c9] pt-3.5">
             {kicker}
-            <div className="text-ink font-serif text-[24px] leading-tight">
+            <Title className="text-ink font-serif text-[24px] leading-tight">
               {f((v) => ({ title: v }), block.title, "Section heading")}
-            </div>
+            </Title>
           </div>
         ) : (
           <div className="text-center">
             {kicker}
-            <div className="text-ink mt-1.5 font-serif text-[32px] leading-tight">
+            <Title className="text-ink mt-1.5 font-serif text-[32px] leading-tight">
               {f((v) => ({ title: v }), block.title, "Heading")}
-            </div>
+            </Title>
             <div className="mt-3 flex items-center justify-center gap-2.5">
               <div className="h-px w-10 bg-[#cfc6b4]" />
               <div className="bg-accent h-1 w-1 rotate-45" />
@@ -197,16 +204,16 @@ export function BlockView({
       return level === "section" ? (
         <div className="border-accent border-t-[2px] pt-2.5">
           {kicker}
-          <div className="text-ink mt-1 font-serif text-[24px] leading-tight tracking-tight">
+          <Title className="text-ink mt-1 font-serif text-[24px] leading-tight tracking-tight">
             {f((v) => ({ title: v }), block.title, "Section heading")}
-          </div>
+          </Title>
         </div>
       ) : (
         <div className="border-accent border-t-[3px] pt-3">
           {kicker}
-          <div className="text-ink mt-2.5 font-serif text-[32px] leading-none tracking-tight">
+          <Title className="text-ink mt-2.5 font-serif text-[32px] leading-none tracking-tight">
             {f((v) => ({ title: v }), block.title, "Heading")}
-          </div>
+          </Title>
         </div>
       );
     }
@@ -225,8 +232,10 @@ export function BlockView({
 
     case "image": {
       const resolved = block.imageId ? images?.[block.imageId] : undefined;
+      // Prefer the authored alt text; fall back to the caption so an uncaptioned
+      // photo is still described rather than announced decorative.
       const photo = resolved ? (
-        <BlockImage image={resolved} alt={block.caption} />
+        <BlockImage image={resolved} alt={block.alt || block.caption} />
       ) : classic ? (
         <div className="photo-fill flex h-[150px] items-center justify-center border border-[#e2dccf]">
           <span className="bg-page text-faint px-2 py-1 font-mono text-[11px]">
@@ -295,7 +304,7 @@ export function BlockView({
             With thanks to our patron
           </div>
           <div
-            className={`mx-auto mt-3.5 flex h-12 w-40 items-center justify-center font-mono text-[10px] text-[#8a857b] ${
+            className={`text-faint mx-auto mt-3.5 flex h-12 w-40 items-center justify-center font-mono text-[10px] ${
               logo ? "" : "border border-dashed border-[#c9c1b1]"
             }`}
           >

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { site } from "@/lib/site";
@@ -23,6 +23,27 @@ export function MobileReader({
 }) {
   const [m, setM] = useState(19);
   const [drawer, setDrawer] = useState(false);
+  const menuBtnRef = useRef<HTMLButtonElement>(null);
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
+
+  // Contents drawer a11y (WCAG 2.1.2 / 2.4.3): on open, move focus into the
+  // drawer; close on Escape; on close, return focus to the trigger button so
+  // keyboard/screen-reader users aren't stranded at the top of the document.
+  useEffect(() => {
+    if (!drawer) return;
+    const opener = menuBtnRef.current;
+    closeBtnRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setDrawer(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      // Only restore focus if it was lost with the drawer (fell back to body) —
+      // a TOC jump has already focused the target heading and must keep it.
+      if (document.activeElement === document.body) opener?.focus();
+    };
+  }, [drawer]);
 
   // Jump to a heading from the contents drawer. Headings carry ids derived
   // from their block id (see MobileBlock) and are focused after the scroll so
@@ -53,6 +74,7 @@ export function MobileReader({
     <div className="bg-page relative flex min-h-screen flex-col">
       <header className="border-line-soft bg-page flex h-[52px] flex-none items-center justify-between border-b px-4">
         <button
+          ref={menuBtnRef}
           onClick={() => setDrawer(true)}
           className="text-ink flex h-10 w-10 items-center justify-center rounded-[9px]"
           aria-label="Contents"
@@ -119,12 +141,18 @@ export function MobileReader({
             className="absolute inset-0 bg-[rgba(32,32,28,0.32)]"
             onClick={() => setDrawer(false)}
           />
-          <div className="bg-card absolute top-0 bottom-0 left-0 flex w-[250px] flex-col py-6 shadow-[8px_0_30px_rgba(0,0,0,0.2)]">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="In this issue"
+            className="bg-card absolute top-0 bottom-0 left-0 flex w-[250px] flex-col py-6 shadow-[8px_0_30px_rgba(0,0,0,0.2)]"
+          >
             <div className="flex items-center justify-between px-5">
               <span className="text-accent font-sans text-[11px] font-semibold tracking-[0.2em] uppercase">
                 In this issue
               </span>
               <button
+                ref={closeBtnRef}
                 onClick={() => setDrawer(false)}
                 className="text-muted"
                 aria-label="Close"
@@ -249,7 +277,7 @@ function MobileBlock({
           style={sized ? { width: `${width}%` } : undefined}
         >
           {resolved ? (
-            <BlockImage image={resolved} alt={block.caption} />
+            <BlockImage image={resolved} alt={block.alt || block.caption} />
           ) : (
             <div className="photo-fill flex h-[180px] items-center justify-center border border-[#e2dccf]">
               <span className="bg-page text-faint px-2 py-1 font-mono text-[11px]">
