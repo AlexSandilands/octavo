@@ -22,7 +22,9 @@ export function AdminShell({
   children: ReactNode;
 }) {
   return (
-    <div className="bg-card flex min-h-screen">
+    // h-screen + overflow-y-auto on <main>: only the content pane scrolls, so
+    // the sidebar (and its mt-auto footer) stays pinned to the viewport.
+    <div className="bg-card flex h-screen">
       <aside className="bg-paper border-line flex w-[214px] flex-none flex-col border-r py-6">
         <div className="px-6">
           <Wordmark size={22} />
@@ -30,7 +32,16 @@ export function AdminShell({
             Admin
           </div>
         </div>
-        <nav className="mt-7 flex flex-col">
+        {/* Back-out link, not a section: it leaves the admin for the member-
+            facing library, so it sits above the nav rather than in it. */}
+        <Link
+          href="/"
+          className="text-muted hover:text-accent mt-5 flex items-center gap-2 px-6 py-1.5 font-sans text-[14px] font-medium"
+        >
+          <Icon name="chevronLeft" size={16} />
+          View library
+        </Link>
+        <nav className="mt-5 flex flex-col">
           {NAV.map((n) => {
             const on = n.key === active;
             return (
@@ -49,14 +60,7 @@ export function AdminShell({
             );
           })}
         </nav>
-        <Link
-          href="/"
-          className="text-muted hover:text-accent mt-auto flex items-center gap-2 px-6 py-2 font-sans text-[14px] font-medium"
-        >
-          <Icon name="chevronLeft" size={16} />
-          View library
-        </Link>
-        <div className="border-line flex items-center gap-2.5 border-t px-6 pt-4">
+        <div className="border-line mt-auto flex items-center gap-2.5 border-t px-6 pt-4">
           <span className="bg-accent text-paper flex h-[30px] w-[30px] items-center justify-center rounded-full font-sans text-xs font-semibold">
             AC
           </span>
@@ -68,7 +72,7 @@ export function AdminShell({
           </div>
         </div>
       </aside>
-      <main className="flex-1 overflow-hidden p-7 sm:p-8">{children}</main>
+      <main className="flex-1 overflow-y-auto p-7 sm:p-8">{children}</main>
     </div>
   );
 }
