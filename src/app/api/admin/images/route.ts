@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createId } from "@/lib/id";
 import { processImage, UnsupportedImageError } from "@/lib/image-processing";
+import { createRateLimiter } from "@/lib/rate-limit";
 import { keyToUrl, putObject, usingLocalStorage } from "@/lib/storage";
 import { createImageRecord } from "@/server/images";
 import { getAdminUser } from "@/server/session";
@@ -26,11 +27,28 @@ const fieldsSchema = z.object({
   issueId: z.string().min(1).optional(),
 });
 
+// Each request re-encodes up to 12 MB through sharp, so throttle per admin even
+// after the auth check — the pixel/byte caps make one request safe, volume is
+// the gap. Generous enough that building an image-heavy issue never trips it.
+const uploadLimiter = createRateLimiter({ limit: 30, windowMs: 60_000 });
+
 export async function POST(request: Request) {
-  if (!(await getAdminUser())) {
+  const admin = await getAdminUser();
+  if (!admin) {
     return NextResponse.json(
       { error: "Admin access required." },
       { status: 403 },
+    );
+  }
+
+  const rate = uploadLimiter.check(admin.id);
+  if (!rate.ok) {
+    return NextResponse.json(
+      { error: "Too many uploads. Please wait a moment and try again." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rate.retryAfterSeconds) },
+      },
     );
   }
 
