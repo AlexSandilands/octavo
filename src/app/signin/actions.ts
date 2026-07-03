@@ -2,7 +2,7 @@
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { signIn } from "@/server/auth";
+import { signIn, signOut } from "@/server/auth";
 
 const emailSchema = z.string().trim().toLowerCase().email();
 
@@ -31,4 +31,9 @@ export async function requestMagicLink(formData: FormData) {
     }
   }
   redirect("/signin/sent");
+}
+
+// Deletes the session row and clears the cookie for this device only.
+export async function signOutAction() {
+  await signOut({ redirectTo: "/signin" });
 }

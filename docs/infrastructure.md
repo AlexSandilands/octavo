@@ -54,10 +54,17 @@ Member ── Cloudflare (DNS/CDN) ── Railway (Next.js + Postgres)
 4. **Email** — create the provider account; verify the sending domain by adding its
    **SPF, DKIM, and DMARC** records in Cloudflare DNS (do this carefully — it's what
    keeps blasts out of spam); get the API key.
-5. **Auth** — set `AUTH_SECRET`; wire Auth.js to the email provider + Postgres adapter.
-6. **Monitoring** — add the Sentry DSN; create an UptimeRobot monitor on the site URL
+5. **Auth** — set `AUTH_SECRET` (generate with `npx auth secret`). Sign-in is
+   magic-link only; the email provider from step 4 delivers the links.
+6. **First admin** — `/admin` only admits users with `is_admin`, and only an admin
+   can manage members, so bootstrap the first one from the command line:
+   `railway run npm run db:admin -- you@example.com` (drop the `railway run` prefix
+   locally). Idempotent — it creates the user or promotes an existing one. Then
+   sign in at `/signin` with that email.
+7. **Monitoring** — add the Sentry DSN; create an UptimeRobot monitor on the site URL
    with email/SMS alerts to the developer.
-7. **Deploy** — confirm a test magic-link email arrives and an image upload lands in R2.
+8. **Deploy** — confirm a test magic-link email arrives, signing in works, and an
+   image upload lands in R2.
 
 ### Note on PDF generation
 

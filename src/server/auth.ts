@@ -21,6 +21,8 @@ declare module "next-auth" {
     user: {
       id: string;
       isAdmin: boolean;
+      // Narrowed from DefaultSession's optional: the users row requires it.
+      email: string;
     } & DefaultSession["user"];
   }
 }

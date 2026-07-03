@@ -11,11 +11,13 @@ import {
   updateIssueContent,
   updateIssueMeta,
 } from "@/server/issues";
+import { requireAdmin } from "@/server/session";
 
 // Mutations the admin UI calls. Server action arguments are attacker-controlled
 // JSON regardless of their TypeScript types, so every argument is re-validated
-// with zod here — adding auth later is just a gate, not a rewrite (see
-// docs/design-principles.md §9).
+// with zod here. Every action starts with requireAdmin(): route middleware and
+// the /admin layout only guard page navigations — an action can be invoked
+// directly by any client that knows its id, so the gate lives in the action.
 
 const idSchema = z.string().uuid();
 
@@ -32,6 +34,7 @@ export type SaveResult =
   | { ok: false; reason: "invalid" | "conflict" | "missing" };
 
 export async function createIssueAction() {
+  await requireAdmin();
   const issue = await createIssue();
   revalidatePath("/admin");
   redirect(`/admin/issues/${issue.id}/edit`);
@@ -42,6 +45,7 @@ export async function saveIssueAction(
   content: unknown,
   baseRevision: number,
 ): Promise<SaveResult> {
+  await requireAdmin();
   const parsedId = idSchema.safeParse(id);
   const parsedRevision = z.number().int().min(0).safeParse(baseRevision);
   const parsedContent = issueContentSchema.safeParse(content);
@@ -61,6 +65,7 @@ export async function saveMetaAction(
   id: string,
   meta: { title?: string; theme?: string },
 ): Promise<{ ok: boolean }> {
+  await requireAdmin();
   const parsedId = idSchema.safeParse(id);
   const parsedMeta = metaSchema.safeParse(meta);
   if (!parsedId.success || !parsedMeta.success) return { ok: false };
@@ -70,6 +75,7 @@ export async function saveMetaAction(
 }
 
 export async function publishIssueAction(id: string): Promise<{ ok: boolean }> {
+  await requireAdmin();
   const parsed = idSchema.safeParse(id);
   if (!parsed.success) return { ok: false };
   await publishIssue(parsed.data);
@@ -79,6 +85,7 @@ export async function publishIssueAction(id: string): Promise<{ ok: boolean }> {
 }
 
 export async function deleteIssueAction(id: string): Promise<{ ok: boolean }> {
+  await requireAdmin();
   const parsed = idSchema.safeParse(id);
   if (!parsed.success) return { ok: false };
   await deleteIssue(parsed.data);

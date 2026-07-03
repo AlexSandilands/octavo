@@ -109,8 +109,8 @@ headers (CSP, `frame-ancestors`, `nosniff`, referrer/permissions policies) are s
 `next.config.ts`.
 
 DB-backed routes set `export const dynamic = "force-dynamic"` so they always read fresh and aren't
-prerendered at build. **`/admin` and the reader are currently ungated** — sign-in works, but route
-gating is the next issue in the phase.
+prerendered at build. **The reader and library are currently ungated** (that's the next issue);
+`/admin` and every mutation are admin-gated — see below.
 
 ## Auth
 
@@ -127,8 +127,13 @@ Magic-link only (no passwords, no OAuth), built on Auth.js v5 with **database se
 - `auth-email.ts` — the branded email. Dev always logs the link to the console (testable with no
   Resend account); with `EMAIL_API_KEY` set it sends via Resend, and a send failure is fatal in
   production but only a warning in dev.
-- `session.ts` — `getSession()` / `getUser()`, request-deduped. Components and actions use these,
-  never Auth.js directly.
+- `session.ts` — `getSession()` / `getUser()` (request-deduped) plus the admin gate:
+  `getAdminUser()` is the single admin-or-not decision (fail closed — a session lookup error
+  reads as signed out), and `requireAdmin()` throws on top of it. **Every server action in
+  `app/admin/actions.ts` and `POST /api/admin/images` calls the gate first** — route middleware
+  and layouts only cover page navigations, but a server action can be invoked directly by any
+  client that knows its id, so the check lives inside each action. `src/app/admin/layout.tsx`
+  redirects signed-out visitors to `/signin` (and non-admin members to `/`) for page loads.
 
 The `/signin` flow never reveals membership: known and unknown emails both land on
 `/signin/sent`, and an expired or already-used link comes back to `/signin` with a

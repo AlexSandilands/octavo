@@ -1,17 +1,21 @@
+import { redirect } from "next/navigation";
 import { AdminShell } from "@/components/admin-shell";
 import { Button } from "@/components/ui";
 import { EmptyMembers } from "@/components/empty-states";
 import { MembersTable } from "@/features/members/members-table";
 import { members } from "@/lib/sample-members";
+import { getAdminUser } from "@/server/session";
 
-export default function MembersPage() {
+export default async function MembersPage() {
+  const admin = await getAdminUser();
+  if (!admin) redirect("/signin");
   const count = (s: string) => members.filter((m) => m.status === s).length;
   const summary = `${count("Subscribed")} subscribed · ${count(
     "Unsubscribed",
   )} unsubscribed · ${count("Bounced")} bounced`;
 
   return (
-    <AdminShell active="members">
+    <AdminShell active="members" user={admin}>
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-ink font-serif text-3xl">Members</h1>

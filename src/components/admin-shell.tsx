@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { signOutAction } from "@/app/signin/actions";
 import { Wordmark } from "./ui";
 import { Icon, type IconName } from "./icons";
 
@@ -14,11 +15,21 @@ const NAV: { key: string; label: string; href: string; icon: IconName }[] = [
   },
 ];
 
+function initials(name: string | null | undefined, email: string) {
+  if (name) {
+    const parts = name.trim().split(/\s+/);
+    return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase();
+  }
+  return email[0]?.toUpperCase() ?? "?";
+}
+
 export function AdminShell({
   active,
+  user,
   children,
 }: {
   active: string;
+  user: { name?: string | null; email: string };
   children: ReactNode;
 }) {
   return (
@@ -61,14 +72,21 @@ export function AdminShell({
           })}
         </nav>
         <div className="border-line mt-auto flex items-center gap-2.5 border-t px-6 pt-4">
-          <span className="bg-accent text-paper flex h-[30px] w-[30px] items-center justify-center rounded-full font-sans text-xs font-semibold">
-            AC
+          <span className="bg-accent text-paper flex h-[30px] w-[30px] flex-none items-center justify-center rounded-full font-sans text-xs font-semibold">
+            {initials(user.name, user.email)}
           </span>
-          <div>
-            <div className="text-ink font-sans text-[13px] font-semibold">
-              A. Cole
+          <div className="min-w-0">
+            <div className="text-ink truncate font-sans text-[13px] font-semibold">
+              {user.name ?? user.email}
             </div>
-            <div className="text-faint font-sans text-[11px]">Editor</div>
+            <form action={signOutAction}>
+              <button
+                type="submit"
+                className="text-faint hover:text-accent font-sans text-[11px] underline underline-offset-2"
+              >
+                Sign out
+              </button>
+            </form>
           </div>
         </div>
       </aside>
