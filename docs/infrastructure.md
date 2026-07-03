@@ -29,8 +29,14 @@ Member ── Cloudflare (DNS/CDN) ── Railway (Next.js + Postgres)
 - App talks to **Postgres** via `DATABASE_URL` (injected by Railway; prefer the internal
   URL — no SSL needed, no egress cost. If the public proxy URL is ever used, require
   `sslmode=require`).
-- App reads/writes **R2** with the S3-compatible SDK; images served from R2 behind
-  Cloudflare (serving model per ROADMAP open decision #2).
+- App reads/writes **R2** with the S3-compatible SDK. **Serving model (settled, issue #6):
+  the bucket is public and images are served straight from their `R2_PUBLIC_URL` (Cloudflare-
+  cached, zero Railway egress); `next/image` renders them `unoptimized` so nothing is proxied
+  through the Railway container.** Access control is by _unguessable key_: every object lives
+  at `…/<uuid>.webp`, so a URL can't be enumerated, and the page-level member gate protects the
+  reading experience. A leaked image URL exposes only that one image — acceptable for club-
+  magazine photos, which is why signed URLs (with their TTL/caching cost) were rejected. Keep
+  the bucket's objects readable but **listing disabled** so keys can't be walked.
 - App sends **email** via the provider's API; the sending domain is verified with DNS
   records.
 - **Auth.js** issues magic links through the same email provider, sessions stored in

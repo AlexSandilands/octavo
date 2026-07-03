@@ -39,12 +39,13 @@ Auth is **real** and everything is gated: magic-link sign-in (Auth.js v5, databa
 days, members-only); the library/reader require a member session (signed-out visitors are sent to
 `/signin` with a validated `?next=` return path); `/admin`, all server actions and the upload route
 require `is_admin` (`npm run db:admin` bootstraps one). In dev the magic link is logged to the
-console, so no Resend account is needed. **Sponsors are real** (content v2): a `sponsors` table, a
+console, so no Resend account is needed. Members are **DB-backed**: the admin manages the real
+`users` table (add / remove / toggle subscribed / toggle admin / CSV import), with guard rails
+(no self-removal, always one admin). **Sponsors are real** (content v2): a `sponsors` table, a
 working admin page (`/admin/sponsors` — logo upload, link, `activeUntil` with an expired flag), and
 sponsor blocks that reference a managed sponsor via the editor picker (manual entry retained as a
 fallback / the v1 path). Version-1 issues with inline sponsor blocks still render unchanged. Still
-stubbed: PDF and members persistence. Routes + directory map are in `docs/architecture.md`; phase
-plan in `docs/ROADMAP.md`.
+stubbed: PDF. Routes + directory map are in `docs/architecture.md`; phase plan in `docs/ROADMAP.md`.
 
 ## Stack
 

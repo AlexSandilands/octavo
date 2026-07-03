@@ -1,39 +1,18 @@
 import { AdminShell } from "@/components/admin-shell";
-import { Button } from "@/components/ui";
-import { EmptyMembers } from "@/components/empty-states";
-import { MembersTable } from "@/features/members/members-table";
-import { members } from "@/lib/sample-members";
+import { MembersManager } from "@/features/members/members-manager";
+import { listUsers } from "@/server/users";
 import { requireAdminOrRedirect } from "@/server/session";
 
+export const dynamic = "force-dynamic";
+
 export default async function MembersPage() {
+  // The layout gates too, but layouts don't re-run on soft navigation.
   const admin = await requireAdminOrRedirect();
-  const count = (s: string) => members.filter((m) => m.status === s).length;
-  const summary = `${count("Subscribed")} subscribed · ${count(
-    "Unsubscribed",
-  )} unsubscribed · ${count("Bounced")} bounced`;
+  const members = await listUsers();
 
   return (
     <AdminShell active="members" user={admin}>
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-ink font-serif text-3xl">Members</h1>
-          <p className="text-faint mt-1.5 font-sans text-sm">{summary}</p>
-        </div>
-        <div className="flex gap-3">
-          <Button variant="secondary" icon="upload">
-            Import CSV
-          </Button>
-          <Button icon="plus">Add member</Button>
-        </div>
-      </div>
-
-      {members.length === 0 ? (
-        <div className="mt-8">
-          <EmptyMembers />
-        </div>
-      ) : (
-        <MembersTable members={members} />
-      )}
+      <MembersManager members={members} currentUserId={admin.id} />
     </AdminShell>
   );
 }
