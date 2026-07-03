@@ -2,6 +2,11 @@ import Link from "next/link";
 import { site } from "@/lib/site";
 import { SignInCard } from "../card";
 
+// Rendered per request so the middleware's CSP nonce reaches this page's
+// scripts — a build-time static render bakes in no nonce, and 'strict-dynamic'
+// would then block Next's bootstrap here. Cost is nil (trivial static content).
+export const dynamic = "force-dynamic";
+
 // The neutral "check your email" screen. Every link request lands here,
 // whether or not the address belongs to a member — the response must not
 // reveal who is on the list.

@@ -1,6 +1,11 @@
 import { Wordmark, Button } from "@/components/ui";
 import { site } from "@/lib/site";
 
+// Rendered per request so the middleware's CSP nonce reaches this page's
+// scripts — a build-time static render bakes in no nonce, and 'strict-dynamic'
+// would then block Next's bootstrap on any 404. Cost is nil (static content).
+export const dynamic = "force-dynamic";
+
 // 404 / "not a member yet" — friendly, never a raw error.
 export default function NotFound() {
   return (
