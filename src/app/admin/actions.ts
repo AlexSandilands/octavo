@@ -1,16 +1,20 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { ensureCoverFirst, issueContentSchema } from "@/lib/blocks";
+import { env } from "@/lib/env";
 import {
   createIssue,
   deleteIssue,
+  getIssue,
   publishIssue,
   updateIssueContent,
   updateIssueMeta,
 } from "@/server/issues";
+import { sendIssueBlast, type BlastResult } from "@/server/publish-email";
 import { requireAdmin } from "@/server/session";
 
 // Mutations the admin UI calls. Server action arguments are attacker-controlled
@@ -74,14 +78,51 @@ export async function saveMetaAction(
   return { ok: true };
 }
 
-export async function publishIssueAction(id: string): Promise<{ ok: boolean }> {
+export type PublishResult =
+  | { ok: false }
+  | { ok: true; emailed: BlastResult | null };
+
+// Publish an issue and, unless the admin skipped it, email every subscribed
+// member their personal magic link to the new issue. `sendEmail` is a required
+// explicit choice (the modal defaults it off for a re-publish) so a correction
+// can't accidentally re-blast a thousand people.
+//
+// The blast runs after the publish has committed and never throws — a mail
+// outage leaves the issue published and comes back as a reported failure count,
+// not a rollback. We await it so the admin sees a real sent/failed tally; with
+// a club-sized list (~1,000, batched 100 per Resend call) that stays quick. If
+// the list ever outgrows a request, move the send to a background queue — the
+// pieces here (token minting, chunked tally) port unchanged.
+export async function publishIssueAction(
+  id: string,
+  sendEmail: boolean,
+): Promise<PublishResult> {
   await requireAdmin();
-  const parsed = idSchema.safeParse(id);
-  if (!parsed.success) return { ok: false };
-  await publishIssue(parsed.data);
+  const parsedId = idSchema.safeParse(id);
+  const parsedSend = z.boolean().safeParse(sendEmail);
+  if (!parsedId.success || !parsedSend.success) return { ok: false };
+
+  await publishIssue(parsedId.data);
   revalidatePath("/admin");
   revalidatePath("/");
-  return { ok: true };
+
+  if (!parsedSend.data) return { ok: true, emailed: null };
+
+  const issue = await getIssue(parsedId.data);
+  if (!issue) return { ok: false };
+
+  // Absolute origin for the emailed links: prefer the configured canonical URL
+  // (members may reach a different host than the admin did), fall back to the
+  // request's own Host when APP_URL is unset (dev).
+  const origin = env.APP_URL ?? originFromHeaders(await headers());
+  const emailed = await sendIssueBlast(issue.number, issue.title, origin);
+  return { ok: true, emailed };
+}
+
+function originFromHeaders(h: Headers): string {
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const proto = h.get("x-forwarded-proto") ?? "http";
+  return `${proto}://${host}`;
 }
 
 export async function deleteIssueAction(id: string): Promise<{ ok: boolean }> {

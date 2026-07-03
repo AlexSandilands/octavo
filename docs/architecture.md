@@ -53,6 +53,10 @@ src/
     auth.ts            Auth.js config: provider, callbacks, session shape
     auth-adapter.ts    hand-rolled Auth.js adapter over the users/sessions tables
     auth-email.ts      the magic-link email (template + Resend/console transport)
+    issue-email.ts     the new-issue announcement email (template only)
+    publish-email.ts   publish blast: mints per-member magic links + batch-sends
+    recipients.ts      mailing-list data access (subscribed members, un/resubscribe)
+    unsubscribe-token.ts  HMAC-signed, session-less unsubscribe tokens
     session.ts         getSession()/getUser() — how the app reads who's signed in
 scripts/               dev-only helpers (not part of the app), e.g. the headless
                        magic-link flow check (dev-auth-flow.mts)
@@ -75,7 +79,34 @@ Editor (client state)
 
 Reader / library / dashboard (server components)
   └─ data layer (server/issues.ts) ─▶ Postgres ─▶ rendered via shared block renderers
+
+Publish → email blast (publishIssueAction, admin only)
+  └─ publishIssue() ─▶ Postgres (status=published)
+  └─ if "email members" chosen: server/publish-email.ts
+       ├─ per member: mint an Auth.js verification token (same mechanism as
+       │  sign-in) targeting /read/[number]  ─▶ verification_tokens
+       └─ render + batch-send via Resend (console in dev)  ─▶ {sent, failed} → admin
 ```
+
+### Publish → email (the core loop)
+
+Publishing an issue optionally emails every subscribed member. **The email _is_ the
+magic link**: its "Read issue" button is a per-member Auth.js sign-in link with a
+`callbackUrl` of `/read/[number]`, so clicking it signs the member in and lands them on
+the new issue — no separate log-in step. Links are minted through the **same
+verification-token path as the sign-in email** (`server/publish-email.ts` replicates
+`@auth/core`'s token: raw value in the URL, `sha256(token+AUTH_SECRET)` stored, deleted
+on first use), so they carry the same 24h expiry and single-use guarantee. The send runs
+_after_ the publish commits and never throws — a mail failure leaves the issue published
+and reports a `{sent, failed}` count to the admin (chunked 100/batch per Resend's limit;
+a failed chunk is counted, not fatal). Re-publishing an already-live issue defaults the
+email **off** so a correction can't re-blast the list.
+
+Each email also carries a **signed unsubscribe link** (`server/unsubscribe-token.ts`):
+an HMAC over the user id under a key derived from `AUTH_SECRET`, verified in constant
+time. It needs no session (it arrives in email), can't be forged for another user, and
+mutates only via a POSTed confirm button so an email scanner's GET prefetch can't
+unsubscribe anyone. The `/unsubscribe` route sits outside the member gate by design.
 
 - **Server Components by default.** `"use client"` only for interactivity (editor, readers, members
   table). Keep client islands at the leaves.
@@ -96,6 +127,7 @@ Reader / library / dashboard (server components)
 | `/read/[issueId]`                   | dynamic       | Reader, by issue **number**, published only. **Member session required**                                                                 |
 | `/signin`                           | dynamic       | Email form; takes a validated same-origin `?next=` return path; doubles as the Auth.js error page (`?error=Verification` = expired link) |
 | `/signin/sent`                      | static        | Neutral "check your email" — same answer whether or not the address is a member's                                                        |
+| `/unsubscribe`                      | dynamic       | One-click unsubscribe from the new-issue email. **No session** — a signed `?token=` binds the user; GET shows a confirm button, a POST toggles the flag (see Publish → email)                                     |
 | `/api/auth/*`                       | route handler | Auth.js (sign-in POST, magic-link callback, session)                                                                                     |
 | `/admin`                            | dynamic       | Issue dashboard                                                                                                                          |
 | `/admin/issues/[id]/edit`           | dynamic       | Editor, by issue **id**                                                                                                                  |
@@ -109,8 +141,10 @@ headers (CSP, `frame-ancestors`, `nosniff`, referrer/permissions policies) are s
 `next.config.ts`.
 
 DB-backed routes set `export const dynamic = "force-dynamic"` so they always read fresh and aren't
-prerendered at build. **Everything except `/signin` is gated**: the library and reader require a
-member session, `/admin` and every mutation require an admin — see below. The site stays noindex
+prerendered at build. **Everything except `/signin` and `/unsubscribe` is gated**: the library and
+reader require a member session, `/admin` and every mutation require an admin — see below.
+`/unsubscribe` is deliberately ungated (it arrives in email, before any session) and authorises
+itself with a signed token instead. The site stays noindex
 globally (nothing public to crawl).
 
 ## Auth
@@ -152,7 +186,8 @@ values are set in Railway. `.env.example` lists every key.
 | ------------------------------------------------------ | ------------- | --------------------------------------------------------------- |
 | `DATABASE_URL`                                         | yes           | Postgres connection                                             |
 | `NEXT_PUBLIC_MAGAZINE_NAME` / `_ORG_NAME` / `_TAGLINE` | no (defaults) | Branding, build-time inlined                                    |
-| `AUTH_SECRET`                                          | dev: yes      | Auth.js token/cookie signing (required in prod by env.ts)       |
+| `AUTH_SECRET`                                          | dev: yes      | Auth.js token/cookie signing + unsubscribe-token key (required in prod by env.ts) |
+| `APP_URL`                                              | no (fallback) | Canonical origin for links in emails (magic link, unsubscribe); falls back to the request Host when unset |
 | `EMAIL_API_KEY`, `EMAIL_FROM`                          | no in dev     | Resend; unset in dev = links only in console (required in prod) |
 | `R2_*`                                                 | no in dev     | Object storage (required in prod)                               |
 
@@ -160,7 +195,9 @@ values are set in Railway. `.env.example` lists every key.
 
 Real: the editor authors and autosaves to the DB; the reader/library/dashboard render real data;
 images upload to R2 and render in both editor and reader; magic-link sign-in with database
-sessions, and every route/mutation is gated (members read, admins author).
+sessions, and every route/mutation is gated (members read, admins author); publishing an issue
+emails every subscribed member a personal magic link (the new-issue email _is_ the sign-in link),
+with a signed one-click unsubscribe.
 Stubbed/deferred: PDF export, members/sponsors persistence. The phase
 sequence lives in [ROADMAP.md](ROADMAP.md); work is tracked as GitHub issues (one
 milestone per phase).

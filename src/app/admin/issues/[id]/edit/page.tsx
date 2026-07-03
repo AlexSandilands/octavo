@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { Editor } from "@/features/editor/editor";
 import { getIssue } from "@/server/issues";
 import { resolveIssueImages } from "@/server/images";
+import { countSubscribedRecipients } from "@/server/recipients";
 import { requireAdminOrRedirect } from "@/server/session";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +17,10 @@ export default async function EditIssuePage({
   const issue = await getIssue(id);
   if (!issue) notFound();
 
-  const images = await resolveIssueImages(issue.content);
+  const [images, subscriberCount] = await Promise.all([
+    resolveIssueImages(issue.content),
+    countSubscribedRecipients(),
+  ]);
 
   return (
     <Editor
@@ -27,8 +31,10 @@ export default async function EditIssuePage({
         theme: issue.theme,
         content: issue.content,
         revision: issue.revision,
+        status: issue.status,
       }}
       images={images}
+      subscriberCount={subscriberCount}
     />
   );
 }
