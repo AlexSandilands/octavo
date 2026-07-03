@@ -22,7 +22,9 @@ export function AdminShell({
   children: ReactNode;
 }) {
   return (
-    <div className="bg-card flex min-h-screen">
+    // h-screen + overflow-y-auto on <main>: only the content pane scrolls, so
+    // the sidebar (and its mt-auto footer) stays pinned to the viewport.
+    <div className="bg-card flex h-screen">
       <aside className="bg-paper border-line flex w-[214px] flex-none flex-col border-r py-6">
         <div className="px-6">
           <Wordmark size={22} />
@@ -68,7 +70,7 @@ export function AdminShell({
           </div>
         </div>
       </aside>
-      <main className="flex-1 overflow-hidden p-7 sm:p-8">{children}</main>
+      <main className="flex-1 overflow-y-auto p-7 sm:p-8">{children}</main>
     </div>
   );
 }
