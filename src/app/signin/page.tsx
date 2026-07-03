@@ -2,8 +2,8 @@ import { z } from "zod";
 import { Button } from "@/components/ui";
 import { site } from "@/lib/site";
 import { SignInCard } from "./card";
+import { safeNextPath } from "@/lib/next-path";
 import { requestMagicLink } from "./actions";
-import { safeNextPath } from "./next-path";
 
 // Sign-in — enter your email, get a magic link. Also serves as Auth.js's
 // error page (?error=...): the common case is Verification, an expired or
@@ -16,6 +16,10 @@ const ERROR_COPY: Record<string, { title: string; body: string }> = {
   "invalid-email": {
     title: "That doesn't look like an email address.",
     body: "Check for typos and try again.",
+  },
+  "rate-limited": {
+    title: "Too many attempts.",
+    body: "For your security we've paused sign-in links for a few minutes. Please wait, then request a fresh one.",
   },
 };
 
