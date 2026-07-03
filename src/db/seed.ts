@@ -53,7 +53,7 @@ async function main() {
   const { eq } = await import("drizzle-orm");
   const { issues, images } = await import("./schema");
   const client = postgres(url, { max: 1 });
-  const db = drizzle(client);
+  const db = drizzle({ client });
 
   // The seed WIPES all issues and images. Refuse anywhere that looks like real
   // data — production, or a database that already holds published issues —

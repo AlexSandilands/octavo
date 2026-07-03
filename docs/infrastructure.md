@@ -107,16 +107,19 @@ At ~1,000 members and roughly monthly issues:
 ## Accepted `npm audit` findings
 
 Reviewed 2026-07 after upgrading next / drizzle-orm / drizzle-kit / next-auth (which
-cleared the actionable findings, incl. a high in drizzle-orm). Two moderates remain,
-both **not exploitable here** — re-check on each dependency-update pass:
+cleared the actionable findings, incl. a high in drizzle-orm). One finding remains,
+**not exploitable here and unfixable on any stable Next** — re-check on updates:
 
-- `esbuild <=0.24.2` (nested under drizzle-kit's deprecated `@esbuild-kit` loader,
-  which hard-pins it — npm overrides can't take). The advisory needs esbuild's HTTP
-  dev-server running; drizzle-kit only uses esbuild as a file loader. Dev machines only.
-- `postcss <8.5.10` (exact-pinned inside `next`). Build-time processing of our own
-  CSS; the XSS scenario needs attacker-controlled CSS. Clears when Next bumps it.
+- `postcss <8.5.10` (exact-pinned inside `next`; verified still pinned in the latest
+  Next 16.2 — only 16.3 canaries bump it). Build-time processing of our own CSS; the
+  XSS scenario needs attacker-controlled CSS. Clears when a stable Next bumps it.
 
-Never run `npm audit fix --force` — it downgrades `next` to a 9.x "fix".
+Related notes:
+
+- `drizzle-orm`/`drizzle-kit` are on **1.0.0-rc** (the 0.x kit line bundled a
+  vulnerable esbuild via a deprecated loader; the 1.0 line dropped it). Move to
+  1.0 stable when released.
+- Never run `npm audit fix --force` — it downgrades `next` to a 9.x "fix".
 
 ## Recurring landlord tasks (rare)
 
