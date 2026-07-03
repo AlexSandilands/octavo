@@ -19,7 +19,7 @@ Core docs (long-lived — keep current):
 
 Work is tracked as **GitHub issues** — one milestone per roadmap phase, one issue per task.
 Before starting an issue, read its milestone context in `docs/ROADMAP.md`; the issue brief
-gives intent + acceptance criteria, the current code is the source of truth for the *how*.
+gives intent + acceptance criteria, the current code is the source of truth for the _how_.
 Branch per issue; keep PRs reviewable.
 
 ## Commands
@@ -34,7 +34,9 @@ Branch per issue; keep PRs reviewable.
 Library, reader, dashboard and editor are **DB-backed** (editor autosaves; reader renders saved
 issues). Images are **real**: the editor uploads (WebP via sharp) and the reader serves them — to R2
 when configured, otherwise a local-disk fallback (`.data/uploads`) so it works with no cloud setup.
-Still stubbed: auth (`/admin` ungated), email, PDF, and members/sponsors persistence.
+Auth is **real**: magic-link sign-in (Auth.js v5, database sessions ~90 days, members-only); in dev
+the link is logged to the console, so no Resend account is needed. Still stubbed: route gating
+(`/admin` and the reader are ungated), PDF, and members/sponsors persistence.
 Routes + directory map are in `docs/architecture.md`; phase plan in `docs/ROADMAP.md`.
 
 ## Stack

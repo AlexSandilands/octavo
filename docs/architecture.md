@@ -1,7 +1,8 @@
 # Architecture
 
 A members-only digital magazine. An admin authors page-based issues; members read them as a
-flipbook (desktop) or a single scroll (mobile). Magic-link access (auth not yet built).
+flipbook (desktop) or a single scroll (mobile). Access is by magic link — membership is presence
+on the `users` list; nobody self-registers.
 
 This doc is the fast orientation for the codebase. For data specifics see
 [database.md](database.md); for the rules every change follows see
@@ -15,8 +16,8 @@ This doc is the fast orientation for the codebase. For data specifics see
 | Styling        | Tailwind v4 (tokens in `src/app/globals.css`)                                         |
 | Database       | Postgres via Drizzle ORM                                                              |
 | Object storage | Cloudflare R2 — images wired (WebP via sharp); local-disk fallback in dev; PDFs later |
-| Auth           | Auth.js magic link — _not wired yet_                                                  |
-| Email          | Resend — _not wired yet_                                                              |
+| Auth           | Auth.js v5 magic link, database sessions (~90 days) — see below                       |
+| Email          | Resend (magic-link email); dev logs the link to the console instead                   |
 | Hosting        | Railway (app + Postgres)                                                              |
 
 ## Directory map
@@ -25,7 +26,7 @@ This doc is the fast orientation for the codebase. For data specifics see
 src/
   app/                 routes (App Router). Server components by default.
     page.tsx           library (published issues)
-    signin/            magic-link entry (UI only)
+    signin/            magic-link entry: form + action, sent/ confirmation
     read/[issueId]/    reader — desktop flipbook + mobile scroll
     admin/             dashboard, members, sponsors
       actions.ts       server actions (mutations)
@@ -48,7 +49,13 @@ src/
     site.ts            branding from NEXT_PUBLIC_* env
     env.ts             validated server env
     id.ts              id generator
-  server/              server-only data access (issues.ts, images.ts)
+  server/              server-only data access (issues.ts, images.ts) and auth
+    auth.ts            Auth.js config: provider, callbacks, session shape
+    auth-adapter.ts    hand-rolled Auth.js adapter over the users/sessions tables
+    auth-email.ts      the magic-link email (template + Resend/console transport)
+    session.ts         getSession()/getUser() — how the app reads who's signed in
+scripts/               dev-only helpers (not part of the app), e.g. the headless
+                       magic-link flow check (dev-auth-flow.mts)
 ```
 
 ## The content model (central concept)
@@ -87,7 +94,9 @@ Reader / library / dashboard (server components)
 | ----------------------------------- | ------------- | ------------------------------------------------------------------------------------------ |
 | `/`                                 | dynamic       | Library — published issues                                                                 |
 | `/read/[issueId]`                   | dynamic       | Reader, by issue **number** — **published issues only**                                    |
-| `/signin`                           | static        | UI only (auth not built)                                                                   |
+| `/signin`                           | dynamic       | Email form; doubles as the Auth.js error page (`?error=Verification` = expired link)       |
+| `/signin/sent`                      | static        | Neutral "check your email" — same answer whether or not the address is a member's          |
+| `/api/auth/*`                       | route handler | Auth.js (sign-in POST, magic-link callback, session)                                       |
 | `/admin`                            | dynamic       | Issue dashboard                                                                            |
 | `/admin/issues/[id]/edit`           | dynamic       | Editor, by issue **id**                                                                    |
 | `/admin/issues/[id]/preview`        | dynamic       | Draft preview (renders the reader by internal id; drafts never appear at `/read`)          |
@@ -100,7 +109,30 @@ headers (CSP, `frame-ancestors`, `nosniff`, referrer/permissions policies) are s
 `next.config.ts`.
 
 DB-backed routes set `export const dynamic = "force-dynamic"` so they always read fresh and aren't
-prerendered at build. **`/admin` is currently ungated** — auth is the next phase.
+prerendered at build. **`/admin` and the reader are currently ungated** — sign-in works, but route
+gating is the next issue in the phase.
+
+## Auth
+
+Magic-link only (no passwords, no OAuth), built on Auth.js v5 with **database sessions**
+(~90-day maxAge — the audience is older and non-technical). The pieces, all in `src/server/`:
+
+- `auth.ts` — the Auth.js config. The `signIn` callback only lets emails that already have a
+  `users` row through (membership = presence on the list), and it runs before any token is
+  written, so an unknown email leaves nothing in the DB. The `session` callback exposes
+  `user.id`/`user.isAdmin` to the app.
+- `auth-adapter.ts` — hand-rolled adapter over `users`/`sessions`/`verification_tokens`
+  (`@auth/drizzle-adapter` doesn't fit: its types predate drizzle-orm 1.0 and it requires the
+  OAuth `accounts` table this app will never have).
+- `auth-email.ts` — the branded email. Dev always logs the link to the console (testable with no
+  Resend account); with `EMAIL_API_KEY` set it sends via Resend, and a send failure is fatal in
+  production but only a warning in dev.
+- `session.ts` — `getSession()` / `getUser()`, request-deduped. Components and actions use these,
+  never Auth.js directly.
+
+The `/signin` flow never reveals membership: known and unknown emails both land on
+`/signin/sent`, and an expired or already-used link comes back to `/signin` with a
+"request a fresh one" message, not an error dump.
 
 ## Environment
 
@@ -108,17 +140,21 @@ Server env is validated in [`src/lib/env.ts`](../src/lib/env.ts); branding in
 [`src/lib/site.ts`](../src/lib/site.ts). Local values live in `.env.local` (git-ignored); production
 values are set in Railway. `.env.example` lists every key.
 
-| Var                                                    | Required now  | Purpose                                   |
-| ------------------------------------------------------ | ------------- | ----------------------------------------- |
-| `DATABASE_URL`                                         | yes           | Postgres connection                       |
-| `NEXT_PUBLIC_MAGAZINE_NAME` / `_ORG_NAME` / `_TAGLINE` | no (defaults) | Branding, build-time inlined              |
-| `AUTH_SECRET`, `R2_*`, `EMAIL_*`                       | no (optional) | Become required as auth/images/email land |
+| Var                                                    | Required now  | Purpose                                                         |
+| ------------------------------------------------------ | ------------- | --------------------------------------------------------------- |
+| `DATABASE_URL`                                         | yes           | Postgres connection                                             |
+| `NEXT_PUBLIC_MAGAZINE_NAME` / `_ORG_NAME` / `_TAGLINE` | no (defaults) | Branding, build-time inlined                                    |
+| `AUTH_SECRET`                                          | dev: yes      | Auth.js token/cookie signing (required in prod by env.ts)       |
+| `EMAIL_API_KEY`, `EMAIL_FROM`                          | no in dev     | Resend; unset in dev = links only in console (required in prod) |
+| `R2_*`                                                 | no in dev     | Object storage (required in prod)                               |
 
 ## What's real vs stubbed
 
 Real: the editor authors and autosaves to the DB; the reader/library/dashboard render real data;
-images upload to R2 and render in both editor and reader.
-Stubbed/deferred: auth, email, PDF export, members/sponsors persistence. The phase
+images upload to R2 and render in both editor and reader; magic-link sign-in with database
+sessions.
+Stubbed/deferred: route gating (sign-in works but nothing requires it yet), PDF export,
+members/sponsors persistence. The phase
 sequence lives in [ROADMAP.md](ROADMAP.md); work is tracked as GitHub issues (one
 milestone per phase).
 
