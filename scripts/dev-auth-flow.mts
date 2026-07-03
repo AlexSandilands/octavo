@@ -59,6 +59,11 @@ ok(
   "session established for member",
 );
 ok(session?.user?.isAdmin === false, "session exposes isAdmin");
+ok(
+  Object.keys(session).sort().join() === "expires,user" &&
+    Object.keys(session.user).sort().join() === "email,id,isAdmin,name",
+  "session JSON is curated (no sessionToken/userId/full row leak)",
+);
 now = await counts();
 ok(now.sessions === before.sessions + 1, "session row created");
 ok(now.tokens === before.tokens, "token consumed on use");
@@ -92,7 +97,8 @@ ok(
   /expired/i.test(banner ?? ""),
   "used link shows expired + re-request message",
 );
-ok(await page3.isVisible("#email"), "re-request form is right there");
+await page3.locator("#email").waitFor(); // throws if the form isn't there
+ok(true, "re-request form is right there");
 
 // 5. Unknown email → identical UX, nothing written to the DB.
 await page3.goto(`${base}/signin`);

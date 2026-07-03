@@ -1,11 +1,8 @@
 import "server-only";
 import NextAuth, { type DefaultSession } from "next-auth";
 import ResendProvider from "next-auth/providers/resend";
-import { sql } from "drizzle-orm";
-import { db } from "@/db";
-import { users } from "@/db/schema";
 import { env } from "@/lib/env";
-import { authAdapter } from "./auth-adapter";
+import { authAdapter, findUserByEmail } from "./auth-adapter";
 import { sendMagicLinkEmail } from "./auth-email";
 
 // Auth.js v5: magic-link email sign-in with database sessions.
@@ -59,23 +56,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     // Runs both when a link is requested and when it is clicked. Only emails
     // already on the member list may proceed — returning false here stops
     // Auth.js before it writes a token (on request) or creates a user (on
-    // callback). The identifier arrives lowercased (provider normalization),
-    // so compare case-insensitively.
+    // callback).
     async signIn({ user }) {
       if (!user.email) return false;
-      const [member] = await db
-        .select({ id: users.id })
-        .from(users)
-        .where(sql`lower(${users.email}) = ${user.email.toLowerCase()}`)
-        .limit(1);
-      return Boolean(member);
+      return Boolean(await findUserByEmail(user.email));
     },
-    // Database sessions: `user` is the full users row via the adapter.
-    // Expose what route gating needs so later code never re-queries.
+    // Database sessions: `user` is the full users row via the adapter. Build
+    // the exposed session explicitly — returning the incoming object would
+    // serve the raw sessions row (including the bearer sessionToken, which
+    // must never leave the httpOnly cookie) at /api/auth/session.
     session({ session, user }) {
-      session.user.id = user.id;
-      session.user.isAdmin = user.isAdmin;
-      return session;
+      return {
+        expires: session.expires,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          isAdmin: user.isAdmin,
+        },
+      };
     },
   },
 });

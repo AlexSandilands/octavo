@@ -1,4 +1,5 @@
 "use server";
+import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { signIn } from "@/server/auth";
@@ -21,8 +22,13 @@ export async function requestMagicLink(formData: FormData) {
       redirect: false,
       redirectTo: "/",
     });
-  } catch {
-    // Neutral on purpose — see above.
+  } catch (err) {
+    // AccessDenied is the expected non-member veto — stay silent. Anything
+    // else (Resend outage, DB failure) still shows the neutral page, but the
+    // operator needs the log line or members are locked out invisibly.
+    if (!(err instanceof AuthError && err.type === "AccessDenied")) {
+      console.error("[auth] sign-in request failed:", err);
+    }
   }
   redirect("/signin/sent");
 }

@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { Button } from "@/components/ui";
 import { site } from "@/lib/site";
 import { SignInCard } from "./card";
@@ -22,12 +23,17 @@ const GENERIC_ERROR = {
   body: "We couldn't sign you in just now. Enter your email and we'll send you a new link.",
 };
 
+// ?error= is external input (Next may even hand back string[] for a
+// duplicated key) — validate at the boundary like everything else.
+const paramsSchema = z.object({ error: z.string().optional() });
+
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { error } = await searchParams;
+  const parsed = paramsSchema.safeParse(await searchParams);
+  const error = parsed.success ? parsed.data.error : "unknown";
   const notice = error ? (ERROR_COPY[error] ?? GENERIC_ERROR) : null;
 
   return (

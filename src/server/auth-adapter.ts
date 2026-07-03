@@ -11,7 +11,10 @@ import { sessions, users, verificationTokens } from "@/db/schema";
 // use), so the ~10 queries the email + database-session flow needs live here
 // instead, typed directly against next-auth's Adapter interface.
 
-async function findUserByEmail(email: string) {
+// The one case-insensitive member lookup — the signIn callback's membership
+// gate uses it too, so "who can request a link" can never drift from "who the
+// adapter resolves".
+export async function findUserByEmail(email: string) {
   const [row] = await db
     .select()
     .from(users)

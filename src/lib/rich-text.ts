@@ -29,7 +29,9 @@ function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-function escapeAttr(s: string): string {
+// Exported as the app's one attribute-safe HTML escaper (the magic-link
+// email template uses it too).
+export function escapeAttr(s: string): string {
   return s
     .replace(/&/g, "&amp;")
     .replace(/"/g, "&quot;")

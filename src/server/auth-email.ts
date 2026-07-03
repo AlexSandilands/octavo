@@ -1,6 +1,7 @@
 import "server-only";
 import { Resend } from "resend";
 import { env } from "@/lib/env";
+import { escapeAttr } from "@/lib/rich-text";
 import { site } from "@/lib/site";
 
 // The magic-link email — template and transport in one file.
@@ -19,12 +20,10 @@ export async function sendMagicLinkEmail({
   url,
 }: VerificationParams) {
   const dev = process.env.NODE_ENV !== "production";
-  if (dev) {
-    console.log(`[auth] magic link for ${identifier}:\n[auth]   ${url}`);
-    if (!env.EMAIL_API_KEY) return;
-  }
+  if (dev) console.log(`[auth] magic link for ${identifier}:\n[auth]   ${url}`);
   if (!env.EMAIL_API_KEY || !env.EMAIL_FROM) {
-    // Unreachable in production — env.ts refuses to boot without these.
+    if (dev) return; // the console line above is the transport
+    // Unreachable — env.ts refuses to boot production without these.
     throw new Error("EMAIL_API_KEY / EMAIL_FROM are not configured");
   }
 
@@ -51,9 +50,9 @@ export async function sendMagicLinkEmail({
 // and the raw link as a fallback for clients that strip buttons. Large type
 // throughout — the audience skews older.
 function renderHtml(url: string) {
-  const name = escapeHtml(site.name);
-  const org = escapeHtml(site.org);
-  const href = escapeHtml(url);
+  const name = escapeAttr(site.name);
+  const org = escapeAttr(site.org);
+  const href = escapeAttr(url);
   return `<body style="margin:0;padding:32px 16px;background:#f4f0e8;">
   <div style="max-width:480px;margin:0 auto;background:#fbf9f4;border:1px solid #e6e0d3;border-radius:16px;padding:40px 32px;font-family:Georgia,'Times New Roman',serif;color:#20201c;">
     <div style="font-size:22px;letter-spacing:.02em;">${name}</div>
@@ -90,12 +89,4 @@ function renderText(url: string) {
     "This link works once and expires in 24 hours. If you didn't ask for it,",
     "you can safely ignore this email.",
   ].join("\n");
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
 }
