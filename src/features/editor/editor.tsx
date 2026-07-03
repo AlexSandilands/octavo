@@ -8,7 +8,8 @@ import {
   ensureCoverFirst,
   makeBlock,
   makePage,
-  type Block,
+  mergeBlock,
+  type BlockPatch,
   type BlockType,
   type IssueContent,
   type Page,
@@ -138,7 +139,8 @@ export function Editor({
         }
         setStatus("saved");
         return true;
-      } catch {
+      } catch (error) {
+        console.error(`Saving issue ${issue.id} failed (${kind})`, error);
         setStatus("error");
         return false;
       }
@@ -366,12 +368,10 @@ export function Editor({
     editPage((p) => ({ ...p, blocks: [...p.blocks, blk] }));
     setSel(blk.id);
   };
-  const updateBlock = (id: string, patch: Record<string, string | number>) =>
+  const updateBlock = (id: string, patch: BlockPatch) =>
     editPage((p) => ({
       ...p,
-      blocks: p.blocks.map((b) =>
-        b.id === id ? ({ ...b, ...patch } as Block) : b,
-      ),
+      blocks: p.blocks.map((b) => (b.id === id ? mergeBlock(b, patch) : b)),
     }));
   const moveBlock = (id: string, dir: -1 | 1) =>
     editPage((p) => {
@@ -410,8 +410,16 @@ export function Editor({
   // list shuffles (curPage is an index, so it has to follow the moved page).
   const reorderPages = (from: number, to: number) => {
     const activeId = pages[curPage]?.id;
-    // ensureCoverFirst: whatever lands in position 1 becomes the cover.
-    const next = ensureCoverFirst(arrayMove(pages, from, to));
+    // The front-cover flag follows position 1: whatever lands there becomes
+    // the cover, and the page displaced from it is demoted — so a reorder can
+    // never leave two flagged pages. Extra cover-styled pages elsewhere stay
+    // possible only via the explicit "Cover page" toggle.
+    const prevFirstId = pages[0]?.id;
+    const next = ensureCoverFirst(
+      arrayMove(pages, from, to).map((p, i) =>
+        i !== 0 && p.id === prevFirstId ? { ...p, cover: false } : p,
+      ),
+    );
     setPages(next);
     const newCur = next.findIndex((p) => p.id === activeId);
     if (newCur >= 0) setCurPage(newCur);
@@ -659,8 +667,12 @@ export function Editor({
           onConfirm={async () => {
             try {
               const ok = await flushSave();
-              if (ok) await publishIssueAction(issue.id);
-            } catch {
+              if (ok) {
+                const res = await publishIssueAction(issue.id);
+                if (!res.ok) setStatus("error");
+              }
+            } catch (error) {
+              console.error(`Publishing issue ${issue.id} failed`, error);
               setStatus("error");
             }
             setPub(false);

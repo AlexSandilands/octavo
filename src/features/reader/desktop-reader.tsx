@@ -66,6 +66,15 @@ export function DesktopReader({
   const turnRef = useRef(turn);
   turnRef.current = turn;
   const spreadRef = useRef<HTMLDivElement>(null);
+  // The commit timer of an in-flight page turn — cleared on unmount so it
+  // can't fire setState on an unmounted reader.
+  const turnTimer = useRef<number | null>(null);
+  useEffect(
+    () => () => {
+      if (turnTimer.current !== null) window.clearTimeout(turnTimer.current);
+    },
+    [],
+  );
 
   // Full-screen reading: requests browser fullscreen on the reader root and, for
   // a distraction-free view, collapses the contents sidebar too.
@@ -259,7 +268,8 @@ export function DesktopReader({
     requestAnimationFrame(() =>
       requestAnimationFrame(() => setTurnAngle(dir === "next" ? -180 : 180)),
     );
-    window.setTimeout(() => {
+    turnTimer.current = window.setTimeout(() => {
+      turnTimer.current = null;
       setSpread(to);
       setTurn(null);
       setTurnAngle(0);

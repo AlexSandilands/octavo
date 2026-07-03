@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { textSizePx, type Block } from "@/lib/blocks";
+import { textSizePx, type Block, type BlockPatch } from "@/lib/blocks";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import { externalHref, richTextToHtml } from "@/lib/rich-text";
 import { Editable } from "./editable";
@@ -37,7 +37,7 @@ export function BlockImage({
 // read-only (reader / PDF). One renderer → the editor looks exactly like the
 // reader, the only difference being you can click the text and type.
 export type BlockEditHandlers = {
-  onChange: (patch: Record<string, string | number>) => void;
+  onChange: (patch: BlockPatch) => void;
 };
 
 // Read-only OR editable themed rendering of one block. Shared by the desktop
@@ -60,13 +60,18 @@ export function BlockView({
 }) {
   const classic = theme === "Classic";
 
-  // A text field: editable in place when `edit` is set, otherwise the raw text.
-  const f = (field: string, value: string, placeholder: string) =>
+  // A text field: editable in place when `edit` is set, otherwise the raw
+  // text. The caller supplies the patch shape, so writes stay typed per block.
+  const f = (
+    patch: (v: string) => BlockPatch,
+    value: string,
+    placeholder: string,
+  ) =>
     edit ? (
       <Editable
         value={value}
         placeholder={placeholder}
-        onChange={(v) => edit.onChange({ [field]: v })}
+        onChange={(v) => edit.onChange(patch(v))}
       />
     ) : (
       value
@@ -81,14 +86,14 @@ export function BlockView({
         <div className="text-center">
           {(edit || block.kicker) && (
             <div className="text-accent font-sans text-[12px] font-semibold tracking-[0.34em] uppercase">
-              {f("kicker", block.kicker, "Masthead")}
+              {f((v) => ({ kicker: v }), block.kicker, "Masthead")}
             </div>
           )}
           <div
             className="text-ink mt-5 font-serif leading-[1.03]"
             style={{ fontSize: 68 }}
           >
-            {f("title", block.title, "Cover title")}
+            {f((v) => ({ title: v }), block.title, "Cover title")}
           </div>
           <div className="mt-7 flex items-center justify-center gap-3">
             <div className="h-px w-16 bg-[#cfc6b4]" />
@@ -101,7 +106,7 @@ export function BlockView({
     if (block.type === "text") {
       return (
         <p className="text-muted text-center font-serif text-[24px] leading-relaxed whitespace-pre-line italic">
-          {f("text", block.text, "Add a tagline or date…")}
+          {f((v) => ({ text: v }), block.text, "Add a tagline or date…")}
         </p>
       );
     }
@@ -120,7 +125,7 @@ export function BlockView({
               : "text-accent font-sans text-[10px] font-semibold tracking-[0.2em] uppercase"
           }
         >
-          {f("kicker", block.kicker, "Kicker")}
+          {f((v) => ({ kicker: v }), block.kicker, "Kicker")}
         </div>
       );
 
@@ -134,7 +139,7 @@ export function BlockView({
                 : "text-accent font-sans text-[12px] font-semibold tracking-[0.08em] uppercase"
             }
           >
-            {f("title", block.title, "Sub-heading")}
+            {f((v) => ({ title: v }), block.title, "Sub-heading")}
           </div>
         );
       }
@@ -144,14 +149,14 @@ export function BlockView({
           <div className="border-t border-[#e0d9c9] pt-3.5">
             {kicker}
             <div className="text-ink font-serif text-[24px] leading-tight">
-              {f("title", block.title, "Section heading")}
+              {f((v) => ({ title: v }), block.title, "Section heading")}
             </div>
           </div>
         ) : (
           <div className="text-center">
             {kicker}
             <div className="text-ink mt-1.5 font-serif text-[32px] leading-tight">
-              {f("title", block.title, "Heading")}
+              {f((v) => ({ title: v }), block.title, "Heading")}
             </div>
             <div className="mt-3 flex items-center justify-center gap-2.5">
               <div className="h-px w-10 bg-[#cfc6b4]" />
@@ -166,14 +171,14 @@ export function BlockView({
         <div className="border-accent border-t-[2px] pt-2.5">
           {kicker}
           <div className="text-ink mt-1 font-serif text-[24px] leading-tight tracking-tight">
-            {f("title", block.title, "Section heading")}
+            {f((v) => ({ title: v }), block.title, "Section heading")}
           </div>
         </div>
       ) : (
         <div className="border-accent border-t-[3px] pt-3">
           {kicker}
           <div className="text-ink mt-2.5 font-serif text-[32px] leading-none tracking-tight">
-            {f("title", block.title, "Heading")}
+            {f((v) => ({ title: v }), block.title, "Heading")}
           </div>
         </div>
       );
@@ -213,7 +218,7 @@ export function BlockView({
           {photo}
           {(edit || block.caption) && (
             <figcaption className="text-muted mt-2.5 text-center font-serif text-sm italic">
-              {f("caption", block.caption, "Caption (optional)")}
+              {f((v) => ({ caption: v }), block.caption, "Caption (optional)")}
             </figcaption>
           )}
         </figure>
@@ -224,7 +229,11 @@ export function BlockView({
             <figcaption className="mt-2.5 flex items-start gap-2.5">
               <div className="bg-accent h-7 w-[3px] flex-none" />
               <span className="text-muted font-sans text-[13px] leading-snug">
-                {f("caption", block.caption, "Caption (optional)")}
+                {f(
+                  (v) => ({ caption: v }),
+                  block.caption,
+                  "Caption (optional)",
+                )}
               </span>
             </figcaption>
           )}
@@ -246,11 +255,15 @@ export function BlockView({
             {block.logoId ? "LOGO" : "SPONSOR LOGO"}
           </div>
           <div className="text-accent mt-3 font-serif text-sm italic">
-            {f("name", block.name, "Sponsor name")} {link && "→"}
+            {f((v) => ({ name: v }), block.name, "Sponsor name")} {link && "→"}
           </div>
           {edit && (
             <div className="text-accent mt-1 font-sans text-[12px]">
-              {f("href", block.href ?? "", "https://link (optional)")}
+              {f(
+                (v) => ({ href: v }),
+                block.href ?? "",
+                "https://link (optional)",
+              )}
             </div>
           )}
         </div>
@@ -264,11 +277,15 @@ export function BlockView({
               Sponsor
             </div>
             <div className="text-accent-ink mt-1 font-sans text-base font-semibold">
-              {f("name", block.name, "Sponsor name")}
+              {f((v) => ({ name: v }), block.name, "Sponsor name")}
             </div>
             {edit ? (
               <div className="text-accent mt-1 font-sans text-[13px]">
-                {f("href", block.href ?? "", "https://link (optional)")}
+                {f(
+                  (v) => ({ href: v }),
+                  block.href ?? "",
+                  "https://link (optional)",
+                )}
               </div>
             ) : (
               link && (
