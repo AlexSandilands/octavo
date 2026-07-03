@@ -44,6 +44,10 @@ export const imageBlockSchema = z.object({
   type: z.literal("image"),
   imageId: z.string().max(ID_MAX).optional(), // resolved to an R2 image later
   caption: z.string().max(SHORT_TEXT_MAX).default(""),
+  // Screen-reader description of the photo. Optional (legacy documents lack it,
+  // and it stays a backward-compatible content-model addition — no version
+  // bump); the readers fall back to the caption when it is absent.
+  alt: z.string().max(SHORT_TEXT_MAX).optional(),
   // Layout: "full" breaks the text (block, full column width); "left"/"right"
   // float the image so the following text wraps beside it. `width` is a percent
   // of the text column.

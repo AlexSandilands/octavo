@@ -279,6 +279,35 @@ export function DesktopReader({
     }, FLIP_MS + 30);
   };
 
+  // Keyboard paging (WCAG 2.1.1): arrow keys turn the spread. Mirrored into a ref
+  // so the once-bound window listener always calls the latest closure without
+  // re-binding on every state change.
+  const startTurnRef = useRef(startTurn);
+  startTurnRef.current = startTurn;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      // Leave arrows aimed at a form control alone (e.g. the zoom slider).
+      if (
+        t &&
+        (t.tagName === "INPUT" ||
+          t.tagName === "TEXTAREA" ||
+          t.isContentEditable)
+      ) {
+        return;
+      }
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        startTurnRef.current("next");
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        startTurnRef.current("prev");
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   // A press in the left/right edge band of the spread flips that way (like
   // grabbing the corner of a real page); presses elsewhere fall through to pan.
   const onSpreadPointerDown = (e: React.PointerEvent) => {
@@ -416,7 +445,8 @@ export function DesktopReader({
             <button
               key={t}
               onClick={() => setTheme(t)}
-              className={`rounded-full px-3.5 py-[5px] font-sans text-xs font-semibold ${
+              aria-pressed={theme === t}
+              className={`flex min-h-[44px] items-center rounded-full px-4 font-sans text-xs font-semibold ${
                 theme === t ? "bg-accent text-paper" : "text-muted"
               }`}
             >
@@ -485,12 +515,15 @@ export function DesktopReader({
                 <button
                   key={`${t.page}-${t.label}`}
                   onClick={() => go(t.page)}
-                  className="flex w-full items-baseline justify-between gap-2.5 border-l-2 px-5 py-2.5 text-left"
-                  style={{ borderColor: active ? "#1d4d3e" : "transparent" }}
+                  aria-current={active ? "true" : undefined}
+                  className={`flex w-full items-baseline justify-between gap-2.5 border-l-2 px-5 py-2.5 text-left ${
+                    active ? "border-accent" : "border-transparent"
+                  }`}
                 >
                   <span
-                    className="font-serif text-[15px] leading-snug"
-                    style={{ color: active ? "#1d4d3e" : "#2a2722" }}
+                    className={`font-serif text-[15px] leading-snug ${
+                      active ? "text-accent" : "text-body"
+                    }`}
                   >
                     {t.label}
                   </span>
@@ -576,7 +609,7 @@ export function DesktopReader({
       </div>
 
       <div className="group absolute inset-x-0 bottom-0 flex justify-center px-4 pt-12 pb-4">
-        <div className="flex items-center gap-1.5 rounded-full bg-[#211f1a] px-2.5 py-2 text-[#e7e2d6] opacity-20 shadow-[0_8px_24px_rgba(0,0,0,0.28)] transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
+        <div className="flex items-center gap-1.5 rounded-full bg-[#211f1a] px-2.5 py-2 text-[#e7e2d6] opacity-70 shadow-[0_8px_24px_rgba(0,0,0,0.28)] transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
           <CtrlBtn onClick={() => startTurn("prev")} title="Previous">
             <Icon name="chevronLeft" size={18} strokeWidth={1.7} />
           </CtrlBtn>
@@ -640,7 +673,7 @@ function CtrlBtn({
       onClick={onClick}
       title={title}
       aria-label={title}
-      className="flex h-[34px] w-[34px] items-center justify-center rounded-full hover:bg-[#34312a]"
+      className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-[#34312a]"
     >
       {children}
     </button>
