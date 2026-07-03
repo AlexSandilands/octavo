@@ -3,6 +3,7 @@ import { Button } from "@/components/ui";
 import { site } from "@/lib/site";
 import { SignInCard } from "./card";
 import { requestMagicLink } from "./actions";
+import { safeNextPath } from "./next-path";
 
 // Sign-in — enter your email, get a magic link. Also serves as Auth.js's
 // error page (?error=...): the common case is Verification, an expired or
@@ -23,9 +24,12 @@ const GENERIC_ERROR = {
   body: "We couldn't sign you in just now. Enter your email and we'll send you a new link.",
 };
 
-// ?error= is external input (Next may even hand back string[] for a
-// duplicated key) — validate at the boundary like everything else.
-const paramsSchema = z.object({ error: z.string().optional() });
+// ?error= and ?next= are external input (Next may even hand back string[]
+// for a duplicated key) — validate at the boundary like everything else.
+const paramsSchema = z.object({
+  error: z.string().optional(),
+  next: z.string().optional(),
+});
 
 export default async function SignInPage({
   searchParams,
@@ -34,6 +38,7 @@ export default async function SignInPage({
 }) {
   const parsed = paramsSchema.safeParse(await searchParams);
   const error = parsed.success ? parsed.data.error : "unknown";
+  const next = safeNextPath(parsed.success ? parsed.data.next : undefined);
   const notice = error ? (ERROR_COPY[error] ?? GENERIC_ERROR) : null;
 
   return (
@@ -63,6 +68,9 @@ export default async function SignInPage({
       )}
 
       <form className="mt-8" action={requestMagicLink}>
+        {/* Carries the destination (validated same-origin) into the emailed
+            link, so the member lands where they were headed. */}
+        <input type="hidden" name="next" value={next} />
         <label
           htmlFor="email"
           className="text-faint font-sans text-xs font-semibold tracking-wide uppercase"

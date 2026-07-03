@@ -25,8 +25,8 @@ const mono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: `${site.name} — ${site.org}`,
   description: site.tagline,
-  // TODO(auth): members-only content, no auth gate yet — keep everything out
-  // of search indexes until sign-in lands (see src/app/robots.ts).
+  // Members-only site — everything stays out of search indexes (decision
+  // settled with the reader gate; see src/app/robots.ts).
   robots: { index: false, follow: false },
 };
 

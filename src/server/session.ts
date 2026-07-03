@@ -14,17 +14,22 @@ export async function getUser() {
   return session?.user ?? null;
 }
 
-// The single admin-or-not decision. Fail closed: signed out, not an admin,
-// or the session lookup itself erroring all come back null — but an actual
-// error is logged, or an infrastructure failure would masquerade as a 403.
-export async function getAdminUser() {
+// Fail closed, but loudly: a session-lookup error reads as signed out, and
+// the underlying error is logged so an infrastructure failure can't silently
+// masquerade as a 403.
+async function getUserFailClosed() {
   try {
-    const user = await getUser();
-    return user?.isAdmin ? user : null;
+    return await getUser();
   } catch (err) {
     console.error("[auth] session lookup failed (denying):", err);
     return null;
   }
+}
+
+// The single admin-or-not decision.
+export async function getAdminUser() {
+  const user = await getUserFailClosed();
+  return user?.isAdmin ? user : null;
 }
 
 // The gate for server actions and route handlers: call it before touching
@@ -39,11 +44,22 @@ export async function requireAdmin() {
 // The gate for /admin pages and the layout: same decisions, redirect instead
 // of throw — signed out to /signin, signed-in non-admins to the library.
 export async function requireAdminOrRedirect() {
-  const user = await getUser().catch((err) => {
-    console.error("[auth] session lookup failed (denying):", err);
-    return null;
-  });
+  const user = await getUserFailClosed();
   if (!user) redirect("/signin");
   if (!user.isAdmin) redirect("/");
+  return user;
+}
+
+// The gate for member-facing pages (library, reader): signed-out visitors go
+// to /signin carrying the destination, so the link in a new-issue email lands
+// them on that issue after signing in — members with a live session never see
+// the gate at all.
+export async function requireMemberOrRedirect(next: string) {
+  const user = await getUserFailClosed();
+  if (!user) {
+    redirect(
+      next === "/" ? "/signin" : `/signin?next=${encodeURIComponent(next)}`,
+    );
+  }
   return user;
 }
