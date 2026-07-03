@@ -32,7 +32,16 @@ export function AdminShell({
             Admin
           </div>
         </div>
-        <nav className="mt-7 flex flex-col">
+        {/* Back-out link, not a section: it leaves the admin for the member-
+            facing library, so it sits above the nav rather than in it. */}
+        <Link
+          href="/"
+          className="text-muted hover:text-accent mt-5 flex items-center gap-2 px-6 py-1.5 font-sans text-[14px] font-medium"
+        >
+          <Icon name="chevronLeft" size={16} />
+          View library
+        </Link>
+        <nav className="mt-5 flex flex-col">
           {NAV.map((n) => {
             const on = n.key === active;
             return (
@@ -51,14 +60,7 @@ export function AdminShell({
             );
           })}
         </nav>
-        <Link
-          href="/"
-          className="text-muted hover:text-accent mt-auto flex items-center gap-2 px-6 py-2 font-sans text-[14px] font-medium"
-        >
-          <Icon name="chevronLeft" size={16} />
-          View library
-        </Link>
-        <div className="border-line flex items-center gap-2.5 border-t px-6 pt-4">
+        <div className="border-line mt-auto flex items-center gap-2.5 border-t px-6 pt-4">
           <span className="bg-accent text-paper flex h-[30px] w-[30px] items-center justify-center rounded-full font-sans text-xs font-semibold">
             AC
           </span>
