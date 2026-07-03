@@ -3,10 +3,12 @@ import { safeNextPath } from "@/lib/next-path";
 
 // This middleware does two jobs on every HTML-serving request:
 //
-//   1. Content-Security-Policy (per request). Stored rich text is sanitised at
-//      render time; this CSP is the backstop if that sanitiser is ever
-//      bypassed. A fresh nonce per request lets `script-src` drop
-//      'unsafe-inline' entirely, so an injected inline <script> or
+//   1. Content-Security-Policy (per request). Body text is stored as structured
+//      JSON and rendered through React elements (content v3 — no
+//      dangerouslySetInnerHTML, no HTML sanitiser), so stored content can't
+//      inject markup in the first place; this CSP is defence in depth. A fresh
+//      nonce per request lets `script-src` drop 'unsafe-inline' entirely, so an
+//      injected inline <script> or
 //      onerror=/onclick= handler will NOT execute — only Next's own
 //      nonce-tagged bootstrap runs, and 'strict-dynamic' lets that bootstrap
 //      load the app chunks. Next reads the nonce from the request-side CSP

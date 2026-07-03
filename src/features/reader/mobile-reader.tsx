@@ -7,8 +7,10 @@ import { site } from "@/lib/site";
 import { textSizeScale, type Block, type IssueContent } from "@/lib/blocks";
 import type { ImageMap } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
-import { externalHref, richTextToHtml } from "@/lib/rich-text";
+import { externalHref } from "@/lib/rich-text";
+import { richTextToPlain } from "@/lib/rich-text-doc";
 import { BlockImage } from "@/features/blocks/block-view";
+import { RichText } from "@/features/blocks/rich-text";
 
 // Mobile reader: the whole issue as one flowing column (also the accessibility
 // fallback). Same block data as the flipbook, presented single-column.
@@ -248,14 +250,15 @@ function MobileBlock({
           className="text-muted mb-3 font-serif whitespace-pre-line italic"
           style={{ fontSize: m + 2, lineHeight: 1.6 }}
         >
-          {block.text}
+          {richTextToPlain(block.text)}
         </p>
       ) : (
         <div
           className="text-body rich-text mb-4 font-serif"
           style={{ fontSize: m * textSizeScale(block.size), lineHeight: 1.62 }}
-          dangerouslySetInnerHTML={{ __html: richTextToHtml(block.text) }}
-        />
+        >
+          <RichText value={block.text} />
+        </div>
       );
     case "image": {
       const resolved = block.imageId ? images[block.imageId] : undefined;

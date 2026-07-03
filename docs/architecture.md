@@ -140,8 +140,10 @@ unsubscribe anyone. The `/unsubscribe` route sits outside the member gate by des
 Route-level `loading.tsx`/`error.tsx` cover `/`, `/read/[issueId]` and `/admin/*`. Static
 security headers (`nosniff`, `X-Frame-Options`, referrer/permissions policies) are set globally
 in `next.config.ts`; the CSP is set per request in `src/middleware.ts`, where `script-src` gets
-a fresh nonce (+ `'strict-dynamic'`) instead of `'unsafe-inline'` — the real XSS backstop behind
-the rich-text sanitiser.
+a fresh nonce (+ `'strict-dynamic'`) instead of `'unsafe-inline'`. Body text is stored as
+structured JSON and rendered through React (content v3 — no `dangerouslySetInnerHTML`, no HTML
+sanitiser; see `src/lib/rich-text-doc.ts` + `src/features/blocks/rich-text.tsx`), so the nonce CSP
+is now defence in depth rather than the sole XSS backstop.
 
 DB-backed routes set `export const dynamic = "force-dynamic"` so they always read fresh and aren't
 prerendered at build. **Everything except `/signin` and `/unsubscribe` is gated**: the library and

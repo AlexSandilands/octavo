@@ -47,7 +47,7 @@ Block = Heading | Text | Image | Sponsor   // discriminated union on `type`
 ```
 
 `version` marks which shape of the content model a document holds, so block-shape changes can
-migrate old rows deliberately. **Current version: 2.** Every string field is length-capped and the
+migrate old rows deliberately. **Current version: 3.** Every string field is length-capped and the
 page/block arrays bounded in the zod schemas, so a bad save can't persist an unbounded document.
 
 **Content v2 (issue #8) — sponsor blocks reference the `sponsors` table.** A sponsor block now
@@ -55,6 +55,20 @@ carries an optional `sponsorId`; the reader/editor resolve the referenced sponso
 name/href/logo at render time (`resolveIssueSponsors` in `src/server/sponsors.ts`, mirroring how
 images resolve). The version-1 inline fields (`name`/`href`/`logoId`) are **retained** on the block
 as the fallback for legacy documents and for the editor's manual-entry mode.
+
+**Content v3 (issue #13) — body text is structured rich-text JSON, not an HTML string.** A text
+block's `text` was a constrained-HTML string that the readers ran through a regex sanitiser and fed
+to `dangerouslySetInnerHTML`. It is now the Tiptap document JSON the editor produces
+(`editor.getJSON()`) — `doc → paragraph / bullet+ordered lists → listItem → text` runs carrying
+bold/italic/underline/strike/link marks — validated by a bounded, depth-capped zod schema
+([`src/lib/rich-text-doc.ts`](../src/lib/rich-text-doc.ts)) and **rendered through React elements**
+([`src/features/blocks/rich-text.tsx`](../src/features/blocks/rich-text.tsx)). This removes
+`dangerouslySetInnerHTML` and the HTML sanitiser from the read path: text is escaped by
+construction, only a fixed themed tag set is emitted, and link hrefs are re-validated through
+`externalHref` (an unsafe one renders inert). Link marks are normalised to `{ href }` on save.
+The bump is backward-compatible: `text` accepts a **string** (v1/v2, plain or constrained HTML) or a
+**doc**, and a legacy string renders through the same React path via `stringToDoc`. Cover-page text
+blocks stay plain strings (authored as a tagline, rendered as text — `richTextToPlain` coerces).
 
 Defined as zod schemas + inferred types in [`src/lib/blocks.ts`](../src/lib/blocks.ts) and applied to
 the column via `jsonb(...).$type<IssueContent>()`.
@@ -137,3 +151,23 @@ the change can be made additive:
 force old rows through the new schema — write a **one-off migration** that reads every `issues.content`,
 rewrites version-N documents to version-N+1 shape, and writes them back, keyed on the stored `version`.
 Zod remains the guard; the JSONB column won't enforce any of this.
+
+### The v3 bump (issue #13) — additive schema + optional one-off migration
+
+The v3 change (body text: HTML string → rich-text JSON) is **additive at the schema level**: `text`
+became a `string | RichDoc` union, so every old row still validates and renders (legacy strings go
+through `stringToDoc` at render time). No rewrite is _required_.
+
+It also ships an **optional one-off migration** — `npm run db:migrate-content` (dry run) /
+`-- --write` (apply) — that rewrites stored body-text strings to doc JSON in place so the data is
+uniformly v3 and the per-render string conversion drops out. It is:
+
+- **idempotent** — a text block already holding a doc (and, by design, cover-page taglines, which
+  stay plain strings) is skipped;
+- **safe** — each converted document is re-validated through `issueContentSchema` before it is
+  written (the same guard the editor's save path runs), and the migration aborts if any row fails;
+- **render-preserving** — the converter (`stringToDoc`) is exactly what the reader applies to a
+  legacy string, so a converted issue renders byte-for-byte identically (verified before/after).
+
+Run it once after deploying v3 (against dev/prod as needed); Railway does not run it automatically
+(it is content, not schema — no Drizzle migration file).
