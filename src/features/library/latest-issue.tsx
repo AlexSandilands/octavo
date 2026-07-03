@@ -40,8 +40,8 @@ export function LatestIssue({
         className="group relative block self-start"
       >
         {/* Stacked page edges peeking out behind the cover. */}
-        <div className="absolute inset-y-2 -right-[3px] w-[3px] rounded-r-[3px] bg-[#ded7c7]" />
-        <div className="absolute inset-y-1 -right-[6px] w-[3px] rounded-r-[3px] bg-[#ece6d8]" />
+        <div className="bg-hair absolute inset-y-2 -right-[3px] w-[3px] rounded-r-[3px]" />
+        <div className="bg-line-soft absolute inset-y-1 -right-[6px] w-[3px] rounded-r-[3px]" />
         <div className="relative overflow-hidden rounded-[5px] shadow-[0_18px_38px_-14px_rgba(20,40,33,0.45)] transition-transform duration-300 group-hover:-translate-y-1">
           {cover ? (
             <CoverThumb
@@ -50,6 +50,7 @@ export function LatestIssue({
               images={images}
               issueNo={number}
               width={240}
+              priority
             />
           ) : (
             // Legacy issues without a cover page keep the stylised book panel.
@@ -69,9 +70,10 @@ export function LatestIssue({
 
       <div className="flex flex-col">
         <Kicker>The latest issue</Kicker>
-        <h1 className="text-ink mt-3 font-serif text-4xl leading-[1.02] sm:text-5xl">
+        {/* h2: the page's single h1 is the masthead standfirst (see page.tsx). */}
+        <h2 className="text-ink mt-3 font-serif text-4xl leading-[1.02] sm:text-5xl">
           {title}
-        </h1>
+        </h2>
         <div className="text-faint mt-3 font-sans text-[13px] tracking-wide">
           No. {number} · {pageCount} {pageCount === 1 ? "page" : "pages"}
           {month ? ` · ${month}` : ""}
@@ -82,21 +84,24 @@ export function LatestIssue({
             <Label>In this issue</Label>
             <ol className="mt-3">
               {shown.map((s, i) => (
-                <li
-                  key={i}
-                  className="border-line-soft/70 flex items-baseline gap-3 border-b py-2.5 last:border-0"
-                >
-                  <span className="text-accent/70 w-5 flex-none font-mono text-[11px] tabular-nums">
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <span className="text-ink font-serif text-[17px] leading-snug">
-                    {s.title}
-                  </span>
-                  {s.kicker && (
-                    <span className="text-faint ml-auto flex-none pl-3 font-sans text-[10px] tracking-[0.18em] uppercase">
-                      {s.kicker}
+                <li key={i} className="border-line-soft/70 border-b last:border-0">
+                  <Link
+                    href={`/read/${number}`}
+                    aria-label={`Read this issue: ${s.title}`}
+                    className="group/entry flex min-h-11 items-baseline gap-3 py-2.5"
+                  >
+                    <span className="text-accent/70 w-5 flex-none font-mono text-[11px] tabular-nums">
+                      {String(i + 1).padStart(2, "0")}
                     </span>
-                  )}
+                    <span className="text-ink font-serif text-[17px] leading-snug group-hover/entry:underline">
+                      {s.title}
+                    </span>
+                    {s.kicker && (
+                      <span className="text-faint ml-auto flex-none pl-3 font-sans text-[10px] tracking-[0.18em] uppercase">
+                        {s.kicker}
+                      </span>
+                    )}
+                  </Link>
                 </li>
               ))}
             </ol>
@@ -108,12 +113,10 @@ export function LatestIssue({
           </div>
         )}
 
-        <div className="mt-auto flex flex-wrap gap-3 pt-7">
+        {/* PDF export lands in Phase 5; until then there's no inert button here. */}
+        <div className="mt-auto pt-7">
           <Button href={`/read/${number}`} icon="arrowRight">
             Read this issue
-          </Button>
-          <Button variant="secondary" icon="download">
-            PDF
           </Button>
         </div>
       </div>
