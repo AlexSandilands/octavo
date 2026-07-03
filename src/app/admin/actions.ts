@@ -15,8 +15,8 @@ import { requireAdmin } from "@/server/session";
 
 // Mutations the admin UI calls. Server action arguments are attacker-controlled
 // JSON regardless of their TypeScript types, so every argument is re-validated
-// with zod here. Every action starts with requireAdmin(): route middleware and
-// the /admin layout only guard page navigations — an action can be invoked
+// with zod here. Every action starts with requireAdmin(): the /admin layout
+// and page checks only guard page navigations — an action can be invoked
 // directly by any client that knows its id, so the gate lives in the action.
 
 const idSchema = z.string().uuid();

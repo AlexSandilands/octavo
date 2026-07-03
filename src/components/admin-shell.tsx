@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { signOutAction } from "@/app/signin/actions";
+import { initials } from "@/lib/initials";
 import { Wordmark } from "./ui";
 import { Icon, type IconName } from "./icons";
 
@@ -14,14 +15,6 @@ const NAV: { key: string; label: string; href: string; icon: IconName }[] = [
     icon: "banner",
   },
 ];
-
-function initials(name: string | null | undefined, email: string) {
-  if (name) {
-    const parts = name.trim().split(/\s+/);
-    return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase();
-  }
-  return email[0]?.toUpperCase() ?? "?";
-}
 
 export function AdminShell({
   active,
@@ -71,23 +64,24 @@ export function AdminShell({
             );
           })}
         </nav>
-        <div className="border-line mt-auto flex items-center gap-2.5 border-t px-6 pt-4">
-          <span className="bg-accent text-paper flex h-[30px] w-[30px] flex-none items-center justify-center rounded-full font-sans text-xs font-semibold">
-            {initials(user.name, user.email)}
-          </span>
-          <div className="min-w-0">
-            <div className="text-ink truncate font-sans text-[13px] font-semibold">
+        <div className="border-line mt-auto border-t px-6 pt-4">
+          <div className="flex items-center gap-2.5">
+            <span className="bg-accent text-paper flex h-[30px] w-[30px] flex-none items-center justify-center rounded-full font-sans text-xs font-semibold">
+              {initials(user.name?.trim() || user.email)}
+            </span>
+            <div className="text-ink min-w-0 truncate font-sans text-[13px] font-semibold">
               {user.name ?? user.email}
             </div>
-            <form action={signOutAction}>
-              <button
-                type="submit"
-                className="text-faint hover:text-accent font-sans text-[11px] underline underline-offset-2"
-              >
-                Sign out
-              </button>
-            </form>
           </div>
+          <form action={signOutAction}>
+            <button
+              type="submit"
+              className="text-muted hover:text-accent flex h-11 w-full items-center gap-2 font-sans text-[14px] font-medium"
+            >
+              <Icon name="chevronLeft" size={16} />
+              Sign out
+            </button>
+          </form>
         </div>
       </aside>
       <main className="flex-1 overflow-y-auto p-7 sm:p-8">{children}</main>

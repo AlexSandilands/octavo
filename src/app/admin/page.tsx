@@ -4,16 +4,15 @@ import { Pill } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { EmptyIssues } from "@/components/empty-states";
 import { listIssues } from "@/server/issues";
-import { getAdminUser } from "@/server/session";
+import { requireAdminOrRedirect } from "@/server/session";
 import { DeleteIssueButton } from "@/features/admin/delete-issue-button";
 import { createIssueAction } from "./actions";
-import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboard() {
-  const admin = await getAdminUser();
-  if (!admin) redirect("/signin"); // layout gates too; this narrows the type
+  // The layout gates too, but layouts don't re-run on soft navigation.
+  const admin = await requireAdminOrRedirect();
   const issues = await listIssues();
   const draftCount = issues.filter((i) => i.status === "draft").length;
 

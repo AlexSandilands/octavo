@@ -1,12 +1,10 @@
-import { redirect } from "next/navigation";
 import { AdminShell } from "@/components/admin-shell";
 import { Icon } from "@/components/icons";
-import { getAdminUser } from "@/server/session";
+import { requireAdminOrRedirect } from "@/server/session";
 
 // Placeholder — the layout anticipates sponsor management (see docs/SPEC.md §8).
 export default async function SponsorsPage() {
-  const admin = await getAdminUser();
-  if (!admin) redirect("/signin");
+  const admin = await requireAdminOrRedirect();
   return (
     <AdminShell active="sponsors" user={admin}>
       <div className="bg-card border-line max-w-3xl rounded-md border p-7 shadow-[0_1px_3px_rgba(0,0,0,0.07)]">

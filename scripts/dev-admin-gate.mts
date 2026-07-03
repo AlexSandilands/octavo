@@ -91,17 +91,19 @@ let captured: {
   headers: Record<string, string>;
   body: Buffer;
 } | null = null;
+// A server action invocation is either a hydrated fetch (next-action header)
+// or, pre-hydration, a plain form POST carrying $ACTION_ID_<id> in the body.
+// Both run the action server-side, so capture whichever POST /admin we get.
 adminPage.on("request", (req) => {
-  if (req.method() === "POST" && req.headerValue !== undefined) {
-    const headers = req.headers();
-    if ("next-action" in headers) {
-      captured = {
-        url: req.url(),
-        headers,
-        body: req.postDataBuffer() ?? Buffer.alloc(0),
-      };
-    }
-  }
+  if (req.method() !== "POST" || new URL(req.url()).pathname !== "/admin")
+    return;
+  void req.allHeaders().then((headers) => {
+    captured ??= {
+      url: req.url(),
+      headers,
+      body: req.postDataBuffer() ?? Buffer.alloc(0),
+    };
+  });
 });
 await adminPage.goto(`${base}/admin`);
 const before = await issueCount();
@@ -111,14 +113,16 @@ ok(
   (await issueCount()) === before + 1,
   "admin: create-issue action works (control)",
 );
+for (let i = 0; i < 20 && !captured; i++)
+  await new Promise((r) => setTimeout(r, 250));
 ok(captured !== null, "captured the real server-action request");
 
 const replay = async (cookie: string | undefined) => {
   const { url, headers, body } = captured!;
   const h: Record<string, string> = {
     "content-type": headers["content-type"] ?? "",
-    "next-action": headers["next-action"]!,
   };
+  if (headers["next-action"]) h["next-action"] = headers["next-action"];
   if (cookie) h.cookie = cookie;
   const res = await fetch(url, {
     method: "POST",
@@ -156,13 +160,21 @@ ok(
   (await adminPage.textContent("aside")).includes("admin@example.com"),
   "sidebar shows the signed-in admin identity",
 );
+const adminSessions = async () =>
+  Number(
+    (
+      await sql`select count(*)::int as n from sessions s
+        join users u on u.id = s.user_id where u.email = 'admin@example.com'`
+    )[0]!.n,
+  );
+const sessionsBefore = await adminSessions();
 await adminPage.click("aside button:has-text('Sign out')");
 await adminPage.waitForURL("**/signin**");
 ok(true, "sign out lands on /signin");
-const [sess] = await sql`
-  select count(*)::int as n from sessions s
-  join users u on u.id = s.user_id where u.email = 'admin@example.com'`;
-ok(sess!.n === 0, "sign out deleted the session row");
+ok(
+  (await adminSessions()) === sessionsBefore - 1,
+  "sign out deleted this device's session row",
+);
 await adminPage.goto(`${base}/admin`);
 await adminPage.waitForURL("**/signin");
 ok(true, "after sign-out: /admin → /signin again");

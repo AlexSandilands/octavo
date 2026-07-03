@@ -1,14 +1,12 @@
-import { redirect } from "next/navigation";
 import { AdminShell } from "@/components/admin-shell";
 import { Button } from "@/components/ui";
 import { EmptyMembers } from "@/components/empty-states";
 import { MembersTable } from "@/features/members/members-table";
 import { members } from "@/lib/sample-members";
-import { getAdminUser } from "@/server/session";
+import { requireAdminOrRedirect } from "@/server/session";
 
 export default async function MembersPage() {
-  const admin = await getAdminUser();
-  if (!admin) redirect("/signin");
+  const admin = await requireAdminOrRedirect();
   const count = (s: string) => members.filter((m) => m.status === s).length;
   const summary = `${count("Subscribed")} subscribed · ${count(
     "Unsubscribed",
