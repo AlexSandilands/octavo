@@ -71,8 +71,20 @@ await page.waitForURL((u) => u.pathname === "/signin");
 ok(true, "after sign-out the library is gated again");
 await ctx.close();
 
-// 4. Open-redirect attempts fall back to the library.
-for (const evil of ["https://evil.example", "//evil.example", "/\\evil"]) {
+// 4. Open-redirect attempts fall back to the library. Covers both the vectors
+// safeNextPath rejects literally (absolute, //host, backslash) and the ones
+// that only collapse to protocol-relative after the browser strips control
+// chars (encoded CR/LF/tab, encoded double-slash) — the load-bearing class.
+const evilVectors = [
+  "https://evil.example",
+  "//evil.example",
+  "/\\evil.example",
+  "/%0A/evil.example",
+  "/%0D/evil.example",
+  "/%09/evil.example",
+  "/%2F%2Fevil.example",
+];
+for (const evil of evilVectors) {
   const c = await browser.newContext();
   const p = await c.newPage();
   await p.goto(`${base}/signin?next=${encodeURIComponent(evil)}`);
@@ -81,8 +93,8 @@ for (const evil of ["https://evil.example", "//evil.example", "/\\evil"]) {
   await p.waitForLoadState();
   const landed = new URL(p.url());
   ok(
-    landed.origin === base && landed.pathname === "/",
-    `crafted next=${evil} falls back to ${base}/`,
+    landed.origin === base,
+    `crafted next=${evil} stays on ${base} (got ${landed.origin})`,
   );
   await c.close();
 }

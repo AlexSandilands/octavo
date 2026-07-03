@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { signOutAction } from "@/app/signin/actions";
 import { initials } from "@/lib/initials";
+import { SignOutButton } from "./sign-out-button";
 import { Wordmark } from "./ui";
 import { Icon, type IconName } from "./icons";
 
@@ -73,15 +73,7 @@ export function AdminShell({
               {user.name ?? user.email}
             </div>
           </div>
-          <form action={signOutAction}>
-            <button
-              type="submit"
-              className="text-muted hover:text-accent flex h-11 w-full items-center gap-2 font-sans text-[14px] font-medium"
-            >
-              <Icon name="chevronLeft" size={16} />
-              Sign out
-            </button>
-          </form>
+          <SignOutButton variant="sidebar" />
         </div>
       </aside>
       <main className="flex-1 overflow-y-auto p-7 sm:p-8">{children}</main>
