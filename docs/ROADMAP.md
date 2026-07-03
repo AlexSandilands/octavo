@@ -26,12 +26,15 @@ Carried forward from the original spec — these are settled:
 - **Audience:** ~1,000 members, older, phone-heavy. Readability and simplicity beat
   features; WCAG AA is a requirement, not a nice-to-have.
 
-## Open decisions (settle before the affected issue starts)
+## Open decisions — all settled (2026-07-03)
 
-1. **Fully gated vs unlisted?** Is `/read` members-only (strict gate) or is the content
-   merely unlisted? Affects Phase 1's reader gating and the image-serving model.
-2. **Image privacy.** Public R2 URLs with unguessable keys (cheap, edge-cached,
-   recommended) vs signed URLs (true members-only, more moving parts). Follows from #1.
+1. **Fully gated.** `/` and `/read` require a member session (issue #5). The
+   email-is-the-magic-link model plus ~90-day sessions makes the gate invisible to
+   members; it only bites on links forwarded outside the club, which is the point.
+2. **Image privacy: public R2 URLs with unguessable UUID keys** (issue #6). Cheap,
+   edge-cached, zero Railway bandwidth. The page gate protects the reading experience;
+   a leaked image URL exposes only that image — acceptable for club photos. Signed
+   URLs rejected as complexity without a matching threat.
 
 ## Phases
 
