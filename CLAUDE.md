@@ -44,8 +44,12 @@ console, so no Resend account is needed. Members are **DB-backed**: the admin ma
 (no self-removal, always one admin). **Sponsors are real** (content v2): a `sponsors` table, a
 working admin page (`/admin/sponsors` — logo upload, link, `activeUntil` with an expired flag), and
 sponsor blocks that reference a managed sponsor via the editor picker (manual entry retained as a
-fallback / the v1 path). Version-1 issues with inline sponsor blocks still render unchanged. Still
-stubbed: PDF. Routes + directory map are in `docs/architecture.md`; phase plan in `docs/ROADMAP.md`.
+fallback / the v1 path). Version-1 issues with inline sponsor blocks still render unchanged.
+**Publishing an issue can email every subscribed member a personal magic link that opens the new
+issue** (the email _is_ the sign-in link; skippable per publish, defaults off on re-publish), each
+with a signed one-click unsubscribe (`/unsubscribe`, no session). Dev logs the blast + unsubscribe
+links to the console too. Still stubbed: PDF.
+Routes + directory map are in `docs/architecture.md`; phase plan in `docs/ROADMAP.md`.
 
 ## Stack
 

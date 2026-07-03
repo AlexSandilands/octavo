@@ -65,6 +65,7 @@ export type EditorIssue = {
   theme: string;
   content: IssueContent;
   revision: number;
+  status: string;
 };
 
 type SaveStatus = "saved" | "saving" | "error" | "conflict";
@@ -73,10 +74,12 @@ export function Editor({
   issue,
   images: initialImages,
   sponsors,
+  subscriberCount,
 }: {
   issue: EditorIssue;
   images: ImageMap;
   sponsors: SponsorListItem[];
+  subscriberCount: number;
 }) {
   // The picker chooses from this list; the canvas previews a placed sponsor
   // through the map derived from it (same shape the readers resolve server-side).
@@ -111,6 +114,9 @@ export function Editor({
     initialPages[0]?.blocks[0]?.id ?? null,
   );
   const [pub, setPub] = useState(false);
+  // Once published (now or on load), the publish modal defaults email OFF so a
+  // later correction can't re-blast the list.
+  const [published, setPublished] = useState(issue.status === "published");
   const [status, setStatus] = useState<SaveStatus>("saved");
   const [addMenu, setAddMenu] = useState(false);
   const router = useRouter();
@@ -680,19 +686,25 @@ export function Editor({
       {pub && (
         <PublishModal
           number={issue.number}
+          subscriberCount={subscriberCount}
+          alreadyPublished={published}
           onClose={() => setPub(false)}
-          onConfirm={async () => {
+          onPublish={async (sendEmail) => {
             try {
+              // Flush the latest edits first; publishing stale content would
+              // ship the wrong issue. A failed flush surfaces in the status
+              // pill and blocks the publish.
               const ok = await flushSave();
-              if (ok) {
-                const res = await publishIssueAction(issue.id);
-                if (!res.ok) setStatus("error");
-              }
+              if (!ok) return { ok: false };
+              const res = await publishIssueAction(issue.id, sendEmail);
+              if (res.ok) setPublished(true);
+              else setStatus("error");
+              return res;
             } catch (error) {
               console.error(`Publishing issue ${issue.id} failed`, error);
               setStatus("error");
+              return { ok: false };
             }
-            setPub(false);
           }}
         />
       )}

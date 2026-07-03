@@ -32,6 +32,12 @@ const schema = z
     AUTH_SECRET: z
       .string()
       .min(1, "missing — generate one with: npx auth secret"),
+    // The canonical public origin, used to build absolute links in emails
+    // (the new-issue magic link, the unsubscribe link) from server code that
+    // has no incoming request to read a Host from. Optional: the publish
+    // action falls back to the request's own Host when this is unset, so the
+    // app boots and works without it.
+    APP_URL: z.string().url().optional(),
     R2_ACCOUNT_ID: z.string().optional(),
     R2_ACCESS_KEY_ID: z.string().optional(),
     R2_SECRET_ACCESS_KEY: z.string().optional(),

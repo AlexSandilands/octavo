@@ -140,6 +140,28 @@ Related notes:
   1.0 stable when released.
 - Never run `npm audit fix --force` — it downgrades `next` to a 9.x "fix".
 
+## Email bounces (new-issue blasts)
+
+Publishing an issue sends ~1 email per subscribed member via Resend. Some will bounce
+(closed mailboxes, full inboxes, typo'd addresses). The app does **not** yet process
+bounces automatically — handle them manually for now:
+
+1. After a blast, open the **Resend dashboard → Emails** and filter by `Bounced` /
+   `Complained`. Resend retains per-message delivery status.
+2. For a **hard bounce** (mailbox doesn't exist) or a **spam complaint**, stop mailing
+   that address: either remove the member, or set `subscribed = false` on their `users`
+   row (the same flag the unsubscribe link flips). Continuing to mail hard-bounced
+   addresses hurts domain reputation and pushes future blasts toward spam folders.
+3. **Soft bounces** (temporary — mailbox full, greylisting) usually clear on their own;
+   only act if the same address bounces across several issues.
+4. The `Bounced` pill already exists in the members UI (`components/ui.tsx`) for when
+   this is surfaced in-app.
+
+**Stretch (not built):** a Resend **webhook** (`email.bounced` / `email.complained`)
+posting to a route that sets `subscribed = false` (or a `bounced` flag) on the matching
+`users` row would automate steps 1–2. Deferred deliberately — it needs a verified
+webhook signature and a new endpoint, and the manual process above is fine at club scale.
+
 ## Recurring landlord tasks (rare)
 
 - Keep domain auto-renew on and billing cards current (a lapse takes the site down).
