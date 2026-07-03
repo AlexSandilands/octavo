@@ -20,7 +20,8 @@ Core docs (long-lived — keep current):
 Work is tracked as **GitHub issues** — one milestone per roadmap phase, one issue per task.
 Before starting an issue, read its milestone context in `docs/ROADMAP.md`; the issue brief
 gives intent + acceptance criteria, the current code is the source of truth for the _how_.
-Branch per issue; keep PRs reviewable.
+Branch per issue; keep PRs reviewable. `docs/issue-pipeline.md` documents the agent-assisted
+pipeline (model-routing labels, subagent-per-issue, orchestrator reviews every diff).
 
 ## Commands
 
