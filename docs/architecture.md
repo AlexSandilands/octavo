@@ -90,27 +90,28 @@ Reader / library / dashboard (server components)
 
 ## Routes
 
-| Route                               | Render        | Notes                                                                                      |
-| ----------------------------------- | ------------- | ------------------------------------------------------------------------------------------ |
-| `/`                                 | dynamic       | Library — published issues                                                                 |
-| `/read/[issueId]`                   | dynamic       | Reader, by issue **number** — **published issues only**                                    |
-| `/signin`                           | dynamic       | Email form; doubles as the Auth.js error page (`?error=Verification` = expired link)       |
-| `/signin/sent`                      | static        | Neutral "check your email" — same answer whether or not the address is a member's          |
-| `/api/auth/*`                       | route handler | Auth.js (sign-in POST, magic-link callback, session)                                       |
-| `/admin`                            | dynamic       | Issue dashboard                                                                            |
-| `/admin/issues/[id]/edit`           | dynamic       | Editor, by issue **id**                                                                    |
-| `/admin/issues/[id]/preview`        | dynamic       | Draft preview (renders the reader by internal id; drafts never appear at `/read`)          |
-| `/admin/members`, `/admin/sponsors` | static        | members = sample data; sponsors = placeholder                                              |
-| `POST /api/admin/images`            | route handler | Upload: multipart → sniff real format (SVG rejected) → sharp WebP → storage → `images` row |
-| `GET /api/images/[...key]`          | route handler | Serves the local dev storage fallback (unused when R2 is set)                              |
+| Route                               | Render        | Notes                                                                                                                                    |
+| ----------------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `/`                                 | dynamic       | Library — published issues. **Member session required**                                                                                  |
+| `/read/[issueId]`                   | dynamic       | Reader, by issue **number**, published only. **Member session required**                                                                 |
+| `/signin`                           | dynamic       | Email form; takes a validated same-origin `?next=` return path; doubles as the Auth.js error page (`?error=Verification` = expired link) |
+| `/signin/sent`                      | static        | Neutral "check your email" — same answer whether or not the address is a member's                                                        |
+| `/api/auth/*`                       | route handler | Auth.js (sign-in POST, magic-link callback, session)                                                                                     |
+| `/admin`                            | dynamic       | Issue dashboard                                                                                                                          |
+| `/admin/issues/[id]/edit`           | dynamic       | Editor, by issue **id**                                                                                                                  |
+| `/admin/issues/[id]/preview`        | dynamic       | Draft preview (renders the reader by internal id; drafts never appear at `/read`)                                                        |
+| `/admin/members`, `/admin/sponsors` | static        | members = sample data; sponsors = placeholder                                                                                            |
+| `POST /api/admin/images`            | route handler | Upload: multipart → sniff real format (SVG rejected) → sharp WebP → storage → `images` row                                               |
+| `GET /api/images/[...key]`          | route handler | Serves the local dev storage fallback (unused when R2 is set)                                                                            |
 
 Route-level `loading.tsx`/`error.tsx` cover `/`, `/read/[issueId]` and `/admin/*`; security
 headers (CSP, `frame-ancestors`, `nosniff`, referrer/permissions policies) are set globally in
 `next.config.ts`.
 
 DB-backed routes set `export const dynamic = "force-dynamic"` so they always read fresh and aren't
-prerendered at build. **The reader and library are currently ungated** (that's the next issue);
-`/admin` and every mutation are admin-gated — see below.
+prerendered at build. **Everything except `/signin` is gated**: the library and reader require a
+member session, `/admin` and every mutation require an admin — see below. The site stays noindex
+globally (nothing public to crawl).
 
 ## Auth
 
@@ -127,13 +128,15 @@ Magic-link only (no passwords, no OAuth), built on Auth.js v5 with **database se
 - `auth-email.ts` — the branded email. Dev always logs the link to the console (testable with no
   Resend account); with `EMAIL_API_KEY` set it sends via Resend, and a send failure is fatal in
   production but only a warning in dev.
-- `session.ts` — `getSession()` / `getUser()` (request-deduped) plus the admin gate:
-  `getAdminUser()` is the single admin-or-not decision (fail closed — a session lookup error
-  reads as signed out), and `requireAdmin()` throws on top of it. **Every server action in
-  `app/admin/actions.ts` and `POST /api/admin/images` calls the gate first** — route middleware
-  and layouts only cover page navigations, but a server action can be invoked directly by any
-  client that knows its id, so the check lives inside each action. `src/app/admin/layout.tsx`
-  redirects signed-out visitors to `/signin` (and non-admin members to `/`) for page loads.
+- `session.ts` — `getSession()` / `getUser()` (request-deduped) plus the gates, all fail closed
+  (a session lookup error reads as signed out): `getAdminUser()` is the single admin-or-not
+  decision, `requireAdmin()` throws on top of it, `requireAdminOrRedirect()` covers /admin pages,
+  and `requireMemberOrRedirect(next)` covers the library and reader — it sends signed-out
+  visitors to `/signin?next=<path>` so the emailed link lands them back on the issue they
+  clicked. **Every server action in `app/admin/actions.ts` and `POST /api/admin/images` calls
+  the gate first** — layouts only cover page navigations, but a server action can be invoked
+  directly by any client that knows its id, so the check lives inside each action.
+  `?next=` is validated to a same-origin path (`signin/next-path.ts`) — no open redirects.
 
 The `/signin` flow never reveals membership: known and unknown emails both land on
 `/signin/sent`, and an expired or already-used link comes back to `/signin` with a
@@ -157,9 +160,8 @@ values are set in Railway. `.env.example` lists every key.
 
 Real: the editor authors and autosaves to the DB; the reader/library/dashboard render real data;
 images upload to R2 and render in both editor and reader; magic-link sign-in with database
-sessions.
-Stubbed/deferred: route gating (sign-in works but nothing requires it yet), PDF export,
-members/sponsors persistence. The phase
+sessions, and every route/mutation is gated (members read, admins author).
+Stubbed/deferred: PDF export, members/sponsors persistence. The phase
 sequence lives in [ROADMAP.md](ROADMAP.md); work is tracked as GitHub issues (one
 milestone per phase).
 

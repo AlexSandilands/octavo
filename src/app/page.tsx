@@ -5,14 +5,15 @@ import { initials } from "@/lib/initials";
 import { coverPageOf, type Page } from "@/lib/blocks";
 import { listIssues } from "@/server/issues";
 import { resolveIssueImages } from "@/server/images";
-import { getUser } from "@/server/session";
+import { requireMemberOrRedirect } from "@/server/session";
+import { signOutAction } from "@/app/signin/actions";
 import { LatestIssue } from "@/features/library/latest-issue";
 import { ArchiveGrid } from "@/features/library/archive-grid";
 
 export const dynamic = "force-dynamic";
 
 export default async function LibraryPage() {
-  const user = await getUser().catch(() => null);
+  const user = await requireMemberOrRedirect("/");
   const all = await listIssues();
   const published = all.filter((i) => i.status === "published");
   const latest = published[0];
@@ -31,9 +32,8 @@ export default async function LibraryPage() {
         <Wordmark size={24} />
         <nav className="flex items-center gap-4 font-sans text-sm">
           <span className="text-muted font-medium">Issues</span>
-          <span className="text-faint2">Membership</span>
           {/* UX only — /admin is gated server-side regardless (issue #4). */}
-          {user?.isAdmin && (
+          {user.isAdmin && (
             <Link
               href="/admin"
               className="border-hair text-ink hover:border-accent hover:text-accent rounded-lg border px-3 py-1.5 font-medium"
@@ -41,9 +41,15 @@ export default async function LibraryPage() {
               Admin
             </Link>
           )}
-          {user && (
-            <Avatar initials={initials(user.name?.trim() || user.email)} />
-          )}
+          <form action={signOutAction}>
+            <button
+              type="submit"
+              className="text-muted hover:text-accent flex h-11 items-center font-medium"
+            >
+              Sign out
+            </button>
+          </form>
+          <Avatar initials={initials(user.name?.trim() || user.email)} />
         </nav>
       </header>
 

@@ -35,10 +35,11 @@ Branch per issue; keep PRs reviewable.
 Library, reader, dashboard and editor are **DB-backed** (editor autosaves; reader renders saved
 issues). Images are **real**: the editor uploads (WebP via sharp) and the reader serves them — to R2
 when configured, otherwise a local-disk fallback (`.data/uploads`) so it works with no cloud setup.
-Auth is **real**: magic-link sign-in (Auth.js v5, database sessions ~90 days, members-only); in dev
-the link is logged to the console, so no Resend account is needed. `/admin`, all server actions and
-the upload route require an `is_admin` session (`npm run db:admin` bootstraps one). Still stubbed:
-the reader/library are ungated (next issue), PDF, and members/sponsors persistence.
+Auth is **real** and everything is gated: magic-link sign-in (Auth.js v5, database sessions ~90
+days, members-only); the library/reader require a member session (signed-out visitors are sent to
+`/signin` with a validated `?next=` return path); `/admin`, all server actions and the upload route
+require `is_admin` (`npm run db:admin` bootstraps one). In dev the magic link is logged to the
+console, so no Resend account is needed. Still stubbed: PDF and members/sponsors persistence.
 Routes + directory map are in `docs/architecture.md`; phase plan in `docs/ROADMAP.md`.
 
 ## Stack
