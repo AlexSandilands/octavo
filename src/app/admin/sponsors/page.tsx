@@ -1,10 +1,12 @@
 import { AdminShell } from "@/components/admin-shell";
 import { Icon } from "@/components/icons";
+import { requireAdminOrRedirect } from "@/server/session";
 
 // Placeholder — the layout anticipates sponsor management (see docs/SPEC.md §8).
-export default function SponsorsPage() {
+export default async function SponsorsPage() {
+  const admin = await requireAdminOrRedirect();
   return (
-    <AdminShell active="sponsors">
+    <AdminShell active="sponsors" user={admin}>
       <div className="bg-card border-line max-w-3xl rounded-md border p-7 shadow-[0_1px_3px_rgba(0,0,0,0.07)]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

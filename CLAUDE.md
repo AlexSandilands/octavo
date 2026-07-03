@@ -27,6 +27,7 @@ Branch per issue; keep PRs reviewable.
 - `docker compose up -d` — local Postgres
 - `npm run dev` — local dev server
 - `npm run db:generate` / `db:migrate` / `db:seed` / `db:studio` — Drizzle workflow: migrations are committed in `drizzle/` and run on deploy (`db:push` is a local iteration convenience only; see `docs/database.md`)
+- `npm run db:admin -- you@example.com` — create/promote an admin user (first-run bootstrap; idempotent)
 - `npm run lint` / `npm run format` — lint / format
 
 ## Status
@@ -35,8 +36,9 @@ Library, reader, dashboard and editor are **DB-backed** (editor autosaves; reade
 issues). Images are **real**: the editor uploads (WebP via sharp) and the reader serves them — to R2
 when configured, otherwise a local-disk fallback (`.data/uploads`) so it works with no cloud setup.
 Auth is **real**: magic-link sign-in (Auth.js v5, database sessions ~90 days, members-only); in dev
-the link is logged to the console, so no Resend account is needed. Still stubbed: route gating
-(`/admin` and the reader are ungated), PDF, and members/sponsors persistence.
+the link is logged to the console, so no Resend account is needed. `/admin`, all server actions and
+the upload route require an `is_admin` session (`npm run db:admin` bootstraps one). Still stubbed:
+the reader/library are ungated (next issue), PDF, and members/sponsors persistence.
 Routes + directory map are in `docs/architecture.md`; phase plan in `docs/ROADMAP.md`.
 
 ## Stack

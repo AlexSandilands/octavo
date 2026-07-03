@@ -4,17 +4,20 @@ import { Pill } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { EmptyIssues } from "@/components/empty-states";
 import { listIssues } from "@/server/issues";
+import { requireAdminOrRedirect } from "@/server/session";
 import { DeleteIssueButton } from "@/features/admin/delete-issue-button";
 import { createIssueAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboard() {
+  // The layout gates too, but layouts don't re-run on soft navigation.
+  const admin = await requireAdminOrRedirect();
   const issues = await listIssues();
   const draftCount = issues.filter((i) => i.status === "draft").length;
 
   return (
-    <AdminShell active="issues">
+    <AdminShell active="issues" user={admin}>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-ink font-serif text-3xl">Issues</h1>

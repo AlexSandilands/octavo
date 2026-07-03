@@ -4,6 +4,7 @@ import { createId } from "@/lib/id";
 import { processImage, UnsupportedImageError } from "@/lib/image-processing";
 import { keyToUrl, putObject, usingLocalStorage } from "@/lib/storage";
 import { createImageRecord } from "@/server/images";
+import { getAdminUser } from "@/server/session";
 
 // Admin image upload. Receives one file as multipart form data, re-encodes it to
 // WebP, stores it in R2 and records it in the DB. Returns the imageId + public
@@ -11,9 +12,6 @@ import { createImageRecord } from "@/server/images";
 //
 // A route handler (not a server action) because file uploads exceed the server
 // action body limit and binary form data is a poor fit for actions.
-//
-// TODO(auth): gate on an admin session once auth lands — mirrors the currently
-// ungated /admin (see docs/architecture.md).
 
 const MAX_BYTES = 12 * 1024 * 1024; // 12 MB raw upload
 const ACCEPTED = [
@@ -29,6 +27,13 @@ const fieldsSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  if (!(await getAdminUser())) {
+    return NextResponse.json(
+      { error: "Admin access required." },
+      { status: 403 },
+    );
+  }
+
   let form: FormData;
   try {
     form = await request.formData();

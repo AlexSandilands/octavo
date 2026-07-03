@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { Editor } from "@/features/editor/editor";
 import { getIssue } from "@/server/issues";
 import { resolveIssueImages } from "@/server/images";
+import { requireAdminOrRedirect } from "@/server/session";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,7 @@ export default async function EditIssuePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireAdminOrRedirect(); // layout gates too; not re-run on soft nav
   const { id } = await params;
   const issue = await getIssue(id);
   if (!issue) notFound();

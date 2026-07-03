@@ -3,14 +3,8 @@
 import { useState } from "react";
 import { Icon } from "@/components/icons";
 import { Avatar, Pill } from "@/components/ui";
+import { initials } from "@/lib/initials";
 import type { Member } from "@/lib/sample-members";
-
-const initials = (name: string) =>
-  name
-    .split(" ")
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join("");
 
 export function MembersTable({ members }: { members: Member[] }) {
   const [query, setQuery] = useState("");

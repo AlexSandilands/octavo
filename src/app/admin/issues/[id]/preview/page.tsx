@@ -4,19 +4,20 @@ import { DesktopReader } from "@/features/reader/desktop-reader";
 import { MobileReader } from "@/features/reader/mobile-reader";
 import { getIssue } from "@/server/issues";
 import { resolveIssueImages } from "@/server/images";
+import { requireAdminOrRedirect } from "@/server/session";
 
 export const dynamic = "force-dynamic";
 
 // Admin draft preview: renders exactly what members will see, looked up by
 // internal id so drafts never need to be reachable at /read (which serves
-// published issues only). Lives under /admin so the auth gate covers it when
-// auth lands.
+// published issues only). Lives under /admin so the auth gate covers it.
 
 export default async function PreviewIssuePage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireAdminOrRedirect(); // layout gates too; not re-run on soft nav
   const { id } = await params;
   const issue = await getIssue(id);
   if (!issue) notFound();
