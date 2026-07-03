@@ -56,8 +56,15 @@ export function RichTextEditor({
     },
     // Store the structured JSON (content v3). Tiptap's JSONContent is the loose
     // shape of our RichDoc; the schema re-validates (and tightens) it on save.
+    // The JSON round-trip is load-bearing: ProseMirror builds `attrs` objects
+    // with a null prototype, and React Flight silently replaces non-plain
+    // objects with opaque temporary references when the autosave posts to the
+    // server action — the server would receive `attrs: [Function]` and reject
+    // the save (broke link marks and ordered lists, whose attrs are non-empty).
     onUpdate: ({ editor }) =>
-      onChange({ text: editor.getJSON() as RichTextValue }),
+      onChange({
+        text: JSON.parse(JSON.stringify(editor.getJSON())) as RichTextValue,
+      }),
   });
 
   return (
