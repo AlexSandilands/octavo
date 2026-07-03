@@ -81,17 +81,22 @@ Mutations are invoked via Server Actions in `src/app/admin/actions.ts`, which zo
 
 ## Changing the schema
 
-**During development** (no real users yet) we use `drizzle-kit push`, which diffs `schema.ts`
-directly against the DB — no migration files to manage:
+**Versioned migrations are the source of truth** (cutover done — issue #1). The current
+schema is captured as the committed `init` migration in `drizzle/`; Railway applies
+pending migrations as a pre-deploy step (`npm run db:migrate` — see `railway.json` and
+[infrastructure.md](infrastructure.md)). To change the schema:
 
 1. Edit `src/db/schema.ts`.
-2. `npm run db:push` — applies the changes in place. (`npm run db:studio` opens a browser DB UI.)
+2. `npm run db:generate -- --name <what-changed>` — writes a SQL migration to `drizzle/`.
+3. Review the generated SQL, commit it alongside the schema change.
+4. `npm run db:migrate` applies it locally; deploys apply it automatically.
 
-The DB is disposable for now: if a change is awkward to apply, just wipe and re-seed.
-
-**Before launch**, once real data needs preserving, switch to versioned migrations:
-`npm run db:generate` writes a SQL migration to `drizzle/`, `npm run db:migrate` applies it, and
-the generated files get committed. (The `drizzle/` folder is gitignored until then.)
+**In development**, `npm run db:push` remains a convenience for iterating on a schema
+change before generating the final migration (it diffs `schema.ts` straight against your
+local DB). Never push against production, and always end an iteration by generating the
+migration from a DB that matches the committed migrations — wipe and re-migrate
+(`docker compose down -v && docker compose up -d && npm run db:migrate && npm run db:seed`)
+if unsure. (`npm run db:studio` opens a browser DB UI.)
 
 ## Changing the content model
 

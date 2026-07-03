@@ -26,7 +26,7 @@ Branch per issue; keep PRs reviewable.
 
 - `docker compose up -d` — local Postgres
 - `npm run dev` — local dev server
-- `npm run db:push` / `db:seed` / `db:studio` — Drizzle dev workflow (`db:generate`/`db:migrate` reserved for pre-launch migrations; see `docs/database.md`)
+- `npm run db:generate` / `db:migrate` / `db:seed` / `db:studio` — Drizzle workflow: migrations are committed in `drizzle/` and run on deploy (`db:push` is a local iteration convenience only; see `docs/database.md`)
 - `npm run lint` / `npm run format` — lint / format
 
 ## Status
