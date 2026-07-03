@@ -41,11 +41,14 @@ days, members-only); the library/reader require a member session (signed-out vis
 require `is_admin` (`npm run db:admin` bootstraps one). In dev the magic link is logged to the
 console, so no Resend account is needed. Members are **DB-backed**: the admin manages the real
 `users` table (add / remove / toggle subscribed / toggle admin / CSV import), with guard rails
-(no self-removal, always one admin). **Publishing an issue can email every subscribed member a
-personal magic link that opens the new issue** (the email _is_ the sign-in link; skippable per
-publish, defaults off on re-publish), each with a signed one-click unsubscribe (`/unsubscribe`, no
-session). Dev logs the blast + unsubscribe links to the console too. Still stubbed: PDF and
-sponsors persistence.
+(no self-removal, always one admin). **Sponsors are real** (content v2): a `sponsors` table, a
+working admin page (`/admin/sponsors` — logo upload, link, `activeUntil` with an expired flag), and
+sponsor blocks that reference a managed sponsor via the editor picker (manual entry retained as a
+fallback / the v1 path). Version-1 issues with inline sponsor blocks still render unchanged.
+**Publishing an issue can email every subscribed member a personal magic link that opens the new
+issue** (the email _is_ the sign-in link; skippable per publish, defaults off on re-publish), each
+with a signed one-click unsubscribe (`/unsubscribe`, no session). Dev logs the blast + unsubscribe
+links to the console too. Still stubbed: PDF.
 Routes + directory map are in `docs/architecture.md`; phase plan in `docs/ROADMAP.md`.
 
 ## Stack

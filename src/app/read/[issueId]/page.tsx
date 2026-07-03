@@ -3,6 +3,7 @@ import { DesktopReader } from "@/features/reader/desktop-reader";
 import { MobileReader } from "@/features/reader/mobile-reader";
 import { getPublishedIssueByNumber } from "@/server/issues";
 import { resolveIssueImages } from "@/server/images";
+import { resolveIssueSponsors } from "@/server/sponsors";
 import { requireMemberOrRedirect } from "@/server/session";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +23,10 @@ export default async function ReadPage({
     : null;
   if (!issue) notFound();
 
-  const images = await resolveIssueImages(issue.content);
+  const [images, sponsors] = await Promise.all([
+    resolveIssueImages(issue.content),
+    resolveIssueSponsors(issue.content),
+  ]);
 
   return (
     <>
@@ -31,10 +35,15 @@ export default async function ReadPage({
           content={issue.content}
           issueNo={issue.number}
           images={images}
+          sponsors={sponsors}
         />
       </div>
       <div className="md:hidden">
-        <MobileReader content={issue.content} images={images} />
+        <MobileReader
+          content={issue.content}
+          images={images}
+          sponsors={sponsors}
+        />
       </div>
     </>
   );

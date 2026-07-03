@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Icon, type IconName } from "@/components/icons";
@@ -31,6 +31,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
+import type { SponsorListItem, SponsorMap } from "@/lib/sponsors";
 import { type Theme } from "@/features/blocks/block-view";
 import {
   PageFrame,
@@ -72,12 +73,26 @@ type SaveStatus = "saved" | "saving" | "error" | "conflict";
 export function Editor({
   issue,
   images: initialImages,
+  sponsors,
   subscriberCount,
 }: {
   issue: EditorIssue;
   images: ImageMap;
+  sponsors: SponsorListItem[];
   subscriberCount: number;
 }) {
+  // The picker chooses from this list; the canvas previews a placed sponsor
+  // through the map derived from it (same shape the readers resolve server-side).
+  const sponsorMap: SponsorMap = useMemo(
+    () =>
+      Object.fromEntries(
+        sponsors.map((s) => [
+          s.id,
+          { name: s.name, href: s.href, logo: s.logo },
+        ]),
+      ),
+    [sponsors],
+  );
   const initialPages = ensureCoverFirst(
     issue.content.pages.length > 0
       ? issue.content.pages
@@ -649,6 +664,8 @@ export function Editor({
                             selected={b.id === sel}
                             issueId={issue.id}
                             images={images}
+                            sponsors={sponsors}
+                            sponsorMap={sponsorMap}
                             onSelect={() => setSel(b.id)}
                             onChange={(patch) => updateBlock(b.id, patch)}
                             onMove={(dir) => moveBlock(b.id, dir)}

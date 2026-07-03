@@ -27,6 +27,7 @@ both `drizzle.config.ts` and `src/db/seed.ts` call `process.loadEnvFile(".env.lo
 | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `issues`                          | One row per edition. Holds `content` (the pages→blocks JSON), `number` (unique — it's the public address), `title`, `theme`, `status` (`draft`/`published`), `revision` (bumped on every content write; autosaves send the revision they were based on so stale saves conflict instead of clobbering), `publishedAt`, timestamps. |
 | `images`                          | Uploaded image metadata (R2 key, dimensions). _Used once the image pipeline lands._                                                                                                                                                                                                                                               |
+| `sponsors`                        | Managed sponsors (content v2): `name`, `href` (nullable), `logoId` (→`images`, set-null on image delete), `activeUntil` (nullable expiry — advisory only, flags the admin list; never auto-removes a sponsor from an issue), `createdAt`. Sponsor blocks reference a row by id (see the content model). Accessed via `src/server/sponsors.ts`. |
 | `users`                           | Member record — doubles as the auth user (`isAdmin`, `subscribed`). _Used once auth lands._                                                                                                                                                                                                                                       |
 | `sessions`, `verification_tokens` | Auth.js tables. _Used once auth lands._                                                                                                                                                                                                                                                                                           |
 
@@ -45,10 +46,15 @@ IssueContent = { version, pages: { id, cover?, blocks: Block[] }[] }
 Block = Heading | Text | Image | Sponsor   // discriminated union on `type`
 ```
 
-`version` (defaults to 1 for all existing documents) marks which shape of the content model a
-document holds, so future block-shape changes can migrate old rows deliberately. Every string
-field is length-capped and the page/block arrays bounded in the zod schemas, so a bad save can't
-persist an unbounded document.
+`version` marks which shape of the content model a document holds, so block-shape changes can
+migrate old rows deliberately. **Current version: 2.** Every string field is length-capped and the
+page/block arrays bounded in the zod schemas, so a bad save can't persist an unbounded document.
+
+**Content v2 (issue #8) — sponsor blocks reference the `sponsors` table.** A sponsor block now
+carries an optional `sponsorId`; the reader/editor resolve the referenced sponsor's live
+name/href/logo at render time (`resolveIssueSponsors` in `src/server/sponsors.ts`, mirroring how
+images resolve). The version-1 inline fields (`name`/`href`/`logoId`) are **retained** on the block
+as the fallback for legacy documents and for the editor's manual-entry mode.
 
 Defined as zod schemas + inferred types in [`src/lib/blocks.ts`](../src/lib/blocks.ts) and applied to
 the column via `jsonb(...).$type<IssueContent>()`.
@@ -106,3 +112,28 @@ The block shapes are validated by zod in `src/lib/blocks.ts`. When you add/renam
 - Existing rows hold old-shaped JSON — give new fields safe defaults (`.default(...)`/`.optional()`)
   so old content still parses, or write a one-off migration that rewrites `issues.content`.
 - Because `content` is opaque JSONB to Postgres, the database won't enforce this — zod is the guard.
+
+### The version bump, by example (v1 → v2, issue #8)
+
+This is the template for every content-model version bump. The v2 change — sponsor blocks gaining
+`sponsorId` — was done as a **backward-compatible, non-destructive** bump. Follow this shape when
+the change can be made additive:
+
+1. **Add the new field as optional; keep the old fields.** `sponsorId` is `.optional()`, and the
+   version-1 inline fields (`name`/`href`/`logoId`) stay on the schema. A version-1 document, which
+   has the inline fields and no `sponsorId`, therefore still parses **and renders** — the renderers
+   fall back to the inline fields when `sponsorId` is absent (see the sponsor case in
+   `BlockView`/`MobileBlock`). Nothing forces a rewrite.
+2. **Bump `CONTENT_VERSION`** (to `2`). New documents and any resave stamp the new version. The zod
+   `version` field keeps `.min(1)`, so old rows validate. **No SQL migration touches `issues.content`.**
+3. **Upgrade happens lazily and safely.** A legacy issue is upgraded to v2 in place the next time
+   it's saved through the editor (the schema `.default`s the version); because the v2 schema still
+   accepts the v1 inline shape, that resave is a no-op for the sponsor blocks.
+4. **Deletion / dangling references** are handled at render, not by cascade: a `sponsorId` pointing
+   at a now-deleted sponsor resolves to nothing, and the reader **hides that slot** (a removed
+   sponsor must not keep advertising). In the editor the block stays visible so the admin can re-pick.
+
+**When a change can't be additive** (a field is removed or its meaning changes incompatibly), don't
+force old rows through the new schema — write a **one-off migration** that reads every `issues.content`,
+rewrites version-N documents to version-N+1 shape, and writes them back, keyed on the stored `version`.
+Zod remains the guard; the JSONB column won't enforce any of this.

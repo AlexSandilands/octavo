@@ -109,3 +109,22 @@ export const images = pgTable(
   },
   (t) => [index("images_issue_id_idx").on(t.issueId)],
 );
+
+// Managed sponsors (content v2). A sponsor block in an issue references one of
+// these by id rather than carrying its own name/href/logo, so the admin can
+// update a sponsor once and have every placement follow. `logoId` reuses the
+// images pipeline; onDelete set-null keeps the sponsor if its logo image is
+// removed. `activeUntil` is an optional expiry the admin list flags — expiry is
+// advisory only (it does not auto-remove the sponsor from published issues).
+export const sponsors = pgTable("sponsors", {
+  id: text("id").primaryKey().$defaultFn(createId),
+  name: text("name").notNull(),
+  href: text("href"),
+  logoId: text("logo_id").references(() => images.id, {
+    onDelete: "set null",
+  }),
+  activeUntil: timestamp("active_until", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
