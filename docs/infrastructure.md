@@ -44,7 +44,13 @@ Member ── Cloudflare (DNS/CDN) ── Railway (Next.js + Postgres)
 3. **Railway** — create a project; deploy the app from the repo; add the Postgres
    plugin; set env vars (below). `NEXT_PUBLIC_*` vars are **build-time inlined** — they
    must be present in the build environment, not just at runtime, or the site shows
-   placeholder branding. Migrations run as a pre-deploy step (`drizzle-kit migrate`).
+   placeholder branding. Deploy behaviour is config-as-code in `railway.json`:
+   migrations run as the pre-deploy step (`npm run db:migrate`), and the deploy
+   health check polls `GET /api/health` (200 when the DB answers, 503 otherwise —
+   point UptimeRobot at the same path). The R2 env vars are **required in
+   production**: `src/lib/env.ts` refuses to boot without them, because Railway's
+   filesystem is ephemeral and the local-disk image fallback would lose uploads on
+   every redeploy.
 4. **Email** — create the provider account; verify the sending domain by adding its
    **SPF, DKIM, and DMARC** records in Cloudflare DNS (do this carefully — it's what
    keeps blasts out of spam); get the API key.
