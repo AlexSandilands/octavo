@@ -1,4 +1,5 @@
 import { Icon, type IconName } from "@/components/icons";
+import type { BlockPatch } from "@/lib/blocks";
 
 // Placement + size controls for a selected image block. Lives in the block's
 // floating toolbar (see editor-block.tsx). Writes back through the same onChange
@@ -26,7 +27,7 @@ export function ImageLayoutControls({
 }: {
   align: Align;
   width: number;
-  onChange: (patch: Record<string, string | number>) => void;
+  onChange: (patch: BlockPatch) => void;
 }) {
   return (
     <div className="flex items-center gap-2.5">

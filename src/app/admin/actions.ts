@@ -69,13 +69,19 @@ export async function saveMetaAction(
   return { ok: true };
 }
 
-export async function publishIssueAction(id: string) {
-  await publishIssue(idSchema.parse(id));
+export async function publishIssueAction(id: string): Promise<{ ok: boolean }> {
+  const parsed = idSchema.safeParse(id);
+  if (!parsed.success) return { ok: false };
+  await publishIssue(parsed.data);
   revalidatePath("/admin");
   revalidatePath("/");
+  return { ok: true };
 }
 
-export async function deleteIssueAction(id: string) {
-  await deleteIssue(idSchema.parse(id));
+export async function deleteIssueAction(id: string): Promise<{ ok: boolean }> {
+  const parsed = idSchema.safeParse(id);
+  if (!parsed.success) return { ok: false };
+  await deleteIssue(parsed.data);
   revalidatePath("/admin");
+  return { ok: true };
 }

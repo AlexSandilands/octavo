@@ -1,4 +1,8 @@
-import { HEADING_LEVELS, type HeadingLevel } from "@/lib/blocks";
+import {
+  HEADING_LEVELS,
+  type BlockPatch,
+  type HeadingLevel,
+} from "@/lib/blocks";
 
 // Rank picker for a selected heading block, shown in its floating toolbar (see
 // editor-block.tsx). Switches a heading between the big page/feature title, an
@@ -8,7 +12,7 @@ export function HeadingLevelControl({
   onChange,
 }: {
   level: HeadingLevel;
-  onChange: (patch: Record<string, string | number>) => void;
+  onChange: (patch: BlockPatch) => void;
 }) {
   return (
     <div className="border-hair flex items-center gap-2 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap shadow-[0_4px_14px_rgba(40,36,28,0.16)]">

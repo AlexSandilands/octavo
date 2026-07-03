@@ -26,7 +26,9 @@ export function DeleteIssueButton({
             `Delete “${title}”? This permanently removes the issue and cannot be undone.`,
           )
         ) {
-          startTransition(() => deleteIssueAction(id));
+          startTransition(() => {
+            void deleteIssueAction(id);
+          });
         }
       }}
       title="Delete issue"

@@ -2,7 +2,7 @@ import { AdminShell } from "@/components/admin-shell";
 import { Button } from "@/components/ui";
 import { EmptyMembers } from "@/components/empty-states";
 import { MembersTable } from "@/features/members/members-table";
-import { members } from "@/lib/sample-issue";
+import { members } from "@/lib/sample-members";
 
 export default function MembersPage() {
   const count = (s: string) => members.filter((m) => m.status === s).length;

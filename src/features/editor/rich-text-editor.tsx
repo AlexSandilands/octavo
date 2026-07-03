@@ -4,7 +4,12 @@ import { useState } from "react";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Icon } from "@/components/icons";
-import { TEXT_SIZES, textSizePx, type TextSize } from "@/lib/blocks";
+import {
+  TEXT_SIZES,
+  textSizePx,
+  type BlockPatch,
+  type TextSize,
+} from "@/lib/blocks";
 import { externalHref, richTextToHtml } from "@/lib/rich-text";
 import { Underline, Link } from "./rich-text-marks";
 
@@ -23,7 +28,7 @@ export function RichTextEditor({
   value: string;
   size: TextSize;
   selected: boolean;
-  onChange: (patch: Record<string, string | number>) => void;
+  onChange: (patch: BlockPatch) => void;
 }) {
   const editor = useEditor({
     immediatelyRender: false,
@@ -74,7 +79,7 @@ function Toolbar({
 }: {
   editor: Editor;
   size: TextSize;
-  onChange: (patch: Record<string, string | number>) => void;
+  onChange: (patch: BlockPatch) => void;
 }) {
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkValue, setLinkValue] = useState("");

@@ -92,6 +92,19 @@ export type BlockType = Block["type"];
 export type Page = z.infer<typeof pageSchema>;
 export type IssueContent = z.infer<typeof issueContentSchema>;
 
+// A partial update to one block's own fields (never its id/type), used by the
+// editor's write-back path. Distributes over the union, so a patch can only
+// carry real block fields with their proper value types — the compiler rejects
+// a misspelled field or a wrong type at the call site.
+export type BlockPatch = {
+  [T in Block as T["type"]]: Partial<Omit<T, "id" | "type">>;
+}[BlockType];
+
+// Apply a patch to a block, preserving its identity and discriminant.
+export function mergeBlock(block: Block, patch: BlockPatch): Block {
+  return { ...block, ...patch };
+}
+
 export const BLOCK_TYPES: BlockType[] = ["heading", "text", "image", "sponsor"];
 
 export type TextSize = "s" | "m" | "l" | "xl";

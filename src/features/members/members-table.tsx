@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Icon } from "@/components/icons";
 import { Avatar, Pill } from "@/components/ui";
-import type { Member } from "@/lib/sample-issue";
+import type { Member } from "@/lib/sample-members";
 
 const initials = (name: string) =>
   name

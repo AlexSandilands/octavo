@@ -5,7 +5,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Icon, type IconName } from "@/components/icons";
 import { BlockView, type Theme } from "@/features/blocks/block-view";
 import { blockFlowStyle } from "@/features/blocks/layout";
-import type { Block } from "@/lib/blocks";
+import type { Block, BlockPatch } from "@/lib/blocks";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import { ImageBlockControl } from "./image-upload";
 import { ImageLayoutControls } from "./image-layout";
@@ -36,7 +36,7 @@ export function EditorBlock({
   issueId: string;
   images: ImageMap;
   onSelect: () => void;
-  onChange: (patch: Record<string, string | number>) => void;
+  onChange: (patch: BlockPatch) => void;
   onMove: (dir: -1 | 1) => void;
   onRemove: () => void;
   onRegisterImage: (imageId: string, image: ResolvedImage) => void;
