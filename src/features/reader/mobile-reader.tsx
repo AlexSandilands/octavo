@@ -6,6 +6,7 @@ import { Icon } from "@/components/icons";
 import { site } from "@/lib/site";
 import { textSizeScale, type Block, type IssueContent } from "@/lib/blocks";
 import type { ImageMap } from "@/lib/images";
+import type { SponsorMap } from "@/lib/sponsors";
 import { externalHref, richTextToHtml } from "@/lib/rich-text";
 import { BlockImage } from "@/features/blocks/block-view";
 
@@ -14,9 +15,11 @@ import { BlockImage } from "@/features/blocks/block-view";
 export function MobileReader({
   content,
   images,
+  sponsors,
 }: {
   content: IssueContent;
   images: ImageMap;
+  sponsors: SponsorMap;
 }) {
   const [m, setM] = useState(19);
   const [drawer, setDrawer] = useState(false);
@@ -86,12 +89,25 @@ export function MobileReader({
               className="border-line-soft mb-8 border-b py-8 text-center"
             >
               {p.blocks.map((b) => (
-                <MobileBlock key={b.id} block={b} m={m} images={images} cover />
+                <MobileBlock
+                  key={b.id}
+                  block={b}
+                  m={m}
+                  images={images}
+                  sponsors={sponsors}
+                  cover
+                />
               ))}
             </section>
           ) : (
             p.blocks.map((b) => (
-              <MobileBlock key={b.id} block={b} m={m} images={images} />
+              <MobileBlock
+                key={b.id}
+                block={b}
+                m={m}
+                images={images}
+                sponsors={sponsors}
+              />
             ))
           ),
         )}
@@ -149,11 +165,13 @@ function MobileBlock({
   block,
   m,
   images,
+  sponsors,
   cover,
 }: {
   block: Block;
   m: number;
   images: ImageMap;
+  sponsors: SponsorMap;
   cover?: boolean;
 }) {
   switch (block.type) {
@@ -251,18 +269,34 @@ function MobileBlock({
       );
     }
     case "sponsor": {
-      const link = externalHref(block.href ?? "");
+      // Same v1→v2 resolution as BlockView: a managed block resolves from the
+      // sponsors map; a version-1 or manual block falls back to inline fields; a
+      // managed reference that no longer resolves (deleted) is hidden.
+      const managed = block.sponsorId ? sponsors[block.sponsorId] : undefined;
+      if (block.sponsorId && !managed) return null;
+      const name = managed ? managed.name : block.name;
+      const logo = managed?.logo ?? null;
+      const link = externalHref((managed ? managed.href : block.href) ?? "");
       const card = (
         <div className="bg-tint my-4 flex items-center gap-3 rounded-md p-4">
-          <div className="bg-card text-faint flex h-12 w-24 flex-none items-center justify-center rounded font-mono text-[10px]">
-            SPONSOR
+          <div className="bg-card text-faint flex h-12 w-24 flex-none items-center justify-center overflow-hidden rounded font-mono text-[10px]">
+            {logo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={logo.url}
+                alt={name ? `${name} logo` : "Sponsor logo"}
+                className="h-full w-full object-contain"
+              />
+            ) : (
+              "SPONSOR"
+            )}
           </div>
           <div>
             <div className="text-accent-soft font-sans text-[9px] font-semibold tracking-[0.2em] uppercase">
               Sponsor
             </div>
             <div className="text-accent-ink font-sans text-base font-semibold">
-              {block.name}
+              {name}
             </div>
             {link && (
               <div className="text-accent font-sans text-[13px] font-medium">

@@ -6,6 +6,7 @@ import { Icon } from "@/components/icons";
 import { site } from "@/lib/site";
 import type { IssueContent, Page } from "@/lib/blocks";
 import type { ImageMap } from "@/lib/images";
+import type { SponsorMap } from "@/lib/sponsors";
 import { BlockView, type Theme } from "@/features/blocks/block-view";
 import { blockFlowStyle } from "@/features/blocks/layout";
 import {
@@ -42,10 +43,12 @@ export function DesktopReader({
   content,
   issueNo,
   images,
+  sponsors,
 }: {
   content: IssueContent;
   issueNo: number;
   images: ImageMap;
+  sponsors: SponsorMap;
 }) {
   const pages = content.pages;
   const toc = buildToc(pages);
@@ -318,6 +321,7 @@ export function DesktopReader({
           issueNo={issueNo}
           pageNo={idx + 1}
           images={images}
+          sponsors={sponsors}
         />
       </div>
     );
@@ -370,6 +374,7 @@ export function DesktopReader({
               issueNo={issueNo}
               pageNo={frontIdx + 1}
               images={images}
+              sponsors={sponsors}
             />
           </div>
           <div
@@ -389,6 +394,7 @@ export function DesktopReader({
               issueNo={issueNo}
               pageNo={backIdx + 1}
               images={images}
+              sponsors={sponsors}
             />
           </div>
         </div>
@@ -528,6 +534,7 @@ export function DesktopReader({
                   scale={scale}
                   issueNo={issueNo}
                   images={images}
+                  sponsors={sponsors}
                 />
                 <PageView
                   page={left}
@@ -537,6 +544,7 @@ export function DesktopReader({
                   issueNo={issueNo}
                   pageNo={1}
                   images={images}
+                  sponsors={sponsors}
                 />
               </>
             ) : (
@@ -549,6 +557,7 @@ export function DesktopReader({
                   issueNo={issueNo}
                   pageNo={leftNo}
                   images={images}
+                  sponsors={sponsors}
                 />
                 <PageView
                   page={right}
@@ -558,6 +567,7 @@ export function DesktopReader({
                   issueNo={issueNo}
                   pageNo={leftNo + 1}
                   images={images}
+                  sponsors={sponsors}
                 />
               </>
             )}
@@ -649,6 +659,7 @@ function PageView({
   issueNo,
   pageNo,
   images,
+  sponsors,
 }: {
   page?: Page;
   side: "left" | "right";
@@ -657,6 +668,7 @@ function PageView({
   issueNo: number;
   pageNo?: number;
   images: ImageMap;
+  sponsors: SponsorMap;
 }) {
   return (
     <ScaledPage scale={scale}>
@@ -690,6 +702,7 @@ function PageView({
                   block={b}
                   theme={theme}
                   images={images}
+                  sponsors={sponsors}
                   variant={page.cover ? "cover" : undefined}
                 />
               </div>
