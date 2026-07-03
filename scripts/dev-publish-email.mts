@@ -205,10 +205,10 @@ try {
   const tctx = await browser.newContext();
   const tpage = await tctx.newPage();
   await tpage.goto(`${base}/unsubscribe?token=${encodeURIComponent(tampered)}`);
-  ok(
-    await tpage.isVisible("text=isn’t valid"),
-    "a tampered unsubscribe token shows the neutral invalid page",
-  );
+  // waitForSelector, not isVisible: the page streams, and an instant check
+  // races the first dev-mode compile of the route.
+  await tpage.waitForSelector("text=isn’t valid");
+  ok(true, "a tampered unsubscribe token shows the neutral invalid page");
   ok(
     (await subscribedOf(SUB2)) === true,
     "tampered token did not change SUB2's subscription",
@@ -219,10 +219,8 @@ try {
   const uctx = await browser.newContext();
   const upage = await uctx.newPage();
   await upage.goto(unsubUrl);
-  ok(
-    await upage.isVisible(`text=${SUB2}`),
-    "valid unsubscribe link greets the token's owner by address",
-  );
+  await upage.waitForSelector(`text=${SUB2}`);
+  ok(true, "valid unsubscribe link greets the token's owner by address");
   await upage.getByRole("button", { name: "Unsubscribe" }).click();
   await upage.waitForSelector("text=been unsubscribed");
   ok((await subscribedOf(SUB2)) === false, "SUB2 is now unsubscribed");
