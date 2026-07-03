@@ -20,12 +20,15 @@ export function CoverThumb({
   images,
   issueNo,
   width,
+  priority = false,
 }: {
   page: Page;
   theme: string;
   images: ImageMap;
   issueNo: number;
   width: number;
+  /** Eager-load the cover image — set only for the hero (LCP), not the archive. */
+  priority?: boolean;
 }) {
   const themeName: Theme = theme === "modern" ? "Modern" : "Classic";
   return (
@@ -52,6 +55,7 @@ export function CoverThumb({
                   theme={themeName}
                   images={images}
                   variant={page.cover ? "cover" : undefined}
+                  priority={priority}
                 />
               </div>
             ))}

@@ -21,9 +21,40 @@ type ArchiveItem = {
   cover?: Page;
 };
 
-// The back catalogue as a shelf of magazine covers: each card renders the
-// issue's real cover page (falling back to a tinted, numbered spine for legacy
-// issues with no cover), lifting on hover.
+type YearGroup = { key: string; label: string; items: ArchiveItem[] };
+
+// Bucket the back catalogue by publication year, newest year first. Undated
+// issues (no publishedAt yet) fall into a trailing group so none disappear.
+function groupByYear(items: ArchiveItem[]): YearGroup[] {
+  const byYear = new Map<number, ArchiveItem[]>();
+  const undated: ArchiveItem[] = [];
+  for (const item of items) {
+    const year = item.publishedAt?.getFullYear();
+    if (year == null) {
+      undated.push(item);
+      continue;
+    }
+    const bucket = byYear.get(year) ?? [];
+    bucket.push(item);
+    byYear.set(year, bucket);
+  }
+  const groups: YearGroup[] = [...byYear.entries()]
+    .sort(([a], [b]) => b - a)
+    .map(([year, list]) => ({
+      key: String(year),
+      label: String(year),
+      items: list,
+    }));
+  if (undated.length) {
+    groups.push({ key: "undated", label: "Undated", items: undated });
+  }
+  return groups;
+}
+
+// The back catalogue as a shelf of magazine covers, grouped by year so the
+// archive reads as a run of volumes rather than an undifferentiated pile. Each
+// card renders the issue's real cover page (falling back to a tinted, numbered
+// spine for legacy issues with no cover), lifting on hover.
 export function ArchiveGrid({
   items,
   images,
@@ -31,48 +62,65 @@ export function ArchiveGrid({
   items: ArchiveItem[];
   images: ImageMap;
 }) {
+  const groups = groupByYear(items);
   return (
     <section className="py-9">
       <Label>The archive</Label>
-      <div className="mt-5 flex flex-wrap gap-x-5 gap-y-7">
-        {items.map((a, idx) => {
-          const tint = ARCHIVE_TINTS[idx % ARCHIVE_TINTS.length] ?? "#cdbfa6";
-          const year = a.publishedAt?.getFullYear() ?? null;
-          return (
-            <Link
-              key={a.id}
-              href={`/read/${a.number}`}
-              className="group"
-              style={{ width: THUMB_W }}
-            >
-              <div className="overflow-hidden rounded-[5px] shadow-[0_2px_10px_-5px_rgba(20,32,28,0.3)] transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-[0_14px_28px_-10px_rgba(20,32,28,0.4)]">
-                {a.cover ? (
-                  <CoverThumb
-                    page={a.cover}
-                    theme={a.theme}
-                    images={images}
-                    issueNo={a.number}
-                    width={THUMB_W}
-                  />
-                ) : (
-                  <PlaceholderCover number={a.number} tint={tint} />
-                )}
-              </div>
-              <div className="mt-2.5 flex items-baseline justify-between gap-2">
-                <span className="text-ink font-serif text-[15px] leading-tight group-hover:underline">
-                  {a.title}
-                </span>
-                {year && (
-                  <span className="text-faint2 flex-none font-sans text-[11px]">
-                    {year}
-                  </span>
-                )}
-              </div>
-            </Link>
-          );
-        })}
+      <div className="mt-6 space-y-9">
+        {groups.map((group) => (
+          <div key={group.key}>
+            <div className="border-line-soft border-t pt-3">
+              <Label>{group.label}</Label>
+            </div>
+            <div className="mt-5 flex flex-wrap gap-x-5 gap-y-7">
+              {group.items.map((a, idx) => (
+                <ArchiveCard key={a.id} item={a} index={idx} images={images} />
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     </section>
+  );
+}
+
+// One cover in the shelf. The tint only shows for legacy issues without a cover
+// page; it cycles the palette by the card's position within its year.
+function ArchiveCard({
+  item: a,
+  index,
+  images,
+}: {
+  item: ArchiveItem;
+  index: number;
+  images: ImageMap;
+}) {
+  const tint = ARCHIVE_TINTS[index % ARCHIVE_TINTS.length] ?? "#cdbfa6";
+  return (
+    <Link
+      href={`/read/${a.number}`}
+      className="group"
+      style={{ width: THUMB_W }}
+    >
+      <div className="overflow-hidden rounded-[5px] shadow-[0_2px_10px_-5px_rgba(20,32,28,0.3)] transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-[0_14px_28px_-10px_rgba(20,32,28,0.4)]">
+        {a.cover ? (
+          <CoverThumb
+            page={a.cover}
+            theme={a.theme}
+            images={images}
+            issueNo={a.number}
+            width={THUMB_W}
+          />
+        ) : (
+          <PlaceholderCover number={a.number} tint={tint} />
+        )}
+      </div>
+      <div className="mt-2.5">
+        <span className="text-ink font-serif text-[15px] leading-tight group-hover:underline">
+          {a.title}
+        </span>
+      </div>
+    </Link>
   );
 }
 

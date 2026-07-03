@@ -9,6 +9,8 @@ import { resolveIssueImages } from "@/server/images";
 import { requireMemberOrRedirect } from "@/server/session";
 import { LatestIssue } from "@/features/library/latest-issue";
 import { ArchiveGrid } from "@/features/library/archive-grid";
+import { Masthead } from "@/features/library/masthead";
+import { SiteFooter } from "@/features/library/site-footer";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +20,12 @@ export default async function LibraryPage() {
   const published = all.filter((i) => i.status === "published");
   const latest = published[0];
   const archive = published.slice(1);
+
+  // Earliest publication year across the catalogue — the footer's "Est." line.
+  const years = published
+    .map((i) => i.publishedAt?.getFullYear())
+    .filter((y): y is number => y != null);
+  const estYear = years.length ? Math.min(...years) : null;
 
   // Resolve every cover's images in one query, then render each issue's cover
   // page as its thumbnail (shared map; extra ids are harmless per thumb).
@@ -45,11 +53,13 @@ export default async function LibraryPage() {
         </nav>
       </header>
 
+      <Masthead />
+
       {!latest ? (
         <section className="py-20 text-center">
-          <h1 className="text-ink font-serif text-3xl">
+          <h2 className="text-ink font-serif text-3xl">
             No issues published yet
-          </h1>
+          </h2>
           <p className="text-muted mt-3 font-sans">
             The first issue of {site.name} will appear here once it&apos;s
             published.
@@ -81,6 +91,8 @@ export default async function LibraryPage() {
           )}
         </>
       )}
+
+      <SiteFooter issueCount={published.length} estYear={estYear} />
     </main>
   );
 }

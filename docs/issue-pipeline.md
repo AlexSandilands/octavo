@@ -35,6 +35,7 @@ fix before it was safe to merge:
 | #7 | Unlocked last-admin race |
 | #8 | DB-state clobbering |
 | #9 | Stale-import merge break + flaky e2e |
+| #10 | Drawer-close focus restore stole focus from TOC-jump target |
 
 ## Briefing an agent
 
@@ -59,16 +60,15 @@ Hand each subagent:
 
 ## Status (2026-07-03)
 
-Phases 1–2 complete: **#6–#9 merged.** Remaining, in order:
+Phases 1–2 complete; phase 3 underway: **#6–#10 merged.** Remaining, in order:
 
 | Order | Issue | Label | Task |
 | ----- | ----- | ----- | ---- |
-| 1 | #10 | fable | Accessibility (WCAG AA contrast, semantic headings, keyboard paging, alt text) |
-| 2 | #11 | fable | Landing page (standfirst, real nav, year-grouped archive, footer) |
-| 3 | #12 | opus | Nonce-based CSP (drop `'unsafe-inline'` from `script-src`) |
-| 4 | #13 | fable | Rich text → Tiptap JSON; remove `dangerouslySetInnerHTML` (content v3) |
-| 5 | #14 | fable | Bundle & structure (single reader mount, shared pan/zoom hook, hex→token sweep) |
-| 6 | #15 | opus | Ops (Sentry, CI, backups + restore runbook) |
-| 7 | #16 | fable | On-demand PDF export (Playwright), cached to R2 |
+| 1 | #11 | fable | Landing page (standfirst, real nav, year-grouped archive, footer) |
+| 2 | #12 | opus | Nonce-based CSP (drop `'unsafe-inline'` from `script-src`) |
+| 3 | #13 | fable | Rich text → Tiptap JSON; remove `dangerouslySetInnerHTML` (content v3) |
+| 4 | #14 | fable | Bundle & structure (single reader mount, shared pan/zoom hook, hex→token sweep) |
+| 5 | #15 | opus | Ops (Sentry, CI, backups + restore runbook) |
+| 6 | #16 | fable | On-demand PDF export (Playwright), cached to R2 |
 
 **#13 must follow #8's content-v2 pattern** — bump the block schema to v3 the same way.

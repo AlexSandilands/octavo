@@ -35,9 +35,12 @@ export type Theme = "Classic" | "Modern";
 export function BlockImage({
   image,
   alt,
+  priority = false,
 }: {
   image: ResolvedImage;
   alt: string;
+  /** Eager-load + preload this image (the LCP element). Offscreen images stay lazy. */
+  priority?: boolean;
 }) {
   if (image.width && image.height) {
     return (
@@ -48,12 +51,20 @@ export function BlockImage({
         height={image.height}
         sizes="(max-width: 768px) 100vw, 480px"
         className="h-auto w-full"
+        priority={priority}
         unoptimized
       />
     );
   }
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={image.url} alt={alt} className="h-auto w-full" />;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={image.url}
+      alt={alt}
+      className="h-auto w-full"
+      fetchPriority={priority ? "high" : undefined}
+    />
+  );
 }
 
 // How a block's editable fields are written back. When present, BlockView
@@ -74,6 +85,7 @@ export function BlockView({
   images,
   sponsors,
   variant,
+  priority = false,
 }: {
   block: Block;
   theme: Theme;
@@ -84,6 +96,8 @@ export function BlockView({
   sponsors?: SponsorMap;
   /** "cover" switches headings/text to the oversized, centred cover treatment. */
   variant?: "cover";
+  /** Eager-load this block's image (LCP). Only set for above-the-fold heroes. */
+  priority?: boolean;
 }) {
   const classic = theme === "Classic";
 
@@ -235,7 +249,11 @@ export function BlockView({
       // Prefer the authored alt text; fall back to the caption so an uncaptioned
       // photo is still described rather than announced decorative.
       const photo = resolved ? (
-        <BlockImage image={resolved} alt={block.alt || block.caption} />
+        <BlockImage
+          image={resolved}
+          alt={block.alt || block.caption}
+          priority={priority}
+        />
       ) : classic ? (
         <div className="photo-fill flex h-[150px] items-center justify-center border border-[#e2dccf]">
           <span className="bg-page text-faint px-2 py-1 font-mono text-[11px]">
