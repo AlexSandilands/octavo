@@ -25,8 +25,8 @@ yarn-debug.log*
 yarn-error.log*
 *.log
 
-# drizzle
-/drizzle/meta
+# drizzle (using `db:push` — no migration files/meta)
+/drizzle
 
 # os / editor
 .DS_Store

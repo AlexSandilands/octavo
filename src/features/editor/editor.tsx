@@ -62,7 +62,10 @@ export type EditorIssue = {
   title: string;
   theme: string;
   content: IssueContent;
+  revision: number;
 };
+
+type SaveStatus = "saved" | "saving" | "error" | "conflict";
 
 export function Editor({
   issue,
@@ -92,21 +95,64 @@ export function Editor({
     initialPages[0]?.blocks[0]?.id ?? null,
   );
   const [pub, setPub] = useState(false);
-  const [status, setStatus] = useState<"saved" | "saving">("saved");
+  const [status, setStatus] = useState<SaveStatus>("saved");
   const [addMenu, setAddMenu] = useState(false);
   const router = useRouter();
+
+  // Saves are serialized through one promise chain and carry the revision they
+  // were based on, so an autosave can never overtake an earlier one and a stale
+  // editor (another tab) gets a visible conflict instead of silently
+  // overwriting newer work. Failures surface in the status pill with a retry.
+  const statusRef = useRef(status);
+  statusRef.current = status;
+  const revisionRef = useRef(issue.revision);
+  const latestRef = useRef({ pages, title, theme });
+  latestRef.current = { pages, title, theme };
+  const chainRef = useRef<Promise<boolean>>(Promise.resolve(true));
+
+  const enqueueSave = (kind: "content" | "meta" | "all") => {
+    const run = async (): Promise<boolean> => {
+      // After a conflict only a reload makes sense — don't keep writing.
+      if (statusRef.current === "conflict") return false;
+      setStatus("saving");
+      try {
+        const { pages, title, theme } = latestRef.current;
+        if (kind !== "meta") {
+          const res = await saveIssueAction(
+            issue.id,
+            { pages },
+            revisionRef.current,
+          );
+          if (!res.ok) {
+            setStatus(res.reason === "conflict" ? "conflict" : "error");
+            return false;
+          }
+          revisionRef.current = res.revision;
+        }
+        if (kind !== "content") {
+          const res = await saveMetaAction(issue.id, { title, theme });
+          if (!res.ok) {
+            setStatus("error");
+            return false;
+          }
+        }
+        setStatus("saved");
+        return true;
+      } catch {
+        setStatus("error");
+        return false;
+      }
+    };
+    const next = chainRef.current.then(run, run);
+    chainRef.current = next;
+    return next;
+  };
 
   // Flush the latest content + meta to the server *now*, bypassing the debounce.
   // Navigating to Preview (or publishing) before the 800ms autosave fires would
   // otherwise drop the most recent edits — they'd reload stale from the DB.
-  const flushSave = async () => {
-    setStatus("saving");
-    await Promise.all([
-      saveIssueAction(issue.id, { pages }),
-      saveMetaAction(issue.id, { title, theme }),
-    ]);
-    setStatus("saved");
-  };
+  // Returns false when the save didn't land, so callers don't proceed.
+  const flushSave = () => enqueueSave("all");
 
   // Drag from the handle, or move with the keyboard once the handle is focused.
   // A small distance threshold lets a plain click on the handle still select.
@@ -124,12 +170,12 @@ export function Editor({
       firstContent.current = false;
       return;
     }
-    setStatus("saving");
-    const t = setTimeout(async () => {
-      await saveIssueAction(issue.id, { pages });
-      setStatus("saved");
-    }, 800);
+    if (statusRef.current !== "conflict") setStatus("saving");
+    const t = setTimeout(() => void enqueueSave("content"), 800);
     return () => clearTimeout(t);
+    // enqueueSave reads latest state through refs; the deps that matter are the
+    // edits themselves.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pages, issue.id]);
 
   // Debounced autosave of meta (title + theme).
@@ -139,9 +185,21 @@ export function Editor({
       firstMeta.current = false;
       return;
     }
-    const t = setTimeout(() => saveMetaAction(issue.id, { title, theme }), 800);
+    if (statusRef.current !== "conflict") setStatus("saving");
+    const t = setTimeout(() => void enqueueSave("meta"), 800);
     return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [title, theme, issue.id]);
+
+  // Warn before closing the tab while an edit hasn't landed on the server.
+  useEffect(() => {
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (statusRef.current === "saved") return;
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, []);
 
   // Scale the fixed PAGE_W×PAGE_H canvas to fit the editor stage (zoom=1), exactly
   // as the reader does — so the editor is a faithful, to-scale preview — then let
@@ -390,9 +448,33 @@ export function Editor({
               Draft · No. {issue.number}
             </span>
           </span>
-          <span className="text-faint2 font-sans text-[11px]">
-            {status === "saving" ? "Saving…" : "Saved"}
-          </span>
+          {status === "error" ? (
+            <span className="flex items-center gap-2 font-sans text-[12px]">
+              <span className="text-warn font-semibold">Couldn’t save</span>
+              <button
+                onClick={() => void enqueueSave("all")}
+                className="border-warn text-warn rounded-md border px-2 py-0.5 font-semibold hover:bg-warn-soft"
+              >
+                Retry
+              </button>
+            </span>
+          ) : status === "conflict" ? (
+            <span className="flex items-center gap-2 font-sans text-[12px]">
+              <span className="text-warn font-semibold">
+                Changed somewhere else
+              </span>
+              <button
+                onClick={() => window.location.reload()}
+                className="border-warn text-warn rounded-md border px-2 py-0.5 font-semibold hover:bg-warn-soft"
+              >
+                Reload
+              </button>
+            </span>
+          ) : (
+            <span className="text-faint2 font-sans text-[11px]">
+              {status === "saving" ? "Saving…" : "Saved"}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -412,8 +494,16 @@ export function Editor({
               // The blank tab is opened in the click gesture to dodge popup
               // blockers, then pointed at the reader once the save lands.
               const tab = window.open("", "_blank");
-              await flushSave();
-              const url = `/read/${issue.number}`;
+              const ok = await flushSave();
+              if (!ok) {
+                // The save didn't land (status pill shows why) — don't preview
+                // stale content.
+                tab?.close();
+                return;
+              }
+              // Preview by internal id under /admin: drafts are never served
+              // from the public /read route (published issues only).
+              const url = `/admin/issues/${issue.id}/preview`;
               if (tab) tab.location.href = url;
               else router.push(url);
             }}
@@ -567,8 +657,12 @@ export function Editor({
           number={issue.number}
           onClose={() => setPub(false)}
           onConfirm={async () => {
-            await flushSave();
-            await publishIssueAction(issue.id);
+            try {
+              const ok = await flushSave();
+              if (ok) await publishIssueAction(issue.id);
+            } catch {
+              setStatus("error");
+            }
             setPub(false);
           }}
         />

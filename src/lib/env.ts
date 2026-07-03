@@ -1,10 +1,14 @@
+import "server-only";
 import { z } from "zod";
 
-// Server-only environment validation. Import from server code (route handlers,
-// server components, server actions) — never from client components.
+// Server-only environment validation. The `server-only` import makes any
+// accidental client-component import a build error — the parsed object holds
+// secrets (R2 keys, AUTH_SECRET) that must never reach a browser bundle.
+// Scripts that run outside Next (the seed, drizzle-kit) read process.env
+// directly instead of importing this module.
 //
 // Phase 1 only needs the database. Auth / R2 / email vars are optional for now
-// and become required as those phases land (see docs/IMPLEMENTATION_PLAN.md).
+// and become required as those phases land (see docs/ROADMAP.md).
 const schema = z.object({
   DATABASE_URL: z.string().min(1),
 

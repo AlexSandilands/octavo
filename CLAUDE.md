@@ -7,18 +7,26 @@ scroll (mobile). Magic-link auth.
 ## Read before working
 
 Core docs (long-lived — keep current):
+
 - `docs/architecture.md` — system overview, directory map, data flow, routes, env.
 - `docs/database.md` — schema, the content/block model, migrations, seeding.
 - `docs/design-principles.md` — **engineering + design rules. Follow these on every change.**
 
-`docs/planning/` is **transient** background (product spec, design handover, infra/cost notes,
-implementation plan) — useful history, not current truth; will be removed once superseded.
+- `docs/ROADMAP.md` — phase ordering, product decisions, open questions.
+- `docs/infrastructure.md` — hosting components, setup order, costs (the "landlord" runbook).
+
+## Workflow
+
+Work is tracked as **GitHub issues** — one milestone per roadmap phase, one issue per task.
+Before starting an issue, read its milestone context in `docs/ROADMAP.md`; the issue brief
+gives intent + acceptance criteria, the current code is the source of truth for the *how*.
+Branch per issue; keep PRs reviewable.
 
 ## Commands
 
 - `docker compose up -d` — local Postgres
 - `npm run dev` — local dev server
-- `npm run db:migrate` / `db:seed` / `db:generate` / `db:studio` — Drizzle (see `docs/database.md`)
+- `npm run db:push` / `db:seed` / `db:studio` — Drizzle dev workflow (`db:generate`/`db:migrate` reserved for pre-launch migrations; see `docs/database.md`)
 - `npm run lint` / `npm run format` — lint / format
 
 ## Status
@@ -26,8 +34,8 @@ implementation plan) — useful history, not current truth; will be removed once
 Library, reader, dashboard and editor are **DB-backed** (editor autosaves; reader renders saved
 issues). Images are **real**: the editor uploads (WebP via sharp) and the reader serves them — to R2
 when configured, otherwise a local-disk fallback (`.data/uploads`) so it works with no cloud setup.
-Still stubbed: auth (`/admin` ungated), email, PDF, real page-curl, and members/sponsors
-persistence. Routes + directory map are in `docs/architecture.md`.
+Still stubbed: auth (`/admin` ungated), email, PDF, and members/sponsors persistence.
+Routes + directory map are in `docs/architecture.md`; phase plan in `docs/ROADMAP.md`.
 
 ## Stack
 

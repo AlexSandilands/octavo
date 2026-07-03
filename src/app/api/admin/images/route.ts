@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createId } from "@/lib/id";
-import { processImage } from "@/lib/image-processing";
+import { processImage, UnsupportedImageError } from "@/lib/image-processing";
 import { keyToUrl, putObject, usingLocalStorage } from "@/lib/storage";
 import { createImageRecord } from "@/server/images";
 
@@ -67,8 +67,17 @@ export async function POST(request: Request) {
   let processed;
   try {
     const input = Buffer.from(await file.arrayBuffer());
+    // processImage checks the *detected* format (not the claimed MIME type)
+    // and rejects anything we don't decode — the client-side type check above
+    // is a courtesy, not the gate.
     processed = await processImage(input);
-  } catch {
+  } catch (err) {
+    if (err instanceof UnsupportedImageError) {
+      return NextResponse.json(
+        { error: "Unsupported image type." },
+        { status: 415 },
+      );
+    }
     return NextResponse.json(
       { error: "Could not read that image." },
       { status: 422 },

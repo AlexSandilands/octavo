@@ -28,7 +28,7 @@ export async function getImagesByIds(ids: string[]) {
 // imageId -> { url, width, height } for every image referenced by the content.
 // URLs point at R2 or the local dev backend, whichever storage is active.
 export async function resolveIssueImages(
-  content: IssueContent,
+  content: Pick<IssueContent, "pages">,
 ): Promise<ImageMap> {
   const ids = collectImageIds(content);
   if (ids.length === 0) return {};

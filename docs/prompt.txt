@@ -1,0 +1,17 @@
+Hello Fable, welcome back. I would like you to review this project I'm working on.
+
+It's a digital magazine that I'm building for my father in law - he wants to use it for creating online magazines for his club.
+The idea is for it to be something that a non technical user can create content for, and easily push out to members of the club, with the restriction being that members only should be able to view it.
+
+I've already scaffolded most of it, and have a working site that runs locally.
+I haven't started hosting it yet, but I believe the idea is to have the app running on railway with a postgres backend, and the image store sitting on an S3.
+
+We have an admin panel that should be able to be restricted to specific users, i.e. the people who are creating the content and new issues of the magazine. We should be able to manage the club members and sponsors there as well, so we have a mailing list.
+
+Currently a bunch of the app is placeholder, I.e. a lot of the admin stuff is mocked, the user management and the sponsors etc.
+
+The main landing page that a viewer would read is also a bit bare bones and could use some love.
+Note that the info in the planning folder is potentially a bit out of date now. It has the original design spec that was used for the UI, but the plan probably wasn't updated as I was implementing originally.
+
+Can you please do a thorough review of what we currently have, checking that it's high quality and is moving in the right direction with correct design principles and security/performance etc.
+Then I would like you to come up with a plan for how I can take it to the next step, I.e. not just a proof of concept running on my local host - how do we get it to be a top notch content site, that users can access and is easy for admins to manage content, while looking beautiful and having good security principles, and ensuring that it has the right architecture setup for easily deploying to hosted services when we're ready

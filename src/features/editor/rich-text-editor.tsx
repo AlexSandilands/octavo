@@ -96,9 +96,7 @@ function Toolbar({
       editor
         .chain()
         .focus()
-        .insertContent(
-          `<a href="${href.replace(/"/g, "&quot;")}">${raw}</a> `,
-        )
+        .insertContent(`<a href="${href.replace(/"/g, "&quot;")}">${raw}</a> `)
         .run();
     } else {
       editor

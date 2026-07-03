@@ -21,6 +21,23 @@ export function MobileReader({
   const [m, setM] = useState(19);
   const [drawer, setDrawer] = useState(false);
 
+  // Jump to a heading from the contents drawer. Headings carry ids derived
+  // from their block id (see MobileBlock) and are focused after the scroll so
+  // screen-reader/keyboard users land where the page did.
+  const goToHeading = (blockId: string) => {
+    setDrawer(false);
+    const el = document.getElementById(headingDomId(blockId));
+    if (!el) return;
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    el.scrollIntoView({
+      behavior: reduceMotion ? "auto" : "smooth",
+      block: "start",
+    });
+    el.focus({ preventScroll: true });
+  };
+
   const blocks: Block[] = content.pages.flatMap((p) => p.blocks);
   const headings = blocks.filter(
     (b): b is Extract<Block, { type: "heading" }> =>
@@ -110,7 +127,7 @@ export function MobileReader({
             {headings.map((h) => (
               <button
                 key={h.id}
-                onClick={() => setDrawer(false)}
+                onClick={() => goToHeading(h.id)}
                 className="text-accent px-5 py-2.5 text-left font-serif text-[19px]"
               >
                 {h.title}
@@ -121,6 +138,11 @@ export function MobileReader({
       )}
     </div>
   );
+}
+
+// DOM id for a heading block, shared by the renderer and the contents drawer.
+function headingDomId(blockId: string): string {
+  return `heading-${blockId}`;
 }
 
 function MobileBlock({
@@ -164,7 +186,9 @@ function MobileBlock({
             </div>
           )}
           <h2
-            className="text-ink font-serif leading-[1.1]"
+            id={headingDomId(block.id)}
+            tabIndex={-1}
+            className="text-ink scroll-mt-4 font-serif leading-[1.1]"
             style={{ fontSize }}
           >
             {block.title}

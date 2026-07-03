@@ -92,7 +92,9 @@ function sanitizeRichHtml(html: string): string {
 // True when the value already carries markup (so it came from the rich editor).
 // Legacy plain-text blocks have no tags.
 function looksLikeHtml(text: string): boolean {
-  return /<(p|br|strong|b|em|i|u|s|ul|ol|li|a)\b|<\/(p|ul|ol|li|a)>/i.test(text);
+  return /<(p|br|strong|b|em|i|u|s|ul|ol|li|a)\b|<\/(p|ul|ol|li|a)>/i.test(
+    text,
+  );
 }
 
 // Render-ready, sanitised HTML for a stored text value. Use with

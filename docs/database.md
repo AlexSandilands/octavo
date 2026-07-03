@@ -7,9 +7,13 @@ Postgres, accessed through [Drizzle ORM](https://orm.drizzle.team). Schema lives
 
 ```bash
 docker compose up -d   # Postgres on localhost:5432 (see docker-compose.yml)
-npm run db:migrate     # apply migrations in drizzle/
+npm run db:push        # sync schema.ts straight into the DB (dev workflow — no migration files)
 npm run db:seed        # wipe + load 10 sample issues (with images) for the reader
 ```
+
+The seed **wipes all issues and images**. It refuses to run when `NODE_ENV=production` or when
+the database already holds published issues; pass `--force` (`npm run db:seed -- --force`) to
+override once you're sure.
 
 `DATABASE_URL` lives in `.env.local`. Next.js auto-loads it; `drizzle-kit` and the seed do not, so
 both `drizzle.config.ts` and `src/db/seed.ts` call `process.loadEnvFile(".env.local")` themselves.
@@ -19,14 +23,17 @@ both `drizzle.config.ts` and `src/db/seed.ts` call `process.loadEnvFile(".env.lo
 
 ## Tables
 
-| Table                             | Purpose                                                                                                                                              |
-| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `issues`                          | One row per edition. Holds `content` (the pages→blocks JSON), `number`, `title`, `theme`, `status` (`draft`/`published`), `publishedAt`, timestamps. |
-| `images`                          | Uploaded image metadata (R2 key, dimensions). _Used once the image pipeline lands._                                                                  |
-| `users`                           | Member record — doubles as the auth user (`isAdmin`, `subscribed`). _Used once auth lands._                                                          |
-| `sessions`, `verification_tokens` | Auth.js tables. _Used once auth lands._                                                                                                              |
+| Table                             | Purpose                                                                                                                                                                                                                                                                                                                           |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `issues`                          | One row per edition. Holds `content` (the pages→blocks JSON), `number` (unique — it's the public address), `title`, `theme`, `status` (`draft`/`published`), `revision` (bumped on every content write; autosaves send the revision they were based on so stale saves conflict instead of clobbering), `publishedAt`, timestamps. |
+| `images`                          | Uploaded image metadata (R2 key, dimensions). _Used once the image pipeline lands._                                                                                                                                                                                                                                               |
+| `users`                           | Member record — doubles as the auth user (`isAdmin`, `subscribed`). _Used once auth lands._                                                                                                                                                                                                                                       |
+| `sessions`, `verification_tokens` | Auth.js tables. _Used once auth lands._                                                                                                                                                                                                                                                                                           |
 
-Issues are keyed by `id` (internal) but addressed publicly by `number` (e.g. `/read/14`).
+Issues are keyed by `id` (internal) but addressed publicly by `number` (e.g. `/read/14`);
+`/read` serves **published issues only** (drafts preview via `/admin/issues/[id]/preview`).
+All timestamps are `timestamptz`. `number` is allocated inside the INSERT (unique-constraint
+backstop with retry) so concurrent creates can't collide.
 
 ## The content model
 
@@ -34,9 +41,14 @@ The whole pages→blocks tree is stored as **one JSONB document** in `issues.con
 `IssueContent`:
 
 ```ts
-IssueContent = { pages: { id, cover?, blocks: Block[] }[] }
+IssueContent = { version, pages: { id, cover?, blocks: Block[] }[] }
 Block = Heading | Text | Image | Sponsor   // discriminated union on `type`
 ```
+
+`version` (defaults to 1 for all existing documents) marks which shape of the content model a
+document holds, so future block-shape changes can migrate old rows deliberately. Every string
+field is length-capped and the page/block arrays bounded in the zod schemas, so a bad save can't
+persist an unbounded document.
 
 Defined as zod schemas + inferred types in [`src/lib/blocks.ts`](../src/lib/blocks.ts) and applied to
 the column via `jsonb(...).$type<IssueContent>()`.
@@ -69,11 +81,17 @@ Mutations are invoked via Server Actions in `src/app/admin/actions.ts`, which zo
 
 ## Changing the schema
 
+**During development** (no real users yet) we use `drizzle-kit push`, which diffs `schema.ts`
+directly against the DB — no migration files to manage:
+
 1. Edit `src/db/schema.ts`.
-2. `npm run db:generate` — writes a new SQL migration to `drizzle/` (no DB needed).
-3. `npm run db:migrate` — applies it. (`npm run db:push` skips migration files for quick local
-   iteration; `npm run db:studio` opens a browser DB UI.)
-4. Commit the generated migration file.
+2. `npm run db:push` — applies the changes in place. (`npm run db:studio` opens a browser DB UI.)
+
+The DB is disposable for now: if a change is awkward to apply, just wipe and re-seed.
+
+**Before launch**, once real data needs preserving, switch to versioned migrations:
+`npm run db:generate` writes a SQL migration to `drizzle/`, `npm run db:migrate` applies it, and
+the generated files get committed. (The `drizzle/` folder is gitignored until then.)
 
 ## Changing the content model
 

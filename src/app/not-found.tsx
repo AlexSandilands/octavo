@@ -17,8 +17,8 @@ export default function NotFound() {
             member — yet.
           </h1>
           <p className="text-muted mt-4 max-w-prose font-sans text-[16px] leading-relaxed">
-            {site.name} is read by members of the {site.org}. If you&apos;ve just
-            joined, the link in your welcome email will let you in.
+            {site.name} is read by members of the {site.org}. If you&apos;ve
+            just joined, the link in your welcome email will let you in.
           </p>
         </div>
         <div className="flex items-center gap-4">

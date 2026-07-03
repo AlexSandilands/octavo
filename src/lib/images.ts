@@ -14,8 +14,11 @@ export type ResolvedImage = {
 // imageId -> resolved R2 image.
 export type ImageMap = Record<string, ResolvedImage>;
 
-// Every imageId referenced by image blocks in an issue (deduped).
-export function collectImageIds(content: IssueContent): string[] {
+// Every imageId referenced by image blocks in an issue (deduped). Accepts any
+// pages-holding shape so callers can resolve a subset (e.g. just the covers).
+export function collectImageIds(
+  content: Pick<IssueContent, "pages">,
+): string[] {
   const ids = new Set<string>();
   for (const page of content.pages) {
     for (const block of page.blocks) {

@@ -9,15 +9,15 @@ This doc is the fast orientation for the codebase. For data specifics see
 
 ## Stack
 
-| Concern | Choice |
-|---|---|
-| Framework | Next.js 15 (App Router), React 19, TypeScript |
-| Styling | Tailwind v4 (tokens in `src/app/globals.css`) |
-| Database | Postgres via Drizzle ORM |
+| Concern        | Choice                                                                                |
+| -------------- | ------------------------------------------------------------------------------------- |
+| Framework      | Next.js 15 (App Router), React 19, TypeScript                                         |
+| Styling        | Tailwind v4 (tokens in `src/app/globals.css`)                                         |
+| Database       | Postgres via Drizzle ORM                                                              |
 | Object storage | Cloudflare R2 — images wired (WebP via sharp); local-disk fallback in dev; PDFs later |
-| Auth | Auth.js magic link — *not wired yet* |
-| Email | Resend — *not wired yet* |
-| Hosting | Railway (app + Postgres) |
+| Auth           | Auth.js magic link — _not wired yet_                                                  |
+| Email          | Resend — _not wired yet_                                                              |
+| Hosting        | Railway (app + Postgres)                                                              |
 
 ## Directory map
 
@@ -75,20 +75,29 @@ Reader / library / dashboard (server components)
 - **All DB access goes through `src/server/issues.ts`** (marked `server-only`). Never query Drizzle
   from a component.
 - **Mutations are Server Actions** in `src/app/admin/actions.ts`, validated with zod at the boundary
-  so adding auth later is just a gate, not a rewrite.
+  (ids, meta and the whole content document) so adding auth later is just a gate, not a rewrite.
+- **Content saves are optimistically concurrent**: each save carries the `revision` it was based on
+  and the DB rejects stale writes, so a second tab (or an out-of-order autosave) surfaces a visible
+  conflict in the editor instead of silently overwriting newer work. The editor serialises its saves
+  through one promise chain and shows save failures with a retry.
 
 ## Routes
 
-| Route | Render | Notes |
-|---|---|---|
-| `/` | dynamic | Library — published issues |
-| `/read/[issueId]` | dynamic | Reader, by issue **number** |
-| `/signin` | static | UI only (auth not built) |
-| `/admin` | dynamic | Issue dashboard |
-| `/admin/issues/[id]/edit` | dynamic | Editor, by issue **id** |
-| `/admin/members`, `/admin/sponsors` | static | members = sample data; sponsors = placeholder |
-| `POST /api/admin/images` | route handler | Upload: multipart → sharp WebP → storage → `images` row |
-| `GET /api/images/[...key]` | route handler | Serves the local dev storage fallback (unused when R2 is set) |
+| Route                               | Render        | Notes                                                                                      |
+| ----------------------------------- | ------------- | ------------------------------------------------------------------------------------------ |
+| `/`                                 | dynamic       | Library — published issues                                                                 |
+| `/read/[issueId]`                   | dynamic       | Reader, by issue **number** — **published issues only**                                    |
+| `/signin`                           | static        | UI only (auth not built)                                                                   |
+| `/admin`                            | dynamic       | Issue dashboard                                                                            |
+| `/admin/issues/[id]/edit`           | dynamic       | Editor, by issue **id**                                                                    |
+| `/admin/issues/[id]/preview`        | dynamic       | Draft preview (renders the reader by internal id; drafts never appear at `/read`)          |
+| `/admin/members`, `/admin/sponsors` | static        | members = sample data; sponsors = placeholder                                              |
+| `POST /api/admin/images`            | route handler | Upload: multipart → sniff real format (SVG rejected) → sharp WebP → storage → `images` row |
+| `GET /api/images/[...key]`          | route handler | Serves the local dev storage fallback (unused when R2 is set)                              |
+
+Route-level `loading.tsx`/`error.tsx` cover `/`, `/read/[issueId]` and `/admin/*`; security
+headers (CSP, `frame-ancestors`, `nosniff`, referrer/permissions policies) are set globally in
+`next.config.ts`.
 
 DB-backed routes set `export const dynamic = "force-dynamic"` so they always read fresh and aren't
 prerendered at build. **`/admin` is currently ungated** — auth is the next phase.
@@ -99,22 +108,23 @@ Server env is validated in [`src/lib/env.ts`](../src/lib/env.ts); branding in
 [`src/lib/site.ts`](../src/lib/site.ts). Local values live in `.env.local` (git-ignored); production
 values are set in Railway. `.env.example` lists every key.
 
-| Var | Required now | Purpose |
-|---|---|---|
-| `DATABASE_URL` | yes | Postgres connection |
-| `NEXT_PUBLIC_MAGAZINE_NAME` / `_ORG_NAME` / `_TAGLINE` | no (defaults) | Branding, build-time inlined |
-| `AUTH_SECRET`, `R2_*`, `EMAIL_*` | no (optional) | Become required as auth/images/email land |
+| Var                                                    | Required now  | Purpose                                   |
+| ------------------------------------------------------ | ------------- | ----------------------------------------- |
+| `DATABASE_URL`                                         | yes           | Postgres connection                       |
+| `NEXT_PUBLIC_MAGAZINE_NAME` / `_ORG_NAME` / `_TAGLINE` | no (defaults) | Branding, build-time inlined              |
+| `AUTH_SECRET`, `R2_*`, `EMAIL_*`                       | no (optional) | Become required as auth/images/email land |
 
 ## What's real vs stubbed
 
 Real: the editor authors and autosaves to the DB; the reader/library/dashboard render real data;
 images upload to R2 and render in both editor and reader.
-Stubbed/deferred: auth, email, PDF export, real page-curl, members/sponsors persistence. The full
-sequence lives in `docs/planning/IMPLEMENTATION_PLAN.md` (transient).
+Stubbed/deferred: auth, email, PDF export, members/sponsors persistence. The phase
+sequence lives in [ROADMAP.md](ROADMAP.md); work is tracked as GitHub issues (one
+milestone per phase).
 
 ## Docs
 
 - [database.md](database.md) — schema, content model, migrations, seeding.
 - [design-principles.md](design-principles.md) — engineering + design rules (read before changes).
-- `planning/` — **transient** background (product spec, design handover, infra/cost notes,
-  implementation plan). Will be removed once superseded; don't treat as current truth.
+- [ROADMAP.md](ROADMAP.md) — phase ordering, product decisions, open questions.
+- [infrastructure.md](infrastructure.md) — hosting components, setup order, costs.

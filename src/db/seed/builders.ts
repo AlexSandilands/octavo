@@ -1,11 +1,12 @@
 // Shared types + terse block builders for the seed issues (see ./issue-01.ts …).
 // Keeping these here lets each issue file read like an outline and stay short.
-import type {
-  Block,
-  HeadingLevel,
-  IssueContent,
-  Page,
-  TextSize,
+import {
+  CONTENT_VERSION,
+  type Block,
+  type HeadingLevel,
+  type IssueContent,
+  type Page,
+  type TextSize,
 } from "../../lib/blocks";
 
 const id = () => crypto.randomUUID();
@@ -72,5 +73,5 @@ export const mkIssue = (
   theme,
   status: "published",
   publishedAt: new Date(date),
-  content: { pages },
+  content: { version: CONTENT_VERSION, pages },
 });
