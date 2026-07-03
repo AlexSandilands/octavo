@@ -37,7 +37,7 @@ src/
     blocks/            BlockView — themed read-only block renderer
     editor/            the page-based editor (client) + per-block edit controls
     reader/            desktop-reader, mobile-reader (client)
-    members/           members table (client)
+    members/           members manager (client): table, toolbar, add/import dialogs
   db/                  Drizzle schema, client, seed
   lib/                 framework-agnostic helpers
     blocks.ts          the canonical content model (zod + types)
@@ -49,7 +49,7 @@ src/
     site.ts            branding from NEXT_PUBLIC_* env
     env.ts             validated server env
     id.ts              id generator
-  server/              server-only data access (issues.ts, images.ts) and auth
+  server/              server-only data access (issues.ts, users.ts, images.ts) and auth
     auth.ts            Auth.js config: provider, callbacks, session shape
     auth-adapter.ts    hand-rolled Auth.js adapter over the users/sessions tables
     auth-email.ts      the magic-link email (template + Resend/console transport)
@@ -132,7 +132,8 @@ unsubscribe anyone. The `/unsubscribe` route sits outside the member gate by des
 | `/admin`                            | dynamic       | Issue dashboard                                                                                                                          |
 | `/admin/issues/[id]/edit`           | dynamic       | Editor, by issue **id**                                                                                                                  |
 | `/admin/issues/[id]/preview`        | dynamic       | Draft preview (renders the reader by internal id; drafts never appear at `/read`)                                                        |
-| `/admin/members`, `/admin/sponsors` | static        | members = sample data; sponsors = placeholder                                                                                            |
+| `/admin/members`                    | dynamic       | Members CRUD on the `users` table: add / remove / toggle subscribed / toggle admin / CSV import (guard rails: no self-removal, keep one admin) |
+| `/admin/sponsors`                   | static        | Sponsors = placeholder                                                                                                                   |
 | `POST /api/admin/images`            | route handler | Upload: multipart → sniff real format (SVG rejected) → sharp WebP → storage → `images` row                                               |
 | `GET /api/images/[...key]`          | route handler | Serves the local dev storage fallback (unused when R2 is set)                                                                            |
 
@@ -195,10 +196,11 @@ values are set in Railway. `.env.example` lists every key.
 
 Real: the editor authors and autosaves to the DB; the reader/library/dashboard render real data;
 images upload to R2 and render in both editor and reader; magic-link sign-in with database
-sessions, and every route/mutation is gated (members read, admins author); publishing an issue
-emails every subscribed member a personal magic link (the new-issue email _is_ the sign-in link),
-with a signed one-click unsubscribe.
-Stubbed/deferred: PDF export, members/sponsors persistence. The phase
+sessions, and every route/mutation is gated (members read, admins author); the admin manages the
+real member list (the `users` table) with add / remove / toggle subscribed / toggle admin / CSV
+import; publishing an issue emails every subscribed member a personal magic link (the new-issue
+email _is_ the sign-in link), with a signed one-click unsubscribe.
+Stubbed/deferred: PDF export, sponsors persistence. The phase
 sequence lives in [ROADMAP.md](ROADMAP.md); work is tracked as GitHub issues (one
 milestone per phase).
 

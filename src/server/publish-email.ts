@@ -9,7 +9,7 @@ import {
   type BlastResult,
   type PreparedEmail,
 } from "@/lib/blast";
-import { safeNextPath } from "@/app/signin/next-path";
+import { safeNextPath } from "@/lib/next-path";
 import {
   issueEmailSubject,
   renderIssueEmailHtml,

@@ -33,7 +33,13 @@ export function EmptyIssues() {
   );
 }
 
-export function EmptyMembers() {
+export function EmptyMembers({
+  onImport,
+  onAdd,
+}: {
+  onImport?: () => void;
+  onAdd?: () => void;
+}) {
   return (
     <EmptyCard>
       <EmptyIcon name="users" />
@@ -43,8 +49,12 @@ export function EmptyMembers() {
         hand. They&apos;ll get every new issue.
       </p>
       <div className="mt-6 flex gap-2.5">
-        <Button icon="upload">Import CSV</Button>
-        <Button variant="secondary">Add by hand</Button>
+        <Button icon="upload" onClick={onImport}>
+          Import CSV
+        </Button>
+        <Button variant="secondary" onClick={onAdd}>
+          Add by hand
+        </Button>
       </div>
     </EmptyCard>
   );

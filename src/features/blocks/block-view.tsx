@@ -9,6 +9,14 @@ export type Theme = "Classic" | "Modern";
 // A resolved image, scaled to its container width at its natural aspect ratio.
 // next/image needs intrinsic dimensions; older records may lack them, so fall
 // back to a plain <img> in that case. Shared by the editor and both readers.
+//
+// `unoptimized` on purpose (issue #6): the upload pipeline already emits final,
+// capped-2000px WebP, so re-optimising through /_next/image would only move the
+// bytes and CPU onto the Railway container — the exact cost R2 exists to avoid.
+// With it off, next/image emits the R2 public URL directly (edge-cached by
+// Cloudflare, zero Railway egress) while keeping the width/height/sizes layout
+// and lazy-loading behaviour. In dev the same path serves the local /api/images
+// fallback unchanged.
 export function BlockImage({
   image,
   alt,
@@ -25,6 +33,7 @@ export function BlockImage({
         height={image.height}
         sizes="(max-width: 768px) 100vw, 480px"
         className="h-auto w-full"
+        unoptimized
       />
     );
   }

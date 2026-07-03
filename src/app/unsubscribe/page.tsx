@@ -8,8 +8,8 @@ import { updateSubscriptionAction } from "./actions";
 // One-click unsubscribe, reached from a link in the new-issue email. No session
 // required — the signed token in ?token= is the authorisation (see
 // server/unsubscribe-token.ts). This route is intentionally NOT behind any
-// member gate (there is no middleware gate; the member pages gate themselves,
-// and this page must work for a signed-out reader).
+// member gate: the edge middleware's matcher covers only /, /read and /admin,
+// so /unsubscribe stays reachable for a signed-out reader — keep it that way.
 //
 // GET is safe: it only reads and renders a confirm button. The actual flag
 // change happens through a POSTed form, so an email scanner prefetching the

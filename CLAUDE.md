@@ -39,11 +39,13 @@ Auth is **real** and everything is gated: magic-link sign-in (Auth.js v5, databa
 days, members-only); the library/reader require a member session (signed-out visitors are sent to
 `/signin` with a validated `?next=` return path); `/admin`, all server actions and the upload route
 require `is_admin` (`npm run db:admin` bootstraps one). In dev the magic link is logged to the
-console, so no Resend account is needed. **Publishing an issue can email every subscribed member a
+console, so no Resend account is needed. Members are **DB-backed**: the admin manages the real
+`users` table (add / remove / toggle subscribed / toggle admin / CSV import), with guard rails
+(no self-removal, always one admin). **Publishing an issue can email every subscribed member a
 personal magic link that opens the new issue** (the email _is_ the sign-in link; skippable per
 publish, defaults off on re-publish), each with a signed one-click unsubscribe (`/unsubscribe`, no
 session). Dev logs the blast + unsubscribe links to the console too. Still stubbed: PDF and
-members/sponsors persistence.
+sponsors persistence.
 Routes + directory map are in `docs/architecture.md`; phase plan in `docs/ROADMAP.md`.
 
 ## Stack
