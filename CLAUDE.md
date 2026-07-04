@@ -17,11 +17,12 @@ Core docs (long-lived — keep current):
 
 ## Workflow
 
-Work is tracked as **GitHub issues** — one milestone per roadmap phase, one issue per task.
-Before starting an issue, read its milestone context in `docs/ROADMAP.md`; the issue brief
-gives intent + acceptance criteria, the current code is the source of truth for the _how_.
-Branch per issue; keep PRs reviewable. `docs/issue-pipeline.md` documents the agent-assisted
-pipeline (model-routing labels, subagent-per-issue, orchestrator reviews every diff).
+Work is tracked as **GitHub issues** — one issue per task, small papercuts batched in a
+grab-bag issue. The issue brief gives intent + acceptance criteria; the current code is the
+source of truth for the _how_. Branch per issue; keep PRs reviewable. **`docs/workflow.md`
+is the process doc**: triage/model-routing labels, the subagent-per-issue loop, the
+orchestrator review pass, and the required gates per change type (browser pass, contrast
+gate, `RENDER_VERSION`, …). Read it before working an issue.
 
 ## Commands
 
