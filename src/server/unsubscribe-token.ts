@@ -21,7 +21,7 @@ import { env } from "@/lib/env";
 // power is to stop mail to its own owner) and the action is a confirmed,
 // idempotent toggle, so a long life is the right trade.
 
-const KEY_INFO = "digital-magazine/unsubscribe/v1";
+const KEY_INFO = "octavo/unsubscribe/v1";
 
 // One derived signing key per process, computed lazily from AUTH_SECRET.
 let cachedKey: Buffer | null = null;
