@@ -39,6 +39,8 @@ fix before it was safe to merge:
 | #12 | Clean implementation; review only added missed doc updates |
 | #13 | Review clean — but the **user's browser pass** caught a real bug post-review: ProseMirror emits null-prototype `attrs` objects, which React Flight silently replaces with opaque temporary references on the server-action call, so saving any link mark or ordered list failed. Fixed with a plain-JSON round-trip in the editor's `onUpdate`. |
 | #14 | Clean (orchestrator re-verified drift line-by-line + scripted the hex↔token equivalence) |
+| #15 | (merged as PR #38 — Sentry, CI, backups) |
+| #16 | Mostly clean; review swapped the PDF route's silent local fail-closed auth for the shared `getUserFailClosed` (now exported — infra failures log instead of masquerading as 403s), and kept a repo-wide prettier drift (~17 untouched files reformat under `npm run format`) out of the PR. Chromium render itself can't run in the sandbox — browser pass is the real gate here. |
 
 Lesson from #13: the **user's manual browser pass is as load-bearing as the diff
 review** — client→server transport bugs are invisible to server-side verification,
@@ -75,12 +77,10 @@ Hand each subagent:
 
 ## Status (2026-07-04)
 
-Phases 1–3 complete (**#6–#14 merged**). Phase 4 remaining, in order:
-
-| Order | Issue | Label | Task |
-| ----- | ----- | ----- | ---- |
-| 1 | #15 | opus | Ops (Sentry, CI, backups + restore runbook) |
-| 2 | #16 | fable | On-demand PDF export (Playwright), cached to R2 |
+Phases 1–4 complete (**#6–#15 merged**). **#16** (PDF export — the last phase issue) is
+implemented and reviewed on PR **#41**, pending the user's browser pass (needs
+`npx playwright install chromium` locally) and a first real Railway deploy to verify
+`nixpacks.toml` + memory.
 
 Side trackers (not phase work): **#33** UI papercuts (batch-fix when convenient),
 **#36** structural follow-ups from #14 (preview double-bundle, unused `page-flip`
