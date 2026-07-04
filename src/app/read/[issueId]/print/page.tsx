@@ -18,9 +18,9 @@ export default async function PrintPage({
   searchParams,
 }: {
   params: Promise<{ issueId: string }>;
-  searchParams: Promise<{ token?: string }>;
+  searchParams: Promise<{ token?: string; theme?: string }>;
 }) {
-  const { token } = await searchParams;
+  const { token, theme } = await searchParams;
   if (!verifyPrintToken(token)) notFound();
 
   const { issueId } = await params;
@@ -39,7 +39,11 @@ export default async function PrintPage({
     <PrintDocument
       content={issue.content}
       issueNo={issue.number}
-      theme={issue.theme}
+      // The reader's theme is a member-facing toggle (client state, not stored
+      // on the issue), so the generator forwards the selection here; the
+      // download endpoint validated it. Anything else falls back to the
+      // reader's default.
+      theme={theme === "modern" ? "modern" : "classic"}
       images={images}
       sponsors={sponsors}
     />

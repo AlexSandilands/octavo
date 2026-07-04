@@ -83,7 +83,32 @@ const rendered = (html: string) => html.includes("pdf-page");
   );
 }
 
-// 4. An unpublished / unknown issue serves no content even with a valid token.
+// 4. The theme param reaches the renderer (the PDF cache keys each theme as its
+//    own artifact). Classic page chrome carries the double `border-page-frame`
+//    rules; Modern replaces them with the accent spine — so the marker's
+//    presence/absence tells the themes apart without diffing whole documents
+//    (which always differ via the per-request CSP nonce).
+{
+  const classic = await fetch(`${base}/read/${ISSUE}/print?token=${token}`);
+  const modern = await fetch(
+    `${base}/read/${ISSUE}/print?token=${token}&theme=modern`,
+  );
+  const [classicHtml, modernHtml] = await Promise.all([
+    classic.text(),
+    modern.text(),
+  ]);
+  ok(
+    classicHtml.includes("border-page-frame"),
+    "default theme: print renders classic page chrome",
+  );
+  ok(rendered(modernHtml), "theme=modern: print route renders");
+  ok(
+    !modernHtml.includes("border-page-frame"),
+    "theme=modern: print drops the classic page chrome",
+  );
+}
+
+// 5. An unpublished / unknown issue serves no content even with a valid token.
 {
   const res = await fetch(`${base}/read/999999/print?token=${token}`, {
     redirect: "manual",
@@ -94,7 +119,7 @@ const rendered = (html: string) => html.includes("pdf-page");
   );
 }
 
-// 5. The download endpoint is members-only: a signed-out request is refused with
+// 6. The download endpoint is members-only: a signed-out request is refused with
 //    a 403 JSON body — a legible error, never a redirect or a hung generation.
 {
   const res = await fetch(`${base}/api/issues/${ISSUE}/pdf`, {

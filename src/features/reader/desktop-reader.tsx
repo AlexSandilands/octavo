@@ -25,11 +25,12 @@ export function DesktopReader({
 }) {
   const pages = content.pages;
   const toc = buildToc(pages);
-  const pdf = useIssuePdf(issueNo);
 
   const [spread, setSpread] = useState(0);
   const [collapsed, setCollapsed] = useState(false);
   const [theme, setTheme] = useState<Theme>("Classic");
+  // The PDF renders in whichever theme is currently on screen.
+  const pdf = useIssuePdf(issueNo, theme === "Modern" ? "modern" : "classic");
 
   // Page-turn animation. `turn` holds the in-flight flip (direction + target
   // spread); `turnAngle` is the leaf's live rotation that CSS transitions from 0

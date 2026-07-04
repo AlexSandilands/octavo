@@ -1,14 +1,19 @@
 import * as Sentry from "@sentry/nextjs";
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { site } from "@/lib/site";
 import { getObject, putObject } from "@/lib/storage";
-import { ChromiumUnavailableError, generateIssuePdf } from "@/lib/pdf";
+import {
+  ChromiumUnavailableError,
+  generateIssuePdf,
+  type PdfTheme,
+} from "@/lib/pdf";
 import { getPublishedIssueByNumber } from "@/server/issues";
 import { getUserFailClosed } from "@/server/session";
 
 // Members-only PDF download. The reader is gated, so this is too: a signed-out
 // request is refused. The PDF is a derived artifact cached in R2 keyed by issue
-// id + revision (`pdfs/{issueId}/{revision}.pdf`) — a cache hit serves the
+// id + revision + theme (`pdfs/{issueId}/{revision}-{theme}.pdf`) — a cache hit serves the
 // stored bytes; a miss generates once via Playwright, stores, and serves. Since
 // `revision` bumps on every content write, editing + republishing yields a new
 // key and a fresh PDF with no manual invalidation (design-principles §4).
@@ -23,17 +28,28 @@ export const dynamic = "force-dynamic";
 // one Chromium, not one per request. Cleared when the generation settles.
 const inFlight = new Map<string, Promise<Buffer>>();
 
-function generateOnce(key: string, issueNumber: number): Promise<Buffer> {
+function generateOnce(
+  key: string,
+  issueNumber: number,
+  theme: PdfTheme,
+): Promise<Buffer> {
   const existing = inFlight.get(key);
   if (existing) return existing;
   const task = (async () => {
-    const pdf = await generateIssuePdf(issueNumber);
+    const pdf = await generateIssuePdf(issueNumber, theme);
     await putObject(key, pdf, "application/pdf");
     return pdf;
   })();
   inFlight.set(key, task);
   return task.finally(() => inFlight.delete(key));
 }
+
+// The reader theme the PDF should render in. The desktop reader sends its
+// current selection (the theme toggle is client state, not stored on the
+// issue); callers without a theme concept (mobile reader, latest-issue card)
+// send none and get the reader's default. Part of the cache key: each theme is
+// its own derived artifact.
+const themeSchema = z.enum(["classic", "modern"]).default("classic");
 
 // A download filename the browser and the audience can read. Strip anything
 // path- or header-unsafe; keep an ASCII fallback plus a UTF-8 form for clients
@@ -46,7 +62,7 @@ function contentDisposition(issueNumber: number): string {
 }
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ number: string }> },
 ) {
   // Fail closed: any auth error reads as signed out (and is logged there).
@@ -69,12 +85,20 @@ export async function GET(
     return NextResponse.json({ error: "Issue not found." }, { status: 404 });
   }
 
-  const key = `pdfs/${issue.id}/${issue.revision}.pdf`;
+  const themeParam = themeSchema.safeParse(
+    new URL(request.url).searchParams.get("theme") ?? undefined,
+  );
+  if (!themeParam.success) {
+    return NextResponse.json({ error: "Unknown theme." }, { status: 400 });
+  }
+  const theme = themeParam.data;
+
+  const key = `pdfs/${issue.id}/${issue.revision}-${theme}.pdf`;
 
   let pdf: Buffer | null;
   try {
     pdf = await getObject(key);
-    if (!pdf) pdf = await generateOnce(key, number);
+    if (!pdf) pdf = await generateOnce(key, number, theme);
   } catch (err) {
     // Chromium missing is an operator/deploy problem; a render/storage failure
     // is an infra one. Both are invisible to the member (they see a legible
@@ -85,7 +109,7 @@ export async function GET(
         stage:
           err instanceof ChromiumUnavailableError ? "chromium" : "generate",
       },
-      extra: { issueNumber: number, revision: issue.revision },
+      extra: { issueNumber: number, revision: issue.revision, theme },
     });
     console.error(`PDF generation failed for issue ${number}`, err);
     return NextResponse.json(

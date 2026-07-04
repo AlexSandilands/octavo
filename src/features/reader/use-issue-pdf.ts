@@ -10,7 +10,13 @@ import { useCallback, useRef, useState } from "react";
 
 export type PdfState = "idle" | "loading" | "error";
 
-export function useIssuePdf(issueNumber: number) {
+export function useIssuePdf(
+  issueNumber: number,
+  // The desktop reader passes its current theme toggle so the PDF matches what
+  // the member is looking at; callers without a theme concept (mobile reader,
+  // latest-issue card) omit it and the server renders the reader's default.
+  theme?: "classic" | "modern",
+) {
   const [state, setState] = useState<PdfState>("idle");
   // A ref (not just state) so a double-click can't launch two fetches in the
   // same tick before the "loading" render lands.
@@ -21,7 +27,8 @@ export function useIssuePdf(issueNumber: number) {
     busy.current = true;
     setState("loading");
     try {
-      const res = await fetch(`/api/issues/${issueNumber}/pdf`, {
+      const query = theme ? `?theme=${theme}` : "";
+      const res = await fetch(`/api/issues/${issueNumber}/pdf${query}`, {
         headers: { Accept: "application/pdf" },
       });
       if (!res.ok) throw new Error(`PDF request failed: ${res.status}`);
@@ -46,7 +53,7 @@ export function useIssuePdf(issueNumber: number) {
     } finally {
       busy.current = false;
     }
-  }, [issueNumber]);
+  }, [issueNumber, theme]);
 
   return { state, download };
 }

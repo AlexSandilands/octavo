@@ -42,8 +42,13 @@ function selfOrigin(): string {
   return `http://127.0.0.1:${port}`;
 }
 
-export async function generateIssuePdf(issueNumber: number): Promise<Buffer> {
-  const url = `${selfOrigin()}/read/${issueNumber}/print?token=${printToken()}`;
+export type PdfTheme = "classic" | "modern";
+
+export async function generateIssuePdf(
+  issueNumber: number,
+  theme: PdfTheme,
+): Promise<Buffer> {
+  const url = `${selfOrigin()}/read/${issueNumber}/print?token=${printToken()}&theme=${theme}`;
 
   let browser;
   try {
@@ -67,7 +72,21 @@ export async function generateIssuePdf(issueNumber: number): Promise<Buffer> {
         `print route returned ${res ? res.status() : "no response"} for issue ${issueNumber}`,
       );
     }
-    await page.evaluate(() => document.fonts.ready);
+    // networkidle can't see lazy images: next/image marks offscreen images
+    // loading="lazy", and in this tall stacked document Chromium never fetches
+    // the ones pages below the viewport — they'd print as gaps. Force every
+    // image eager and wait for it to fetch + decode (a broken image resolves
+    // rather than failing the whole PDF), then let fonts settle.
+    await page.evaluate(async () => {
+      const imgs = Array.from(document.querySelectorAll("img"));
+      await Promise.all(
+        imgs.map((img) => {
+          img.loading = "eager";
+          return img.decode().catch(() => undefined);
+        }),
+      );
+      await document.fonts.ready;
+    });
 
     // The print page sizes each sheet to exactly PAGE_W×PAGE_H, so matching the
     // PDF page box to the same dimensions yields one PDF page per magazine page,
