@@ -10,22 +10,23 @@ import {
   type BlockPatch,
   type TextSize,
 } from "@/lib/blocks";
-import { externalHref, richTextToHtml } from "@/lib/rich-text";
+import { externalHref } from "@/lib/rich-text";
+import { stringToDoc, type RichTextValue } from "@/lib/rich-text-doc";
 import { Underline, Link } from "./rich-text-marks";
 
 // The editing surface for a body-text block. A Tiptap editor styled to match the
 // reader's themed paragraph exactly, with a floating toolbar (text size, bold,
 // italic, underline, lists, link) shown while the block is selected. Output is
-// the constrained HTML the reader sanitises and renders — see
-// src/lib/rich-text.ts. Editor-only (client), so Tiptap never reaches the reader
-// bundle; the read-only path renders sanitised HTML directly in BlockView.
+// the structured rich-text JSON the reader renders through React (content v3 —
+// see src/lib/rich-text-doc.ts). Editor-only (client), so Tiptap never reaches
+// the reader bundle; the read-only path renders the same JSON in BlockView.
 export function RichTextEditor({
   value,
   size,
   selected,
   onChange,
 }: {
-  value: string;
+  value: RichTextValue;
   size: TextSize;
   selected: boolean;
   onChange: (patch: BlockPatch) => void;
@@ -44,15 +45,26 @@ export function RichTextEditor({
       Underline,
       Link,
     ],
-    // Seed once from the stored value (sanitised). The editor is uncontrolled
+    // Seed once from the stored value: a v3 doc is Tiptap's own JSON shape; a
+    // legacy string is converted to that shape first. The editor is uncontrolled
     // afterwards, so autosave re-renders never reset the caret.
-    content: richTextToHtml(value),
+    content: typeof value === "string" ? stringToDoc(value) : value,
     editorProps: {
       attributes: {
         class: "rich-text outline-none",
       },
     },
-    onUpdate: ({ editor }) => onChange({ text: editor.getHTML() }),
+    // Store the structured JSON (content v3). Tiptap's JSONContent is the loose
+    // shape of our RichDoc; the schema re-validates (and tightens) it on save.
+    // The JSON round-trip is load-bearing: ProseMirror builds `attrs` objects
+    // with a null prototype, and React Flight silently replaces non-plain
+    // objects with opaque temporary references when the autosave posts to the
+    // server action — the server would receive `attrs: [Function]` and reject
+    // the save (broke link marks and ordered lists, whose attrs are non-empty).
+    onUpdate: ({ editor }) =>
+      onChange({
+        text: JSON.parse(JSON.stringify(editor.getJSON())) as RichTextValue,
+      }),
   });
 
   return (

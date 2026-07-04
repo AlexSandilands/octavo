@@ -17,6 +17,7 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx src/db/seed.ts",
+    "db:migrate-content": "tsx src/db/migrate-content.ts",
     "db:admin": "tsx src/db/bootstrap-admin.ts"
   },
   "dependencies": {

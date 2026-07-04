@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { createId } from "./id";
+import { richTextValueSchema } from "./rich-text-doc";
 
 // The canonical content model. Editor, reader and (later) PDF all speak this.
 // An issue is pages → ordered blocks; stored as one JSONB document on the issue.
@@ -11,7 +12,6 @@ import { createId } from "./id";
 // readers validate every href through `externalHref` before rendering it.
 
 const SHORT_TEXT_MAX = 300; // titles, kickers, captions, names
-const BODY_TEXT_MAX = 20_000; // one text block's rich-text HTML
 const HREF_MAX = 2_000;
 const ID_MAX = 64; // uuids (36 chars) with headroom
 const MAX_PAGES = 200;
@@ -31,7 +31,12 @@ export const headingBlockSchema = z.object({
 export const textBlockSchema = z.object({
   id: z.string().max(ID_MAX),
   type: z.literal("text"),
-  text: z.string().max(BODY_TEXT_MAX).default(""),
+  // Content v3: body text is a structured rich-text document (Tiptap JSON) —
+  // see rich-text-doc.ts, which bounds/depth-caps it and re-validates link
+  // hrefs. A legacy v1/v2 value (plain-text or constrained-HTML string) still
+  // validates and renders through the same React path via `stringToDoc`. Cover
+  // pages keep a plain string here (authored as a tagline, rendered as text).
+  text: richTextValueSchema.default(""),
   // Body-text size, authored per block. Optional so existing content keeps the
   // default. The page is a fixed design canvas that scales as a unit, so this is
   // an absolute size on desktop/print; the reflowing mobile reader treats it as
@@ -93,14 +98,17 @@ export const pageSchema = z.object({
 // block-shape changes can migrate old rows deliberately instead of guessing.
 //
 // v2 (issue #8): sponsor blocks gained `sponsorId` and now reference the
-// managed `sponsors` table. The bump is backward-compatible by construction —
-// the new field is optional and the v1 inline sponsor fields are retained — so
-// a version-1 document parses and renders unchanged, and is upgraded to v2 in
-// place the next time it is saved (the schema `.default`s the version). No
-// destructive rewrite of `issues.content` is needed. A future bump that is NOT
-// backward-compatible would instead ship a one-off migration keyed on `version`
-// (see docs/database.md "Changing the content model"). This is the template.
-export const CONTENT_VERSION = 2;
+// managed `sponsors` table — backward-compatible (optional field, v1 inline
+// fields retained), no rewrite.
+//
+// v3 (issue #13): body text moved from a stored HTML string to structured
+// rich-text JSON (rich-text-doc.ts), rendered through React so the read path
+// carries no `dangerouslySetInnerHTML`. Backward-compatible by construction —
+// `text` accepts a string (v1/v2) or a doc, and legacy strings render through
+// the same React path via `stringToDoc`. An optional one-off migration converts
+// stored strings to docs in place (npm run db:migrate-content — keyed on the
+// stored `version`; see docs/database.md "Changing the content model").
+export const CONTENT_VERSION = 3;
 
 export const issueContentSchema = z.object({
   version: z.number().int().min(1).default(CONTENT_VERSION),

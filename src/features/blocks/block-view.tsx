@@ -2,7 +2,9 @@ import Image from "next/image";
 import { textSizePx, type Block, type BlockPatch } from "@/lib/blocks";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
-import { externalHref, richTextToHtml } from "@/lib/rich-text";
+import { externalHref } from "@/lib/rich-text";
+import { richTextToPlain } from "@/lib/rich-text-doc";
+import { RichText } from "./rich-text";
 import { Editable } from "./editable";
 
 // A sponsor logo, contained within its fixed slot at whatever aspect it has.
@@ -150,7 +152,13 @@ export function BlockView({
     if (block.type === "text") {
       return (
         <p className="text-muted text-center font-serif text-[24px] leading-relaxed whitespace-pre-line italic">
-          {f((v) => ({ text: v }), block.text, "Add a tagline or date…")}
+          {/* Cover text is authored as a plain tagline/date; coerce so a value
+              that ever held rich JSON still renders as a string. */}
+          {f(
+            (v) => ({ text: v }),
+            richTextToPlain(block.text),
+            "Add a tagline or date…",
+          )}
         </p>
       );
     }
@@ -233,15 +241,17 @@ export function BlockView({
     }
 
     case "text":
-      // Body text is authored as constrained rich HTML in the editor (see
-      // RichTextEditor); here it renders read-only, sanitised. Editing this
-      // block goes through RichTextEditor in editor-block.tsx, not `f()`.
+      // Body text is a structured rich-text doc (content v3), rendered through
+      // React elements — no dangerouslySetInnerHTML. Legacy string values render
+      // through the same path (RichText coerces them). Editing this block goes
+      // through RichTextEditor in editor-block.tsx, not `f()`.
       return (
         <div
           className="text-body font-serif rich-text"
           style={{ fontSize: textSizePx(block.size), lineHeight: 1.62 }}
-          dangerouslySetInnerHTML={{ __html: richTextToHtml(block.text) }}
-        />
+        >
+          <RichText value={block.text} />
+        </div>
       );
 
     case "image": {
