@@ -12,12 +12,13 @@ and #33/#36/#40, and their PRs.)
 ## Issues are the unit of work
 
 - One issue per task, with intent + acceptance criteria in the brief.
-- Small papercuts go into a running **grab-bag issue** (see #33) — dump them as
-  they're noticed, batch-fix when convenient. Re-read the issue body at the
-  start of a batch; papercuts accumulate after the brief was written.
-- If one item in a batch balloons (design-heavy, risks core behaviour), **split
-  it to its own issue rather than stall the batch** — carry the design notes
-  into the new issue (#33 → #46 is the pattern).
+- **Papercuts get their own small issues too** — log each one as it's noticed,
+  with just enough context to act on later (what/where, a screenshot or console
+  line if that's the evidence). The earlier running grab-bag issue (#33) worked
+  until items ballooned mid-batch; it's closed — don't revive the pattern.
+- If an issue grows past its brief (design-heavy, risks core behaviour),
+  **split the extra scope to a new issue rather than stretch the one in
+  flight** — carry the design notes across (#33 → #46 is the pattern).
 
 ## Triage: route each issue to a model
 
