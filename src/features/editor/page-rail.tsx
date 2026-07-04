@@ -92,7 +92,7 @@ export function PageRail({
         <button
           onClick={onToggleAddMenu}
           aria-expanded={addMenu}
-          className="text-faint hover:border-accent hover:text-accent flex h-10 w-[84px] items-center justify-center gap-1.5 rounded-[3px] border-[1.5px] border-dashed border-[#c9c1b1] font-sans text-[11px] font-semibold"
+          className="text-faint hover:border-accent hover:text-accent border-dash flex h-10 w-[84px] items-center justify-center gap-1.5 rounded-[3px] border-[1.5px] border-dashed font-sans text-[11px] font-semibold"
         >
           <Icon name="plus" size={14} strokeWidth={1.8} />
           Add
@@ -101,12 +101,12 @@ export function PageRail({
           <>
             {/* Click-off backdrop */}
             <div className="fixed inset-0 z-20" onClick={onCloseAddMenu} />
-            <div className="bg-card absolute top-0 left-[92px] z-30 w-56 overflow-hidden rounded-lg border border-[#e0d9c9] shadow-[0_12px_32px_rgba(40,36,28,0.18)]">
+            <div className="bg-card border-hair-warm absolute top-0 left-[92px] z-30 w-56 overflow-hidden rounded-lg border shadow-[0_12px_32px_rgba(40,36,28,0.18)]">
               {PAGE_TEMPLATES.map((t) => (
                 <button
                   key={t.id}
                   onClick={() => onAddPage(t.id)}
-                  className="block w-full px-3.5 py-2.5 text-left hover:bg-[#f4f8f5]"
+                  className="hover:bg-accent-wash block w-full px-3.5 py-2.5 text-left"
                 >
                   <div className="text-ink font-sans text-[13px] font-semibold">
                     {t.label}
@@ -168,9 +168,12 @@ function SortableThumb({
         } ${
           active
             ? "border-accent border-2 shadow-[0_2px_6px_rgba(40,36,28,0.12)]"
-            : "border border-[#e0d9c9]"
+            : "border border-hair-warm"
         }`}
       >
+        {/* Decorative skeleton bars standing in for a page's content in the
+            thumbnail — a cover motif (title block) vs a text-page motif. One-off
+            warm greys, local to this miniature; not part of the token palette. */}
         {page.cover ? (
           <div className="flex h-full flex-col items-center justify-center gap-1">
             <div className="h-1.5 w-[60%] rounded-[2px] bg-[#cdbfa0]" />
@@ -192,7 +195,7 @@ function SortableThumb({
           onClick={onDelete}
           title={`Delete page ${index + 1}`}
           aria-label={`Delete page ${index + 1}`}
-          className="bg-paper text-faint2 hover:text-warn hover:border-warn absolute -top-2 -right-2 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-[#e0d9c9] opacity-0 shadow-sm transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+          className="bg-paper text-faint2 hover:text-warn hover:border-warn border-hair-warm absolute -top-2 -right-2 z-10 flex h-6 w-6 items-center justify-center rounded-full border opacity-0 shadow-sm transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
         >
           <Icon name="trash" size={13} strokeWidth={1.8} />
         </button>

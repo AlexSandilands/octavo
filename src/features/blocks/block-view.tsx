@@ -142,9 +142,9 @@ export function BlockView({
             {f((v) => ({ title: v }), block.title, "Cover title")}
           </CoverTitle>
           <div className="mt-7 flex items-center justify-center gap-3">
-            <div className="h-px w-16 bg-[#cfc6b4]" />
+            <div className="h-px w-16 bg-rule" />
             <div className="bg-accent h-1.5 w-1.5 rotate-45" />
-            <div className="h-px w-16 bg-[#cfc6b4]" />
+            <div className="h-px w-16 bg-rule" />
           </div>
         </div>
       );
@@ -202,7 +202,7 @@ export function BlockView({
 
       if (classic) {
         return level === "section" ? (
-          <div className="border-t border-[#e0d9c9] pt-3.5">
+          <div className="border-hair-warm border-t pt-3.5">
             {kicker}
             <Title className="text-ink font-serif text-[24px] leading-tight">
               {f((v) => ({ title: v }), block.title, "Section heading")}
@@ -215,9 +215,9 @@ export function BlockView({
               {f((v) => ({ title: v }), block.title, "Heading")}
             </Title>
             <div className="mt-3 flex items-center justify-center gap-2.5">
-              <div className="h-px w-10 bg-[#cfc6b4]" />
+              <div className="h-px w-10 bg-rule" />
               <div className="bg-accent h-1 w-1 rotate-45" />
-              <div className="h-px w-10 bg-[#cfc6b4]" />
+              <div className="h-px w-10 bg-rule" />
             </div>
           </div>
         );
@@ -265,7 +265,7 @@ export function BlockView({
           priority={priority}
         />
       ) : classic ? (
-        <div className="photo-fill flex h-[150px] items-center justify-center border border-[#e2dccf]">
+        <div className="photo-fill border-placeholder-line flex h-[150px] items-center justify-center border">
           <span className="bg-page text-faint px-2 py-1 font-mono text-[11px]">
             {block.caption || "PHOTO"}
           </span>
@@ -333,7 +333,7 @@ export function BlockView({
           </div>
           <div
             className={`text-faint mx-auto mt-3.5 flex h-12 w-40 items-center justify-center font-mono text-[10px] ${
-              logo ? "" : "border border-dashed border-[#c9c1b1]"
+              logo ? "" : "border border-dashed border-dash"
             }`}
           >
             {logo ? (

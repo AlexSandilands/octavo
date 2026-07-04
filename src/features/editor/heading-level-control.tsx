@@ -32,7 +32,7 @@ export function HeadingLevelControl({
             className={`flex h-7 items-center justify-center px-2.5 font-sans text-[12px] font-semibold ${
               level === l.value
                 ? "bg-accent text-paper"
-                : "text-muted hover:bg-[#f4f8f5] hover:text-accent bg-white"
+                : "text-muted hover:bg-accent-wash hover:text-accent bg-white"
             }`}
           >
             {l.label}

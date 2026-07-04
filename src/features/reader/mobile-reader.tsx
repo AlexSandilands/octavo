@@ -86,7 +86,7 @@ export function MobileReader({
         <span className="text-ink font-serif text-[17px] tracking-[0.02em]">
           {site.name}
         </span>
-        <div className="border-line flex items-center overflow-hidden rounded-full border bg-[#f0ece2]">
+        <div className="border-line bg-chip-soft flex items-center overflow-hidden rounded-full border">
           <button
             onClick={() => setM((v) => Math.max(16, v - 2))}
             className="text-ink flex h-10 w-10 items-center justify-center font-sans text-sm font-medium"
@@ -282,7 +282,7 @@ function MobileBlock({
           {resolved ? (
             <BlockImage image={resolved} alt={block.alt || block.caption} />
           ) : (
-            <div className="photo-fill flex h-[180px] items-center justify-center border border-[#e2dccf]">
+            <div className="photo-fill border-placeholder-line flex h-[180px] items-center justify-center border">
               <span className="bg-page text-faint px-2 py-1 font-mono text-[11px]">
                 {block.caption || "PHOTO"}
               </span>

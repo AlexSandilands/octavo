@@ -101,7 +101,7 @@ export function EditorBlock({
         {...listeners}
         title="Drag to reorder"
         aria-label="Drag to reorder"
-        className={`absolute top-1/2 -left-9 z-10 flex h-7 w-6 -translate-y-1/2 cursor-grab touch-none items-center justify-center rounded-[5px] border border-[#e0d9c9] bg-white text-muted transition-opacity active:cursor-grabbing ${
+        className={`border-hair-warm absolute top-1/2 -left-9 z-10 flex h-7 w-6 -translate-y-1/2 cursor-grab touch-none items-center justify-center rounded-[5px] border bg-white text-muted transition-opacity active:cursor-grabbing ${
           selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
         }`}
       >
@@ -221,7 +221,7 @@ function Ctrl({
       }}
       title={title}
       aria-label={title}
-      className={`flex h-6 w-6 items-center justify-center rounded-[5px] border border-[#e0d9c9] bg-white ${
+      className={`border-hair-warm flex h-6 w-6 items-center justify-center rounded-[5px] border bg-white ${
         danger
           ? "text-warn hover:border-warn"
           : "text-muted hover:border-accent hover:text-accent"
