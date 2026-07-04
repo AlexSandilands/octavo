@@ -27,7 +27,7 @@ export default async function HelpPage() {
   const admin = await requireAdminOrRedirect();
   return (
     <AdminShell active="help" user={admin}>
-      <div className="max-w-[720px] pb-16">
+      <div className="mx-auto max-w-[720px] pb-16">
         <h1 className="text-ink font-serif text-3xl">Guide</h1>
         <p className="text-faint mt-1.5 font-sans text-sm">
           How to run the magazine, in plain language. Nothing here needs a
