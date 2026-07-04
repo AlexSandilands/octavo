@@ -1,6 +1,7 @@
 import "server-only";
 import { redirect } from "next/navigation";
 import { cache } from "react";
+import { DEMO_MODE } from "@/lib/demo";
 import { auth } from "./auth";
 
 // The session helpers the rest of the app uses — components and actions call
@@ -54,9 +55,15 @@ export async function requireAdminOrRedirect() {
 // to /signin carrying the destination, so the link in a new-issue email lands
 // them on that issue after signing in — members with a live session never see
 // the gate at all.
+//
+// In demo mode (issue #50) a signed-out visitor is allowed through and the
+// caller receives null — the return type forces every member page to decide
+// what its signed-in affordances do for an anonymous visitor. The admin gates
+// above are deliberately untouched by the flag.
 export async function requireMemberOrRedirect(next: string) {
   const user = await getUserFailClosed();
   if (!user) {
+    if (DEMO_MODE) return null;
     redirect(
       next === "/" ? "/signin" : `/signin?next=${encodeURIComponent(next)}`,
     );

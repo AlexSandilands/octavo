@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Wordmark, Avatar } from "@/components/ui";
+import { DemoBadge } from "@/components/demo-badge";
 import { SignOutButton } from "@/components/sign-out-button";
 import { site } from "@/lib/site";
 import { initials } from "@/lib/initials";
@@ -39,17 +40,25 @@ export default async function LibraryPage() {
       <header className="border-line flex items-center justify-between border-b pb-4">
         <Wordmark size={24} />
         <nav className="flex items-center gap-4 font-sans text-sm">
-          {/* UX only — /admin is gated server-side regardless (issue #4). */}
-          {user.isAdmin && (
-            <Link
-              href="/admin"
-              className="border-hair text-ink hover:border-accent hover:text-accent rounded-lg border px-3 py-1.5 font-medium"
-            >
-              Admin
-            </Link>
+          {/* No user only happens in demo mode (the gate redirects otherwise):
+              swap the account affordances for the demo chip. */}
+          {user ? (
+            <>
+              {/* UX only — /admin is gated server-side regardless (issue #4). */}
+              {user.isAdmin && (
+                <Link
+                  href="/admin"
+                  className="border-hair text-ink hover:border-accent hover:text-accent rounded-lg border px-3 py-1.5 font-medium"
+                >
+                  Admin
+                </Link>
+              )}
+              <SignOutButton />
+              <Avatar initials={initials(user.name?.trim() || user.email)} />
+            </>
+          ) : (
+            <DemoBadge />
           )}
-          <SignOutButton />
-          <Avatar initials={initials(user.name?.trim() || user.email)} />
         </nav>
       </header>
 
@@ -92,7 +101,11 @@ export default async function LibraryPage() {
         </>
       )}
 
-      <SiteFooter issueCount={published.length} estYear={estYear} />
+      <SiteFooter
+        issueCount={published.length}
+        estYear={estYear}
+        signedIn={Boolean(user)}
+      />
     </main>
   );
 }

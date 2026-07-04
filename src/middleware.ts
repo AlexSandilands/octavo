@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { DEMO_MODE } from "@/lib/demo";
 import { safeNextPath } from "@/lib/next-path";
 
 // This middleware does two jobs on every HTML-serving request:
@@ -71,9 +72,15 @@ function hasSessionCookie(req: NextRequest): boolean {
 // /signin here, so it is let through the edge and guarded instead by the
 // internal print token it validates in-route (src/lib/pdf-token.ts) — without a
 // valid token it 404s, so it stays unreachable from outside.
+//
+// Demo mode (issue #50) drops `/` and `/read/*` from the gate so a showcase
+// deployment is publicly browsable — `/admin/*` stays gated unconditionally.
+// requireMemberOrRedirect honours the same DEMO_MODE flag, so the edge and the
+// in-component authority agree.
 function isGatedRoute(pathname: string): boolean {
-  if (pathname === "/") return true;
   if (pathname === "/admin" || pathname.startsWith("/admin/")) return true;
+  if (DEMO_MODE) return false;
+  if (pathname === "/") return true;
   if (pathname === "/read") return true;
   if (pathname.startsWith("/read/")) return !pathname.endsWith("/print");
   return false;
