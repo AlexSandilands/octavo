@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Icon } from "@/components/icons";
@@ -66,6 +66,22 @@ export function RichTextEditor({
         text: JSON.parse(JSON.stringify(editor.getJSON())) as RichTextValue,
       }),
   });
+
+  // When the block is deselected (a click anywhere outside it), drop its
+  // lingering text highlight so deselection behaves like a normal document. The
+  // canvas pan/zoom layer captures the pointer on an outside press, which
+  // suppresses the browser's native click-to-collapse. Collapsing ProseMirror's
+  // own selection first leaves it no range to re-paint; then blur and clear the
+  // DOM selection. No focus is taken (the chain never calls `.focus()`), so a
+  // click that lands on another control keeps it.
+  useEffect(() => {
+    if (selected || !editor) return;
+    editor.chain().setTextSelection(editor.state.selection.head).blur().run();
+    const domSel = window.getSelection();
+    if (domSel && editor.view.dom.contains(domSel.anchorNode)) {
+      domSel.removeAllRanges();
+    }
+  }, [selected, editor]);
 
   return (
     <div className="relative">

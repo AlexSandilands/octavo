@@ -19,7 +19,6 @@ import {
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { SponsorListItem, SponsorMap } from "@/lib/sponsors";
 import {
-  enabledThemeIds,
   enabledThemes,
   getTheme,
   normaliseEnabledThemeId,
@@ -243,24 +242,34 @@ export function Editor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [curPage]);
 
+  // Deselect the current block and collapse any lingering text highlight.
+  // Clicking blank canvas (or pressing Escape) should clear a text selection
+  // like a normal document, but the canvas pan/zoom layer captures the pointer
+  // on an outside press, which suppresses the browser's native
+  // click-to-collapse — so blur the active editable and clear the selection
+  // ourselves. Covers every in-place editor (Tiptap body text and the plain
+  // contentEditable headings / cover text alike).
+  const deselect = () => {
+    setSel(null);
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && active.isContentEditable) {
+      active.blur();
+    }
+    window.getSelection()?.removeAllRanges();
+  };
+  const deselectRef = useRef(deselect);
+  deselectRef.current = deselect;
+
   // Escape deselects the current block (click-off on the canvas does too).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setSel(null);
+      if (e.key === "Escape") deselectRef.current();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [setSel]);
+  }, []);
 
   const theme = getTheme(themeId);
-
-  // Cycle the layout theme through the deployment-enabled set; the header hides
-  // the control when only one theme is enabled.
-  const cycleTheme = () => {
-    const ids = enabledThemeIds();
-    const i = ids.indexOf(themeId);
-    setThemeId(ids[(i + 1) % ids.length]!);
-  };
 
   return (
     <div className="bg-card relative flex min-h-screen flex-col">
@@ -268,12 +277,12 @@ export function Editor({
         title={title}
         onTitleChange={setTitle}
         issueNumber={issue.number}
-        themeName={theme.name}
-        showThemeToggle={themes.length > 1}
+        themes={themes}
+        themeId={themeId}
+        onSelectTheme={setThemeId}
         status={status}
         onRetrySave={() => void enqueueSave("all")}
         onReload={() => window.location.reload()}
-        onToggleTheme={cycleTheme}
         onPreview={async () => {
           // Open the preview in a new tab so the editor stays mounted with its
           // unsaved in-memory state — closing the tab returns you to the editor
@@ -323,7 +332,7 @@ export function Editor({
             onClick={() => {
               // A drag-pan ends in a click; don't let it deselect the block.
               if (panZoom.consumeClickSuppression()) return;
-              setSel(null);
+              deselect();
             }}
             onPointerDown={panZoom.onPointerDown}
             onPointerMove={panZoom.onPointerMove}

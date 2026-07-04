@@ -113,6 +113,14 @@ const ICONS: Record<string, ReactNode> = {
     <path d="M9 4H5a1 1 0 00-1 1v4M15 4h4a1 1 0 011 1v4M9 20H5a1 1 0 01-1-1v-4M15 20h4a1 1 0 001-1v-4" />
   ),
   fullscreenExit: <path d="M4 9h4V5M20 9h-4V5M4 15h4v4M20 15h-4v4" />,
+  // A portrait page fitted inside a landscape screen — "fit to screen" (reset
+  // zoom), kept visually distinct from the corner-bracket fullscreen icon.
+  fitScreen: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="1.5" />
+      <rect x="9.5" y="8" width="5" height="8" rx="0.5" />
+    </>
+  ),
 };
 
 export type IconName = keyof typeof ICONS;
