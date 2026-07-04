@@ -1,12 +1,5 @@
 import { EditorFigure } from "./editor-figure";
-import {
-  Callout,
-  GuideSection,
-  P,
-  ScreenshotSlot,
-  Step,
-  Steps,
-} from "./guide-ui";
+import { Callout, GuideSection, P, Step, Steps } from "./guide-ui";
 
 export function SectionIssues() {
   return (
@@ -55,7 +48,6 @@ export function SectionIssues() {
         live issue — members see it the next time they open it. Perfect for
         fixing a typo; worth remembering before starting a big rework.
       </Callout>
-      <ScreenshotSlot description="The editor with a draft issue open: the pages rail on the left, a page on the canvas, and the Insert row above it." />
     </GuideSection>
   );
 }

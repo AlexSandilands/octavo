@@ -2,9 +2,8 @@ import type { ReactNode } from "react";
 import { Icon, type IconName } from "@/components/icons";
 
 // Building blocks for the admin guide (/admin/help): section scaffolding,
-// numbered steps, plain lists, callouts, figure frames for the token-built
-// illustrations, and the clearly-marked slots where the owner can drop real
-// screenshots later. Everything here is server-rendered and static.
+// numbered steps, plain lists, callouts, and figure frames for the token-built
+// illustrations. Everything here is server-rendered and static.
 
 export function GuideSection({
   id,
@@ -152,26 +151,5 @@ export function FigureBadge({ n }: { n: number }) {
     <span className="bg-accent text-paper flex h-4 w-4 flex-none items-center justify-center rounded-full font-sans text-[10px] font-bold">
       {n}
     </span>
-  );
-}
-
-// A clearly-marked, correctly-sized placeholder for a real screenshot. To fill
-// one in, replace the <ScreenshotSlot> with an <Image> using `description` as
-// its alt text (the 16:10 box matches a typical browser-window capture).
-export function ScreenshotSlot({ description }: { description: string }) {
-  return (
-    <figure className="max-w-[640px]">
-      <div className="border-dash bg-page flex aspect-[16/10] items-center justify-center rounded-[10px] border-2 border-dashed p-6">
-        <div className="text-center">
-          <Icon name="image" size={26} className="text-faint2 mx-auto" />
-          <p className="text-faint mt-2 font-sans text-[13px] font-semibold">
-            Screenshot to be added
-          </p>
-          <p className="text-faint2 mx-auto mt-1 max-w-[40ch] font-sans text-[13px] leading-snug">
-            {description}
-          </p>
-        </div>
-      </div>
-    </figure>
   );
 }

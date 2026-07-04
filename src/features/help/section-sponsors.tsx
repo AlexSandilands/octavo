@@ -1,11 +1,5 @@
-import {
-  Callout,
-  GuideSection,
-  P,
-  ScreenshotSlot,
-  Step,
-  Steps,
-} from "./guide-ui";
+import { SponsorsFigure } from "./sponsors-figure";
+import { Callout, GuideSection, P, Step, Steps } from "./guide-ui";
 
 export function SectionSponsors() {
   return (
@@ -16,6 +10,7 @@ export function SectionSponsors() {
         until&rdquo; date — so every issue can reuse them instead of you
         re-typing anything.
       </P>
+      <SponsorsFigure />
       <Steps>
         <Step n={1} title="Add the sponsor once">
           Give it a name (that&rsquo;s the only must), upload their logo, add
@@ -41,7 +36,6 @@ export function SectionSponsors() {
         you only want to stop featuring them in <em>future</em> issues, keep the
         record and simply stop picking them.
       </Callout>
-      <ScreenshotSlot description="The Sponsors screen: the list of sponsors with logos, links and their active-until dates." />
     </GuideSection>
   );
 }

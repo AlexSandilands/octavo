@@ -1,5 +1,6 @@
 import { PublishFigure } from "./publish-figure";
-import { Bullets, Callout, GuideSection, P, ScreenshotSlot } from "./guide-ui";
+import { PublishModalFigure } from "./publish-modal-figure";
+import { Bullets, Callout, GuideSection, P, Step, Steps } from "./guide-ui";
 
 export function SectionPublishing() {
   return (
@@ -25,22 +26,35 @@ export function SectionPublishing() {
         whether the site emails <strong>every subscribed member</strong> a
         personal reading link. Once those emails go out they can&rsquo;t be
         called back — so before you confirm, glance at that tickbox and make
-        sure it says what you intend. The window always tells you exactly how
-        many people would be emailed.
+        sure it says what you intend.
       </Callout>
       <PublishFigure />
-      <P>How the email tickbox behaves:</P>
-      <Bullets>
-        <li>
-          <strong>Publishing an issue for the first time</strong>, the box
-          starts ticked — a brand-new issue is usually worth announcing.
-        </li>
-        <li>
+      <PublishModalFigure />
+      <Steps>
+        <Step n={1} title="The tickbox decides">
+          Ticked, publishing also emails the club; unticked, the issue quietly
+          appears in the library and nobody is emailed.{" "}
+          <strong>
+            Publishing an issue for the first time, it starts ticked
+          </strong>{" "}
+          — a brand-new issue is usually worth announcing.{" "}
           <strong>Publishing the same issue again</strong> (say, after fixing a
-          typo), the box starts unticked — so a small correction can&rsquo;t
-          accidentally email the whole club twice. Tick it yourself if you
-          really do want to re-send.
-        </li>
+          typo), it starts <strong>unticked</strong>, so a small correction
+          can&rsquo;t accidentally email the whole club twice.
+        </Step>
+        <Step n={2} title="The small print tells you the reach">
+          The line under the tickbox always says exactly how many subscribed
+          members would be emailed. If it&rsquo;s ticked and that number
+          surprises you, stop and check the Members screen first.
+        </Step>
+        <Step n={3} title="The buttons say what will happen">
+          &ldquo;Keep as draft&rdquo; backs out without doing anything. The
+          green button&rsquo;s label matches the tickbox — it reads
+          &ldquo;Publish &amp; send&rdquo; only when email will actually go out.
+        </Step>
+      </Steps>
+      <P>Also worth knowing about the emails themselves:</P>
+      <Bullets>
         <li>
           <strong>Each email is personal.</strong> The message <em>is</em> that
           member&rsquo;s sign-in link: one click opens the new issue with no
@@ -60,7 +74,6 @@ export function SectionPublishing() {
           the box ticked to retry them.
         </li>
       </Bullets>
-      <ScreenshotSlot description="The publish confirmation window, showing the “Email the new issue” tickbox and the number of members it would email." />
     </GuideSection>
   );
 }
