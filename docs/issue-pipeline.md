@@ -80,13 +80,32 @@ R2_PUBLIC_URL=https://pub-test.r2.dev npm run build`. To also make locally-uploa
 ## Status (2026-07-04)
 
 **All roadmap phases complete** — #6–#16 merged (#16 = PR #41: PDF export, the last
-stub). Still pending from #16: the first real Railway deploy must verify
-`nixpacks.toml` installs Chromium and watch generation memory (split-service
-fallback documented in infrastructure.md). That deploy is #39 (human) territory.
+stub).
 
-Side trackers (not phase work): **#33** UI papercuts (batch-fix when convenient),
-**#36** structural follow-ups from #14 (preview double-bundle, unused `page-flip`
-dep, `editor.tsx` at 495 lines, seed should emit v3-shaped content).
+### Close-out plan: the remaining issues, before go-live
+
+Everything left before the owner starts #39 (deploy), in order:
+
+| Order | Issue       | Label | Task                                                                                                                                                                                                                                                                                                                            |
+| ----- | ----------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | #40 (+ #36) | fable | Brand skins (env-selectable palette) + layout-theme registry. **Fold #36 into the same branch** — its brief says so: the `editor.tsx` decomposition, `page-flip` dep removal, preview `ReaderMount`, and v3-shaped seed all live in the neighborhood #40 restructures. Tick items off in #36; close it with the PR if all land. |
+| 2     | #33         | fable | UI polish grab-bag — batch-fix. Re-read the issue at start (papercuts accumulate). The single-centred-cover reader rework is the one design-heavy item; if it balloons, split it to its own issue rather than stall the batch.                                                                                                  |
+
+Then **#39 (human)**: repo rename first, then accounts/DNS/env/deploy. The first
+Railway deploy also settles #16's open verification — `nixpacks.toml` must install
+Chromium, and watch the memory graph during a PDF generation.
+
+Ordering rationale + notes for whoever runs this:
+
+- **#40 before #33**: #40/#36 move the furniture (`block-view.tsx` → theme modules,
+  `editor.tsx` split, reader/preview mounts); #33 then polishes surfaces on the
+  settled structure instead of racing it.
+- Both are **UI-sensitive and browser-pass-heavy** — the user's pass is a required
+  gate (see the #13/#16 rows). Chromium is installed locally for headless checks.
+- #40 acceptance includes "pixel-identical with no new env" and AA contrast on every
+  brand — `scripts/dev-contrast-gate.mts` exists from #10/#14; extend it per brand.
+- #33's reader items (flip hitbox, cover spread) live in `reader-spread.tsx` /
+  `use-canvas-pan-zoom` — touch carefully, #10's focus lessons apply.
 
 Notes for whoever picks this up:
 
