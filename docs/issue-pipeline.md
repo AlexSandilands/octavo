@@ -40,6 +40,7 @@ fix before it was safe to merge:
 | #13   | Review clean — but the **user's browser pass** caught a real bug post-review: ProseMirror emits null-prototype `attrs` objects, which React Flight silently replaces with opaque temporary references on the server-action call, so saving any link mark or ordered list failed. Fixed with a plain-JSON round-trip in the editor's `onUpdate`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | #14   | Clean (orchestrator re-verified drift line-by-line + scripted the hex↔token equivalence)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | #15   | (merged as PR #38 — Sentry, CI, backups)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| #40   | (+#36; merged as PR #44 — brand skins, layout-theme registry, editor split, v3 seed.) Review was clean on substance: the class-string extraction was verified token-by-token against main (a script asserted every old `className` set survives verbatim in the theme modules), the seed's output was re-validated in-memory (10/10 issues, 245 v3 docs, exactly one legacy plain + one legacy HTML block), and a built-server smoke test confirmed the `data-brand` stamp and the loud boot failure on an unknown brand. The only orchestrator fixes were prettier drift in five touched files (formatted pre-commit; main's pre-existing drift in three others left alone). The user's browser pass found no bugs — first UI-heavy issue where that gate came back clean — but did surface a papercut (the editor's theme control reads as a dropdown, acts as click-to-cycle; pre-existing, logged to #33).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | #16   | Review swapped the PDF route's silent local fail-closed auth for the shared `getUserFailClosed` (now exported), and kept a repo-wide prettier drift (~17 untouched files) out of the PR. Then — #13's lesson again — the **user's browser pass caught two real bugs** invisible to every server-side check: (1) the PDF ignored the reader's theme toggle (client-only state; the print route read the stored issue theme, which nothing else uses) — fixed by threading `?theme=` through the endpoint into the cache key (`{revision}-{theme}.pdf`); (2) images deep in the issue were missing from the PDF — next/image emits `loading="lazy"`, so Chromium's networkidle fired without ever fetching images pages below the viewport — fixed in the generator by forcing every img eager and awaiting decode before printing. A second browser pass found (3) a trailing blank PDF page: Next streams `<script>`/`<template>` siblings after the page content in `<body>`, so `.pdf-page:last-child` matched nothing and the last page kept its `break-after` — fixed by wrapping the pages in their own container; that fix also exposed that renderer changes must bust the cache, so the key now carries a code-side `RENDER_VERSION` (bump it in the same commit as any print-rendering change). Once the user installed Chromium locally, the orchestrator could verify PDFs end-to-end (DB-minted session cookie + curl + pdftoppm) — do that when possible instead of leaning on the user's pass. |
 
 Lesson from #13: the **user's manual browser pass is as load-bearing as the diff
@@ -80,30 +81,32 @@ R2_PUBLIC_URL=https://pub-test.r2.dev npm run build`. To also make locally-uploa
 ## Status (2026-07-04)
 
 **All roadmap phases complete** — #6–#16 merged (#16 = PR #41: PDF export, the last
-stub).
+stub). **Close-out step 1 done**: #40 + #36 merged as PR #44 (brand skins,
+layout-theme registry, editor split, `page-flip` removal, preview `ReaderMount`,
+v3-shaped seed; #36's optional webpack-log-noise item deliberately skipped per its
+own "fix only if it grates" note).
 
 ### Close-out plan: the remaining issues, before go-live
 
 Everything left before the owner starts #39 (deploy), in order:
 
-| Order | Issue       | Label | Task                                                                                                                                                                                                                                                                                                                            |
-| ----- | ----------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1     | #40 (+ #36) | fable | Brand skins (env-selectable palette) + layout-theme registry. **Fold #36 into the same branch** — its brief says so: the `editor.tsx` decomposition, `page-flip` dep removal, preview `ReaderMount`, and v3-shaped seed all live in the neighborhood #40 restructures. Tick items off in #36; close it with the PR if all land. |
-| 2     | #33         | fable | UI polish grab-bag — batch-fix. Re-read the issue at start (papercuts accumulate). The single-centred-cover reader rework is the one design-heavy item; if it balloons, split it to its own issue rather than stall the batch.                                                                                                  |
+| Order | Issue | Label | Task                                                                                                                                                                                                                                                      |
+| ----- | ----- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | #33   | fable | UI polish grab-bag — batch-fix. Re-read the issue at start (papercuts accumulate; three were added post-#40). The single-centred-cover reader rework is the one design-heavy item; if it balloons, split it to its own issue rather than stall the batch. |
 
 Then **#39 (human)**: repo rename first, then accounts/DNS/env/deploy. The first
 Railway deploy also settles #16's open verification — `nixpacks.toml` must install
 Chromium, and watch the memory graph during a PDF generation.
 
-Ordering rationale + notes for whoever runs this:
+Notes for whoever runs #33:
 
-- **#40 before #33**: #40/#36 move the furniture (`block-view.tsx` → theme modules,
-  `editor.tsx` split, reader/preview mounts); #33 then polishes surfaces on the
-  settled structure instead of racing it.
-- Both are **UI-sensitive and browser-pass-heavy** — the user's pass is a required
+- The furniture-moving is done (#40/#36: `block-view.tsx` → theme modules,
+  `editor.tsx` split, reader/preview mounts) — #33 polishes surfaces on the
+  settled structure.
+- It is **UI-sensitive and browser-pass-heavy** — the user's pass is a required
   gate (see the #13/#16 rows). Chromium is installed locally for headless checks.
-- #40 acceptance includes "pixel-identical with no new env" and AA contrast on every
-  brand — `scripts/dev-contrast-gate.mts` exists from #10/#14; extend it per brand.
+- After any token/palette change, run `scripts/dev-contrast-gate.mts` — it checks
+  the AA bar for every brand (#40).
 - #33's reader items (flip hitbox, cover spread) live in `reader-spread.tsx` /
   `use-canvas-pan-zoom` — touch carefully, #10's focus lessons apply.
 
@@ -114,5 +117,8 @@ Notes for whoever picks this up:
   and nothing is deployed yet, so it likely never needs to run again.
 - The CSP is nonce-based in `src/middleware.ts` (#12) — new pages must render
   dynamically (a static prerender gets no nonce and `'strict-dynamic'` blocks it).
-- The readers lazy-load per viewport via `ReaderMount` (#14); the admin preview route
-  deliberately still double-bundles (see #36).
+- The readers lazy-load per viewport via `ReaderMount` (#14); since PR #44 the
+  admin preview route uses it too.
+- Layout themes live in `src/features/blocks/themes/` behind a registry; the brand
+  palette is env-selectable (`NEXT_PUBLIC_BRAND`, see `docs/design-principles.md`).
+  Adding either is a module/CSS-block + registry entry — no conditional edits (#40).
