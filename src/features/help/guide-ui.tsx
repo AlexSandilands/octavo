@@ -130,14 +130,17 @@ export function FigureFrame({
   children: ReactNode;
 }) {
   return (
-    <figure className="max-w-[640px]">
+    // On large screens the drawing bleeds wider than the text column (the
+    // prose keeps its readable measure; the visual gets the room). The
+    // caption keeps the column's alignment via matching padding.
+    <figure className="xl:-mx-24">
       <div
         aria-hidden="true"
-        className="border-line bg-card overflow-hidden rounded-[10px] border p-4 sm:p-5"
+        className="border-line bg-card overflow-hidden rounded-[10px] border p-4 sm:p-6"
       >
         {children}
       </div>
-      <figcaption className="text-faint mt-2 font-sans text-[13px] leading-relaxed">
+      <figcaption className="text-faint mt-2 font-sans text-[13px] leading-relaxed xl:px-24">
         {caption}
       </figcaption>
     </figure>
@@ -148,7 +151,7 @@ export function FigureFrame({
 // legend list next to the figure.
 export function FigureBadge({ n }: { n: number }) {
   return (
-    <span className="bg-accent text-paper flex h-4 w-4 flex-none items-center justify-center rounded-full font-sans text-[10px] font-bold">
+    <span className="bg-accent text-paper flex h-[19px] w-[19px] flex-none items-center justify-center rounded-full font-sans text-[11px] font-bold">
       {n}
     </span>
   );
