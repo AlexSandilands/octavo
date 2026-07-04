@@ -10,6 +10,7 @@ import { useCanvasPanZoom } from "@/features/blocks/use-canvas-pan-zoom";
 import { ReaderSpread, FLIP_MS, type Turn } from "./reader-spread";
 import { ReaderContents, buildToc } from "./reader-contents";
 import { ReaderControls } from "./reader-controls";
+import { useIssuePdf } from "./use-issue-pdf";
 
 export function DesktopReader({
   content,
@@ -24,6 +25,7 @@ export function DesktopReader({
 }) {
   const pages = content.pages;
   const toc = buildToc(pages);
+  const pdf = useIssuePdf(issueNo);
 
   const [spread, setSpread] = useState(0);
   const [collapsed, setCollapsed] = useState(false);
@@ -222,7 +224,9 @@ export function DesktopReader({
             ref={spreadRef}
             onPointerDown={onSpreadPointerDown}
             className="relative inline-flex shadow-[0_18px_40px_rgba(40,36,28,0.18)]"
-            style={{ transform: `translate(${panZoom.pan.x}px, ${panZoom.pan.y}px)` }}
+            style={{
+              transform: `translate(${panZoom.pan.x}px, ${panZoom.pan.y}px)`,
+            }}
           >
             <ReaderSpread
               pages={pages}
@@ -249,6 +253,8 @@ export function DesktopReader({
         onZoom={panZoom.applyZoom}
         isFullscreen={isFullscreen}
         onToggleFullscreen={toggleFullscreen}
+        pdfState={pdf.state}
+        onDownloadPdf={pdf.download}
       />
     </div>
   );

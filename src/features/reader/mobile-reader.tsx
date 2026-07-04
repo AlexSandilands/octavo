@@ -11,19 +11,23 @@ import { externalHref } from "@/lib/rich-text";
 import { richTextToPlain } from "@/lib/rich-text-doc";
 import { BlockImage } from "@/features/blocks/block-view";
 import { RichText } from "@/features/blocks/rich-text";
+import { useIssuePdf } from "./use-issue-pdf";
 
 // Mobile reader: the whole issue as one flowing column (also the accessibility
 // fallback). Same block data as the flipbook, presented single-column.
 export function MobileReader({
   content,
+  issueNo,
   images,
   sponsors,
 }: {
   content: IssueContent;
+  issueNo: number;
   images: ImageMap;
   sponsors: SponsorMap;
 }) {
   const [m, setM] = useState(19);
+  const pdf = useIssuePdf(issueNo);
   const [drawer, setDrawer] = useState(false);
   const menuBtnRef = useRef<HTMLButtonElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
@@ -75,14 +79,41 @@ export function MobileReader({
   return (
     <div className="bg-page relative flex min-h-screen flex-col">
       <header className="border-line-soft bg-page flex h-[52px] flex-none items-center justify-between border-b px-4">
-        <button
-          ref={menuBtnRef}
-          onClick={() => setDrawer(true)}
-          className="text-ink flex h-10 w-10 items-center justify-center rounded-[9px]"
-          aria-label="Contents"
-        >
-          <Icon name="menu" size={22} />
-        </button>
+        <div className="flex items-center">
+          <button
+            ref={menuBtnRef}
+            onClick={() => setDrawer(true)}
+            className="text-ink flex h-10 w-10 items-center justify-center rounded-[9px]"
+            aria-label="Contents"
+          >
+            <Icon name="menu" size={22} />
+          </button>
+          <button
+            onClick={pdf.download}
+            disabled={pdf.state === "loading"}
+            className="text-ink flex h-10 w-10 items-center justify-center rounded-[9px] disabled:cursor-default"
+            aria-label={
+              pdf.state === "loading"
+                ? "Preparing PDF…"
+                : pdf.state === "error"
+                  ? "PDF failed — tap to retry"
+                  : "Download PDF"
+            }
+          >
+            {pdf.state === "loading" ? (
+              <span
+                aria-hidden="true"
+                className="h-[18px] w-[18px] animate-spin rounded-full border-2 border-current border-t-transparent opacity-70"
+              />
+            ) : (
+              <Icon
+                name="download"
+                size={20}
+                className={pdf.state === "error" ? "text-alert" : undefined}
+              />
+            )}
+          </button>
+        </div>
         <span className="text-ink font-serif text-[17px] tracking-[0.02em]">
           {site.name}
         </span>

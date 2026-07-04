@@ -1,6 +1,7 @@
 import "server-only";
 import {
   deleteObject as deleteR2,
+  getObject as getR2,
   isR2Configured,
   keyToUrl as r2KeyToUrl,
   putObject as putR2,
@@ -9,6 +10,7 @@ import {
   deleteLocalObject,
   localKeyToUrl,
   putLocalObject,
+  readLocalObject,
 } from "./local-storage";
 
 // Storage facade. Uses Cloudflare R2 when configured; otherwise falls back to a
@@ -33,6 +35,12 @@ export async function putObject(
 
 export async function deleteObject(key: string): Promise<void> {
   return useR2 ? deleteR2(key) : deleteLocalObject(key);
+}
+
+// Read stored bytes, or null when the key isn't present. Backs the cached-PDF
+// lookup: a hit serves the bytes, a miss triggers generation.
+export async function getObject(key: string): Promise<Buffer | null> {
+  return useR2 ? getR2(key) : readLocalObject(key);
 }
 
 export function keyToUrl(key: string): string {

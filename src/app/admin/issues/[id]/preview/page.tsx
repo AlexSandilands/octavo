@@ -54,6 +54,7 @@ export default async function PreviewIssuePage({
       <div className="md:hidden">
         <MobileReader
           content={issue.content}
+          issueNo={issue.number}
           images={images}
           sponsors={sponsors}
         />

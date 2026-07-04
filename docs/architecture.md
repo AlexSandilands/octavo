@@ -10,15 +10,15 @@ This doc is the fast orientation for the codebase. For data specifics see
 
 ## Stack
 
-| Concern        | Choice                                                                                |
-| -------------- | ------------------------------------------------------------------------------------- |
-| Framework      | Next.js 15 (App Router), React 19, TypeScript                                         |
-| Styling        | Tailwind v4 (tokens in `src/app/globals.css`)                                         |
-| Database       | Postgres via Drizzle ORM                                                              |
-| Object storage | Cloudflare R2 — images wired (WebP via sharp); local-disk fallback in dev; PDFs later |
-| Auth           | Auth.js v5 magic link, database sessions (~90 days) — see below                       |
-| Email          | Resend (magic-link email); dev logs the link to the console instead                   |
-| Hosting        | Railway (app + Postgres)                                                              |
+| Concern        | Choice                                                                            |
+| -------------- | --------------------------------------------------------------------------------- |
+| Framework      | Next.js 15 (App Router), React 19, TypeScript                                     |
+| Styling        | Tailwind v4 (tokens in `src/app/globals.css`)                                     |
+| Database       | Postgres via Drizzle ORM                                                          |
+| Object storage | Cloudflare R2 — images (WebP via sharp) + cached PDFs; local-disk fallback in dev |
+| Auth           | Auth.js v5 magic link, database sessions (~90 days) — see below                   |
+| Email          | Resend (magic-link email); dev logs the link to the console instead               |
+| Hosting        | Railway (app + Postgres)                                                          |
 
 ## Directory map
 
@@ -121,21 +121,23 @@ unsubscribe anyone. The `/unsubscribe` route sits outside the member gate by des
 
 ## Routes
 
-| Route                               | Render        | Notes                                                                                                                                    |
-| ----------------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `/`                                 | dynamic       | Library — published issues. **Member session required**                                                                                  |
-| `/read/[issueId]`                   | dynamic       | Reader, by issue **number**, published only. **Member session required**                                                                 |
-| `/signin`                           | dynamic       | Email form; takes a validated same-origin `?next=` return path; doubles as the Auth.js error page (`?error=Verification` = expired link) |
-| `/signin/sent`                      | dynamic       | Neutral "check your email" — same answer whether or not the address is a member's (dynamic only so the CSP nonce reaches it)             |
-| `/unsubscribe`                      | dynamic       | One-click unsubscribe from the new-issue email. **No session** — a signed `?token=` binds the user; GET shows a confirm button, a POST toggles the flag (see Publish → email)                                     |
-| `/api/auth/*`                       | route handler | Auth.js (sign-in POST, magic-link callback, session)                                                                                     |
-| `/admin`                            | dynamic       | Issue dashboard                                                                                                                          |
-| `/admin/issues/[id]/edit`           | dynamic       | Editor, by issue **id**                                                                                                                  |
-| `/admin/issues/[id]/preview`        | dynamic       | Draft preview (renders the reader by internal id; drafts never appear at `/read`)                                                        |
-| `/admin/members`                    | dynamic       | Members CRUD on the `users` table: add / remove / toggle subscribed / toggle admin / CSV import (guard rails: no self-removal, keep one admin) |
-| `/admin/sponsors`                   | static        | Sponsors = placeholder                                                                                                                   |
-| `POST /api/admin/images`            | route handler | Upload: multipart → sniff real format (SVG rejected) → sharp WebP → storage → `images` row                                               |
-| `GET /api/images/[...key]`          | route handler | Serves the local dev storage fallback (unused when R2 is set)                                                                            |
+| Route                          | Render        | Notes                                                                                                                                                                                                                                      |
+| ------------------------------ | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `/`                            | dynamic       | Library — published issues. **Member session required**                                                                                                                                                                                    |
+| `/read/[issueId]`              | dynamic       | Reader, by issue **number**, published only. **Member session required**                                                                                                                                                                   |
+| `/read/[issueId]/print`        | dynamic       | Internal print view for PDF generation — every page at full canvas size. **Not session-gated** (the localhost generator has no cookie); guarded by an internal token (`src/lib/pdf-token.ts`), 404 without it. Excluded from the edge gate |
+| `/signin`                      | dynamic       | Email form; takes a validated same-origin `?next=` return path; doubles as the Auth.js error page (`?error=Verification` = expired link)                                                                                                   |
+| `/signin/sent`                 | dynamic       | Neutral "check your email" — same answer whether or not the address is a member's (dynamic only so the CSP nonce reaches it)                                                                                                               |
+| `/unsubscribe`                 | dynamic       | One-click unsubscribe from the new-issue email. **No session** — a signed `?token=` binds the user; GET shows a confirm button, a POST toggles the flag (see Publish → email)                                                              |
+| `/api/auth/*`                  | route handler | Auth.js (sign-in POST, magic-link callback, session)                                                                                                                                                                                       |
+| `/admin`                       | dynamic       | Issue dashboard                                                                                                                                                                                                                            |
+| `/admin/issues/[id]/edit`      | dynamic       | Editor, by issue **id**                                                                                                                                                                                                                    |
+| `/admin/issues/[id]/preview`   | dynamic       | Draft preview (renders the reader by internal id; drafts never appear at `/read`)                                                                                                                                                          |
+| `/admin/members`               | dynamic       | Members CRUD on the `users` table: add / remove / toggle subscribed / toggle admin / CSV import (guard rails: no self-removal, keep one admin)                                                                                             |
+| `/admin/sponsors`              | static        | Sponsors = placeholder                                                                                                                                                                                                                     |
+| `POST /api/admin/images`       | route handler | Upload: multipart → sniff real format (SVG rejected) → sharp WebP → storage → `images` row                                                                                                                                                 |
+| `GET /api/images/[...key]`     | route handler | Serves the local dev storage fallback (unused when R2 is set)                                                                                                                                                                              |
+| `GET /api/issues/[number]/pdf` | route handler | **Member session required.** On-demand PDF: serves the cached bytes (`pdfs/{issueId}/{revision}.pdf`), else generates via Playwright, caches, serves. Bytes proxied (not a public URL) so the PDF stays members-only                       |
 
 Route-level `loading.tsx`/`error.tsx` cover `/`, `/read/[issueId]` and `/admin/*`. Static
 security headers (`nosniff`, `X-Frame-Options`, referrer/permissions policies) are set globally
@@ -187,14 +189,14 @@ Server env is validated in [`src/lib/env.ts`](../src/lib/env.ts); branding in
 [`src/lib/site.ts`](../src/lib/site.ts). Local values live in `.env.local` (git-ignored); production
 values are set in Railway. `.env.example` lists every key.
 
-| Var                                                    | Required now  | Purpose                                                         |
-| ------------------------------------------------------ | ------------- | --------------------------------------------------------------- |
-| `DATABASE_URL`                                         | yes           | Postgres connection                                             |
-| `NEXT_PUBLIC_MAGAZINE_NAME` / `_ORG_NAME` / `_TAGLINE` | no (defaults) | Branding, build-time inlined                                    |
-| `AUTH_SECRET`                                          | dev: yes      | Auth.js token/cookie signing + unsubscribe-token key (required in prod by env.ts) |
+| Var                                                    | Required now  | Purpose                                                                                                   |
+| ------------------------------------------------------ | ------------- | --------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                                         | yes           | Postgres connection                                                                                       |
+| `NEXT_PUBLIC_MAGAZINE_NAME` / `_ORG_NAME` / `_TAGLINE` | no (defaults) | Branding, build-time inlined                                                                              |
+| `AUTH_SECRET`                                          | dev: yes      | Auth.js token/cookie signing + unsubscribe-token key (required in prod by env.ts)                         |
 | `APP_URL`                                              | no (fallback) | Canonical origin for links in emails (magic link, unsubscribe); falls back to the request Host when unset |
-| `EMAIL_API_KEY`, `EMAIL_FROM`                          | no in dev     | Resend; unset in dev = links only in console (required in prod) |
-| `R2_*`                                                 | no in dev     | Object storage (required in prod)                               |
+| `EMAIL_API_KEY`, `EMAIL_FROM`                          | no in dev     | Resend; unset in dev = links only in console (required in prod)                                           |
+| `R2_*`                                                 | no in dev     | Object storage (required in prod)                                                                         |
 
 ## What's real vs stubbed
 
@@ -203,10 +205,12 @@ images upload to R2 and render in both editor and reader; magic-link sign-in wit
 sessions, and every route/mutation is gated (members read, admins author); the admin manages the
 real member list (the `users` table) with add / remove / toggle subscribed / toggle admin / CSV
 import; publishing an issue emails every subscribed member a personal magic link (the new-issue
-email _is_ the sign-in link), with a signed one-click unsubscribe.
-Stubbed/deferred: PDF export, sponsors persistence. The phase
-sequence lives in [ROADMAP.md](ROADMAP.md); work is tracked as GitHub issues (one
-milestone per phase).
+email _is_ the sign-in link), with a signed one-click unsubscribe; **PDF export** prints the
+fixed-canvas pages to a paginated PDF via headless Chromium (Playwright), cached in R2 by issue id
+
+- revision and served members-only (see [infrastructure.md](infrastructure.md#pdf-generation)).
+  The phase sequence lives in [ROADMAP.md](ROADMAP.md); work is tracked as GitHub issues (one
+  milestone per phase).
 
 ## Docs
 

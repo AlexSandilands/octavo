@@ -1,0 +1,108 @@
+import * as Sentry from "@sentry/nextjs";
+import { NextResponse } from "next/server";
+import { site } from "@/lib/site";
+import { getObject, putObject } from "@/lib/storage";
+import { ChromiumUnavailableError, generateIssuePdf } from "@/lib/pdf";
+import { getPublishedIssueByNumber } from "@/server/issues";
+import { getUserFailClosed } from "@/server/session";
+
+// Members-only PDF download. The reader is gated, so this is too: a signed-out
+// request is refused. The PDF is a derived artifact cached in R2 keyed by issue
+// id + revision (`pdfs/{issueId}/{revision}.pdf`) — a cache hit serves the
+// stored bytes; a miss generates once via Playwright, stores, and serves. Since
+// `revision` bumps on every content write, editing + republishing yields a new
+// key and a fresh PDF with no manual invalidation (design-principles §4).
+//
+// The bytes are proxied through this endpoint rather than served from a public
+// URL: unlike images, a whole-issue PDF stays behind the member gate.
+
+export const dynamic = "force-dynamic";
+
+// Coalesce concurrent generations of the same key within one instance, so the
+// first hit after a publish (which several members might click at once) launches
+// one Chromium, not one per request. Cleared when the generation settles.
+const inFlight = new Map<string, Promise<Buffer>>();
+
+function generateOnce(key: string, issueNumber: number): Promise<Buffer> {
+  const existing = inFlight.get(key);
+  if (existing) return existing;
+  const task = (async () => {
+    const pdf = await generateIssuePdf(issueNumber);
+    await putObject(key, pdf, "application/pdf");
+    return pdf;
+  })();
+  inFlight.set(key, task);
+  return task.finally(() => inFlight.delete(key));
+}
+
+// A download filename the browser and the audience can read. Strip anything
+// path- or header-unsafe; keep an ASCII fallback plus a UTF-8 form for clients
+// that honour RFC 5987.
+function contentDisposition(issueNumber: number): string {
+  const base = `${site.name} No. ${issueNumber}`;
+  const ascii = base.replace(/[^\x20-\x7e]/g, "").replace(/["\\]/g, "");
+  const safe = (ascii || `Issue ${issueNumber}`).trim();
+  return `attachment; filename="${safe}.pdf"; filename*=UTF-8''${encodeURIComponent(base)}.pdf`;
+}
+
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ number: string }> },
+) {
+  // Fail closed: any auth error reads as signed out (and is logged there).
+  const user = await getUserFailClosed();
+  if (!user) {
+    return NextResponse.json(
+      { error: "Sign in to download." },
+      { status: 403 },
+    );
+  }
+
+  const { number: raw } = await params;
+  const number = Number(raw);
+  if (!Number.isInteger(number) || number <= 0) {
+    return NextResponse.json({ error: "Issue not found." }, { status: 404 });
+  }
+
+  const issue = await getPublishedIssueByNumber(number);
+  if (!issue) {
+    return NextResponse.json({ error: "Issue not found." }, { status: 404 });
+  }
+
+  const key = `pdfs/${issue.id}/${issue.revision}.pdf`;
+
+  let pdf: Buffer | null;
+  try {
+    pdf = await getObject(key);
+    if (!pdf) pdf = await generateOnce(key, number);
+  } catch (err) {
+    // Chromium missing is an operator/deploy problem; a render/storage failure
+    // is an infra one. Both are invisible to the member (they see a legible
+    // error on the button), so this capture is the only record.
+    Sentry.captureException(err, {
+      tags: {
+        route: "issues/pdf",
+        stage:
+          err instanceof ChromiumUnavailableError ? "chromium" : "generate",
+      },
+      extra: { issueNumber: number, revision: issue.revision },
+    });
+    console.error(`PDF generation failed for issue ${number}`, err);
+    return NextResponse.json(
+      { error: "Could not build the PDF. Please try again." },
+      { status: 500 },
+    );
+  }
+
+  return new Response(new Uint8Array(pdf), {
+    status: 200,
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Length": String(pdf.length),
+      "Content-Disposition": contentDisposition(number),
+      // Always revalidate against the endpoint so a republish (new revision) is
+      // never masked by a cached download.
+      "Cache-Control": "private, no-store",
+    },
+  });
+}

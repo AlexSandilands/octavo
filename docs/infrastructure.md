@@ -75,11 +75,43 @@ Member ── Cloudflare (DNS/CDN) ── Railway (Next.js + Postgres)
 8. **Deploy** — confirm a test magic-link email arrives, signing in works, and an
    image upload lands in R2.
 
-### Note on PDF generation
+### PDF generation
 
-PDF export uses headless Chromium (Playwright). It needs system dependencies in the
-container — use Railway's Nixpacks/Docker config to install them, or run PDF generation
-as a small separate Railway service if it bloats the main app's memory.
+PDF export (issue #16) uses headless Chromium via Playwright, in the **main
+service** (no separate service). How it works: the download endpoint
+(`GET /api/issues/[number]/pdf`, members-only) checks R2 for a cached PDF keyed
+by issue id + revision (`pdfs/{issueId}/{revision}.pdf`); on a miss it launches
+Chromium, loads the issue's print route over localhost, prints the fixed
+PAGE_W×PAGE_H canvas to a paginated PDF, caches the bytes, and serves them.
+Because `revision` bumps on every content write, an edit + republish yields a
+fresh key with no manual invalidation, and repeat downloads of the same revision
+are cache hits. Generation is coalesced per key within an instance, so the first
+click after a publish launches one Chromium even if several members click at
+once. Chromium is a transient, on-demand cost — not held between requests.
+
+**Container deps — [`nixpacks.toml`](../nixpacks.toml)** installs the shared
+libraries Chromium needs (`aptPkgs`) and downloads Playwright's pinned Chromium
+into the image at build time (browser cache shared with runtime, so
+`chromium.launch()` finds it). `playwright` is a **runtime** dependency (not
+just dev). **This must be verified on a real Railway deploy** — the dev sandbox
+has no headless Chromium, so the deploy-time browser install can only be
+exercised there.
+
+**Memory:** one headless Chromium rendering a ~10–20-page issue peaks at a few
+hundred MB, transiently, and only while a PDF is being generated (rare, cached
+after). At club scale this fits comfortably alongside the app on a Hobby
+instance. **Watch it after launch** (Railway metrics): if a generation OOMs the
+main service, the fallback is to **split a tiny PDF service** — a second Railway
+service from this same repo that only runs the generator, called by the download
+endpoint over the private network. That is a documented option, deliberately not
+built now (no new service unless memory forces it — issue #16 budget).
+
+**Internal print route:** `/read/[n]/print` renders the issue for Chromium to
+print. The reader is members-only, so this route must not be publicly reachable:
+it is excluded from the edge session gate (the cookie-less localhost generator
+has to reach it) and instead authorises with an **internal token** derived from
+`AUTH_SECRET` (`src/lib/pdf-token.ts`) — a request without a valid token 404s.
+It only ever renders already-published content, so no new secret is exposed.
 
 ## Environment variables (app)
 

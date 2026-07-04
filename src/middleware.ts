@@ -65,15 +65,18 @@ function hasSessionCookie(req: NextRequest): boolean {
 }
 
 // The three members-only prefixes the auth gate covers — unchanged from when
-// this lived in the matcher (`/`, `/read/:path*`, `/admin/:path*`).
+// this lived in the matcher (`/`, `/read/:path*`, `/admin/:path*`). The one
+// carve-out is the PDF print route (`/read/[n]/print`): it carries no session
+// cookie (the generator self-fetches over localhost) and would be redirected to
+// /signin here, so it is let through the edge and guarded instead by the
+// internal print token it validates in-route (src/lib/pdf-token.ts) — without a
+// valid token it 404s, so it stays unreachable from outside.
 function isGatedRoute(pathname: string): boolean {
-  return (
-    pathname === "/" ||
-    pathname === "/read" ||
-    pathname.startsWith("/read/") ||
-    pathname === "/admin" ||
-    pathname.startsWith("/admin/")
-  );
+  if (pathname === "/") return true;
+  if (pathname === "/admin" || pathname.startsWith("/admin/")) return true;
+  if (pathname === "/read") return true;
+  if (pathname.startsWith("/read/")) return !pathname.endsWith("/print");
+  return false;
 }
 
 function buildCsp(nonce: string): string {

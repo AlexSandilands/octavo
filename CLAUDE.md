@@ -49,7 +49,12 @@ fallback / the v1 path). Version-1 issues with inline sponsor blocks still rende
 **Publishing an issue can email every subscribed member a personal magic link that opens the new
 issue** (the email _is_ the sign-in link; skippable per publish, defaults off on re-publish), each
 with a signed one-click unsubscribe (`/unsubscribe`, no session). Dev logs the blast + unsubscribe
-links to the console too. Still stubbed: PDF.
+links to the console too. **PDF export is real**: a members-only download endpoint
+(`GET /api/issues/[number]/pdf`) prints the issue's fixed-canvas pages to a paginated PDF via headless
+Chromium (Playwright), cached in R2 by issue id + revision (regenerated only when the content changes);
+the reader control bar, mobile reader header and latest-issue card all download it (with loading + error
+states). Generation is server-only and off the request path, driven through an internal, token-guarded
+print route; it needs Chromium in the deploy container (see `docs/infrastructure.md`). Nothing stubbed.
 Routes + directory map are in `docs/architecture.md`; phase plan in `docs/ROADMAP.md`.
 
 ## Stack
