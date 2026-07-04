@@ -50,6 +50,9 @@ export function DesktopReader({
   // measures the spread box for edge-zone hits.
   const [turn, setTurn] = useState<Turn | null>(null);
   const [turnAngle, setTurnAngle] = useState(0);
+  // Opacity driver for the cover-open/close: the facing left leaf fades in as
+  // the cover opens (0→1) and out as it closes (1→0), kicked alongside turnAngle.
+  const [leftFade, setLeftFade] = useState(1);
   const turnRef = useRef(turn);
   turnRef.current = turn;
   const spreadRef = useRef<HTMLDivElement>(null);
@@ -111,10 +114,22 @@ export function DesktopReader({
   const viewOf = (page: number) => (page <= 1 ? 0 : Math.ceil((page - 1) / 2));
   const go = (page: number) => setSpread(viewOf(page));
 
-  // Turn one spread forward/back with the page-curl animation. Transitions that
-  // involve the standalone cover (a width change) or a reduced-motion preference
-  // just swap instantly; everything else animates a single leaf over the
-  // destination spread, then commits when the leaf lands.
+  // The cover reads as a single, centred page rather than the right leaf of a
+  // blank spread. The spread box stays a constant 2·PAGE_W (so the curl geometry
+  // and the pan-zoom fit never change); when the view we're settling into is the
+  // cover we translate the box left by a quarter of its width — half a page — so
+  // the cover lands centred, and the first turn animates that offset back to 0
+  // (recenter) as the leaf curls. `targetView` looks ahead to the turn's
+  // destination so the recenter runs during the turn, not after it commits.
+  const targetView = turn ? turn.to : spread;
+  const atCover = targetView === 0;
+  const coverTurn = Boolean(turn) && (spread === 0 || turn?.to === 0);
+
+  // Turn one spread forward/back with the page-curl animation: a single leaf
+  // rotates over the destination spread, then commits when the leaf lands. A
+  // turn into or out of the cover also fades the facing leaf and recenters the
+  // box (see below). A reduced-motion preference skips all of it and swaps
+  // instantly.
   const startTurn = (dir: "next" | "prev") => {
     if (turn) return;
     const to = dir === "next" ? spread + 1 : spread - 1;
@@ -126,11 +141,19 @@ export function DesktopReader({
       setSpread(to);
       return;
     }
+    // A turn into or out of the cover fades the facing left leaf: opening
+    // (turning forward off the cover) fades it in 0→1; closing (turning back to
+    // the cover) fades it out 1→0. The recenter offset animates via CSS.
+    const coverInvolved = spread === 0 || to === 0;
     setTurn({ dir, to });
     setTurnAngle(0);
+    if (coverInvolved) setLeftFade(dir === "next" ? 0 : 1);
     // Two frames so the leaf paints flat (0°) before the transition to ±180°.
     requestAnimationFrame(() =>
-      requestAnimationFrame(() => setTurnAngle(dir === "next" ? -180 : 180)),
+      requestAnimationFrame(() => {
+        setTurnAngle(dir === "next" ? -180 : 180);
+        if (coverInvolved) setLeftFade(dir === "next" ? 1 : 0);
+      }),
     );
     turnTimer.current = window.setTimeout(() => {
       turnTimer.current = null;
@@ -243,25 +266,48 @@ export function DesktopReader({
         }`}
       >
         <div className="flex min-h-full min-w-full items-center justify-center p-6">
+          {/* Pan rides on the outer wrapper (instant); the cover-recenter offset
+              rides on the inner one (transitioned) so a drag never lags behind a
+              700ms ease. The offset is a percentage of the box's own width, so a
+              zoom rescales it instantly without a stray transition. */}
           <div
-            ref={spreadRef}
-            onPointerDown={onSpreadPointerDown}
-            className="relative inline-flex shadow-[0_18px_40px_rgba(40,36,28,0.18)]"
+            className="relative"
             style={{
               transform: `translate(${panZoom.pan.x}px, ${panZoom.pan.y}px)`,
             }}
           >
-            <ReaderSpread
-              pages={pages}
-              spread={spread}
-              turn={turn}
-              turnAngle={turnAngle}
-              theme={theme}
-              scale={panZoom.scale}
-              issueNo={issueNo}
-              images={images}
-              sponsors={sponsors}
-            />
+            <div
+              ref={spreadRef}
+              onPointerDown={onSpreadPointerDown}
+              className="relative inline-flex transition-transform duration-700 ease-[cubic-bezier(0.3,0.1,0.2,1)] motion-reduce:transition-none"
+              style={{ transform: `translateX(${atCover ? "-25%" : "0%"})` }}
+            >
+              {/* Drop-shadow plate behind the pages, sized to the visible sheet:
+                  the full spread, or just the cover leaf when centred. A box
+                  shadow on the spread wrapper would flatten the flip's 3D, so it
+                  lives on its own element. */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute top-0 shadow-[0_18px_40px_rgba(40,36,28,0.18)] transition-[left,width] duration-700 ease-[cubic-bezier(0.3,0.1,0.2,1)] motion-reduce:transition-none"
+                style={{
+                  left: atCover ? "50%" : "0%",
+                  width: atCover ? "50%" : "100%",
+                  height: "100%",
+                }}
+              />
+              <ReaderSpread
+                pages={pages}
+                spread={spread}
+                turn={turn}
+                turnAngle={turnAngle}
+                leftFade={coverTurn ? leftFade : undefined}
+                theme={theme}
+                scale={panZoom.scale}
+                issueNo={issueNo}
+                images={images}
+                sponsors={sponsors}
+              />
+            </div>
           </div>
         </div>
       </div>
