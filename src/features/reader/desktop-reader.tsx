@@ -4,7 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import type { IssueContent } from "@/lib/blocks";
 import type { ImageMap } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
-import { type Theme } from "@/features/blocks/block-view";
+import {
+  defaultEnabledThemeId,
+  enabledThemes,
+  getTheme,
+  type LayoutThemeId,
+} from "@/features/blocks/themes/registry";
 import { PAGE_W, PAGE_H } from "@/features/blocks/page-frame";
 import { useCanvasPanZoom } from "@/features/blocks/use-canvas-pan-zoom";
 import { ReaderSpread, FLIP_MS, type Turn } from "./reader-spread";
@@ -28,9 +33,16 @@ export function DesktopReader({
 
   const [spread, setSpread] = useState(0);
   const [collapsed, setCollapsed] = useState(false);
-  const [theme, setTheme] = useState<Theme>("Classic");
+  // The reader's layout theme is a member-facing per-session preference (not the
+  // issue's stored theme): it opens on the deployment default and the toggle
+  // offers only the enabled themes. `themeId` is the choice; `theme` the module.
+  const themes = enabledThemes();
+  const [themeId, setThemeId] = useState<LayoutThemeId>(
+    defaultEnabledThemeId(),
+  );
+  const theme = getTheme(themeId);
   // The PDF renders in whichever theme is currently on screen.
-  const pdf = useIssuePdf(issueNo, theme === "Modern" ? "modern" : "classic");
+  const pdf = useIssuePdf(issueNo, themeId);
 
   // Page-turn animation. `turn` holds the in-flight flip (direction + target
   // spread); `turnAngle` is the leaf's live rotation that CSS transitions from 0
@@ -180,25 +192,30 @@ export function DesktopReader({
       ref={rootRef}
       className="bg-stage relative flex h-screen overflow-hidden"
     >
-      <div className="absolute top-3.5 right-4 z-10 flex items-center gap-2">
-        <span className="text-faint2 font-sans text-[9px] font-semibold tracking-[0.18em] uppercase">
-          Theme
-        </span>
-        <div className="bg-card border-hair flex rounded-full border p-[3px]">
-          {(["Classic", "Modern"] as Theme[]).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTheme(t)}
-              aria-pressed={theme === t}
-              className={`flex min-h-[44px] items-center rounded-full px-4 font-sans text-xs font-semibold ${
-                theme === t ? "bg-accent text-paper" : "text-muted"
-              }`}
-            >
-              {t}
-            </button>
-          ))}
+      {/* Only offer the toggle when the deployment enables more than one layout
+          theme (NEXT_PUBLIC_ISSUE_THEMES) — with a single theme there's nothing
+          to choose. */}
+      {themes.length > 1 && (
+        <div className="absolute top-3.5 right-4 z-10 flex items-center gap-2">
+          <span className="text-faint2 font-sans text-[9px] font-semibold tracking-[0.18em] uppercase">
+            Theme
+          </span>
+          <div className="bg-card border-hair flex rounded-full border p-[3px]">
+            {themes.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setThemeId(t.id)}
+                aria-pressed={themeId === t.id}
+                className={`flex min-h-[44px] items-center rounded-full px-4 font-sans text-xs font-semibold ${
+                  themeId === t.id ? "bg-accent text-paper" : "text-muted"
+                }`}
+              >
+                {t.name}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <ReaderContents
         collapsed={collapsed}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import type { LayoutThemeId } from "@/features/blocks/themes/registry";
 
 // Drives a "Download PDF" control: fetch the members-only endpoint, then hand
 // the bytes to the browser as a file download. The first hit generates on the
@@ -15,7 +16,7 @@ export function useIssuePdf(
   // The desktop reader passes its current theme toggle so the PDF matches what
   // the member is looking at; callers without a theme concept (mobile reader,
   // latest-issue card) omit it and the server renders the reader's default.
-  theme?: "classic" | "modern",
+  theme?: LayoutThemeId,
 ) {
   const [state, setState] = useState<PdfState>("idle");
   // A ref (not just state) so a double-click can't launch two fetches in the

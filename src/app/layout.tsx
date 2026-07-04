@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Newsreader, Hanken_Grotesk, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { site } from "@/lib/site";
+import { env } from "@/lib/env";
 
 const serif = Newsreader({
   subsets: ["latin"],
@@ -34,8 +35,12 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
+    // data-brand selects the deployment brand skin's palette (issue #40): the
+    // default "heritage" is the @theme baseline, other brands are override blocks
+    // in brands.css keyed off this attribute. Validated in lib/env.ts.
     <html
       lang="en"
+      data-brand={env.NEXT_PUBLIC_BRAND}
       className={`${serif.variable} ${sans.variable} ${mono.variable}`}
     >
       <body>{children}</body>

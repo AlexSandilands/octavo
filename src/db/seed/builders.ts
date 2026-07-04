@@ -8,6 +8,7 @@ import {
   type Page,
   type TextSize,
 } from "../../lib/blocks";
+import { stringToDoc } from "../../lib/rich-text-doc";
 
 const id = () => crypto.randomUUID();
 
@@ -18,10 +19,32 @@ export const H = (title: string, kicker = "", level?: HeadingLevel): Block => ({
   title,
   level,
 });
+// Body text, authored in the v3 shape the editor produces: a structured
+// rich-text doc (stringToDoc turns the plain seed prose into one paragraph), so
+// a fresh database exercises the same render path as real edited content — not
+// the legacy string fallback (issue #36). The deliberately legacy-shaped blocks
+// below (Traw/Thtml) keep the permanent v1/v2 fallback + migration script under
+// ambient coverage.
 export const T = (text: string, size?: TextSize): Block => ({
   id: id(),
   type: "text",
+  text: stringToDoc(text),
+  size,
+});
+// Legacy v1 body text: a stored *plain string* (pre-v3 shape). Kept for the one
+// deliberate legacy page so the string→doc render fallback stays exercised.
+export const Traw = (text: string, size?: TextSize): Block => ({
+  id: id(),
+  type: "text",
   text,
+  size,
+});
+// Legacy v2 body text: a stored *constrained-HTML string* (the old rich editor's
+// output). Renders through the same stringToDoc fallback as Traw.
+export const Thtml = (html: string, size?: TextSize): Block => ({
+  id: id(),
+  type: "text",
+  text: html,
   size,
 });
 export const Img = (

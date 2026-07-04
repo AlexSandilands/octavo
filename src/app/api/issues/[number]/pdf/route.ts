@@ -8,6 +8,7 @@ import {
   generateIssuePdf,
   type PdfTheme,
 } from "@/lib/pdf";
+import { DEFAULT_THEME_ID, THEME_IDS } from "@/features/blocks/themes/registry";
 import { getPublishedIssueByNumber } from "@/server/issues";
 import { getUserFailClosed } from "@/server/session";
 
@@ -50,8 +51,11 @@ function generateOnce(
 // current selection (the theme toggle is client state, not stored on the
 // issue); callers without a theme concept (mobile reader, latest-issue card)
 // send none and get the reader's default. Part of the cache key: each theme is
-// its own derived artifact.
-const themeSchema = z.enum(["classic", "modern"]).default("classic");
+// its own derived artifact. Derived from the layout-theme registry, so a new
+// theme is accepted here with no edit (issue #40).
+const themeSchema = z
+  .enum(THEME_IDS as [PdfTheme, ...PdfTheme[]])
+  .default(DEFAULT_THEME_ID);
 
 // Cache-busts every stored PDF when the *renderer* changes, the counterpart of
 // `revision` busting on content changes. Bump it in the same commit as any

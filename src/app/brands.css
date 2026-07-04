@@ -1,0 +1,60 @@
+/* Deployment brand skins (issue #40). Each non-default brand overrides the
+   Tailwind v4 `--color-*` tokens the @theme block in globals.css defines, keyed
+   off the `data-brand` attribute the root layout stamps on <html>. `heritage`
+   (the warm-paper/green look) is the @theme default and needs no block here — a
+   deployment with no NEXT_PUBLIC_BRAND set is pixel-identical to it. Every brand
+   must clear the WCAG AA contrast bar audited in #10; scripts/dev-contrast-gate.mts
+   checks each one. To add a brand: register its id in src/lib/brands.ts and add a
+   block below (see docs/design-principles.md §6 for the token set + rules). The
+   `:root` prefix keeps the override winning over the @theme `:root` defaults.
+
+   Semantic status inks (warn / warn-soft / ok / alert) and the placeholder photo
+   fills are intentionally left to the heritage defaults — they read the same
+   across brands. Override --font-* here too if a brand wants its own type. */
+
+/* coastal — cool slate paper with a petrol-blue accent (a distinct family from
+   the heritage warm-paper/green), same lightness structure so it holds AA. */
+:root[data-brand="coastal"] {
+  --color-paper: #ecedf1;
+  --color-page: #f6f7fb;
+  --color-card: #f8fafc;
+  --color-stage: #e6e8ef;
+  --color-tint: #e4eaf1;
+
+  --color-accent: #1f4e63;
+  --color-accent-strong: #193f50;
+  --color-accent-ink: #163743;
+  --color-accent-soft: #3d6377;
+  --color-cream: #cddfe6;
+
+  --color-ink: #1c1e23;
+  --color-body: #262a30;
+  --color-muted: #4f545d;
+  --color-faint: #585d67;
+  --color-faint2: #5f646e;
+
+  --color-line: #dfe2ea;
+  --color-line-soft: #e8ebf2;
+  --color-hair: #d3d7e0;
+
+  --color-hair-warm: #d9dce4;
+  --color-rule: #c3c8d3;
+  --color-dash: #c2c7d1;
+  --color-placeholder-line: #dde0e8;
+  --color-chip: #e9ebf1;
+  --color-chip-dot: #adb2bd;
+  --color-chip-soft: #eaecf1;
+  --color-accent-wash: #f2f6fa;
+  --color-canvas: #e7e9ef;
+
+  --color-page-seam: #e9ebf2;
+  --color-page-frame: #cfd4de;
+  --color-page-frame-soft: #dfe3eb;
+
+  --color-reader-chrome: #1b2028;
+  --color-reader-chrome-text: #e2e6ee;
+  --color-reader-chrome-muted: #c3c8d2;
+  --color-reader-chrome-hover: #2a3038;
+  --color-reader-chrome-line: #383e48;
+  --color-reader-slider: #93b0c4;
+}

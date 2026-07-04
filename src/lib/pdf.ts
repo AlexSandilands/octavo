@@ -1,6 +1,7 @@
 import "server-only";
 import { chromium } from "playwright";
 import { PAGE_W, PAGE_H } from "@/features/blocks/page-frame";
+import type { LayoutThemeId } from "@/features/blocks/themes/registry";
 import { printToken } from "./pdf-token";
 
 // Server-only PDF generation. Headless Chromium loads the issue's print route
@@ -42,7 +43,9 @@ function selfOrigin(): string {
   return `http://127.0.0.1:${port}`;
 }
 
-export type PdfTheme = "classic" | "modern";
+// The PDF renders in a layout theme, keyed by its registry id, so a new layout
+// theme flows to the PDF path with no change here (issue #40).
+export type PdfTheme = LayoutThemeId;
 
 export async function generateIssuePdf(
   issueNumber: number,

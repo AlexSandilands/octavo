@@ -3,7 +3,7 @@
 import type { Page } from "@/lib/blocks";
 import type { ImageMap } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
-import { type Theme } from "@/features/blocks/block-view";
+import type { LayoutTheme } from "@/features/blocks/themes/registry";
 import { PageBlocks } from "@/features/blocks/page-blocks";
 import {
   PageFrame,
@@ -36,7 +36,7 @@ export function ReaderSpread({
   spread: number;
   turn: Turn | null;
   turnAngle: number;
-  theme: Theme;
+  theme: LayoutTheme;
   scale: number;
   issueNo: number;
   images: ImageMap;
@@ -139,7 +139,7 @@ function TurnLeaf({
   spread: number;
   turn: Turn;
   turnAngle: number;
-  theme: Theme;
+  theme: LayoutTheme;
   scale: number;
   issueNo: number;
   images: ImageMap;
@@ -253,7 +253,7 @@ function PageView({
 }: {
   page?: Page;
   side: "left" | "right";
-  theme: Theme;
+  theme: LayoutTheme;
   scale: number;
   issueNo: number;
   pageNo?: number;

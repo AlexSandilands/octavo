@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { DesktopReader } from "@/features/reader/desktop-reader";
-import { MobileReader } from "@/features/reader/mobile-reader";
+import { ReaderMount } from "@/features/reader/reader-mount";
 import { getIssue } from "@/server/issues";
 import { resolveIssueImages } from "@/server/images";
 import { resolveIssueSponsors } from "@/server/sponsors";
@@ -43,22 +42,15 @@ export default async function PreviewIssuePage({
           </Link>
         </div>
       )}
-      <div className="hidden md:block">
-        <DesktopReader
-          content={issue.content}
-          issueNo={issue.number}
-          images={images}
-          sponsors={sponsors}
-        />
-      </div>
-      <div className="md:hidden">
-        <MobileReader
-          content={issue.content}
-          issueNo={issue.number}
-          images={images}
-          sponsors={sponsors}
-        />
-      </div>
+      {/* Reuse the reader's viewport-split mount (issue #36) so the admin preview
+          lazy-loads only the reader its viewport needs, matching /read — instead
+          of statically bundling both. */}
+      <ReaderMount
+        content={issue.content}
+        issueNo={issue.number}
+        images={images}
+        sponsors={sponsors}
+      />
     </>
   );
 }

@@ -1,5 +1,5 @@
 import { site } from "@/lib/site";
-import type { Theme } from "./block-view";
+import type { LayoutTheme } from "./themes/registry";
 
 // The fixed design canvas every page is authored and rendered at. The reader and
 // editor never change these px — they render the page at this size and scale the
@@ -57,7 +57,7 @@ export function PageFrame({
   boundary = false,
   children,
 }: {
-  theme: Theme;
+  theme: LayoutTheme;
   w: number;
   h: number;
   issueNo: number;
@@ -69,7 +69,6 @@ export function PageFrame({
   boundary?: boolean;
   children: React.ReactNode;
 }) {
-  const isClassic = theme === "Classic";
   return (
     <div
       style={{ width: w, height: h }}
@@ -77,21 +76,7 @@ export function PageFrame({
         clip ? "overflow-hidden" : "overflow-visible"
       } ${side === "left" ? "border-page-seam border-r" : ""}`}
     >
-      {isClassic ? (
-        <>
-          <div className="border-page-frame pointer-events-none absolute inset-3.5 border" />
-          <div className="border-page-frame-soft pointer-events-none absolute inset-[17px] border" />
-          <div className="text-faint2 pointer-events-none absolute top-5 right-3.5 left-3.5 text-center font-sans text-[8px] tracking-[0.32em] uppercase">
-            {site.name} · No. {issueNo}
-          </div>
-        </>
-      ) : (
-        <div
-          className={`bg-accent pointer-events-none absolute top-0 bottom-0 w-[5px] ${
-            side === "left" ? "left-0" : "right-0"
-          }`}
-        />
-      )}
+      {theme.page.decoration({ issueNo, side })}
 
       {children}
 

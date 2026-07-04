@@ -1,7 +1,7 @@
 import type { IssueContent } from "@/lib/blocks";
 import type { ImageMap } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
-import { type Theme } from "@/features/blocks/block-view";
+import { resolveTheme } from "@/features/blocks/themes/registry";
 import { PageBlocks } from "@/features/blocks/page-blocks";
 import { PageFrame, PAGE_W, PAGE_H } from "@/features/blocks/page-frame";
 
@@ -11,13 +11,6 @@ import { PageFrame, PAGE_W, PAGE_H } from "@/features/blocks/page-frame";
 // One `.pdf-page` box per magazine page; each box equals the PDF page size the
 // generator sets, so the output is one PDF page per magazine page, matching the
 // flipbook page-for-page.
-
-// The stored theme is a lowercase string ("classic"/"modern"); the renderer
-// speaks the capitalised Theme union. Default to Classic (the reader's default)
-// so the PDF matches what a member opens by default.
-function normaliseTheme(theme: string): Theme {
-  return theme.toLowerCase() === "modern" ? "Modern" : "Classic";
-}
 
 // Sheet sizing + page breaks. Print-color-adjust keeps the paper wash, page
 // borders and sponsor tints in the print snapshot (paired with Playwright's
@@ -47,7 +40,9 @@ export function PrintDocument({
   images: ImageMap;
   sponsors: SponsorMap;
 }) {
-  const t = normaliseTheme(theme);
+  // Free-text/forwarded theme → a renderable theme, degrading unknown to the
+  // default so the PDF always renders (reading is never gated by config).
+  const t = resolveTheme(theme);
   return (
     <div className="pdf-pages">
       <style>{PRINT_CSS}</style>

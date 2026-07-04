@@ -1,5 +1,7 @@
 import "server-only";
 import { z } from "zod";
+import { BRAND_IDS, DEFAULT_BRAND, type BrandId } from "./brands";
+import { THEME_IDS } from "@/features/blocks/themes/registry";
 
 // Server-only environment validation. The `server-only` import makes any
 // accidental client-component import a build error — the parsed object holds
@@ -50,6 +52,36 @@ const schema = z
     // Server/edge runtimes read it from here; the browser reads the same value
     // from NEXT_PUBLIC_SENTRY_DSN (a DSN is a public ingest key, not a secret).
     SENTRY_DSN: z.string().url().optional(),
+    // Deployment brand skin (issue #40) — the app-wide palette, build-time
+    // inlined like the other NEXT_PUBLIC_* branding. An unknown value fails
+    // here at boot rather than silently falling back to the default. The root
+    // layout stamps this on <html data-brand>; brands.css does the rest.
+    NEXT_PUBLIC_BRAND: z
+      .enum(BRAND_IDS as unknown as [BrandId, ...BrandId[]])
+      .default(DEFAULT_BRAND),
+    // Which layout themes the editor picker + reader toggle offer (a comma list,
+    // e.g. "classic,modern"; unset = all). Validated against the theme registry
+    // so a typo fails loudly at boot; the registry filters the actual set.
+    NEXT_PUBLIC_ISSUE_THEMES: z
+      .string()
+      .optional()
+      .superRefine((value, ctx) => {
+        if (!value) return;
+        const known = new Set<string>(THEME_IDS);
+        const unknown = value
+          .split(",")
+          .map((s) => s.trim().toLowerCase())
+          .filter(Boolean)
+          .filter((id) => !known.has(id));
+        if (unknown.length > 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message:
+              `unknown layout theme(s): ${unknown.join(", ")}. ` +
+              `Known themes: ${THEME_IDS.join(", ")}`,
+          });
+        }
+      }),
   })
   .superRefine((vars, ctx) => {
     if (process.env.NODE_ENV !== "production") return;
