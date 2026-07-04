@@ -14,6 +14,7 @@ const NAV: { key: string; label: string; href: string; icon: IconName }[] = [
     href: "/admin/sponsors",
     icon: "banner",
   },
+  { key: "help", label: "Guide", href: "/admin/help", icon: "help" },
 ];
 
 export function AdminShell({

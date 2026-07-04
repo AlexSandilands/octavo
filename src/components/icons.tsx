@@ -95,6 +95,13 @@ const ICONS: Record<string, ReactNode> = {
       <path d="M9 8h6M9 12h6M9 16h4" />
     </>
   ),
+  help: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.4 9.4a2.6 2.6 0 114.3 2c-.9.7-1.7 1.2-1.7 2.4" />
+      <path d="M12 17h.01" />
+    </>
+  ),
   listBullet: (
     <>
       <circle cx="5" cy="7" r="1.1" fill="currentColor" stroke="none" />
