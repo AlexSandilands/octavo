@@ -22,12 +22,16 @@ function normaliseTheme(theme: string): Theme {
 // Sheet sizing + page breaks. Print-color-adjust keeps the paper wash, page
 // borders and sponsor tints in the print snapshot (paired with Playwright's
 // printBackground). @page matches the canvas so there is no default margin.
+// The pages live in their own wrapper (`.pdf-pages`) because Next streams
+// <script>/<template> elements after the page content in <body> — as direct
+// body children the last page would never be :last-child, its break-after
+// would stick, and the PDF would end on a blank page.
 const PRINT_CSS = `
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   html, body { margin: 0; padding: 0; background: #fff; }
   @page { size: ${PAGE_W}px ${PAGE_H}px; margin: 0; }
   .pdf-page { width: ${PAGE_W}px; height: ${PAGE_H}px; overflow: hidden; break-after: page; }
-  .pdf-page:last-child { break-after: auto; }
+  .pdf-pages > .pdf-page:last-child { break-after: auto; }
 `;
 
 export function PrintDocument({
@@ -45,7 +49,7 @@ export function PrintDocument({
 }) {
   const t = normaliseTheme(theme);
   return (
-    <>
+    <div className="pdf-pages">
       <style>{PRINT_CSS}</style>
       {content.pages.map((page, i) => {
         const pageNo = i + 1;
@@ -73,6 +77,6 @@ export function PrintDocument({
           </div>
         );
       })}
-    </>
+    </div>
   );
 }

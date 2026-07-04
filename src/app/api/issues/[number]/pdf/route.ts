@@ -13,10 +13,12 @@ import { getUserFailClosed } from "@/server/session";
 
 // Members-only PDF download. The reader is gated, so this is too: a signed-out
 // request is refused. The PDF is a derived artifact cached in R2 keyed by issue
-// id + revision + theme (`pdfs/{issueId}/{revision}-{theme}.pdf`) — a cache hit serves the
-// stored bytes; a miss generates once via Playwright, stores, and serves. Since
-// `revision` bumps on every content write, editing + republishing yields a new
-// key and a fresh PDF with no manual invalidation (design-principles §4).
+// id + revision + theme + render version
+// (`pdfs/{issueId}/{revision}-{theme}-v{RENDER_VERSION}.pdf`) — a cache hit
+// serves the stored bytes; a miss generates once via Playwright, stores, and
+// serves. Since `revision` bumps on every content write (and RENDER_VERSION on
+// renderer changes), editing + republishing yields a new key and a fresh PDF
+// with no manual invalidation (design-principles §4).
 //
 // The bytes are proxied through this endpoint rather than served from a public
 // URL: unlike images, a whole-issue PDF stays behind the member gate.
@@ -50,6 +52,13 @@ function generateOnce(
 // send none and get the reader's default. Part of the cache key: each theme is
 // its own derived artifact.
 const themeSchema = z.enum(["classic", "modern"]).default("classic");
+
+// Cache-busts every stored PDF when the *renderer* changes, the counterpart of
+// `revision` busting on content changes. Bump it in the same commit as any
+// print-rendering fix (print document, PageBlocks/BlockView output, page.pdf
+// options) — otherwise issues whose content didn't change keep serving PDFs
+// with the old rendering bug. v2: trailing-blank-page fix.
+const RENDER_VERSION = 2;
 
 // A download filename the browser and the audience can read. Strip anything
 // path- or header-unsafe; keep an ASCII fallback plus a UTF-8 form for clients
@@ -93,7 +102,7 @@ export async function GET(
   }
   const theme = themeParam.data;
 
-  const key = `pdfs/${issue.id}/${issue.revision}-${theme}.pdf`;
+  const key = `pdfs/${issue.id}/${issue.revision}-${theme}-v${RENDER_VERSION}.pdf`;
 
   let pdf: Buffer | null;
   try {

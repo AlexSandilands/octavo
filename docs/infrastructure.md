@@ -80,8 +80,10 @@ Member ── Cloudflare (DNS/CDN) ── Railway (Next.js + Postgres)
 PDF export (issue #16) uses headless Chromium via Playwright, in the **main
 service** (no separate service). How it works: the download endpoint
 (`GET /api/issues/[number]/pdf`, members-only) checks R2 for a cached PDF keyed
-by issue id + revision + reader theme (`pdfs/{issueId}/{revision}-{theme}.pdf`,
-the theme following the desktop reader's toggle); on a miss it launches
+by issue id + revision + reader theme + render version
+(`pdfs/{issueId}/{revision}-{theme}-v{N}.pdf` — the theme follows the desktop
+reader's toggle; `v{N}` is a code constant bumped alongside any print-rendering
+change so stale artifacts regenerate); on a miss it launches
 Chromium, loads the issue's print route over localhost, prints the fixed
 PAGE_W×PAGE_H canvas to a paginated PDF, caches the bytes, and serves them.
 Because `revision` bumps on every content write, an edit + republish yields a
