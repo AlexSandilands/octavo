@@ -36,11 +36,12 @@ zoom, and a one-click PDF download.
 On a phone the same issue becomes a clean, adjustable-type scroll (left). The admin authors
 issues in a live, autosaving block editor with a page rail and a WYSIWYG cover (right).
 
-<p align="center">
-  <img src="docs/assets/reader-mobile.png" alt="Mobile scroll reader" height="440">
-  &nbsp;&nbsp;
-  <img src="docs/assets/editor.png" alt="Admin block editor with page rail, insert toolbar and a cover page" height="440">
-</p>
+<table align="center">
+  <tr>
+    <td><img src="docs/assets/reader-mobile.png" alt="Mobile scroll reader" height="360"></td>
+    <td><img src="docs/assets/editor.png" alt="Admin block editor with page rail, insert toolbar and a cover page" height="360"></td>
+  </tr>
+</table>
 
 ## Features
 
