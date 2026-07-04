@@ -75,12 +75,12 @@ export function PageFrame({
       style={{ width: w, height: h }}
       className={`bg-page relative px-10 pt-10 ${
         clip ? "overflow-hidden" : "overflow-visible"
-      } ${side === "left" ? "border-r border-[#efe7d8]" : ""}`}
+      } ${side === "left" ? "border-page-seam border-r" : ""}`}
     >
       {isClassic ? (
         <>
-          <div className="pointer-events-none absolute inset-3.5 border border-[#dcd1b6]" />
-          <div className="pointer-events-none absolute inset-[17px] border border-[#e8e0cb]" />
+          <div className="border-page-frame pointer-events-none absolute inset-3.5 border" />
+          <div className="border-page-frame-soft pointer-events-none absolute inset-[17px] border" />
           <div className="text-faint2 pointer-events-none absolute top-5 right-3.5 left-3.5 text-center font-sans text-[8px] tracking-[0.32em] uppercase">
             {site.name} · No. {issueNo}
           </div>

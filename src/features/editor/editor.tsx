@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Icon, type IconName } from "@/components/icons";
 import {
   ensureCoverFirst,
   makeBlock,
@@ -39,24 +37,17 @@ import {
   PAGE_W,
   PAGE_H,
 } from "@/features/blocks/page-frame";
+import { useCanvasPanZoom } from "@/features/blocks/use-canvas-pan-zoom";
 import { EditorBlock } from "./editor-block";
 import { PageRail } from "./page-rail";
 import { PublishModal } from "./publish-modal";
+import { EditorHeader, type SaveStatus } from "./editor-header";
+import { EditorToolbar } from "./editor-toolbar";
 import {
   publishIssueAction,
   saveIssueAction,
   saveMetaAction,
 } from "@/app/admin/actions";
-
-const INSERT: { type: BlockType; label: string; icon: IconName }[] = [
-  { type: "heading", label: "Heading", icon: "heading" },
-  { type: "text", label: "Text", icon: "menu" },
-  { type: "image", label: "Image", icon: "image" },
-  { type: "sponsor", label: "Sponsor", icon: "banner" },
-];
-
-const MIN_ZOOM = 0.6;
-const MAX_ZOOM = 3;
 
 export type EditorIssue = {
   id: string;
@@ -67,8 +58,6 @@ export type EditorIssue = {
   revision: number;
   status: string;
 };
-
-type SaveStatus = "saved" | "saving" | "error" | "conflict";
 
 export function Editor({
   issue,
@@ -224,144 +213,26 @@ export function Editor({
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, []);
 
-  // Scale the fixed PAGE_W×PAGE_H canvas to fit the editor stage (zoom=1), exactly
-  // as the reader does — so the editor is a faithful, to-scale preview — then let
-  // a wheel/drag zoom+pan ride on top. No scrollbars: content past the page edge
-  // is reached by dragging the canvas. PageFrame's boundary marks the clip.
-  const canvasRef = useRef<HTMLDivElement>(null);
-  const [fitScale, setFitScale] = useState(0.75);
-  const [zoom, setZoom] = useState(1);
-  useEffect(() => {
-    const el = canvasRef.current;
-    if (!el) return;
-    const update = () => {
-      const availH = el.clientHeight - 80;
-      const availW = el.clientWidth - 80;
-      const s = Math.min(availH / PAGE_H, availW / PAGE_W);
-      setFitScale(Math.max(0.5, Math.min(1.4, s)));
-    };
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  const scale = fitScale * zoom;
-
-  // Drag to move the canvas, wheel to zoom at the cursor — same model as the
-  // reader. Latest values are mirrored into refs for the native (non-passive)
-  // wheel handler, which can't close over fresh state.
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [panning, setPanning] = useState(false);
-  const zoomRef = useRef(zoom);
-  const panRef = useRef(pan);
-  const fitScaleRef = useRef(fitScale);
-  zoomRef.current = zoom;
-  panRef.current = pan;
-  fitScaleRef.current = fitScale;
-  // Set on a moved drag so the click that follows a pan doesn't deselect.
-  const suppressClick = useRef(false);
-
-  // Keep at least a sliver of the page on screen so it can't be lost.
-  const clampPan = (p: { x: number; y: number }, zoomVal: number) => {
-    const el = canvasRef.current;
-    if (!el) return p;
-    const sc = fitScaleRef.current * zoomVal;
-    const keep = 90;
-    const maxX = Math.max(0, (PAGE_W * sc + el.clientWidth) / 2 - keep);
-    const maxY = Math.max(0, (PAGE_H * sc + el.clientHeight) / 2 - keep);
-    return {
-      x: Math.min(maxX, Math.max(-maxX, p.x)),
-      y: Math.min(maxY, Math.max(-maxY, p.y)),
-    };
-  };
-
-  // Zoom to `next`, holding a focal point (offset from the canvas centre) fixed.
-  const applyZoom = (nextRaw: number, focalX = 0, focalY = 0) => {
-    const prev = zoomRef.current;
-    const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, nextRaw));
-    if (next === prev) return;
-    const f = next / prev;
-    const p = panRef.current;
-    setZoom(next);
-    setPan(
-      clampPan(
-        { x: f * p.x + (1 - f) * focalX, y: f * p.y + (1 - f) * focalY },
-        next,
-      ),
-    );
-  };
-
-  useEffect(() => {
-    const el = canvasRef.current;
-    if (!el) return;
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      const rect = el.getBoundingClientRect();
-      const focalX = e.clientX - rect.left - rect.width / 2;
-      const focalY = e.clientY - rect.top - rect.height / 2;
-      applyZoom(zoomRef.current * Math.exp(-e.deltaY * 0.0015), focalX, focalY);
-    };
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
-    // applyZoom reads refs, so it never goes stale; bind once.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Click-drag to move the canvas, started only on blank areas so blocks stay
-  // selectable, editable and draggable (dnd-kit owns their pointer events).
-  const drag = useRef<{
-    x: number;
-    y: number;
-    px: number;
-    py: number;
-    moved: boolean;
-  } | null>(null);
-  const onPanDown = (e: React.PointerEvent) => {
-    if (e.button !== 0) return;
-    suppressClick.current = false;
-    if ((e.target as HTMLElement).closest("[data-editor-block]")) return;
-    const el = canvasRef.current;
-    if (!el) return;
-    drag.current = {
-      x: e.clientX,
-      y: e.clientY,
-      px: pan.x,
-      py: pan.y,
-      moved: false,
-    };
-    el.setPointerCapture(e.pointerId);
-    setPanning(true);
-  };
-  const onPanMove = (e: React.PointerEvent) => {
-    const d = drag.current;
-    if (!d) return;
-    if (Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 3)
-      d.moved = true;
-    setPan(
-      clampPan(
-        { x: d.px + (e.clientX - d.x), y: d.py + (e.clientY - d.y) },
-        zoom,
-      ),
-    );
-  };
-  const onPanUp = (e: React.PointerEvent) => {
-    const d = drag.current;
-    if (!d) return;
-    if (d.moved) suppressClick.current = true;
-    drag.current = null;
-    setPanning(false);
-    try {
-      canvasRef.current?.releasePointerCapture(e.pointerId);
-    } catch {
-      // pointer already released
-    }
-  };
+  // Fit-and-zoom the fixed PAGE_W×PAGE_H canvas to the editor stage (zoom=1),
+  // exactly as the reader does — so the editor is a faithful, to-scale preview —
+  // then let a wheel/drag zoom+pan ride on top. No scrollbars: content past the
+  // page edge is reached by dragging. PageFrame's boundary marks the clip. Drag
+  // starts only on blank areas so blocks stay selectable/editable/draggable
+  // (dnd-kit owns their pointer events).
+  const panZoom = useCanvasPanZoom({
+    contentWidth: PAGE_W,
+    contentHeight: PAGE_H,
+    fitMargin: { x: 80, y: 80 },
+    fitClamp: { min: 0.5, max: 1.4 },
+    initialFitScale: 0.75,
+    blockSelector: "[data-editor-block]",
+  });
 
   // Reset zoom/pan to the fitted view when switching pages.
   useEffect(() => {
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
+    panZoom.resetView();
+    // resetView is recreated each render; page change is the trigger that matters.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [curPage]);
 
   // Escape deselects the current block (click-off on the canvas does too).
@@ -456,98 +327,39 @@ export function Editor({
 
   return (
     <div className="bg-card relative flex min-h-screen flex-col">
-      <header className="border-line flex h-[60px] flex-none items-center justify-between border-b px-6">
-        <div className="flex items-center gap-3.5">
-          <Link
-            href="/admin"
-            className="text-muted"
-            aria-label="Back to issues"
-          >
-            <Icon name="chevronLeft" size={20} />
-          </Link>
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="text-ink min-w-0 border-none bg-transparent font-serif text-[21px] outline-none"
-            placeholder="Untitled issue"
-          />
-          <span className="flex items-center gap-1.5 rounded-full bg-[#efeae0] px-3 py-1">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#b8b1a2]" />
-            <span className="text-faint font-sans text-[11px] font-semibold">
-              Draft · No. {issue.number}
-            </span>
-          </span>
-          {status === "error" ? (
-            <span className="flex items-center gap-2 font-sans text-[12px]">
-              <span className="text-warn font-semibold">Couldn’t save</span>
-              <button
-                onClick={() => void enqueueSave("all")}
-                className="border-warn text-warn rounded-md border px-2 py-0.5 font-semibold hover:bg-warn-soft"
-              >
-                Retry
-              </button>
-            </span>
-          ) : status === "conflict" ? (
-            <span className="flex items-center gap-2 font-sans text-[12px]">
-              <span className="text-warn font-semibold">
-                Changed somewhere else
-              </span>
-              <button
-                onClick={() => window.location.reload()}
-                className="border-warn text-warn rounded-md border px-2 py-0.5 font-semibold hover:bg-warn-soft"
-              >
-                Reload
-              </button>
-            </span>
-          ) : (
-            <span className="text-faint2 font-sans text-[11px]">
-              {status === "saving" ? "Saving…" : "Saved"}
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() =>
-              setTheme((t) => (t === "classic" ? "modern" : "classic"))
-            }
-            className="border-hair text-ink hover:border-accent flex h-10 items-center gap-2 rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-sm font-medium capitalize"
-          >
-            Theme: {theme}
-            <Icon name="chevronDown" size={14} strokeWidth={1.8} />
-          </button>
-          <button
-            onClick={async () => {
-              // Open the preview in a new tab so the editor stays mounted with
-              // its unsaved in-memory state — closing the tab returns you to the
-              // editor exactly as you left it (no stale back-navigation render).
-              // The blank tab is opened in the click gesture to dodge popup
-              // blockers, then pointed at the reader once the save lands.
-              const tab = window.open("", "_blank");
-              const ok = await flushSave();
-              if (!ok) {
-                // The save didn't land (status pill shows why) — don't preview
-                // stale content.
-                tab?.close();
-                return;
-              }
-              // Preview by internal id under /admin: drafts are never served
-              // from the public /read route (published issues only).
-              const url = `/admin/issues/${issue.id}/preview`;
-              if (tab) tab.location.href = url;
-              else router.push(url);
-            }}
-            className="border-hair text-ink flex h-10 items-center rounded-lg border-[1.5px] bg-white px-4 font-sans text-sm font-semibold"
-          >
-            Preview
-          </button>
-          <button
-            onClick={() => setPub(true)}
-            className="bg-accent text-paper flex h-10 items-center rounded-lg px-5 font-sans text-sm font-semibold shadow-[0_2px_8px_rgba(29,77,62,0.25)]"
-          >
-            Publish
-          </button>
-        </div>
-      </header>
+      <EditorHeader
+        title={title}
+        onTitleChange={setTitle}
+        issueNumber={issue.number}
+        theme={theme}
+        status={status}
+        onRetrySave={() => void enqueueSave("all")}
+        onReload={() => window.location.reload()}
+        onToggleTheme={() =>
+          setTheme((t) => (t === "classic" ? "modern" : "classic"))
+        }
+        onPreview={async () => {
+          // Open the preview in a new tab so the editor stays mounted with its
+          // unsaved in-memory state — closing the tab returns you to the editor
+          // exactly as you left it (no stale back-navigation render). The blank
+          // tab is opened in the click gesture to dodge popup blockers, then
+          // pointed at the reader once the save lands.
+          const tab = window.open("", "_blank");
+          const ok = await flushSave();
+          if (!ok) {
+            // The save didn't land (status pill shows why) — don't preview
+            // stale content.
+            tab?.close();
+            return;
+          }
+          // Preview by internal id under /admin: drafts are never served from
+          // the public /read route (published issues only).
+          const url = `/admin/issues/${issue.id}/preview`;
+          if (tab) tab.location.href = url;
+          else router.push(url);
+        }}
+        onPublish={() => setPub(true)}
+      />
 
       <div className="flex flex-1 overflow-hidden">
         <PageRail
@@ -565,66 +377,36 @@ export function Editor({
           onCloseAddMenu={() => setAddMenu(false)}
         />
 
-        <div className="flex flex-1 flex-col overflow-hidden bg-[#ece7dc]">
-          <div className="bg-paper border-line flex h-[52px] flex-none items-center gap-2.5 border-b px-5">
-            <span className="text-faint mr-1.5 font-sans text-[10px] font-semibold tracking-[0.18em] uppercase">
-              Insert
-            </span>
-            {INSERT.map((b) => (
-              <button
-                key={b.type}
-                onClick={() => addBlock(b.type)}
-                className="text-ink hover:border-accent flex h-[34px] items-center gap-1.5 rounded-[7px] border border-[#e0d9c9] bg-white px-3.5 font-sans text-[13px] font-semibold hover:bg-[#f4f8f5]"
-              >
-                <Icon name={b.icon} size={15} className="text-accent" />
-                {b.label}
-              </button>
-            ))}
-            <div className="ml-auto flex items-center">
-              <button
-                onClick={toggleCover}
-                disabled={curPage === 0}
-                aria-pressed={Boolean(page?.cover)}
-                title={
-                  curPage === 0
-                    ? "The first page is always the cover"
-                    : "Lay this page out as a cover"
-                }
-                className={`flex h-[34px] items-center gap-1.5 rounded-[7px] border px-3.5 font-sans text-[13px] font-semibold ${
-                  page?.cover
-                    ? "border-accent bg-accent text-paper"
-                    : "text-ink border-[#e0d9c9] bg-white hover:border-accent hover:bg-[#f4f8f5]"
-                } ${curPage === 0 ? "cursor-default opacity-90" : ""}`}
-              >
-                <Icon name="doc" size={15} />
-                Cover page
-              </button>
-            </div>
-          </div>
+        <div className="bg-canvas flex flex-1 flex-col overflow-hidden">
+          <EditorToolbar
+            onAddBlock={addBlock}
+            onToggleCover={toggleCover}
+            coverDisabled={curPage === 0}
+            coverActive={Boolean(page?.cover)}
+          />
 
           <div
-            ref={canvasRef}
+            ref={panZoom.containerRef}
             onClick={() => {
               // A drag-pan ends in a click; don't let it deselect the block.
-              if (suppressClick.current) {
-                suppressClick.current = false;
-                return;
-              }
+              if (panZoom.consumeClickSuppression()) return;
               setSel(null);
             }}
-            onPointerDown={onPanDown}
-            onPointerMove={onPanMove}
-            onPointerUp={onPanUp}
-            onPointerCancel={onPanUp}
+            onPointerDown={panZoom.onPointerDown}
+            onPointerMove={panZoom.onPointerMove}
+            onPointerUp={panZoom.onPointerUp}
+            onPointerCancel={panZoom.onPointerUp}
             className={`flex flex-1 items-center justify-center overflow-hidden p-10 ${
-              panning ? "cursor-grabbing select-none" : "cursor-grab"
+              panZoom.panning ? "cursor-grabbing select-none" : "cursor-grab"
             }`}
           >
             <div
               className="shadow-[0_10px_30px_rgba(40,36,28,0.14)]"
-              style={{ transform: `translate(${pan.x}px, ${pan.y}px)` }}
+              style={{
+                transform: `translate(${panZoom.pan.x}px, ${panZoom.pan.y}px)`,
+              }}
             >
-              <ScaledPage scale={scale}>
+              <ScaledPage scale={panZoom.scale}>
                 <PageFrame
                   theme={themeName}
                   w={PAGE_W}

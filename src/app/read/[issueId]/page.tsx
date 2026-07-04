@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
-import { DesktopReader } from "@/features/reader/desktop-reader";
-import { MobileReader } from "@/features/reader/mobile-reader";
+import { ReaderMount } from "@/features/reader/reader-mount";
 import { getPublishedIssueByNumber } from "@/server/issues";
 import { resolveIssueImages } from "@/server/images";
 import { resolveIssueSponsors } from "@/server/sponsors";
@@ -29,22 +28,11 @@ export default async function ReadPage({
   ]);
 
   return (
-    <>
-      <div className="hidden md:block">
-        <DesktopReader
-          content={issue.content}
-          issueNo={issue.number}
-          images={images}
-          sponsors={sponsors}
-        />
-      </div>
-      <div className="md:hidden">
-        <MobileReader
-          content={issue.content}
-          images={images}
-          sponsors={sponsors}
-        />
-      </div>
-    </>
+    <ReaderMount
+      content={issue.content}
+      issueNo={issue.number}
+      images={images}
+      sponsors={sponsors}
+    />
   );
 }

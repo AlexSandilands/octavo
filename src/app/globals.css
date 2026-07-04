@@ -34,6 +34,34 @@
   --color-warn: #8a5d1c;
   --color-warn-soft: #f3ece0;
 
+  /* Status dots. */
+  --color-ok: #2f8f6b; /* success / subscribed */
+  --color-alert: #c8923f; /* caution — bounced / planned */
+
+  /* Warm chrome neutrals — hairlines, chips and washes on the paper UI. */
+  --color-hair-warm: #e0d9c9; /* border on white chips/buttons/thumbnails */
+  --color-rule: #cfc6b4; /* decorative heading + cover hairline rules */
+  --color-dash: #c9c1b1; /* dashed empty-state borders */
+  --color-placeholder-line: #e2dccf; /* photo placeholder outline */
+  --color-chip: #efeae0; /* neutral pill / badge background */
+  --color-chip-dot: #b8b1a2; /* neutral status dot */
+  --color-chip-soft: #f0ece2; /* lighter neutral control background */
+  --color-accent-wash: #f4f8f5; /* faint accent tint — hover on white controls */
+  --color-canvas: #ece7dc; /* editor canvas backdrop */
+
+  /* Page decorations. */
+  --color-page-seam: #efe7d8; /* spine-side divider between spread pages */
+  --color-page-frame: #dcd1b6; /* classic outer decorative frame */
+  --color-page-frame-soft: #e8e0cb; /* classic inner decorative frame */
+
+  /* Reader control dock — dark chrome floating over the paper stage. */
+  --color-reader-chrome: #211f1a;
+  --color-reader-chrome-text: #e7e2d6;
+  --color-reader-chrome-muted: #cfc9bb;
+  --color-reader-chrome-hover: #34312a;
+  --color-reader-chrome-line: #413d35;
+  --color-reader-slider: #9db8ac; /* zoom slider accent */
+
   --font-serif: var(--font-newsreader), Georgia, serif;
   --font-sans: var(--font-hanken), system-ui, sans-serif;
   --font-mono: var(--font-plex), ui-monospace, monospace;

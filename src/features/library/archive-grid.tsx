@@ -5,10 +5,15 @@ import type { ImageMap } from "@/lib/images";
 import { PAGE_W, PAGE_H } from "@/features/blocks/page-frame";
 import { CoverThumb } from "./cover-thumb";
 
+// A curated set of muted cover tints — decorative variety for legacy issues
+// with no real cover page. Local data (indexed by card position), not part of
+// the semantic token palette, so kept as literals here.
 const ARCHIVE_TINTS = ["#cdbfa6", "#9fb0a6", "#c2a99a", "#b3aec0"];
 const THUMB_W = 150;
 
 function stripes(tint: string) {
+  // #00000010 = 6% black, a tint-agnostic diagonal shade over whatever cover
+  // colour is passed; deliberately generic, so it stays inline in the gradient.
   return `repeating-linear-gradient(135deg, ${tint} 0, ${tint} 10px, #00000010 10px, #00000010 20px)`;
 }
 
@@ -136,6 +141,8 @@ function PlaceholderCover({ number, tint }: { number: number; tint: string }) {
         backgroundImage: stripes(tint),
       }}
     >
+      {/* Ghosted numeral + label over the tinted stripe field: near-ink browns at
+          low opacity, decorative to this placeholder cover only — not tokens. */}
       <span className="pointer-events-none absolute -right-1 -bottom-6 font-serif text-[110px] leading-none text-[#2f2b22]/15 select-none">
         {number}
       </span>
