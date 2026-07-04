@@ -2,6 +2,7 @@
 
 import { Icon } from "@/components/icons";
 import { MIN_ZOOM, MAX_ZOOM } from "@/features/blocks/use-canvas-pan-zoom";
+import type { PdfState } from "./use-issue-pdf";
 
 // The floating control dock at the bottom of the reader: paging, the spread
 // label, contents toggle, fit + zoom slider, PDF and full screen. Fades to 70%
@@ -16,6 +17,8 @@ export function ReaderControls({
   onZoom,
   isFullscreen,
   onToggleFullscreen,
+  pdfState,
+  onDownloadPdf,
 }: {
   label: string;
   onPrev: () => void;
@@ -26,7 +29,15 @@ export function ReaderControls({
   onZoom: (next: number) => void;
   isFullscreen: boolean;
   onToggleFullscreen: () => void;
+  pdfState: PdfState;
+  onDownloadPdf: () => void;
 }) {
+  const pdfTitle =
+    pdfState === "loading"
+      ? "Preparing PDF…"
+      : pdfState === "error"
+        ? "PDF failed — tap to retry"
+        : "Download PDF";
   return (
     <div className="group absolute inset-x-0 bottom-0 flex justify-center px-4 pt-12 pb-4">
       <div className="bg-reader-chrome text-reader-chrome-text flex items-center gap-1.5 rounded-full px-2.5 py-2 opacity-70 shadow-[0_8px_24px_rgba(0,0,0,0.28)] transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
@@ -60,14 +71,29 @@ export function ReaderControls({
           />
         </div>
         <Divider />
-        <CtrlBtn title="Download PDF">
-          <Icon name="download" size={17} />
+        <CtrlBtn
+          title={pdfTitle}
+          onClick={onDownloadPdf}
+          disabled={pdfState === "loading"}
+        >
+          {pdfState === "loading" ? (
+            <Spinner />
+          ) : (
+            <Icon
+              name="download"
+              size={17}
+              className={pdfState === "error" ? "text-alert" : undefined}
+            />
+          )}
         </CtrlBtn>
         <CtrlBtn
           onClick={onToggleFullscreen}
           title={isFullscreen ? "Exit full screen" : "Full screen"}
         >
-          <Icon name={isFullscreen ? "fullscreenExit" : "fullscreen"} size={17} />
+          <Icon
+            name={isFullscreen ? "fullscreenExit" : "fullscreen"}
+            size={17}
+          />
         </CtrlBtn>
       </div>
     </div>
@@ -78,20 +104,34 @@ function CtrlBtn({
   children,
   onClick,
   title,
+  disabled = false,
 }: {
   children: React.ReactNode;
   onClick?: () => void;
   title: string;
+  disabled?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
       title={title}
       aria-label={title}
-      className="hover:bg-reader-chrome-hover flex h-11 w-11 items-center justify-center rounded-full"
+      disabled={disabled}
+      className="hover:bg-reader-chrome-hover flex h-11 w-11 items-center justify-center rounded-full disabled:cursor-default"
     >
       {children}
     </button>
+  );
+}
+
+// A small spinning ring in the current (chrome) text colour, shown while the PDF
+// generates. aria is carried by the button's title/label, so this is decorative.
+function Spinner() {
+  return (
+    <span
+      aria-hidden="true"
+      className="h-[17px] w-[17px] animate-spin rounded-full border-2 border-current border-t-transparent opacity-80"
+    />
   );
 }
 

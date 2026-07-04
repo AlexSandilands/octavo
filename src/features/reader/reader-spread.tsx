@@ -3,8 +3,8 @@
 import type { Page } from "@/lib/blocks";
 import type { ImageMap } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
-import { BlockView, type Theme } from "@/features/blocks/block-view";
-import { blockFlowStyle } from "@/features/blocks/layout";
+import { type Theme } from "@/features/blocks/block-view";
+import { PageBlocks } from "@/features/blocks/page-blocks";
 import {
   PageFrame,
   ScaledPage,
@@ -271,33 +271,12 @@ function PageView({
         side={side}
       >
         {page && (
-          <div
-            className={
-              page.cover
-                ? "flex min-h-full flex-col justify-center"
-                : "relative flow-root"
-            }
-          >
-            {page.blocks.map((b) => (
-              // Marked as content: drags started here are ignored (so text and
-              // images stay selectable) and the cursor reverts to the normal
-              // HTML cursor rather than the grab hand.
-              <div
-                key={b.id}
-                data-reader-block
-                className="cursor-auto"
-                style={blockFlowStyle(b, page.cover)}
-              >
-                <BlockView
-                  block={b}
-                  theme={theme}
-                  images={images}
-                  sponsors={sponsors}
-                  variant={page.cover ? "cover" : undefined}
-                />
-              </div>
-            ))}
-          </div>
+          <PageBlocks
+            page={page}
+            theme={theme}
+            images={images}
+            sponsors={sponsors}
+          />
         )}
       </PageFrame>
     </ScaledPage>

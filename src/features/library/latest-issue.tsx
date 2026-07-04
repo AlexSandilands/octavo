@@ -4,6 +4,7 @@ import { site } from "@/lib/site";
 import type { IssueContent, Page } from "@/lib/blocks";
 import type { ImageMap } from "@/lib/images";
 import { CoverThumb } from "./cover-thumb";
+import { DownloadPdfButton } from "./download-pdf-button";
 import { issueMonth, issueSections } from "./contents";
 
 type LatestIssueProps = {
@@ -84,7 +85,10 @@ export function LatestIssue({
             <Label>In this issue</Label>
             <ol className="mt-3">
               {shown.map((s, i) => (
-                <li key={i} className="border-line-soft/70 border-b last:border-0">
+                <li
+                  key={i}
+                  className="border-line-soft/70 border-b last:border-0"
+                >
                   <Link
                     href={`/read/${number}`}
                     aria-label={`Read this issue: ${s.title}`}
@@ -113,11 +117,11 @@ export function LatestIssue({
           </div>
         )}
 
-        {/* PDF export lands in Phase 5; until then there's no inert button here. */}
-        <div className="mt-auto pt-7">
+        <div className="mt-auto flex flex-wrap items-center gap-3 pt-7">
           <Button href={`/read/${number}`} icon="arrowRight">
             Read this issue
           </Button>
+          <DownloadPdfButton issueNumber={number} />
         </div>
       </div>
     </section>

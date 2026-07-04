@@ -3,6 +3,7 @@ import {
   S3Client,
   PutObjectCommand,
   DeleteObjectCommand,
+  GetObjectCommand,
 } from "@aws-sdk/client-s3";
 import { env } from "./env";
 
@@ -84,4 +85,31 @@ export async function putObject(
 export async function deleteObject(key: string): Promise<void> {
   const { client, bucket } = requireR2();
   await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+}
+
+// Fetch stored bytes, or null when the object doesn't exist. Used to serve
+// cached PDFs from the members-only download endpoint (the PDF bucket objects
+// stay private — read through the app, not the public URL).
+export async function getObject(key: string): Promise<Buffer | null> {
+  const { client, bucket } = requireR2();
+  try {
+    const res = await client.send(
+      new GetObjectCommand({ Bucket: bucket, Key: key }),
+    );
+    if (!res.Body) return null;
+    const bytes = await res.Body.transformToByteArray();
+    return Buffer.from(bytes);
+  } catch (err) {
+    if (isNotFound(err)) return null;
+    throw err;
+  }
+}
+
+// R2/S3 signal a missing key as NoSuchKey / 404. Anything else is a real error.
+function isNotFound(err: unknown): boolean {
+  if (typeof err !== "object" || err === null) return false;
+  const name = (err as { name?: unknown }).name;
+  const status = (err as { $metadata?: { httpStatusCode?: number } }).$metadata
+    ?.httpStatusCode;
+  return name === "NoSuchKey" || name === "NotFound" || status === 404;
 }

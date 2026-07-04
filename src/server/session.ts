@@ -17,7 +17,7 @@ export async function getUser() {
 // Fail closed, but loudly: a session-lookup error reads as signed out, and
 // the underlying error is logged so an infrastructure failure can't silently
 // masquerade as a 403.
-async function getUserFailClosed() {
+export async function getUserFailClosed() {
   try {
     return await getUser();
   } catch (err) {

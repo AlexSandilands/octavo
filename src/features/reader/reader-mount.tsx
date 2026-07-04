@@ -58,7 +58,12 @@ export function ReaderMount({
       sponsors={sponsors}
     />
   ) : (
-    <MobileReader content={content} images={images} sponsors={sponsors} />
+    <MobileReader
+      content={content}
+      issueNo={issueNo}
+      images={images}
+      sponsors={sponsors}
+    />
   );
 }
 
