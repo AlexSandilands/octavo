@@ -1,14 +1,11 @@
 import "server-only";
 import { createHash, randomBytes } from "node:crypto";
+import * as Sentry from "@sentry/nextjs";
 import { Resend } from "resend";
 import { db } from "@/db";
 import { verificationTokens } from "@/db/schema";
 import { env } from "@/lib/env";
-import {
-  tallyChunks,
-  type BlastResult,
-  type PreparedEmail,
-} from "@/lib/blast";
+import { tallyChunks, type BlastResult, type PreparedEmail } from "@/lib/blast";
 import { safeNextPath } from "@/lib/next-path";
 import {
   issueEmailSubject,
@@ -163,17 +160,30 @@ export async function sendIssueBlast(
   const resend = new Resend(env.EMAIL_API_KEY);
   const from = env.EMAIL_FROM;
   return tallyChunks(emails, async (batch) => {
+    // Partial failures don't roll back the publish (the issue is already live),
+    // so a dropped batch would otherwise vanish into the logs. Report it so the
+    // developer can reconcile bounces/outages. Recipient addresses are PII and
+    // are deliberately NOT attached — only the affected count and issue.
     try {
       const { error } = await resend.batch.send(
         batch.map((e) => ({ from, ...e })),
       );
       if (error) {
         console.error(`[publish] batch send failed: ${error.message}`);
+        Sentry.captureMessage(`Issue blast batch failed: ${error.message}`, {
+          level: "error",
+          tags: { pipeline: "publish-blast", stage: "batch-send" },
+          extra: { issueNumber, batchSize: batch.length },
+        });
         return false;
       }
       return true;
     } catch (err) {
       console.error("[publish] batch send threw:", err);
+      Sentry.captureException(err, {
+        tags: { pipeline: "publish-blast", stage: "batch-send" },
+        extra: { issueNumber, batchSize: batch.length },
+      });
       return false;
     }
   });

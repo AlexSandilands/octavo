@@ -45,6 +45,11 @@ const schema = z
     R2_PUBLIC_URL: z.string().url().optional(),
     EMAIL_API_KEY: z.string().optional(),
     EMAIL_FROM: z.string().optional(),
+    // Sentry error reporting. Optional everywhere — the app boots and runs
+    // fine with no DSN (Sentry.init is skipped, every capture is a no-op).
+    // Server/edge runtimes read it from here; the browser reads the same value
+    // from NEXT_PUBLIC_SENTRY_DSN (a DSN is a public ingest key, not a secret).
+    SENTRY_DSN: z.string().url().optional(),
   })
   .superRefine((vars, ctx) => {
     if (process.env.NODE_ENV !== "production") return;

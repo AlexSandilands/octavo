@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createId } from "@/lib/id";
@@ -101,6 +102,18 @@ export async function POST(request: Request) {
         { status: 415 },
       );
     }
+    // A file that passed the size/MIME checks but sharp still couldn't decode:
+    // either a corrupt upload or a real decode bug. Report it — the admin only
+    // sees "Could not read that image", so this is the sole record.
+    Sentry.captureException(err, {
+      level: "warning",
+      tags: { route: "admin/images", stage: "decode" },
+      extra: {
+        adminId: admin.id,
+        declaredType: file.type || null,
+        sizeBytes: file.size,
+      },
+    });
     return NextResponse.json(
       { error: "Could not read that image." },
       { status: 422 },
@@ -115,6 +128,16 @@ export async function POST(request: Request) {
     await putObject(key, processed.buffer, processed.contentType);
   } catch (err) {
     console.error("R2 upload failed", err);
+    // Storage is down or misconfigured — an infra problem the admin can't fix
+    // and the club shouldn't discover first. Alert on it.
+    Sentry.captureException(err, {
+      tags: { route: "admin/images", stage: "storage" },
+      extra: {
+        adminId: admin.id,
+        key,
+        localStorage: usingLocalStorage(),
+      },
+    });
     return NextResponse.json(
       { error: "Upload failed. Check storage configuration." },
       { status: 500 },

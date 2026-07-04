@@ -67,8 +67,11 @@ Member ── Cloudflare (DNS/CDN) ── Railway (Next.js + Postgres)
    `railway run npm run db:admin -- you@example.com` (drop the `railway run` prefix
    locally). Idempotent — it creates the user or promotes an existing one. Then
    sign in at `/signin` with that email.
-7. **Monitoring** — add the Sentry DSN; create an UptimeRobot monitor on the site URL
-   with email/SMS alerts to the developer.
+7. **Monitoring** — add the Sentry DSN (both `SENTRY_DSN` and
+   `NEXT_PUBLIC_SENTRY_DSN`) and set the alert rule; create an UptimeRobot
+   monitor on `/api/health` with alerts to the developer. Full steps in
+   [Error tracking](#error-tracking-sentry) and
+   [Uptime monitoring](#uptime-monitoring-uptimerobot).
 8. **Deploy** — confirm a test magic-link email arrives, signing in works, and an
    image upload lands in R2.
 
@@ -97,8 +100,146 @@ R2_PUBLIC_URL=           # https://images.clubmag.org (Cloudflare-proxied)
 EMAIL_API_KEY=           # Resend/Postmark key
 EMAIL_FROM=              # "Club Magazine <hello@clubmag.org>"
 
-SENTRY_DSN=              # once monitoring lands (Phase 4)
+SENTRY_DSN=              # Sentry project DSN (server-side). Optional — app runs fine unset.
+NEXT_PUBLIC_SENTRY_DSN=  # SAME DSN, browser copy (public ingest key; build-time inlined).
 ```
+
+Both Sentry vars are optional everywhere: with them unset, `Sentry.init` is
+skipped and every capture call is a no-op, so the app boots and behaves
+identically. Set **both** to the same DSN to turn error reporting on (see
+[Error tracking](#error-tracking-sentry) below).
+
+## Error tracking (Sentry)
+
+Wired in code (`@sentry/nextjs`, error-reporting only — no performance tracing,
+no session replay). The app captures the swallow-points that would otherwise
+vanish into logs: editor save/publish failures, image-upload decode + storage
+errors, new-issue email-blast batch failures, and the client error boundaries
+(`app/error.tsx`, `app/admin/error.tsx`, `app/global-error.tsx`). Server render/
+route errors flow through `onRequestError` in `src/instrumentation.ts`. Member
+emails are **not** attached to events (`sendDefaultPii: false`, and no capture
+site passes an address); only counts/ids that a diagnosis needs.
+
+**Config layout** (for reference): `sentry.server.config.ts` /
+`sentry.edge.config.ts` init the two server runtimes, `src/instrumentation-client.ts`
+inits the browser, `src/instrumentation.ts` registers them, and
+`next.config.ts` is wrapped with `withSentryConfig`. The middleware CSP allows
+the Sentry ingest host in `connect-src` (derived from the DSN) so browser events
+aren't blocked by the strict nonce policy.
+
+**Owner setup (one-time — the code is ready and inert until you do this):**
+
+1. Create a free Sentry account and a **Next.js** project. Copy its DSN.
+2. Set **both** env vars on Railway to that DSN: `SENTRY_DSN` and
+   `NEXT_PUBLIC_SENTRY_DSN` (same value — the second is the browser copy and is
+   build-time inlined, so it must be present in the build/deploy environment).
+   Redeploy. Errors now report; no code change needed.
+3. **Alert rule → developer email:** Sentry → **Alerts → Create Alert → Issues**.
+   Condition "A new issue is created" (and/or "an issue changes state to
+   escalating"), action **Send a notification to** your email. Save. This is
+   what makes the developer hear about a break before the club does.
+4. (Optional, nicer stack traces) To de-minify production stack traces, set a
+   `SENTRY_AUTH_TOKEN` (+ `SENTRY_ORG`/`SENTRY_PROJECT`) in the **build**
+   environment so `withSentryConfig` uploads source maps. Without it the build
+   just skips the upload with a warning — nothing breaks.
+
+**Verify:** with the DSN set, trigger a test error (e.g. temporarily throw in a
+server action) and confirm it lands in Sentry with request context, then remove
+the throw. With the DSN unset the app must still boot — confirmed in dev.
+
+## Uptime monitoring (UptimeRobot)
+
+**Owner setup:** create a free UptimeRobot account →
+**Add New Monitor → HTTP(s)** → URL `https://<your-domain>/api/health` (the same
+endpoint Railway's deploy health check polls; returns `200 {"status":"ok"}` when
+the DB answers, `503` otherwise). Interval 5 min. Under **Alert Contacts** add
+the developer's email (and SMS if wanted) and attach it to the monitor. This
+catches the "site is down / DB unreachable" case that Sentry (which needs the
+app running to report) can't.
+
+## Continuous integration (GitHub Actions)
+
+`.github/workflows/ci.yml` runs on every PR and every push to `main`: `npm ci`
+→ `npm run lint` → `npx tsc --noEmit` → `npm run build`. The build runs with
+`NODE_ENV=production`, so `src/lib/env.ts` requires the R2 + email vars — the
+workflow supplies **dummy** values (the build never connects to Postgres or R2;
+every data route is dynamic, so it only needs the vars to be present and valid).
+`NEXT_PUBLIC_*` branding is set in the workflow because those are inlined into
+the client bundle at build time. No `SENTRY_DSN` is set in CI on purpose — that
+proves the app builds without Sentry. `actions/setup-node` caches the npm
+download cache keyed on the lockfile.
+
+**Owner action — branch protection:** GitHub → repo **Settings → Branches →
+Add branch ruleset** (or classic branch protection) for `main`: require status
+checks to pass before merging, and select the **`lint · types · build`** check.
+Optionally require a PR review. This makes CI a merge gate, not just a signal.
+
+## Backups & restore
+
+Two stores hold irreplaceable state: **Postgres** (issues, members, sessions)
+and **R2** (the only copy of every uploaded image). Both need a backup and a
+_tested_ restore — an untested backup is a guess.
+
+### Postgres (Railway)
+
+**Owner action — enable/verify backups:** Railway → the Postgres service →
+**Backups** tab. Enable **scheduled daily** backups. Retention depends on plan
+(Hobby keeps a rolling window — confirm the current retention shown there and
+that the schedule is on). Railway backups are full logical snapshots you can
+restore from the dashboard. **Retention decision:** daily backups, ≥7 days
+retained; keep at least one known-good snapshot from before each large change
+(schema migration, bulk member import).
+
+### R2 (images)
+
+Images are the **only** copy — a bad delete or overwrite is otherwise permanent.
+**Decision (recommended default; confirm with the owner):** enable **R2 object
+versioning** on the bucket (Cloudflare dashboard → R2 → the bucket → **Settings
+→ Object versioning → Enable**), plus a **lifecycle rule** to expire _noncurrent_
+versions after ~60 days so retained history stays bounded and effectively free
+at club scale. Versioning is the low-effort choice: it needs no external job and
+survives accidental overwrite/delete. _Alternative_ if versioning is declined: a
+periodic `rclone sync` of the bucket to a second location (another R2 bucket or
+local disk), e.g. `rclone sync r2:club-images backup:club-images-YYYYMM`, run
+monthly. The minimum bar is one of these, chosen deliberately — not "the app is
+the only copy."
+
+### Restore runbook (Postgres)
+
+Goal: from a fresh Railway project + a database dump + the R2 bucket, back to a
+working site. The DB half of this was **exercised locally** (dump → wipe →
+restore → app boots and `/api/health` returns `200`); see the PR note.
+
+1. **New app + DB.** Create a fresh Railway project, deploy the app from the
+   repo, add the Postgres plugin. Set all env vars (see
+   [Environment variables](#environment-variables-app)).
+2. **Get the dump.** From a Railway backup: download/restore it via the Backups
+   tab. To take one manually against a running DB:
+   `pg_dump --format=custom --no-owner --no-privileges "$DATABASE_URL" -f magazine.dump`
+3. **Restore into the new DB** (target should be empty). Using the new DB's
+   connection string:
+   `pg_restore --no-owner --no-privileges -d "$DATABASE_URL" magazine.dump`
+   The dump carries both the `public` and `drizzle` (migration-tracking) schemas,
+   so migrations are already recorded — the app's pre-deploy `db:migrate` is a
+   no-op against a restored DB. (If restoring into a DB that already has schema,
+   wipe first: `psql "$DATABASE_URL" -c "DROP SCHEMA IF EXISTS public CASCADE; DROP SCHEMA IF EXISTS drizzle CASCADE; CREATE SCHEMA public;"` — restoring over
+   existing objects errors on duplicates.)
+4. **Point R2 at the restored images.** Set the R2 env vars to the bucket that
+   holds the images (image _rows_ are in the DB dump; the image _bytes_ live in
+   R2 and aren't in the dump). If R2 itself was lost, restore it from its
+   versioning history or the rclone copy first.
+5. **Verify.** Hit `/api/health` (expect `200 {"status":"ok"}`), sign in, open a
+   restored issue, confirm images load. Spot-check row counts against the source
+   (`select count(*) from users/issues/images`).
+
+**Local exercise performed (2026-07):** dumped the dev DB
+(`pg_dump -Fc`), dropped both schemas, restored with `pg_restore`, and confirmed
+identical row counts (users 2, issues 11, images 8, migrations 2) and that the
+two seed users survived with correct `is_admin`/`subscribed` flags. The dev
+server then booted against the restored DB and `/api/health` returned `200`. A
+first restore against `public` only surfaced expected duplicate errors from the
+untouched `drizzle` schema — hence step 3's note to wipe both, or restore into a
+truly empty DB (the real-Railway case, which has no such conflict).
 
 ## Estimated costs
 

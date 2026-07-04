@@ -1,0 +1,66 @@
+name: CI
+
+# Gate every PR and every push to main on the same three checks the developer
+# runs locally: lint, type-check, and a production build. Branch protection on
+# `main` should require the "check" job below (owner action — see the PR /
+# docs/infrastructure.md).
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# One in-flight run per branch; a new push cancels the previous run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: lint · types · build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 26.x
+          # Caches the npm download cache (~/.npm) keyed on package-lock.json,
+          # so `npm ci` reinstalls from cache instead of the network.
+          cache: npm
+
+      # sharp 0.33+ ships prebuilt native binaries as optional deps (no build
+      # script needed). @sentry/cli's postinstall would download its binary
+      # from the Sentry CDN — skipped: CI never uploads source maps, the build
+      # is verified to pass without the binary, and it drops a network flake.
+      - run: npm ci
+        env:
+          SENTRYCLI_SKIP_DOWNLOAD: "1"
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npm run build
+        # Production-build-time env. `next build` runs with NODE_ENV=production,
+        # so src/lib/env.ts enforces the R2 + email vars — all dummied here; the
+        # build never connects to Postgres (every data route is dynamic) or R2,
+        # it only needs the values to be present and valid. NEXT_PUBLIC_* are
+        # inlined into the client bundle at build time, so they must be set here.
+        # No SENTRY_DSN on purpose: this proves the app builds without Sentry.
+        env:
+          CI: "true"
+          DATABASE_URL: postgres://dummy:dummy@127.0.0.1:5432/dummy
+          AUTH_SECRET: ci-dummy-secret-value-not-used-at-runtime
+          R2_ACCOUNT_ID: dummy
+          R2_ACCESS_KEY_ID: dummy
+          R2_SECRET_ACCESS_KEY: dummy
+          R2_BUCKET: dummy
+          R2_PUBLIC_URL: https://pub-dummy.r2.dev
+          EMAIL_API_KEY: re_dummy
+          EMAIL_FROM: CI <ci@example.org>
+          NEXT_PUBLIC_MAGAZINE_NAME: The Magazine
+          NEXT_PUBLIC_ORG_NAME: Your Club
+          NEXT_PUBLIC_TAGLINE: A members-only digital magazine.
