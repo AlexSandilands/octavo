@@ -40,3 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 /playwright-report
 /test-results
+
+# sentry (source-map upload writes this when an auth token is set at build)
+.env.sentry-build-plugin

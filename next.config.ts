@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const r2 = process.env.R2_PUBLIC_URL;
 
@@ -29,4 +30,15 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// withSentryConfig wires the build-time pieces of @sentry/nextjs: it registers
+// the instrumentation hooks and (when a SENTRY_AUTH_TOKEN + org/project are set)
+// uploads source maps so stack traces de-minify. None of that is required at
+// runtime — with no auth token it simply skips the upload with a warning, so
+// the build stays green without a Sentry account. We deliberately do NOT enable
+// the tunnelRoute: client events go straight to the ingest host, which the CSP
+// in src/middleware.ts allows via connect-src. `silent` quiets the plugin's
+// build logs; telemetry to Sentry about the plugin itself is turned off.
+export default withSentryConfig(nextConfig, {
+  silent: !process.env.CI,
+  telemetry: false,
+});

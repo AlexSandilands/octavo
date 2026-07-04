@@ -37,6 +37,22 @@ import { safeNextPath } from "@/lib/next-path";
 const r2 = process.env.R2_PUBLIC_URL;
 const isDev = process.env.NODE_ENV === "development";
 
+// Sentry's browser SDK POSTs events straight to its ingest host, so with our
+// locked-down CSP (`connect-src` inherits `default-src 'self'`) those requests
+// would be blocked unless we allow that one origin. Derive it from the DSN
+// (a public value — the client reads the same one from NEXT_PUBLIC_SENTRY_DSN);
+// when no DSN is set, connect-src stays 'self' only. Mirrors how img-src opts
+// in the R2 origin below.
+const sentryDsn = process.env.NEXT_PUBLIC_SENTRY_DSN ?? process.env.SENTRY_DSN;
+const sentryOrigin = (() => {
+  if (!sentryDsn) return "";
+  try {
+    return new URL(sentryDsn).origin;
+  } catch {
+    return "";
+  }
+})();
+
 // Auth.js names the cookie differently by transport: dev (HTTP) uses the bare
 // name, production (HTTPS) the __Secure- prefix. Check both.
 const SESSION_COOKIES = [
@@ -71,6 +87,10 @@ function buildCsp(nonce: string): string {
     // above; inline CSS cannot execute code with script-src locked down.
     "style-src 'self' 'unsafe-inline'",
     `img-src 'self' data: blob:${r2 ? ` ${new URL(r2).origin}` : ""}`,
+    // Same-origin XHR/fetch (server actions, autosave) plus the Sentry ingest
+    // host when configured. Explicit 'self' matches what was previously
+    // inherited from default-src, so no existing request is affected.
+    `connect-src 'self'${sentryOrigin ? ` ${sentryOrigin}` : ""}`,
     "font-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",

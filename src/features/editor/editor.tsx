@@ -39,6 +39,7 @@ import {
 } from "@/features/blocks/page-frame";
 import { useCanvasPanZoom } from "@/features/blocks/use-canvas-pan-zoom";
 import { EditorBlock } from "./editor-block";
+import { reportEditorError } from "./report-error";
 import { PageRail } from "./page-rail";
 import { PublishModal } from "./publish-modal";
 import { EditorHeader, type SaveStatus } from "./editor-header";
@@ -150,7 +151,7 @@ export function Editor({
         setStatus("saved");
         return true;
       } catch (error) {
-        console.error(`Saving issue ${issue.id} failed (${kind})`, error);
+        reportEditorError(error, "save", { issueId: issue.id, kind });
         setStatus("error");
         return false;
       }
@@ -483,7 +484,10 @@ export function Editor({
               else setStatus("error");
               return res;
             } catch (error) {
-              console.error(`Publishing issue ${issue.id} failed`, error);
+              reportEditorError(error, "publish", {
+                issueId: issue.id,
+                sendEmail,
+              });
               setStatus("error");
               return { ok: false };
             }

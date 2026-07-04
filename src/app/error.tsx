@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 import { ErrorState } from "@/components/error-state";
 
 export default function Error({
@@ -12,8 +13,12 @@ export default function Error({
 }) {
   useEffect(() => {
     // Server-side details stay in the server logs; log the digest here so a
-    // member's report ("it said try again") can be matched to them.
+    // member's report ("it said try again") can be matched to them. The digest
+    // ties this client boundary to the server event Sentry already captured via
+    // onRequestError; capture again so a purely client-side render error (no
+    // server digest) is still reported.
     console.error("Route error", error.digest ?? error);
+    Sentry.captureException(error);
   }, [error]);
 
   return (
