@@ -26,6 +26,7 @@ export function ReaderSpread({
   spread,
   turn,
   turnAngle,
+  leftFade,
   theme,
   scale,
   issueNo,
@@ -36,6 +37,12 @@ export function ReaderSpread({
   spread: number;
   turn: Turn | null;
   turnAngle: number;
+  /**
+   * Opacity for the standing left-hand leaf while the cover opens/closes, so the
+   * facing page fades in (open) or out (close) in step with the curl. Undefined
+   * for every non-cover turn — those render at full opacity, unchanged.
+   */
+  leftFade?: number;
   theme: LayoutTheme;
   scale: number;
   issueNo: number;
@@ -49,6 +56,7 @@ export function ReaderSpread({
         spread={spread}
         turn={turn}
         turnAngle={turnAngle}
+        leftFade={leftFade}
         theme={theme}
         scale={scale}
         issueNo={issueNo}
@@ -67,19 +75,23 @@ export function ReaderSpread({
   const leftNo = leftIdx + 1;
 
   if (isCover) {
-    // The cover is a single page, but it's shown as the right leaf of a
-    // spine-centred spread (blank facing page) so it opens with the same
-    // page-curl as every other spread — no width jump.
+    // The cover reads as a single, centred page. It still renders as the right
+    // leaf of the spine-centred spread — the reader keeps the box a constant
+    // 2·PAGE_W and translates it so the cover sits centred, so the first turn
+    // reuses the same curl geometry with no width jump. The facing leaf holds
+    // its layout slot (constant width) but is hidden, so only the cover shows.
     return (
       <>
-        <PageView
-          side="left"
-          theme={theme}
-          scale={scale}
-          issueNo={issueNo}
-          images={images}
-          sponsors={sponsors}
-        />
+        <div className="flex-none [visibility:hidden]">
+          <PageView
+            side="left"
+            theme={theme}
+            scale={scale}
+            issueNo={issueNo}
+            images={images}
+            sponsors={sponsors}
+          />
+        </div>
         <PageView
           page={left}
           side="right"
@@ -129,6 +141,7 @@ function TurnLeaf({
   spread: s,
   turn,
   turnAngle,
+  leftFade,
   theme,
   scale,
   issueNo,
@@ -139,6 +152,7 @@ function TurnLeaf({
   spread: number;
   turn: Turn;
   turnAngle: number;
+  leftFade?: number;
   theme: LayoutTheme;
   scale: number;
   issueNo: number;
@@ -153,8 +167,23 @@ function TurnLeaf({
   const baseLeftIdx = fwd ? 2 * s + 1 : 2 * s - 3;
   const baseRightIdx = fwd ? 2 * s + 2 : 2 * s - 2;
 
-  const layer = (idx: number, side: "left" | "right", x: number) => (
-    <div style={{ position: "absolute", top: 0, left: x }}>
+  // `opacity` is only set for the standing left leaf during a cover turn (see
+  // ReaderSpread's leftFade); it transitions in step with the curl and is a
+  // no-op — full opacity, no transition — for every other turn.
+  const layer = (
+    idx: number,
+    side: "left" | "right",
+    x: number,
+    opacity?: number,
+  ) => (
+    <div
+      className={
+        opacity !== undefined
+          ? "transition-opacity duration-700 ease-[cubic-bezier(0.3,0.1,0.2,1)] motion-reduce:transition-none"
+          : undefined
+      }
+      style={{ position: "absolute", top: 0, left: x, opacity }}
+    >
       <PageView
         page={pages[idx]}
         side={side}
@@ -172,6 +201,12 @@ function TurnLeaf({
   const backIdx = fwd ? baseLeftIdx : baseRightIdx;
   const backSide = fwd ? "left" : "right";
 
+  // Opening the cover, the destination left page must not be painted flat
+  // beneath the leaf — its content arrives on the leaf's back face as it lands,
+  // like a real page. Only blank backing paper fades in under it. (Closing has
+  // this for free: the base left is already the blank facing leaf.)
+  const paintedBaseLeftIdx = fwd && s === 0 ? -1 : baseLeftIdx;
+
   return (
     <div
       style={{
@@ -181,9 +216,9 @@ function TurnLeaf({
         perspective: 2200,
       }}
     >
-      {layer(baseLeftIdx, "left", 0)}
+      {layer(paintedBaseLeftIdx, "left", 0, leftFade)}
       {layer(baseRightIdx, "right", pageW)}
-      {fwd ? layer(clIdx, "left", 0) : layer(crIdx, "right", pageW)}
+      {fwd ? layer(clIdx, "left", 0, leftFade) : layer(crIdx, "right", pageW)}
       <div
         style={{
           position: "absolute",
