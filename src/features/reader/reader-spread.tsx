@@ -201,6 +201,12 @@ function TurnLeaf({
   const backIdx = fwd ? baseLeftIdx : baseRightIdx;
   const backSide = fwd ? "left" : "right";
 
+  // Opening the cover, the destination left page must not be painted flat
+  // beneath the leaf — its content arrives on the leaf's back face as it lands,
+  // like a real page. Only blank backing paper fades in under it. (Closing has
+  // this for free: the base left is already the blank facing leaf.)
+  const paintedBaseLeftIdx = fwd && s === 0 ? -1 : baseLeftIdx;
+
   return (
     <div
       style={{
@@ -210,7 +216,7 @@ function TurnLeaf({
         perspective: 2200,
       }}
     >
-      {layer(baseLeftIdx, "left", 0, leftFade)}
+      {layer(paintedBaseLeftIdx, "left", 0, leftFade)}
       {layer(baseRightIdx, "right", pageW)}
       {fwd ? layer(clIdx, "left", 0, leftFade) : layer(crIdx, "right", pageW)}
       <div
