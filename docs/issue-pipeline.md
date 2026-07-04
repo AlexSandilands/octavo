@@ -73,14 +73,16 @@ R2_PUBLIC_URL=https://pub-test.r2.dev npm run build`. To also make locally-uploa
   images render in that prod build, use `R2_PUBLIC_URL=http://localhost:3000/api/images`
   instead — the local-disk serving route answers it (new uploads still fail: writes go
   to real R2).
-- The user runs all browser/E2E checks themselves — do not install Playwright browsers.
+- Never _install_ Playwright browsers — but the user has installed Chromium themselves
+  (for #16), so _using_ it for headless verification is fine (see the #16 row above:
+  DB-minted session cookie + curl + pdftoppm verifies PDFs end-to-end).
 
 ## Status (2026-07-04)
 
-Phases 1–4 complete (**#6–#15 merged**). **#16** (PDF export — the last phase issue) is
-implemented and reviewed on PR **#41**, pending the user's browser pass (needs
-`npx playwright install chromium` locally) and a first real Railway deploy to verify
-`nixpacks.toml` + memory.
+**All roadmap phases complete** — #6–#16 merged (#16 = PR #41: PDF export, the last
+stub). Still pending from #16: the first real Railway deploy must verify
+`nixpacks.toml` installs Chromium and watch generation memory (split-service
+fallback documented in infrastructure.md). That deploy is #39 (human) territory.
 
 Side trackers (not phase work): **#33** UI papercuts (batch-fix when convenient),
 **#36** structural follow-ups from #14 (preview double-bundle, unused `page-flip`
