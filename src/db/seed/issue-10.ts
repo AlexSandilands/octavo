@@ -7,6 +7,8 @@ import {
   type SeedImages,
   Spon,
   T,
+  Thtml,
+  Traw,
 } from "./builders";
 
 // No. 10 — Winter 2026. Margaret steps down as captain after thirty-two seasons
@@ -136,6 +138,22 @@ export const issue10 = (img: SeedImages) =>
         "We will keep writing it. The far rink drains, the newcomers keep coming, the boules go out at dawn and come in at dusk, and somewhere in between, on every single playing day, a point is measured to the millimetre and conceded, in the end, by nobody. That is the simple game Margaret says it is. It is also, as she well knows, every difficult and human thing a small club can be. We will see you next season, at the gate, before the sun is up.",
       ),
       Spon("Hawthorn & Reed Outfitters", "https://example.com"),
+    ]),
+
+    // Deliberately legacy-shaped content (issue #36): this one page authors its
+    // body text in the pre-v3 stored shapes — Traw() a plain string (v1), Thtml()
+    // a constrained-HTML string (v2) — so a freshly seeded database keeps
+    // exercising the permanent string→doc render fallback and the migration
+    // script's converter, even though every other T() block is now authored as a
+    // v3 doc. These render identically to a v3 block; only the stored shape differs.
+    page([
+      H("From the Archive", "Corrections & Notes", "section"),
+      Traw(
+        "A note for the record, set in the old plain-text style the first issues used: the disputed 1997 final, long cited in these pages at a single millimetre, was in fact measured twice that night, and both readings agreed. The tape has never lied. Neither, for what it is worth, has Margaret.",
+      ),
+      Thtml(
+        "<p>And a note in the <em>marked-up</em> style of our middle years: our thanks to the readers who wrote in with <strong>corrections</strong>, additions and the occasional firm disagreement. A magazine, like a measure, is <u>better for being checked</u>. Keep them coming — care of anyone at the gate holding a clipboard.</p>",
+      ),
     ]),
 
     page([

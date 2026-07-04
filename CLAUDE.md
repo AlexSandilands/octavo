@@ -61,7 +61,7 @@ Routes + directory map are in `docs/architecture.md`; phase plan in `docs/ROADMA
 
 Next.js 15 · React 19 · TypeScript · Tailwind v4 · Drizzle ORM (Postgres) ·
 Auth.js (magic link) · Resend (email) · R2 via AWS S3 SDK · sharp (WebP) ·
-StPageFlip (flipbook) · Playwright (on-demand PDF).
+custom CSS-transform flipbook (`reader-spread.tsx`) · Playwright (on-demand PDF).
 
 ## Non-negotiables
 

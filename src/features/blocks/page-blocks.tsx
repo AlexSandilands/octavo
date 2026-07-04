@@ -1,7 +1,8 @@
 import type { Page } from "@/lib/blocks";
 import type { ImageMap } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
-import { BlockView, type Theme } from "./block-view";
+import { BlockView } from "./block-view";
+import type { LayoutTheme } from "./themes/registry";
 import { blockFlowStyle } from "./layout";
 
 // The flowed block content of one page — shared by the desktop reader spread and
@@ -15,7 +16,7 @@ export function PageBlocks({
   sponsors,
 }: {
   page: Page;
-  theme: Theme;
+  theme: LayoutTheme;
   images: ImageMap;
   sponsors: SponsorMap;
 }) {

@@ -4,24 +4,9 @@ import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 import { externalHref } from "@/lib/rich-text";
 import { richTextToPlain } from "@/lib/rich-text-doc";
+import type { LayoutTheme } from "./themes/registry";
 import { RichText } from "./rich-text";
 import { Editable } from "./editable";
-
-// A sponsor logo, contained within its fixed slot at whatever aspect it has.
-// A plain <img> (not next/image) because the slot is a fixed box and object-fit
-// does the work; logos are small, so intrinsic-size optimisation isn't worth it.
-function SponsorLogo({ logo, name }: { logo: ResolvedImage; name: string }) {
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={logo.url}
-      alt={name ? `${name} logo` : "Sponsor logo"}
-      className="h-full w-full object-contain"
-    />
-  );
-}
-
-export type Theme = "Classic" | "Modern";
 
 // A resolved image, scaled to its container width at its natural aspect ratio.
 // next/image needs intrinsic dimensions; older records may lack them, so fall
@@ -77,8 +62,11 @@ export type BlockEditHandlers = {
   onChange: (patch: BlockPatch) => void;
 };
 
-// Read-only OR editable themed rendering of one block. Shared by the desktop
-// reader and the admin editor. Body text scales with `textSize` (the A−/A+
+// Read-only OR editable rendering of one block, in a resolved layout theme
+// (see themes/registry.ts). Shared by the desktop reader, the admin editor and
+// the print/PDF path. Every per-theme styling decision comes from the `theme`
+// object — no `theme === "…"` branches here, so a new layout theme is a new
+// module, not an edit to this file. Body text scales with `textSize` (the A−/A+
 // control); headings/captions stay fixed.
 export function BlockView({
   block,
@@ -90,7 +78,7 @@ export function BlockView({
   priority = false,
 }: {
   block: Block;
-  theme: Theme;
+  theme: LayoutTheme;
   edit?: BlockEditHandlers;
   /** imageId → resolved R2 image; absent ids render as the photo placeholder. */
   images?: ImageMap;
@@ -101,8 +89,6 @@ export function BlockView({
   /** Eager-load this block's image (LCP). Only set for above-the-fold heroes. */
   priority?: boolean;
 }) {
-  const classic = theme === "Classic";
-
   // A text field: editable in place when `edit` is set, otherwise the raw
   // text. The caller supplies the patch shape, so writes stay typed per block.
   const f = (
@@ -122,7 +108,8 @@ export function BlockView({
 
   // Cover pages render headings and body text much larger and centred; images
   // and sponsors fall through to the normal rendering (already centred, and
-  // sized/centred by `blockFlowStyle`'s cover branch).
+  // sized/centred by `blockFlowStyle`'s cover branch). The cover treatment is
+  // the same across layout themes, so it stays here rather than in the modules.
   if (variant === "cover") {
     if (block.type === "heading") {
       // Read path emits a real heading so screen readers get a document outline;
@@ -171,71 +158,36 @@ export function BlockView({
       // everything else → h2) so screen readers get an outline; the editor keeps
       // a <div> so semantics don't fight contentEditable. Mirrors mobile-reader.
       const Title = edit ? "div" : level === "paragraph" ? "h3" : "h2";
-      // Kicker (eyebrow) sits above main/section titles; paragraph sub-heads
-      // omit it. One element, themed, reused across the levels below.
-      const kicker = (edit || block.kicker) && level !== "paragraph" && (
-        <div
-          className={
-            classic
-              ? "text-accent font-serif text-[13px] italic"
-              : "text-accent font-sans text-[10px] font-semibold tracking-[0.2em] uppercase"
-          }
-        >
-          {f((v) => ({ kicker: v }), block.kicker, "Kicker")}
-        </div>
-      );
 
-      // Small run-in sub-head — themed but level-agnostic in layout.
+      // Small run-in sub-head — no kicker, its own title treatment.
       if (level === "paragraph") {
         return (
-          <Title
-            className={
-              classic
-                ? "text-ink font-serif text-[15px] leading-snug font-semibold"
-                : "text-accent font-sans text-[12px] font-semibold tracking-[0.08em] uppercase"
-            }
-          >
+          <Title className={theme.heading.paragraph}>
             {f((v) => ({ title: v }), block.title, "Sub-heading")}
           </Title>
         );
       }
 
-      if (classic) {
-        return level === "section" ? (
-          <div className="border-hair-warm border-t pt-3.5">
-            {kicker}
-            <Title className="text-ink font-serif text-[24px] leading-tight">
-              {f((v) => ({ title: v }), block.title, "Section heading")}
-            </Title>
-          </div>
-        ) : (
-          <div className="text-center">
-            {kicker}
-            <Title className="text-ink mt-1.5 font-serif text-[32px] leading-tight">
-              {f((v) => ({ title: v }), block.title, "Heading")}
-            </Title>
-            <div className="mt-3 flex items-center justify-center gap-2.5">
-              <div className="h-px w-10 bg-rule" />
-              <div className="bg-accent h-1 w-1 rotate-45" />
-              <div className="h-px w-10 bg-rule" />
-            </div>
-          </div>
-        );
-      }
-
-      return level === "section" ? (
-        <div className="border-accent border-t-[2px] pt-2.5">
-          {kicker}
-          <Title className="text-ink mt-1 font-serif text-[24px] leading-tight tracking-tight">
-            {f((v) => ({ title: v }), block.title, "Section heading")}
-          </Title>
+      // Kicker (eyebrow) sits above main/section titles.
+      const kicker = (edit || block.kicker) && (
+        <div className={theme.heading.kicker}>
+          {f((v) => ({ kicker: v }), block.kicker, "Kicker")}
         </div>
-      ) : (
-        <div className="border-accent border-t-[3px] pt-3">
+      );
+      const style =
+        level === "section" ? theme.heading.section : theme.heading.main;
+      const rule = level === "main" ? theme.heading.main.rule?.() : null;
+      return (
+        <div className={style.wrapper}>
           {kicker}
-          <Title className="text-ink mt-2.5 font-serif text-[32px] leading-none tracking-tight">
-            {f((v) => ({ title: v }), block.title, "Heading")}
+          <Title className={style.title}>
+            {f(
+              (v) => ({ title: v }),
+              block.title,
+              level === "section" ? "Section heading" : "Heading",
+            )}
           </Title>
+          {rule}
         </div>
       );
     }
@@ -264,43 +216,21 @@ export function BlockView({
           alt={block.alt || block.caption}
           priority={priority}
         />
-      ) : classic ? (
-        <div className="photo-fill border-placeholder-line flex h-[150px] items-center justify-center border">
-          <span className="bg-page text-faint px-2 py-1 font-mono text-[11px]">
-            {block.caption || "PHOTO"}
-          </span>
-        </div>
       ) : (
-        <div className="photo-fill-green flex h-[150px] items-center justify-center">
-          <span className="text-cream bg-[rgba(20,40,30,0.4)] px-2 py-1 font-mono text-[11px]">
+        <div className={theme.image.placeholder.box}>
+          <span className={theme.image.placeholder.label}>
             {block.caption || "PHOTO"}
           </span>
         </div>
       );
-      return classic ? (
+      const showCaption = edit || block.caption;
+      return (
         <figure>
           {photo}
-          {(edit || block.caption) && (
-            <figcaption className="text-muted mt-2.5 text-center font-serif text-sm italic">
-              {f((v) => ({ caption: v }), block.caption, "Caption (optional)")}
-            </figcaption>
-          )}
-        </figure>
-      ) : (
-        <figure>
-          {photo}
-          {(edit || block.caption) && (
-            <figcaption className="mt-2.5 flex items-start gap-2.5">
-              <div className="bg-accent h-7 w-[3px] flex-none" />
-              <span className="text-muted font-sans text-[13px] leading-snug">
-                {f(
-                  (v) => ({ caption: v }),
-                  block.caption,
-                  "Caption (optional)",
-                )}
-              </span>
-            </figcaption>
-          )}
+          {showCaption &&
+            theme.image.caption(
+              f((v) => ({ caption: v }), block.caption, "Caption (optional)"),
+            )}
         </figure>
       );
     }
@@ -309,7 +239,8 @@ export function BlockView({
       // v1→v2 compatibility lives here. A managed block (`sponsorId` set) resolves
       // its name/href/logo from the sponsors map; a version-1 or manual block
       // (no `sponsorId`) falls back to its inline fields, so legacy documents
-      // render through the identical code path they always did.
+      // render through the identical code path they always did. The theme only
+      // lays the resolved data out (themes/shared.ts SponsorCardProps).
       const managed = block.sponsorId ? sponsors?.[block.sponsorId] : undefined;
       const isManaged = Boolean(block.sponsorId);
       // A managed reference that no longer resolves means the sponsor was
@@ -323,85 +254,21 @@ export function BlockView({
       const logo = managed?.logo ?? null;
       // Inline (manual/v1) name+href stay editable in place; a managed reference
       // is edited through the picker control, so it renders read-only.
-      const editable = edit && !isManaged;
+      const editable = Boolean(edit && !isManaged);
       const link = edit ? null : externalHref(href ?? "");
-
-      const card = classic ? (
-        <div className="border-hair border p-5 text-center">
-          <div className="text-faint2 font-sans text-[9px] font-semibold tracking-[0.24em] uppercase">
-            With thanks to our patron
-          </div>
-          <div
-            className={`text-faint mx-auto mt-3.5 flex h-12 w-40 items-center justify-center font-mono text-[10px] ${
-              logo ? "" : "border border-dashed border-dash"
-            }`}
-          >
-            {logo ? (
-              <SponsorLogo logo={logo} name={name} />
-            ) : isManaged ? (
-              "SPONSOR REMOVED"
-            ) : (
-              "SPONSOR LOGO"
-            )}
-          </div>
-          <div className="text-accent mt-3 font-serif text-sm italic">
-            {editable
-              ? f((v) => ({ name: v }), block.name, "Sponsor name")
-              : name}{" "}
-            {link && "→"}
-          </div>
-          {editable && (
-            <div className="text-accent mt-1 font-sans text-[12px]">
-              {f(
-                (v) => ({ href: v }),
-                block.href ?? "",
-                "https://link (optional)",
-              )}
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="bg-tint flex items-center gap-4 rounded-md p-4">
-          <div
-            className={`text-faint flex h-12 w-28 flex-none items-center justify-center rounded font-mono text-[10px] ${
-              logo ? "bg-card overflow-hidden" : "bg-card"
-            }`}
-          >
-            {logo ? (
-              <SponsorLogo logo={logo} name={name} />
-            ) : isManaged ? (
-              "REMOVED"
-            ) : (
-              "SPONSOR LOGO"
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-accent-soft font-sans text-[9px] font-semibold tracking-[0.2em] uppercase">
-              Sponsor
-            </div>
-            <div className="text-accent-ink mt-1 font-sans text-base font-semibold">
-              {editable
-                ? f((v) => ({ name: v }), block.name, "Sponsor name")
-                : name}
-            </div>
-            {editable ? (
-              <div className="text-accent mt-1 font-sans text-[13px]">
-                {f(
-                  (v) => ({ href: v }),
-                  block.href ?? "",
-                  "https://link (optional)",
-                )}
-              </div>
-            ) : (
-              link && (
-                <div className="text-accent mt-1 font-sans text-[13px] font-medium">
-                  Visit the store →
-                </div>
-              )
-            )}
-          </div>
-        </div>
-      );
+      const card = theme.sponsor({
+        name,
+        logo,
+        isManaged,
+        editable,
+        link,
+        nameField: editable
+          ? f((v) => ({ name: v }), block.name, "Sponsor name")
+          : name,
+        hrefField: editable
+          ? f((v) => ({ href: v }), block.href ?? "", "https://link (optional)")
+          : null,
+      });
       return link ? (
         <a
           href={link}

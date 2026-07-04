@@ -3,7 +3,8 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Icon, type IconName } from "@/components/icons";
-import { BlockView, type Theme } from "@/features/blocks/block-view";
+import { BlockView } from "@/features/blocks/block-view";
+import type { LayoutTheme } from "@/features/blocks/themes/registry";
 import { blockFlowStyle } from "@/features/blocks/layout";
 import type { Block, BlockPatch } from "@/lib/blocks";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
@@ -34,7 +35,7 @@ export function EditorBlock({
   onRegisterImage,
 }: {
   block: Block;
-  theme: Theme;
+  theme: LayoutTheme;
   cover?: boolean;
   selected: boolean;
   issueId: string;

@@ -171,3 +171,14 @@ uniformly v3 and the per-render string conversion drops out. It is:
 
 Run it once after deploying v3 (against dev/prod as needed); Railway does not run it automatically
 (it is content, not schema — no Drizzle migration file).
+
+### A version bump includes updating the seed
+
+The seed (`src/db/seed/`) is not just fixture data — it is the primary render path a fresh
+environment exercises. So a content-model version bump is not done until the seed **authors content
+in the new shape**, not the old one relying on the compatibility fallback. Concretely (issue #36):
+the `T()` builder emits v3 rich-text docs via `stringToDoc`, so a freshly seeded database renders
+through the same path as real edited content. Keep **one deliberately legacy-shaped page** — a plain
+string (`Traw`) and a constrained-HTML string (`Thtml`) — so the permanent v1/v2 render fallback and
+the migration converter stay under ambient coverage. When you bump `CONTENT_VERSION` again, do the
+same: update the builders to author the new shape, and leave a small, commented legacy fixture behind.

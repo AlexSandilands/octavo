@@ -66,6 +66,45 @@ src/
   whitespace, hairline borders, no gradient/glass slop.
 - Extract repeated class strings into small components, not copy-paste.
 
+### Brand skins (the per-deployment palette)
+
+The whole palette is swappable per deployment via `NEXT_PUBLIC_BRAND` (issue #40) so the same
+codebase can serve a different club/org without code edits — the visual counterpart of the
+`NEXT_PUBLIC_*` branding text. Because every token is a Tailwind v4 CSS custom property, a brand is
+just an override of those properties; no component changes.
+
+- **The default is `heritage`** — the `@theme` block in `globals.css` _is_ that brand. A deployment
+  with no `NEXT_PUBLIC_BRAND` set renders exactly it.
+- **To add a brand:** register its id in `src/lib/brands.ts` (`BRAND_IDS`), then add a
+  `:root[data-brand="<id>"] { --color-…: …; }` block to `src/app/brands.css` overriding the tokens
+  that carry the identity (paper/page/card/stage/tint, the accent family, ink/body/muted/faint\*,
+  the hairline + chrome neutrals). Override `--font-*` too if the brand wants its own type. Leave the
+  semantic status inks (`warn`/`ok`/`alert`) and the placeholder photo fills alone unless you have a
+  reason — they read the same across brands.
+- **Contrast is non-negotiable:** every brand must clear the same WCAG AA bar #10 audited for
+  heritage (readable foregrounds ≥ 4.5:1 on every paper-family background, plus paper-on-warn).
+  `scripts/dev-contrast-gate.mts` checks _every_ brand — run `npx tsx scripts/dev-contrast-gate.mts`
+  after touching any token. The easiest way to stay safe is to keep a new brand's lightnesses close
+  to heritage's and shift hue.
+- `NEXT_PUBLIC_BRAND` is build-time inlined — switching brands is a rebuild (matches Railway). An
+  unknown value fails at boot (validated in `lib/env.ts`), never silently falls back.
+
+### Layout themes (the per-issue editorial look)
+
+Distinct from brand skins: a **layout theme** (`classic`/`modern`) is the typographic/decoration
+treatment an admin picks _per issue_. Each theme is one module under
+`src/features/blocks/themes/` implementing the `LayoutTheme` contract (class strings for simple
+slots, small render functions for the structurally-divergent ones). The registry
+(`themes/registry.ts`) is the single source of truth — the id union, the admin zod enum, the editor
+picker, the reader toggle and the PDF theme all derive from it.
+
+- **To add a layout theme:** write `themes/<id>.tsx` (a `satisfies LayoutTheme` object) and add it to
+  `LAYOUT_THEMES` in `themes/registry.ts`. Nothing else — no edits to `block-view.tsx` conditionals,
+  the admin schema, or the pickers.
+- `NEXT_PUBLIC_ISSUE_THEMES` gates which themes a deployment _offers_ (a comma list; unset = all). An
+  issue whose stored theme is unknown or now-disabled still **renders** (degraded to the default via
+  `resolveTheme`) — reading is never gated by config; only the pickers are filtered.
+
 ## 7. Accessibility (first-class — the audience is older and phone-heavy)
 
 - Semantic HTML first (`<button>`, `<nav>`, `<main>`, headings in order). ARIA only to

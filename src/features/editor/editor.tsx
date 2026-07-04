@@ -2,17 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  ensureCoverFirst,
-  makeBlock,
-  makePage,
-  mergeBlock,
-  type BlockPatch,
-  type BlockType,
-  type IssueContent,
-  type Page,
-  type PageTemplate,
-} from "@/lib/blocks";
+import { type IssueContent } from "@/lib/blocks";
 import {
   DndContext,
   KeyboardSensor,
@@ -20,17 +10,21 @@ import {
   closestCenter,
   useSensor,
   useSensors,
-  type DragEndEvent,
 } from "@dnd-kit/core";
 import {
   SortableContext,
-  arrayMove,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { SponsorListItem, SponsorMap } from "@/lib/sponsors";
-import { type Theme } from "@/features/blocks/block-view";
+import {
+  enabledThemeIds,
+  enabledThemes,
+  getTheme,
+  normaliseEnabledThemeId,
+  type LayoutThemeId,
+} from "@/features/blocks/themes/registry";
 import {
   PageFrame,
   ScaledPage,
@@ -38,6 +32,7 @@ import {
   PAGE_H,
 } from "@/features/blocks/page-frame";
 import { useCanvasPanZoom } from "@/features/blocks/use-canvas-pan-zoom";
+import { useEditorPages } from "./use-editor-pages";
 import { EditorBlock } from "./editor-block";
 import { reportEditorError } from "./report-error";
 import { PageRail } from "./page-rail";
@@ -83,32 +78,44 @@ export function Editor({
       ),
     [sponsors],
   );
-  const initialPages = ensureCoverFirst(
-    issue.content.pages.length > 0
-      ? issue.content.pages
-      : [makePage("cover-classic")],
-  );
-
-  const [pages, setPages] = useState<Page[]>(initialPages);
+  // The page/block model + all its mutation handlers (issue #36 decomposition).
+  const {
+    pages,
+    curPage,
+    sel,
+    setSel,
+    addMenu,
+    setAddMenu,
+    page,
+    selectPage,
+    toggleCover,
+    addBlock,
+    updateBlock,
+    moveBlock,
+    onDragEnd,
+    removeBlock,
+    addPage,
+    reorderPages,
+    deletePage,
+  } = useEditorPages(issue.content);
   // imageId → resolved image, seeded from the server and grown as uploads land,
   // so the canvas previews an image the moment it's uploaded.
   const [images, setImages] = useState<ImageMap>(initialImages);
   const registerImage = (imageId: string, image: ResolvedImage) =>
     setImages((m) => ({ ...m, [imageId]: image }));
   const [title, setTitle] = useState(issue.title);
-  const [theme, setTheme] = useState(
-    issue.theme === "modern" ? "modern" : "classic",
+  // The issue's stored layout theme, normalised to an enabled theme id so the
+  // picker (which offers only enabled themes) and the state stay in sync; an
+  // unknown/disabled stored value degrades to the deployment default.
+  const [themeId, setThemeId] = useState<LayoutThemeId>(
+    normaliseEnabledThemeId(issue.theme),
   );
-  const [curPage, setCurPage] = useState(0);
-  const [sel, setSel] = useState<string | null>(
-    initialPages[0]?.blocks[0]?.id ?? null,
-  );
+  const themes = enabledThemes();
   const [pub, setPub] = useState(false);
   // Once published (now or on load), the publish modal defaults email OFF so a
   // later correction can't re-blast the list.
   const [published, setPublished] = useState(issue.status === "published");
   const [status, setStatus] = useState<SaveStatus>("saved");
-  const [addMenu, setAddMenu] = useState(false);
   const router = useRouter();
 
   // Saves are serialized through one promise chain and carry the revision they
@@ -118,8 +125,8 @@ export function Editor({
   const statusRef = useRef(status);
   statusRef.current = status;
   const revisionRef = useRef(issue.revision);
-  const latestRef = useRef({ pages, title, theme });
-  latestRef.current = { pages, title, theme };
+  const latestRef = useRef({ pages, title, theme: themeId });
+  latestRef.current = { pages, title, theme: themeId };
   const chainRef = useRef<Promise<boolean>>(Promise.resolve(true));
 
   const enqueueSave = (kind: "content" | "meta" | "all") => {
@@ -202,7 +209,7 @@ export function Editor({
     const t = setTimeout(() => void enqueueSave("meta"), 800);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, theme, issue.id]);
+  }, [title, themeId, issue.id]);
 
   // Warn before closing the tab while an edit hasn't landed on the server.
   useEffect(() => {
@@ -243,87 +250,16 @@ export function Editor({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [setSel]);
 
-  const themeName: Theme = theme === "modern" ? "Modern" : "Classic";
-  const page = pages[curPage] ?? pages[0];
+  const theme = getTheme(themeId);
 
-  const editPage = (fn: (p: Page) => Page) =>
-    setPages((ps) => ps.map((p, i) => (i === curPage ? fn(p) : p)));
-
-  // The first page is always the cover, so it can't be toggled off.
-  const toggleCover = () => {
-    if (curPage === 0) return;
-    editPage((p) => ({ ...p, cover: !p.cover }));
-  };
-  const addBlock = (type: BlockType) => {
-    const blk = makeBlock(type);
-    editPage((p) => ({ ...p, blocks: [...p.blocks, blk] }));
-    setSel(blk.id);
-  };
-  const updateBlock = (id: string, patch: BlockPatch) =>
-    editPage((p) => ({
-      ...p,
-      blocks: p.blocks.map((b) => (b.id === id ? mergeBlock(b, patch) : b)),
-    }));
-  const moveBlock = (id: string, dir: -1 | 1) =>
-    editPage((p) => {
-      const arr = [...p.blocks];
-      const i = arr.findIndex((b) => b.id === id);
-      const j = i + dir;
-      if (i < 0 || j < 0 || j >= arr.length) return p;
-      const a = arr[i]!;
-      arr[i] = arr[j]!;
-      arr[j] = a;
-      return { ...p, blocks: arr };
-    });
-  const onDragEnd = (e: DragEndEvent) => {
-    const { active, over } = e;
-    if (!over || active.id === over.id) return;
-    editPage((p) => {
-      const from = p.blocks.findIndex((b) => b.id === active.id);
-      const to = p.blocks.findIndex((b) => b.id === over.id);
-      if (from < 0 || to < 0) return p;
-      return { ...p, blocks: arrayMove(p.blocks, from, to) };
-    });
-  };
-
-  const removeBlock = (id: string) => {
-    editPage((p) => ({ ...p, blocks: p.blocks.filter((b) => b.id !== id) }));
-    if (sel === id) setSel(null);
-  };
-
-  const addPage = (template: PageTemplate = "blank") => {
-    setPages((ps) => [...ps, makePage(template)]);
-    setCurPage(pages.length);
-    setSel(null);
-    setAddMenu(false);
-  };
-  // Reorder pages from the rail, keeping the page you're editing selected as the
-  // list shuffles (curPage is an index, so it has to follow the moved page).
-  const reorderPages = (from: number, to: number) => {
-    const activeId = pages[curPage]?.id;
-    // The front-cover flag follows position 1: whatever lands there becomes
-    // the cover, and the page displaced from it is demoted — so a reorder can
-    // never leave two flagged pages. Extra cover-styled pages elsewhere stay
-    // possible only via the explicit "Cover page" toggle.
-    const prevFirstId = pages[0]?.id;
-    const next = ensureCoverFirst(
-      arrayMove(pages, from, to).map((p, i) =>
-        i !== 0 && p.id === prevFirstId ? { ...p, cover: false } : p,
-      ),
-    );
-    setPages(next);
-    const newCur = next.findIndex((p) => p.id === activeId);
-    if (newCur >= 0) setCurPage(newCur);
-  };
-  const deletePage = (index: number) => {
-    if (pages.length <= 1) return;
-    setPages((ps) => ensureCoverFirst(ps.filter((_, i) => i !== index)));
-    // Keep the current page valid as the list shrinks: shift selection left if
-    // we removed the active page or one before it.
-    setCurPage((c) => Math.min(c > index ? c - 1 : c, pages.length - 2));
-    setSel(null);
+  // Cycle the layout theme through the deployment-enabled set; the header hides
+  // the control when only one theme is enabled.
+  const cycleTheme = () => {
+    const ids = enabledThemeIds();
+    const i = ids.indexOf(themeId);
+    setThemeId(ids[(i + 1) % ids.length]!);
   };
 
   return (
@@ -332,13 +268,12 @@ export function Editor({
         title={title}
         onTitleChange={setTitle}
         issueNumber={issue.number}
-        theme={theme}
+        themeName={theme.name}
+        showThemeToggle={themes.length > 1}
         status={status}
         onRetrySave={() => void enqueueSave("all")}
         onReload={() => window.location.reload()}
-        onToggleTheme={() =>
-          setTheme((t) => (t === "classic" ? "modern" : "classic"))
-        }
+        onToggleTheme={cycleTheme}
         onPreview={async () => {
           // Open the preview in a new tab so the editor stays mounted with its
           // unsaved in-memory state — closing the tab returns you to the editor
@@ -367,10 +302,7 @@ export function Editor({
           pages={pages}
           curPage={curPage}
           addMenu={addMenu}
-          onSelectPage={(i) => {
-            setCurPage(i);
-            setSel(null);
-          }}
+          onSelectPage={selectPage}
           onReorder={reorderPages}
           onAddPage={addPage}
           onDeletePage={deletePage}
@@ -409,7 +341,7 @@ export function Editor({
             >
               <ScaledPage scale={panZoom.scale}>
                 <PageFrame
-                  theme={themeName}
+                  theme={theme}
                   w={PAGE_W}
                   h={PAGE_H}
                   issueNo={issue.number}
@@ -442,7 +374,7 @@ export function Editor({
                           <EditorBlock
                             key={b.id}
                             block={b}
-                            theme={themeName}
+                            theme={theme}
                             cover={page.cover}
                             selected={b.id === sel}
                             issueId={issue.id}

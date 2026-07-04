@@ -41,9 +41,9 @@ export default async function PrintPage({
       issueNo={issue.number}
       // The reader's theme is a member-facing toggle (client state, not stored
       // on the issue), so the generator forwards the selection here; the
-      // download endpoint validated it. Anything else falls back to the
-      // reader's default.
-      theme={theme === "modern" ? "modern" : "classic"}
+      // download endpoint validated it against the registry. PrintDocument
+      // resolves it and degrades anything unknown to the reader's default.
+      theme={typeof theme === "string" ? theme : ""}
       images={images}
       sponsors={sponsors}
     />

@@ -5,6 +5,10 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { ensureCoverFirst, issueContentSchema } from "@/lib/blocks";
+import {
+  THEME_IDS,
+  type LayoutThemeId,
+} from "@/features/blocks/themes/registry";
 import { env } from "@/lib/env";
 import {
   createIssue,
@@ -26,10 +30,14 @@ import { requireAdmin } from "@/server/session";
 const idSchema = z.string().uuid();
 
 // .strict() so unexpected keys are rejected, not silently written to columns.
+// The theme enum is derived from the layout-theme registry (issue #40) — one
+// source of truth, so adding a theme needs no edit here. Any *known* theme is
+// accepted (not just the deployment-enabled subset), so a re-save never rejects
+// an issue authored under a since-disabled theme.
 const metaSchema = z
   .object({
     title: z.string().max(200).optional(),
-    theme: z.enum(["classic", "modern"]).optional(),
+    theme: z.enum(THEME_IDS as [LayoutThemeId, ...LayoutThemeId[]]).optional(),
   })
   .strict();
 

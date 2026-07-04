@@ -13,7 +13,8 @@ export function EditorHeader({
   title,
   onTitleChange,
   issueNumber,
-  theme,
+  themeName,
+  showThemeToggle,
   status,
   onRetrySave,
   onReload,
@@ -24,7 +25,10 @@ export function EditorHeader({
   title: string;
   onTitleChange: (v: string) => void;
   issueNumber: number;
-  theme: string;
+  /** Display name of the current layout theme (e.g. "Classic"). */
+  themeName: string;
+  /** Hide the toggle when the deployment enables only one layout theme. */
+  showThemeToggle: boolean;
   status: SaveStatus;
   onRetrySave: () => void;
   onReload: () => void;
@@ -79,13 +83,15 @@ export function EditorHeader({
         )}
       </div>
       <div className="flex items-center gap-3">
-        <button
-          onClick={onToggleTheme}
-          className="border-hair text-ink hover:border-accent flex h-10 items-center gap-2 rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-sm font-medium capitalize"
-        >
-          Theme: {theme}
-          <Icon name="chevronDown" size={14} strokeWidth={1.8} />
-        </button>
+        {showThemeToggle && (
+          <button
+            onClick={onToggleTheme}
+            className="border-hair text-ink hover:border-accent flex h-10 items-center gap-2 rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-sm font-medium"
+          >
+            Theme: {themeName}
+            <Icon name="chevronDown" size={14} strokeWidth={1.8} />
+          </button>
+        )}
         <button
           onClick={onPreview}
           className="border-hair text-ink flex h-10 items-center rounded-lg border-[1.5px] bg-white px-4 font-sans text-sm font-semibold"

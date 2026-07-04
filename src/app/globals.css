@@ -1,7 +1,12 @@
 @import "tailwindcss";
+/* Non-default brand skins (issue #40): `[data-brand="…"]` token overrides. The
+   @theme block below is the `heritage` default; brands.css only holds the others,
+   so a deployment with no NEXT_PUBLIC_BRAND set renders exactly this file. */
+@import "./brands.css";
 
 /* Design system from docs/claude-design — editorial, paper + one accent.
-   Tokens drive Tailwind utilities (bg-paper, text-accent, font-serif, ...). */
+   Tokens drive Tailwind utilities (bg-paper, text-accent, font-serif, ...).
+   These @theme tokens ARE the `heritage` brand — the per-deployment default. */
 @theme {
   --color-paper: #f4f0e8;
   --color-page: #faf7f0;

@@ -1,6 +1,7 @@
 import type { Page } from "@/lib/blocks";
 import type { ImageMap } from "@/lib/images";
-import { BlockView, type Theme } from "@/features/blocks/block-view";
+import { BlockView } from "@/features/blocks/block-view";
+import { resolveTheme } from "@/features/blocks/themes/registry";
 import { blockFlowStyle } from "@/features/blocks/layout";
 import {
   PageFrame,
@@ -30,12 +31,14 @@ export function CoverThumb({
   /** Eager-load the cover image — set only for the hero (LCP), not the archive. */
   priority?: boolean;
 }) {
-  const themeName: Theme = theme === "modern" ? "Modern" : "Classic";
+  // Free-text stored value → a renderable theme, degrading anything unknown to
+  // the default so a legacy/misconfigured issue still shows a thumbnail.
+  const resolved = resolveTheme(theme);
   return (
     <div className="pointer-events-none select-none">
       <ScaledPage scale={width / PAGE_W}>
         <PageFrame
-          theme={themeName}
+          theme={resolved}
           w={PAGE_W}
           h={PAGE_H}
           issueNo={issueNo}
@@ -52,7 +55,7 @@ export function CoverThumb({
               <div key={b.id} style={blockFlowStyle(b, page.cover)}>
                 <BlockView
                   block={b}
-                  theme={themeName}
+                  theme={resolved}
                   images={images}
                   variant={page.cover ? "cover" : undefined}
                   priority={priority}
