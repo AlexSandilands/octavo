@@ -14,7 +14,9 @@ export function SiteFooter({
   return (
     <footer className="border-line text-faint2 mt-4 flex flex-col gap-3 border-t py-8 font-sans text-[13px] sm:flex-row sm:items-center sm:justify-between">
       <div className="text-muted font-serif text-[15px]">{site.org}</div>
-      <div className="flex items-center gap-5">
+      {/* Baseline-align so "Sign out" sits on the same line as the issue-count
+          text despite the button's taller (44px) tap target. */}
+      <div className="flex items-baseline gap-5">
         <span>
           {issueCount} {issueCount === 1 ? "issue" : "issues"}
           {estYear ? ` · Est. ${estYear}` : ""}

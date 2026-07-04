@@ -2,6 +2,11 @@
 
 import Link from "next/link";
 import { Icon } from "@/components/icons";
+import type {
+  LayoutTheme,
+  LayoutThemeId,
+} from "@/features/blocks/themes/registry";
+import { ThemeMenu } from "./theme-menu";
 
 export type SaveStatus = "saved" | "saving" | "error" | "conflict";
 
@@ -13,26 +18,26 @@ export function EditorHeader({
   title,
   onTitleChange,
   issueNumber,
-  themeName,
-  showThemeToggle,
+  themes,
+  themeId,
+  onSelectTheme,
   status,
   onRetrySave,
   onReload,
-  onToggleTheme,
   onPreview,
   onPublish,
 }: {
   title: string;
   onTitleChange: (v: string) => void;
   issueNumber: number;
-  /** Display name of the current layout theme (e.g. "Classic"). */
-  themeName: string;
-  /** Hide the toggle when the deployment enables only one layout theme. */
-  showThemeToggle: boolean;
+  /** The deployment-enabled layout themes; the picker hides with only one. */
+  themes: LayoutTheme[];
+  /** The current layout theme id. */
+  themeId: LayoutThemeId;
+  onSelectTheme: (id: LayoutThemeId) => void;
   status: SaveStatus;
   onRetrySave: () => void;
   onReload: () => void;
-  onToggleTheme: () => void;
   onPreview: () => void;
   onPublish: () => void;
 }) {
@@ -83,14 +88,12 @@ export function EditorHeader({
         )}
       </div>
       <div className="flex items-center gap-3">
-        {showThemeToggle && (
-          <button
-            onClick={onToggleTheme}
-            className="border-hair text-ink hover:border-accent flex h-10 items-center gap-2 rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-sm font-medium"
-          >
-            Theme: {themeName}
-            <Icon name="chevronDown" size={14} strokeWidth={1.8} />
-          </button>
+        {themes.length > 1 && (
+          <ThemeMenu
+            themes={themes}
+            themeId={themeId}
+            onSelect={onSelectTheme}
+          />
         )}
         <button
           onClick={onPreview}

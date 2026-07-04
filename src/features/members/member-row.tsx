@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Icon } from "@/components/icons";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Avatar, Pill } from "@/components/ui";
 import { initials } from "@/lib/initials";
 import {
@@ -32,6 +33,14 @@ export function MemberRow({
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  // The pending destructive action awaiting confirmation, if any.
+  const [confirm, setConfirm] = useState<{
+    title: string;
+    body: string;
+    confirmLabel: string;
+    confirmIcon: "trash" | "close" | "minus";
+    act: () => void;
+  } | null>(null);
   const isSelf = member.id === currentUserId;
   const label = member.name ?? member.email;
 
@@ -48,23 +57,28 @@ export function MemberRow({
     run(() => setSubscribedAction(member.id, !member.subscribed));
 
   const toggleAdmin = () => {
-    if (
-      member.isAdmin &&
-      !window.confirm(`Remove admin access from ${label}?`)
-    ) {
+    // Granting admin is safe and immediate; revoking it (a downgrade) confirms.
+    if (!member.isAdmin) {
+      run(() => setAdminAction(member.id, true));
       return;
     }
-    run(() => setAdminAction(member.id, !member.isAdmin));
+    setConfirm({
+      title: `Remove admin access from ${label}?`,
+      body: "They stay a member but can no longer manage issues, members or sponsors.",
+      confirmLabel: "Remove admin",
+      confirmIcon: "minus",
+      act: () => run(() => setAdminAction(member.id, false)),
+    });
   };
 
   const remove = () => {
-    if (
-      window.confirm(
-        `Remove ${label}? This revokes their access and signs them out. It can’t be undone.`,
-      )
-    ) {
-      run(() => removeMemberAction(member.id));
-    }
+    setConfirm({
+      title: `Remove ${label}?`,
+      body: "This revokes their access and signs them out. It can’t be undone.",
+      confirmLabel: "Remove member",
+      confirmIcon: "trash",
+      act: () => run(() => removeMemberAction(member.id)),
+    });
   };
 
   return (
@@ -141,6 +155,21 @@ export function MemberRow({
         <p className="text-warn mt-1.5 pl-[3.25rem] font-sans text-[13px]">
           {error}
         </p>
+      )}
+
+      {confirm && (
+        <ConfirmDialog
+          title={confirm.title}
+          body={confirm.body}
+          confirmLabel={confirm.confirmLabel}
+          confirmIcon={confirm.confirmIcon}
+          working={pending}
+          onClose={() => setConfirm(null)}
+          onConfirm={() => {
+            confirm.act();
+            setConfirm(null);
+          }}
+        />
       )}
     </div>
   );

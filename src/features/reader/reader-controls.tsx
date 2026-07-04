@@ -5,8 +5,8 @@ import { MIN_ZOOM, MAX_ZOOM } from "@/features/blocks/use-canvas-pan-zoom";
 import type { PdfState } from "./use-issue-pdf";
 
 // The floating control dock at the bottom of the reader: paging, the spread
-// label, contents toggle, fit + zoom slider, PDF and full screen. Fades to 70%
-// until hovered/focused so it stays out of the way while reading.
+// label, contents toggle, fit + zoom slider, PDF and full screen. Fades back to
+// 50% until hovered/focused so it sits behind the page while reading.
 export function ReaderControls({
   label,
   onPrev,
@@ -40,7 +40,7 @@ export function ReaderControls({
         : "Download PDF";
   return (
     <div className="group absolute inset-x-0 bottom-0 flex justify-center px-4 pt-12 pb-4">
-      <div className="bg-reader-chrome text-reader-chrome-text flex items-center gap-1.5 rounded-full px-2.5 py-2 opacity-70 shadow-[0_8px_24px_rgba(0,0,0,0.28)] transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
+      <div className="bg-reader-chrome text-reader-chrome-text flex items-center gap-1.5 rounded-full px-2.5 py-2 opacity-50 shadow-[0_8px_24px_rgba(0,0,0,0.28)] transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
         <CtrlBtn onClick={onPrev} title="Previous">
           <Icon name="chevronLeft" size={18} strokeWidth={1.7} />
         </CtrlBtn>
@@ -56,7 +56,7 @@ export function ReaderControls({
         </CtrlBtn>
         <div className="flex items-center gap-2 pr-1 pl-1">
           <CtrlBtn onClick={onResetView} title="Fit to screen">
-            <Icon name="zoom" size={18} />
+            <Icon name="fitScreen" size={18} />
           </CtrlBtn>
           <input
             type="range"

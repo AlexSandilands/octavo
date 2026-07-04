@@ -173,8 +173,13 @@ export function DesktopReader({
   // grabbing the corner of a real page); presses elsewhere fall through to pan.
   const onSpreadPointerDown = (e: React.PointerEvent) => {
     if (turn) return;
+    const target = e.target as HTMLElement;
     // A link in the edge band must stay clickable — don't hijack it for a turn.
-    if ((e.target as HTMLElement).closest("a")) return;
+    if (target.closest("a")) return;
+    // A press on page content (text/image block) must reach that block so the
+    // reader can select text near a page edge; only the bare page margins arm
+    // the edge-flip. Paging otherwise stays available via the arrows/keyboard.
+    if (target.closest("[data-reader-block]")) return;
     const rect = spreadRef.current?.getBoundingClientRect();
     if (!rect) return;
     const edge = rect.width * 0.16;

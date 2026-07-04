@@ -1,7 +1,8 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Icon } from "@/components/icons";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { externalHref } from "@/lib/rich-text";
 import type { SponsorListItem } from "@/lib/sponsors";
 import { deleteSponsorAction } from "@/app/admin/sponsors/actions";
@@ -20,16 +21,11 @@ export function SponsorRow({
   onChanged: () => void;
 }) {
   const [pending, startTransition] = useTransition();
+  const [confirming, setConfirming] = useState(false);
   const link = sponsor.href ? externalHref(sponsor.href) : null;
 
   const remove = () => {
-    if (
-      !window.confirm(
-        `Delete “${sponsor.name}”? Any issue that placed this sponsor will ` +
-          `show nothing in its slot. This cannot be undone.`,
-      )
-    )
-      return;
+    setConfirming(false);
     startTransition(async () => {
       await deleteSponsorAction(sponsor.id);
       onChanged();
@@ -105,7 +101,7 @@ export function SponsorRow({
         </button>
         <button
           type="button"
-          onClick={remove}
+          onClick={() => setConfirming(true)}
           disabled={pending}
           title={`Delete ${sponsor.name}`}
           aria-label={`Delete ${sponsor.name}`}
@@ -114,6 +110,17 @@ export function SponsorRow({
           <Icon name="trash" size={17} strokeWidth={1.8} />
         </button>
       </div>
+
+      {confirming && (
+        <ConfirmDialog
+          title={`Delete “${sponsor.name}”?`}
+          body="Any issue that placed this sponsor will show nothing in its slot. This cannot be undone."
+          confirmLabel="Delete sponsor"
+          working={pending}
+          onClose={() => setConfirming(false)}
+          onConfirm={remove}
+        />
+      )}
     </div>
   );
 }
