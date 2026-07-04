@@ -130,16 +130,20 @@ fully isolated from the members' site:
    it's build-time inlined (`src/lib/demo.ts`) — present at build, not just runtime, or
    the gate stays on. This ungates `/` and `/read/*`; `/admin/*`, server actions and
    uploads stay locked (see [architecture.md](architecture.md#demo-mode)).
-3. **Omit `EMAIL_API_KEY`.** Nothing should send from a demo: magic links only go from
-   an explicit `/signin` submission and the publish blast needs an admin session, so no
-   email provider is required.
+3. **Keep `EMAIL_API_KEY` / `EMAIL_FROM` set** (the same Resend account is fine —
+   `src/lib/env.ts` refuses to boot production without them). Email is still
+   effectively dormant: a magic link only sends to an address that already exists in
+   the demo DB's `users` table (that's just the owner), and the publish blast needs an
+   admin session and is skippable per publish. This is also how the owner signs into
+   `/admin` on the demo, which stays fully gated.
 4. **Seed content.** `railway run npm run db:seed` populates issues. The seed **wipes
    issues and refuses when published issues exist unless `--force`** — safe against the
-   demo project's own DB, but for that reason **never run it against production**. Add
-   `railway run npm run db:admin -- you@example.com` if you want to author on the demo.
+   demo project's own DB, but for that reason **never run it against production**. Run
+   `railway run npm run db:admin -- you@example.com` to be able to sign in and author
+   on the demo.
 
 Set the usual `DATABASE_URL`, `AUTH_SECRET`, `R2_*` and `NEXT_PUBLIC_*` branding as
-below — only the demo flag and the omitted email key differ from a normal deploy.
+below — only the demo flag differs from a normal deploy.
 
 ## Environment variables (app)
 

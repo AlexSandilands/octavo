@@ -196,9 +196,11 @@ so **both gate layers read the same value and cannot disagree at runtime** — t
 **`/admin/*`, every server action and `POST /api/admin/images` stay locked** — `getAdminUser()`
 and the admin gates ignore the flag. The PDF endpoint follows the reader: since the reader is
 public in demo, `GET /api/issues/[number]/pdf` allows an anonymous download (the R2 cache bounds
-generation cost). Auth stays dormant — a magic link only sends from an explicit `/signin`
-submission, and the publish blast still needs an admin session — so a demo project can simply
-omit `EMAIL_API_KEY`. **Never set this on the real members' site.**
+generation cost). Auth stays effectively dormant — a magic link only sends to an email that
+already exists in the demo DB's `users` table, and the publish blast still needs an admin
+session — but the email keys must stay set (`env.ts` requires them to boot in production);
+they're what lets the owner sign into the still-gated `/admin` on the demo.
+**Never set this on the real members' site.**
 
 ## Environment
 
