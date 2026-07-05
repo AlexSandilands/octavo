@@ -14,7 +14,7 @@ export function SignOutButton({
     <form action={signOutAction}>
       <button
         type="submit"
-        className={`text-muted hover:text-accent flex h-11 items-center font-sans font-medium ${
+        className={`text-muted hover:text-accent flex h-11 cursor-pointer items-center font-sans font-medium hover:underline ${
           sidebar ? "w-full gap-2 text-[14px]" : "text-sm whitespace-nowrap"
         }`}
       >

@@ -76,6 +76,33 @@ export async function createUser(input: {
   }
 }
 
+export type UpdateUserResult =
+  | { ok: true; member: MemberRow }
+  | { ok: false; reason: "duplicate" | "missing" };
+
+// Edit a member's name and/or email in place. Email is canonicalised upstream
+// (trim + lowercase) so it still matches the unique index and future sign-ins.
+// Setting the email to the row's *own* current value is a no-op for the unique
+// index (it only conflicts with *other* rows), so an unchanged email never
+// false-positives as a duplicate; only a collision with another member does.
+export async function updateUser(
+  id: string,
+  input: { email: string; name: string | null },
+): Promise<UpdateUserResult> {
+  try {
+    const [row] = await db
+      .update(users)
+      .set({ email: input.email, name: input.name })
+      .where(eq(users.id, id))
+      .returning(memberColumns);
+    if (!row) return { ok: false, reason: "missing" };
+    return { ok: true, member: row };
+  } catch (err) {
+    if (isUniqueViolation(err)) return { ok: false, reason: "duplicate" };
+    throw err;
+  }
+}
+
 export type ImportRow = { email: string; name: string | null };
 export type ImportResult = { added: number; alreadyMembers: number };
 

@@ -113,7 +113,7 @@ export default async function AdminDashboard() {
                   <div className="flex items-center gap-2 sm:gap-4">
                     <Link
                       href={editHref}
-                      className="text-accent text-right font-sans text-sm font-semibold sm:w-14"
+                      className="text-accent text-right font-sans text-sm font-semibold hover:underline sm:w-14"
                     >
                       Edit
                     </Link>
