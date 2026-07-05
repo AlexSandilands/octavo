@@ -97,7 +97,7 @@ export function ThemeMenu({
             setOpen(true);
           }
         }}
-        className="border-hair text-ink hover:border-accent flex h-10 items-center gap-2 rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-sm font-medium"
+        className="border-hair-warm text-ink hover:border-accent hover:bg-accent-wash flex h-10 items-center gap-2 rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-sm font-medium transition-[transform,background-color,border-color] duration-150 ease-out select-none motion-safe:active:scale-[0.97]"
       >
         Theme: {current?.name ?? ""}
         <Icon name="chevronDown" size={14} strokeWidth={1.8} />

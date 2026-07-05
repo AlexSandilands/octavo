@@ -32,7 +32,7 @@ export function EditorToolbar({
         <button
           key={b.type}
           onClick={() => onAddBlock(b.type)}
-          className="text-ink hover:border-accent border-hair-warm hover:bg-accent-wash flex h-[34px] items-center gap-1.5 rounded-[7px] border bg-white px-3.5 font-sans text-[13px] font-semibold"
+          className="text-ink hover:border-accent border-hair-warm hover:bg-accent-wash flex h-[34px] items-center gap-1.5 rounded-[7px] border bg-white px-3.5 font-sans text-[13px] font-semibold transition-[transform,background-color,border-color] duration-150 ease-out select-none motion-safe:active:scale-95"
         >
           <Icon name={b.icon} size={15} className="text-accent" />
           {b.label}
@@ -48,7 +48,7 @@ export function EditorToolbar({
               ? "The first page is always the cover"
               : "Lay this page out as a cover"
           }
-          className={`flex h-[34px] items-center gap-1.5 rounded-[7px] border px-3.5 font-sans text-[13px] font-semibold ${
+          className={`flex h-[34px] items-center gap-1.5 rounded-[7px] border px-3.5 font-sans text-[13px] font-semibold transition-[transform,background-color,border-color,color] duration-150 ease-out select-none motion-safe:active:scale-95 ${
             coverActive
               ? "border-accent bg-accent text-paper"
               : "text-ink border-hair-warm hover:border-accent hover:bg-accent-wash bg-white"

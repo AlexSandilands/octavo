@@ -1,6 +1,7 @@
 "use client";
 
 import { Icon } from "@/components/icons";
+import { Button } from "@/components/ui";
 import { useIssuePdf } from "@/features/reader/use-issue-pdf";
 
 // The latest-issue card's "Download PDF" action. A secondary button that mirrors
@@ -16,26 +17,31 @@ export function DownloadPdfButton({ issueNumber }: { issueNumber: number }) {
         : "Download PDF";
 
   return (
-    <button
-      type="button"
+    <Button
+      variant="secondary"
       onClick={pdf.download}
-      disabled={pdf.state === "loading"}
+      busy={pdf.state === "loading"}
       aria-label={
         pdf.state === "error" ? "PDF failed — tap to retry" : "Download PDF"
       }
-      className={`border-hair inline-flex h-12 items-center justify-center gap-2 rounded-lg border-[1.5px] bg-white px-5 font-sans text-[15px] font-semibold transition-colors hover:bg-paper disabled:cursor-default ${
-        pdf.state === "error" ? "text-alert" : "text-ink"
-      }`}
     >
-      {label}
-      {pdf.state === "loading" ? (
-        <span
-          aria-hidden="true"
-          className="h-[17px] w-[17px] animate-spin rounded-full border-2 border-current border-t-transparent opacity-70"
-        />
-      ) : (
-        <Icon name="download" size={17} strokeWidth={1.8} />
-      )}
-    </button>
+      {/* Colour the whole label+icon on error via the child element so it wins
+          the cascade regardless of the variant's own text colour. */}
+      <span
+        className={`inline-flex items-center gap-2 ${
+          pdf.state === "error" ? "text-alert" : ""
+        }`}
+      >
+        {label}
+        {pdf.state === "loading" ? (
+          <span
+            aria-hidden="true"
+            className="h-[17px] w-[17px] animate-spin rounded-full border-2 border-current border-t-transparent opacity-70"
+          />
+        ) : (
+          <Icon name="download" size={17} strokeWidth={1.8} />
+        )}
+      </span>
+    </Button>
   );
 }

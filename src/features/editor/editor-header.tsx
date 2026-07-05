@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Icon } from "@/components/icons";
+import { Button } from "@/components/ui";
 import type {
   LayoutTheme,
   LayoutThemeId,
@@ -95,18 +96,12 @@ export function EditorHeader({
             onSelect={onSelectTheme}
           />
         )}
-        <button
-          onClick={onPreview}
-          className="border-hair text-ink flex h-10 items-center rounded-lg border-[1.5px] bg-white px-4 font-sans text-sm font-semibold"
-        >
+        <Button variant="secondary" size="sm" onClick={onPreview}>
           Preview
-        </button>
-        <button
-          onClick={onPublish}
-          className="bg-accent text-paper flex h-10 items-center rounded-lg px-5 font-sans text-sm font-semibold shadow-[0_2px_8px_rgba(29,77,62,0.25)]"
-        >
+        </Button>
+        <Button size="sm" onClick={onPublish}>
           Publish
-        </button>
+        </Button>
       </div>
     </header>
   );

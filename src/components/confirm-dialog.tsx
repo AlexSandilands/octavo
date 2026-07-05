@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useId, useRef } from "react";
-import { Icon, type IconName } from "./icons";
+import { type IconName } from "./icons";
+import { Button } from "./ui";
 
 // A shared, accessible confirmation dialog for destructive actions — the in-app
 // replacement for scattered `window.confirm` alerts (issue #33), styled like the
@@ -96,26 +97,23 @@ export function ConfirmDialog({
         </div>
 
         <div className="flex justify-end gap-3 px-8 pt-6 pb-7">
-          <button
+          <Button
             ref={cancelRef}
-            type="button"
+            variant="secondary"
             onClick={onClose}
             disabled={working}
-            className="border-hair text-ink flex h-12 items-center rounded-lg border-[1.5px] bg-white px-5 font-sans text-[15px] font-semibold disabled:opacity-50"
           >
             {cancelLabel}
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="danger"
             onClick={onConfirm}
-            disabled={working}
-            className="bg-warn text-paper flex h-12 items-center gap-2 rounded-lg px-6 font-sans text-[15px] font-semibold shadow-[0_2px_10px_rgba(0,0,0,0.18)] disabled:opacity-60"
+            busy={working}
+            icon={confirmIcon ?? undefined}
+            iconPosition="left"
           >
-            {confirmIcon && (
-              <Icon name={confirmIcon} size={17} strokeWidth={1.8} />
-            )}
             {working ? "Working…" : confirmLabel}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
