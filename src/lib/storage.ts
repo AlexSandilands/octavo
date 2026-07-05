@@ -17,12 +17,16 @@ import {
 // local filesystem backend so the image pipeline runs with no cloud setup in
 // dev. The rest of the app calls these — never a specific backend.
 
-const useR2 = isR2Configured();
+// Resolved at call time, never at import: isR2Configured() reads the runtime
+// R2_* env, and `next build` evaluates this module while collecting page data —
+// computing it eagerly would force the R2 secrets to be build args (issue #67).
+// No local cache needed: env.ts memoizes the runtime parse, so isR2Configured()
+// is a handful of property reads over a frozen snapshot.
 
 // True when serving from the local filesystem (dev fallback). The upload route
 // surfaces this so the admin knows uploads aren't going to durable storage.
 export function usingLocalStorage(): boolean {
-  return !useR2;
+  return !isR2Configured();
 }
 
 export async function putObject(
@@ -30,19 +34,21 @@ export async function putObject(
   body: Buffer,
   contentType: string,
 ): Promise<void> {
-  return useR2 ? putR2(key, body, contentType) : putLocalObject(key, body);
+  return isR2Configured()
+    ? putR2(key, body, contentType)
+    : putLocalObject(key, body);
 }
 
 export async function deleteObject(key: string): Promise<void> {
-  return useR2 ? deleteR2(key) : deleteLocalObject(key);
+  return isR2Configured() ? deleteR2(key) : deleteLocalObject(key);
 }
 
 // Read stored bytes, or null when the key isn't present. Backs the cached-PDF
 // lookup: a hit serves the bytes, a miss triggers generation.
 export async function getObject(key: string): Promise<Buffer | null> {
-  return useR2 ? getR2(key) : readLocalObject(key);
+  return isR2Configured() ? getR2(key) : readLocalObject(key);
 }
 
 export function keyToUrl(key: string): string {
-  return useR2 ? r2KeyToUrl(key) : localKeyToUrl(key);
+  return isR2Configured() ? r2KeyToUrl(key) : localKeyToUrl(key);
 }

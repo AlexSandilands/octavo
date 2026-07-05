@@ -258,11 +258,12 @@ app running to report) can't.
 
 `.github/workflows/ci.yml` runs on every PR and every push to `main`: `npm ci`
 → `npm run lint` → `npx tsc --noEmit` → `npm run build`. The build runs with
-`NODE_ENV=production`, so `src/lib/env.ts` requires the R2 + email vars — the
-workflow supplies **dummy** values (the build never connects to Postgres or R2;
-every data route is dynamic, so it only needs the vars to be present and valid).
-`NEXT_PUBLIC_*` branding is set in the workflow because those are inlined into
-the client bundle at build time. No `SENTRY_DSN` is set in CI on purpose — that
+**no runtime secrets set** — by design: `src/lib/env.ts` validates
+`DATABASE_URL`, `AUTH_SECRET`, `R2_*` and `EMAIL_*` **lazily at runtime**, not
+during `next build` (issue #67), so a secret-free CI build is the guard that
+catches any code reading a runtime env field at module top level — which would
+reintroduce the build-time requirement. Only the `NEXT_PUBLIC_*` branding is set
+in the workflow, because those are inlined into the client bundle at build time. No `SENTRY_DSN` is set in CI on purpose — that
 proves the app builds without Sentry. `actions/setup-node` caches the npm
 download cache keyed on the lockfile.
 
