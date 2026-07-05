@@ -102,9 +102,22 @@ Hand each subagent:
 - Wipe `.next` after switching branches. Never run two dev servers in one
   checkout. If `rm -rf .next` reports "Directory not empty", a dev server is
   still writing to it.
-- A production build requires R2 env vars. For local build/verification, prefix
-  with dummies: `env R2_ACCOUNT_ID=x R2_ACCESS_KEY_ID=x R2_SECRET_ACCESS_KEY=x
-R2_BUCKET=x R2_PUBLIC_URL=https://pub-test.r2.dev npm run build`. To also make
+- A production build requires R2 env vars **plus** the vars that page-data
+  collection validates (`DATABASE_URL`, `AUTH_SECRET`, `EMAIL_API_KEY`,
+  `EMAIL_FROM`) — R2 dummies alone now fail at `Collecting page data` with
+  `Invalid environment: DATABASE_URL: Required, AUTH_SECRET: Required`. For local
+  build/verification, prefix with dummies (any syntactically valid values work; no
+  services are contacted during build):
+
+  ```
+  env R2_ACCOUNT_ID=x R2_ACCESS_KEY_ID=x R2_SECRET_ACCESS_KEY=x R2_BUCKET=x \
+      R2_PUBLIC_URL=https://pub-test.r2.dev \
+      DATABASE_URL=postgres://x:x@localhost:5432/x \
+      AUTH_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \
+      EMAIL_API_KEY=x EMAIL_FROM=test@example.com npm run build
+  ```
+
+  To also make
   locally-uploaded images render in that prod build, use
   `R2_PUBLIC_URL=http://localhost:3000/api/images` instead — the local-disk
   serving route answers it (new uploads still fail: writes go to real R2).
