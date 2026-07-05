@@ -153,7 +153,8 @@ prerendered at build. **Everything except `/signin` and `/unsubscribe` is gated*
 reader require a member session, `/admin` and every mutation require an admin — see below.
 `/unsubscribe` is deliberately ungated (it arrives in email, before any session) and authorises
 itself with a signed token instead. The site stays noindex
-globally (nothing public to crawl).
+globally (nothing public to crawl). **Demo mode** (`NEXT_PUBLIC_DEMO_MODE=1`, issue #50) is the one
+exception to the member gate — see Auth.
 
 ## Auth
 
@@ -184,22 +185,41 @@ The `/signin` flow never reveals membership: known and unknown emails both land 
 `/signin/sent`, and an expired or already-used link comes back to `/signin` with a
 "request a fresh one" message, not an error dump.
 
+### Demo mode
+
+A build-time flag (`NEXT_PUBLIC_DEMO_MODE=1`, issue #50) turns the site into a public,
+ungated showcase without touching the code paths that protect authoring. It lives in one
+constant, [`src/lib/demo.ts`](../src/lib/demo.ts): `NEXT_PUBLIC_*` is inlined at build time,
+so **both gate layers read the same value and cannot disagree at runtime** — the edge
+`isGatedRoute()` (`src/middleware.ts`) drops `/` and `/read/*` from the gate, and
+`requireMemberOrRedirect()` returns `null` for an anonymous visitor instead of redirecting
+(the type change forces every member page to decide its signed-in affordances for a guest).
+**`/admin/*`, every server action and `POST /api/admin/images` stay locked** — `getAdminUser()`
+and the admin gates ignore the flag. The PDF endpoint follows the reader: since the reader is
+public in demo, `GET /api/issues/[number]/pdf` allows an anonymous download (the R2 cache bounds
+generation cost). Auth stays effectively dormant — a magic link only sends to an email that
+already exists in the demo DB's `users` table, and the publish blast still needs an admin
+session — but the email keys must stay set (`env.ts` requires them to boot in production);
+they're what lets the owner sign into the still-gated `/admin` on the demo.
+**Never set this on the real members' site.**
+
 ## Environment
 
 Server env is validated in [`src/lib/env.ts`](../src/lib/env.ts); branding in
 [`src/lib/site.ts`](../src/lib/site.ts). Local values live in `.env.local` (git-ignored); production
 values are set in Railway. `.env.example` lists every key.
 
-| Var                                                    | Required now  | Purpose                                                                                                   |
-| ------------------------------------------------------ | ------------- | --------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`                                         | yes           | Postgres connection                                                                                       |
-| `NEXT_PUBLIC_MAGAZINE_NAME` / `_ORG_NAME` / `_TAGLINE` | no (defaults) | Branding text, build-time inlined                                                                         |
-| `NEXT_PUBLIC_BRAND`                                    | no (default)  | Brand skin / palette (`heritage` default); build-time inlined, unknown value fails at boot (`brands.css`) |
-| `NEXT_PUBLIC_ISSUE_THEMES`                             | no (all)      | Comma list of layout themes the editor/reader offer (`classic,modern`); build-time inlined, validated     |
-| `AUTH_SECRET`                                          | dev: yes      | Auth.js token/cookie signing + unsubscribe-token key (required in prod by env.ts)                         |
-| `APP_URL`                                              | no (fallback) | Canonical origin for links in emails (magic link, unsubscribe); falls back to the request Host when unset |
-| `EMAIL_API_KEY`, `EMAIL_FROM`                          | no in dev     | Resend; unset in dev = links only in console (required in prod)                                           |
-| `R2_*`                                                 | no in dev     | Object storage (required in prod)                                                                         |
+| Var                                                    | Required now  | Purpose                                                                                                              |
+| ------------------------------------------------------ | ------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                                         | yes           | Postgres connection                                                                                                  |
+| `NEXT_PUBLIC_MAGAZINE_NAME` / `_ORG_NAME` / `_TAGLINE` | no (defaults) | Branding text, build-time inlined                                                                                    |
+| `NEXT_PUBLIC_BRAND`                                    | no (default)  | Brand skin / palette (`heritage` default); build-time inlined, unknown value fails at boot (`brands.css`)            |
+| `NEXT_PUBLIC_ISSUE_THEMES`                             | no (all)      | Comma list of layout themes the editor/reader offer (`classic,modern`); build-time inlined, validated                |
+| `NEXT_PUBLIC_DEMO_MODE`                                | no (off)      | `1` ungates the library + reader for a public showcase deploy (see Auth); build-time inlined, never on the real site |
+| `AUTH_SECRET`                                          | dev: yes      | Auth.js token/cookie signing + unsubscribe-token key (required in prod by env.ts)                                    |
+| `APP_URL`                                              | no (fallback) | Canonical origin for links in emails (magic link, unsubscribe); falls back to the request Host when unset            |
+| `EMAIL_API_KEY`, `EMAIL_FROM`                          | no in dev     | Resend; unset in dev = links only in console (required in prod)                                                      |
+| `R2_*`                                                 | no in dev     | Object storage (required in prod)                                                                                    |
 
 ## What's real vs stubbed
 

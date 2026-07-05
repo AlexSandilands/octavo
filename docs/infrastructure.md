@@ -116,6 +116,35 @@ has to reach it) and instead authorises with an **internal token** derived from
 `AUTH_SECRET` (`src/lib/pdf-token.ts`) — a request without a valid token 404s.
 It only ever renders already-published content, so no new secret is exposed.
 
+## Demo project (marketing showcase)
+
+A public, ungated copy of the site for marketing (issue #50). Provisioning it is a
+manual owner action, like the other one-time setups above (cf. #39) — the app just
+honours the flag once it's set. It is a **second Railway project off the same repo**,
+fully isolated from the members' site:
+
+1. **New project + its own stores.** Create a separate Railway project deploying this
+   repo, with **its own** Postgres plugin and **its own** R2 bucket — never point it
+   at production's DB or bucket.
+2. **Set `NEXT_PUBLIC_DEMO_MODE=1` before the first build.** It's `NEXT_PUBLIC_*`, so
+   it's build-time inlined (`src/lib/demo.ts`) — present at build, not just runtime, or
+   the gate stays on. This ungates `/` and `/read/*`; `/admin/*`, server actions and
+   uploads stay locked (see [architecture.md](architecture.md#demo-mode)).
+3. **Keep `EMAIL_API_KEY` / `EMAIL_FROM` set** (the same Resend account is fine —
+   `src/lib/env.ts` refuses to boot production without them). Email is still
+   effectively dormant: a magic link only sends to an address that already exists in
+   the demo DB's `users` table (that's just the owner), and the publish blast needs an
+   admin session and is skippable per publish. This is also how the owner signs into
+   `/admin` on the demo, which stays fully gated.
+4. **Seed content.** `railway run npm run db:seed` populates issues. The seed **wipes
+   issues and refuses when published issues exist unless `--force`** — safe against the
+   demo project's own DB, but for that reason **never run it against production**. Run
+   `railway run npm run db:admin -- you@example.com` to be able to sign in and author
+   on the demo.
+
+Set the usual `DATABASE_URL`, `AUTH_SECRET`, `R2_*` and `NEXT_PUBLIC_*` branding as
+below — only the demo flag differs from a normal deploy.
+
 ## Environment variables (app)
 
 `.env.example` is the canonical list; `src/lib/env.ts` validates at boot. Summary:

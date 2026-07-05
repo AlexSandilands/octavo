@@ -1,6 +1,7 @@
 import * as Sentry from "@sentry/nextjs";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { DEMO_MODE } from "@/lib/demo";
 import { site } from "@/lib/site";
 import { getObject, putObject } from "@/lib/storage";
 import {
@@ -13,7 +14,11 @@ import { getPublishedIssueByNumber } from "@/server/issues";
 import { getUserFailClosed } from "@/server/session";
 
 // Members-only PDF download. The reader is gated, so this is too: a signed-out
-// request is refused. The PDF is a derived artifact cached in R2 keyed by issue
+// request is refused. Demo mode (issue #50) ungates the reader, so this
+// follows it — the download is part of the showcase, and the R2 cache keeps
+// the anonymous generation cost bounded (one Chromium run per revision+theme).
+//
+// The PDF is a derived artifact cached in R2 keyed by issue
 // id + revision + theme + render version
 // (`pdfs/{issueId}/{revision}-{theme}-v{RENDER_VERSION}.pdf`) — a cache hit
 // serves the stored bytes; a miss generates once via Playwright, stores, and
@@ -79,8 +84,10 @@ export async function GET(
   { params }: { params: Promise<{ number: string }> },
 ) {
   // Fail closed: any auth error reads as signed out (and is logged there).
+  // Demo mode allows anonymous downloads — the reader this derives from is
+  // public there too.
   const user = await getUserFailClosed();
-  if (!user) {
+  if (!user && !DEMO_MODE) {
     return NextResponse.json(
       { error: "Sign in to download." },
       { status: 403 },
