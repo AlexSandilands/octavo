@@ -104,7 +104,7 @@ export default async function AdminDashboard() {
                 />
                 <Link
                   href={editHref}
-                  className="text-accent w-14 text-right font-sans text-sm font-semibold"
+                  className="text-accent w-14 text-right font-sans text-sm font-semibold hover:underline"
                 >
                   Edit
                 </Link>

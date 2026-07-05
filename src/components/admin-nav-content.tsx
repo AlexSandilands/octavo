@@ -45,7 +45,7 @@ export function AdminNavContent({
           facing library, so it sits above the nav rather than in it. */}
       <Link
         href="/"
-        className="text-muted hover:text-accent mt-5 flex items-center gap-2 px-6 py-1.5 font-sans text-[14px] font-medium"
+        className="text-muted hover:text-accent mt-5 flex items-center gap-2 px-6 py-1.5 font-sans text-[14px] font-medium hover:underline"
       >
         <Icon name="chevronLeft" size={16} />
         View library
@@ -57,10 +57,10 @@ export function AdminNavContent({
             <Link
               key={n.key}
               href={n.href}
-              className={`flex items-center gap-3 border-l-2 px-6 py-2.5 font-sans text-[15px] ${
+              className={`flex items-center gap-3 border-l-2 px-6 py-2.5 font-sans text-[15px] transition-colors ${
                 on
                   ? "bg-tint text-accent border-accent font-semibold"
-                  : "text-muted border-transparent font-medium"
+                  : "text-muted hover:bg-tint/60 hover:text-accent border-transparent font-medium"
               }`}
             >
               <Icon name={n.icon} size={18} />
