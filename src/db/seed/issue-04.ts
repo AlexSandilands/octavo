@@ -9,151 +9,123 @@ import {
   T,
 } from "./builders";
 
-// No. 4 — Summer 2024. The long lunch; the fund grows; the club mourns Greg
-// Johnson, after whom the near rink is named.
+// No. 4 — Regatta. A sailing club's season review on the modern theme, and the
+// longest issue in the seed: sustained long-form across nine content pages,
+// wrapped images both sides, a wide banner, small-type results, and two
+// sponsors. Shows an issue with real page count in the flipbook.
 export const issue04 = (img: SeedImages) =>
-  mkIssue(4, "The Long Table", "classic", "2024-12-14", [
+  mkIssue(4, "Regatta — The Season Review", "modern", "2026-01-17", [
     cover([
-      H("The Long Table", "Summer 2024"),
-      Img(img.group, "", "full", 78),
-      T("The whole club, at table, for a day"),
-      T("Summer 2024"),
+      H("Regatta", "The Sailing Club Annual · Season Review"),
+      Img(img.harbour, {
+        alt: "An abstract seascape: a red sun over deep blue swells beneath a pale sky.",
+        width: 70,
+      }),
+      T("Nine races, one dismasting, and a champion nobody picked"),
     ]),
 
     page([
-      H("A Day Off from the Game", "Editorial", "main"),
+      H("The Season, Considered", "Commodore's Letter", "main"),
       T(
-        "Once a summer, and only once, the club puts the boules away for a whole day. The trestle tables come out of the shed where they spend eleven months gathering spiders, they are wiped down and set end to end the length of the clubhouse veranda, and the season — for one long, lazy, over-catered afternoon — simply stops. It is the most important day in the club's year, and not a single point is played.",
+        "There are years when the water teaches and years when it merely examines, and this was, by common consent, an examining year. We sailed nine of the scheduled ten races, abandoned one to a flat calm that arrived like a verdict, and finished the season with a champion whose name appeared on nobody's list in the spring — including, she insists, her own.",
+        "l",
       ),
       T(
-        "This summer's table was the longest in memory, swollen by our record membership and by a number of people who, it must be said, are far keener on the lunch than the game. They are welcome too. A club is not only its competitors; it is also its cooks, its talkers, its keepers of the soup tin, and the handful of souls who turn up reliably to clap and have never thrown a boule in their lives.",
+        "You will find the whole story in these pages: the races as they were sailed rather than as they were retold in the bar, the results in full, and a proper account of the Wednesday evening series, which continues to be the best thing this club does and the hardest to explain to anyone who has not stood on a committee boat at dusk wondering where the wind went.",
+      ),
+    ]),
+
+    page([
+      H("The Spring Series", "Part One", "section"),
+      T(
+        "The season opened the way seasons here traditionally open: with a forecast that promised twelve knots from the south-west and a morning that delivered four from everywhere at once. Race One was won by whoever guessed the shifts best, which is to say it was won by Ida Bergström, who does not guess. She read the tide line off the eastern shore, banked left when the fleet went right, and rounded the top mark with a lead she never gave back.",
+      ),
+      Img(img.pennants, {
+        caption: "Race flags over the club deck — the full spring set.",
+        alt: "A wide banner of triangular signal pennants in navy, rust and white rows.",
+      }),
+      T(
+        "Races Two and Three belonged to the Hollis brothers, who sail an elderly boat immaculately and treat every start line like a personal insult. By the end of April the series table had the Hollises on top, Bergström two points adrift, and the defending champion — becalmed twice and over the line early once — composing what he later called a philosophical position on luck.",
+      ),
+    ]),
+
+    page([
+      H("A Wind With Opinions", "Part Two", "section"),
+      Img(img.chart, {
+        caption:
+          "The committee's tide chart, annotated past legibility by June.",
+        alt: "Fine concentric contour rings around a small red point on pale blue, like a nautical chart.",
+        align: "left",
+        width: 44,
+      }),
+      T(
+        "Midwinter sailing is this club's sworn peculiarity, and the June and July races made the case for it. The water was the temperature of a legal dispute, the wind arrived with opinions, and the racing was the closest of the year. Race Five finished with three boats overlapped at the line and the finishing gun fired, after protest and appeal, in favour of Bergström by a margin the measurer described as 'the width of the paint.'",
       ),
       T(
-        "It was, this year, a day shadowed by a loss — but a loss best honoured, we decided, exactly as Greg would have wanted: loudly, and over a long lunch.",
+        "Race Six is already legend and will only grow. The wind rose through the afternoon until the committee hoisted the shorten-course flag, and the fleet came home surfing, grinning, and in one case — the Hollis brothers, whose mast let go at the final gate with the race in hand — swimming. Both brothers were recovered promptly, in good order and mid-argument about whose trim was responsible. The mast has been retired to the clubhouse wall, where it is already collecting signatures.",
+      ),
+    ]),
+
+    page([
+      H("The Wednesday Evenings", "Part Three", "section"),
+      T(
+        "No trophies are awarded for the Wednesday series, which is precisely why half the club turns out for it. It is sailing reduced to its sociable essentials: a short course, a shared start, and the long golden hour home. Newcomers crew their first races on Wednesdays; the season's best rivalries were all incubated there; and the galley's soup, it must be recorded, improved out of all recognition after the March incident, of which no more will be written here.",
+      ),
+      T(
+        "If you have been meaning to try the club, try a Wednesday. Bring a jumper. The soup is now genuinely good.",
         "l",
       ),
     ]),
 
     page([
-      H("The Longest Lunch", "Club Life", "main"),
-      Img(
-        img.group,
-        "Forty-odd of us, and a table built for thirty.",
-        "right",
-        45,
+      H("The Decider", "Part Four", "section"),
+      T(
+        "So it came down, as the whole bar had predicted by August, to the final race: Bergström and the repaired, re-masted, and audibly motivated Hollis brothers, level on points, first across the line to take the season. The morning offered a clean fourteen knots and no excuses.",
       ),
       T(
-        "There was a raffle, won — scandalously, and for the third year running — by the captain, who has begun to attract dark mutterings about the integrity of the draw. There was a speech by the club president that began as a welcome, became a history of the harbour bridge, and was eventually brought to land by Joan ringing the soup bell. And there was, threaded through all of it, a great deal of the particular happiness that comes of sitting elbow to elbow with people you mostly only ever see at arm's length down a rink.",
+        "The Hollises won the start — they always win the start — and held the lead up the first beat with Bergström camped on their air. What followed was twenty minutes of the best match racing this club has seen: four lead changes, a port-starboard crossing that aged the race officer visibly, and a final run in which Bergström sailed six boat-lengths of extra distance to find a private band of pressure along the western shore that nobody else believed in.",
       ),
       T(
-        'Daniel, attending his first long lunch, was adopted bodily by the Verrall brothers and spent the afternoon being told, in stereo, that Margaret was teaching him all wrong and that what he really needed to learn was the shot. By the end of it he had agreed to a private tutorial in the new year, which Margaret, overhearing, permitted with a single raised eyebrow and the words, "It will do him good to see how the other half misses."',
+        "She crossed the line four seconds clear. The brothers, to their lasting credit, were the first aboard her boat with the bottle.",
       ),
     ]),
 
     page([
-      H("Greg Johnson, 1947–2024", "In Memoriam", "section"),
+      H("Champion, Unranked", "Profile", "main"),
       T(
-        "We note, with a sorrow the whole club shares, the passing in November of Greg Johnson, a member of forty years, after a short illness borne with exactly the unfussy good humour he brought to everything else.",
+        "Ida Bergström joined three seasons ago with a boat older than the clubhouse carpet and a habit of finishing mid-fleet while looking at the water instead of the fleet. This, it turns out, was research.",
         "l",
       ),
-      Img(
-        img.boules,
-        "Greg's boules, which the family have gifted to the club's loaner box.",
-        "left",
-        40,
-      ),
       T(
-        "Greg was not, by his own cheerful admission, ever the best player at the club, or the second best, or anywhere near it. What Greg was, was the man who set up more newcomers with loaner boules than anyone alive can count — who saw the stranger hovering at the gate and crossed the whole terrain to press a boule into their hand before they could lose their nerve and leave. Half the club learned the game from Greg's spare set. The other half learned it from someone Greg first welcomed.",
-      ),
-      T(
-        "The committee has resolved that the near rink — the one he played on most, and swept most, and complained about most — will from now on be known as Johnson's. A small brass plate is on order. He would have called it a waste of good brass, and then he would have polished it.",
+        '"Everyone here knows how to sail," she said, when pressed for a champion\'s statement at the prizegiving. "I just spent two years learning where the wind lives. It has addresses. Most of them are written on the shore." She then thanked her crew, the galley, and "the tide, for being punctual," and sat down to the longest applause of the night.',
       ),
     ]),
 
     page([
-      H("The Newcomer's Notebook", "Daniel's Diary", "section"),
+      H("Results in Full", "The Record", "section"),
       T(
-        "Summer. I have now been doing this for ten months and I have just played in my first proper competition end, in a scratch doubles at the long lunch, and I want to record — warts and all, as promised — that I was so nervous I could not feel my own hand.",
-      ),
-      T(
-        'Margaret was my partner, by a draw she swears was honest. On the last boule, with the end level, she did a thing I will never forget: she did not tell me what to do. She just looked at me, and looked at the ground, and waited. So I chose a spot — short, and to the left, where the terrain fell away — and I threw to it, the way she taught me, and the boule rolled down the slope and stopped a thumb from the jack and we won the end. She said, "There. Now you know where it lives." I have no idea what she meant and I have thought about nothing else since.',
+        "Final championship standings, nine races, one discard applied. Full race-by-race sheets are posted in the clubhouse and held by the sailing secretary.",
       ),
       T(
-        "I also met a man called Greg, once, in my first week, who gave me my first ever boule to hold and told me not to worry, that everyone is hopeless at the start and most stay hopeless and it does not matter in the slightest. I am very sad I will not get to tell him he was wrong about the staying-hopeless part. I hope.",
-      ),
-    ]),
-
-    page([
-      H("Saving the Far Rink", "Appeal Update", "main"),
-      T(
-        "The far rink has drained badly for three winters. It is time, and — thanks to you — it is now nearly possible.",
-        "xl",
+        "1. Bergström, 11 pts. 2. Hollis & Hollis, 13 pts. 3. Okonkwo, 21 pts. 4. Marsh, 24 pts. 5. Whitcombe, 29 pts. 6. Devlin, 30 pts. 7. Faulkner, 38 pts. 8. Reyes, 41 pts. 9. Chandra, 45 pts. 10. Byrne, 52 pts.",
+        "s",
       ),
       T(
-        "The appeal stands tonight at $3,910, a little under two-thirds of the way to our six thousand, and climbing faster than the committee dared hope. The quiz night alone raised $620, despite — or, the organisers suspect, because of — a music round so difficult that two tables walked out. The soup tin has become a torrent. And the anonymous donor we all suspect of being Margaret has struck twice more.",
-      ),
-      Img(
-        img.terrain,
-        "The far rink in December: dry now, but the damage is in the bones.",
-      ),
-      T(
-        "If the fund reaches six thousand before autumn, Daniel — who, we may now reveal, drives a digger for the very firm that would do the work — believes the rink can be lifted, graded and re-laid before next winter's rains. The alternative is a fourth winter of the lake. Let us not have a fourth winter of the lake.",
-      ),
-    ]),
-
-    page([
-      H("From the Terrain", "Technique", "main"),
-      T(
-        "A change of subject, and a controversial one in a club this fond of pointing: the shot. We have spent three issues on the patient art of placing a boule. Now, with winter and the Verralls' tutorials looming, a first word on the violent joy of removing one.",
-        "l",
-      ),
-      Img(
-        img.measure,
-        "A clean carreau: your boule stops dead where theirs sat.",
-        "right",
-        42,
-      ),
-      H("The Carreau", "", "paragraph"),
-      T(
-        "To shoot — to tirer — is to throw your boule directly at an opponent's and knock it clean out of the reckoning. Done badly it is a wild waste that gifts the end to a patient pointer. Done perfectly, it produces the carreau: your boule strikes theirs so squarely that it stops dead in the very spot theirs vacated, leaving you holding where they held. It is, the captain insists and Margaret grudgingly concedes, the single most satisfying thing a body can do on a terrain.",
-      ),
-      H("Aim at the Ground", "", "paragraph"),
-      T(
-        "We will return to the how of it in the winter issue, once the Verralls have finished with Daniel and we can report whether their method survives contact with an actual beginner. For now, know only this: a shooter aims not at the boule but at the ground just in front of it, and throws flat and fast and fearless. Fearless is the hard part.",
-      ),
-    ]),
-
-    page([
-      H("The Quiet Shooter", "Profile", "section"),
-      Img(img.measure, "", "left", 38),
-      T(
-        "If the captain is the club's loudest shooter, Amara Okafor is rapidly becoming its best. A theatre nurse who can only make the Tuesday twilights around her shifts, she came to the game eighteen months ago with her father, learned it backwards — shooting before she could reliably point, which everyone said was the wrong way round — and has quietly developed a tir that several senior members now refuse to face in a friendly.",
-      ),
-      T(
-        '"In my work your hands have to stop shaking on command," she says, when asked where the nerve comes from. "A boule is not a patient on a table. It is much less frightening than people here think." She and Daniel — the club\'s two most promising newcomers, arrived within a year of each other — have struck up the kind of rivalry that flatters them both, and the committee has quietly begun to imagine a doubles pairing that might, in a year or two, frighten the whole region.',
-      ),
-    ]),
-
-    page([
-      H("Results & the Ladder", "The Measure", "section"),
-      T(
-        'Summer is the off-season for serious competition, but the scratch doubles at the long lunch — drawn from a hat, partners assigned by fate — produced its usual crop of unlikely results. Winners: M. Ellery & D. Ross, the veteran and the newcomer, in a result the captain has declared "a fix" and everyone else has declared "lovely."',
-      ),
-      T(
-        'The summer ladder is suspended until the autumn restart, but for the record the season closed with Vane on top, Ellery second, and the gap between them — by Margaret\'s own calculation — at "one bad afternoon, his."',
-      ),
-      T(
-        "Far-rink fund: $3,910 and rising. Quiz night profit: $620. Number of tables who walked out during the music round: two. Worth it: unanimously agreed.",
+        "Wednesday series: no results are kept, by standing order of the membership, and the membership is right.",
         "s",
       ),
     ]),
 
     page([
-      H("With Thanks", "Our Patrons", "section"),
+      H("Flags & Thanks", "The Year Ahead", "section"),
       T(
-        "Greg Johnson sold hardware for thirty years before he retired, and it is no small thing that the firm below — his old employer, and now a stranger's — has marked his passing with a substantial gift to the far-rink fund. The near rink is his. So, in a quieter way, is a good part of the new far one will be.",
+        "The new season opens the first Saturday after the equinox, with the fitting-out weekend a fortnight before. The committee boat needs volunteers, the race box needs a new kettle, and the Hollis brothers, it is rumoured, need a new mast section — sponsors of that particular cause should apply directly to the bar.",
       ),
-      Spon("Kawau Bay Hardware"),
-      Spon("Hawthorn & Reed Outfitters", "https://example.com"),
+      Spon("Northgate Sailmakers", "https://example.com"),
+      Spon("Harbour Chandlery & Rope Co."),
+      T(
+        "Regatta is published each January by the sailing club and distributed to all members, past commodores, and one framed copy to the harbourmaster, who claims not to read it.",
+        "s",
+      ),
     ]),
   ]);

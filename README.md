@@ -78,7 +78,7 @@ a custom CSS-transform flipbook (`src/features/reader/reader-spread.tsx`) · Pla
 npm install
 docker compose up -d          # local Postgres (see docker-compose.yml)
 npm run db:migrate            # apply committed migrations
-npm run db:seed               # wipe + load 10 sample issues (with images) for the reader
+npm run db:seed               # wipe + load 6 sample issues (images generated at seed time)
 npm run db:admin -- you@example.com   # bootstrap an admin (idempotent)
 npm run dev                   # http://localhost:3000
 ```
