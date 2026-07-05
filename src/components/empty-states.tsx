@@ -1,5 +1,6 @@
 import { Button } from "./ui";
 import { Icon } from "./icons";
+import { createIssueAction } from "@/app/admin/actions";
 
 function EmptyCard({ children }: { children: React.ReactNode }) {
   return (
@@ -26,9 +27,11 @@ export function EmptyIssues() {
         The first one is the hardest — we&apos;ll guide you, page by page. Start
         with a cover and a heading.
       </p>
-      <div className="mt-6">
-        <Button icon="plus">Create your first issue</Button>
-      </div>
+      <form action={createIssueAction} className="mt-6">
+        <Button type="submit" icon="plus">
+          Create your first issue
+        </Button>
+      </form>
     </EmptyCard>
   );
 }

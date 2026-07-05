@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Wordmark } from "@/components/ui";
+import { Button, Wordmark } from "@/components/ui";
 
 // Friendly full-page error state shared by the route error boundaries — a
 // member (or the admin) never sees a raw stack trace (design-principles §10).
@@ -30,12 +30,7 @@ export function ErrorState({
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <button
-            onClick={onRetry}
-            className="bg-accent text-paper hover:bg-accent-strong inline-flex h-12 items-center justify-center rounded-lg px-5 font-sans text-[15px] font-semibold shadow-[0_2px_8px_rgba(29,77,62,0.25)] transition-colors"
-          >
-            Try again
-          </button>
+          <Button onClick={onRetry}>Try again</Button>
           <Link
             href="/"
             className="text-accent font-sans text-[15px] font-medium underline underline-offset-[3px]"

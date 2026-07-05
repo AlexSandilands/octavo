@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { AdminShell } from "@/components/admin-shell";
-import { Pill } from "@/components/ui";
-import { Icon } from "@/components/icons";
+import { Button, Pill } from "@/components/ui";
 import { EmptyIssues } from "@/components/empty-states";
 import { coverPageOf, type Page } from "@/lib/blocks";
 import { listIssues } from "@/server/issues";
@@ -44,13 +43,9 @@ export default async function AdminDashboard() {
           </p>
         </div>
         <form action={createIssueAction}>
-          <button
-            type="submit"
-            className="bg-accent text-paper flex h-12 items-center gap-2 rounded-lg px-5 font-sans text-[15px] font-semibold shadow-[0_2px_8px_rgba(29,77,62,0.25)]"
-          >
-            <Icon name="plus" size={17} strokeWidth={1.8} />
+          <Button type="submit" icon="plus" iconPosition="left">
             Create new issue
-          </button>
+          </Button>
         </form>
       </div>
 

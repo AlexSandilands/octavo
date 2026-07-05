@@ -37,6 +37,7 @@
   /* Amber warning ink, darkened to clear AA both as text on warn-soft and as a
      background under paper-coloured text (the draft ribbon). */
   --color-warn: #8a5d1c;
+  --color-warn-strong: #6f4a14; /* darker warn — hover on destructive buttons */
   --color-warn-soft: #f3ece0;
 
   /* Status dots. */
