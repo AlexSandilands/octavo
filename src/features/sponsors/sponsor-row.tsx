@@ -95,7 +95,7 @@ export function SponsorRow({
           disabled={pending}
           title={`Edit ${sponsor.name}`}
           aria-label={`Edit ${sponsor.name}`}
-          className="text-accent w-9 text-right font-sans text-sm font-semibold disabled:opacity-40"
+          className="text-accent w-9 cursor-pointer text-right font-sans text-sm font-semibold hover:underline disabled:opacity-40"
         >
           Edit
         </button>

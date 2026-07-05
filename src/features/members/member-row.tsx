@@ -105,7 +105,7 @@ export function MemberRow({
               member.subscribed ? "Mark as unsubscribed" : "Mark as subscribed"
             }
             aria-label={`${member.subscribed ? "Unsubscribe" : "Subscribe"} ${label}`}
-            className="rounded-full transition-opacity hover:opacity-75 focus-visible:outline-2 disabled:opacity-40"
+            className="cursor-pointer rounded-full transition-opacity hover:opacity-75 focus-visible:outline-2 disabled:cursor-default disabled:opacity-40"
           >
             <Pill status={member.subscribed ? "Subscribed" : "Unsubscribed"} />
           </button>
@@ -124,7 +124,7 @@ export function MemberRow({
                   : "Make admin"
             }
             aria-label={`${member.isAdmin ? "Remove admin from" : "Make admin"} ${label}`}
-            className="text-muted hover:text-accent flex items-center gap-1.5 font-sans text-[13px] font-medium disabled:opacity-40 disabled:hover:text-current"
+            className="text-muted hover:text-accent flex cursor-pointer items-center gap-1.5 font-sans text-[13px] font-medium disabled:cursor-default disabled:opacity-40 disabled:hover:text-current"
           >
             <Icon
               name={member.isAdmin ? "check" : "plus"}
@@ -145,7 +145,7 @@ export function MemberRow({
           disabled={pending || isSelf}
           title={isSelf ? "You can’t remove yourself" : "Remove member"}
           aria-label={`Remove ${label}`}
-          className="text-faint2 hover:text-warn flex w-[30px] justify-end disabled:opacity-30 disabled:hover:text-current"
+          className="text-faint2 hover:text-warn flex w-[30px] cursor-pointer justify-end disabled:cursor-default disabled:opacity-30 disabled:hover:text-current"
         >
           <Icon name="close" size={20} strokeWidth={1.7} />
         </button>
