@@ -244,9 +244,14 @@ Optionally require a PR review. This makes CI a merge gate, not just a signal.
 
 ## Backups & restore
 
-Two stores hold irreplaceable state: **Postgres** (issues, members, sessions)
-and **R2** (the only copy of every uploaded image). Both need a backup and a
-_tested_ restore — an untested backup is a guess.
+Two stores hold state worth protecting: **Postgres** (issues, members,
+sessions) and **R2** (uploaded images). Postgres is the one that's genuinely
+irreplaceable — its content model, members and auth can't be reconstructed — so
+it needs a backup and a _tested_ restore; an untested backup is a guess. R2 is a
+lower tier: the stored images are re-encoded WebP _derivatives_ of files the
+admin uploaded, so the originals still exist off-platform and a worst case is a
+tedious re-upload, not permanent loss. Back it up too, but proportionately (see
+below).
 
 ### Postgres (Railway)
 
@@ -260,17 +265,20 @@ retained; keep at least one known-good snapshot from before each large change
 
 ### R2 (images)
 
-Images are the **only** copy — a bad delete or overwrite is otherwise permanent.
-**Decision (recommended default; confirm with the owner):** enable **R2 object
-versioning** on the bucket (Cloudflare dashboard → R2 → the bucket → **Settings
-→ Object versioning → Enable**), plus a **lifecycle rule** to expire _noncurrent_
-versions after ~60 days so retained history stays bounded and effectively free
-at club scale. Versioning is the low-effort choice: it needs no external job and
-survives accidental overwrite/delete. _Alternative_ if versioning is declined: a
-periodic `rclone sync` of the bucket to a second location (another R2 bucket or
-local disk), e.g. `rclone sync r2:club-images backup:club-images-YYYYMM`, run
-monthly. The minimum bar is one of these, chosen deliberately — not "the app is
-the only copy."
+**R2 has no object versioning** — unlike S3, there's no per-object history to
+enable, and the bucket's lifecycle rules only _delete_ current objects (a
+"delete uploaded objects after N days" rule would destroy live images, not
+protect them — don't add one for backup). So the backup mechanism is an external
+copy: a periodic **`rclone sync`** of the bucket to a second location (another R2
+bucket or local disk), e.g. `rclone sync r2:club-images backup:club-images-YYYYMM`.
+
+**Decision (proportionate to the risk):** this is a lower priority than the DB —
+R2 durability is high and the stored images are re-encodable derivatives (see
+above). **Skip it until the site goes live with real content** (a demo's seeded
+images are regenerable). At go-live, set up a **weekly `rclone sync`** — cheap
+insurance against a bad delete or a credential compromise, ~15 min to wire up.
+Point-in-time / versioned recovery is overkill at club scale (and unavailable on
+R2 anyway).
 
 ### Restore runbook (Postgres)
 
@@ -294,8 +302,8 @@ restore → app boots and `/api/health` returns `200`); see the PR note.
    existing objects errors on duplicates.)
 4. **Point R2 at the restored images.** Set the R2 env vars to the bucket that
    holds the images (image _rows_ are in the DB dump; the image _bytes_ live in
-   R2 and aren't in the dump). If R2 itself was lost, restore it from its
-   versioning history or the rclone copy first.
+   R2 and aren't in the dump). If R2 itself was lost, restore it from the
+   `rclone` copy first (or re-upload the source images if no copy exists yet).
 5. **Verify.** Hit `/api/health` (expect `200 {"status":"ok"}`), sign in, open a
    restored issue, confirm images load. Spot-check row counts against the source
    (`select count(*) from users/issues/images`).
