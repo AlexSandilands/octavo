@@ -169,6 +169,15 @@ fully isolated from the members' site:
 Set the usual `DATABASE_URL`, `AUTH_SECRET`, `R2_*` and `NEXT_PUBLIC_*` branding as
 below — only the demo flag differs from a normal deploy.
 
+**The demo doubles as staging.** Point this project at the **`main`** branch (while the
+members' production site tracks `production` — see [Release workflow](#release-workflow)).
+Every merge to `main` then redeploys the demo, so it's both the public marketing showcase
+and a pre-prod smoke test: it renders real content and, because it has its own Postgres,
+applies each migration against the demo DB before you ever promote to production. Know its
+limits — `NEXT_PUBLIC_DEMO_MODE=1` ungates `/` and `/read/*` and leaves email dormant, so
+the demo does **not** exercise the member auth gate, the signed-out `/signin?next=`
+redirect, or the publish email blast. Validate those locally before promoting.
+
 ## Environment variables (app)
 
 `.env.example` is the canonical list; `src/lib/env.ts` validates at boot. Summary:
@@ -261,6 +270,44 @@ download cache keyed on the lockfile.
 Add branch ruleset** (or classic branch protection) for `main`: require status
 checks to pass before merging, and select the **`lint · types · build`** check.
 Optionally require a PR review. This makes CI a merge gate, not just a signal.
+Protect `production` too — see [Release workflow](#release-workflow).
+
+## Release workflow
+
+Two long-lived branches map to the two Railway projects, so a merge never ships
+straight to members:
+
+- **`main`** — the integration branch. PRs land here; it must stay green. The
+  [demo project](#demo-project-marketing-showcase) deploys `main`, so every merge
+  redeploys `demo.octavo.dev` — your pre-prod smoke test.
+- **`production`** — what the members' site runs. It only ever *fast-forwards*
+  from `main`; nothing is committed to it directly. The production Railway service
+  deploys this branch.
+
+**Shipping is a deliberate promotion:** open a PR from `main` → `production`, titled
+`release: promote to production YYYY-MM-DD`, and merge it (Merge commit only — never
+squash/rebase, which would diverge `production` from `main`). The `release:` prefix
+keeps prod PRs filterable (`is:pr in:title release:`); an optional `release` label
+works too. Merging triggers the production deploy, and the PR history becomes your
+dated release log (handy for "what changed?" when something breaks). A fast-forward `git push origin main:production` also works but loses that
+trail and needs bypass rights against the ruleset below. Because `production` only
+fast-forwards from an already-green `main`, its migrations and code are exactly what
+you smoke-tested on the demo first.
+
+**Turn on "Wait for CI to pass"** (Railway → each service → Settings → Deploy) for
+**both** the demo and production services, so a red `lint · types · build` never
+deploys either. CI runs on every PR regardless of target branch, so the promotion
+PR into `production` is checked automatically.
+
+**Owner action — protect `production`:** add a ruleset for `production` aimed at
+*preventing accidents* (the code was already quality-gated at `main`), not
+re-reviewing it: block force pushes, block deletion, require a PR to update it, and
+require the **`lint · types · build`** check. **Do not** require a second reviewer —
+as a solo maintainer you'd be unable to approve your own promotion PR (or add
+yourself to the bypass list if you do). Keep the rule that `production` only ever
+fast-forwards from `main`: hotfixes still flow through `main` first (fix → PR →
+merge → promote), or cherry-pick if you must ship ahead of other `main` work, so the
+branches never diverge.
 
 ## Backups & restore
 

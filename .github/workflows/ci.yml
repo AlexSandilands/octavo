@@ -2,8 +2,9 @@ name: CI
 
 # Gate every PR and every push to main on the same three checks the developer
 # runs locally: lint, type-check, and a production build. Branch protection on
-# `main` should require the "check" job below (owner action — see the PR /
-# docs/infrastructure.md).
+# both `main` and `production` should require the "check" job below — the
+# pull_request trigger has no branch filter, so the promote-to-production PR is
+# checked too (owner action / release workflow — see docs/infrastructure.md).
 on:
   pull_request:
   push:
