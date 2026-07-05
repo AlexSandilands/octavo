@@ -60,8 +60,15 @@ Member ── Cloudflare (DNS/CDN) ── Railway (Next.js + Postgres)
 4. **Email** — create the provider account; verify the sending domain by adding its
    **SPF, DKIM, and DMARC** records in Cloudflare DNS (do this carefully — it's what
    keeps blasts out of spam); get the API key.
-5. **Auth** — set `AUTH_SECRET` (generate with `npx auth secret`). Sign-in is
-   magic-link only; the email provider from step 4 delivers the links.
+5. **Auth** — set `AUTH_SECRET` (generate with `npx auth secret`) **and `AUTH_URL`**
+   to the site's public origin (e.g. `https://demo.octavo.dev`). Sign-in is
+   magic-link only; the email provider from step 4 delivers the links. `AUTH_URL`
+   is the origin Auth.js stamps into the sign-in link: leave it unset and Auth.js
+   derives the origin from the request Host, which behind Railway's proxy can come
+   out as the container's internal address (e.g. `http://localhost:8080`, the
+   assigned `PORT`) — an unclickable link. Set it to `https://…` (Railway
+   terminates TLS). This is **separate from `APP_URL`**, which only governs the
+   publish-blast and unsubscribe links, not sign-in.
 6. **First admin** — `/admin` only admits users with `is_admin`, and only an admin
    can manage members, so bootstrap the first one from the command line:
    `railway run npm run db:admin -- you@example.com` (drop the `railway run` prefix
@@ -185,6 +192,7 @@ redirect, or the publish email blast. Validate those locally before promoting.
 ```
 DATABASE_URL=            # from Railway Postgres
 AUTH_SECRET=             # random 32+ char secret
+AUTH_URL=                # public https origin, e.g. https://demo.octavo.dev — base of the sign-in link (see Auth setup step 5)
 
 NEXT_PUBLIC_MAGAZINE_NAME= / _ORG_NAME= / _TAGLINE=   # branding (build-time!)
 

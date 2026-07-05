@@ -217,7 +217,8 @@ values are set in Railway. `.env.example` lists every key.
 | `NEXT_PUBLIC_ISSUE_THEMES`                             | no (all)      | Comma list of layout themes the editor/reader offer (`classic,modern`); build-time inlined, validated                |
 | `NEXT_PUBLIC_DEMO_MODE`                                | no (off)      | `1` ungates the library + reader for a public showcase deploy (see Auth); build-time inlined, never on the real site |
 | `AUTH_SECRET`                                          | dev: yes      | Auth.js token/cookie signing + unsubscribe-token key (required in prod by env.ts)                                    |
-| `APP_URL`                                              | no (fallback) | Canonical origin for links in emails (magic link, unsubscribe); falls back to the request Host when unset            |
+| `AUTH_URL`                                             | prod: yes     | Public origin Auth.js stamps into the **sign-in** magic link (e.g. `https://demo.octavo.dev`); unset, it derives from the request Host and can emit the container's internal address (`localhost:PORT`) |
+| `APP_URL`                                              | no (fallback) | Canonical origin for the **publish-blast** and **unsubscribe** links only — _not_ the sign-in link (that's `AUTH_URL`); falls back to the request Host when unset |
 | `EMAIL_API_KEY`, `EMAIL_FROM`                          | no in dev     | Resend; unset in dev = links only in console (required in prod)                                                      |
 | `R2_*`                                                 | no in dev     | Object storage (required in prod)                                                                                    |
 
