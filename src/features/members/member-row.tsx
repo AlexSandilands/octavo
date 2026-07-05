@@ -83,8 +83,8 @@ export function MemberRow({
 
   return (
     <div className="border-line-soft border-b py-3">
-      <div className="flex items-center gap-3 px-1.5">
-        <div className="flex min-w-0 flex-1 items-center gap-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5 px-1.5">
+        <div className="flex min-w-0 basis-full items-center gap-3 sm:basis-0 sm:flex-1">
           <Avatar initials={initials(label)} />
           <div className="min-w-0">
             <div className="text-ink font-sans text-[15px] font-semibold">
@@ -96,7 +96,7 @@ export function MemberRow({
           </div>
         </div>
 
-        <div className="w-[120px]">
+        <div className="sm:w-[120px]">
           <button
             type="button"
             onClick={toggleSubscribed}
@@ -111,7 +111,7 @@ export function MemberRow({
           </button>
         </div>
 
-        <div className="w-[112px]">
+        <div className="sm:w-[112px]">
           <button
             type="button"
             onClick={toggleAdmin}
@@ -135,7 +135,7 @@ export function MemberRow({
           </button>
         </div>
 
-        <div className="text-faint w-[76px] font-sans text-[13px]">
+        <div className="text-faint hidden font-sans text-[13px] sm:block sm:w-[76px]">
           {joinedLabel(member.createdAt)}
         </div>
 
@@ -145,7 +145,7 @@ export function MemberRow({
           disabled={pending || isSelf}
           title={isSelf ? "You can’t remove yourself" : "Remove member"}
           aria-label={`Remove ${label}`}
-          className="text-faint2 hover:text-warn flex w-[30px] justify-end disabled:opacity-30 disabled:hover:text-current"
+          className="text-faint2 hover:text-warn ml-auto flex justify-end disabled:opacity-30 disabled:hover:text-current sm:ml-0 sm:w-[30px]"
         >
           <Icon name="close" size={20} strokeWidth={1.7} />
         </button>

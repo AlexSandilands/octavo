@@ -34,7 +34,7 @@ export function MembersTable({
         />
       </div>
 
-      <div className="border-line text-faint2 mt-4 flex items-center px-1.5 pb-2.5 font-sans text-[10px] font-semibold tracking-[0.14em] uppercase">
+      <div className="border-line text-faint2 mt-4 hidden items-center px-1.5 pb-2.5 font-sans text-[10px] font-semibold tracking-[0.14em] uppercase sm:flex">
         <span className="flex-1">Member</span>
         <span className="w-[120px]">Subscription</span>
         <span className="w-[112px]">Role</span>

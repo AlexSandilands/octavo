@@ -37,9 +37,9 @@ export default async function LibraryPage() {
 
   return (
     <main className="mx-auto max-w-5xl px-5 py-6 sm:px-8 sm:py-10">
-      <header className="border-line flex items-center justify-between border-b pb-4">
+      <header className="border-line flex items-center justify-between gap-3 border-b pb-4">
         <Wordmark size={24} />
-        <nav className="flex items-center gap-4 font-sans text-sm">
+        <nav className="flex flex-none items-center gap-3 font-sans text-sm sm:gap-4">
           {/* No user only happens in demo mode (the gate redirects otherwise):
               swap the account affordances for the demo chip. */}
           {user ? (

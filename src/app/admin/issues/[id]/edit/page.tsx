@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { Editor } from "@/features/editor/editor";
+import { EditorGate } from "@/features/editor/editor-gate";
 import { getIssue } from "@/server/issues";
 import { resolveIssueImages } from "@/server/images";
 import { countSubscribedRecipients } from "@/server/recipients";
@@ -27,19 +28,21 @@ export default async function EditIssuePage({
   ]);
 
   return (
-    <Editor
-      issue={{
-        id: issue.id,
-        number: issue.number,
-        title: issue.title,
-        theme: issue.theme,
-        content: issue.content,
-        revision: issue.revision,
-        status: issue.status,
-      }}
-      images={images}
-      sponsors={sponsors}
-      subscriberCount={subscriberCount}
-    />
+    <EditorGate>
+      <Editor
+        issue={{
+          id: issue.id,
+          number: issue.number,
+          title: issue.title,
+          theme: issue.theme,
+          content: issue.content,
+          revision: issue.revision,
+          status: issue.status,
+        }}
+        images={images}
+        sponsors={sponsors}
+        subscriberCount={subscriberCount}
+      />
+    </EditorGate>
   );
 }

@@ -38,7 +38,7 @@ export function LatestIssue({
       <Link
         href={`/read/${number}`}
         aria-label={`Read ${title}`}
-        className="group relative block self-start"
+        className="group relative block w-[240px] self-start"
       >
         {/* Stacked page edges peeking out behind the cover. */}
         <div className="bg-hair absolute inset-y-2 -right-[3px] w-[3px] rounded-r-[3px]" />
