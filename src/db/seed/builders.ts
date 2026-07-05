@@ -49,10 +49,22 @@ export const Thtml = (html: string, size?: TextSize): Block => ({
 });
 export const Img = (
   imageId: string,
-  caption = "",
-  align: "full" | "left" | "right" = "full",
-  width = 100,
-): Block => ({ id: id(), type: "image", imageId, caption, align, width });
+  opts: {
+    caption?: string;
+    /** Screen-reader description; the readers fall back to the caption. */
+    alt?: string;
+    align?: "full" | "left" | "right";
+    width?: number;
+  } = {},
+): Block => ({
+  id: id(),
+  type: "image",
+  imageId,
+  caption: opts.caption ?? "",
+  alt: opts.alt,
+  align: opts.align ?? "full",
+  width: opts.width ?? 100,
+});
 export const Spon = (name: string, href?: string): Block => ({
   id: id(),
   type: "sponsor",
@@ -67,13 +79,7 @@ export const cover = (blocks: Block[]): Page => ({
   blocks,
 });
 
-export type SeedImages = {
-  boules: string;
-  measure: string;
-  terrain: string;
-  group: string;
-  building: string;
-};
+export type { SeedImages } from "./images";
 
 export type SeedIssue = {
   number: number;

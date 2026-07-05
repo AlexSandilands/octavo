@@ -8,12 +8,22 @@ Postgres, accessed through [Drizzle ORM](https://orm.drizzle.team). Schema lives
 ```bash
 docker compose up -d   # Postgres on localhost:5432 (see docker-compose.yml)
 npm run db:push        # sync schema.ts straight into the DB (dev workflow — no migration files)
-npm run db:seed        # wipe + load 10 sample issues (with images) for the reader
+npm run db:seed        # wipe + load 6 sample issues (with images) for the reader
 ```
 
 The seed **wipes all issues and images**. It refuses to run when `NODE_ENV=production` or when
 the database already holds published issues; pass `--force` (`npm run db:seed -- --force`) to
 override once you're sure.
+
+The seed is **fully self-contained** (issue #58): every image is placeholder art generated at
+seed time — SVG specs in `src/db/seed/images.ts` + `art.ts`, rasterized with sharp through the
+same WebP pipeline the editor applies to uploads — so there are no image binaries in the repo.
+The bytes are stored where the app's storage facade would store them: **Cloudflare R2 when the
+`R2_*` env vars are set** (e.g. the demo Railway project), the local-disk fallback
+(`.data/uploads`) otherwise. A partial R2 config makes the seed refuse rather than guess. The
+six issues are deliberately distinct magazine archetypes across both layout themes, and
+together exercise every block type, heading level, text size and image layout the readers
+support (see `src/db/seed-data.ts`).
 
 `DATABASE_URL` lives in `.env.local`. Next.js auto-loads it; `drizzle-kit` and the seed do not, so
 both `drizzle.config.ts` and `src/db/seed.ts` call `process.loadEnvFile(".env.local")` themselves.
@@ -23,13 +33,13 @@ both `drizzle.config.ts` and `src/db/seed.ts` call `process.loadEnvFile(".env.lo
 
 ## Tables
 
-| Table                             | Purpose                                                                                                                                                                                                                                                                                                                           |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `issues`                          | One row per edition. Holds `content` (the pages→blocks JSON), `number` (unique — it's the public address), `title`, `theme`, `status` (`draft`/`published`), `revision` (bumped on every content write; autosaves send the revision they were based on so stale saves conflict instead of clobbering), `publishedAt`, timestamps. |
-| `images`                          | Uploaded image metadata (R2 key, dimensions). _Used once the image pipeline lands._                                                                                                                                                                                                                                               |
+| Table                             | Purpose                                                                                                                                                                                                                                                                                                                                        |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `issues`                          | One row per edition. Holds `content` (the pages→blocks JSON), `number` (unique — it's the public address), `title`, `theme`, `status` (`draft`/`published`), `revision` (bumped on every content write; autosaves send the revision they were based on so stale saves conflict instead of clobbering), `publishedAt`, timestamps.              |
+| `images`                          | Uploaded image metadata (R2 key, dimensions). _Used once the image pipeline lands._                                                                                                                                                                                                                                                            |
 | `sponsors`                        | Managed sponsors (content v2): `name`, `href` (nullable), `logoId` (→`images`, set-null on image delete), `activeUntil` (nullable expiry — advisory only, flags the admin list; never auto-removes a sponsor from an issue), `createdAt`. Sponsor blocks reference a row by id (see the content model). Accessed via `src/server/sponsors.ts`. |
-| `users`                           | Member record — doubles as the auth user (`isAdmin`, `subscribed`). _Used once auth lands._                                                                                                                                                                                                                                       |
-| `sessions`, `verification_tokens` | Auth.js tables. _Used once auth lands._                                                                                                                                                                                                                                                                                           |
+| `users`                           | Member record — doubles as the auth user (`isAdmin`, `subscribed`). _Used once auth lands._                                                                                                                                                                                                                                                    |
+| `sessions`, `verification_tokens` | Auth.js tables. _Used once auth lands._                                                                                                                                                                                                                                                                                                        |
 
 Issues are keyed by `id` (internal) but addressed publicly by `number` (e.g. `/read/14`);
 `/read` serves **published issues only** (drafts preview via `/admin/issues/[id]/preview`).

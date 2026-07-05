@@ -136,9 +136,13 @@ fully isolated from the members' site:
    the demo DB's `users` table (that's just the owner), and the publish blast needs an
    admin session and is skippable per publish. This is also how the owner signs into
    `/admin` on the demo, which stays fully gated.
-4. **Seed content.** `railway run npm run db:seed` populates issues. The seed **wipes
-   issues and refuses when published issues exist unless `--force`** — safe against the
-   demo project's own DB, but for that reason **never run it against production**. Run
+4. **Seed content.** `railway run npm run db:seed` populates issues, generating the
+   placeholder images at seed time and writing them **straight to the project's R2
+   bucket** (the seed uses the same R2-when-configured/local-otherwise storage choice
+   as the app, so on the demo project the reader serves every seeded image from R2 —
+   nothing else to upload). The seed **wipes issues and refuses when published issues
+   exist unless `--force`** — safe against the demo project's own DB, but for that
+   reason **never run it against production**. Run
    `railway run npm run db:admin -- you@example.com` to be able to sign in and author
    on the demo.
 
