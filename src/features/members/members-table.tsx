@@ -39,7 +39,7 @@ export function MembersTable({
         <span className="w-[120px]">Subscription</span>
         <span className="w-[112px]">Role</span>
         <span className="w-[76px]">Joined</span>
-        <span className="w-[30px]" />
+        <span className="w-[58px]" />
       </div>
 
       {shown.map((m) => (

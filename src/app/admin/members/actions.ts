@@ -8,6 +8,7 @@ import {
   deleteUser,
   setAdmin,
   setSubscribed,
+  updateUser,
 } from "@/server/users";
 import { requireAdmin } from "@/server/session";
 
@@ -33,6 +34,9 @@ const addSchema = z
   .object({ email: emailSchema, name: nameSchema.optional() })
   .strict();
 
+// Same shape as add: editing sets both fields (name absent/blank → null).
+const updateSchema = addSchema;
+
 const importSchema = z
   .array(z.object({ email: emailSchema, name: nameSchema.nullable() }).strict())
   // Cap the batch: the club is ~1000 members, so a five-figure import is a
@@ -55,6 +59,34 @@ export async function addMemberAction(
     name: name && name.length > 0 ? name : null,
   });
   if (!result.ok) return { ok: false, reason: "duplicate" };
+  revalidatePath("/admin/members");
+  return { ok: true };
+}
+
+export type UpdateMemberResult =
+  | { ok: true }
+  | { ok: false; reason: "invalid" | "duplicate" | "missing" };
+
+// Edit an existing member's name + email. Email is the sign-in identity: future
+// magic links go to the new address, but existing DB sessions are keyed by user
+// id, so changing it doesn't sign the member out. Mirrors addMemberAction —
+// requireAdmin first, then re-validate id + body (both attacker-controlled).
+export async function updateMemberAction(
+  id: unknown,
+  input: unknown,
+): Promise<UpdateMemberResult> {
+  await requireAdmin();
+  const parsedId = idSchema.safeParse(id);
+  const parsed = updateSchema.safeParse(input);
+  if (!parsedId.success || !parsed.success) {
+    return { ok: false, reason: "invalid" };
+  }
+  const name = parsed.data.name;
+  const result = await updateUser(parsedId.data, {
+    email: parsed.data.email,
+    name: name && name.length > 0 ? name : null,
+  });
+  if (!result.ok) return { ok: false, reason: result.reason };
   revalidatePath("/admin/members");
   return { ok: true };
 }

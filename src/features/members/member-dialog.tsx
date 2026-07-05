@@ -2,14 +2,27 @@
 
 import { useState, useTransition } from "react";
 import { Icon } from "@/components/icons";
-import { addMemberAction } from "@/app/admin/members/actions";
+import {
+  addMemberAction,
+  updateMemberAction,
+} from "@/app/admin/members/actions";
+import type { MemberRow as Member } from "@/server/users";
 
-// Add one member by hand. Email is required; name is optional (the club often
-// only has an address). Duplicates and malformed addresses come back as a
-// legible message rather than a thrown error.
-export function AddMemberDialog({ onClose }: { onClose: () => void }) {
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
+// Add or edit one member. Email is required; name is optional (the club often
+// only has an address). Passing a `member` switches the dialog to edit mode:
+// the fields pre-fill and saving updates that row via updateMemberAction.
+// Duplicates and malformed addresses come back as a legible message rather than
+// a thrown error. Editing to the member's own current email is not a duplicate.
+export function MemberDialog({
+  member,
+  onClose,
+}: {
+  member?: Member;
+  onClose: () => void;
+}) {
+  const editing = member != null;
+  const [email, setEmail] = useState(member?.email ?? "");
+  const [name, setName] = useState(member?.name ?? "");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -17,14 +30,18 @@ export function AddMemberDialog({ onClose }: { onClose: () => void }) {
     e.preventDefault();
     setError(null);
     startTransition(async () => {
-      const res = await addMemberAction({
-        email,
-        name: name.trim() || undefined,
-      });
+      const res = editing
+        ? await updateMemberAction(member.id, {
+            email,
+            name: name.trim() || undefined,
+          })
+        : await addMemberAction({ email, name: name.trim() || undefined });
       if (res.ok) {
         onClose();
       } else if (res.reason === "duplicate") {
-        setError("That address is already a member.");
+        setError("That address already belongs to another member.");
+      } else if (res.reason === "missing") {
+        setError("That member no longer exists. Refresh the page.");
       } else {
         setError("Please enter a valid email address.");
       }
@@ -40,11 +57,12 @@ export function AddMemberDialog({ onClose }: { onClose: () => void }) {
               Members
             </div>
             <h2 className="text-ink mt-3 font-serif text-[27px] leading-tight">
-              Add a member
+              {editing ? "Edit member" : "Add a member"}
             </h2>
             <p className="text-muted mt-2.5 font-sans text-[15px] leading-relaxed">
-              They’ll be able to sign in and read every issue. Adding an address
-              is all it takes — they don’t register.
+              {editing
+                ? "Fix a name or address. A new email becomes their sign-in link from now on; they stay signed in on any current device."
+                : "They’ll be able to sign in and read every issue. Adding an address is all it takes — they don’t register."}
             </p>
 
             <label
@@ -97,8 +115,18 @@ export function AddMemberDialog({ onClose }: { onClose: () => void }) {
               disabled={pending}
               className="bg-accent text-paper flex h-12 items-center gap-2 rounded-lg px-6 font-sans text-[15px] font-semibold shadow-[0_2px_10px_rgba(29,77,62,0.3)] disabled:opacity-50"
             >
-              <Icon name="plus" size={18} strokeWidth={1.8} />
-              {pending ? "Adding…" : "Add member"}
+              <Icon
+                name={editing ? "check" : "plus"}
+                size={18}
+                strokeWidth={1.8}
+              />
+              {editing
+                ? pending
+                  ? "Saving…"
+                  : "Save changes"
+                : pending
+                  ? "Adding…"
+                  : "Add member"}
             </button>
           </div>
         </form>
