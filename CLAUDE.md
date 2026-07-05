@@ -24,6 +24,9 @@ is the process doc**: triage/model-routing labels, the subagent-per-issue loop, 
 orchestrator review pass, and the required gates per change type (browser pass, contrast
 gate, `RENDER_VERSION`, …). Read it before working an issue.
 
+Commit/PR titles follow conventional-commit style (`feat:`, `fix:`, `docs:`, `release:` …) —
+a convention, not strictly enforced.
+
 **Releasing to prod:** `main` is integration (auto-deploys the demo/staging site); the
 members' site tracks the long-lived `production` branch, which only fast-forwards from
 `main`. Ship by opening a PR `main` → `production` titled `release: promote to production
@@ -40,29 +43,16 @@ YYYY-MM-DD` (the `release:` prefix keeps prod PRs filterable). See
 
 ## Status
 
-Library, reader, dashboard and editor are **DB-backed** (editor autosaves; reader renders saved
-issues). Images are **real**: the editor uploads (WebP via sharp) and the reader serves them — to R2
-when configured, otherwise a local-disk fallback (`.data/uploads`) so it works with no cloud setup.
-Auth is **real** and everything is gated: magic-link sign-in (Auth.js v5, database sessions ~90
-days, members-only); the library/reader require a member session (signed-out visitors are sent to
-`/signin` with a validated `?next=` return path); `/admin`, all server actions and the upload route
-require `is_admin` (`npm run db:admin` bootstraps one). In dev the magic link is logged to the
-console, so no Resend account is needed. Members are **DB-backed**: the admin manages the real
-`users` table (add / remove / toggle subscribed / toggle admin / CSV import), with guard rails
-(no self-removal, always one admin). **Sponsors are real** (content v2): a `sponsors` table, a
-working admin page (`/admin/sponsors` — logo upload, link, `activeUntil` with an expired flag), and
-sponsor blocks that reference a managed sponsor via the editor picker (manual entry retained as a
-fallback / the v1 path). Version-1 issues with inline sponsor blocks still render unchanged.
-**Publishing an issue can email every subscribed member a personal magic link that opens the new
-issue** (the email _is_ the sign-in link; skippable per publish, defaults off on re-publish), each
-with a signed one-click unsubscribe (`/unsubscribe`, no session). Dev logs the blast + unsubscribe
-links to the console too. **PDF export is real**: a members-only download endpoint
-(`GET /api/issues/[number]/pdf`) prints the issue's fixed-canvas pages to a paginated PDF via headless
-Chromium (Playwright), cached in R2 by issue id + revision (regenerated only when the content changes);
-the reader control bar, mobile reader header and latest-issue card all download it (with loading + error
-states). Generation is server-only and off the request path, driven through an internal, token-guarded
-print route; it needs Chromium in the deploy container (see `docs/infrastructure.md`). Nothing stubbed.
-Routes + directory map are in `docs/architecture.md`; phase plan in `docs/ROADMAP.md`.
+Everything below is real and wired end-to-end — **nothing is stubbed.** Routes + directory
+map in `docs/architecture.md`; phase plan in `docs/ROADMAP.md`.
+
+- **Content** — library, reader, dashboard, editor are DB-backed (editor autosaves; reader renders saved issues).
+- **Images** — editor uploads (WebP via sharp), served from R2 when configured, else a local-disk fallback (`.data/uploads`) so it works with no cloud setup.
+- **Auth** — magic-link (Auth.js v5, ~90-day DB sessions), members-only. Library/reader need a member session (signed-out → `/signin` with a validated `?next=`); `/admin`, server actions and uploads need `is_admin` (`npm run db:admin` bootstraps one). Dev logs the link to the console (no Resend needed).
+- **Members** — admin manages the `users` table (add / remove / toggle subscribed / toggle admin / CSV import) with guard rails (no self-removal, always ≥1 admin).
+- **Sponsors** (content v2) — `sponsors` table + `/admin/sponsors` (logo upload, link, `activeUntil` w/ expired flag); sponsor blocks reference a managed sponsor via the editor picker (manual entry retained as the v1 fallback; v1 inline blocks still render).
+- **Publish email** — publishing can email each subscribed member a personal magic link that opens the issue (the email _is_ the sign-in link; skippable, off by default on re-publish), with a signed one-click `/unsubscribe` (no session). Dev logs blast + unsubscribe links.
+- **PDF export** — members-only `GET /api/issues/[number]/pdf`, prints fixed-canvas pages to a paginated PDF via headless Chromium (Playwright), cached in R2 by issue id + revision. Server-only and off the request path via a token-guarded print route; needs Chromium in the deploy container (`docs/infrastructure.md`).
 
 ## Stack
 
