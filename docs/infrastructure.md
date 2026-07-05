@@ -94,11 +94,31 @@ once. Chromium is a transient, on-demand cost — not held between requests.
 
 **Container deps — [`nixpacks.toml`](../nixpacks.toml)** installs the shared
 libraries Chromium needs (`aptPkgs`) and downloads Playwright's pinned Chromium
-into the image at build time (browser cache shared with runtime, so
-`chromium.launch()` finds it). `playwright` is a **runtime** dependency (not
-just dev). **This must be verified on a real Railway deploy** — the dev sandbox
-has no headless Chromium, so the deploy-time browser install can only be
-exercised there.
+into the image at build time. `playwright` is a **runtime** dependency (not just
+dev). **This must be verified on a real Railway deploy** — the dev sandbox has
+no headless Chromium, so the deploy-time browser install can only be exercised
+there. Four things this setup depends on, each of which broke a deploy once
+(issue #68) and will silently regress if reverted:
+
+- **Builder must be Nixpacks.** Railway now defaults to the Railpack builder,
+  which **ignores `nixpacks.toml` entirely** — so the apt libs and Chromium
+  install never run and the PDF route 500s. [`railway.json`](../railway.json)
+  pins `build.builder = "NIXPACKS"`; keep it.
+- **Chromium must land in a real image layer, not a build cache mount.** The
+  `playwright` phase must **not** set `cacheDirectories` for
+  `/root/.cache/ms-playwright`: Nixpacks implements that as a Docker build cache
+  mount (build-only), so the browser downloads at build but is absent at runtime
+  (`Executable doesn't exist…` → `ChromiumUnavailableError`). Without the mount
+  the install writes into a shipped layer, at the cost of ~30s per build (no
+  download cache). This is the exact mental model to preserve.
+- **`aptPkgs` names must match Ubuntu 24.04 (Noble),** the Nixpacks base. Noble's
+  64-bit `time_t` transition renamed `libasound2` → `libasound2t64`; the old
+  name is an ambiguous virtual package ("no installation candidate") and fails
+  the apt step (exit 100). Verify package names against Noble if this list changes.
+- **`engines.node` must be a version Nixpacks stocks.** It's pinned `>=22` (not
+  a bleeding-edge exact like `26.x`, which Nixpacks has no package for and
+  silently falls back from to EOL Node 18 for the build). Local/CI Node 26 still
+  satisfies `>=22`.
 
 **Memory:** one headless Chromium rendering a ~10–20-page issue peaks at a few
 hundred MB, transiently, and only while a PDF is being generated (rare, cached
