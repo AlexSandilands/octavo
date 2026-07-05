@@ -9,6 +9,21 @@ import { THEME_IDS } from "@/features/blocks/themes/registry";
 // Scripts that run outside Next (the seed, drizzle-kit) read process.env
 // directly instead of importing this module.
 //
+// Validation is split in two so `next build` doesn't need runtime secrets as
+// build args (issue #67). `next build` evaluates server modules, so anything
+// validated *eagerly* at import must be present during the build — which is
+// why Railway had to pass every secret as an ARG/ENV and BuildKit warned about
+// it (SecretsUsedInArgOrEnv):
+//
+//   - BUILD-TIME vars (NEXT_PUBLIC_*): inlined into the bundle and genuinely
+//     needed during `next build`. Non-secret, so validated eagerly at import —
+//     a typo still fails the build loudly.
+//   - RUNTIME vars (secrets + DATABASE_URL): validated lazily on first access
+//     and memoized. The build never touches them (nothing on the build-eval
+//     import graph reads a runtime field at module top level), so they no
+//     longer need to be build args. The first access in production still
+//     fail-fasts with the same clear message as before.
+//
 // R2 vars are optional in dev (local-disk fallback) but required in
 // production: Railway's filesystem is ephemeral, so booting without durable
 // storage would silently lose every uploaded image. Email vars are likewise
@@ -27,7 +42,44 @@ const R2_KEYS = [
 
 const EMAIL_KEYS = ["EMAIL_API_KEY", "EMAIL_FROM"] as const;
 
-const schema = z
+// Build-time vars: NEXT_PUBLIC_* branding, inlined at build. Non-secret and
+// required during `next build`, so validated eagerly at import.
+const buildSchema = z.object({
+  // Deployment brand skin (issue #40) — the app-wide palette, build-time
+  // inlined like the other NEXT_PUBLIC_* branding. An unknown value fails
+  // here at boot rather than silently falling back to the default. The root
+  // layout stamps this on <html data-brand>; brands.css does the rest.
+  NEXT_PUBLIC_BRAND: z
+    .enum(BRAND_IDS as unknown as [BrandId, ...BrandId[]])
+    .default(DEFAULT_BRAND),
+  // Which layout themes the editor picker + reader toggle offer (a comma list,
+  // e.g. "classic,modern"; unset = all). Validated against the theme registry
+  // so a typo fails loudly at boot; the registry filters the actual set.
+  NEXT_PUBLIC_ISSUE_THEMES: z
+    .string()
+    .optional()
+    .superRefine((value, ctx) => {
+      if (!value) return;
+      const known = new Set<string>(THEME_IDS);
+      const unknown = value
+        .split(",")
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean)
+        .filter((id) => !known.has(id));
+      if (unknown.length > 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            `unknown layout theme(s): ${unknown.join(", ")}. ` +
+            `Known themes: ${THEME_IDS.join(", ")}`,
+        });
+      }
+    }),
+});
+
+// Runtime vars: secrets + DATABASE_URL. Validated lazily (see below) so the
+// build never needs them present.
+const runtimeSchema = z
   .object({
     DATABASE_URL: z.string().min(1),
 
@@ -52,36 +104,6 @@ const schema = z
     // Server/edge runtimes read it from here; the browser reads the same value
     // from NEXT_PUBLIC_SENTRY_DSN (a DSN is a public ingest key, not a secret).
     SENTRY_DSN: z.string().url().optional(),
-    // Deployment brand skin (issue #40) — the app-wide palette, build-time
-    // inlined like the other NEXT_PUBLIC_* branding. An unknown value fails
-    // here at boot rather than silently falling back to the default. The root
-    // layout stamps this on <html data-brand>; brands.css does the rest.
-    NEXT_PUBLIC_BRAND: z
-      .enum(BRAND_IDS as unknown as [BrandId, ...BrandId[]])
-      .default(DEFAULT_BRAND),
-    // Which layout themes the editor picker + reader toggle offer (a comma list,
-    // e.g. "classic,modern"; unset = all). Validated against the theme registry
-    // so a typo fails loudly at boot; the registry filters the actual set.
-    NEXT_PUBLIC_ISSUE_THEMES: z
-      .string()
-      .optional()
-      .superRefine((value, ctx) => {
-        if (!value) return;
-        const known = new Set<string>(THEME_IDS);
-        const unknown = value
-          .split(",")
-          .map((s) => s.trim().toLowerCase())
-          .filter(Boolean)
-          .filter((id) => !known.has(id));
-        if (unknown.length > 0) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message:
-              `unknown layout theme(s): ${unknown.join(", ")}. ` +
-              `Known themes: ${THEME_IDS.join(", ")}`,
-          });
-        }
-      }),
   })
   .superRefine((vars, ctx) => {
     if (process.env.NODE_ENV !== "production") return;
@@ -105,16 +127,45 @@ const schema = z
     }
   });
 
-const parsed = schema.safeParse(process.env);
-if (!parsed.success) {
-  throw new Error(
-    "Invalid environment:\n" +
-      parsed.error.issues
-        .map(
-          (issue) => `  - ${issue.path.join(".") || "(env)"}: ${issue.message}`,
-        )
-        .join("\n"),
-  );
+type BuildEnv = z.infer<typeof buildSchema>;
+type RuntimeEnv = z.infer<typeof runtimeSchema>;
+type Env = BuildEnv & RuntimeEnv;
+
+function parse<T>(schema: z.ZodType<T>, label: string): T {
+  const result = schema.safeParse(process.env);
+  if (!result.success) {
+    throw new Error(
+      `Invalid ${label} environment:\n` +
+        result.error.issues
+          .map(
+            (issue) =>
+              `  - ${issue.path.join(".") || "(env)"}: ${issue.message}`,
+          )
+          .join("\n"),
+    );
+  }
+  return result.data;
 }
 
-export const env = parsed.data;
+// Eager: fails the build (and boot) on a bad NEXT_PUBLIC_* value.
+const buildEnv = parse(buildSchema, "build-time");
+const buildKeys = new Set<string>(Object.keys(buildSchema.shape));
+
+// Lazy + memoized: parsed on first access to a runtime field, so the build
+// never triggers it. Preserves the fail-fast guarantee at runtime.
+let runtimeEnvCache: RuntimeEnv | null = null;
+function runtimeEnv(): RuntimeEnv {
+  runtimeEnvCache ??= parse(runtimeSchema, "runtime");
+  return runtimeEnvCache;
+}
+
+// A single `env` surface so call sites don't churn: build-time keys resolve
+// eagerly, everything else defers to the memoized runtime parse on access.
+export const env: Env = new Proxy({} as Env, {
+  get(_target, prop: string | symbol) {
+    if (typeof prop === "string" && buildKeys.has(prop)) {
+      return buildEnv[prop as keyof BuildEnv];
+    }
+    return runtimeEnv()[prop as keyof RuntimeEnv];
+  },
+}) as Env;

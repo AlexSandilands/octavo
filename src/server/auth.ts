@@ -33,7 +33,13 @@ declare module "@auth/core/adapters" {
   }
 }
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+// Lazy config (Auth.js "advanced initialization"): the config function runs
+// per request rather than at import, so env.AUTH_SECRET / EMAIL_* are read at
+// runtime. `next build` evaluates this module while collecting page data for
+// the auth route; eager access would force those secrets to be build args
+// (issue #67). The runtime fail-fast is unchanged — the first request still
+// throws a clear error if a secret is missing.
+export const { handlers, auth, signIn, signOut } = NextAuth(() => ({
   adapter: authAdapter,
   session: { strategy: "database", maxAge: SESSION_MAX_AGE },
   secret: env.AUTH_SECRET,
@@ -79,4 +85,4 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       };
     },
   },
-});
+}));
