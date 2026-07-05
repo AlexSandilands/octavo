@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { EmptyMembers } from "@/components/empty-states";
-import { AddMemberDialog } from "./add-member-dialog";
+import { MemberDialog } from "./member-dialog";
 import { ImportDialog } from "./import-dialog";
 import { MembersTable } from "./members-table";
 import { MembersToolbar } from "./members-toolbar";
@@ -50,7 +50,7 @@ export function MembersManager({
         <MembersTable members={members} currentUserId={currentUserId} />
       )}
 
-      {dialog === "add" && <AddMemberDialog onClose={close} />}
+      {dialog === "add" && <MemberDialog onClose={close} />}
       {dialog === "import" && <ImportDialog onClose={close} />}
     </>
   );
