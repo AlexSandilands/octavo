@@ -4,23 +4,36 @@ import "./globals.css";
 import { site } from "@/lib/site";
 import { env } from "@/lib/env";
 
+// preload:false on purpose (issue #72). These faces are applied indirectly —
+// as CSS variables consumed through Tailwind utilities (font-serif / font-sans /
+// font-mono), never via a next/font className on the rendered element — so
+// next/font can't tell which faces the first paint actually needs and emits a
+// <link rel="preload"> for every declared subset/weight/style. The LCP on every
+// members-facing route is a cover/page image (which keeps its own correct,
+// always-used preload), not text, so those speculative font preloads sit unused
+// and Chrome logs "preloaded … but not used". With preload off the faces still
+// load from the stylesheet and swap in (display:swap default, size-adjusted
+// fallback → negligible CLS); we just stop asking the browser to preload them.
 const serif = Newsreader({
   subsets: ["latin"],
   variable: "--font-newsreader",
   style: ["normal", "italic"],
   weight: ["400", "500", "600"],
+  preload: false,
 });
 
 const sans = Hanken_Grotesk({
   subsets: ["latin"],
   variable: "--font-hanken",
   weight: ["400", "500", "600", "700"],
+  preload: false,
 });
 
 const mono = IBM_Plex_Mono({
   subsets: ["latin"],
   variable: "--font-plex",
   weight: ["400", "500"],
+  preload: false,
 });
 
 export const metadata: Metadata = {
