@@ -24,6 +24,12 @@ is the process doc**: triage/model-routing labels, the subagent-per-issue loop, 
 orchestrator review pass, and the required gates per change type (browser pass, contrast
 gate, `RENDER_VERSION`, …). Read it before working an issue.
 
+**Releasing to prod:** `main` is integration (auto-deploys the demo/staging site); the
+members' site tracks the long-lived `production` branch, which only fast-forwards from
+`main`. Ship by opening a PR `main` → `production` titled `release: promote to production
+YYYY-MM-DD` (the `release:` prefix keeps prod PRs filterable). See
+`docs/infrastructure.md#release-workflow`.
+
 ## Commands
 
 - `docker compose up -d` — local Postgres

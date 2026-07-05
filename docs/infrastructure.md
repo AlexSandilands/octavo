@@ -284,10 +284,12 @@ straight to members:
   from `main`; nothing is committed to it directly. The production Railway service
   deploys this branch.
 
-**Shipping is a deliberate promotion:** open a "Promote to production" PR from
-`main` → `production` and merge it. Merging triggers the production deploy, and the
-PR history becomes your dated release log (handy for "what changed?" when something
-breaks). A fast-forward `git push origin main:production` also works but loses that
+**Shipping is a deliberate promotion:** open a PR from `main` → `production`, titled
+`release: promote to production YYYY-MM-DD`, and merge it (Merge commit only — never
+squash/rebase, which would diverge `production` from `main`). The `release:` prefix
+keeps prod PRs filterable (`is:pr in:title release:`); an optional `release` label
+works too. Merging triggers the production deploy, and the PR history becomes your
+dated release log (handy for "what changed?" when something breaks). A fast-forward `git push origin main:production` also works but loses that
 trail and needs bypass rights against the ruleset below. Because `production` only
 fast-forwards from an already-green `main`, its migrations and code are exactly what
 you smoke-tested on the demo first.
