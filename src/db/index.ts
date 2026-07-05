@@ -25,11 +25,29 @@ function getDb() {
 }
 
 // A stable `db` handle that initialises the client on first property access,
-// so call sites keep using `db.select()/execute()/…` unchanged.
+// so call sites keep using `db.select()/execute()/…` unchanged (lazy init for
+// issue #67 — see getDb above).
+const boundMethods = new Map<PropertyKey, unknown>();
 export const db = new Proxy({} as ReturnType<typeof drizzle>, {
+  // Report the real prototype chain so `db instanceof PgDatabase` and
+  // drizzle-orm's `is()` (which walks prototypes / uses instanceof, never the
+  // get trap) recognise the handle. The empty target is extensible, so a
+  // custom getPrototypeOf is allowed by the Proxy invariants.
+  getPrototypeOf() {
+    return Reflect.getPrototypeOf(getDb());
+  },
   get(_target, prop) {
     const real = getDb();
     const value = Reflect.get(real, prop, real);
-    return typeof value === "function" ? value.bind(real) : value;
+    if (typeof value !== "function") return value;
+    // Bind once per prop and cache, so `db.select === db.select` holds and we
+    // don't allocate a fresh bound function on every access. Safe because
+    // getDb() is memoised, so `real` (and thus each bound method) is stable.
+    let bound = boundMethods.get(prop);
+    if (!bound) {
+      bound = value.bind(real);
+      boundMethods.set(prop, bound);
+    }
+    return bound;
   },
 });

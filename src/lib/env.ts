@@ -78,54 +78,56 @@ const buildSchema = z.object({
 });
 
 // Runtime vars: secrets + DATABASE_URL. Validated lazily (see below) so the
-// build never needs them present.
-const runtimeSchema = z
-  .object({
-    DATABASE_URL: z.string().min(1),
+// build never needs them present. The base object is kept separate from the
+// `.superRefine` wrapper: in zod 3 `.superRefine` returns a ZodEffects that has
+// no `.shape`, so the Proxy derives its known runtime keys from the base object.
+const runtimeBaseSchema = z.object({
+  DATABASE_URL: z.string().min(1),
 
-    AUTH_SECRET: z
-      .string()
-      .min(1, "missing — generate one with: npx auth secret"),
-    // The canonical public origin, used to build absolute links in emails
-    // (the new-issue magic link, the unsubscribe link) from server code that
-    // has no incoming request to read a Host from. Optional: the publish
-    // action falls back to the request's own Host when this is unset, so the
-    // app boots and works without it.
-    APP_URL: z.string().url().optional(),
-    R2_ACCOUNT_ID: z.string().optional(),
-    R2_ACCESS_KEY_ID: z.string().optional(),
-    R2_SECRET_ACCESS_KEY: z.string().optional(),
-    R2_BUCKET: z.string().optional(),
-    R2_PUBLIC_URL: z.string().url().optional(),
-    EMAIL_API_KEY: z.string().optional(),
-    EMAIL_FROM: z.string().optional(),
-    // Sentry error reporting. Optional everywhere — the app boots and runs
-    // fine with no DSN (Sentry.init is skipped, every capture is a no-op).
-    // Server/edge runtimes read it from here; the browser reads the same value
-    // from NEXT_PUBLIC_SENTRY_DSN (a DSN is a public ingest key, not a secret).
-    SENTRY_DSN: z.string().url().optional(),
-  })
-  .superRefine((vars, ctx) => {
-    if (process.env.NODE_ENV !== "production") return;
-    const missingR2 = R2_KEYS.filter((key) => !vars[key]);
-    if (missingR2.length > 0) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message:
-          "R2 storage is required in production (the local-disk fallback " +
-          `would lose images on redeploy). Missing: ${missingR2.join(", ")}`,
-      });
-    }
-    const missingEmail = EMAIL_KEYS.filter((key) => !vars[key]);
-    if (missingEmail.length > 0) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message:
-          "Email is required in production (members could not sign in " +
-          `without it). Missing: ${missingEmail.join(", ")}`,
-      });
-    }
-  });
+  AUTH_SECRET: z
+    .string()
+    .min(1, "missing — generate one with: npx auth secret"),
+  // The canonical public origin, used to build absolute links in emails
+  // (the new-issue magic link, the unsubscribe link) from server code that
+  // has no incoming request to read a Host from. Optional: the publish
+  // action falls back to the request's own Host when this is unset, so the
+  // app boots and works without it.
+  APP_URL: z.string().url().optional(),
+  R2_ACCOUNT_ID: z.string().optional(),
+  R2_ACCESS_KEY_ID: z.string().optional(),
+  R2_SECRET_ACCESS_KEY: z.string().optional(),
+  R2_BUCKET: z.string().optional(),
+  R2_PUBLIC_URL: z.string().url().optional(),
+  EMAIL_API_KEY: z.string().optional(),
+  EMAIL_FROM: z.string().optional(),
+  // Sentry error reporting. Optional everywhere — the app boots and runs
+  // fine with no DSN (Sentry.init is skipped, every capture is a no-op).
+  // Server/edge runtimes read it from here; the browser reads the same value
+  // from NEXT_PUBLIC_SENTRY_DSN (a DSN is a public ingest key, not a secret).
+  SENTRY_DSN: z.string().url().optional(),
+});
+
+const runtimeSchema = runtimeBaseSchema.superRefine((vars, ctx) => {
+  if (process.env.NODE_ENV !== "production") return;
+  const missingR2 = R2_KEYS.filter((key) => !vars[key]);
+  if (missingR2.length > 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message:
+        "R2 storage is required in production (the local-disk fallback " +
+        `would lose images on redeploy). Missing: ${missingR2.join(", ")}`,
+    });
+  }
+  const missingEmail = EMAIL_KEYS.filter((key) => !vars[key]);
+  if (missingEmail.length > 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message:
+        "Email is required in production (members could not sign in " +
+        `without it). Missing: ${missingEmail.join(", ")}`,
+    });
+  }
+});
 
 type BuildEnv = z.infer<typeof buildSchema>;
 type RuntimeEnv = z.infer<typeof runtimeSchema>;
@@ -150,22 +152,69 @@ function parse<T>(schema: z.ZodType<T>, label: string): T {
 // Eager: fails the build (and boot) on a bad NEXT_PUBLIC_* value.
 const buildEnv = parse(buildSchema, "build-time");
 const buildKeys = new Set<string>(Object.keys(buildSchema.shape));
+// Runtime key names come from the *base* object (the `.superRefine` wrapper has
+// no `.shape` in zod 3). Enumerating them needs no parse, so the Proxy's
+// has/ownKeys traps can answer without touching a single secret.
+const runtimeKeys = new Set<string>(Object.keys(runtimeBaseSchema.shape));
+const allKeys = [...buildKeys, ...runtimeKeys];
+
+// `next build` evaluates server modules; this is the phase value it sets while
+// doing so (next/dist/shared/lib/constants → PHASE_PRODUCTION_BUILD).
+const PHASE_PRODUCTION_BUILD = "phase-production-build";
 
 // Lazy + memoized: parsed on first access to a runtime field, so the build
 // never triggers it. Preserves the fail-fast guarantee at runtime.
 let runtimeEnvCache: RuntimeEnv | null = null;
 function runtimeEnv(): RuntimeEnv {
+  if (process.env.NEXT_PHASE === PHASE_PRODUCTION_BUILD) {
+    // A runtime field was read at module top level on the build-eval graph.
+    // Parsing here would fail with a misleading "DATABASE_URL Required",
+    // reintroducing the very build-time secret requirement issue #67 removed.
+    // Fail with a message that points at the real fix instead.
+    throw new Error(
+      "Runtime env accessed during `next build` — runtime vars are validated " +
+        "lazily so the build needs no secrets (issue #67); move this read " +
+        "inside a function/request path so it runs at runtime, not import.",
+    );
+  }
   runtimeEnvCache ??= parse(runtimeSchema, "runtime");
   return runtimeEnvCache;
 }
 
-// A single `env` surface so call sites don't churn: build-time keys resolve
-// eagerly, everything else defers to the memoized runtime parse on access.
+// A single `env` surface so call sites don't churn. The traps only ever consult
+// the statically known key sets, so nothing but a real value read on a known
+// runtime key triggers the (lazy, memoized) runtime parse:
+//   - get: a build key → eager buildEnv value; a runtime key → runtimeEnv();
+//     anything else (unknown strings, every symbol, and probe accesses like
+//     `then`/`toJSON` from await/JSON.stringify) → undefined, no parse.
+//   - has / ownKeys / getOwnPropertyDescriptor: answered from buildKeys ∪
+//     runtimeKeys, so `in`, `Object.keys`, and spread enumerate without a
+//     parse. Spread/`{...env}` then *gets* each key, which does read runtime
+//     values — that's a genuine value read, so parsing there is correct.
+// The target stays an empty object; getOwnPropertyDescriptor reports
+// `configurable: true` to satisfy the Proxy invariant for keys absent from it.
 export const env: Env = new Proxy({} as Env, {
   get(_target, prop: string | symbol) {
-    if (typeof prop === "string" && buildKeys.has(prop)) {
-      return buildEnv[prop as keyof BuildEnv];
+    if (typeof prop !== "string") return undefined;
+    if (buildKeys.has(prop)) return buildEnv[prop as keyof BuildEnv];
+    if (runtimeKeys.has(prop)) return runtimeEnv()[prop as keyof RuntimeEnv];
+    return undefined;
+  },
+  has(_target, prop: string | symbol) {
+    return (
+      typeof prop === "string" && (buildKeys.has(prop) || runtimeKeys.has(prop))
+    );
+  },
+  ownKeys() {
+    return allKeys;
+  },
+  getOwnPropertyDescriptor(_target, prop: string | symbol) {
+    if (
+      typeof prop === "string" &&
+      (buildKeys.has(prop) || runtimeKeys.has(prop))
+    ) {
+      return { enumerable: true, configurable: true };
     }
-    return runtimeEnv()[prop as keyof RuntimeEnv];
+    return undefined;
   },
 }) as Env;
