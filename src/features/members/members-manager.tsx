@@ -34,7 +34,7 @@ export function MembersManager({
 
   return (
     <>
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-ink font-serif text-3xl">Members</h1>
           <p className="text-faint mt-1.5 font-sans text-sm">{summary}</p>

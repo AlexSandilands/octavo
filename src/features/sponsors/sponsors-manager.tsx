@@ -16,11 +16,7 @@ import { SponsorDialog } from "./sponsor-dialog";
 // null = closed; "new" = add; a sponsor = edit that record.
 type Editing = SponsorListItem | "new" | null;
 
-export function SponsorsManager({
-  sponsors,
-}: {
-  sponsors: SponsorListItem[];
-}) {
+export function SponsorsManager({ sponsors }: { sponsors: SponsorListItem[] }) {
   const router = useRouter();
   const [editing, setEditing] = useState<Editing>(null);
 
@@ -33,13 +29,17 @@ export function SponsorsManager({
 
   return (
     <>
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-ink font-serif text-3xl">Sponsors</h1>
           <p className="text-faint mt-1.5 font-sans text-sm">{summary}</p>
         </div>
         {sponsors.length > 0 && (
-          <Button icon="plus" onClick={() => setEditing("new")}>
+          <Button
+            icon="plus"
+            onClick={() => setEditing("new")}
+            className="w-full whitespace-nowrap sm:w-auto"
+          >
             Add sponsor
           </Button>
         )}
@@ -67,7 +67,7 @@ export function SponsorsManager({
         </div>
       ) : (
         <div className="mt-6">
-          <div className="border-line text-faint2 flex items-center border-b px-1.5 pb-2.5 font-sans text-[10px] font-semibold tracking-[0.14em] uppercase">
+          <div className="border-line text-faint2 hidden items-center border-b px-1.5 pb-2.5 font-sans text-[10px] font-semibold tracking-[0.14em] uppercase sm:flex">
             <span className="flex-1">Sponsor</span>
             <span className="w-[190px]">Link</span>
             <span className="w-[150px]">Active until</span>

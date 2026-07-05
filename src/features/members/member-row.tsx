@@ -85,8 +85,8 @@ export function MemberRow({
 
   return (
     <div className="border-line-soft border-b py-3">
-      <div className="flex items-center gap-3 px-1.5">
-        <div className="flex min-w-0 flex-1 items-center gap-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5 px-1.5">
+        <div className="flex min-w-0 basis-full items-center gap-3 sm:basis-0 sm:flex-1">
           <Avatar initials={initials(label)} />
           <div className="min-w-0">
             <div className="text-ink font-sans text-[15px] font-semibold">
@@ -98,7 +98,7 @@ export function MemberRow({
           </div>
         </div>
 
-        <div className="w-[120px]">
+        <div className="sm:w-[120px]">
           <button
             type="button"
             onClick={toggleSubscribed}
@@ -113,7 +113,7 @@ export function MemberRow({
           </button>
         </div>
 
-        <div className="w-[112px]">
+        <div className="sm:w-[112px]">
           <button
             type="button"
             onClick={toggleAdmin}
@@ -137,11 +137,11 @@ export function MemberRow({
           </button>
         </div>
 
-        <div className="text-faint w-[76px] font-sans text-[13px]">
+        <div className="text-faint hidden font-sans text-[13px] sm:block sm:w-[76px]">
           {joinedLabel(member.createdAt)}
         </div>
 
-        <div className="flex w-[58px] items-center justify-end gap-2">
+        <div className="ml-auto flex items-center justify-end gap-2 sm:ml-0 sm:w-[58px]">
           <button
             type="button"
             onClick={() => setEditing(true)}

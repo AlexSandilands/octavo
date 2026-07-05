@@ -34,7 +34,7 @@ export default async function AdminDashboard() {
 
   return (
     <AdminShell active="issues" user={admin}>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-ink font-serif text-3xl">Issues</h1>
           <p className="text-faint mt-1.5 font-sans text-sm">
@@ -42,8 +42,13 @@ export default async function AdminDashboard() {
             {draftCount} in draft
           </p>
         </div>
-        <form action={createIssueAction}>
-          <Button type="submit" icon="plus" iconPosition="left">
+        <form action={createIssueAction} className="flex-none">
+          <Button
+            type="submit"
+            icon="plus"
+            iconPosition="left"
+            className="w-full whitespace-nowrap sm:w-auto"
+          >
             Create new issue
           </Button>
         </form>
@@ -61,54 +66,60 @@ export default async function AdminDashboard() {
             return (
               <div
                 key={i.id}
-                className="border-line-soft flex items-center gap-5 border-b py-4"
+                className="border-line-soft flex flex-col gap-3 border-b py-4 sm:flex-row sm:items-center sm:gap-5"
               >
-                <Link
-                  href={editHref}
-                  aria-label={`Edit ${i.title}`}
-                  tabIndex={-1}
-                  className="flex-none overflow-hidden rounded-[3px] shadow-[0_1px_4px_-1px_rgba(20,32,28,0.35)]"
-                  style={{ width: THUMB_W, height: THUMB_H }}
-                >
-                  {cover ? (
-                    <CoverThumb
-                      page={cover}
-                      theme={i.theme}
-                      images={coverImages}
-                      issueNo={i.number}
-                      width={THUMB_W}
-                    />
-                  ) : (
-                    <div className="photo-fill h-full w-full" />
-                  )}
-                </Link>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-3">
-                    <Link
-                      href={editHref}
-                      className="text-ink hover:text-accent font-serif text-[19px] leading-tight hover:underline"
-                    >
-                      {i.title}
-                    </Link>
-                    <span className="text-faint2 font-mono text-[11px]">
-                      No. {i.number}
-                    </span>
-                  </div>
-                  <div className="text-faint mt-1 font-sans text-[13px]">
-                    {i.content.pages.length}{" "}
-                    {i.content.pages.length === 1 ? "page" : "pages"}
+                <div className="flex min-w-0 items-center gap-4 sm:flex-1 sm:gap-5">
+                  <Link
+                    href={editHref}
+                    aria-label={`Edit ${i.title}`}
+                    tabIndex={-1}
+                    className="flex-none overflow-hidden rounded-[3px] shadow-[0_1px_4px_-1px_rgba(20,32,28,0.35)]"
+                    style={{ width: THUMB_W, height: THUMB_H }}
+                  >
+                    {cover ? (
+                      <CoverThumb
+                        page={cover}
+                        theme={i.theme}
+                        images={coverImages}
+                        issueNo={i.number}
+                        width={THUMB_W}
+                      />
+                    ) : (
+                      <div className="photo-fill h-full w-full" />
+                    )}
+                  </Link>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+                      <Link
+                        href={editHref}
+                        className="text-ink hover:text-accent font-serif text-[19px] leading-tight hover:underline"
+                      >
+                        {i.title}
+                      </Link>
+                      <span className="text-faint2 font-mono text-[11px]">
+                        No. {i.number}
+                      </span>
+                    </div>
+                    <div className="text-faint mt-1 font-sans text-[13px]">
+                      {i.content.pages.length}{" "}
+                      {i.content.pages.length === 1 ? "page" : "pages"}
+                    </div>
                   </div>
                 </div>
-                <Pill
-                  status={i.status === "published" ? "Published" : "Draft"}
-                />
-                <Link
-                  href={editHref}
-                  className="text-accent w-14 text-right font-sans text-sm font-semibold hover:underline"
-                >
-                  Edit
-                </Link>
-                <DeleteIssueButton id={i.id} title={i.title} />
+                <div className="flex flex-none items-center justify-between gap-3 pl-[62px] sm:justify-end sm:gap-4 sm:pl-0">
+                  <Pill
+                    status={i.status === "published" ? "Published" : "Draft"}
+                  />
+                  <div className="flex items-center gap-2 sm:gap-4">
+                    <Link
+                      href={editHref}
+                      className="text-accent text-right font-sans text-sm font-semibold hover:underline sm:w-14"
+                    >
+                      Edit
+                    </Link>
+                    <DeleteIssueButton id={i.id} title={i.title} />
+                  </div>
+                </div>
               </div>
             );
           })}

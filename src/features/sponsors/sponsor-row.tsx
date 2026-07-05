@@ -34,11 +34,11 @@ export function SponsorRow({
 
   return (
     <div
-      className={`border-line-soft flex items-center border-b px-1.5 py-3.5 ${
+      className={`border-line-soft flex flex-wrap items-center gap-x-3 gap-y-2 border-b px-1.5 py-3.5 sm:gap-0 ${
         pending ? "opacity-40" : ""
       }`}
     >
-      <div className="flex min-w-0 flex-1 items-center gap-3">
+      <div className="flex min-w-0 basis-full items-center gap-3 sm:basis-0 sm:flex-1">
         <div className="border-line flex h-9 w-[54px] flex-none items-center justify-center overflow-hidden rounded border bg-white">
           {sponsor.logo ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -56,13 +56,13 @@ export function SponsorRow({
         </div>
       </div>
 
-      <div className="w-[190px] pr-3">
+      <div className="min-w-0 basis-full pr-3 sm:w-[190px] sm:flex-none">
         {link ? (
           <a
             href={link}
             target="_blank"
             rel="noopener noreferrer nofollow"
-            className="text-accent truncate font-sans text-[13px] font-medium hover:underline"
+            className="text-accent block truncate font-sans text-[13px] font-medium hover:underline"
           >
             {sponsor.href}
           </a>
@@ -71,7 +71,7 @@ export function SponsorRow({
         )}
       </div>
 
-      <div className="flex w-[150px] items-center gap-2">
+      <div className="flex items-center gap-2 sm:w-[150px]">
         {sponsor.activeUntil ? (
           <>
             <span className="text-faint font-sans text-[13px]">
@@ -88,7 +88,7 @@ export function SponsorRow({
         )}
       </div>
 
-      <div className="flex w-[80px] items-center justify-end gap-1">
+      <div className="ml-auto flex items-center justify-end gap-1 sm:ml-0 sm:w-[80px]">
         <button
           type="button"
           onClick={onEdit}

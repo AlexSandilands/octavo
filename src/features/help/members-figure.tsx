@@ -64,37 +64,39 @@ function MockRow({
 export function MembersFigure() {
   return (
     <FigureFrame caption="A sketch of the Members screen. The numbers match the list below.">
-      <div className="border-line bg-paper overflow-hidden rounded-lg border">
-        <div className="border-line flex items-center justify-between gap-2 border-b px-4 py-2.5">
-          <span className="text-ink font-serif text-[16px]">Members</span>
-          <div className="flex flex-none items-center gap-2">
-            <FigureBadge n={2} />
-            <span className="border-hair text-ink flex items-center gap-1.5 rounded-md border bg-white px-2.5 py-1.5 font-sans text-[11.5px] font-semibold">
-              <Icon name="upload" size={12} strokeWidth={2} />
-              Import CSV
-            </span>
-            <FigureBadge n={1} />
-            <span className="bg-accent text-paper flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-sans text-[11.5px] font-semibold">
-              <Icon name="plus" size={12} strokeWidth={2} />
-              Add member
-            </span>
+      <div className="overflow-x-auto">
+        <div className="border-line bg-paper min-w-[460px] overflow-hidden rounded-lg border">
+          <div className="border-line flex items-center justify-between gap-2 border-b px-4 py-2.5">
+            <span className="text-ink font-serif text-[16px]">Members</span>
+            <div className="flex flex-none items-center gap-2">
+              <FigureBadge n={2} />
+              <span className="border-hair text-ink flex items-center gap-1.5 rounded-md border bg-white px-2.5 py-1.5 font-sans text-[11.5px] font-semibold">
+                <Icon name="upload" size={12} strokeWidth={2} />
+                Import CSV
+              </span>
+              <FigureBadge n={1} />
+              <span className="bg-accent text-paper flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-sans text-[11.5px] font-semibold">
+                <Icon name="plus" size={12} strokeWidth={2} />
+                Add member
+              </span>
+            </div>
           </div>
+          <MockRow
+            initials="MH"
+            name="Margaret Holt"
+            email="margaret@example.com"
+            subscribed
+            admin
+            badges
+          />
+          <MockRow
+            initials="JP"
+            name="June Parata"
+            email="june@example.com"
+            subscribed={false}
+            admin={false}
+          />
         </div>
-        <MockRow
-          initials="MH"
-          name="Margaret Holt"
-          email="margaret@example.com"
-          subscribed
-          admin
-          badges
-        />
-        <MockRow
-          initials="JP"
-          name="June Parata"
-          email="june@example.com"
-          subscribed={false}
-          admin={false}
-        />
       </div>
     </FigureFrame>
   );

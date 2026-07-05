@@ -15,7 +15,7 @@ export function SignOutButton({
       <button
         type="submit"
         className={`text-muted hover:text-accent flex h-11 cursor-pointer items-center font-sans font-medium hover:underline ${
-          sidebar ? "w-full gap-2 text-[14px]" : "text-sm"
+          sidebar ? "w-full gap-2 text-[14px]" : "text-sm whitespace-nowrap"
         }`}
       >
         {sidebar && <Icon name="chevronLeft" size={16} />}
