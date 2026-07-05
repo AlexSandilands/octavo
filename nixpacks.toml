@@ -3,8 +3,9 @@
 # export works (src/lib/pdf.ts launches it). Two parts:
 #   1. aptPkgs — the shared system libraries Chromium needs to launch headless.
 #   2. a build step that downloads Playwright's pinned Chromium into the image.
-# The browser cache is shared between build and runtime (same container on
-# Railway), so the runtime `chromium.launch()` finds it with no executablePath.
+# The install must write into the image's own /root/.cache/ms-playwright — NOT a
+# build cache mount (`cacheDirectories`), which is build-only and wouldn't ship
+# the browser into the runtime image — so `chromium.launch()` finds it at runtime.
 #
 # See docs/infrastructure.md "PDF generation" for the memory note and the
 # split-to-a-separate-service fallback if the main service can't hold Chromium.
@@ -37,7 +38,6 @@ aptPkgs = [
 [phases.playwright]
 dependsOn = ["install"]
 cmds = ["npx playwright install chromium"]
-cacheDirectories = ["/root/.cache/ms-playwright"]
 
 [phases.build]
 dependsOn = ["playwright"]
