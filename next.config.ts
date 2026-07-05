@@ -28,6 +28,16 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },
+  // Serve the brand-aware runtime mark at the site root. Next injects
+  // `<link rel="icon" href="/icon?…">` from `src/app/icon.tsx`, which stops
+  // browsers from *auto*-requesting `/favicon.ico` — but bookmarks, link
+  // unfurlers and some first-paint paths still hit `/favicon.ico` directly.
+  // Rewriting it to `/icon` answers those with the same PNG mark (200, not
+  // 404) without shipping a separate static file. The middleware matcher
+  // excludes `favicon.ico`, so this stays off the nonce/CSP path. See #71/#56.
+  async rewrites() {
+    return [{ source: "/favicon.ico", destination: "/icon" }];
+  },
 };
 
 // withSentryConfig wires the build-time pieces of @sentry/nextjs: it registers
