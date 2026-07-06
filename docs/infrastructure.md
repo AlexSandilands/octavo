@@ -177,10 +177,10 @@ Set the usual `DATABASE_URL`, `AUTH_SECRET`, `R2_*` and `NEXT_PUBLIC_*` branding
 below — only the demo flag differs from a normal deploy.
 
 **The demo doubles as staging.** Point this project at the **`main`** branch (while the
-members' production site tracks `production` — see [Release workflow](#release-workflow)).
+members' production site deploys from a `v*` **tag** — see [Release workflow](#release-workflow)).
 Every merge to `main` then redeploys the demo, so it's both the public marketing showcase
 and a pre-prod smoke test: it renders real content and, because it has its own Postgres,
-applies each migration against the demo DB before you ever promote to production. Know its
+applies each migration against the demo DB before you ever tag a production release. Know its
 limits — `NEXT_PUBLIC_DEMO_MODE=1` ungates `/` and `/read/*` and leaves email dormant, so
 the demo does **not** exercise the member auth gate, the signed-out `/signin?next=`
 redirect, or the publish email blast. Validate those locally before promoting.
@@ -279,44 +279,57 @@ download cache keyed on the lockfile.
 Add branch ruleset** (or classic branch protection) for `main`: require status
 checks to pass before merging, and select the **`lint · types · build`** check.
 Optionally require a PR review. This makes CI a merge gate, not just a signal.
-Protect `production` too — see [Release workflow](#release-workflow).
+There is no `production` branch to protect — prod ships from tags, see
+[Release workflow](#release-workflow).
 
 ## Release workflow
 
-Two long-lived branches map to the two Railway projects, so a merge never ships
-straight to members:
+`main` is the single source of truth. There is **no `production` branch** — prod is
+deployed from a **git tag**, so you push to `main` freely and only release when you
+deliberately cut a tag.
 
 - **`main`** — the integration branch. PRs land here; it must stay green. The
-  [demo project](#demo-project-marketing-showcase) deploys `main`, so every merge
-  redeploys `demo.octavo.dev` — your pre-prod smoke test.
-- **`production`** — what the members' site runs. It only ever *fast-forwards*
-  from `main`; nothing is committed to it directly. The production Railway service
-  deploys this branch.
+  [demo project](#demo-project-marketing-showcase) auto-deploys `main`, so every
+  merge redeploys `demo.octavo.dev` — your pre-prod smoke test.
+- **Production** — the members' Railway service. It deploys **only** when a `v*`
+  tag is pushed, via the [`Deploy to production`](../.github/workflows/deploy-production.yml)
+  GitHub Action (Railway's own integration can't watch tags, so the Action is the
+  bridge). Nothing auto-deploys prod on a `main` push.
 
-**Shipping is a deliberate promotion:** open a PR from `main` → `production`, titled
-`release: promote to production YYYY-MM-DD`, and merge it (Merge commit only — never
-squash/rebase, which would diverge `production` from `main`). The `release:` prefix
-keeps prod PRs filterable (`is:pr in:title release:`); an optional `release` label
-works too. Merging triggers the production deploy, and the PR history becomes your
-dated release log (handy for "what changed?" when something breaks). A fast-forward `git push origin main:production` also works but loses that
-trail and needs bypass rights against the ruleset below. Because `production` only
-fast-forwards from an already-green `main`, its migrations and code are exactly what
-you smoke-tested on the demo first.
+**Why tags, not a `production` branch:** Railway deploys a branch's latest commit,
+and GitHub's merge UI has no fast-forward option — so a `main → production` promotion
+PR always created a merge/rebase commit that made `production` diverge from `main`,
+which then needed force-pushes and ruleset bypasses to clean up. Tags remove the
+branch entirely: a tag is an immutable pointer at an already-green `main` commit, and
+the release log is your list of tags / GitHub Releases.
 
-**Turn on "Wait for CI to pass"** (Railway → each service → Settings → Deploy) for
-**both** the demo and production services, so a red `lint · types · build` never
-deploys either. CI runs on every PR regardless of target branch, so the promotion
-PR into `production` is checked automatically.
+**Shipping a release** (both forms hit the same `on: push: tags` trigger):
 
-**Owner action — protect `production`:** add a ruleset for `production` aimed at
-*preventing accidents* (the code was already quality-gated at `main`), not
-re-reviewing it: block force pushes, block deletion, require a PR to update it, and
-require the **`lint · types · build`** check. **Do not** require a second reviewer —
-as a solo maintainer you'd be unable to approve your own promotion PR (or add
-yourself to the bypass list if you do). Keep the rule that `production` only ever
-fast-forwards from `main`: hotfixes still flow through `main` first (fix → PR →
-merge → promote), or cherry-pick if you must ship ahead of other `main` work, so the
-branches never diverge.
+- **GitHub UI** — Releases → *Draft a new release* → new tag `vYYYY.MM.DD` → *Publish*.
+  You get a release-notes page and a button, no local git.
+- **CLI** — `git tag v2026.07.06 && git push origin v2026.07.06`.
+
+The Action checks out the tagged commit and runs `railway up` against the production
+service; Railway builds it with `railway.json` / `nixpacks.toml`, so migrations
+(`preDeployCommand: npm run db:migrate`) and the healthcheck run exactly as on demo.
+Because you tag a commit that already shipped to the demo, prod code + migrations are
+what you smoke-tested first. **Rollback:** re-run the Action against an older tag
+(GitHub → Actions → *Deploy to production* → *Re-run*), or redeploy a previous
+deployment from the Railway dashboard. (Migrations are forward-only, so a rollback
+does not undo a schema change — roll forward with a fix tag if a migration is the
+problem.)
+
+**One-time setup:**
+
+1. **Railway token** — project → Settings → Tokens: create a token scoped to the
+   **production** environment. Add it to GitHub → repo Settings → Secrets → Actions as
+   `RAILWAY_TOKEN`.
+2. **Stop branch auto-deploy on prod** — Railway → production service → Settings →
+   Source: disconnect the branch (or leave *Auto deploy* off) so the Action is the
+   only thing that deploys production.
+3. **Keep "Wait for CI to pass"** on the **demo** service so a red
+   `lint · types · build` never redeploys `demo.octavo.dev`. (Prod doesn't need it —
+   you only tag commits that were already green on `main`.)
 
 ## Backups & restore
 

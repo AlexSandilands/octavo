@@ -1,0 +1,55 @@
+# Production release deploy.
+#
+# Railway's GitHub integration only watches a *branch*, never a tag, so this
+# workflow is the bridge that turns "push a version tag" into "deploy to the
+# production Railway service". Nothing else deploys production — the demo project
+# still auto-deploys `main`, but members' prod only moves when a `v*` tag lands.
+#
+# Trigger (both do the same thing — a tag push):
+#   - CLI:    git tag v2026.07.06 && git push origin v2026.07.06
+#   - GitHub: Releases → Draft a new release → tag v2026.07.06 → Publish
+#
+# The tagged commit is built by Railway using railway.json / nixpacks.toml, so
+# migrations (preDeployCommand: npm run db:migrate) and the healthcheck run
+# exactly as they do today.
+#
+# One-time setup (see docs/infrastructure.md#release-workflow):
+#   1. Railway → project → Settings → Tokens: create a token scoped to the
+#      *production* environment. Add it to GitHub as the RAILWAY_TOKEN secret.
+#   2. Railway → production service → Settings → Source: disconnect the branch
+#      (or leave auto-deploy off) so ONLY this workflow deploys production.
+
+name: Deploy to production
+
+on:
+  push:
+    tags:
+      - "v*"
+
+# Never let two releases deploy on top of each other; the newest tag wins.
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy tag to Railway production
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Check out the tagged commit
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm i -g @railway/cli
+
+      # `railway up` uploads this checked-out source and builds it on Railway,
+      # so the deploy is exactly the tagged commit regardless of what `main` has
+      # moved on to. `--ci` waits for the build/deploy and fails the job if it
+      # does. The token is scoped to the production environment, so --service
+      # picks the app within it.
+      - name: Deploy to production
+        run: railway up --service "$RAILWAY_SERVICE" --environment production --ci
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_SERVICE: "Octavo - Petanque NZ"
