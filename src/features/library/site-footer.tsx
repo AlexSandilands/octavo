@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { SignOutButton } from "@/components/sign-out-button";
 import { site } from "@/lib/site";
 
@@ -24,7 +25,17 @@ export function SiteFooter({
           {issueCount} {issueCount === 1 ? "issue" : "issues"}
           {estYear ? ` · Est. ${estYear}` : ""}
         </span>
-        {signedIn && <SignOutButton />}
+        {signedIn && (
+          <>
+            <Link
+              href="/preferences"
+              className="text-muted hover:text-accent flex h-11 items-center font-sans text-sm font-medium whitespace-nowrap hover:underline"
+            >
+              Email preferences
+            </Link>
+            <SignOutButton />
+          </>
+        )}
       </div>
     </footer>
   );
