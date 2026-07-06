@@ -14,6 +14,10 @@ export type PreparedEmail = {
   subject: string;
   html: string;
   text: string;
+  // Extra per-message headers passed through to Resend's `headers` field.
+  // The new-issue blast uses this for RFC 8058 one-click unsubscribe
+  // (List-Unsubscribe / List-Unsubscribe-Post); omitted when there are none.
+  headers?: Record<string, string>;
 };
 
 export type BlastResult = { sent: number; failed: number };
