@@ -80,9 +80,24 @@ function prepare(
   });
   const readUrl = `${origin}/api/auth/callback/resend?${params}`;
 
-  const unsubscribeUrl = `${origin}/unsubscribe?token=${signUnsubscribeToken(
-    recipient.id,
-  )}`;
+  // One signed token per recipient, reused for both the in-body link (the
+  // interactive /unsubscribe confirm page) and the RFC 8058 one-click header
+  // URL below — same authorisation, two surfaces.
+  const unsubscribeToken = signUnsubscribeToken(recipient.id);
+  const unsubscribeUrl = `${origin}/unsubscribe?token=${unsubscribeToken}`;
+
+  // RFC 8058 one-click unsubscribe. Gmail/Yahoo require these on bulk mail;
+  // without them the blast is more likely to be spam-filtered. The angle
+  // brackets around the URL are mandatory. List-Unsubscribe-Post signals the
+  // provider may POST `List-Unsubscribe=One-Click` to that URL to unsubscribe
+  // the member without a round trip through the confirm page. The endpoint is
+  // POST-only (see src/app/api/unsubscribe/route.ts); the query-string token is
+  // the authorisation, so the POST body is not consulted.
+  const oneClickUrl = `${origin}/api/unsubscribe?token=${unsubscribeToken}`;
+  const listUnsubscribeHeaders: Record<string, string> = {
+    "List-Unsubscribe": `<${oneClickUrl}>`,
+    "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+  };
 
   return {
     tokenRow: {
@@ -105,6 +120,7 @@ function prepare(
         readUrl,
         unsubscribeUrl,
       }),
+      headers: listUnsubscribeHeaders,
     },
     readUrl,
     unsubscribeUrl,
