@@ -28,10 +28,9 @@ Commit/PR titles follow conventional-commit style (`feat:`, `fix:`, `docs:`, `re
 a convention, not strictly enforced.
 
 **Releasing to prod:** `main` is integration (auto-deploys the demo/staging site); the
-members' site tracks the long-lived `production` branch, which only fast-forwards from
-`main`. Ship by opening a PR `main` → `production` titled `release: promote to production
-YYYY-MM-DD` (the `release:` prefix keeps prod PRs filterable). See
-`docs/infrastructure.md#release-workflow`.
+members' site has **no branch of its own** — it deploys from a `v*` git **tag**. Ship by
+publishing a GitHub Release (or `git tag vYYYY.MM.DD && git push origin <tag>`), which
+fires the `Deploy to production` Action. See `docs/infrastructure.md#release-workflow`.
 
 ## Commands
 
