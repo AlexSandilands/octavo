@@ -309,11 +309,15 @@ the release log is your list of tags / GitHub Releases.
   You get a release-notes page and a button, no local git.
 - **CLI** — `git tag v2026.07.06 && git push origin v2026.07.06`.
 
-The Action checks out the tagged commit and runs `railway up` against the production
-service; Railway builds it with `railway.json` / `nixpacks.toml`, so migrations
-(`preDeployCommand: npm run db:migrate`) and the healthcheck run exactly as on demo.
-Because you tag a commit that already shipped to the demo, prod code + migrations are
-what you smoke-tested first. **Rollback:** re-run the Action against an older tag
+The Action first refuses any tag whose commit isn't on `main` (only `main` passed the
+`lint · types · build` PR check), then checks out the tagged commit and runs
+`railway up` against the production service; Railway builds it with `railway.json` /
+`nixpacks.toml`, so migrations (`preDeployCommand: npm run db:migrate`) and the
+healthcheck run exactly as on demo. It does **not** verify the demo is green — that's
+a deliberate manual check before you tag (glance at `demo.octavo.dev`), which keeps
+releases simple and rollbacks unblocked. Because you tag a commit that already shipped
+to the demo, prod code + migrations are what you smoke-tested first. **Rollback:**
+re-run the Action against an older tag
 (GitHub → Actions → *Deploy to production* → *Re-run*), or redeploy a previous
 deployment from the Railway dashboard. (Migrations are forward-only, so a rollback
 does not undo a schema change — roll forward with a fix tag if a migration is the

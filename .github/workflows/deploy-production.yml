@@ -13,6 +13,12 @@
 # migrations (preDeployCommand: npm run db:migrate) and the healthcheck run
 # exactly as they do today.
 #
+# The one gate before deploy: the tag must sit on `main`. Only `main` commits
+# went through the `lint · types · build` PR check, so a v* tag on any other
+# commit is refused before it can reach members. Confirming the demo is green
+# is a manual pre-tag check — deliberately not enforced here, to keep releases
+# simple and rollbacks (tag an older commit) unblocked.
+#
 # One-time setup (see docs/infrastructure.md#release-workflow):
 #   1. Railway → project → Settings → Tokens: create a token scoped to the
 #      *production* environment. Add it to GitHub as the RAILWAY_TOKEN secret.
@@ -31,6 +37,11 @@ concurrency:
   group: production-deploy
   cancel-in-progress: false
 
+env:
+  # Pin the CLI so an upstream release can't silently break prod deploys.
+  # Bump deliberately.
+  RAILWAY_CLI_VERSION: "5.23.3"
+
 jobs:
   deploy:
     name: Deploy tag to Railway production
@@ -39,15 +50,28 @@ jobs:
     steps:
       - name: Check out the tagged commit
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # need history to prove the tag sits on main
+
+      # A v* tag can point at any commit. Only commits that landed on main went
+      # through the `lint · types · build` PR gate, so refuse anything else
+      # before it can touch prod.
+      - name: Refuse a tag that isn't on main
+        run: |
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" FETCH_HEAD; then
+            echo "::error::tag $GITHUB_REF_NAME ($GITHUB_SHA) is not on main — refusing to deploy an ungated commit"
+            exit 1
+          fi
 
       - name: Install Railway CLI
-        run: npm i -g @railway/cli
+        run: npm i -g @railway/cli@"$RAILWAY_CLI_VERSION"
 
       # `railway up` uploads this checked-out source and builds it on Railway,
       # so the deploy is exactly the tagged commit regardless of what `main` has
-      # moved on to. `--ci` waits for the build/deploy and fails the job if it
-      # does. The token is scoped to the production environment, so --service
-      # picks the app within it.
+      # moved on to. `--ci` streams build logs and returns when the build
+      # completes. The token is scoped to the production environment, so
+      # --service picks the app within it.
       - name: Deploy to production
         run: railway up --service "$RAILWAY_SERVICE" --environment production --ci
         env:
