@@ -3,6 +3,7 @@ import {
   H,
   Img,
   mkIssue,
+  Mont,
   page,
   type SeedImages,
   Spon,
@@ -12,7 +13,8 @@ import {
 // No. 2 — Aperture. An image-led camera-club quarterly on the modern theme:
 // full-width pictures with working captions, short standfirsts, XL pull-text,
 // and a portrait print run at half width. Shows the reader carrying photography
-// rather than prose.
+// rather than prose. It also carries the montage example (content v4, issue
+// #95) — a camera club is where a cross-fading sequence belongs.
 export const issue02 = (img: SeedImages) =>
   mkIssue(2, "Aperture — The Winter Salon", "modern", "2025-07-19", [
     cover([
@@ -48,6 +50,36 @@ export const issue02 = (img: SeedImages) =>
       }),
       T(
         "Vance shoots the same four streets every evening in the week the clocks change, when the lamps come on into a sky that has not quite given up. What looks like patience is closer to stubbornness, and the selectors mean that as the highest compliment available to a photographer.",
+      ),
+    ]),
+
+    // The montage page (content v4): three frames on a 5-second cross-fade,
+    // each with its own alt text. In the readers it cycles and takes prev/next
+    // from the member; in the PDF it prints the first frame only.
+    page([
+      H("Three Ways with One Roll", "Portfolio", "section"),
+      Mont(
+        [
+          {
+            image: img.contact,
+            alt: "A contact sheet of charcoal and slate triangles, one frame warmed amber.",
+          },
+          {
+            image: img.latent,
+            alt: "Concentric contour rings closing on a pale centre, like an image surfacing in the developer.",
+          },
+          {
+            image: img.fixer,
+            alt: "Overlapping amber arcs on slate, the sequence settled and fixed.",
+          },
+        ],
+        {
+          caption:
+            "“Development”, K. Iversen — the same negative at three stages, shown in sequence.",
+        },
+      ),
+      T(
+        "Iversen printed one negative three times and hung the results side by side, which is the sort of thing that starts an argument in a supper room. The point, she says, is that a photograph is not finished when the shutter closes; it is finished when somebody decides to stop working on it, and that decision is the picture.",
       ),
     ]),
 

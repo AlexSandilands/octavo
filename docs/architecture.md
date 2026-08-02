@@ -34,7 +34,7 @@ src/
     api/admin/images/  image upload route handler (multipart → sharp → R2)
   components/          shared presentational UI (ui.tsx, icons.tsx, admin-shell, ...)
   features/            feature modules with their own UI/logic
-    blocks/            BlockView — themed read-only block renderer;
+    blocks/            BlockView — themed block renderer (+ the montage widget);
                        page-frame + page-footer — the shared page chrome
     editor/            the page-based editor (client) + per-block edit controls
     reader/            desktop-reader, mobile-reader (client)
@@ -67,9 +67,14 @@ scripts/               dev-only helpers (not part of the app), e.g. the headless
 
 An **issue** owns one JSON document (`content`) shaped as **pages → ordered blocks**. This is the
 **source of truth**; the reader and editor both render from it, and the PDF (later) derives from it.
-Block types: `heading | text | image | sponsor`. Defined once in
+Block types: `heading | text | image | montage | sponsor`. Defined once in
 [`src/lib/blocks.ts`](../src/lib/blocks.ts) as zod schemas + inferred types, imported everywhere
 (editor, reader, DB column type). See [database.md](database.md) for how it's stored.
+
+`BlockView` renders every one of them, and takes an **`interactive`** flag that only the two readers
+set. It marks the render paths where a block may animate and be driven by the member; the print/PDF
+document, the editor canvas and the library thumbnail leave it off and get one deterministic frame
+with no client JS. Today the only block that reads it is `montage` (player vs. first slide).
 
 **Pagination happens once, in the editor.** Content never reflows at read time — a page is a fixed
 canvas, and what the author placed is what every reader and the PDF get. So when a page overruns,
@@ -225,18 +230,18 @@ Server env is validated in [`src/lib/env.ts`](../src/lib/env.ts); branding in
 [`src/lib/site.ts`](../src/lib/site.ts). Local values live in `.env.local` (git-ignored); production
 values are set in Railway. `.env.example` lists every key.
 
-| Var                                                    | Required now  | Purpose                                                                                                              |
-| ------------------------------------------------------ | ------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`                                         | yes           | Postgres connection                                                                                                  |
-| `NEXT_PUBLIC_MAGAZINE_NAME` / `_ORG_NAME` / `_TAGLINE` | no (defaults) | Branding text, build-time inlined                                                                                    |
-| `NEXT_PUBLIC_BRAND`                                    | no (default)  | Brand skin / palette (`heritage` default); build-time inlined, unknown value fails at boot (`brands.css`)            |
-| `NEXT_PUBLIC_ISSUE_THEMES`                             | no (all)      | Comma list of layout themes the editor/reader offer (`classic,modern`); build-time inlined, validated                |
-| `NEXT_PUBLIC_DEMO_MODE`                                | no (off)      | `1` ungates the library + reader for a public showcase deploy (see Auth); build-time inlined, never on the real site |
-| `AUTH_SECRET`                                          | dev: yes      | Auth.js token/cookie signing + unsubscribe-token key (required in prod by env.ts)                                    |
+| Var                                                    | Required now  | Purpose                                                                                                                                                                                                 |
+| ------------------------------------------------------ | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                                         | yes           | Postgres connection                                                                                                                                                                                     |
+| `NEXT_PUBLIC_MAGAZINE_NAME` / `_ORG_NAME` / `_TAGLINE` | no (defaults) | Branding text, build-time inlined                                                                                                                                                                       |
+| `NEXT_PUBLIC_BRAND`                                    | no (default)  | Brand skin / palette (`heritage` default); build-time inlined, unknown value fails at boot (`brands.css`)                                                                                               |
+| `NEXT_PUBLIC_ISSUE_THEMES`                             | no (all)      | Comma list of layout themes the editor/reader offer (`classic,modern`); build-time inlined, validated                                                                                                   |
+| `NEXT_PUBLIC_DEMO_MODE`                                | no (off)      | `1` ungates the library + reader for a public showcase deploy (see Auth); build-time inlined, never on the real site                                                                                    |
+| `AUTH_SECRET`                                          | dev: yes      | Auth.js token/cookie signing + unsubscribe-token key (required in prod by env.ts)                                                                                                                       |
 | `AUTH_URL`                                             | prod: yes     | Public origin Auth.js stamps into the **sign-in** magic link (e.g. `https://demo.octavo.dev`); unset, it derives from the request Host and can emit the container's internal address (`localhost:PORT`) |
-| `APP_URL`                                              | no (fallback) | Canonical origin for the **publish-blast** and **unsubscribe** links only — _not_ the sign-in link (that's `AUTH_URL`); falls back to the request Host when unset |
-| `EMAIL_API_KEY`, `EMAIL_FROM`                          | no in dev     | Resend; unset in dev = links only in console (required in prod)                                                      |
-| `R2_*`                                                 | no in dev     | Object storage (required in prod)                                                                                    |
+| `APP_URL`                                              | no (fallback) | Canonical origin for the **publish-blast** and **unsubscribe** links only — _not_ the sign-in link (that's `AUTH_URL`); falls back to the request Host when unset                                       |
+| `EMAIL_API_KEY`, `EMAIL_FROM`                          | no in dev     | Resend; unset in dev = links only in console (required in prod)                                                                                                                                         |
+| `R2_*`                                                 | no in dev     | Object storage (required in prod)                                                                                                                                                                       |
 
 ## What's real vs stubbed
 

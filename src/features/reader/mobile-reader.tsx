@@ -12,6 +12,8 @@ import { richTextToPlain } from "@/lib/rich-text-doc";
 import { BlockImage } from "@/features/blocks/block-view";
 import { FOOTER_ROW, FooterWordmark } from "@/features/blocks/page-footer";
 import { RichText } from "@/features/blocks/rich-text";
+import { resolveMontageSlides } from "@/features/blocks/montage";
+import { MontagePlayer } from "@/features/blocks/montage-player";
 import { useIssuePdf } from "./use-issue-pdf";
 
 // Mobile reader: the whole issue as one flowing column (also the accessibility
@@ -330,6 +332,51 @@ function MobileBlock({
             <div className="photo-fill border-placeholder-line flex h-[180px] items-center justify-center border">
               <span className="bg-page text-faint px-2 py-1 font-mono text-[11px]">
                 {block.caption || "PHOTO"}
+              </span>
+            </div>
+          )}
+          {block.caption && (
+            <figcaption
+              className="text-faint mt-2 font-sans"
+              style={{ fontSize: Math.max(12, m - 5), lineHeight: 1.4 }}
+            >
+              {block.caption}
+            </figcaption>
+          )}
+        </figure>
+      );
+    }
+    case "montage": {
+      // Content v4. Sized and aligned exactly like the image block above (the
+      // phone doesn't wrap text around floats), with the same cross-fade widget
+      // the flipbook uses. Its timer only runs while the block is scrolled into
+      // view — the whole issue is one mounted column here.
+      const slides = resolveMontageSlides(block.items, images);
+      const width = block.width ?? 100;
+      const align = block.align ?? "full";
+      const sized = width < 100;
+      const alignClass = sized
+        ? align === "left"
+          ? "mr-auto"
+          : align === "right"
+            ? "ml-auto"
+            : "mx-auto"
+        : "";
+      return (
+        <figure
+          className={`my-3 ${alignClass}`}
+          style={sized ? { width: `${width}%` } : undefined}
+        >
+          {slides.length > 0 ? (
+            <MontagePlayer
+              slides={slides}
+              intervalSeconds={block.interval}
+              label={block.caption}
+            />
+          ) : (
+            <div className="photo-fill border-placeholder-line flex h-[180px] items-center justify-center border">
+              <span className="bg-page text-faint px-2 py-1 font-mono text-[11px]">
+                {block.caption || "MONTAGE"}
               </span>
             </div>
           )}

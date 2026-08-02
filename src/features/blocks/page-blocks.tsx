@@ -14,11 +14,15 @@ export function PageBlocks({
   theme,
   images,
   sponsors,
+  interactive = false,
 }: {
   page: Page;
   theme: LayoutTheme;
   images: ImageMap;
   sponsors: SponsorMap;
+  /** The reader sets this so blocks that animate (montage) come alive; the
+   *  print/PDF document leaves it off and gets one deterministic frame. */
+  interactive?: boolean;
 }) {
   return (
     <div
@@ -43,6 +47,7 @@ export function PageBlocks({
             images={images}
             sponsors={sponsors}
             variant={page.cover ? "cover" : undefined}
+            interactive={interactive}
           />
         </div>
       ))}

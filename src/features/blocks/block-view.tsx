@@ -7,6 +7,8 @@ import { richTextToPlain } from "@/lib/rich-text-doc";
 import type { LayoutTheme } from "./themes/registry";
 import { RichText } from "./rich-text";
 import { Editable } from "./editable";
+import { MontageStill, resolveMontageSlides } from "./montage";
+import { MontagePlayer } from "./montage-player";
 
 // A resolved image, scaled to its container width at its natural aspect ratio.
 // next/image needs intrinsic dimensions; older records may lack them, so fall
@@ -76,6 +78,7 @@ export function BlockView({
   sponsors,
   variant,
   priority = false,
+  interactive = false,
 }: {
   block: Block;
   theme: LayoutTheme;
@@ -88,6 +91,13 @@ export function BlockView({
   variant?: "cover";
   /** Eager-load this block's image (LCP). Only set for above-the-fold heroes. */
   priority?: boolean;
+  /**
+   * Set by the readers, where a block may animate and be driven by the member.
+   * Left off by the print/PDF document, the editor canvas and the library
+   * thumbnail, which must render one deterministic frame with no client JS —
+   * currently the difference between a playing montage and its first slide.
+   */
+  interactive?: boolean;
 }) {
   // A text field: editable in place when `edit` is set, otherwise the raw
   // text. The caller supplies the patch shape, so writes stay typed per block.
@@ -227,6 +237,41 @@ export function BlockView({
       return (
         <figure>
           {photo}
+          {showCaption &&
+            theme.image.caption(
+              f((v) => ({ caption: v }), block.caption, "Caption (optional)"),
+            )}
+        </figure>
+      );
+    }
+
+    case "montage": {
+      // Content v4. Same figure and caption treatment as an image block — a
+      // montage is a photo slot that happens to hold several photos — so it
+      // picks up the theme's frame for free. On the read path it cross-fades
+      // and takes prev/next from the member; everywhere else (print/PDF, the
+      // editor canvas, the library thumbnail) it renders its first slide only.
+      const slides = resolveMontageSlides(block.items, images);
+      const picture =
+        slides.length === 0 ? (
+          <div className={theme.image.placeholder.box}>
+            <span className={theme.image.placeholder.label}>
+              {block.caption || "MONTAGE"}
+            </span>
+          </div>
+        ) : interactive ? (
+          <MontagePlayer
+            slides={slides}
+            intervalSeconds={block.interval}
+            label={block.caption}
+          />
+        ) : (
+          <MontageStill slides={slides} priority={priority} />
+        );
+      const showCaption = edit || block.caption;
+      return (
+        <figure>
+          {picture}
           {showCaption &&
             theme.image.caption(
               f((v) => ({ caption: v }), block.caption, "Caption (optional)"),
