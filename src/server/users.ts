@@ -1,5 +1,5 @@
 import "server-only";
-import { asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, or } from "drizzle-orm";
 import { db } from "@/db";
 import { sessions, users } from "@/db/schema";
 
@@ -104,7 +104,11 @@ export async function updateUser(
 }
 
 export type ImportRow = { email: string; name: string | null };
-export type ImportResult = { added: number; alreadyMembers: number };
+export type ImportResult = {
+  added: number;
+  alreadyMembers: number;
+  updated: number;
+};
 
 // Ingest a validated CSV batch in one transaction. Emails already on the list
 // are skipped (not errored) so a single existing member can't sink the import;
@@ -112,6 +116,11 @@ export type ImportResult = { added: number; alreadyMembers: number };
 // INSERT would trip the conflict arbiter. `alreadyMembers` counts the distinct
 // emails that were already present. In-file duplicates and malformed rows are
 // filtered and counted by the caller before they reach here.
+//
+// Re-importing is also how an admin fills in names they didn't have first time
+// round: an existing member with no name takes the one the file supplies
+// (counted as `updated`). A name already on the record is never overwritten —
+// the admin may have corrected it here, and a stale export shouldn't undo that.
 export async function createUsers(rows: ImportRow[]): Promise<ImportResult> {
   const seen = new Set<string>();
   const unique: ImportRow[] = [];
@@ -120,19 +129,51 @@ export async function createUsers(rows: ImportRow[]): Promise<ImportResult> {
     seen.add(row.email);
     unique.push(row);
   }
-  if (unique.length === 0) return { added: 0, alreadyMembers: 0 };
+  if (unique.length === 0) return { added: 0, alreadyMembers: 0, updated: 0 };
 
-  const inserted = await db.transaction((tx) =>
-    tx
+  return db.transaction(async (tx) => {
+    const inserted = await tx
       .insert(users)
       .values(unique.map((r) => ({ email: r.email, name: r.name })))
       .onConflictDoNothing({ target: users.email })
-      .returning({ id: users.id }),
-  );
-  return {
-    added: inserted.length,
-    alreadyMembers: unique.length - inserted.length,
-  };
+      .returning({ email: users.email });
+
+    const insertedEmails = new Set(inserted.map((r) => r.email));
+    const fills = new Map(
+      unique
+        .filter((r) => r.name !== null && !insertedEmails.has(r.email))
+        .map((r) => [r.email, r.name] as const),
+    );
+
+    // One lookup for the members that both exist and are missing a name, then
+    // a write per row that actually needs one — in practice a handful, not the
+    // whole batch.
+    let updated = 0;
+    if (fills.size > 0) {
+      const nameless = await tx
+        .select({ id: users.id, email: users.email })
+        .from(users)
+        .where(
+          and(
+            inArray(users.email, [...fills.keys()]),
+            or(isNull(users.name), eq(users.name, "")),
+          ),
+        );
+      for (const member of nameless) {
+        await tx
+          .update(users)
+          .set({ name: fills.get(member.email) ?? null })
+          .where(eq(users.id, member.id));
+        updated++;
+      }
+    }
+
+    return {
+      added: inserted.length,
+      alreadyMembers: unique.length - inserted.length,
+      updated,
+    };
+  });
 }
 
 export async function setSubscribed(

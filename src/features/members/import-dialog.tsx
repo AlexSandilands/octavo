@@ -4,9 +4,15 @@ import { useRef, useState, useTransition } from "react";
 import { Icon } from "@/components/icons";
 import { importMembersAction } from "@/app/admin/members/actions";
 import { parseMembersCsv, type ParseResult } from "@/lib/parse-members-csv";
+import { ImportPreview } from "./import-preview";
 
 type Preview = { fileName: string; parsed: ParseResult };
-type Summary = { added: number; alreadyMembers: number; invalid: number };
+type Summary = {
+  added: number;
+  alreadyMembers: number;
+  updated: number;
+  invalid: number;
+};
 
 // Import a members CSV. Parsing and previewing happen entirely in the browser
 // (no half-parsed file reaches the server); the admin sees exactly what will be
@@ -42,6 +48,7 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
       setSummary({
         added: res.added,
         alreadyMembers: res.alreadyMembers,
+        updated: res.updated,
         invalid: preview.parsed.invalid,
       });
     });
@@ -51,7 +58,7 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(32,32,28,0.4)] p-4">
-      <div className="bg-card w-[480px] max-w-full overflow-hidden rounded-[10px] shadow-[0_24px_60px_rgba(0,0,0,0.3)]">
+      <div className="bg-card max-h-[90vh] w-[480px] max-w-full overflow-y-auto rounded-[10px] shadow-[0_24px_60px_rgba(0,0,0,0.3)]">
         <div className="px-8 pt-7">
           <div className="text-accent font-sans text-[10px] font-semibold tracking-[0.2em] uppercase">
             Members
@@ -64,16 +71,20 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
             <p className="text-muted mt-2.5 font-sans text-[15px] leading-relaxed">
               Done — <strong className="text-ink">{summary.added} added</strong>
               , {summary.alreadyMembers} already{" "}
-              {summary.alreadyMembers === 1 ? "a member" : "members"},{" "}
-              {summary.invalid} invalid {summary.invalid === 1 ? "row" : "rows"}{" "}
-              skipped.
+              {summary.alreadyMembers === 1 ? "a member" : "members"}
+              {summary.updated > 0 && (
+                <> ({summary.updated} of them given the name from this file)</>
+              )}
+              , {summary.invalid} invalid{" "}
+              {summary.invalid === 1 ? "row" : "rows"} skipped.
             </p>
           ) : (
             <>
               <p className="text-muted mt-2.5 font-sans text-[15px] leading-relaxed">
                 A file with an <strong>email</strong> column (and an optional{" "}
-                <strong>name</strong>). We’ll skip anything that isn’t a valid
-                address, and anyone already on the list.
+                <strong>name</strong>, or <strong>first</strong> and{" "}
+                <strong>last name</strong> columns). We’ll skip anything that
+                isn’t a valid address, and anyone already on the list.
               </p>
 
               <button
@@ -92,32 +103,11 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
                 onChange={(e) => void onFile(e.target.files?.[0])}
               />
 
-              {parsed && (
-                <div className="border-line-soft mt-4 rounded-lg border bg-white px-4 py-3 font-sans text-[14px]">
-                  <div className="text-ink font-semibold">
-                    {preview?.fileName}
-                  </div>
-                  <ul className="text-muted mt-1.5 space-y-0.5">
-                    <li>
-                      {parsed.members.length} valid{" "}
-                      {parsed.members.length === 1 ? "member" : "members"} to
-                      import
-                    </li>
-                    {parsed.duplicates > 0 && (
-                      <li>
-                        {parsed.duplicates} duplicate{" "}
-                        {parsed.duplicates === 1 ? "row" : "rows"} in the file
-                        skipped
-                      </li>
-                    )}
-                    {parsed.invalid > 0 && (
-                      <li>
-                        {parsed.invalid} invalid{" "}
-                        {parsed.invalid === 1 ? "row" : "rows"} skipped
-                      </li>
-                    )}
-                  </ul>
-                </div>
+              {preview && (
+                <ImportPreview
+                  fileName={preview.fileName}
+                  parsed={preview.parsed}
+                />
               )}
             </>
           )}

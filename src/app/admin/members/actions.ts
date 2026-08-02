@@ -144,7 +144,7 @@ export async function setAdminAction(
 }
 
 export type ImportMembersResult =
-  | { ok: true; added: number; alreadyMembers: number }
+  | { ok: true; added: number; alreadyMembers: number; updated: number }
   | { ok: false; reason: "invalid" };
 
 export async function importMembersAction(
@@ -163,5 +163,6 @@ export async function importMembersAction(
     ok: true,
     added: result.added,
     alreadyMembers: result.alreadyMembers,
+    updated: result.updated,
   };
 }

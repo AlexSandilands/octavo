@@ -18,10 +18,22 @@ export function SectionMembers() {
         </Step>
         <Step n={2} title="Add many at once">
           The CSV import takes a spreadsheet saved as CSV with an{" "}
-          <strong>email</strong> column and an optional <strong>name</strong>{" "}
-          column. You see exactly what will be added before you confirm; rows
-          that aren&rsquo;t valid addresses and people already on the list are
-          skipped, never duplicated.
+          <strong>email</strong> column and an optional name. Export it however
+          your address book likes: the email column can be headed <em>Email</em>
+          , <em>E-mail</em>, <em>Mail</em> or <em>Email Address</em>; the name
+          either one column (<em>Name</em>, <em>Full Name</em>,{" "}
+          <em>Display Name</em>, <em>Contact Name</em>, <em>Member</em>) or two
+          (<em>First Name</em> with <em>Last Name</em>, <em>Surname</em>,{" "}
+          <em>Given Name</em> or <em>Family Name</em>), which we join into one.
+          Capitals, spaces, underscores and hyphens in those headings
+          don&rsquo;t matter, and files separated by commas, semicolons or tabs
+          all work. Before you confirm you see the first few rows exactly as we
+          read them &mdash; so if the names came through blank, you&rsquo;ll
+          know before importing, not after. Rows that aren&rsquo;t valid
+          addresses and people already on the list are skipped, never duplicated
+          &mdash; though re-importing does fill in a name for anyone on the list
+          who hasn&rsquo;t got one yet (it never overwrites a name you already
+          have).
         </Step>
         <Step n={3} title="Subscribed — the announcements switch">
           Click the pill to flip it. It controls one thing: whether that member
