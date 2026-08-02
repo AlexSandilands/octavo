@@ -16,6 +16,7 @@ const HREF_MAX = 2_000;
 const ID_MAX = 64; // uuids (36 chars) with headroom
 const MAX_PAGES = 200;
 const MAX_BLOCKS_PER_PAGE = 100;
+export const MAX_MONTAGE_IMAGES = 20; // a slideshow, not a photo dump
 
 export const headingBlockSchema = z.object({
   id: z.string().max(ID_MAX),
@@ -60,6 +61,54 @@ export const imageBlockSchema = z.object({
   width: z.number().min(20).max(100).default(100),
 });
 
+// Montage timing. The stored value is whole seconds; 0 is the sentinel for
+// "manual only" (no autoplay). MONTAGE_INTERVALS is what the editor offers —
+// the schema accepts the whole 0…MONTAGE_INTERVAL_MAX range so changing the
+// preset list later never invalidates stored content.
+export const MONTAGE_MANUAL = 0;
+export const MONTAGE_DEFAULT_INTERVAL = 5;
+export const MONTAGE_INTERVAL_MAX = 30;
+
+export const MONTAGE_INTERVALS: { value: number; label: string }[] = [
+  { value: MONTAGE_MANUAL, label: "Manual only" },
+  { value: 3, label: "3 seconds" },
+  { value: 5, label: "5 seconds" },
+  { value: 7, label: "7 seconds" },
+  { value: 10, label: "10 seconds" },
+];
+
+// One slide of a montage: an uploaded image plus its own screen-reader
+// description. Alt is per image (each slide is a different photo), so it lives
+// here rather than on the block.
+export const montageItemSchema = z.object({
+  imageId: z.string().max(ID_MAX),
+  alt: z.string().max(SHORT_TEXT_MAX).default(""),
+});
+
+export const montageBlockSchema = z.object({
+  id: z.string().max(ID_MAX),
+  type: z.literal("montage"),
+  // Ordered slides. Bounded like every other array here so a bad save can't
+  // persist an unbounded document; the editor caps the picker at the same
+  // number. An empty montage renders the photo placeholder, exactly as an image
+  // block with no imageId does.
+  items: z.array(montageItemSchema).max(MAX_MONTAGE_IMAGES).default([]),
+  caption: z.string().max(SHORT_TEXT_MAX).default(""),
+  // Seconds between cross-fades; `MONTAGE_MANUAL` (0) means "manual only" — no
+  // autoplay, the arrows are the only way to advance. Bounded rather than an
+  // enum so a future preset doesn't invalidate stored content.
+  interval: z
+    .number()
+    .int()
+    .min(0)
+    .max(MONTAGE_INTERVAL_MAX)
+    .default(MONTAGE_DEFAULT_INTERVAL),
+  // Placement/sizing are identical to the image block (same flow rules in
+  // blockFlowStyle), so a montage drops into a layout wherever a photo would.
+  align: z.enum(["full", "left", "right"]).default("full"),
+  width: z.number().min(20).max(100).default(100),
+});
+
 export const sponsorBlockSchema = z.object({
   id: z.string().max(ID_MAX),
   type: z.literal("sponsor"),
@@ -81,6 +130,7 @@ export const blockSchema = z.discriminatedUnion("type", [
   headingBlockSchema,
   textBlockSchema,
   imageBlockSchema,
+  montageBlockSchema,
   sponsorBlockSchema,
 ]);
 
@@ -108,7 +158,14 @@ export const pageSchema = z.object({
 // the same React path via `stringToDoc`. An optional one-off migration converts
 // stored strings to docs in place (npm run db:migrate-content — keyed on the
 // stored `version`; see docs/database.md "Changing the content model").
-export const CONTENT_VERSION = 3;
+//
+// v4 (issue #95): a new `montage` block type — an ordered list of images that
+// cross-fade on a timer in the readers, with the image block's placement/sizing
+// options. Purely additive: it adds a member to the block union, so every
+// version-1…3 document (which has no montage blocks) parses and renders
+// unchanged, and no stored row is rewritten. New documents and any resave stamp
+// version 4. The print/PDF path renders only the first image, deterministically.
+export const CONTENT_VERSION = 4;
 
 export const issueContentSchema = z.object({
   version: z.number().int().min(1).default(CONTENT_VERSION),
@@ -133,7 +190,15 @@ export function mergeBlock(block: Block, patch: BlockPatch): Block {
   return { ...block, ...patch };
 }
 
-export const BLOCK_TYPES: BlockType[] = ["heading", "text", "image", "sponsor"];
+export const BLOCK_TYPES: BlockType[] = [
+  "heading",
+  "text",
+  "image",
+  "montage",
+  "sponsor",
+];
+
+export type MontageItem = z.infer<typeof montageItemSchema>;
 
 export type TextSize = "s" | "m" | "l" | "xl";
 
@@ -181,6 +246,16 @@ export function makeBlock(type: BlockType): Block {
       };
     case "image":
       return { id, type, caption: "", align: "full", width: 100 };
+    case "montage":
+      return {
+        id,
+        type,
+        items: [],
+        caption: "",
+        interval: MONTAGE_DEFAULT_INTERVAL,
+        align: "full",
+        width: 100,
+      };
     case "sponsor":
       return { id, type, name: "Sponsor name" };
   }

@@ -66,8 +66,10 @@ const themeSchema = z
 // `revision` busting on content changes. Bump it in the same commit as any
 // print-rendering fix (print document, PageBlocks/BlockView output, page.pdf
 // options) — otherwise issues whose content didn't change keep serving PDFs
-// with the old rendering bug. v2: trailing-blank-page fix.
-const RENDER_VERSION = 2;
+// with the old rendering bug. v2: trailing-blank-page fix. v3: montage blocks
+// (issue #95) — a new block type the print document renders, so every cached
+// PDF must be rebuilt from the current renderer.
+const RENDER_VERSION = 3;
 
 // A download filename the browser and the audience can read. Strip anything
 // path- or header-unsafe; keep an ASCII fallback plus a UTF-8 form for clients

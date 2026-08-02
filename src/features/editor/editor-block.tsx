@@ -5,13 +5,14 @@ import { CSS } from "@dnd-kit/utilities";
 import { Icon, type IconName } from "@/components/icons";
 import { BlockView } from "@/features/blocks/block-view";
 import type { LayoutTheme } from "@/features/blocks/themes/registry";
-import { blockFlowStyle } from "@/features/blocks/layout";
+import { blockFlowStyle, isFloatedPicture } from "@/features/blocks/layout";
 import type { Block, BlockPatch } from "@/lib/blocks";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { SponsorListItem, SponsorMap } from "@/lib/sponsors";
 import { ImageBlockControl } from "./image-upload";
 import { ImageLayoutControls } from "./image-layout";
 import { HeadingLevelControl } from "./heading-level-control";
+import { MontageBlockControl } from "./montage-control";
 import { SponsorPicker } from "./sponsor-picker";
 import { RichTextEditor } from "./rich-text-editor";
 
@@ -58,13 +59,11 @@ export function EditorBlock({
     isDragging,
   } = useSortable({ id: block.id });
 
-  // A floated (inline left/right) image is an earlier sibling than the text that
-  // wraps it, so the text block's box paints on top and swallows clicks on the
-  // image. Lift the floated image above the wrapping text so it stays
+  // A floated (inline left/right) picture is an earlier sibling than the text
+  // that wraps it, so the text block's box paints on top and swallows clicks on
+  // the picture. Lift the floated picture above the wrapping text so it stays
   // selectable (and its hover ring isn't hidden behind the text box).
-  const floated =
-    block.type === "image" &&
-    (block.align === "left" || block.align === "right");
+  const floated = isFloatedPicture(block);
 
   return (
     <div
@@ -147,10 +146,33 @@ export function EditorBlock({
                 </>
               )}
             </div>
-          ) : block.type === "text" &&
-            !cover ? // The text block's toolbar (size + formatting) lives inside the
-          // rich-text editor below, so nothing is rendered here.
-          null : block.type === "heading" && !cover ? (
+          ) : block.type === "montage" ? (
+            <div className="border-hair absolute bottom-full left-0 z-20 mb-2 flex items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap shadow-[0_4px_14px_rgba(40,36,28,0.16)]">
+              <MontageBlockControl
+                items={block.items}
+                interval={block.interval}
+                issueId={issueId}
+                images={images}
+                onChange={onChange}
+                onRegisterImage={onRegisterImage}
+              />
+              {block.items.length > 0 && (
+                <>
+                  <span className="bg-line h-5 w-px" />
+                  {/* Placement/size are the image block's controls verbatim —
+                      a montage occupies a photo slot, so it sizes like one. */}
+                  <ImageLayoutControls
+                    align={block.align ?? "full"}
+                    width={block.width ?? 100}
+                    onChange={onChange}
+                  />
+                </>
+              )}
+            </div>
+          ) : /* The text block's toolbar (size + formatting) lives inside the
+                 rich-text editor below, so nothing is rendered here. */
+          block.type === "text" && !cover ? null : block.type === "heading" &&
+            !cover ? (
             <div className="absolute bottom-full left-0 z-20 mb-2">
               <HeadingLevelControl
                 level={block.level ?? "main"}

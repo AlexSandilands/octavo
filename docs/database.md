@@ -53,11 +53,11 @@ The whole pages→blocks tree is stored as **one JSONB document** in `issues.con
 
 ```ts
 IssueContent = { version, pages: { id, cover?, blocks: Block[] }[] }
-Block = Heading | Text | Image | Sponsor   // discriminated union on `type`
+Block = Heading | Text | Image | Montage | Sponsor   // discriminated union on `type`
 ```
 
 `version` marks which shape of the content model a document holds, so block-shape changes can
-migrate old rows deliberately. **Current version: 3.** Every string field is length-capped and the
+migrate old rows deliberately. **Current version: 4.** Every string field is length-capped and the
 page/block arrays bounded in the zod schemas, so a bad save can't persist an unbounded document.
 
 **Content v2 (issue #8) — sponsor blocks reference the `sponsors` table.** A sponsor block now
@@ -79,6 +79,22 @@ construction, only a fixed themed tag set is emitted, and link hrefs are re-vali
 The bump is backward-compatible: `text` accepts a **string** (v1/v2, plain or constrained HTML) or a
 **doc**, and a legacy string renders through the same React path via `stringToDoc`. Cover-page text
 blocks stay plain strings (authored as a tagline, rendered as text — `richTextToPlain` coerces).
+
+**Content v4 (issue #95) — the `montage` block.** An ordered list of slides (`items: { imageId,
+alt }[]`) that cross-fade on a timer in the readers, carrying the image block's `caption`/`align`/
+`width` so it occupies a photo slot with identical flow rules (`blockFlowStyle` treats the two as
+one "picture block"). `interval` is whole seconds between fades, with `0` (`MONTAGE_MANUAL`) meaning
+"manual only — arrows, no autoplay"; the editor offers a preset list, the schema accepts the whole
+`0…MONTAGE_INTERVAL_MAX` range so changing the presets can never invalidate stored content. The
+slide list is capped at `MAX_MONTAGE_IMAGES`.
+
+Where it animates is a **render-path** decision, not a content one: `BlockView` takes an
+`interactive` flag that only the two readers set. With it, the block mounts the client
+`MontagePlayer` (cross-fade, prev/next, position indicator, autoplay that pauses off-screen, on
+interaction and under `prefers-reduced-motion`); without it — the print/PDF document, the editor
+canvas, the library cover thumbnail — it renders `MontageStill`, its **first slide only**, with no
+timer and no client JS. That is what makes the PDF deterministic, and why `RENDER_VERSION` in the
+PDF route was bumped alongside this.
 
 Defined as zod schemas + inferred types in [`src/lib/blocks.ts`](../src/lib/blocks.ts) and applied to
 the column via `jsonb(...).$type<IssueContent>()`.
@@ -181,6 +197,17 @@ uniformly v3 and the per-render string conversion drops out. It is:
 
 Run it once after deploying v3 (against dev/prod as needed); Railway does not run it automatically
 (it is content, not schema — no Drizzle migration file).
+
+### The v4 bump (issue #95) — a new block type, purely additive
+
+Adding a member to the block union is the cheapest kind of bump: a version-1…3 document contains no
+montage blocks, so it parses and renders **byte-for-byte unchanged**, and no stored row is rewritten
+or migrated. `CONTENT_VERSION` moves to `4`; new documents and any resave stamp it. There is no
+one-off migration and none is needed — nothing about the older shapes changed meaning.
+
+The seed authors the new shape rather than leaning on the fallback (issue-02, the camera-club
+quarterly, carries a three-slide montage with per-slide alt text), and issue-05's deliberately
+legacy-shaped page stays exactly as it was.
 
 ### A version bump includes updating the seed
 
