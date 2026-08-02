@@ -28,7 +28,7 @@ src/
     page.tsx           library (published issues)
     signin/            magic-link entry: form + action, sent/ confirmation
     read/[issueId]/    reader — desktop flipbook + mobile scroll
-    admin/             dashboard, members, sponsors, help (the in-app guide)
+    admin/             dashboard, members, sponsors, logos, help (the in-app guide)
       actions.ts       server actions (mutations)
       issues/[id]/edit editor (standalone full-screen)
     api/admin/images/  image upload route handler (multipart → sharp → R2)
@@ -135,6 +135,7 @@ unsubscribe anyone. The `/unsubscribe` route sits outside the member gate by des
 | `/admin/issues/[id]/preview`   | dynamic       | Draft preview (renders the reader by internal id; drafts never appear at `/read`)                                                                                                                                                                                                                                 |
 | `/admin/members`               | dynamic       | Members CRUD on the `users` table: add / remove / toggle subscribed / toggle admin / CSV import (guard rails: no self-removal, keep one admin)                                                                                                                                                                    |
 | `/admin/sponsors`              | static        | Sponsors = placeholder                                                                                                                                                                                                                                                                                            |
+| `/admin/logos`                 | dynamic       | Logo library: named club marks (transparent PNG/WebP) through the shared image pipeline — upload / rename / delete. Delete refuses while the logo is referenced (`countLogoReferences` in `src/server/logos.ts`)                                                                                                  |
 | `/admin/help`                  | dynamic       | In-app guide for a non-technical owner (plain-language walkthrough of issues/publishing/members/sponsors/PDF; content in `src/features/help/`)                                                                                                                                                                    |
 | `POST /api/admin/images`       | route handler | Upload: multipart → sniff real format (SVG rejected) → sharp WebP → storage → `images` row                                                                                                                                                                                                                        |
 | `GET /api/images/[...key]`     | route handler | Serves the local dev storage fallback (unused when R2 is set)                                                                                                                                                                                                                                                     |
