@@ -85,7 +85,13 @@ export function PageFrame({
 
       {children}
 
-      <PageFooter logo={logo} issueNo={issueNo} pageNo={pageNo} side={side} />
+      <PageFooter
+        logo={logo}
+        issueNo={issueNo}
+        pageNo={pageNo}
+        side={side}
+        logoBottom={theme.page.logoFooterBottom}
+      />
     </div>
   );
 }

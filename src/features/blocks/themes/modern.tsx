@@ -97,5 +97,9 @@ export const modernTheme = {
         }`}
       />
     ),
+    // Nothing is drawn near the foot of a modern page — the accent spine runs
+    // down an edge the footer's margins already clear — so the mark sits at the
+    // same height as the text footer.
+    logoFooterBottom: "bottom-4",
   },
 } satisfies LayoutTheme;
