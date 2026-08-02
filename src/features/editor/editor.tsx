@@ -32,6 +32,7 @@ import {
 } from "@/features/blocks/page-frame";
 import { useCanvasPanZoom } from "@/features/blocks/use-canvas-pan-zoom";
 import { useEditorPages } from "./use-editor-pages";
+import { useTextFlow } from "./use-text-flow";
 import { EditorBlock } from "./editor-block";
 import { reportEditorError } from "./report-error";
 import { PageRail } from "./page-rail";
@@ -85,6 +86,7 @@ export function Editor({
     setSel,
     addMenu,
     setAddMenu,
+    reseed,
     page,
     selectPage,
     toggleCover,
@@ -93,10 +95,14 @@ export function Editor({
     moveBlock,
     onDragEnd,
     removeBlock,
+    flowText,
     addPage,
     reorderPages,
     deletePage,
   } = useEditorPages(issue.content);
+  // Overflow marking + the "flow onto the next page" action (issue #93): the
+  // canvas is measured where it is laid out, and the split lands as one edit.
+  const { canvasRef, overflow, flow } = useTextFlow({ page, onFlow: flowText });
   // imageId → resolved image, seeded from the server and grown as uploads land,
   // so the canvas previews an image the moment it's uploaded.
   const [images, setImages] = useState<ImageMap>(initialImages);
@@ -368,6 +374,7 @@ export function Editor({
                       strategy={verticalListSortingStrategy}
                     >
                       <div
+                        ref={canvasRef}
                         className={
                           page?.cover
                             ? "flex min-h-full flex-col justify-center"
@@ -390,10 +397,17 @@ export function Editor({
                             images={images}
                             sponsors={sponsors}
                             sponsorMap={sponsorMap}
+                            overflowAt={
+                              overflow?.id === b.id
+                                ? overflow.markerTop
+                                : undefined
+                            }
+                            reseed={reseed[b.id]}
                             onSelect={() => setSel(b.id)}
                             onChange={(patch) => updateBlock(b.id, patch)}
                             onMove={(dir) => moveBlock(b.id, dir)}
                             onRemove={() => removeBlock(b.id)}
+                            onFlow={() => flow(b.id)}
                             onRegisterImage={registerImage}
                           />
                         ))}

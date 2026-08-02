@@ -8,7 +8,9 @@ import type { LayoutTheme } from "@/features/blocks/themes/registry";
 import { blockFlowStyle } from "@/features/blocks/layout";
 import type { Block, BlockPatch } from "@/lib/blocks";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
+import { richDocBlocks } from "@/lib/rich-text-split";
 import type { SponsorListItem, SponsorMap } from "@/lib/sponsors";
+import { OverflowNotice } from "./overflow-notice";
 import { ImageBlockControl } from "./image-upload";
 import { ImageLayoutControls } from "./image-layout";
 import { HeadingLevelControl } from "./heading-level-control";
@@ -28,10 +30,13 @@ export function EditorBlock({
   images,
   sponsors,
   sponsorMap,
+  overflowAt,
+  reseed = 0,
   onSelect,
   onChange,
   onMove,
   onRemove,
+  onFlow,
   onRegisterImage,
 }: {
   block: Block;
@@ -42,10 +47,15 @@ export function EditorBlock({
   images: ImageMap;
   sponsors: SponsorListItem[];
   sponsorMap: SponsorMap;
+  /** Where the page ends within this block, when it runs past the page. */
+  overflowAt?: number;
+  /** Bumped when the body was rewritten behind Tiptap's back — remounts it. */
+  reseed?: number;
   onSelect: () => void;
   onChange: (patch: BlockPatch) => void;
   onMove: (dir: -1 | 1) => void;
   onRemove: () => void;
+  onFlow: () => void;
   onRegisterImage: (imageId: string, image: ResolvedImage) => void;
 }) {
   const {
@@ -66,12 +76,23 @@ export function EditorBlock({
     block.type === "image" &&
     (block.align === "left" || block.align === "right");
 
+  // An overflowing text block can be flowed onto the next page as long as its
+  // body has more than one top-level node to cut between; a lone oversized
+  // paragraph is marked but left intact — v1 never splits inside one (#93).
+  const overflowing = overflowAt !== undefined;
+  const flowable =
+    overflowing &&
+    block.type === "text" &&
+    !cover &&
+    richDocBlocks(block.text).length > 1;
+
   return (
     <div
       ref={setNodeRef}
       // Marks block content so the canvas pan-drag skips it (the block stays
       // selectable, editable and draggable); see onPanDown in editor.tsx.
       data-editor-block
+      data-block-id={block.id}
       style={{
         ...blockFlowStyle(block, cover),
         ...(floated && !isDragging ? { zIndex: 5 } : {}),
@@ -147,10 +168,11 @@ export function EditorBlock({
                 </>
               )}
             </div>
-          ) : block.type === "text" &&
-            !cover ? // The text block's toolbar (size + formatting) lives inside the
-          // rich-text editor below, so nothing is rendered here.
-          null : block.type === "heading" && !cover ? (
+          ) : block.type === "text" && !cover ? (
+            // The text block's toolbar (size + formatting) lives inside the
+            // rich-text editor below, so nothing is rendered here.
+            <></>
+          ) : block.type === "heading" && !cover ? (
             <div className="absolute bottom-full left-0 z-20 mb-2">
               <HeadingLevelControl
                 level={block.level ?? "main"}
@@ -184,6 +206,9 @@ export function EditorBlock({
 
       {block.type === "text" && !cover ? (
         <RichTextEditor
+          // Remounting is how a flow split reaches the uncontrolled Tiptap
+          // instance: the shortened body is re-seeded from the stored value.
+          key={reseed}
           value={block.text}
           size={block.size ?? "m"}
           selected={selected}
@@ -197,6 +222,20 @@ export function EditorBlock({
           images={images}
           sponsors={sponsorMap}
           variant={cover ? "cover" : undefined}
+        />
+      )}
+
+      {overflowing && (
+        <OverflowNotice
+          top={overflowAt}
+          note={
+            flowable
+              ? "Text overflows this page"
+              : block.type === "text"
+                ? "Longer than a whole page"
+                : "Overflows this page"
+          }
+          onFlow={flowable ? onFlow : undefined}
         />
       )}
     </div>
