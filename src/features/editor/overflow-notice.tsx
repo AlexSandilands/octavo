@@ -5,18 +5,18 @@
 // to be cut and what will move — with the one-action fix hanging off it.
 //
 // It appears the moment a block overflows, including the moment a paste causes
-// it, and disappears once the block fits. The split itself is never silent: the
+// it, and disappears once the block fits. The fix itself is never silent: the
 // author presses this button, or nothing happens.
 export function OverflowNotice({
   top,
   note,
-  onFlow,
+  action,
 }: {
   /** Where the page ends, in the block's own coordinates. */
   top: number;
   note: string;
-  /** Absent when this block can't be flowed (a lone oversized node, or not text). */
-  onFlow?: () => void;
+  /** Absent when the block is simply taller than a page — nothing would help. */
+  action?: { label: string; onClick: () => void };
 }) {
   return (
     <div
@@ -32,16 +32,16 @@ export function OverflowNotice({
           <span className="font-sans text-[9px] font-semibold tracking-[0.1em] uppercase">
             {note}
           </span>
-          {onFlow && (
+          {action && (
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                onFlow();
+                action.onClick();
               }}
               className="bg-paper text-warn hover:bg-page focus-visible:outline-paper my-0.5 rounded-[4px] px-2 py-1 font-sans text-[10px] font-semibold focus-visible:outline-2 focus-visible:outline-offset-2"
             >
-              Flow onto next page
+              {action.label}
             </button>
           )}
         </div>

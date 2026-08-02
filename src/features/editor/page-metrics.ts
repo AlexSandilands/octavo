@@ -21,6 +21,11 @@ export type BlockOverflow = {
   id: string;
   /** The page's bottom edge, in the block's own coordinates — where to draw it. */
   markerTop: number;
+  /**
+   * Whether the block would fit on a page of its own. False means relocating it
+   * changes nothing — it is simply taller than a page — so no action is offered.
+   */
+  fitsAlone: boolean;
 };
 
 /**
@@ -70,15 +75,21 @@ export function measurePageOverflow(
 ): BlockOverflow | null {
   const geo = pageGeometry(container);
   if (!geo) return null;
-  let first: { id: string; top: number } | null = null;
+  let first: { id: string; top: number; height: number } | null = null;
   for (const el of container.querySelectorAll<HTMLElement>("[data-block-id]")) {
     const id = el.dataset.blockId;
     const top = offsetWithin(el, geo.page);
     if (!id || top === null) continue;
-    if (top + el.offsetHeight <= geo.limit + SLACK) continue;
-    if (!first || top < first.top) first = { id, top };
+    const height = el.offsetHeight;
+    if (top + height <= geo.limit + SLACK) continue;
+    if (!first || top < first.top) first = { id, top, height };
   }
-  return first ? { id: first.id, markerTop: geo.limit - first.top } : null;
+  if (!first) return null;
+  return {
+    id: first.id,
+    markerTop: geo.limit - first.top,
+    fitsAlone: first.height <= geo.limit - geo.contentTop + SLACK,
+  };
 }
 
 /**

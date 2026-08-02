@@ -12,7 +12,7 @@ import {
 } from "@/lib/blocks";
 import { arrayMove } from "@dnd-kit/sortable";
 import type { DragEndEvent } from "@dnd-kit/core";
-import { flowTextBlock } from "./text-flow";
+import { flowTextBlock, moveBlockToNextPage } from "./text-flow";
 
 // The editor's page/block model + all the operations that mutate it — extracted
 // from editor.tsx (issue #36) so the component stays under the size limit and
@@ -106,6 +106,16 @@ export function useEditorPages(content: IssueContent) {
     setReseed((r) => ({ ...r, [id]: (r[id] ?? 0) + 1 }));
   };
 
+  // The same fix for a block there is no way to cut — an image, a heading, a
+  // sponsor panel: the whole thing moves to the following page.
+  const moveToNextPage = (id: string) => {
+    const next = moveBlockToNextPage(pages, curPage, id);
+    if (!next) return;
+    setPages(next);
+    // The block is no longer on the page being edited, so nothing is selected.
+    if (sel === id) setSel(null);
+  };
+
   const addPage = (template: PageTemplate = "blank") => {
     setPages((ps) => [...ps, makePage(template)]);
     setCurPage(pages.length);
@@ -159,6 +169,7 @@ export function useEditorPages(content: IssueContent) {
     onDragEnd,
     removeBlock,
     flowText,
+    moveToNextPage,
     addPage,
     reorderPages,
     deletePage,

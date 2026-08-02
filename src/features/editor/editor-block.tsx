@@ -31,6 +31,7 @@ export function EditorBlock({
   sponsors,
   sponsorMap,
   overflowAt,
+  fitsAlone = false,
   reseed = 0,
   onSelect,
   onChange,
@@ -49,6 +50,8 @@ export function EditorBlock({
   sponsorMap: SponsorMap;
   /** Where the page ends within this block, when it runs past the page. */
   overflowAt?: number;
+  /** Whether this block would fit on a page of its own — i.e. moving it helps. */
+  fitsAlone?: boolean;
   /** Bumped when the body was rewritten behind Tiptap's back — remounts it. */
   reseed?: number;
   onSelect: () => void;
@@ -76,15 +79,21 @@ export function EditorBlock({
     block.type === "image" &&
     (block.align === "left" || block.align === "right");
 
-  // An overflowing text block can be flowed onto the next page as long as its
-  // body has more than one top-level node to cut between; a lone oversized
-  // paragraph is marked but left intact — v1 never splits inside one (#93).
+  // What the marker offers once this block is flagged (#93). Body text with more
+  // than one top-level node is split at a node boundary; anything else moves
+  // whole, but only when it would actually fit on a page of its own. A block
+  // taller than a whole page is marked and left alone — v1 never cuts inside a
+  // paragraph, and never resizes an image to make it fit.
   const overflowing = overflowAt !== undefined;
-  const flowable =
-    overflowing &&
-    block.type === "text" &&
-    !cover &&
-    richDocBlocks(block.text).length > 1;
+  const splittable =
+    block.type === "text" && !cover && richDocBlocks(block.text).length > 1;
+  const overflowAction = !overflowing
+    ? undefined
+    : splittable
+      ? { note: "Text overflows this page", label: "Flow onto next page" }
+      : fitsAlone
+        ? { note: "Overflows this page", label: "Move to next page" }
+        : { note: "Taller than a whole page", label: undefined };
 
   return (
     <div
@@ -225,17 +234,15 @@ export function EditorBlock({
         />
       )}
 
-      {overflowing && (
+      {overflowAt !== undefined && overflowAction && (
         <OverflowNotice
           top={overflowAt}
-          note={
-            flowable
-              ? "Text overflows this page"
-              : block.type === "text"
-                ? "Longer than a whole page"
-                : "Overflows this page"
+          note={overflowAction.note}
+          action={
+            overflowAction.label
+              ? { label: overflowAction.label, onClick: onFlow }
+              : undefined
           }
-          onFlow={flowable ? onFlow : undefined}
         />
       )}
     </div>

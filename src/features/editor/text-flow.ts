@@ -2,14 +2,19 @@ import { MAX_PAGES, type Block, type Page } from "@/lib/blocks";
 import { richDocBlocks, sliceRichDoc } from "@/lib/rich-text-split";
 import { createId } from "@/lib/id";
 
-// The "flow onto the next page" edit (issue #93), kept pure and separate from
-// the measurement that feeds it: `planTextFlow` turns measured node offsets into
-// cut points, `flowTextBlock` applies them to the page list in a single step.
+// The edits that resolve an overflowing page (issue #93), kept pure and separate
+// from the measurement that feeds them. Two shapes, one landing rule:
+//
+//   - body text is *split* — `planTextFlow` turns measured node offsets into cut
+//     points and `flowTextBlock` applies them, cascading over as many pages as
+//     the remainder needs;
+//   - everything else (an image, a heading, a sponsor panel) *moves whole* via
+//     `moveBlockToNextPage`, since there is nothing sensible to cut.
 //
 // The design stance the whole magazine rests on is that content never reflows at
-// read time — so the split happens once, in the editor, with the author
-// watching, and its output is ordinary fixed blocks on ordinary pages. Nothing
-// downstream (reader, mobile reader, PDF) learns anything new.
+// read time — so this happens once, in the editor, with the author watching, and
+// its output is ordinary fixed blocks on ordinary pages. Nothing downstream
+// (reader, mobile reader, PDF) learns anything new.
 
 /** What the editor measured about one overflowing text block, in canvas px. */
 export type TextFlowMetrics = {
@@ -106,15 +111,62 @@ export function flowTextBlock(
       id: createId(),
       text: sliceRichDoc(nodes, bounds[chunk]!, bounds[chunk + 1]!),
     };
-    const target = pageIndex + chunk;
-    const existing = next[target];
-    // Only an empty, non-cover page is safe to land on; anything already laid
-    // out there would be pushed off its own page by the arriving text.
-    if (existing && !existing.cover && existing.blocks.length === 0) {
-      next[target] = { ...existing, blocks: [continuation] };
-    } else {
-      next.splice(target, 0, { id: createId(), blocks: [continuation] });
-    }
+    land(next, pageIndex + chunk, continuation);
   }
   return next;
+}
+
+/**
+ * Move a whole block onto the page after its own — the fix for the blocks that
+ * can't be cut (an image, a heading, a sponsor panel, a lone paragraph).
+ *
+ * Only the crossing block moves. Anything above it on the page is what made it
+ * cross and stays put; anything below it moves up into the space it leaves, and
+ * if that leaves the page still overflowing the next offender flags itself for
+ * another pass.
+ *
+ * Returns null when there is nothing to do or no room to do it in.
+ */
+export function moveBlockToNextPage(
+  pages: Page[],
+  pageIndex: number,
+  blockId: string,
+): Page[] | null {
+  const source = pages[pageIndex];
+  if (!source || source.cover) return null;
+  const at = source.blocks.findIndex((b) => b.id === blockId);
+  const block = source.blocks[at];
+  if (!block) return null;
+
+  const target = pageIndex + 1;
+  // Landing on an occupied page means inserting one, which the schema bounds.
+  if (!isEmptyLanding(pages[target]) && pages.length >= MAX_PAGES) return null;
+
+  const next = [...pages];
+  next[pageIndex] = {
+    ...source,
+    blocks: source.blocks.filter((_, i) => i !== at),
+  };
+  land(next, target, block);
+  return next;
+}
+
+/** An existing page a block may be dropped onto without displacing anything. */
+function isEmptyLanding(page: Page | undefined): boolean {
+  return Boolean(page && !page.cover && page.blocks.length === 0);
+}
+
+/**
+ * Put `block` on the page at `index`, reusing that page only when it is empty
+ * and not a cover — anything already laid out there would be pushed off its own
+ * page by the arrival — and otherwise inserting a fresh page in its place.
+ * Mutates the caller's own copy of the page list.
+ */
+function land(pages: Page[], index: number, block: Block): void {
+  const existing = pages[index];
+  if (isEmptyLanding(existing)) {
+    pages[index] = { ...existing!, blocks: [block] };
+  } else {
+    pages.splice(index, 0, { id: createId(), blocks: [block] });
+  }
 }

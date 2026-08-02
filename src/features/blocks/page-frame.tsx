@@ -54,7 +54,6 @@ export function PageFrame({
   pageNo,
   side = "left",
   clip = true,
-  boundary = false,
   children,
 }: {
   theme: LayoutTheme;
@@ -65,8 +64,6 @@ export function PageFrame({
   side?: "left" | "right";
   /** Reader clips overflow to the page box; the editor leaves it visible. */
   clip?: boolean;
-  /** Mark where the reader will clip (editor only). */
-  boundary?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -91,20 +88,6 @@ export function PageFrame({
         <span>{side === "left" ? site.name : `No. ${issueNo}`}</span>
         <span>{pageNo ?? ""}</span>
       </div>
-
-      {boundary && (
-        <div
-          className="pointer-events-none absolute inset-x-0"
-          style={{ top: h }}
-        >
-          <div className="border-warn border-t border-dashed" />
-          <div className="flex justify-center">
-            <span className="bg-warn text-paper rounded-b px-2 py-0.5 font-sans text-[9px] font-semibold tracking-[0.1em] uppercase">
-              Reader clips below
-            </span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
