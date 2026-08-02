@@ -56,7 +56,6 @@ export function PageFrame({
   side = "left",
   logo = null,
   clip = true,
-  boundary = false,
   children,
 }: {
   theme: LayoutTheme;
@@ -69,13 +68,15 @@ export function PageFrame({
   logo?: ResolvedImage | null;
   /** Reader clips overflow to the page box; the editor leaves it visible. */
   clip?: boolean;
-  /** Mark where the reader will clip (editor only). */
-  boundary?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <div
       style={{ width: w, height: h }}
+      // The editor measures overflow against this box and the footer below it
+      // (see features/editor/page-metrics.ts), so the page's real padding and
+      // footer position stay the single source of truth for where a page ends.
+      data-page-frame
       className={`bg-page relative px-10 pt-10 ${
         clip ? "overflow-hidden" : "overflow-visible"
       } ${side === "left" ? "border-page-seam border-r" : ""}`}
@@ -85,20 +86,6 @@ export function PageFrame({
       {children}
 
       <PageFooter logo={logo} issueNo={issueNo} pageNo={pageNo} side={side} />
-
-      {boundary && (
-        <div
-          className="pointer-events-none absolute inset-x-0"
-          style={{ top: h }}
-        >
-          <div className="border-warn border-t border-dashed" />
-          <div className="flex justify-center">
-            <span className="bg-warn text-paper rounded-b px-2 py-0.5 font-sans text-[9px] font-semibold tracking-[0.1em] uppercase">
-              Reader clips below
-            </span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

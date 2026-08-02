@@ -71,6 +71,20 @@ Block types: `heading | text | image | sponsor`. Defined once in
 [`src/lib/blocks.ts`](../src/lib/blocks.ts) as zod schemas + inferred types, imported everywhere
 (editor, reader, DB column type). See [database.md](database.md) for how it's stored.
 
+**Pagination happens once, in the editor.** Content never reflows at read time — a page is a fixed
+canvas, and what the author placed is what every reader and the PDF get. So when a page overruns,
+the _editor_ fixes it, explicitly: the canvas is measured where it is laid out
+(`features/editor/page-metrics.ts` — `offsetTop`/`offsetHeight`, so the canvas zoom transform never
+enters the arithmetic), and the topmost block crossing the page's text area gets a marker on that
+line with one action beside it (`features/editor/text-flow.ts`). Body text is **split** at the last
+top-level node that fits, cascading onto as many following pages as the remainder needs; every other
+block type **moves whole**, since there is nothing sensible to cut. Both land the same way: on the
+next page when it is empty and not a cover, otherwise on a page inserted for them. A block taller
+than a whole page is marked but left alone — v1 never cuts inside a paragraph or resizes an image.
+The split cuts the structured document, never an HTML string (`lib/rich-text-split.ts`), so marks
+and lists survive it. The result is ordinary fixed blocks on ordinary pages: nothing downstream
+knows it happened, and no block shape changed (`CONTENT_VERSION` unaffected). Issue #93.
+
 ## Data flow
 
 ```

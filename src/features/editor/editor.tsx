@@ -33,6 +33,7 @@ import {
 } from "@/features/blocks/page-frame";
 import { useCanvasPanZoom } from "@/features/blocks/use-canvas-pan-zoom";
 import { useEditorPages } from "./use-editor-pages";
+import { useTextFlow } from "./use-text-flow";
 import { EditorBlock } from "./editor-block";
 import { reportEditorError } from "./report-error";
 import { PageRail } from "./page-rail";
@@ -89,6 +90,7 @@ export function Editor({
     setSel,
     addMenu,
     setAddMenu,
+    reseed,
     page,
     selectPage,
     toggleCover,
@@ -97,10 +99,20 @@ export function Editor({
     moveBlock,
     onDragEnd,
     removeBlock,
+    flowText,
+    moveToNextPage,
     addPage,
     reorderPages,
     deletePage,
   } = useEditorPages(issue.content);
+  // Overflow marking + its one-action fix (issue #93): the canvas is measured
+  // where it is laid out, and the split — or, for a block that can't be cut, the
+  // move — lands as one edit.
+  const { canvasRef, overflow, flow } = useTextFlow({
+    page,
+    onFlow: flowText,
+    onMove: moveToNextPage,
+  });
   // imageId → resolved image, seeded from the server and grown as uploads land,
   // so the canvas previews an image the moment it's uploaded.
   const [images, setImages] = useState<ImageMap>(initialImages);
@@ -232,9 +244,9 @@ export function Editor({
   // Fit-and-zoom the fixed PAGE_W×PAGE_H canvas to the editor stage (zoom=1),
   // exactly as the reader does — so the editor is a faithful, to-scale preview —
   // then let a wheel/drag zoom+pan ride on top. No scrollbars: content past the
-  // page edge is reached by dragging. PageFrame's boundary marks the clip. Drag
-  // starts only on blank areas so blocks stay selectable/editable/draggable
-  // (dnd-kit owns their pointer events).
+  // page edge is reached by dragging, and the overflow marker shows where the
+  // page ran out. Drag starts only on blank areas so blocks stay
+  // selectable/editable/draggable (dnd-kit owns their pointer events).
   const panZoom = useCanvasPanZoom({
     contentWidth: PAGE_W,
     contentHeight: PAGE_H,
@@ -369,7 +381,6 @@ export function Editor({
                   pageNo={curPage + 1}
                   logo={logo}
                   clip={false}
-                  boundary
                 >
                   <DndContext
                     sensors={sensors}
@@ -381,6 +392,7 @@ export function Editor({
                       strategy={verticalListSortingStrategy}
                     >
                       <div
+                        ref={canvasRef}
                         className={
                           page?.cover
                             ? "flex min-h-full flex-col justify-center"
@@ -403,10 +415,18 @@ export function Editor({
                             images={images}
                             sponsors={sponsors}
                             sponsorMap={sponsorMap}
+                            overflowAt={
+                              overflow?.id === b.id
+                                ? overflow.markerTop
+                                : undefined
+                            }
+                            fitsAlone={overflow?.fitsAlone}
+                            reseed={reseed[b.id]}
                             onSelect={() => setSel(b.id)}
                             onChange={(patch) => updateBlock(b.id, patch)}
                             onMove={(dir) => moveBlock(b.id, dir)}
                             onRemove={() => removeBlock(b.id)}
+                            onFlow={() => flow(b.id)}
                             onRegisterImage={registerImage}
                           />
                         ))}
