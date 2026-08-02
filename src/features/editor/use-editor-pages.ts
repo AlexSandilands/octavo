@@ -12,6 +12,7 @@ import {
 } from "@/lib/blocks";
 import { arrayMove } from "@dnd-kit/sortable";
 import type { DragEndEvent } from "@dnd-kit/core";
+import { flowTextBlock, moveBlockToNextPage } from "./text-flow";
 
 // The editor's page/block model + all the operations that mutate it — extracted
 // from editor.tsx (issue #36) so the component stays under the size limit and
@@ -30,6 +31,10 @@ export function useEditorPages(content: IssueContent) {
     initialPages[0]?.blocks[0]?.id ?? null,
   );
   const [addMenu, setAddMenu] = useState(false);
+  // A text block's Tiptap editor is uncontrolled once seeded, so a change we
+  // make to its body behind its back (the flow split) has to remount it. Bumping
+  // the block's counter here changes its React key — see EditorBlock.
+  const [reseed, setReseed] = useState<Record<string, number>>({});
 
   const page = pages[curPage] ?? pages[0];
 
@@ -89,6 +94,28 @@ export function useEditorPages(content: IssueContent) {
     if (sel === id) setSel(null);
   };
 
+  // Split an overflowing text block at the cut points the canvas measurement
+  // worked out (issue #93): it keeps what fits this page, and the rest becomes
+  // continuation blocks on the pages that follow, created as needed. One state
+  // value out, so the shrink, the new blocks and the new pages autosave together
+  // as a single document — a half-applied split can never reach the DB.
+  const flowText = (id: string, cuts: number[]) => {
+    const next = flowTextBlock(pages, curPage, id, cuts);
+    if (!next) return;
+    setPages(next);
+    setReseed((r) => ({ ...r, [id]: (r[id] ?? 0) + 1 }));
+  };
+
+  // The same fix for a block there is no way to cut — an image, a heading, a
+  // sponsor panel: the whole thing moves to the following page.
+  const moveToNextPage = (id: string) => {
+    const next = moveBlockToNextPage(pages, curPage, id);
+    if (!next) return;
+    setPages(next);
+    // The block is no longer on the page being edited, so nothing is selected.
+    if (sel === id) setSel(null);
+  };
+
   const addPage = (template: PageTemplate = "blank") => {
     setPages((ps) => [...ps, makePage(template)]);
     setCurPage(pages.length);
@@ -132,6 +159,7 @@ export function useEditorPages(content: IssueContent) {
     setSel,
     addMenu,
     setAddMenu,
+    reseed,
     page,
     selectPage,
     toggleCover,
@@ -140,6 +168,8 @@ export function useEditorPages(content: IssueContent) {
     moveBlock,
     onDragEnd,
     removeBlock,
+    flowText,
+    moveToNextPage,
     addPage,
     reorderPages,
     deletePage,

@@ -46,6 +46,7 @@ Everything below is real and wired end-to-end — **nothing is stubbed.** Routes
 map in `docs/architecture.md`; phase plan in `docs/ROADMAP.md`.
 
 - **Content** — library, reader, dashboard, editor are DB-backed (editor autosaves; reader renders saved issues).
+- **Page overflow** — a block that outgrows its page is marked at the page's text limit in the editor, with one action beside it: body text splits at the last top-level node that fits (cascading onto as many pages as it needs), any other block moves whole onto the next page. Edit-time only — content never reflows at read time.
 - **Images** — editor uploads (WebP via sharp), served from R2 when configured, else a local-disk fallback (`.data/uploads`) so it works with no cloud setup.
 - **Auth** — magic-link (Auth.js v5, ~90-day DB sessions), members-only. Library/reader need a member session (signed-out → `/signin` with a validated `?next=`); `/admin`, server actions and uploads need `is_admin` (`npm run db:admin` bootstraps one). Dev logs the link to the console (no Resend needed).
 - **Members** — admin manages the `users` table (add / remove / toggle subscribed / toggle admin / CSV import) with guard rails (no self-removal, always ≥1 admin).
