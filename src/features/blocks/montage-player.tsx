@@ -12,16 +12,28 @@ import { useMontage } from "./use-montage";
 //
 // Every slide sits stacked in the frame and only opacity changes, so a
 // cross-fade is one compositor-driven property with no layout work. The frame
-// itself holds the first slide's aspect ratio and crops the rest to it (see
-// montageAspectRatio), so the page never reflows mid-fade — important on the
-// fixed design canvas, where a resizing block would push the rest of the page.
+// holds one stable aspect ratio (see montageAspectRatio) and letterboxes any
+// slide that differs rather than cropping it, so the page never reflows mid-fade
+// — important on the fixed design canvas, where a resizing block would push the
+// rest of the page.
 //
-// Accessibility: arrows are real buttons with labels and 56px hit targets (the
-// audience is older and phone-heavy); only the visible slide is exposed to
-// assistive tech; left/right arrow keys drive the montage when focus is inside
-// it and are stopped from reaching the reader's page-turn handler. The
-// cross-fade is CSS, so motion-reduce turns it into an instant swap while the
-// arrows keep working (autoplay is separately disabled — see useMontage).
+// Accessibility (the audience is older and phone-heavy):
+//   * The arrows hug the frame edges as small ~30px discs, but each sits in a
+//     44px button, so the tap target clears the 44px guideline even though the
+//     visible circle is smaller.
+//   * They are revealed on hover ONLY where hovering is possible. The default
+//     is visible, and `(hover: hover)` — a device with a real pointer — is what
+//     opts into hiding them. A phone therefore always shows them; no capability
+//     detection can leave a touch user with no way to advance.
+//   * Keyboard focus anywhere in the widget reveals them too, and they are only
+//     ever faded (opacity), never removed from the accessibility tree or the tab
+//     order, so tabbing to an "invisible" arrow brings it into view.
+//   * Only the visible slide is exposed to assistive tech; left/right arrow keys
+//     drive the montage when focus is inside it and are stopped from reaching
+//     the reader's page-turn handler.
+//   * The cross-fade is CSS, so motion-reduce turns it into an instant swap
+//     while the arrows keep working (autoplay is separately disabled — see
+//     useMontage).
 
 export function MontagePlayer({
   slides,
@@ -47,7 +59,9 @@ export function MontagePlayer({
       ref={ref}
       role="group"
       aria-label={label ? `Montage: ${label}` : "Image montage"}
-      className="relative w-full overflow-hidden"
+      // A *named* group: EditorBlock and other ancestors use the bare `group`
+      // class, and an unnamed group-hover would match those too.
+      className="group/montage relative w-full overflow-hidden"
       style={{ aspectRatio: montageAspectRatio(slides) }}
       onKeyDown={(e) => {
         if (!many) return;
@@ -81,7 +95,10 @@ export function MontagePlayer({
         <>
           <Arrow side="left" label="Previous image" onClick={prev} />
           <Arrow side="right" label="Next image" onClick={next} />
-          <p className="border-hair bg-card text-ink absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border px-3 py-1 font-sans text-[12px] font-semibold tabular-nums shadow-[0_2px_10px_rgba(40,36,28,0.22)]">
+          {/* Always visible — never hover-gated. It is the only thing telling a
+              reader the montage has more in it, so it has to be legible before
+              any interaction. Sized down ~15% from the original chip. */}
+          <p className="border-hair bg-card text-ink absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border px-2.5 py-[3px] font-sans text-[10px] font-semibold tabular-nums shadow-[0_2px_10px_rgba(40,36,28,0.22)]">
             <span className="sr-only">Image </span>
             {index + 1} / {slides.length}
           </p>
@@ -91,9 +108,17 @@ export function MontagePlayer({
   );
 }
 
-// A large, always-visible step control. Deliberately not hover-revealed: the
-// audience is phone-heavy (no hover) and older (a control you must discover is
-// a control you don't use).
+// A step control hugging one edge of the frame: a small ~30px disc inside a
+// 44px button, so it stays a comfortable tap target while reading as a light
+// touch over the photo.
+//
+// The reveal rule is written "visible by default, hidden only under
+// (hover: hover)" rather than the other way round. That ordering is the whole
+// accessibility argument: any device we fail to recognise — and every touch
+// device — falls through to the visible state, so nobody is left tapping a
+// photo wondering how to see the next one. Opacity (not visibility/display)
+// keeps the button focusable while faded, and focus inside the widget brings it
+// back.
 function Arrow({
   side,
   label,
@@ -109,15 +134,17 @@ function Arrow({
       onClick={onClick}
       aria-label={label}
       title={label}
-      className={`border-hair bg-card text-ink hover:border-accent hover:text-accent absolute top-1/2 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-full border shadow-[0_2px_10px_rgba(40,36,28,0.22)] ${
-        side === "left" ? "left-3" : "right-3"
+      className={`absolute top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center opacity-100 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/montage:opacity-100 [@media(hover:hover)]:group-focus-within/montage:opacity-100 [@media(hover:hover)]:focus-visible:opacity-100 ${
+        side === "left" ? "left-0" : "right-0"
       }`}
     >
-      <Icon
-        name={side === "left" ? "chevronLeft" : "chevronRight"}
-        size={26}
-        strokeWidth={2}
-      />
+      <span className="border-hair bg-card text-ink group-hover/montage:border-accent flex h-[30px] w-[30px] items-center justify-center rounded-full border shadow-[0_2px_8px_rgba(40,36,28,0.24)]">
+        <Icon
+          name={side === "left" ? "chevronLeft" : "chevronRight"}
+          size={17}
+          strokeWidth={2}
+        />
+      </span>
     </button>
   );
 }
