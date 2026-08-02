@@ -14,7 +14,7 @@ import { richTextValueSchema } from "./rich-text-doc";
 const SHORT_TEXT_MAX = 300; // titles, kickers, captions, names
 const HREF_MAX = 2_000;
 const ID_MAX = 64; // uuids (36 chars) with headroom
-const MAX_PAGES = 200;
+export const MAX_PAGES = 200;
 const MAX_BLOCKS_PER_PAGE = 100;
 export const MAX_MONTAGE_IMAGES = 20; // a slideshow, not a photo dump
 

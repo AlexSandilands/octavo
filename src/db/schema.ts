@@ -128,3 +128,25 @@ export const sponsors = pgTable("sponsors", {
     .notNull()
     .defaultNow(),
 });
+
+// A small library of club logo marks (transparent PNG/WebP) the admin manages
+// at /admin/logos, so features can reference "a logo" by id instead of each one
+// growing its own upload. `imageId` goes through the same images pipeline as
+// everything else; it is notNull because a logo *is* its mark — a nameless-image
+// row would be unrenderable — and cascades, so removing the underlying image
+// (only the seed wipe does) takes the logo with it rather than leaving a
+// dangling one. Accessed via src/server/logos.ts.
+export const logos = pgTable(
+  "logos",
+  {
+    id: text("id").primaryKey().$defaultFn(createId),
+    name: text("name").notNull(),
+    imageId: text("image_id")
+      .notNull()
+      .references(() => images.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("logos_image_id_idx").on(t.imageId)],
+);

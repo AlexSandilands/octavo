@@ -52,6 +52,9 @@ export function RichTextEditor({
     editorProps: {
       attributes: {
         class: "rich-text outline-none",
+        // The overflow measurement finds the body through this and reads its
+        // children as the document's top-level nodes (see page-metrics.ts).
+        "data-text-body": "",
       },
     },
     // Store the structured JSON (content v3). Tiptap's JSONContent is the loose

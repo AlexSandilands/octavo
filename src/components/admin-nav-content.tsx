@@ -18,6 +18,7 @@ export const ADMIN_NAV: {
     href: "/admin/sponsors",
     icon: "banner",
   },
+  { key: "logos", label: "Logos", href: "/admin/logos", icon: "image" },
   { key: "help", label: "Guide", href: "/admin/help", icon: "help" },
 ];
 

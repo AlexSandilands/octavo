@@ -28,7 +28,7 @@ src/
     page.tsx           library (published issues)
     signin/            magic-link entry: form + action, sent/ confirmation
     read/[issueId]/    reader — desktop flipbook + mobile scroll
-    admin/             dashboard, members, sponsors, help (the in-app guide)
+    admin/             dashboard, members, sponsors, logos, help (the in-app guide)
       actions.ts       server actions (mutations)
       issues/[id]/edit editor (standalone full-screen)
     api/admin/images/  image upload route handler (multipart → sharp → R2)
@@ -74,6 +74,20 @@ Block types: `heading | text | image | montage | sponsor`. Defined once in
 set. It marks the render paths where a block may animate and be driven by the member; the print/PDF
 document, the editor canvas and the library thumbnail leave it off and get one deterministic frame
 with no client JS. Today the only block that reads it is `montage` (player vs. first slide).
+
+**Pagination happens once, in the editor.** Content never reflows at read time — a page is a fixed
+canvas, and what the author placed is what every reader and the PDF get. So when a page overruns,
+the _editor_ fixes it, explicitly: the canvas is measured where it is laid out
+(`features/editor/page-metrics.ts` — `offsetTop`/`offsetHeight`, so the canvas zoom transform never
+enters the arithmetic), and the topmost block crossing the page's text area gets a marker on that
+line with one action beside it (`features/editor/text-flow.ts`). Body text is **split** at the last
+top-level node that fits, cascading onto as many following pages as the remainder needs; every other
+block type **moves whole**, since there is nothing sensible to cut. Both land the same way: on the
+next page when it is empty and not a cover, otherwise on a page inserted for them. A block taller
+than a whole page is marked but left alone — v1 never cuts inside a paragraph or resizes an image.
+The split cuts the structured document, never an HTML string (`lib/rich-text-split.ts`), so marks
+and lists survive it. The result is ordinary fixed blocks on ordinary pages: nothing downstream
+knows it happened, and no block shape changed (`CONTENT_VERSION` unaffected). Issue #93.
 
 ## Data flow
 
@@ -140,6 +154,7 @@ unsubscribe anyone. The `/unsubscribe` route sits outside the member gate by des
 | `/admin/issues/[id]/preview`   | dynamic       | Draft preview (renders the reader by internal id; drafts never appear at `/read`)                                                                                                                                                                                                                                 |
 | `/admin/members`               | dynamic       | Members CRUD on the `users` table: add / remove / toggle subscribed / toggle admin / CSV import (guard rails: no self-removal, keep one admin)                                                                                                                                                                    |
 | `/admin/sponsors`              | static        | Sponsors = placeholder                                                                                                                                                                                                                                                                                            |
+| `/admin/logos`                 | dynamic       | Logo library: named club marks (transparent PNG/WebP) through the shared image pipeline — upload / rename / delete. Delete refuses while the logo is referenced (`countLogoReferences` in `src/server/logos.ts`)                                                                                                  |
 | `/admin/help`                  | dynamic       | In-app guide for a non-technical owner (plain-language walkthrough of issues/publishing/members/sponsors/PDF; content in `src/features/help/`)                                                                                                                                                                    |
 | `POST /api/admin/images`       | route handler | Upload: multipart → sniff real format (SVG rejected) → sharp WebP → storage → `images` row                                                                                                                                                                                                                        |
 | `GET /api/images/[...key]`     | route handler | Serves the local dev storage fallback (unused when R2 is set)                                                                                                                                                                                                                                                     |
