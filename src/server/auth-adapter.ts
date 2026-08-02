@@ -100,10 +100,29 @@ export const authAdapter: Adapter = {
     return row ?? null;
   },
 
+  // Same contract as updateUser: Auth.js sends a partial keyed by
+  // sessionToken, so only the keys actually present may reach SET — and the
+  // token itself is the lookup key, never a value to write.
   async updateSession(session) {
+    const patch: Partial<
+      Pick<typeof sessions.$inferInsert, "userId" | "expires">
+    > = {};
+    if (session.userId !== undefined) patch.userId = session.userId;
+    if (session.expires !== undefined) patch.expires = session.expires;
+
+    // Drizzle rejects an empty SET, and there is nothing to write anyway.
+    if (Object.keys(patch).length === 0) {
+      const [row] = await db
+        .select()
+        .from(sessions)
+        .where(eq(sessions.sessionToken, session.sessionToken))
+        .limit(1);
+      return row ?? null;
+    }
+
     const [row] = await db
       .update(sessions)
-      .set(session)
+      .set(patch)
       .where(eq(sessions.sessionToken, session.sessionToken))
       .returning();
     return row ?? null;
