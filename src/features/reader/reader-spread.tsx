@@ -1,7 +1,7 @@
 "use client";
 
 import type { Page } from "@/lib/blocks";
-import type { ImageMap } from "@/lib/images";
+import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 import type { LayoutTheme } from "@/features/blocks/themes/registry";
 import { PageBlocks } from "@/features/blocks/page-blocks";
@@ -30,6 +30,7 @@ export function ReaderSpread({
   theme,
   scale,
   issueNo,
+  logo,
   images,
   sponsors,
 }: {
@@ -46,6 +47,7 @@ export function ReaderSpread({
   theme: LayoutTheme;
   scale: number;
   issueNo: number;
+  logo: ResolvedImage | null;
   images: ImageMap;
   sponsors: SponsorMap;
 }) {
@@ -60,6 +62,7 @@ export function ReaderSpread({
         theme={theme}
         scale={scale}
         issueNo={issueNo}
+        logo={logo}
         images={images}
         sponsors={sponsors}
       />
@@ -88,6 +91,7 @@ export function ReaderSpread({
             theme={theme}
             scale={scale}
             issueNo={issueNo}
+            logo={logo}
             images={images}
             sponsors={sponsors}
           />
@@ -98,6 +102,7 @@ export function ReaderSpread({
           theme={theme}
           scale={scale}
           issueNo={issueNo}
+          logo={logo}
           pageNo={1}
           images={images}
           sponsors={sponsors}
@@ -114,6 +119,7 @@ export function ReaderSpread({
         theme={theme}
         scale={scale}
         issueNo={issueNo}
+        logo={logo}
         pageNo={leftNo}
         images={images}
         sponsors={sponsors}
@@ -124,6 +130,7 @@ export function ReaderSpread({
         theme={theme}
         scale={scale}
         issueNo={issueNo}
+        logo={logo}
         pageNo={leftNo + 1}
         images={images}
         sponsors={sponsors}
@@ -145,6 +152,7 @@ function TurnLeaf({
   theme,
   scale,
   issueNo,
+  logo,
   images,
   sponsors,
 }: {
@@ -156,6 +164,7 @@ function TurnLeaf({
   theme: LayoutTheme;
   scale: number;
   issueNo: number;
+  logo: ResolvedImage | null;
   images: ImageMap;
   sponsors: SponsorMap;
 }) {
@@ -190,6 +199,7 @@ function TurnLeaf({
         theme={theme}
         scale={scale}
         issueNo={issueNo}
+        logo={logo}
         pageNo={idx + 1}
         images={images}
         sponsors={sponsors}
@@ -246,6 +256,7 @@ function TurnLeaf({
             theme={theme}
             scale={scale}
             issueNo={issueNo}
+            logo={logo}
             pageNo={frontIdx + 1}
             images={images}
             sponsors={sponsors}
@@ -266,6 +277,7 @@ function TurnLeaf({
             theme={theme}
             scale={scale}
             issueNo={issueNo}
+            logo={logo}
             pageNo={backIdx + 1}
             images={images}
             sponsors={sponsors}
@@ -282,6 +294,7 @@ function PageView({
   theme,
   scale,
   issueNo,
+  logo,
   pageNo,
   images,
   sponsors,
@@ -291,6 +304,7 @@ function PageView({
   theme: LayoutTheme;
   scale: number;
   issueNo: number;
+  logo: ResolvedImage | null;
   pageNo?: number;
   images: ImageMap;
   sponsors: SponsorMap;
@@ -302,6 +316,7 @@ function PageView({
         w={PAGE_W}
         h={PAGE_H}
         issueNo={issueNo}
+        logo={logo}
         pageNo={page ? pageNo : undefined}
         side={side}
       >

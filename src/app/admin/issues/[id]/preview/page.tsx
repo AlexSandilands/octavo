@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ReaderMount } from "@/features/reader/reader-mount";
 import { getIssue } from "@/server/issues";
 import { resolveIssueImages } from "@/server/images";
+import { getLogoImage } from "@/server/logos";
 import { resolveIssueSponsors } from "@/server/sponsors";
 import { requireAdminOrRedirect } from "@/server/session";
 
@@ -22,9 +23,10 @@ export default async function PreviewIssuePage({
   const issue = await getIssue(id);
   if (!issue) notFound();
 
-  const [images, sponsors] = await Promise.all([
+  const [images, sponsors, logo] = await Promise.all([
     resolveIssueImages(issue.content),
     resolveIssueSponsors(issue.content),
+    getLogoImage(issue.logoId),
   ]);
 
   return (
@@ -48,6 +50,7 @@ export default async function PreviewIssuePage({
       <ReaderMount
         content={issue.content}
         issueNo={issue.number}
+        logo={logo}
         images={images}
         sponsors={sponsors}
       />

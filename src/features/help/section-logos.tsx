@@ -10,6 +10,14 @@ export function SectionLogos() {
         rename it any time. It&rsquo;s separate from Sponsors, which is for
         other people&rsquo;s businesses.
       </P>
+      <P>
+        To put one on an issue, open that issue in the editor and choose it from
+        the <strong>Logo</strong> box at the top. It then appears small at the
+        foot of every page, with the club&rsquo;s name spread across the width
+        beside it. Choose <strong>None</strong> to go back to the plain footer.
+        A mark that an issue is using can&rsquo;t be deleted here until you
+        change that issue&rsquo;s choice.
+      </P>
       <Callout title="Use a see-through picture">
         Upload a <strong>PNG</strong> or <strong>WebP</strong> saved with a
         transparent background — the transparency is kept, so the mark sits on

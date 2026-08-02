@@ -1,5 +1,5 @@
 import type { IssueContent } from "@/lib/blocks";
-import type { ImageMap } from "@/lib/images";
+import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 import { resolveTheme } from "@/features/blocks/themes/registry";
 import { PageBlocks } from "@/features/blocks/page-blocks";
@@ -31,12 +31,15 @@ export function PrintDocument({
   content,
   issueNo,
   theme,
+  logo,
   images,
   sponsors,
 }: {
   content: IssueContent;
   issueNo: number;
   theme: string;
+  /** The issue's footer mark (issue #97); part of the PDF's cache key. */
+  logo: ResolvedImage | null;
   images: ImageMap;
   sponsors: SponsorMap;
 }) {
@@ -61,6 +64,7 @@ export function PrintDocument({
               issueNo={issueNo}
               pageNo={pageNo}
               side={side}
+              logo={logo}
             >
               <PageBlocks
                 page={page}

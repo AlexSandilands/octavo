@@ -18,13 +18,16 @@ import { getUserFailClosed } from "@/server/session";
 // follows it — the download is part of the showcase, and the R2 cache keeps
 // the anonymous generation cost bounded (one Chromium run per revision+theme).
 //
-// The PDF is a derived artifact cached in R2 keyed by issue
-// id + revision + theme + render version
-// (`pdfs/{issueId}/{revision}-{theme}-v{RENDER_VERSION}.pdf`) — a cache hit
-// serves the stored bytes; a miss generates once via Playwright, stores, and
+// The PDF is a derived artifact cached in R2 keyed by every input that changes
+// what it looks like: issue id + revision + theme + footer logo + render version
+// (`pdfs/{issueId}/{revision}-{theme}-{logo}-v{RENDER_VERSION}.pdf`) — a cache
+// hit serves the stored bytes; a miss generates once via Playwright, stores, and
 // serves. Since `revision` bumps on every content write (and RENDER_VERSION on
 // renderer changes), editing + republishing yields a new key and a fresh PDF
-// with no manual invalidation (design-principles §4).
+// with no manual invalidation (design-principles §4). The logo is in the key
+// because it is the one *render* input that lives outside `content`: swapping
+// it is a meta save, which does not bump `revision`, so without it a re-download
+// would keep serving the previous mark.
 //
 // The bytes are proxied through this endpoint rather than served from a public
 // URL: unlike images, a whole-issue PDF stays behind the member gate.
@@ -66,8 +69,9 @@ const themeSchema = z
 // `revision` busting on content changes. Bump it in the same commit as any
 // print-rendering fix (print document, PageBlocks/BlockView output, page.pdf
 // options) — otherwise issues whose content didn't change keep serving PDFs
-// with the old rendering bug. v2: trailing-blank-page fix.
-const RENDER_VERSION = 2;
+// with the old rendering bug. v2: trailing-blank-page fix. v3: the page footer
+// redesign (issue #97).
+const RENDER_VERSION = 3;
 
 // A download filename the browser and the audience can read. Strip anything
 // path- or header-unsafe; keep an ASCII fallback plus a UTF-8 form for clients
@@ -113,7 +117,7 @@ export async function GET(
   }
   const theme = themeParam.data;
 
-  const key = `pdfs/${issue.id}/${issue.revision}-${theme}-v${RENDER_VERSION}.pdf`;
+  const key = `pdfs/${issue.id}/${issue.revision}-${theme}-${issue.logoId ?? "nologo"}-v${RENDER_VERSION}.pdf`;
 
   let pdf: Buffer | null;
   try {

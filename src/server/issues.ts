@@ -92,14 +92,21 @@ export async function updateIssueContent(
   return { ok: false, reason: exists ? "conflict" : "missing" };
 }
 
-// Explicit column list — never spread caller input into a SET clause.
+// Explicit column list — never spread caller input into a SET clause. Drizzle
+// drops undefined values from the SET, so an omitted field is left alone; a
+// `logoId: null` is a real write (the admin chose "no logo").
 export async function updateIssueMeta(
   id: string,
-  meta: { title?: string; theme?: string },
+  meta: { title?: string; theme?: string; logoId?: string | null },
 ) {
   await db
     .update(issues)
-    .set({ title: meta.title, theme: meta.theme, updatedAt: new Date() })
+    .set({
+      title: meta.title,
+      theme: meta.theme,
+      logoId: meta.logoId,
+      updatedAt: new Date(),
+    })
     .where(eq(issues.id, id));
 }
 

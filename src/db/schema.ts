@@ -1,4 +1,5 @@
 import {
+  type AnyPgColumn,
   pgTable,
   text,
   timestamp,
@@ -79,6 +80,20 @@ export const issues = pgTable(
     theme: text("theme").notNull().default("classic"),
     status: issueStatus("status").notNull().default("draft"),
     content: jsonb("content").$type<IssueContent>().notNull(),
+    // The club mark drawn in the running page footer (issue #97), chosen per
+    // issue in the editor. Null = the text-only footer. Deleting a referenced
+    // logo is refused (`countLogoReferences`), so set-null is only a backstop
+    // for the one path that can still remove one: `logos.imageId` cascading
+    // when its image row goes. A dangling id would render a broken mark on
+    // every page, so the column empties instead.
+    //
+    // The explicit `AnyPgColumn` return type is drizzle's escape hatch for a
+    // circular reference: issues → logos → images → issues (images.issueId), a
+    // cycle TypeScript cannot infer its way around. Annotating the callback cuts
+    // it; the foreign key itself is unaffected.
+    logoId: text("logo_id").references((): AnyPgColumn => logos.id, {
+      onDelete: "set null",
+    }),
     // Bumped on every content write; autosaves send the revision they were
     // based on so a stale editor can't silently overwrite a newer one.
     revision: integer("revision").notNull().default(0),

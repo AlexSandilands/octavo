@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { IssueContent } from "@/lib/blocks";
-import type { ImageMap } from "@/lib/images";
+import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 import {
   defaultEnabledThemeId,
@@ -20,11 +20,14 @@ import { useIssuePdf } from "./use-issue-pdf";
 export function DesktopReader({
   content,
   issueNo,
+  logo,
   images,
   sponsors,
 }: {
   content: IssueContent;
   issueNo: number;
+  /** The issue's footer mark (issue #97), or null for the text-only footer. */
+  logo: ResolvedImage | null;
   images: ImageMap;
   sponsors: SponsorMap;
 }) {
@@ -304,6 +307,7 @@ export function DesktopReader({
                 theme={theme}
                 scale={panZoom.scale}
                 issueNo={issueNo}
+                logo={logo}
                 images={images}
                 sponsors={sponsors}
               />
