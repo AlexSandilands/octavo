@@ -23,6 +23,11 @@ export async function findUserByEmail(email: string) {
   return row ?? null;
 }
 
+async function findUserById(id: string) {
+  const [row] = await db.select().from(users).where(eq(users.id, id)).limit(1);
+  return row ?? null;
+}
+
 export const authAdapter: Adapter = {
   // In practice never called: the signIn callback only lets existing members
   // through, and members already have a row. Required by Auth.js regardless.
@@ -39,14 +44,7 @@ export const authAdapter: Adapter = {
     return row;
   },
 
-  async getUser(id) {
-    const [row] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, id))
-      .limit(1);
-    return row ?? null;
-  },
+  getUser: findUserById,
 
   getUserByEmail: findUserByEmail,
 
@@ -58,14 +56,28 @@ export const authAdapter: Adapter = {
     throw new Error("OAuth is not supported — this app is magic-link only");
   },
 
+  // Auth.js sends a partial user — every magic-link click calls this with just
+  // { id, emailVerified }. Only the keys actually present may reach the SET
+  // clause, or a sign-in would blank the member's name.
   async updateUser(user) {
+    const patch: Partial<
+      Pick<typeof users.$inferInsert, "name" | "email" | "emailVerified">
+    > = {};
+    if (user.name !== undefined) patch.name = user.name;
+    if (user.email !== undefined) patch.email = user.email;
+    if (user.emailVerified !== undefined)
+      patch.emailVerified = user.emailVerified;
+
+    // Drizzle rejects an empty SET, and there is nothing to write anyway.
+    if (Object.keys(patch).length === 0) {
+      const row = await findUserById(user.id);
+      if (!row) throw new Error(`No user with id ${user.id}`);
+      return row;
+    }
+
     const [row] = await db
       .update(users)
-      .set({
-        name: user.name,
-        email: user.email,
-        emailVerified: user.emailVerified,
-      })
+      .set(patch)
       .where(eq(users.id, user.id))
       .returning();
     if (!row) throw new Error(`No user with id ${user.id}`);
@@ -88,10 +100,29 @@ export const authAdapter: Adapter = {
     return row ?? null;
   },
 
+  // Same contract as updateUser: Auth.js sends a partial keyed by
+  // sessionToken, so only the keys actually present may reach SET — and the
+  // token itself is the lookup key, never a value to write.
   async updateSession(session) {
+    const patch: Partial<
+      Pick<typeof sessions.$inferInsert, "userId" | "expires">
+    > = {};
+    if (session.userId !== undefined) patch.userId = session.userId;
+    if (session.expires !== undefined) patch.expires = session.expires;
+
+    // Drizzle rejects an empty SET, and there is nothing to write anyway.
+    if (Object.keys(patch).length === 0) {
+      const [row] = await db
+        .select()
+        .from(sessions)
+        .where(eq(sessions.sessionToken, session.sessionToken))
+        .limit(1);
+      return row ?? null;
+    }
+
     const [row] = await db
       .update(sessions)
-      .set(session)
+      .set(patch)
       .where(eq(sessions.sessionToken, session.sessionToken))
       .returning();
     return row ?? null;
