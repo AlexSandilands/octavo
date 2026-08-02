@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { PrintDocument } from "@/features/reader/print-document";
 import { getPublishedIssueByNumber } from "@/server/issues";
 import { resolveIssueImages } from "@/server/images";
+import { getLogoImage } from "@/server/logos";
 import { resolveIssueSponsors } from "@/server/sponsors";
 import { verifyPrintToken } from "@/lib/pdf-token";
 
@@ -30,9 +31,10 @@ export default async function PrintPage({
     : null;
   if (!issue) notFound();
 
-  const [images, sponsors] = await Promise.all([
+  const [images, sponsors, logo] = await Promise.all([
     resolveIssueImages(issue.content),
     resolveIssueSponsors(issue.content),
+    getLogoImage(issue.logoId),
   ]);
 
   return (
@@ -44,6 +46,7 @@ export default async function PrintPage({
       // download endpoint validated it against the registry. PrintDocument
       // resolves it and degrades anything unknown to the reader's default.
       theme={typeof theme === "string" ? theme : ""}
+      logo={logo}
       images={images}
       sponsors={sponsors}
     />

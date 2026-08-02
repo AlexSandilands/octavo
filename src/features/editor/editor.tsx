@@ -17,6 +17,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
+import type { LogoListItem } from "@/lib/logos";
 import type { SponsorListItem, SponsorMap } from "@/lib/sponsors";
 import {
   enabledThemes,
@@ -50,6 +51,7 @@ export type EditorIssue = {
   number: number;
   title: string;
   theme: string;
+  logoId: string | null;
   content: IssueContent;
   revision: number;
   status: string;
@@ -59,11 +61,13 @@ export function Editor({
   issue,
   images: initialImages,
   sponsors,
+  logos,
   subscriberCount,
 }: {
   issue: EditorIssue;
   images: ImageMap;
   sponsors: SponsorListItem[];
+  logos: LogoListItem[];
   subscriberCount: number;
 }) {
   // The picker chooses from this list; the canvas previews a placed sponsor
@@ -122,6 +126,11 @@ export function Editor({
     normaliseEnabledThemeId(issue.theme),
   );
   const themes = enabledThemes();
+  // The issue's footer mark. The picker chooses from the library list; the
+  // canvas previews the choice by resolving it through that same list, so the
+  // page footer updates the moment it changes — no reload, no second query.
+  const [logoId, setLogoId] = useState<string | null>(issue.logoId);
+  const logo = logos.find((l) => l.id === logoId)?.image ?? null;
   const [pub, setPub] = useState(false);
   // Once published (now or on load), the publish modal defaults email OFF so a
   // later correction can't re-blast the list.
@@ -136,8 +145,8 @@ export function Editor({
   const statusRef = useRef(status);
   statusRef.current = status;
   const revisionRef = useRef(issue.revision);
-  const latestRef = useRef({ pages, title, theme: themeId });
-  latestRef.current = { pages, title, theme: themeId };
+  const latestRef = useRef({ pages, title, theme: themeId, logoId });
+  latestRef.current = { pages, title, theme: themeId, logoId };
   const chainRef = useRef<Promise<boolean>>(Promise.resolve(true));
 
   const enqueueSave = (kind: "content" | "meta" | "all") => {
@@ -146,7 +155,7 @@ export function Editor({
       if (statusRef.current === "conflict") return false;
       setStatus("saving");
       try {
-        const { pages, title, theme } = latestRef.current;
+        const { pages, title, theme, logoId } = latestRef.current;
         if (kind !== "meta") {
           const res = await saveIssueAction(
             issue.id,
@@ -160,7 +169,7 @@ export function Editor({
           revisionRef.current = res.revision;
         }
         if (kind !== "content") {
-          const res = await saveMetaAction(issue.id, { title, theme });
+          const res = await saveMetaAction(issue.id, { title, theme, logoId });
           if (!res.ok) {
             setStatus("error");
             return false;
@@ -209,7 +218,7 @@ export function Editor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pages, issue.id]);
 
-  // Debounced autosave of meta (title + theme).
+  // Debounced autosave of meta (title + theme + footer logo).
   const firstMeta = useRef(true);
   useEffect(() => {
     if (firstMeta.current) {
@@ -220,7 +229,7 @@ export function Editor({
     const t = setTimeout(() => void enqueueSave("meta"), 800);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, themeId, issue.id]);
+  }, [title, themeId, logoId, issue.id]);
 
   // Warn before closing the tab while an edit hasn't landed on the server.
   useEffect(() => {
@@ -292,6 +301,9 @@ export function Editor({
         themes={themes}
         themeId={themeId}
         onSelectTheme={setThemeId}
+        logos={logos}
+        logoId={logoId}
+        onSelectLogo={setLogoId}
         status={status}
         onRetrySave={() => void enqueueSave("all")}
         onReload={() => window.location.reload()}
@@ -367,6 +379,7 @@ export function Editor({
                   h={PAGE_H}
                   issueNo={issue.number}
                   pageNo={curPage + 1}
+                  logo={logo}
                   clip={false}
                 >
                   <DndContext

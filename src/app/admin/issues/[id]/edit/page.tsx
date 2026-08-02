@@ -3,6 +3,7 @@ import { Editor } from "@/features/editor/editor";
 import { EditorGate } from "@/features/editor/editor-gate";
 import { getIssue } from "@/server/issues";
 import { resolveIssueImages } from "@/server/images";
+import { listLogos } from "@/server/logos";
 import { countSubscribedRecipients } from "@/server/recipients";
 import { listSponsors } from "@/server/sponsors";
 import { requireAdminOrRedirect } from "@/server/session";
@@ -20,10 +21,13 @@ export default async function EditIssuePage({
   if (!issue) notFound();
 
   // The full sponsor list feeds the editor's block picker; the editor also
-  // derives the render map from it, so one query covers both.
-  const [images, sponsors, subscriberCount] = await Promise.all([
+  // derives the render map from it, so one query covers both. The logo list
+  // does the same double duty for the footer mark: it is the picker's options
+  // *and* how the canvas resolves the current choice to an image.
+  const [images, sponsors, logos, subscriberCount] = await Promise.all([
     resolveIssueImages(issue.content),
     listSponsors(),
+    listLogos(),
     countSubscribedRecipients(),
   ]);
 
@@ -35,12 +39,14 @@ export default async function EditIssuePage({
           number: issue.number,
           title: issue.title,
           theme: issue.theme,
+          logoId: issue.logoId,
           content: issue.content,
           revision: issue.revision,
           status: issue.status,
         }}
         images={images}
         sponsors={sponsors}
+        logos={logos}
         subscriberCount={subscriberCount}
       />
     </EditorGate>

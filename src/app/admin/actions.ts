@@ -34,10 +34,15 @@ const idSchema = z.string().uuid();
 // source of truth, so adding a theme needs no edit here. Any *known* theme is
 // accepted (not just the deployment-enabled subset), so a re-save never rejects
 // an issue authored under a since-disabled theme.
+// `logoId` is nullable *and* optional, and the two mean different things: null
+// clears the issue's footer mark, absent leaves it as it is. An id that names no
+// logo is rejected by the foreign key, and the renderers degrade a logo that
+// disappears later to the text-only footer.
 const metaSchema = z
   .object({
     title: z.string().max(200).optional(),
     theme: z.enum(THEME_IDS as [LayoutThemeId, ...LayoutThemeId[]]).optional(),
+    logoId: idSchema.nullable().optional(),
   })
   .strict();
 
@@ -75,7 +80,7 @@ export async function saveIssueAction(
 
 export async function saveMetaAction(
   id: string,
-  meta: { title?: string; theme?: string },
+  meta: { title?: string; theme?: string; logoId?: string | null },
 ): Promise<{ ok: boolean }> {
   await requireAdmin();
   const parsedId = idSchema.safeParse(id);

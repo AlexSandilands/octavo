@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import type { IssueContent } from "@/lib/blocks";
-import type { ImageMap } from "@/lib/images";
+import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 
 // The desktop flipbook and the mobile scroll reader are large, mutually
@@ -29,11 +29,14 @@ const DESKTOP_QUERY = "(min-width: 768px)";
 export function ReaderMount({
   content,
   issueNo,
+  logo,
   images,
   sponsors,
 }: {
   content: IssueContent;
   issueNo: number;
+  /** The issue's footer mark (issue #97), resolved server-side. */
+  logo: ResolvedImage | null;
   images: ImageMap;
   sponsors: SponsorMap;
 }) {
@@ -54,6 +57,7 @@ export function ReaderMount({
     <DesktopReader
       content={content}
       issueNo={issueNo}
+      logo={logo}
       images={images}
       sponsors={sponsors}
     />
@@ -61,6 +65,7 @@ export function ReaderMount({
     <MobileReader
       content={content}
       issueNo={issueNo}
+      logo={logo}
       images={images}
       sponsors={sponsors}
     />

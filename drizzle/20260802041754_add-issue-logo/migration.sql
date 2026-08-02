@@ -1,0 +1,2 @@
+ALTER TABLE "issues" ADD COLUMN "logo_id" text;--> statement-breakpoint
+ALTER TABLE "issues" ADD CONSTRAINT "issues_logo_id_logos_id_fkey" FOREIGN KEY ("logo_id") REFERENCES "logos"("id") ON DELETE SET NULL;

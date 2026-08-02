@@ -47,5 +47,18 @@ export interface LayoutTheme {
   sponsor: (props: SponsorCardProps) => ReactNode;
   /** The page chrome PageFrame paints behind the content (borders/masthead or
    *  accent bar). The running footer stays shared in PageFrame. */
-  page: { decoration: (ctx: PageDecorationContext) => ReactNode };
+  page: {
+    decoration: (ctx: PageDecorationContext) => ReactNode;
+    /**
+     * How far the *logo* footer (issue #97) sits above the page's bottom edge,
+     * as a Tailwind `bottom-*` class. The mark is tall enough to foul chrome a
+     * theme draws near the page edge — classic's double hairline frame — so the
+     * theme that owns the chrome owns the clearance too.
+     *
+     * The no-logo footer is fixed at `bottom-4` in every theme and is not
+     * themeable: issues authored before #97 must keep the footer position they
+     * were laid out against.
+     */
+    logoFooterBottom: string;
+  };
 }

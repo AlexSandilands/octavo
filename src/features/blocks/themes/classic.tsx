@@ -90,5 +90,10 @@ export const classicTheme = {
         </div>
       </>
     ),
+    // The inner hairline above runs at inset-[17px], so the page's ruled area
+    // ends 18px in. The mark stands 27px tall: left at the text footer's height
+    // it would cross both rules. Clear the inner rule by 4px so the lockup reads
+    // as sitting inside the frame rather than punched through it.
+    logoFooterBottom: "bottom-[22px]",
   },
 } satisfies LayoutTheme;

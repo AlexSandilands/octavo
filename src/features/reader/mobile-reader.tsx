@@ -5,11 +5,12 @@ import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { site } from "@/lib/site";
 import { textSizeScale, type Block, type IssueContent } from "@/lib/blocks";
-import type { ImageMap } from "@/lib/images";
+import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 import { externalHref } from "@/lib/rich-text";
 import { richTextToPlain } from "@/lib/rich-text-doc";
 import { BlockImage } from "@/features/blocks/block-view";
+import { FOOTER_ROW, FooterWordmark } from "@/features/blocks/page-footer";
 import { RichText } from "@/features/blocks/rich-text";
 import { resolveMontageSlides } from "@/features/blocks/montage";
 import { MontagePlayer } from "@/features/blocks/montage-player";
@@ -20,11 +21,14 @@ import { useIssuePdf } from "./use-issue-pdf";
 export function MobileReader({
   content,
   issueNo,
+  logo,
   images,
   sponsors,
 }: {
   content: IssueContent;
   issueNo: number;
+  /** The issue's footer mark (issue #97), or null for no closing wordmark. */
+  logo: ResolvedImage | null;
   images: ImageMap;
   sponsors: SponsorMap;
 }) {
@@ -167,6 +171,16 @@ export function MobileReader({
               />
             ))
           ),
+        )}
+
+        {/* This reader has no pages, so it has no running footer to carry the
+            mark. It closes with it once instead — the same lockup the printed
+            page uses, minus the page number. Nothing renders when the issue has
+            no logo, so an issue without one ends exactly as it did before. */}
+        {logo && (
+          <div className={`border-line-soft mt-10 border-t pt-5 ${FOOTER_ROW}`}>
+            <FooterWordmark logo={logo} />
+          </div>
         )}
       </article>
 

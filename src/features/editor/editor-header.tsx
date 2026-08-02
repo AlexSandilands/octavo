@@ -7,6 +7,8 @@ import type {
   LayoutTheme,
   LayoutThemeId,
 } from "@/features/blocks/themes/registry";
+import type { LogoListItem } from "@/lib/logos";
+import { LogoPicker } from "./logo-picker";
 import { ThemeMenu } from "./theme-menu";
 
 export type SaveStatus = "saved" | "saving" | "error" | "conflict";
@@ -22,6 +24,9 @@ export function EditorHeader({
   themes,
   themeId,
   onSelectTheme,
+  logos,
+  logoId,
+  onSelectLogo,
   status,
   onRetrySave,
   onReload,
@@ -36,6 +41,11 @@ export function EditorHeader({
   /** The current layout theme id. */
   themeId: LayoutThemeId;
   onSelectTheme: (id: LayoutThemeId) => void;
+  /** The logo library to choose the issue's footer mark from. */
+  logos: LogoListItem[];
+  /** The current footer mark, or null for the text-only footer. */
+  logoId: string | null;
+  onSelectLogo: (logoId: string | null) => void;
   status: SaveStatus;
   onRetrySave: () => void;
   onReload: () => void;
@@ -89,6 +99,7 @@ export function EditorHeader({
         )}
       </div>
       <div className="flex items-center gap-3">
+        <LogoPicker logos={logos} logoId={logoId} onChange={onSelectLogo} />
         {themes.length > 1 && (
           <ThemeMenu
             themes={themes}

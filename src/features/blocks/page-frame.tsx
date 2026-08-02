@@ -1,5 +1,6 @@
-import { site } from "@/lib/site";
+import type { ResolvedImage } from "@/lib/images";
 import type { LayoutTheme } from "./themes/registry";
+import { PageFooter } from "./page-footer";
 
 // The fixed design canvas every page is authored and rendered at. The reader and
 // editor never change these px — they render the page at this size and scale the
@@ -53,6 +54,7 @@ export function PageFrame({
   issueNo,
   pageNo,
   side = "left",
+  logo = null,
   clip = true,
   children,
 }: {
@@ -62,6 +64,8 @@ export function PageFrame({
   issueNo: number;
   pageNo?: number;
   side?: "left" | "right";
+  /** The issue's footer mark (`issues.logoId`, resolved). Null → text footer. */
+  logo?: ResolvedImage | null;
   /** Reader clips overflow to the page box; the editor leaves it visible. */
   clip?: boolean;
   children: React.ReactNode;
@@ -81,13 +85,13 @@ export function PageFrame({
 
       {children}
 
-      <div
-        data-page-footer
-        className="text-faint2 absolute right-10 bottom-4 left-10 flex justify-between font-sans text-[10px] font-medium tracking-[0.12em] uppercase"
-      >
-        <span>{side === "left" ? site.name : `No. ${issueNo}`}</span>
-        <span>{pageNo ?? ""}</span>
-      </div>
+      <PageFooter
+        logo={logo}
+        issueNo={issueNo}
+        pageNo={pageNo}
+        side={side}
+        logoBottom={theme.page.logoFooterBottom}
+      />
     </div>
   );
 }

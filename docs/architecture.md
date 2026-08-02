@@ -34,7 +34,8 @@ src/
     api/admin/images/  image upload route handler (multipart → sharp → R2)
   components/          shared presentational UI (ui.tsx, icons.tsx, admin-shell, ...)
   features/            feature modules with their own UI/logic
-    blocks/            BlockView — themed block renderer (+ the montage widget)
+    blocks/            BlockView — themed block renderer (+ the montage widget);
+                       page-frame + page-footer — the shared page chrome
     editor/            the page-based editor (client) + per-block edit controls
     reader/            desktop-reader, mobile-reader (client)
     members/           members manager (client): table, toolbar, add/import dialogs
@@ -158,7 +159,7 @@ unsubscribe anyone. The `/unsubscribe` route sits outside the member gate by des
 | `/admin/help`                  | dynamic       | In-app guide for a non-technical owner (plain-language walkthrough of issues/publishing/members/sponsors/PDF; content in `src/features/help/`)                                                                                                                                                                    |
 | `POST /api/admin/images`       | route handler | Upload: multipart → sniff real format (SVG rejected) → sharp WebP → storage → `images` row                                                                                                                                                                                                                        |
 | `GET /api/images/[...key]`     | route handler | Serves the local dev storage fallback (unused when R2 is set)                                                                                                                                                                                                                                                     |
-| `GET /api/issues/[number]/pdf` | route handler | **Member session required.** On-demand PDF: serves the cached bytes (`pdfs/{issueId}/{revision}-{theme}-v{N}.pdf` — `?theme=` follows the reader's toggle; `v{N}` is the code-side render version), else generates via Playwright, caches, serves. Bytes proxied (not a public URL) so the PDF stays members-only |
+| `GET /api/issues/[number]/pdf` | route handler | **Member session required.** On-demand PDF: serves the cached bytes (`pdfs/{issueId}/{revision}-{theme}-{logoId}-v{N}.pdf` — `?theme=` follows the reader's toggle, `{logoId}` is the issue's footer mark, a render input `revision` doesn't cover; `v{N}` is the code-side render version), else generates via Playwright, caches, serves. Bytes proxied (not a public URL) so the PDF stays members-only |
 
 Route-level `loading.tsx`/`error.tsx` cover `/`, `/read/[issueId]` and `/admin/*`. Static
 security headers (`nosniff`, `X-Frame-Options`, referrer/permissions policies) are set globally
