@@ -102,6 +102,30 @@ export const SEED_IMAGES = [
     palette: aperture,
     style: { kind: "wash" },
   },
+  // The montage sequence (content v4, issue #95): three same-shape frames from
+  // the same palette, so the cross-fade reads as one darkroom sequence rather
+  // than three unrelated pictures.
+  {
+    key: "contact",
+    width: 1600,
+    height: 1000,
+    palette: aperture,
+    style: { kind: "duotone", motif: "triangles" },
+  },
+  {
+    key: "latent",
+    width: 1600,
+    height: 1000,
+    palette: aperture,
+    style: { kind: "field", motif: "rings" },
+  },
+  {
+    key: "fixer",
+    width: 1600,
+    height: 1000,
+    palette: aperture,
+    style: { kind: "duotone", motif: "arcs" },
+  },
   // The Commons (village newsletter — classic theme)
   {
     key: "green",

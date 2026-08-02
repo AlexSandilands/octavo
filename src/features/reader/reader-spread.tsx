@@ -311,6 +311,11 @@ function PageView({
             theme={theme}
             images={images}
             sponsors={sponsors}
+            // Only the spread(s) currently in view are mounted here, so a
+            // montage's timer exists only for pages the member can actually
+            // see — and a leaf mid-turn rotates edge-on and stops intersecting,
+            // which pauses it for the duration of the flip.
+            interactive
           />
         )}
       </PageFrame>

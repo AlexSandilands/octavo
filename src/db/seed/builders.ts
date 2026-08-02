@@ -2,6 +2,7 @@
 // Keeping these here lets each issue file read like an outline and stay short.
 import {
   CONTENT_VERSION,
+  MONTAGE_DEFAULT_INTERVAL,
   type Block,
   type HeadingLevel,
   type IssueContent,
@@ -62,6 +63,27 @@ export const Img = (
   imageId,
   caption: opts.caption ?? "",
   alt: opts.alt,
+  align: opts.align ?? "full",
+  width: opts.width ?? 100,
+});
+// A montage (content v4): an ordered slide list that cross-fades in the readers
+// and prints as its first image. Sizing/placement mirror Img, since a montage
+// occupies the same kind of photo slot.
+export const Mont = (
+  slides: { image: string; alt: string }[],
+  opts: {
+    caption?: string;
+    /** Seconds between cross-fades; 0 = manual only (MONTAGE_MANUAL). */
+    interval?: number;
+    align?: "full" | "left" | "right";
+    width?: number;
+  } = {},
+): Block => ({
+  id: id(),
+  type: "montage",
+  items: slides.map((s) => ({ imageId: s.image, alt: s.alt })),
+  caption: opts.caption ?? "",
+  interval: opts.interval ?? MONTAGE_DEFAULT_INTERVAL,
   align: opts.align ?? "full",
   width: opts.width ?? 100,
 });
