@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { SiteSettings } from "@/lib/branding";
 import type { LogoListItem } from "@/lib/logos";
@@ -28,9 +28,64 @@ import { MenuSelect, type MenuSelectItem } from "@/features/editor/menu-select";
 // and the mark per issue, so both are here purely to let the owner look at the
 // combination they care about.
 
-// Wide enough to read the footer at its smallest, narrow enough to sit beside
-// the form on a laptop.
-const PREVIEW_W = 340;
+// Above `xl` the preview fills whatever width the owner has dragged its column
+// to (see resizable-split.tsx). Below it, the panes stack full-width, where a
+// page rendered edge to edge would dwarf the form it belongs to — so the box is
+// capped there at the width this preview has always been.
+const STACKED_MAX_W = 340;
+
+// Tailwind's `xl`: the breakpoint the split layout turns on at.
+const WIDE_QUERY = "(min-width: 80rem)";
+
+// Room the column's own furniture takes above and below the page — the control
+// row, the caption, and the gaps between them. Subtracted from the viewport so
+// the sticky preview always fits on screen whole.
+const COLUMN_CHROME_H = 150;
+
+/** The page's on-screen size, tracked from its own container rather than a
+ *  constant: the column is resizable, so the scale has to follow it. */
+function usePreviewScale() {
+  const boxRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(STACKED_MAX_W);
+  const [maxHeight, setMaxHeight] = useState(Infinity);
+
+  useEffect(() => {
+    const el = boxRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) setWidth(entry.contentRect.width);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Above xl the preview is sticky, so a page taller than the viewport puts its
+  // own footer — the thing these settings are about — permanently below the
+  // fold with no way to scroll to it. Cap the height there. Below xl the column
+  // scrolls normally, so height is not a constraint and clamping by it would
+  // shrink the stacked preview on a short window for no reason.
+  useEffect(() => {
+    const media = window.matchMedia(WIDE_QUERY);
+    const sync = () =>
+      setMaxHeight(
+        media.matches
+          ? Math.max(240, window.innerHeight - COLUMN_CHROME_H)
+          : Infinity,
+      );
+    sync();
+    media.addEventListener("change", sync);
+    window.addEventListener("resize", sync);
+    return () => {
+      media.removeEventListener("change", sync);
+      window.removeEventListener("resize", sync);
+    };
+  }, []);
+
+  // Never above 1: a magazine page blown up past its real size would misrepresent
+  // the type, which is the whole point of looking at it.
+  const scale = Math.min(1, width / PAGE_W, maxHeight / PAGE_H);
+  return { boxRef, scale };
+}
 
 export function SettingsPreview({
   settings,
@@ -40,6 +95,7 @@ export function SettingsPreview({
   settings: SiteSettings;
   logos: LogoListItem[];
 }) {
+  const { boxRef, scale } = usePreviewScale();
   const themes = enabledThemes();
   const [themeId, setThemeId] = useState<LayoutThemeId>(
     themes[0]?.id ?? "classic",
@@ -86,30 +142,37 @@ export function SettingsPreview({
         )}
       </div>
 
-      {/* Inert: a picture of a page, not a page. Nothing inside is reachable by
-          keyboard or pointer, so it never competes with the form for focus. */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none w-fit overflow-hidden rounded-[3px] shadow-[0_10px_30px_rgba(40,36,28,0.14)] select-none"
-      >
-        <ScaledPage scale={PREVIEW_W / PAGE_W}>
-          <PageFrame
-            theme={getTheme(themeId)}
-            w={PAGE_W}
-            h={PAGE_H}
-            issueNo={12}
-            pageNo={7}
-            side="right"
-            logo={logo}
-            settings={settings}
-          >
-            <PlaceholderPage themeId={themeId} />
-          </PageFrame>
-        </ScaledPage>
+      {/* The measured box: full width of its column above xl, capped below it.
+          Inert — a picture of a page, not a page. Nothing inside is reachable
+          by keyboard or pointer, so it never competes with the form for focus. */}
+      <div ref={boxRef} className="max-w-[340px] xl:max-w-none">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none w-fit overflow-hidden rounded-[3px] shadow-[0_10px_30px_rgba(40,36,28,0.14)] select-none"
+        >
+          <ScaledPage scale={scale}>
+            <PageFrame
+              theme={getTheme(themeId)}
+              w={PAGE_W}
+              h={PAGE_H}
+              issueNo={12}
+              pageNo={7}
+              side="right"
+              logo={logo}
+              settings={settings}
+            >
+              <PlaceholderPage themeId={themeId} />
+            </PageFrame>
+          </ScaledPage>
+        </div>
       </div>
 
-      <p className="text-faint2 max-w-[340px] font-sans text-[12px] leading-relaxed">
-        A page at about a third of its real size, with stand-in words.{" "}
+      {/* Held to a readable measure, and to the stacked layout's own width
+          below xl so that layout is untouched by the split. */}
+      <p className="text-faint2 max-w-[340px] font-sans text-[12px] leading-relaxed xl:max-w-[420px]">
+        {scale >= 1
+          ? "A page at its real size, with stand-in words."
+          : `A page at ${Math.round(scale * 100)}% of its real size, with stand-in words.`}{" "}
         {logos.length === 0 && (
           <>
             The library below has no marks yet —{" "}

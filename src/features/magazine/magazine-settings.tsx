@@ -13,6 +13,7 @@ import {
 } from "@/lib/branding";
 import type { LogoListItem } from "@/lib/logos";
 import { updateSettingsAction } from "@/app/admin/magazine/actions";
+import { ResizableSplit } from "./resizable-split";
 import { DetailsCard, FooterCard } from "./settings-cards";
 import { SettingsPreview } from "./settings-preview";
 
@@ -108,41 +109,44 @@ export function MagazineSettings({
   };
 
   return (
-    <div className="mt-7 grid items-start gap-8 xl:grid-cols-[minmax(0,1fr)_380px]">
-      <div className="flex min-w-0 flex-col gap-6">
-        <DetailsCard form={form} defaults={defaults} onChange={change} />
-        <FooterCard form={form} onChange={change} />
-        <div className="flex flex-wrap items-center gap-4">
-          <Button
-            onClick={save}
-            disabled={!dirty && status !== "error"}
-            busy={status === "saving"}
-          >
-            {status === "saving" ? "Saving…" : "Save changes"}
-          </Button>
-          <p
-            role="status"
-            aria-live="polite"
-            className="font-sans text-[13px] font-medium"
-          >
-            {status === "saved" && !dirty && (
-              <span className="text-accent">Saved — live on the site now.</span>
-            )}
-            {status === "error" && (
-              <span className="text-warn">
-                Couldn&rsquo;t save. Please try again.
-              </span>
-            )}
-            {status !== "error" && dirty && (
-              <span className="text-faint">Unsaved changes.</span>
-            )}
-          </p>
-        </div>
-      </div>
-
-      <div className="xl:sticky xl:top-0">
-        <SettingsPreview settings={preview} logos={logos} />
-      </div>
-    </div>
+    <ResizableSplit
+      storageKey="magazine-settings-split"
+      label="Settings and preview split"
+      left={
+        <>
+          <DetailsCard form={form} defaults={defaults} onChange={change} />
+          <FooterCard form={form} onChange={change} />
+          <div className="flex flex-wrap items-center gap-4">
+            <Button
+              onClick={save}
+              disabled={!dirty && status !== "error"}
+              busy={status === "saving"}
+            >
+              {status === "saving" ? "Saving…" : "Save changes"}
+            </Button>
+            <p
+              role="status"
+              aria-live="polite"
+              className="font-sans text-[13px] font-medium"
+            >
+              {status === "saved" && !dirty && (
+                <span className="text-accent">
+                  Saved — live on the site now.
+                </span>
+              )}
+              {status === "error" && (
+                <span className="text-warn">
+                  Couldn&rsquo;t save. Please try again.
+                </span>
+              )}
+              {status !== "error" && dirty && (
+                <span className="text-faint">Unsaved changes.</span>
+              )}
+            </p>
+          </div>
+        </>
+      }
+      right={<SettingsPreview settings={preview} logos={logos} />}
+    />
   );
 }
