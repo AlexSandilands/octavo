@@ -1,6 +1,6 @@
 import "server-only";
+import type { Branding } from "@/lib/branding";
 import { escapeAttr } from "@/lib/rich-text";
-import { site } from "@/lib/site";
 
 // The new-issue announcement email — template only (the transport lives in
 // publish-email.ts). Mirrors the sign-in email's look (auth-email.ts): inline
@@ -14,6 +14,9 @@ import { site } from "@/lib/site";
 // other secrets in the body, one recipient per send.
 
 export type IssueEmailParams = {
+  /** The magazine's effective branding (issue #105) — resolved by the caller so
+   *  these stay pure string builders. */
+  branding: Branding;
   issueTitle: string;
   issueNumber: number;
   // The member's personal magic link (signs in + opens the issue).
@@ -22,18 +25,23 @@ export type IssueEmailParams = {
   unsubscribeUrl: string;
 };
 
-export function issueEmailSubject(number: number, title: string): string {
-  return `${site.name} No. ${number}: ${title}`;
+export function issueEmailSubject(
+  magazineName: string,
+  number: number,
+  title: string,
+): string {
+  return `${magazineName} No. ${number}: ${title}`;
 }
 
 export function renderIssueEmailHtml({
+  branding,
   issueTitle,
   issueNumber,
   readUrl,
   unsubscribeUrl,
 }: IssueEmailParams): string {
-  const name = escapeAttr(site.name);
-  const org = escapeAttr(site.org);
+  const name = escapeAttr(branding.name);
+  const org = escapeAttr(branding.org);
   const title = escapeAttr(issueTitle);
   const href = escapeAttr(readUrl);
   const unsub = escapeAttr(unsubscribeUrl);
@@ -66,13 +74,14 @@ export function renderIssueEmailHtml({
 }
 
 export function renderIssueEmailText({
+  branding,
   issueTitle,
   issueNumber,
   readUrl,
   unsubscribeUrl,
 }: IssueEmailParams): string {
   return [
-    `${site.name} — New issue No. ${issueNumber}: ${issueTitle}`,
+    `${branding.name} — New issue No. ${issueNumber}: ${issueTitle}`,
     "",
     "The latest issue is ready. Open the link below and you'll be reading in a",
     "moment — it signs you in, no password needed:",
@@ -81,7 +90,7 @@ export function renderIssueEmailText({
     "",
     "This link is just for you and works once.",
     "",
-    `You're receiving this because you're a member of ${site.org}.`,
+    `You're receiving this because you're a member of ${branding.org}.`,
     "Unsubscribe from these emails:",
     unsubscribeUrl,
   ].join("\n");

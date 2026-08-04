@@ -16,6 +16,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import type { SiteSettings } from "@/lib/branding";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { LogoListItem } from "@/lib/logos";
 import type { SponsorListItem, SponsorMap } from "@/lib/sponsors";
@@ -62,12 +63,16 @@ export function Editor({
   images: initialImages,
   sponsors,
   logos,
+  settings,
   subscriberCount,
 }: {
   issue: EditorIssue;
   images: ImageMap;
   sponsors: SponsorListItem[];
   logos: LogoListItem[];
+  /** The magazine's effective branding + footer appearance (issue #105), so the
+   *  editor canvas draws the same page chrome the reader will. */
+  settings: SiteSettings;
   subscriberCount: number;
 }) {
   // The picker chooses from this list; the canvas previews a placed sponsor
@@ -380,6 +385,7 @@ export function Editor({
                   issueNo={issue.number}
                   pageNo={curPage + 1}
                   logo={logo}
+                  settings={settings}
                   clip={false}
                 >
                   <DndContext

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { IssueContent } from "@/lib/blocks";
+import type { SiteSettings } from "@/lib/branding";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 import {
@@ -21,6 +22,7 @@ export function DesktopReader({
   content,
   issueNo,
   logo,
+  settings,
   images,
   sponsors,
 }: {
@@ -28,6 +30,9 @@ export function DesktopReader({
   issueNo: number;
   /** The issue's footer mark (issue #97), or null for the text-only footer. */
   logo: ResolvedImage | null;
+  /** The magazine's effective branding + footer appearance (issue #105),
+   *  resolved on the server and threaded down to the page chrome. */
+  settings: SiteSettings;
   images: ImageMap;
   sponsors: SponsorMap;
 }) {
@@ -254,6 +259,7 @@ export function DesktopReader({
         toc={toc}
         spread={spread}
         issueNo={issueNo}
+        magazineName={settings.name}
         viewOf={viewOf}
         onNavigate={go}
       />
@@ -308,6 +314,7 @@ export function DesktopReader({
                 scale={panZoom.scale}
                 issueNo={issueNo}
                 logo={logo}
+                settings={settings}
                 images={images}
                 sponsors={sponsors}
               />

@@ -1,6 +1,7 @@
 "use client";
 
 import type { Page } from "@/lib/blocks";
+import type { SiteSettings } from "@/lib/branding";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 import type { LayoutTheme } from "@/features/blocks/themes/registry";
@@ -31,6 +32,7 @@ export function ReaderSpread({
   scale,
   issueNo,
   logo,
+  settings,
   images,
   sponsors,
 }: {
@@ -48,6 +50,8 @@ export function ReaderSpread({
   scale: number;
   issueNo: number;
   logo: ResolvedImage | null;
+  /** The magazine's effective branding + footer appearance (issue #105). */
+  settings: SiteSettings;
   images: ImageMap;
   sponsors: SponsorMap;
 }) {
@@ -63,6 +67,7 @@ export function ReaderSpread({
         scale={scale}
         issueNo={issueNo}
         logo={logo}
+        settings={settings}
         images={images}
         sponsors={sponsors}
       />
@@ -92,6 +97,7 @@ export function ReaderSpread({
             scale={scale}
             issueNo={issueNo}
             logo={logo}
+            settings={settings}
             images={images}
             sponsors={sponsors}
           />
@@ -103,6 +109,7 @@ export function ReaderSpread({
           scale={scale}
           issueNo={issueNo}
           logo={logo}
+          settings={settings}
           pageNo={1}
           images={images}
           sponsors={sponsors}
@@ -120,6 +127,7 @@ export function ReaderSpread({
         scale={scale}
         issueNo={issueNo}
         logo={logo}
+        settings={settings}
         pageNo={leftNo}
         images={images}
         sponsors={sponsors}
@@ -131,6 +139,7 @@ export function ReaderSpread({
         scale={scale}
         issueNo={issueNo}
         logo={logo}
+        settings={settings}
         pageNo={leftNo + 1}
         images={images}
         sponsors={sponsors}
@@ -153,6 +162,7 @@ function TurnLeaf({
   scale,
   issueNo,
   logo,
+  settings,
   images,
   sponsors,
 }: {
@@ -165,6 +175,8 @@ function TurnLeaf({
   scale: number;
   issueNo: number;
   logo: ResolvedImage | null;
+  /** The magazine's effective branding + footer appearance (issue #105). */
+  settings: SiteSettings;
   images: ImageMap;
   sponsors: SponsorMap;
 }) {
@@ -200,6 +212,7 @@ function TurnLeaf({
         scale={scale}
         issueNo={issueNo}
         logo={logo}
+        settings={settings}
         pageNo={idx + 1}
         images={images}
         sponsors={sponsors}
@@ -257,6 +270,7 @@ function TurnLeaf({
             scale={scale}
             issueNo={issueNo}
             logo={logo}
+            settings={settings}
             pageNo={frontIdx + 1}
             images={images}
             sponsors={sponsors}
@@ -278,6 +292,7 @@ function TurnLeaf({
             scale={scale}
             issueNo={issueNo}
             logo={logo}
+            settings={settings}
             pageNo={backIdx + 1}
             images={images}
             sponsors={sponsors}
@@ -295,6 +310,7 @@ function PageView({
   scale,
   issueNo,
   logo,
+  settings,
   pageNo,
   images,
   sponsors,
@@ -305,6 +321,7 @@ function PageView({
   scale: number;
   issueNo: number;
   logo: ResolvedImage | null;
+  settings: SiteSettings;
   pageNo?: number;
   images: ImageMap;
   sponsors: SponsorMap;
@@ -317,6 +334,7 @@ function PageView({
         h={PAGE_H}
         issueNo={issueNo}
         logo={logo}
+        settings={settings}
         pageNo={page ? pageNo : undefined}
         side={side}
       >

@@ -1,4 +1,5 @@
 import type { IssueContent } from "@/lib/blocks";
+import type { SiteSettings } from "@/lib/branding";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 import { resolveTheme } from "@/features/blocks/themes/registry";
@@ -32,6 +33,7 @@ export function PrintDocument({
   issueNo,
   theme,
   logo,
+  settings,
   images,
   sponsors,
 }: {
@@ -40,6 +42,9 @@ export function PrintDocument({
   theme: string;
   /** The issue's footer mark (issue #97); part of the PDF's cache key. */
   logo: ResolvedImage | null;
+  /** The magazine's effective branding + footer appearance (issue #105); also
+   *  part of the PDF's cache key, via the chrome fingerprint. */
+  settings: SiteSettings;
   images: ImageMap;
   sponsors: SponsorMap;
 }) {
@@ -65,6 +70,7 @@ export function PrintDocument({
               pageNo={pageNo}
               side={side}
               logo={logo}
+              settings={settings}
             >
               <PageBlocks
                 page={page}

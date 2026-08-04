@@ -2,7 +2,6 @@ import * as Sentry from "@sentry/nextjs";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { DEMO_MODE } from "@/lib/demo";
-import { site } from "@/lib/site";
 import { getObject, putObject } from "@/lib/storage";
 import {
   ChromiumUnavailableError,
@@ -12,6 +11,7 @@ import {
 import { DEFAULT_THEME_ID, THEME_IDS } from "@/features/blocks/themes/registry";
 import { getPublishedIssueByNumber } from "@/server/issues";
 import { getUserFailClosed } from "@/server/session";
+import { chromeFingerprint, getSettings } from "@/server/settings";
 
 // Members-only PDF download. The reader is gated, so this is too: a signed-out
 // request is refused. Demo mode (issue #50) ungates the reader, so this
@@ -19,15 +19,22 @@ import { getUserFailClosed } from "@/server/session";
 // the anonymous generation cost bounded (one Chromium run per revision+theme).
 //
 // The PDF is a derived artifact cached in R2 keyed by every input that changes
-// what it looks like: issue id + revision + theme + footer logo + render version
-// (`pdfs/{issueId}/{revision}-{theme}-{logo}-v{RENDER_VERSION}.pdf`) — a cache
-// hit serves the stored bytes; a miss generates once via Playwright, stores, and
-// serves. Since `revision` bumps on every content write (and RENDER_VERSION on
-// renderer changes), editing + republishing yields a new key and a fresh PDF
-// with no manual invalidation (design-principles §4). The logo is in the key
-// because it is the one *render* input that lives outside `content`: swapping
-// it is a meta save, which does not bump `revision`, so without it a re-download
-// would keep serving the previous mark.
+// what it looks like: issue id + revision + theme + footer logo + magazine
+// chrome + render version
+// (`pdfs/{issueId}/{revision}-{theme}-{logo}-{chrome}-v{RENDER_VERSION}.pdf`) —
+// a cache hit serves the stored bytes; a miss generates once via Playwright,
+// stores, and serves. Since `revision` bumps on every content write (and
+// RENDER_VERSION on renderer changes), editing + republishing yields a new key
+// and a fresh PDF with no manual invalidation (design-principles §4).
+//
+// Two of those segments are *render* inputs living outside `content`, so
+// neither bumps `revision`; without them a re-download would keep serving a
+// stale document:
+//   - the logo: swapping the issue's mark is a meta save (issue #97).
+//   - the chrome fingerprint: a short hash of the branding + footer appearance
+//     the owner edits at /admin/magazine (issue #105), baked into every printed
+//     page (classic running head, footer name, footer lockup). See
+//     chromeFingerprint() for exactly what it does and does not cover.
 //
 // The bytes are proxied through this endpoint rather than served from a public
 // URL: unlike images, a whole-issue PDF stays behind the member gate.
@@ -72,14 +79,17 @@ const themeSchema = z
 // with the old rendering bug. v2: trailing-blank-page fix. v3: montage blocks
 // (issue #95) — a new block type the print document renders, so every cached
 // PDF must be rebuilt from the current renderer. v4: the page footer redesign
-// (issue #97).
-const RENDER_VERSION = 4;
+// (issue #97). v5: the footer's wording and appearance now come from magazine
+// settings (issue #105) — the key gained a chrome segment, so this bump is
+// belt-and-braces, but the gate for print-visible changes is a blanket rule
+// (docs/workflow.md).
+const RENDER_VERSION = 5;
 
 // A download filename the browser and the audience can read. Strip anything
 // path- or header-unsafe; keep an ASCII fallback plus a UTF-8 form for clients
 // that honour RFC 5987.
-function contentDisposition(issueNumber: number): string {
-  const base = `${site.name} No. ${issueNumber}`;
+function contentDisposition(magazineName: string, issueNumber: number): string {
+  const base = `${magazineName} No. ${issueNumber}`;
   const ascii = base.replace(/[^\x20-\x7e]/g, "").replace(/["\\]/g, "");
   const safe = (ascii || `Issue ${issueNumber}`).trim();
   return `attachment; filename="${safe}.pdf"; filename*=UTF-8''${encodeURIComponent(base)}.pdf`;
@@ -119,7 +129,9 @@ export async function GET(
   }
   const theme = themeParam.data;
 
-  const key = `pdfs/${issue.id}/${issue.revision}-${theme}-${issue.logoId ?? "nologo"}-v${RENDER_VERSION}.pdf`;
+  const settings = await getSettings();
+  const chrome = chromeFingerprint(settings);
+  const key = `pdfs/${issue.id}/${issue.revision}-${theme}-${issue.logoId ?? "nologo"}-${chrome}-v${RENDER_VERSION}.pdf`;
 
   let pdf: Buffer | null;
   try {
@@ -149,7 +161,7 @@ export async function GET(
     headers: {
       "Content-Type": "application/pdf",
       "Content-Length": String(pdf.length),
-      "Content-Disposition": contentDisposition(number),
+      "Content-Disposition": contentDisposition(settings.name, number),
       // Always revalidate against the endpoint so a republish (new revision) is
       // never masked by a cached download.
       "Cache-Control": "private, no-store",

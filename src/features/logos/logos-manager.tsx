@@ -10,8 +10,8 @@ import { LogoDialog } from "./logo-dialog";
 
 // Client owner of the logos admin: the header actions, the empty state, the
 // list, and the add/rename dialog. Mutations run through the colocated server
-// actions (which revalidate /admin/logos); after each we router.refresh() so the
-// server-rendered list this component receives reflects the change.
+// actions (which revalidate /admin/magazine); after each we router.refresh() so
+// the server-rendered list this component receives reflects the change.
 
 // null = closed; "new" = add; a logo = rename that record.
 type Editing = LogoListItem | "new" | null;
@@ -29,7 +29,9 @@ export function LogosManager({ logos }: { logos: LogoListItem[] }) {
     <>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-ink font-serif text-3xl">Logos</h1>
+          <h2 id="logos" className="text-ink scroll-mt-6 font-serif text-3xl">
+            Logos
+          </h2>
           <p className="text-faint mt-1.5 font-sans text-sm">{summary}</p>
         </div>
         {logos.length > 0 && (
@@ -49,7 +51,7 @@ export function LogosManager({ logos }: { logos: LogoListItem[] }) {
             <div className="bg-tint text-accent flex h-[72px] w-[72px] items-center justify-center rounded-full">
               <Icon name="image" size={32} strokeWidth={1.5} />
             </div>
-            <h2 className="text-ink mt-5 font-serif text-2xl">No logos yet</h2>
+            <h3 className="text-ink mt-5 font-serif text-2xl">No logos yet</h3>
             <p className="text-muted mt-2.5 max-w-sm font-sans text-[15px] leading-relaxed">
               Keep the club&rsquo;s marks here — a crest, an emblem, a wordmark.
               Upload each one once and other parts of the magazine can use it.

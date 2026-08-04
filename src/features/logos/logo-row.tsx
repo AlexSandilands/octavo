@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { Icon } from "@/components/icons";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import type { LogoListItem } from "@/lib/logos";
-import { deleteLogoAction } from "@/app/admin/logos/actions";
+import { deleteLogoAction } from "@/app/admin/magazine/logo-actions";
 
 // One logo in the admin list: the mark, its name, and rename/delete. Delete
 // confirms first, and the action refuses outright while anything still uses the

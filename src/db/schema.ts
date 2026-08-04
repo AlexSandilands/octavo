@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   type AnyPgColumn,
   pgTable,
@@ -9,9 +10,11 @@ import {
   primaryKey,
   pgEnum,
   index,
+  check,
 } from "drizzle-orm/pg-core";
 import { createId } from "@/lib/id";
 import type { IssueContent } from "@/lib/blocks";
+import type { FooterAlign, MarkSize, TextSize } from "@/lib/branding";
 
 // All timestamps are timestamptz: the app runs in a different timezone locally
 // than on Railway, and naive timestamps make publishedAt comparisons drift.
@@ -145,7 +148,7 @@ export const sponsors = pgTable("sponsors", {
 });
 
 // A small library of club logo marks (transparent PNG/WebP) the admin manages
-// at /admin/logos, so features can reference "a logo" by id instead of each one
+// at /admin/magazine, so features can reference "a logo" by id instead of each one
 // growing its own upload. `imageId` goes through the same images pipeline as
 // everything else; it is notNull because a logo *is* its mark — a nameless-image
 // row would be unrenderable — and cascades, so removing the underlying image
@@ -164,4 +167,40 @@ export const logos = pgTable(
       .defaultNow(),
   },
   (t) => [index("logos_image_id_idx").on(t.imageId)],
+);
+
+// ── Magazine settings (issue #105) ──────────────────────────────────────────
+
+// The one row of owner-editable branding: the magazine's wording and the
+// running footer's appearance, edited at /admin/magazine. A singleton by
+// construction — `id` is fixed at 1 by the CHECK, so the row is upserted rather
+// than created/listed and there is no way to end up with two competing rows.
+//
+// EVERY value column is nullable and NULL means "use the deployment default"
+// (the NEXT_PUBLIC_* branding vars / the shipped footer look, see
+// src/lib/site-defaults.ts + DEFAULT_FOOTER_STYLE). That is what lets a
+// deployment that never opens the page — and a database with no row at all —
+// render exactly as it did before this table existed: there are no column
+// defaults to disagree with the env, and clearing a field in the admin puts the
+// deployment value back rather than blanking the site.
+//
+// The three appearance columns are plain text validated in the app (zod against
+// the unions in src/lib/branding.ts), not pgEnums: the sets are presentational
+// and expected to grow, and adding a value to a Postgres enum is a migration
+// this app doesn't need to pay for.
+export const settings = pgTable(
+  "settings",
+  {
+    id: integer("id").primaryKey().default(1),
+    magazineName: text("magazine_name"),
+    orgName: text("org_name"),
+    tagline: text("tagline"),
+    footerMarkSize: text("footer_mark_size").$type<MarkSize>(),
+    footerTextSize: text("footer_text_size").$type<TextSize>(),
+    footerAlign: text("footer_align").$type<FooterAlign>(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [check("settings_singleton", sql`${t.id} = 1`)],
 );

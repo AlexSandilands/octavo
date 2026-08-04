@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import type { IssueContent } from "@/lib/blocks";
+import type { SiteSettings } from "@/lib/branding";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 
@@ -30,6 +31,7 @@ export function ReaderMount({
   content,
   issueNo,
   logo,
+  settings,
   images,
   sponsors,
 }: {
@@ -37,6 +39,9 @@ export function ReaderMount({
   issueNo: number;
   /** The issue's footer mark (issue #97), resolved server-side. */
   logo: ResolvedImage | null;
+  /** The magazine's effective branding + footer appearance (issue #105),
+   *  resolved on the server and threaded down to the page chrome. */
+  settings: SiteSettings;
   images: ImageMap;
   sponsors: SponsorMap;
 }) {
@@ -58,6 +63,7 @@ export function ReaderMount({
       content={content}
       issueNo={issueNo}
       logo={logo}
+      settings={settings}
       images={images}
       sponsors={sponsors}
     />
@@ -66,6 +72,7 @@ export function ReaderMount({
       content={content}
       issueNo={issueNo}
       logo={logo}
+      settings={settings}
       images={images}
       sponsors={sponsors}
     />

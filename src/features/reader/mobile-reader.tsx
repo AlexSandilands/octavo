@@ -3,14 +3,18 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
-import { site } from "@/lib/site";
+import type { SiteSettings } from "@/lib/branding";
 import { textSizeScale, type Block, type IssueContent } from "@/lib/blocks";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 import { externalHref } from "@/lib/rich-text";
 import { richTextToPlain } from "@/lib/rich-text-doc";
 import { BlockImage } from "@/features/blocks/block-view";
-import { FOOTER_ROW, FooterWordmark } from "@/features/blocks/page-footer";
+import {
+  LOCKUP_ALIGN,
+  FooterWordmark,
+  footerRow,
+} from "@/features/blocks/page-footer";
 import { RichText } from "@/features/blocks/rich-text";
 import { resolveMontageSlides } from "@/features/blocks/montage";
 import { MontagePlayer } from "@/features/blocks/montage-player";
@@ -22,6 +26,7 @@ export function MobileReader({
   content,
   issueNo,
   logo,
+  settings,
   images,
   sponsors,
 }: {
@@ -29,6 +34,8 @@ export function MobileReader({
   issueNo: number;
   /** The issue's footer mark (issue #97), or null for no closing wordmark. */
   logo: ResolvedImage | null;
+  /** The magazine's effective branding + footer appearance (issue #105). */
+  settings: SiteSettings;
   images: ImageMap;
   sponsors: SponsorMap;
 }) {
@@ -121,7 +128,7 @@ export function MobileReader({
           </button>
         </div>
         <span className="text-ink font-serif text-[17px] tracking-[0.02em]">
-          {site.name}
+          {settings.name}
         </span>
         <div className="border-line bg-chip-soft flex items-center overflow-hidden rounded-full border">
           <button
@@ -178,8 +185,16 @@ export function MobileReader({
             page uses, minus the page number. Nothing renders when the issue has
             no logo, so an issue without one ends exactly as it did before. */}
         {logo && (
-          <div className={`border-line-soft mt-10 border-t pt-5 ${FOOTER_ROW}`}>
-            <FooterWordmark logo={logo} />
+          <div
+            className={`border-line-soft mt-10 border-t pt-5 ${footerRow(
+              settings.footer.textSize,
+            )} ${LOCKUP_ALIGN[settings.footer.align]}`}
+          >
+            <FooterWordmark
+              logo={logo}
+              org={settings.org}
+              markSize={settings.footer.markSize}
+            />
           </div>
         )}
       </article>

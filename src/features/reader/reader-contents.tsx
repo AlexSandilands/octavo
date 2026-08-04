@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { Icon } from "@/components/icons";
-import { site } from "@/lib/site";
 import type { Page } from "@/lib/blocks";
 
 export type TocEntry = { label: string; page: number };
@@ -33,6 +32,7 @@ export function ReaderContents({
   toc,
   spread,
   issueNo,
+  magazineName,
   viewOf,
   onNavigate,
 }: {
@@ -41,6 +41,8 @@ export function ReaderContents({
   toc: TocEntry[];
   spread: number;
   issueNo: number;
+  /** The magazine's effective name (issue #105). */
+  magazineName: string;
   viewOf: (page: number) => number;
   onNavigate: (page: number) => void;
 }) {
@@ -92,7 +94,7 @@ export function ReaderContents({
         </button>
       </div>
       <p className="text-faint px-5 pt-2 font-serif text-[13px] italic">
-        {site.name} · No. {issueNo}
+        {magazineName} · No. {issueNo}
       </p>
       <div className="bg-line mx-5 my-4 h-px" />
       <nav className="flex-1 overflow-auto">
@@ -119,7 +121,9 @@ export function ReaderContents({
               >
                 {t.label}
               </span>
-              <span className="text-faint2 font-mono text-[11px]">{t.page}</span>
+              <span className="text-faint2 font-mono text-[11px]">
+                {t.page}
+              </span>
             </button>
           );
         })}

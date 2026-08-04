@@ -2,12 +2,12 @@ import Link from "next/link";
 import { Wordmark, Avatar } from "@/components/ui";
 import { DemoBadge } from "@/components/demo-badge";
 import { SignOutButton } from "@/components/sign-out-button";
-import { site } from "@/lib/site";
 import { initials } from "@/lib/initials";
 import { coverPageOf, type Page } from "@/lib/blocks";
 import { listIssues } from "@/server/issues";
 import { resolveIssueImages } from "@/server/images";
 import { requireMemberOrRedirect } from "@/server/session";
+import { getSettings } from "@/server/settings";
 import { LatestIssue } from "@/features/library/latest-issue";
 import { ArchiveGrid } from "@/features/library/archive-grid";
 import { Masthead } from "@/features/library/masthead";
@@ -17,6 +17,7 @@ export const dynamic = "force-dynamic";
 
 export default async function LibraryPage() {
   const user = await requireMemberOrRedirect("/");
+  const settings = await getSettings();
   const all = await listIssues();
   const published = all.filter((i) => i.status === "published");
   const latest = published[0];
@@ -62,7 +63,7 @@ export default async function LibraryPage() {
         </nav>
       </header>
 
-      <Masthead />
+      <Masthead org={settings.org} tagline={settings.tagline} />
 
       {!latest ? (
         <section className="py-20 text-center">
@@ -70,7 +71,7 @@ export default async function LibraryPage() {
             No issues published yet
           </h2>
           <p className="text-muted mt-3 font-sans">
-            The first issue of {site.name} will appear here once it&apos;s
+            The first issue of {settings.name} will appear here once it&apos;s
             published.
           </p>
         </section>
@@ -84,6 +85,7 @@ export default async function LibraryPage() {
             theme={latest.theme}
             cover={coverPageOf(latest.content)}
             images={coverImages}
+            settings={settings}
           />
           {archive.length > 0 && (
             <ArchiveGrid
@@ -96,12 +98,14 @@ export default async function LibraryPage() {
                 cover: coverPageOf(i.content),
               }))}
               images={coverImages}
+              settings={settings}
             />
           )}
         </>
       )}
 
       <SiteFooter
+        org={settings.org}
         issueCount={published.length}
         estYear={estYear}
         signedIn={Boolean(user)}

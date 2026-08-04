@@ -38,6 +38,18 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [{ source: "/favicon.ico", destination: "/icon" }];
   },
+  // The logo library moved onto /admin/magazine (issue #105). A 308 rather than
+  // a redirect page: the old address has no content of its own any more, and
+  // bookmarks + the in-app guide's links should end up at the new one for good.
+  async redirects() {
+    return [
+      {
+        source: "/admin/logos",
+        destination: "/admin/magazine",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 // withSentryConfig wires the build-time pieces of @sentry/nextjs: it registers

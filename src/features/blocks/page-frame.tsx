@@ -1,3 +1,4 @@
+import type { SiteSettings } from "@/lib/branding";
 import type { ResolvedImage } from "@/lib/images";
 import type { LayoutTheme } from "./themes/registry";
 import { PageFooter } from "./page-footer";
@@ -55,6 +56,7 @@ export function PageFrame({
   pageNo,
   side = "left",
   logo = null,
+  settings,
   clip = true,
   children,
 }: {
@@ -66,6 +68,10 @@ export function PageFrame({
   side?: "left" | "right";
   /** The issue's footer mark (`issues.logoId`, resolved). Null → text footer. */
   logo?: ResolvedImage | null;
+  /** The magazine's effective branding + footer appearance (issue #105),
+   *  resolved on the server and threaded in so a page renders the same in the
+   *  reader, the editor, a thumbnail and the PDF. */
+  settings: SiteSettings;
   /** Reader clips overflow to the page box; the editor leaves it visible. */
   clip?: boolean;
   children: React.ReactNode;
@@ -81,7 +87,7 @@ export function PageFrame({
         clip ? "overflow-hidden" : "overflow-visible"
       } ${side === "left" ? "border-page-seam border-r" : ""}`}
     >
-      {theme.page.decoration({ issueNo, side })}
+      {theme.page.decoration({ issueNo, side, magazineName: settings.name })}
 
       {children}
 
@@ -91,6 +97,7 @@ export function PageFrame({
         pageNo={pageNo}
         side={side}
         logoBottom={theme.page.logoFooterBottom}
+        settings={settings}
       />
     </div>
   );

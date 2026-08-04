@@ -7,6 +7,7 @@ import { listLogos } from "@/server/logos";
 import { countSubscribedRecipients } from "@/server/recipients";
 import { listSponsors } from "@/server/sponsors";
 import { requireAdminOrRedirect } from "@/server/session";
+import { getSettings } from "@/server/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -24,12 +25,14 @@ export default async function EditIssuePage({
   // derives the render map from it, so one query covers both. The logo list
   // does the same double duty for the footer mark: it is the picker's options
   // *and* how the canvas resolves the current choice to an image.
-  const [images, sponsors, logos, subscriberCount] = await Promise.all([
-    resolveIssueImages(issue.content),
-    listSponsors(),
-    listLogos(),
-    countSubscribedRecipients(),
-  ]);
+  const [images, sponsors, logos, settings, subscriberCount] =
+    await Promise.all([
+      resolveIssueImages(issue.content),
+      listSponsors(),
+      listLogos(),
+      getSettings(),
+      countSubscribedRecipients(),
+    ]);
 
   return (
     <EditorGate>
@@ -47,6 +50,7 @@ export default async function EditIssuePage({
         images={images}
         sponsors={sponsors}
         logos={logos}
+        settings={settings}
         subscriberCount={subscriberCount}
       />
     </EditorGate>

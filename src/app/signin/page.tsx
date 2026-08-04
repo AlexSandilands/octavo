@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { Button } from "@/components/ui";
-import { site } from "@/lib/site";
+import { getSettings } from "@/server/settings";
 import { SignInCard } from "./card";
 import { safeNextPath } from "@/lib/next-path";
 import { requestMagicLink } from "./actions";
@@ -44,6 +44,7 @@ export default async function SignInPage({
   const error = parsed.success ? parsed.data.error : "unknown";
   const next = safeNextPath(parsed.success ? parsed.data.next : undefined);
   const notice = error ? (ERROR_COPY[error] ?? GENERIC_ERROR) : null;
+  const { name } = await getSettings();
 
   return (
     <SignInCard>
@@ -66,7 +67,7 @@ export default async function SignInPage({
         </div>
       ) : (
         <p className="text-muted mt-4 font-sans text-[16px] leading-relaxed">
-          Members read {site.name} with a private link. Enter your email and
+          Members read {name} with a private link. Enter your email and
           we&apos;ll send one over.
         </p>
       )}

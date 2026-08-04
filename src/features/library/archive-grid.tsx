@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Label } from "@/components/ui";
 import type { Page } from "@/lib/blocks";
+import type { SiteSettings } from "@/lib/branding";
 import type { ImageMap } from "@/lib/images";
 import { PAGE_W, PAGE_H } from "@/features/blocks/page-frame";
 import { CoverThumb } from "./cover-thumb";
@@ -63,9 +64,12 @@ function groupByYear(items: ArchiveItem[]): YearGroup[] {
 export function ArchiveGrid({
   items,
   images,
+  settings,
 }: {
   items: ArchiveItem[];
   images: ImageMap;
+  /** The magazine's effective branding + footer appearance (issue #105). */
+  settings: SiteSettings;
 }) {
   const groups = groupByYear(items);
   return (
@@ -79,7 +83,13 @@ export function ArchiveGrid({
             </div>
             <div className="mt-5 flex flex-wrap gap-x-5 gap-y-7">
               {group.items.map((a, idx) => (
-                <ArchiveCard key={a.id} item={a} index={idx} images={images} />
+                <ArchiveCard
+                  key={a.id}
+                  item={a}
+                  index={idx}
+                  images={images}
+                  settings={settings}
+                />
               ))}
             </div>
           </div>
@@ -95,10 +105,12 @@ function ArchiveCard({
   item: a,
   index,
   images,
+  settings,
 }: {
   item: ArchiveItem;
   index: number;
   images: ImageMap;
+  settings: SiteSettings;
 }) {
   const tint = ARCHIVE_TINTS[index % ARCHIVE_TINTS.length] ?? "#cdbfa6";
   return (
@@ -114,6 +126,7 @@ function ArchiveCard({
             theme={a.theme}
             images={images}
             issueNo={a.number}
+            settings={settings}
             width={THUMB_W}
           />
         ) : (
