@@ -123,10 +123,12 @@ export function PageFooter({
         </>
       ) : footer.align === "center" ? (
         <>
-          {/* An empty cell the same width as the folio's own keeps the lockup on
-              the page's centre line while the folio stays out at the margin —
-              centring it against the remaining space would drift it left. */}
-          <span className="flex-1" />
+          {/* An empty cell mirroring the folio's own — same flex, same padding —
+              keeps the lockup on the page's centre line while the folio stays
+              out at the margin. The padding has to be mirrored, not just the
+              flex: it sits outside the flex base size, so a bare `flex-1` here
+              would leave the lockup half a padding left of centre. */}
+          <span className="flex-1 pr-6" />
           {lockup}
           <span className="flex flex-1 justify-end pl-6">{folio}</span>
         </>

@@ -176,8 +176,8 @@ function TextField({
           <>
             {" "}
             <span className="text-faint font-semibold">
-              Empty — using this deployment&rsquo;s default,
-              &ldquo;{fallback}&rdquo;.
+              Empty — using this deployment&rsquo;s default, &ldquo;{fallback}
+              &rdquo;.
             </span>
           </>
         )}
