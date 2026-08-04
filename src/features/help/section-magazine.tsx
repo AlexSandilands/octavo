@@ -43,6 +43,15 @@ export function SectionMagazine() {
         before you save — use the two boxes above it to look at either layout
         theme, and at each of your marks.
       </P>
+      <Callout title="After you make the footer bigger">
+        A bigger mark or bigger text makes the footer taller, and that leaves a
+        little less room for words on every page — of every issue, including the
+        ones you have already published. Nothing on the site breaks, but a page
+        that was filled right to the bottom may now have a line too many. Open
+        your fullest issues in the editor afterwards and have a look: it marks
+        any page whose contents no longer fit, and offers to move the overflow
+        onto the next page.
+      </Callout>
       <P>
         <strong>Logos</strong>, further down the same screen, is a small library
         of the club&rsquo;s own marks — a crest, an emblem, a wordmark. Give

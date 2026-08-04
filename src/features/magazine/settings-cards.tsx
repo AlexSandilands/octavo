@@ -104,7 +104,11 @@ export function FooterCard({
       </div>
       <p className="text-faint2 font-sans text-[12px] leading-relaxed">
         Alignment is the same on both pages of a spread and on a phone — the
-        page number always sits at the opposite margin.
+        page number always sits at the opposite margin. A bigger mark or bigger
+        text makes the footer taller, which leaves slightly less room for words
+        on every page of every issue — so if you enlarge either, open your
+        fullest issues in the editor afterwards and it will mark any page whose
+        contents no longer fit.
       </p>
     </Card>
   );
