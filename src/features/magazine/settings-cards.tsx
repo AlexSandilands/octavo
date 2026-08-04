@@ -1,6 +1,5 @@
 "use client";
 
-import type { ReactNode } from "react";
 import {
   FOOTER_ALIGNS,
   FOOTER_ALIGN_LABELS,
@@ -13,6 +12,7 @@ import {
   type SiteSettings,
   type TextSize,
 } from "@/lib/branding";
+import { SettingsCard } from "@/components/settings-card";
 import { MenuSelect, type MenuSelectItem } from "@/features/editor/menu-select";
 import type { SettingsForm } from "./magazine-settings";
 
@@ -32,7 +32,7 @@ export function DetailsCard({
   onChange: (patch: Partial<SettingsForm>) => void;
 }) {
   return (
-    <Card
+    <SettingsCard
       title="Details"
       blurb="The wording that names the magazine — on the library masthead, the sign-in screen, the page footer and every email."
     >
@@ -63,7 +63,7 @@ export function DetailsCard({
         hint="One line under the club name on the library page. Never printed."
         onChange={(tagline) => onChange({ tagline })}
       />
-    </Card>
+    </SettingsCard>
   );
 }
 
@@ -75,7 +75,7 @@ export function FooterCard({
   onChange: (patch: Partial<SettingsForm>) => void;
 }) {
   return (
-    <Card
+    <SettingsCard
       title="Page footer"
       blurb="How the foot of every page is set. Text size applies whether or not the issue carries a mark; the mark's size and where the lockup sits apply to issues that have one."
     >
@@ -110,27 +110,7 @@ export function FooterCard({
         fullest issues in the editor afterwards and it will mark any page whose
         contents no longer fit.
       </p>
-    </Card>
-  );
-}
-
-function Card({
-  title,
-  blurb,
-  children,
-}: {
-  title: string;
-  blurb: string;
-  children: ReactNode;
-}) {
-  return (
-    <section className="bg-card border-line rounded-[10px] border p-6 shadow-[0_1px_3px_rgba(0,0,0,0.07)]">
-      <h2 className="text-ink font-serif text-[22px] leading-tight">{title}</h2>
-      <p className="text-muted mt-1.5 font-sans text-[13px] leading-relaxed">
-        {blurb}
-      </p>
-      <div className="mt-5 flex flex-col gap-5">{children}</div>
-    </section>
+    </SettingsCard>
   );
 }
 

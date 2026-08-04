@@ -12,6 +12,7 @@ import {
   type TextSize,
 } from "@/lib/branding";
 import type { LogoListItem } from "@/lib/logos";
+import { LogosManager } from "@/features/logos/logos-manager";
 import { updateSettingsAction } from "@/app/admin/magazine/actions";
 import { ResizableSplit } from "./resizable-split";
 import { DetailsCard, FooterCard } from "./settings-cards";
@@ -144,6 +145,9 @@ export function MagazineSettings({
               )}
             </p>
           </div>
+          {/* Below the Save row on purpose: the button belongs to the two cards
+              above it, and the library saves itself. */}
+          <LogosManager logos={logos} />
         </>
       }
       right={<SettingsPreview settings={preview} logos={logos} />}

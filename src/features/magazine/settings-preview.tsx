@@ -180,7 +180,7 @@ export function SettingsPreview({
           : `A page at ${Math.round(scale * 100)}% of its real size, with stand-in words.`}{" "}
         {logos.length === 0 && (
           <>
-            The library below has no marks yet —{" "}
+            No marks in the library yet —{" "}
             <Link
               href="#logos"
               className="text-accent font-medium underline underline-offset-2"

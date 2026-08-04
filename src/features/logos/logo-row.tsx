@@ -41,7 +41,7 @@ export function LogoRow({
 
   return (
     <div
-      className={`border-line-soft flex flex-wrap items-center gap-x-3 gap-y-2 border-b px-1.5 py-3.5 ${
+      className={`border-line-soft flex flex-wrap items-center gap-x-3 gap-y-2 border-b px-1.5 py-3.5 last:border-b-0 ${
         pending ? "opacity-40" : ""
       }`}
     >

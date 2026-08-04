@@ -53,10 +53,12 @@ export function SectionMagazine() {
         onto the next page.
       </Callout>
       <P>
-        <strong>Logos</strong>, further down the same screen, is a small library
-        of the club&rsquo;s own marks — a crest, an emblem, a wordmark. Give
-        each one a name, upload the picture once, and it&rsquo;s available to
-        the rest of the magazine; rename it any time. It&rsquo;s separate from
+        <strong>Logos</strong>, the last box on the same screen, is a small
+        library of the club&rsquo;s own marks — a crest, an emblem, a wordmark.
+        Give each one a name, upload the picture once, and it&rsquo;s available
+        to the rest of the magazine; rename it any time. Adding, renaming and
+        deleting all happen straight away — that box has no Save button of its
+        own and doesn&rsquo;t use the one above it. It&rsquo;s separate from
         Sponsors, which is for other people&rsquo;s businesses.
       </P>
       <P>
