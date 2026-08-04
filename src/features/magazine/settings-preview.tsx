@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import type { SiteSettings } from "@/lib/branding";
 import type { LogoListItem } from "@/lib/logos";
@@ -16,6 +16,7 @@ import {
   PAGE_H,
 } from "@/features/blocks/page-frame";
 import { MenuSelect, type MenuSelectItem } from "@/features/editor/menu-select";
+import { usePrePaintEffect } from "./use-pre-paint-effect";
 
 // The live preview beside the settings form: one real magazine page, drawn by
 // the same PageFrame + PageFooter the reader, the editor and the PDF use, from
@@ -49,9 +50,13 @@ function usePreviewScale() {
   const [width, setWidth] = useState(STACKED_MAX_W);
   const [maxHeight, setMaxHeight] = useState(Infinity);
 
-  useEffect(() => {
+  usePrePaintEffect(() => {
     const el = boxRef.current;
-    if (!el || typeof ResizeObserver === "undefined") return;
+    if (!el) return;
+    // Up front, rather than waiting for the observer's first delivery — that
+    // arrives after a paint has already gone out.
+    setWidth(el.getBoundingClientRect().width);
+    if (typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(([entry]) => {
       if (entry) setWidth(entry.contentRect.width);
     });
@@ -64,7 +69,7 @@ function usePreviewScale() {
   // fold with no way to scroll to it. Cap the height there. Below xl the column
   // scrolls normally, so height is not a constraint and clamping by it would
   // shrink the stacked preview on a short window for no reason.
-  useEffect(() => {
+  usePrePaintEffect(() => {
     const media = window.matchMedia(WIDE_QUERY);
     const sync = () =>
       setMaxHeight(

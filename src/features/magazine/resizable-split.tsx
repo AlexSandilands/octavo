@@ -1,12 +1,7 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useCallback, useId, useRef, useState, type ReactNode } from "react";
+import { usePrePaintEffect } from "./use-pre-paint-effect";
 
 // The two-column split on /admin/magazine: settings on the left, the live page
 // preview on the right, with a draggable rail between them. The owner is
@@ -55,12 +50,20 @@ export function ResizableSplit({
 }) {
   // Always the default on the server and on the first client render — reading
   // storage during render would make the two disagree and break hydration. The
-  // stored value is applied in an effect, one frame later.
+  // stored value is applied in an effect instead, before the first paint so the
+  // layout is not seen to jump from 50% to whatever was remembered.
   const [percent, setPercent] = useState(DEFAULT_PERCENT);
   const [dragging, setDragging] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  // Where the drag started and what the split was then, so the rail moves with
+  // the pointer instead of jumping to it. `moved` keeps a plain click — press
+  // and release with no travel — from committing anything at all.
+  const dragRef = useRef<{ x: number; percent: number; moved: boolean } | null>(
+    null,
+  );
+  const leftPaneId = useId();
 
-  useEffect(() => {
+  usePrePaintEffect(() => {
     const stored = readStored(storageKey);
     if (stored !== null) setPercent(stored);
   }, [storageKey]);
@@ -79,32 +82,43 @@ export function ResizableSplit({
     [storageKey],
   );
 
-  const percentAt = (clientX: number): number => {
+  // The split the drag has reached: where it started, plus how far the pointer
+  // has travelled since. Deliberately NOT the pointer's absolute position —
+  // that would snap the rail to the pointer on mousedown, hopping the layout by
+  // however far into the hit area the grab landed.
+  const percentFromDrag = (clientX: number): number => {
+    const start = dragRef.current;
     const el = containerRef.current;
-    if (!el) return percent;
+    if (!start || !el) return percent;
     const rect = el.getBoundingClientRect();
     if (rect.width === 0) return percent;
-    return ((clientX - rect.left) / rect.width) * 100;
+    return clamp(start.percent + ((clientX - start.x) / rect.width) * 100);
   };
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     // Pointer capture keeps the drag alive when the pointer outruns the rail —
-    // which it will, since the rail is a few pixels wide.
+    // which it will, since the rail is a few pixels wide. Nothing moves yet.
     e.currentTarget.setPointerCapture(e.pointerId);
+    dragRef.current = { x: e.clientX, percent, moved: false };
     setDragging(true);
-    setPercent(clamp(percentAt(e.clientX)));
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragging) return;
-    setPercent(clamp(percentAt(e.clientX)));
+    const start = dragRef.current;
+    if (!start) return;
+    if (Math.abs(e.clientX - start.x) >= 1) start.moved = true;
+    if (start.moved) setPercent(percentFromDrag(e.clientX));
   };
 
   const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragging) return;
+    const start = dragRef.current;
+    if (!start) return;
     e.currentTarget.releasePointerCapture(e.pointerId);
+    dragRef.current = null;
     setDragging(false);
-    commit(percentAt(e.clientX));
+    // A click that never travelled leaves both the split and what's stored
+    // exactly as they were.
+    if (start.moved) commit(percentFromDrag(e.clientX));
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
@@ -145,7 +159,7 @@ export function ResizableSplit({
         dragging ? "cursor-col-resize select-none" : ""
       }`}
     >
-      <div id="magazine-settings-pane" className="flex min-w-0 flex-col gap-6">
+      <div id={leftPaneId} className="flex min-w-0 flex-col gap-6">
         {left}
       </div>
 
@@ -156,7 +170,7 @@ export function ResizableSplit({
           tabIndex={0}
           aria-label={label}
           aria-orientation="vertical"
-          aria-controls="magazine-settings-pane"
+          aria-controls={leftPaneId}
           aria-valuemin={MIN_PERCENT}
           aria-valuemax={MAX_PERCENT}
           aria-valuenow={Math.round(percent)}
