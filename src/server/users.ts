@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, desc, eq, inArray, isNull, or } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, ne, or } from "drizzle-orm";
 import { db } from "@/db";
 import { sessions, users } from "@/db/schema";
 
@@ -188,6 +188,38 @@ export async function setSubscribed(
   return Boolean(row);
 }
 
+export type BulkSubscribeResult = { changed: number; unchanged: number };
+
+// The members table's bulk subscribe/unsubscribe. One statement inside a
+// transaction, so a batch either lands whole or not at all. Rows already in the
+// requested state are left alone and counted separately, so the result line can
+// say something true ("12 subscribed · 2 already were") rather than claim work
+// it didn't do. Unlike removal there is nothing to guard: a subscription flag
+// can't lock anyone out, so the acting admin's own row is fair game.
+export async function setSubscribedMany(
+  targetIds: string[],
+  subscribed: boolean,
+): Promise<BulkSubscribeResult> {
+  const ids = [...new Set(targetIds)];
+  if (ids.length === 0) return { changed: 0, unchanged: 0 };
+
+  return db.transaction(async (tx) => {
+    const found = await tx
+      .select({ id: users.id })
+      .from(users)
+      .where(inArray(users.id, ids));
+    const changed = await tx
+      .update(users)
+      .set({ subscribed })
+      .where(and(inArray(users.id, ids), ne(users.subscribed, subscribed)))
+      .returning({ id: users.id });
+    return {
+      changed: changed.length,
+      unchanged: found.length - changed.length,
+    };
+  });
+}
+
 export type AdminChangeResult =
   | { ok: true }
   | { ok: false; reason: "self" | "last-admin" | "missing" };
@@ -268,5 +300,73 @@ export async function deleteUser(
     await tx.delete(sessions).where(eq(sessions.userId, targetId));
     await tx.delete(users).where(eq(users.id, targetId));
     return { ok: true };
+  });
+}
+
+export type BulkDeleteResult = {
+  removed: number;
+  /** 1 if the acting admin selected their own row (always refused). */
+  skippedSelf: number;
+  /** Admins refused because removing them would leave the club with none. */
+  skippedAdmins: number;
+  /** Selected ids that were already gone (a stale table). */
+  missing: number;
+};
+
+// The members table's bulk removal. `deleteUser`'s guard rails hold here too,
+// but bulk can't be all-or-nothing about them: one protected row shouldn't sink
+// a 200-row batch an admin has just built. So the protected rows are refused
+// individually and reported back — the acting admin's own row is always
+// skipped, and if the batch would strip the last admin, *every* admin in it is
+// skipped (refusing them all beats silently choosing a survivor). Everything
+// else happens in one transaction: a mid-batch failure leaves the list as it
+// was, never half-pruned.
+export async function deleteUsers(
+  targetIds: string[],
+  currentUserId: string,
+): Promise<BulkDeleteResult> {
+  const ids = [...new Set(targetIds)];
+  const skippedSelf = ids.includes(currentUserId) ? 1 : 0;
+  const candidates = ids.filter((id) => id !== currentUserId);
+  if (candidates.length === 0) {
+    return { removed: 0, skippedSelf, skippedAdmins: 0, missing: 0 };
+  }
+
+  return db.transaction(async (tx) => {
+    // Lock every admin row for the transaction, as the single-row delete does:
+    // without it two concurrent batches could each count enough admins left
+    // over and between them leave zero.
+    const admins = await tx
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.isAdmin, true))
+      .for("update");
+
+    const found = await tx
+      .select({ id: users.id, isAdmin: users.isAdmin })
+      .from(users)
+      .where(inArray(users.id, candidates));
+
+    const adminsInBatch = found.filter((u) => u.isAdmin).map((u) => u.id);
+    // In practice the acting admin is an admin and is already excluded, so an
+    // admin always survives; this still catches the race where they were
+    // demoted by someone else while this batch was being assembled.
+    const wouldStripLastAdmin = admins.length - adminsInBatch.length < 1;
+    const spared = new Set<string>(wouldStripLastAdmin ? adminsInBatch : []);
+    const toDelete = found.map((u) => u.id).filter((id) => !spared.has(id));
+
+    if (toDelete.length > 0) {
+      // Sessions cascade on delete, but drop them explicitly so the intent —
+      // these people can no longer sign in — is legible here, as in deleteUser.
+      await tx.delete(sessions).where(inArray(sessions.userId, toDelete));
+      await tx.delete(users).where(inArray(users.id, toDelete));
+    }
+
+    return {
+      removed: toDelete.length,
+      skippedSelf,
+      skippedAdmins: spared.size,
+      missing: candidates.length - found.length,
+    };
   });
 }
