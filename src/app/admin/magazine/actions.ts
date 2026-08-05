@@ -27,7 +27,12 @@ const optionalText = (max: number) =>
     .max(max)
     .nullish()
     .transform((value) => {
-      const trimmed = (value ?? "").trim();
+      // Control characters (newlines included) never belong in wording that
+      // renders in a one-line footer and an email subject; strip rather than
+      // reject, since they only arrive via paste.
+      const trimmed = (value ?? "")
+        .replace(/[\u0000-\u001f\u007f-\u009f]/g, "")
+        .trim();
       return trimmed === "" ? null : trimmed;
     });
 

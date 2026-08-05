@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { SiteSettings } from "@/lib/branding";
 import type { LogoListItem } from "@/lib/logos";
@@ -106,8 +106,23 @@ export function SettingsPreview({
     themes[0]?.id ?? "classic",
   );
   // Defaults to the first mark in the library: an owner opening this page wants
-  // to see the lockup, and the library's newest mark is the one they just added.
+  // to see the lockup. "No mark" is remembered only when chosen — a null that
+  // merely means "the library was empty" must not stick once it isn't.
   const [logoId, setLogoId] = useState<string | null>(logos[0]?.id ?? null);
+  const [choseNone, setChoseNone] = useState(false);
+  const pickLogo = (id: string | null) => {
+    setLogoId(id);
+    setChoseNone(id === null);
+  };
+  // The library is edited beside this preview and router.refresh() keeps client
+  // state, so the mount-time default above never re-runs. Follow the list: adopt
+  // the first mark added to an empty library (the owner adds one precisely to
+  // see the lockup), and fall off a mark that has been deleted.
+  useEffect(() => {
+    if (choseNone) return;
+    if (logoId !== null && logos.some((l) => l.id === logoId)) return;
+    setLogoId(logos[0]?.id ?? null);
+  }, [logos, logoId, choseNone]);
   const logo = logos.find((l) => l.id === logoId)?.image ?? null;
 
   const themeItems: MenuSelectItem<LayoutThemeId>[] = themes.map((t) => ({
@@ -142,7 +157,7 @@ export function SettingsPreview({
             ariaLabel="Preview footer mark"
             items={logoItems}
             value={logoId}
-            onSelect={setLogoId}
+            onSelect={pickLogo}
           />
         )}
       </div>

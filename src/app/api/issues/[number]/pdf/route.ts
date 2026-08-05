@@ -129,6 +129,11 @@ export async function GET(
   }
   const theme = themeParam.data;
 
+  // The print route resolves settings again in its own request, so a settings
+  // edit landing between this read and Playwright's page load caches bytes
+  // under a fingerprint that names the older values. Accepted: the window is
+  // one generation, the mismatched entry is only ever served again if the owner
+  // reverts to exactly those older values, and the next edit re-keys past it.
   const settings = await getSettings();
   const chrome = chromeFingerprint(settings);
   const key = `pdfs/${issue.id}/${issue.revision}-${theme}-${issue.logoId ?? "nologo"}-${chrome}-v${RENDER_VERSION}.pdf`;

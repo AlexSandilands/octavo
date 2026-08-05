@@ -1,5 +1,6 @@
 import "server-only";
 import { createHash } from "node:crypto";
+import * as Sentry from "@sentry/nextjs";
 import { cache } from "react";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -79,10 +80,14 @@ const readStored = cache(async (): Promise<StoredSettings> => {
     if (!row) return EMPTY_SETTINGS;
     return storedSchema.parse(row);
   } catch (err) {
+    // Captured explicitly: the catch means this never reaches Sentry's
+    // onRequestError, and a site quietly serving the wrong branding shouldn't
+    // depend on someone reading the server logs.
     console.error(
       "Failed to read magazine settings — falling back to the deployment defaults",
       err,
     );
+    Sentry.captureException(err, { tags: { module: "settings" } });
     return EMPTY_SETTINGS;
   }
 });
