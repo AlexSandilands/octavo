@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Icon } from "@/components/icons";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { MemberDialog } from "./member-dialog";
+import { SelectCheckbox } from "./select-checkbox";
 import { Avatar, Pill } from "@/components/ui";
 import { initials } from "@/lib/initials";
 import {
@@ -28,9 +29,13 @@ const joinedLabel = (d: Date) =>
 export function MemberRow({
   member,
   currentUserId,
+  selected,
+  onSelect,
 }: {
   member: Member;
   currentUserId: string;
+  selected: boolean;
+  onSelect: (id: string, next: boolean) => void;
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -87,6 +92,11 @@ export function MemberRow({
     <div className="border-line-soft border-b py-3">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5 px-1.5">
         <div className="flex min-w-0 basis-full items-center gap-3 sm:basis-0 sm:flex-1">
+          <SelectCheckbox
+            checked={selected}
+            onChange={(next) => onSelect(member.id, next)}
+            label={`Select ${label}`}
+          />
           <Avatar initials={initials(label)} />
           <div className="min-w-0">
             <div className="text-ink font-sans text-[15px] font-semibold">
@@ -167,7 +177,7 @@ export function MemberRow({
       </div>
 
       {error && (
-        <p className="text-warn mt-1.5 pl-[3.25rem] font-sans text-[13px]">
+        <p className="text-warn mt-1.5 pl-[6.75rem] font-sans text-[13px]">
           {error}
         </p>
       )}

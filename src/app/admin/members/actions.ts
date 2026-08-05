@@ -6,9 +6,13 @@ import {
   createUser,
   createUsers,
   deleteUser,
+  deleteUsers,
   setAdmin,
   setSubscribed,
+  setSubscribedMany,
   updateUser,
+  type BulkDeleteResult,
+  type BulkSubscribeResult,
 } from "@/server/users";
 import { requireAdmin } from "@/server/session";
 
@@ -20,6 +24,15 @@ import { requireAdmin } from "@/server/session";
 // one admin) live in the data layer so they hold under concurrency.
 
 const idSchema = z.string().uuid();
+
+// A selection from the members table, which renders every member — so
+// select-all is legitimately the whole club list, and the bound has to sit
+// well clear of it or the UI could build a selection its own action refuses.
+// 2000 is roughly double a realistic club: no selection a person can make is
+// ever rejected, while an id list an order of magnitude longer still is. The
+// bound's job is to turn away scripts, not selections. Duplicates are harmless
+// — the data layer de-dupes.
+const idsSchema = z.array(idSchema).min(1).max(2000);
 
 // Trim + lowercase before validating so "  Alex@Example.COM " becomes a clean,
 // canonical key that matches the unique index and future sign-ins.
@@ -105,6 +118,43 @@ export async function removeMemberAction(
   if (!result.ok) return { ok: false, reason: result.reason };
   revalidatePath("/admin/members");
   return { ok: true };
+}
+
+export type RemoveMembersResult =
+  | ({ ok: true } & BulkDeleteResult)
+  | { ok: false; reason: "invalid" };
+
+// Bulk removal from the table's selection. Unlike the single-row action this
+// never fails on a guard rail: the protected rows are refused and counted, and
+// the caller reports the split ("12 removed, 1 skipped").
+export async function removeMembersAction(
+  ids: unknown,
+): Promise<RemoveMembersResult> {
+  const admin = await requireAdmin();
+  const parsed = idsSchema.safeParse(ids);
+  if (!parsed.success) return { ok: false, reason: "invalid" };
+  const result = await deleteUsers(parsed.data, admin.id);
+  revalidatePath("/admin/members");
+  return { ok: true, ...result };
+}
+
+export type SetSubscribedManyResult =
+  | ({ ok: true } & BulkSubscribeResult)
+  | { ok: false; reason: "invalid" };
+
+export async function setSubscribedManyAction(
+  ids: unknown,
+  subscribed: unknown,
+): Promise<SetSubscribedManyResult> {
+  await requireAdmin();
+  const parsedIds = idsSchema.safeParse(ids);
+  const parsedFlag = z.boolean().safeParse(subscribed);
+  if (!parsedIds.success || !parsedFlag.success) {
+    return { ok: false, reason: "invalid" };
+  }
+  const result = await setSubscribedMany(parsedIds.data, parsedFlag.data);
+  revalidatePath("/admin/members");
+  return { ok: true, ...result };
 }
 
 export type ToggleResult = { ok: true } | { ok: false };
