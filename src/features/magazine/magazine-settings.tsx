@@ -15,7 +15,7 @@ import type { LogoListItem } from "@/lib/logos";
 import { LogosManager } from "@/features/logos/logos-manager";
 import { updateSettingsAction } from "@/app/admin/magazine/actions";
 import { ResizableSplit } from "./resizable-split";
-import { DetailsCard, FooterCard } from "./settings-cards";
+import { SettingsFormCard } from "./settings-cards";
 import { SettingsPreview } from "./settings-preview";
 
 // Client owner of the magazine settings: the form state, the save, and the
@@ -115,38 +115,41 @@ export function MagazineSettings({
       label="Settings and preview split"
       left={
         <>
-          <DetailsCard form={form} defaults={defaults} onChange={change} />
-          <FooterCard form={form} onChange={change} />
-          <div className="flex flex-wrap items-center gap-4">
-            <Button
-              onClick={save}
-              disabled={!dirty && status !== "error"}
-              busy={status === "saving"}
-            >
-              {status === "saving" ? "Saving…" : "Save changes"}
-            </Button>
-            <p
-              role="status"
-              aria-live="polite"
-              className="font-sans text-[13px] font-medium"
-            >
-              {status === "saved" && !dirty && (
-                <span className="text-accent">
-                  Saved — live on the site now.
-                </span>
-              )}
-              {status === "error" && (
-                <span className="text-warn">
-                  Couldn&rsquo;t save. Please try again.
-                </span>
-              )}
-              {status !== "error" && dirty && (
-                <span className="text-faint">Unsaved changes.</span>
-              )}
-            </p>
-          </div>
-          {/* Below the Save row on purpose: the button belongs to the two cards
-              above it, and the library saves itself. */}
+          <SettingsFormCard
+            form={form}
+            defaults={defaults}
+            onChange={change}
+            footer={
+              <div className="flex flex-wrap items-center gap-4">
+                <Button
+                  onClick={save}
+                  disabled={!dirty && status !== "error"}
+                  busy={status === "saving"}
+                >
+                  {status === "saving" ? "Saving…" : "Save changes"}
+                </Button>
+                <p
+                  role="status"
+                  aria-live="polite"
+                  className="font-sans text-[13px] font-medium"
+                >
+                  {status === "saved" && !dirty && (
+                    <span className="text-accent">
+                      Saved — live on the site now.
+                    </span>
+                  )}
+                  {status === "error" && (
+                    <span className="text-warn">
+                      Couldn&rsquo;t save. Please try again.
+                    </span>
+                  )}
+                  {status !== "error" && dirty && (
+                    <span className="text-faint">Unsaved changes.</span>
+                  )}
+                </p>
+              </div>
+            }
+          />
           <LogosManager logos={logos} />
         </>
       }

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import {
   FOOTER_ALIGNS,
   FOOTER_ALIGN_LABELS,
@@ -16,20 +17,27 @@ import { SettingsCard } from "@/components/settings-card";
 import { MenuSelect, type MenuSelectItem } from "@/features/editor/menu-select";
 import type { SettingsForm } from "./magazine-settings";
 
-// The two edit cards on /admin/magazine. Presentation only — every value and
-// setter comes from MagazineSettings, which owns the form state so the preview
-// beside them can render the same unsaved edits.
+// The settings form card on /admin/magazine. One card, because it is one form
+// with one Save: the naming fields, then the page-footer controls as a titled
+// section, then the save row (passed in as `footer`) closing the card — so the
+// button visibly belongs to everything above it and nothing floats between
+// cards. Presentation only — every value and setter comes from
+// MagazineSettings, which owns the form state so the preview beside it can
+// render the same unsaved edits.
 
-export function DetailsCard({
+export function SettingsFormCard({
   form,
   defaults,
   onChange,
+  footer,
 }: {
   form: SettingsForm;
   /** The deployment's own values, shown as the placeholder when a field is
    *  empty so the owner can see what clearing it falls back to. */
   defaults: SiteSettings;
   onChange: (patch: Partial<SettingsForm>) => void;
+  /** The save row — the button and its status line, owned by the caller. */
+  footer: ReactNode;
 }) {
   return (
     <SettingsCard
@@ -63,22 +71,17 @@ export function DetailsCard({
         hint="One line under the club name on the library page. Never printed."
         onChange={(tagline) => onChange({ tagline })}
       />
-    </SettingsCard>
-  );
-}
 
-export function FooterCard({
-  form,
-  onChange,
-}: {
-  form: SettingsForm;
-  onChange: (patch: Partial<SettingsForm>) => void;
-}) {
-  return (
-    <SettingsCard
-      title="Page footer"
-      blurb="How the foot of every page is set. Text size applies whether or not the issue carries a mark; the mark's size and where the lockup sits apply to issues that have one."
-    >
+      <div className="border-line-soft border-t pt-5">
+        <h3 className="text-ink font-serif text-lg leading-tight">
+          Page footer
+        </h3>
+        <p className="text-muted mt-1.5 font-sans text-[13px] leading-relaxed">
+          How the foot of every page is set. Text size applies whether or not
+          the issue carries a mark; the mark&rsquo;s size and where the lockup
+          sits apply to issues that have one.
+        </p>
+      </div>
       <div className="flex flex-wrap items-start gap-3">
         <Choice
           label="Mark size"
@@ -110,6 +113,8 @@ export function FooterCard({
         fullest issues in the editor afterwards and it will mark any page whose
         contents no longer fit.
       </p>
+
+      <div className="border-line-soft border-t pt-5">{footer}</div>
     </SettingsCard>
   );
 }
