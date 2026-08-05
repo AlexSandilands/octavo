@@ -1,8 +1,9 @@
 import "server-only";
 import { Resend } from "resend";
 import { env } from "@/lib/env";
+import type { Branding } from "@/lib/branding";
 import { escapeAttr } from "@/lib/rich-text";
-import { site } from "@/lib/site";
+import { getSettings } from "./settings";
 
 // The magic-link email — template and transport in one file.
 //
@@ -27,13 +28,14 @@ export async function sendMagicLinkEmail({
     throw new Error("EMAIL_API_KEY / EMAIL_FROM are not configured");
   }
 
+  const branding = await getSettings();
   const resend = new Resend(env.EMAIL_API_KEY);
   const { error } = await resend.emails.send({
     from: env.EMAIL_FROM,
     to: identifier,
-    subject: `Sign in to ${site.name}`,
-    html: renderHtml(url),
-    text: renderText(url),
+    subject: `Sign in to ${branding.name}`,
+    html: renderHtml(url, branding),
+    text: renderText(url, branding),
   });
   if (error) {
     if (dev) {
@@ -49,9 +51,9 @@ export async function sendMagicLinkEmail({
 // Email-client HTML: inline styles, a single centered card, one big button,
 // and the raw link as a fallback for clients that strip buttons. Large type
 // throughout — the audience skews older.
-function renderHtml(url: string) {
-  const name = escapeAttr(site.name);
-  const org = escapeAttr(site.org);
+function renderHtml(url: string, branding: Branding) {
+  const name = escapeAttr(branding.name);
+  const org = escapeAttr(branding.org);
   const href = escapeAttr(url);
   return `<body style="margin:0;padding:32px 16px;background:#f4f0e8;">
   <div style="max-width:480px;margin:0 auto;background:#fbf9f4;border:1px solid #e6e0d3;border-radius:16px;padding:40px 32px;font-family:Georgia,'Times New Roman',serif;color:#20201c;">
@@ -78,9 +80,9 @@ function renderHtml(url: string) {
 </body>`;
 }
 
-function renderText(url: string) {
+function renderText(url: string, branding: Branding) {
   return [
-    `Sign in to ${site.name}`,
+    `Sign in to ${branding.name}`,
     "",
     "Here is your sign-in link — open it and you'll be reading in a moment:",
     "",

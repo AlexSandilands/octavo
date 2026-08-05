@@ -4,6 +4,7 @@ import { getPublishedIssueByNumber } from "@/server/issues";
 import { resolveIssueImages } from "@/server/images";
 import { getLogoImage } from "@/server/logos";
 import { resolveIssueSponsors } from "@/server/sponsors";
+import { getSettings } from "@/server/settings";
 import { verifyPrintToken } from "@/lib/pdf-token";
 
 // The print view the PDF generator loads (src/lib/pdf.ts) over localhost. It is
@@ -31,10 +32,11 @@ export default async function PrintPage({
     : null;
   if (!issue) notFound();
 
-  const [images, sponsors, logo] = await Promise.all([
+  const [images, sponsors, logo, settings] = await Promise.all([
     resolveIssueImages(issue.content),
     resolveIssueSponsors(issue.content),
     getLogoImage(issue.logoId),
+    getSettings(),
   ]);
 
   return (
@@ -47,6 +49,7 @@ export default async function PrintPage({
       // resolves it and degrades anything unknown to the reader's default.
       theme={typeof theme === "string" ? theme : ""}
       logo={logo}
+      settings={settings}
       images={images}
       sponsors={sponsors}
     />

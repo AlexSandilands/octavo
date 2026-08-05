@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { Icon } from "@/components/icons";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import type { LogoListItem } from "@/lib/logos";
-import { deleteLogoAction } from "@/app/admin/logos/actions";
+import { deleteLogoAction } from "@/app/admin/magazine/logo-actions";
 
 // One logo in the admin list: the mark, its name, and rename/delete. Delete
 // confirms first, and the action refuses outright while anything still uses the
@@ -41,7 +41,7 @@ export function LogoRow({
 
   return (
     <div
-      className={`border-line-soft flex flex-wrap items-center gap-x-3 gap-y-2 border-b px-1.5 py-3.5 ${
+      className={`border-line-soft flex flex-wrap items-center gap-x-3 gap-y-2 border-b px-1.5 py-3.5 last:border-b-0 ${
         pending ? "opacity-40" : ""
       }`}
     >

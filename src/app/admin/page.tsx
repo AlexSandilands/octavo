@@ -6,6 +6,7 @@ import { coverPageOf, type Page } from "@/lib/blocks";
 import { listIssues } from "@/server/issues";
 import { resolveIssueImages } from "@/server/images";
 import { requireAdminOrRedirect } from "@/server/session";
+import { getSettings } from "@/server/settings";
 import { CoverThumb } from "@/features/library/cover-thumb";
 import { PAGE_W, PAGE_H } from "@/features/blocks/page-frame";
 import { DeleteIssueButton } from "@/features/admin/delete-issue-button";
@@ -22,6 +23,7 @@ const THUMB_H = Math.round((THUMB_W * PAGE_H) / PAGE_W);
 export default async function AdminDashboard() {
   // The layout gates too, but layouts don't re-run on soft navigation.
   const admin = await requireAdminOrRedirect();
+  const settings = await getSettings();
   const issues = await listIssues();
   const draftCount = issues.filter((i) => i.status === "draft").length;
 
@@ -82,6 +84,7 @@ export default async function AdminDashboard() {
                         theme={i.theme}
                         images={coverImages}
                         issueNo={i.number}
+                        settings={settings}
                         width={THUMB_W}
                       />
                     ) : (

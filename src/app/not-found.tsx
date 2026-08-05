@@ -1,5 +1,5 @@
 import { Wordmark, Button } from "@/components/ui";
-import { site } from "@/lib/site";
+import { getSettings } from "@/server/settings";
 
 // Rendered per request so the middleware's CSP nonce reaches this page's
 // scripts — a build-time static render bakes in no nonce, and 'strict-dynamic'
@@ -7,7 +7,8 @@ import { site } from "@/lib/site";
 export const dynamic = "force-dynamic";
 
 // 404 / "not a member yet" — friendly, never a raw error.
-export default function NotFound() {
+export default async function NotFound() {
+  const settings = await getSettings();
   return (
     <main className="flex min-h-screen items-center justify-center px-5 py-12">
       <div className="bg-card border-line flex min-h-[420px] w-full max-w-xl flex-col rounded-[5px] border p-10 shadow-[0_1px_3px_rgba(0,0,0,0.07)]">
@@ -22,8 +23,9 @@ export default function NotFound() {
             member — yet.
           </h1>
           <p className="text-muted mt-4 max-w-prose font-sans text-[16px] leading-relaxed">
-            {site.name} is read by members of the {site.org}. If you&apos;ve
-            just joined, the link in your welcome email will let you in.
+            {settings.name} is read by members of the {settings.org}. If
+            you&apos;ve just joined, the link in your welcome email will let you
+            in.
           </p>
         </div>
         <div className="flex items-center gap-4">

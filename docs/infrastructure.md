@@ -87,10 +87,13 @@ Member ── Cloudflare (DNS/CDN) ── Railway (Next.js + Postgres)
 PDF export (issue #16) uses headless Chromium via Playwright, in the **main
 service** (no separate service). How it works: the download endpoint
 (`GET /api/issues/[number]/pdf`, members-only) checks R2 for a cached PDF keyed
-by issue id + revision + reader theme + render version
-(`pdfs/{issueId}/{revision}-{theme}-v{N}.pdf` — the theme follows the desktop
-reader's toggle; `v{N}` is a code constant bumped alongside any print-rendering
-change so stale artifacts regenerate); on a miss it launches
+by issue id + revision + reader theme + footer mark + magazine chrome + render
+version (`pdfs/{issueId}/{revision}-{theme}-{logoId}-{chrome}-v{N}.pdf` — the
+theme follows the desktop reader's toggle; `{chrome}` is a short hash of the
+branding and footer settings that appear on a printed page, so editing them in
+the admin regenerates rather than serving stale PDFs; `v{N}` is a code constant
+bumped alongside any print-rendering change so stale artifacts regenerate); on a
+miss it launches
 Chromium, loads the issue's print route over localhost, prints the fixed
 PAGE_W×PAGE_H canvas to a paginated PDF, caches the bytes, and serves them.
 Because `revision` bumps on every content write, an edit + republish yields a
@@ -189,12 +192,22 @@ redirect, or the publish email blast. Validate those locally before promoting.
 
 `.env.example` is the canonical list; `src/lib/env.ts` validates at boot. Summary:
 
+> **Branding is not a landlord job any more** (issue #105). The magazine's name, the club
+> name and the tagline — plus how the running page footer is set (mark size, type size,
+> alignment) — are edited by the owner at **`/admin/magazine`** and stored in the `settings`
+> table. They take effect on save, with no redeploy and nobody to ask. The three
+> `NEXT_PUBLIC_*` branding vars below are only the **bootstrap defaults** a fresh
+> deployment starts from and what a cleared field falls back to; once the owner sets a
+> value, changing the env var has no visible effect. `NEXT_PUBLIC_BRAND` (the palette) and
+> `NEXT_PUBLIC_ISSUE_THEMES` are still build-time landlord settings.
+
 ```
 DATABASE_URL=            # from Railway Postgres
 AUTH_SECRET=             # random 32+ char secret
 AUTH_URL=                # public https origin, e.g. https://demo.octavo.dev — base of the sign-in link (see Auth setup step 5)
 
-NEXT_PUBLIC_MAGAZINE_NAME= / _ORG_NAME= / _TAGLINE=   # branding (build-time!)
+NEXT_PUBLIC_MAGAZINE_NAME= / _ORG_NAME= / _TAGLINE=   # branding BOOTSTRAP DEFAULTS (build-time!)
+                                                      # the owner overrides these in the admin — see below
 
 R2_ACCOUNT_ID=
 R2_ACCESS_KEY_ID=
@@ -305,7 +318,7 @@ the release log is your list of tags / GitHub Releases.
 
 **Shipping a release** (both forms hit the same `on: push: tags` trigger):
 
-- **GitHub UI** — Releases → *Draft a new release* → new tag `vYYYY.MM.DD` → *Publish*.
+- **GitHub UI** — Releases → _Draft a new release_ → new tag `vYYYY.MM.DD` → _Publish_.
   You get a release-notes page and a button, no local git.
 - **CLI** — `git tag v2026.07.06 && git push origin v2026.07.06`.
 
@@ -318,7 +331,7 @@ a deliberate manual check before you tag (glance at `demo.octavo.dev`), which ke
 releases simple and rollbacks unblocked. Because you tag a commit that already shipped
 to the demo, prod code + migrations are what you smoke-tested first. **Rollback:**
 re-run the Action against an older tag
-(GitHub → Actions → *Deploy to production* → *Re-run*), or redeploy a previous
+(GitHub → Actions → _Deploy to production_ → _Re-run_), or redeploy a previous
 deployment from the Railway dashboard. (Migrations are forward-only, so a rollback
 does not undo a schema change — roll forward with a fix tag if a migration is the
 problem.)
@@ -329,7 +342,7 @@ problem.)
    **production** environment. Add it to GitHub → repo Settings → Secrets → Actions as
    `RAILWAY_TOKEN`.
 2. **Stop branch auto-deploy on prod** — Railway → production service → Settings →
-   Source: disconnect the branch (or leave *Auto deploy* off) so the Action is the
+   Source: disconnect the branch (or leave _Auto deploy_ off) so the Action is the
    only thing that deploys production.
 3. **Keep "Wait for CI to pass"** on the **demo** service so a red
    `lint · types · build` never redeploys `demo.octavo.dev`. (Prod doesn't need it —
@@ -475,6 +488,8 @@ webhook signature and a new endpoint, and the manual process above is fine at cl
 ## Recurring landlord tasks (rare)
 
 - Keep domain auto-renew on and billing cards current (a lapse takes the site down).
+- Renaming the magazine or the club is **not** one of these — the owner does it at
+  `/admin/magazine` (see [Environment variables](#environment-variables-app)).
 - Apply dependency/security updates occasionally.
 - Watch Sentry/UptimeRobot alerts; check email deliverability if blasts start hitting
   spam.

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Button, Kicker, Label } from "@/components/ui";
-import { site } from "@/lib/site";
+import type { SiteSettings } from "@/lib/branding";
 import type { IssueContent, Page } from "@/lib/blocks";
 import type { ImageMap } from "@/lib/images";
 import { CoverThumb } from "./cover-thumb";
@@ -15,6 +15,8 @@ type LatestIssueProps = {
   theme: string;
   cover?: Page;
   images: ImageMap;
+  /** The magazine's effective branding + footer appearance (issue #105). */
+  settings: SiteSettings;
 };
 
 // The library hero: the cover as a physical object on the left, and an editorial
@@ -27,6 +29,7 @@ export function LatestIssue({
   theme,
   cover,
   images,
+  settings,
 }: LatestIssueProps) {
   const pageCount = content.pages.length;
   const month = issueMonth(publishedAt);
@@ -50,6 +53,7 @@ export function LatestIssue({
               theme={theme}
               images={images}
               issueNo={number}
+              settings={settings}
               width={240}
               priority
             />
@@ -59,7 +63,7 @@ export function LatestIssue({
               <div className="absolute inset-y-0 left-0 w-[7px] bg-black/20" />
               <div className="absolute inset-y-0 left-[7px] w-px bg-white/10" />
               <div className="text-cream font-serif text-[13px] tracking-[0.1em]">
-                {site.name} · No. {number}
+                {settings.name} · No. {number}
               </div>
               <div className="text-paper font-serif text-4xl leading-[0.96]">
                 {title}

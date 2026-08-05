@@ -1,4 +1,3 @@
-import { site } from "@/lib/site";
 import { SponsorLogo } from "./shared";
 import type { LayoutTheme } from "./types";
 
@@ -81,19 +80,22 @@ export const classicTheme = {
   ),
 
   page: {
-    decoration: ({ issueNo }) => (
+    decoration: ({ issueNo, magazineName }) => (
       <>
         <div className="border-page-frame pointer-events-none absolute inset-3.5 border" />
         <div className="border-page-frame-soft pointer-events-none absolute inset-[17px] border" />
         <div className="text-faint2 pointer-events-none absolute top-5 right-3.5 left-3.5 text-center font-sans text-[8px] tracking-[0.32em] uppercase">
-          {site.name} · No. {issueNo}
+          {magazineName} · No. {issueNo}
         </div>
       </>
     ),
     // The inner hairline above runs at inset-[17px], so the page's ruled area
-    // ends 18px in. The mark stands 27px tall: left at the text footer's height
-    // it would cross both rules. Clear the inner rule by 4px so the lockup reads
-    // as sitting inside the frame rather than punched through it.
+    // ends 18px in. The mark stands 18–36px tall depending on the owner's
+    // footer-mark setting (issue #105): left at the text footer's height it
+    // would cross both rules. Clear the inner rule by 4px so the lockup reads as
+    // sitting inside the frame rather than punched through it. The offset stays
+    // one number across the three sizes because the row is bottom-anchored and
+    // grows upward — a taller mark rises into the page, it does not sink.
     logoFooterBottom: "bottom-[22px]",
   },
 } satisfies LayoutTheme;

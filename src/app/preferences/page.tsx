@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Button, Label, Pill, Wordmark } from "@/components/ui";
-import { site } from "@/lib/site";
+import { getSettings } from "@/server/settings";
 import { getRecipientById } from "@/server/recipients";
 import { requireMemberOrRedirect } from "@/server/session";
 import { updateEmailPreferenceAction } from "./actions";
@@ -12,12 +12,13 @@ import { updateEmailPreferenceAction } from "./actions";
 // /unsubscribe page stays the email path. Both share setSubscribed.
 export const dynamic = "force-dynamic";
 
-function Frame({ children }: { children: React.ReactNode }) {
+async function Frame({ children }: { children: React.ReactNode }) {
+  const { org } = await getSettings();
   return (
     <main className="flex min-h-screen items-center justify-center px-5 py-12">
       <div className="bg-card border-line w-full max-w-md rounded-2xl border p-8 shadow-[0_14px_34px_rgba(0,0,0,0.08)] sm:p-10">
         <Wordmark size={22} />
-        <Label>{site.org}</Label>
+        <Label>{org}</Label>
         {children}
         <div className="border-line mt-8 border-t pt-6">
           <Link
@@ -34,6 +35,7 @@ function Frame({ children }: { children: React.ReactNode }) {
 
 export default async function PreferencesPage() {
   const user = await requireMemberOrRedirect("/preferences");
+  const { name: magazineName } = await getSettings();
 
   // No user only happens in demo mode (the gate redirects a real signed-out
   // visitor). A demo visitor has no account to hold a preference, so say so
@@ -45,7 +47,7 @@ export default async function PreferencesPage() {
           Email preferences
         </h1>
         <p className="text-muted mt-4 font-sans text-[16px] leading-relaxed">
-          Sign in to {site.name} to manage when we email you.
+          Sign in to {magazineName} to manage when we email you.
         </p>
       </Frame>
     );
@@ -61,7 +63,7 @@ export default async function PreferencesPage() {
       </h1>
       <p className="text-muted mt-4 font-sans text-[16px] leading-relaxed">
         Email me at <span className="text-ink font-semibold">{user.email}</span>{" "}
-        when a new issue of {site.name} is published.
+        when a new issue of {magazineName} is published.
       </p>
 
       <div className="mt-6 flex items-center gap-3">

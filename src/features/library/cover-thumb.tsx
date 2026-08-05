@@ -1,4 +1,5 @@
 import type { Page } from "@/lib/blocks";
+import type { SiteSettings } from "@/lib/branding";
 import type { ImageMap } from "@/lib/images";
 import { BlockView } from "@/features/blocks/block-view";
 import { resolveTheme } from "@/features/blocks/themes/registry";
@@ -20,6 +21,7 @@ export function CoverThumb({
   theme,
   images,
   issueNo,
+  settings,
   width,
   priority = false,
 }: {
@@ -27,6 +29,9 @@ export function CoverThumb({
   theme: string;
   images: ImageMap;
   issueNo: number;
+  /** The magazine's effective branding + footer appearance (issue #105) — the
+   *  thumbnail is a real page render, chrome and all. */
+  settings: SiteSettings;
   width: number;
   /** Eager-load the cover image — set only for the hero (LCP), not the archive. */
   priority?: boolean;
@@ -43,6 +48,7 @@ export function CoverThumb({
           h={PAGE_H}
           issueNo={issueNo}
           side="right"
+          settings={settings}
         >
           <div
             className={

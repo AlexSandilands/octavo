@@ -6,7 +6,8 @@ import { createLogo, deleteLogo, renameLogo } from "@/server/logos";
 import { getImagesByIds } from "@/server/images";
 import { requireAdmin } from "@/server/session";
 
-// Mutations the logos admin UI calls. Like the sponsor actions, arguments are
+// Mutations the logo library UI calls (it lives on /admin/magazine since
+// issue #105). Like the sponsor actions, arguments are
 // attacker-controlled JSON regardless of their TypeScript types, so every one is
 // re-validated with zod and every action starts with requireAdmin() — the page
 // gate only guards navigation, not a direct action invocation.
@@ -36,7 +37,7 @@ export async function createLogoAction(
       name: parsed.data.name,
       imageId: parsed.data.imageId,
     });
-    revalidatePath("/admin/logos");
+    revalidatePath("/admin/magazine");
     return { ok: true, id };
   } catch (err) {
     console.error("createLogoAction failed", err);
@@ -56,7 +57,7 @@ export async function renameLogoAction(
   }
   try {
     await renameLogo(parsedId.data, parsedName.data);
-    revalidatePath("/admin/logos");
+    revalidatePath("/admin/magazine");
     return { ok: true, id: parsedId.data };
   } catch (err) {
     console.error("renameLogoAction failed", err);
@@ -75,7 +76,7 @@ export async function deleteLogoAction(id: string): Promise<DeleteLogoResult> {
   try {
     const result = await deleteLogo(parsed.data);
     if (result === "in-use") return { ok: false, reason: "in-use" };
-    revalidatePath("/admin/logos");
+    revalidatePath("/admin/magazine");
     return { ok: true };
   } catch (err) {
     console.error("deleteLogoAction failed", err);

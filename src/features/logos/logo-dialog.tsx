@@ -3,7 +3,10 @@
 import { useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import type { LogoListItem } from "@/lib/logos";
-import { createLogoAction, renameLogoAction } from "@/app/admin/logos/actions";
+import {
+  createLogoAction,
+  renameLogoAction,
+} from "@/app/admin/magazine/logo-actions";
 
 // Add a logo (name + mark) or rename an existing one. The upload reuses
 // POST /api/admin/images — the same route and pipeline the editor's image block

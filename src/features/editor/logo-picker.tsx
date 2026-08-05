@@ -5,7 +5,7 @@ import type { LogoListItem } from "@/lib/logos";
 import { MenuSelect, type MenuSelectItem } from "./menu-select";
 
 // The editor header's footer-mark control: choose one of the marks from the
-// logo library (/admin/logos) for this issue's running page footer, or none.
+// logo library (/admin/magazine) for this issue's running page footer, or none.
 // Uses the same MenuSelect as the theme picker beside it, so the two controls
 // are one design rather than a house pill next to a browser dropdown.
 // Marks are created and deleted in the library; this only references them.
@@ -23,7 +23,7 @@ export function LogoPicker({
   if (logos.length === 0 && !logoId) {
     return (
       <Link
-        href="/admin/logos"
+        href="/admin/magazine"
         target="_blank"
         className="text-accent font-sans text-[13px] font-medium underline underline-offset-2"
       >

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { Button, Label, Wordmark } from "@/components/ui";
-import { site } from "@/lib/site";
+import { getSettings } from "@/server/settings";
 import { getRecipientById } from "@/server/recipients";
 import { verifyUnsubscribeToken } from "@/server/unsubscribe-token";
 import { updateSubscriptionAction } from "./actions";
@@ -18,12 +18,13 @@ export const dynamic = "force-dynamic";
 
 const paramsSchema = z.object({ token: z.string().optional() });
 
-function Frame({ children }: { children: React.ReactNode }) {
+async function Frame({ children }: { children: React.ReactNode }) {
+  const { org } = await getSettings();
   return (
     <main className="flex min-h-screen items-center justify-center px-5 py-12">
       <div className="bg-card border-line w-full max-w-md rounded-2xl border p-8 shadow-[0_14px_34px_rgba(0,0,0,0.08)] sm:p-10">
         <Wordmark size={22} />
-        <Label>{site.org}</Label>
+        <Label>{org}</Label>
         {children}
       </div>
     </main>
@@ -36,6 +37,7 @@ export default async function UnsubscribePage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const parsed = paramsSchema.safeParse(await searchParams);
+  const { name: magazineName } = await getSettings();
   const token = parsed.success ? parsed.data.token : undefined;
   const userId = token ? verifyUnsubscribeToken(token) : null;
   const member = userId ? await getRecipientById(userId) : null;
@@ -51,7 +53,7 @@ export default async function UnsubscribePage({
         </h1>
         <p className="text-muted mt-4 font-sans text-[16px] leading-relaxed">
           The unsubscribe link may be incomplete or out of date. Use the
-          Unsubscribe link at the bottom of a recent {site.name} email.
+          Unsubscribe link at the bottom of a recent {magazineName} email.
         </p>
       </Frame>
     );
@@ -61,12 +63,12 @@ export default async function UnsubscribePage({
     return (
       <Frame>
         <h1 className="text-ink mt-10 font-serif text-3xl leading-[1.1]">
-          Unsubscribe from {site.name}?
+          Unsubscribe from {magazineName}?
         </h1>
         <p className="text-muted mt-4 font-sans text-[16px] leading-relaxed">
           We&rsquo;ll stop emailing new issues to{" "}
-          <span className="text-ink font-semibold">{member.email}</span>. You can
-          resubscribe here any time.
+          <span className="text-ink font-semibold">{member.email}</span>. You
+          can resubscribe here any time.
         </p>
         <form className="mt-8" action={updateSubscriptionAction}>
           <input type="hidden" name="token" value={token} />

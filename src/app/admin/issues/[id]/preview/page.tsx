@@ -6,6 +6,7 @@ import { resolveIssueImages } from "@/server/images";
 import { getLogoImage } from "@/server/logos";
 import { resolveIssueSponsors } from "@/server/sponsors";
 import { requireAdminOrRedirect } from "@/server/session";
+import { getSettings } from "@/server/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -23,10 +24,11 @@ export default async function PreviewIssuePage({
   const issue = await getIssue(id);
   if (!issue) notFound();
 
-  const [images, sponsors, logo] = await Promise.all([
+  const [images, sponsors, logo, settings] = await Promise.all([
     resolveIssueImages(issue.content),
     resolveIssueSponsors(issue.content),
     getLogoImage(issue.logoId),
+    getSettings(),
   ]);
 
   return (
@@ -51,6 +53,7 @@ export default async function PreviewIssuePage({
         content={issue.content}
         issueNo={issue.number}
         logo={logo}
+        settings={settings}
         images={images}
         sponsors={sponsors}
       />

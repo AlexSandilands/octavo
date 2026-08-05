@@ -33,6 +33,11 @@ export interface ImageStyles {
 export interface PageDecorationContext {
   issueNo: number;
   side: "left" | "right";
+  /** The magazine's effective name (issue #105) for chrome that names it —
+   *  classic's running head. Passed in rather than read from a module so the
+   *  owner's setting reaches the reader, the editor, the thumbnails and the
+   *  print document by the same route. */
+  magazineName: string;
 }
 
 export interface LayoutTheme {

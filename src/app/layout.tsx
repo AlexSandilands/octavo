@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Newsreader, Hanken_Grotesk, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
-import { site } from "@/lib/site";
+import { BrandingProvider } from "@/components/branding";
+import { getSettings } from "@/server/settings";
 import { env } from "@/lib/env";
 
 // preload:false on purpose (issue #72). These faces are applied indirectly —
@@ -36,17 +37,25 @@ const mono = IBM_Plex_Mono({
   preload: false,
 });
 
-export const metadata: Metadata = {
-  title: `${site.name} — ${site.org}`,
-  description: site.tagline,
-  // Members-only site — everything stays out of search indexes (decision
-  // settled with the reader gate; see src/app/robots.ts).
-  robots: { index: false, follow: false },
-};
+// Async because the title and description are owner-editable now (issue #105)
+// and come from the settings row, not from build-time env. Every route already
+// renders dynamically for the CSP nonce, so this costs one cached query per
+// request rather than a rendering-mode change.
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSettings();
+  return {
+    title: `${settings.name} — ${settings.org}`,
+    description: settings.tagline,
+    // Members-only site — everything stays out of search indexes (decision
+    // settled with the reader gate; see src/app/robots.ts).
+    robots: { index: false, follow: false },
+  };
+}
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const { name, org, tagline } = await getSettings();
   return (
     // data-brand selects the deployment brand skin's palette (issue #40): the
     // default "heritage" is the @theme baseline, other brands are override blocks
@@ -56,7 +65,13 @@ export default function RootLayout({
       data-brand={env.NEXT_PUBLIC_BRAND}
       className={`${serif.variable} ${sans.variable} ${mono.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        {/* The branding text for the two client surfaces that have no server
+            boundary to take it as a prop (see components/branding.tsx). */}
+        <BrandingProvider value={{ name, org, tagline }}>
+          {children}
+        </BrandingProvider>
+      </body>
     </html>
   );
 }

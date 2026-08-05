@@ -5,7 +5,7 @@ import { SectionIssues } from "@/features/help/section-issues";
 import { SectionPublishing } from "@/features/help/section-publishing";
 import { SectionMembers } from "@/features/help/section-members";
 import { SectionSponsors } from "@/features/help/section-sponsors";
-import { SectionLogos } from "@/features/help/section-logos";
+import { SectionMagazine } from "@/features/help/section-magazine";
 import { SectionPdf } from "@/features/help/section-pdf";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +20,7 @@ const CONTENTS = [
   { id: "publishing", label: "Publish an issue" },
   { id: "members", label: "Members" },
   { id: "sponsors", label: "Sponsors" },
-  { id: "logos", label: "Logos" },
+  { id: "magazine", label: "Magazine details" },
   { id: "pdf", label: "PDF downloads" },
 ];
 
@@ -68,7 +68,7 @@ export default async function HelpPage() {
         <SectionPublishing />
         <SectionMembers />
         <SectionSponsors />
-        <SectionLogos />
+        <SectionMagazine />
         <SectionPdf />
       </div>
     </AdminShell>

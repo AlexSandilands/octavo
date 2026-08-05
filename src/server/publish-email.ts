@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { verificationTokens } from "@/db/schema";
 import { env } from "@/lib/env";
 import { tallyChunks, type BlastResult, type PreparedEmail } from "@/lib/blast";
+import type { Branding } from "@/lib/branding";
 import { safeNextPath } from "@/lib/next-path";
 import {
   issueEmailSubject,
@@ -13,6 +14,7 @@ import {
   renderIssueEmailText,
 } from "./issue-email";
 import { listSubscribedRecipients, type Recipient } from "./recipients";
+import { getSettings } from "./settings";
 import { signUnsubscribeToken } from "./unsubscribe-token";
 
 export type { BlastResult } from "@/lib/blast";
@@ -60,6 +62,7 @@ function prepare(
   issueNumber: number,
   issueTitle: string,
   origin: string,
+  branding: Branding,
 ): {
   tokenRow: { identifier: string; token: string; expires: Date };
   email: PreparedEmail;
@@ -107,14 +110,16 @@ function prepare(
     },
     email: {
       to: recipient.email,
-      subject: issueEmailSubject(issueNumber, issueTitle),
+      subject: issueEmailSubject(branding.name, issueNumber, issueTitle),
       html: renderIssueEmailHtml({
+        branding,
         issueTitle,
         issueNumber,
         readUrl,
         unsubscribeUrl,
       }),
       text: renderIssueEmailText({
+        branding,
         issueTitle,
         issueNumber,
         readUrl,
@@ -138,8 +143,11 @@ export async function sendIssueBlast(
   const recipients = await listSubscribedRecipients();
   if (recipients.length === 0) return { sent: 0, failed: 0 };
 
+  // Resolved once for the whole blast: every member's email carries the same
+  // branding, and a mid-blast settings edit must not split the run in two.
+  const branding = await getSettings();
   const prepared = recipients.map((r) =>
-    prepare(r, issueNumber, issueTitle, origin),
+    prepare(r, issueNumber, issueTitle, origin, branding),
   );
 
   // Persist every magic-link token up front (one write), so the links are live
