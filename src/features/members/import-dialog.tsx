@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { Icon } from "@/components/icons";
+import { Button } from "@/components/ui";
 import { importMembersAction } from "@/app/admin/members/actions";
 import { parseMembersCsv, type ParseResult } from "@/lib/parse-members-csv";
 import { ImportPreview } from "./import-preview";
@@ -87,10 +88,12 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
                 isn’t a valid address, and anyone already on the list.
               </p>
 
+              {/* A full-width dashed drop target, not a house Button — it keeps
+                  its own shape and gains the wash the accent hover implied. */}
               <button
                 type="button"
                 onClick={() => inputRef.current?.click()}
-                className="border-line text-muted hover:border-accent hover:text-accent mt-5 flex h-14 w-full items-center justify-center gap-2 rounded-lg border-[1.5px] border-dashed font-sans text-[15px] font-semibold"
+                className="border-line text-muted hover:border-accent hover:bg-accent-wash hover:text-accent mt-5 flex h-14 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border-[1.5px] border-dashed font-sans text-[15px] font-semibold transition-[background-color,border-color,color] duration-150"
               >
                 <Icon name="upload" size={18} strokeWidth={1.8} />
                 {preview ? "Choose a different file" : "Choose CSV file"}
@@ -118,27 +121,23 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="flex justify-end gap-3 px-8 pt-6 pb-6">
-          <button
-            type="button"
-            onClick={onClose}
-            className="border-hair text-ink flex h-12 items-center rounded-lg border-[1.5px] bg-white px-5 font-sans text-[15px] font-semibold"
-          >
+          <Button variant="secondary" onClick={onClose}>
             {summary ? "Done" : "Cancel"}
-          </button>
+          </Button>
           {!summary && (
-            <button
-              type="button"
+            <Button
               onClick={confirmImport}
-              disabled={pending || !parsed || parsed.members.length === 0}
-              className="bg-accent text-paper flex h-12 items-center gap-2 rounded-lg px-6 font-sans text-[15px] font-semibold shadow-[0_2px_10px_rgba(29,77,62,0.3)] disabled:opacity-50"
+              busy={pending}
+              disabled={!parsed || parsed.members.length === 0}
+              icon="check"
+              iconPosition="left"
             >
-              <Icon name="check" size={18} strokeWidth={1.8} />
               {pending
                 ? "Importing…"
                 : parsed
                   ? `Import ${parsed.members.length}`
                   : "Import"}
-            </button>
+            </Button>
           )}
         </div>
       </div>
