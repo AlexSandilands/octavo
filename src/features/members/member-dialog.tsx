@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Icon } from "@/components/icons";
+import { Button } from "@/components/ui";
 import {
   addMemberAction,
   updateMemberAction,
@@ -103,23 +103,15 @@ export function MemberDialog({
           </div>
 
           <div className="flex justify-end gap-3 px-8 pt-6 pb-6">
-            <button
-              type="button"
-              onClick={onClose}
-              className="border-hair text-ink flex h-12 items-center rounded-lg border-[1.5px] bg-white px-5 font-sans text-[15px] font-semibold"
-            >
+            <Button variant="secondary" onClick={onClose}>
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              disabled={pending}
-              className="bg-accent text-paper flex h-12 items-center gap-2 rounded-lg px-6 font-sans text-[15px] font-semibold shadow-[0_2px_10px_rgba(29,77,62,0.3)] disabled:opacity-50"
+              busy={pending}
+              icon={editing ? "check" : "plus"}
+              iconPosition="left"
             >
-              <Icon
-                name={editing ? "check" : "plus"}
-                size={18}
-                strokeWidth={1.8}
-              />
               {editing
                 ? pending
                   ? "Saving…"
@@ -127,7 +119,7 @@ export function MemberDialog({
                 : pending
                   ? "Adding…"
                   : "Add member"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

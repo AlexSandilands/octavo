@@ -130,6 +130,37 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   },
 );
 
+// The icon-only companion to Button, for the dialogs' close ×. It carries the
+// same interaction contract — pointer cursor, a hover wash, the focus ring —
+// without Button's box: the padding grows the tap target while the matching
+// negative margin cancels it in flow, so the icon sits exactly where it did.
+export const IconButton = forwardRef<
+  HTMLButtonElement,
+  {
+    icon: IconName;
+    /** Accessible name — an icon alone says nothing. */
+    label: string;
+    onClick?: () => void;
+    size?: number;
+    className?: string;
+  }
+>(function IconButton(
+  { icon, label, onClick, size = 22, className = "" },
+  ref,
+) {
+  return (
+    <button
+      ref={ref}
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className={`text-muted hover:bg-accent-wash hover:text-ink -m-2 inline-flex cursor-pointer items-center justify-center rounded-lg p-2 transition-[background-color,color] duration-150 ${className}`}
+    >
+      <Icon name={icon} size={size} strokeWidth={1.7} />
+    </button>
+  );
+});
+
 export type Status =
   | "Published"
   | "Draft"

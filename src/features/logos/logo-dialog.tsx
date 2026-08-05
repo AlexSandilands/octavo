@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Icon } from "@/components/icons";
+import { Button, IconButton } from "@/components/ui";
 import type { LogoListItem } from "@/lib/logos";
 import {
   createLogoAction,
@@ -98,13 +99,7 @@ export function LogoDialog({
           <h2 className="text-ink font-serif text-[26px] leading-tight">
             {renaming ? "Rename logo" : "Add logo"}
           </h2>
-          <button
-            onClick={onClose}
-            className="text-muted hover:text-ink"
-            aria-label="Close"
-          >
-            <Icon name="close" size={22} strokeWidth={1.7} />
-          </button>
+          <IconButton icon="close" label="Close" onClick={onClose} />
         </div>
 
         <div className="space-y-5 px-8 pt-6">
@@ -150,11 +145,11 @@ export function LogoDialog({
                   delete this one instead.
                 </p>
               ) : (
-                <button
-                  type="button"
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={() => fileRef.current?.click()}
-                  disabled={uploading}
-                  className="border-hair text-ink hover:border-accent flex h-9 items-center gap-1.5 rounded-lg border-[1.5px] bg-white px-3 font-sans text-[13px] font-semibold disabled:opacity-60"
+                  busy={uploading}
                 >
                   <Icon name="upload" size={15} className="text-accent" />
                   {uploading
@@ -162,7 +157,7 @@ export function LogoDialog({
                     : imageUrl
                       ? "Replace image"
                       : "Choose image"}
-                </button>
+                </Button>
               )}
               <input
                 ref={fileRef}
@@ -188,21 +183,18 @@ export function LogoDialog({
         )}
 
         <div className="flex justify-end gap-3 px-8 pt-6 pb-7">
-          <button
-            onClick={onClose}
-            disabled={saving}
-            className="border-hair text-ink flex h-12 items-center rounded-lg border-[1.5px] bg-white px-5 font-sans text-[15px] font-semibold disabled:opacity-50"
-          >
+          <Button variant="secondary" onClick={onClose} disabled={saving}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={save}
-            disabled={saving || uploading}
-            className="bg-accent text-paper flex h-12 items-center gap-2 rounded-lg px-6 font-sans text-[15px] font-semibold shadow-[0_2px_10px_rgba(29,77,62,0.3)] disabled:opacity-60"
+            busy={saving}
+            disabled={uploading}
+            icon="check"
+            iconPosition="left"
           >
-            <Icon name="check" size={18} strokeWidth={1.8} />
             {saving ? "Saving…" : renaming ? "Save name" : "Save logo"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
