@@ -192,7 +192,6 @@ export function MemberRow({
           body={confirm.body}
           confirmLabel={confirm.confirmLabel}
           confirmIcon={confirm.confirmIcon}
-          working={pending}
           onClose={() => setConfirm(null)}
           onConfirm={() => {
             confirm.act();
