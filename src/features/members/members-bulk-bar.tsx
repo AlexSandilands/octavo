@@ -222,7 +222,6 @@ export function MembersBulkBar({
           body="They lose access immediately and are signed out. This can’t be undone."
           confirmLabel={`Remove ${count}`}
           confirmIcon="trash"
-          working={pending}
           onClose={() => setConfirming(false)}
           onConfirm={() => {
             remove();

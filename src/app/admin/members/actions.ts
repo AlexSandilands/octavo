@@ -25,10 +25,14 @@ import { requireAdmin } from "@/server/session";
 
 const idSchema = z.string().uuid();
 
-// A selection from the members table. Bounded because the table selects only
-// what a person can see: the club is ~1000 members, so a longer id list is a
-// script, not a selection. Duplicates are harmless — the data layer de-dupes.
-const idsSchema = z.array(idSchema).min(1).max(500);
+// A selection from the members table, which renders every member — so
+// select-all is legitimately the whole club list, and the bound has to sit
+// well clear of it or the UI could build a selection its own action refuses.
+// 2000 is roughly double a realistic club: no selection a person can make is
+// ever rejected, while an id list an order of magnitude longer still is. The
+// bound's job is to turn away scripts, not selections. Duplicates are harmless
+// — the data layer de-dupes.
+const idsSchema = z.array(idSchema).min(1).max(2000);
 
 // Trim + lowercase before validating so "  Alex@Example.COM " becomes a clean,
 // canonical key that matches the unique index and future sign-ins.
