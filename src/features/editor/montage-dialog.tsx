@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
+import { Button, IconButton } from "@/components/ui";
 import {
   MAX_MONTAGE_IMAGES,
   MONTAGE_INTERVALS,
@@ -130,14 +131,12 @@ export function MontageDialog({
           <h2 className="text-ink font-serif text-[26px] leading-tight">
             Montage
           </h2>
-          <button
+          <IconButton
             ref={closeRef}
+            icon="close"
+            label="Close"
             onClick={onClose}
-            className="text-muted hover:text-ink"
-            aria-label="Close"
-          >
-            <Icon name="close" size={22} strokeWidth={1.7} />
-          </button>
+          />
         </div>
 
         <div className="flex-none px-8 pt-5">
@@ -151,7 +150,7 @@ export function MontageDialog({
             id="montage-interval"
             value={interval}
             onChange={(e) => onChangeInterval(Number(e.target.value))}
-            className="border-hair focus:border-accent text-ink h-12 rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-[15px] outline-none"
+            className="border-hair hover:border-accent focus:border-accent text-ink h-12 cursor-pointer rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-[15px] outline-none transition-[border-color] duration-150"
           >
             {MONTAGE_INTERVALS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -204,11 +203,13 @@ export function MontageDialog({
         )}
 
         <div className="flex flex-none items-center justify-between px-8 pt-6 pb-7">
-          <button
-            type="button"
+          {/* Two different states, so two different props: uploading is `busy`
+              (undimmed — work in progress), a full montage is `disabled`. */}
+          <Button
+            variant="secondary"
             onClick={() => fileRef.current?.click()}
-            disabled={uploading || room <= 0}
-            className="border-hair text-ink hover:border-accent flex h-12 items-center gap-2 rounded-lg border-[1.5px] bg-white px-5 font-sans text-[15px] font-semibold disabled:opacity-60"
+            busy={uploading}
+            disabled={room <= 0}
           >
             <Icon name="upload" size={17} className="text-accent" />
             {uploading
@@ -216,7 +217,7 @@ export function MontageDialog({
               : room <= 0
                 ? "Montage full"
                 : "Add images"}
-          </button>
+          </Button>
           <input
             ref={fileRef}
             type="file"
@@ -225,14 +226,14 @@ export function MontageDialog({
             onChange={onFiles}
             className="hidden"
           />
-          <button
+          <Button
             onClick={onClose}
             disabled={uploading}
-            className="bg-accent text-paper flex h-12 items-center gap-2 rounded-lg px-6 font-sans text-[15px] font-semibold shadow-[0_2px_10px_rgba(29,77,62,0.3)] disabled:opacity-60"
+            icon="check"
+            iconPosition="left"
           >
-            <Icon name="check" size={18} strokeWidth={1.8} />
             Done
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -314,6 +315,10 @@ function RowBtn({
   disabled?: boolean;
   danger?: boolean;
 }) {
+  // A bordered square, not a house Button and not the quiet inline IconButton —
+  // it keeps its own shape and takes only the interaction contract: the pointer,
+  // the wash its accent hover already implied, and a transition. The hovers are
+  // gated on `enabled:` so a disabled end-of-list arrow promises nothing.
   return (
     <button
       type="button"
@@ -321,10 +326,10 @@ function RowBtn({
       disabled={disabled}
       title={label}
       aria-label={label}
-      className={`border-hair flex h-9 w-9 items-center justify-center rounded-md border bg-white disabled:opacity-35 ${
+      className={`border-hair flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border bg-white transition-[background-color,border-color,color] duration-150 disabled:cursor-default disabled:opacity-35 ${
         danger
-          ? "text-warn hover:border-warn"
-          : "text-muted hover:border-accent hover:text-accent"
+          ? "text-warn enabled:hover:border-warn enabled:hover:bg-warn-soft"
+          : "text-muted enabled:hover:border-accent enabled:hover:bg-accent-wash enabled:hover:text-accent"
       }`}
     >
       <Icon name={icon} size={15} strokeWidth={1.9} />
