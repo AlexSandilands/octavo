@@ -54,8 +54,11 @@ export function MenuSelect<T>({
     const onDown = (e: PointerEvent) => {
       if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
     };
-    document.addEventListener("pointerdown", onDown);
-    return () => document.removeEventListener("pointerdown", onDown);
+    // Capture, so the menu still dismisses inside a container that stops
+    // pointer events on their way up — the montage dialog stops them at its
+    // overlay to keep stray presses off the editor canvas behind it.
+    document.addEventListener("pointerdown", onDown, true);
+    return () => document.removeEventListener("pointerdown", onDown, true);
   }, [open]);
 
   // On open, move focus to the checked option so keyboard users land on it.
@@ -94,6 +97,11 @@ export function MenuSelect<T>({
       itemsRef.current[n - 1]?.focus();
     } else if (e.key === "Escape") {
       e.preventDefault();
+      // An open menu owns Escape: it closes itself and nothing else. The editor
+      // canvas deselects the current block on a window-level Escape, and a
+      // dialog hosting this control closes on one — either would fire out from
+      // under a menu that was only meant to dismiss.
+      e.stopPropagation();
       close();
     } else if (e.key === "Tab") {
       // Let focus move on naturally, but don't leave the menu hanging open
@@ -116,7 +124,7 @@ export function MenuSelect<T>({
             setOpen(true);
           }
         }}
-        className="border-hair-warm text-ink hover:border-accent hover:bg-accent-wash flex h-10 items-center gap-2 rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-sm font-medium transition-[transform,background-color,border-color] duration-150 ease-out select-none motion-safe:active:scale-[0.97]"
+        className="border-hair-warm text-ink hover:border-accent hover:bg-accent-wash flex h-10 cursor-pointer items-center gap-2 rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-sm font-medium transition-[transform,background-color,border-color] duration-150 ease-out select-none motion-safe:active:scale-[0.97]"
       >
         {label}: {current}
         <Icon name="chevronDown" size={14} strokeWidth={1.8} />
@@ -141,7 +149,7 @@ export function MenuSelect<T>({
                 aria-checked={active}
                 onClick={() => choose(item.value)}
                 onKeyDown={(e) => onItemKeyDown(e, i)}
-                className={`flex h-11 w-full items-center gap-2 rounded-md px-2.5 font-sans text-sm ${
+                className={`flex h-11 w-full cursor-pointer items-center gap-2 rounded-md px-2.5 font-sans text-sm transition-[background-color,color] duration-150 ${
                   active
                     ? "text-accent font-semibold"
                     : "text-ink hover:bg-accent-wash"

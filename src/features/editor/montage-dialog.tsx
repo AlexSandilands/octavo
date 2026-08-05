@@ -9,6 +9,7 @@ import {
   type MontageItem,
 } from "@/lib/blocks";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
+import { MenuSelect, type MenuSelectItem } from "./menu-select";
 
 // The montage block's settings panel (issue #95): the slide list — add, remove,
 // reorder, per-slide alt text — plus the cross-fade interval. Modelled on the
@@ -43,22 +44,46 @@ export function MontageDialog({
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Focus into the panel on open and close on Escape, so the dialog is operable
-  // from the keyboard alone (the editor canvas behind it also listens for
-  // Escape to deselect, so the keydown is stopped here).
+  // Focus into the panel on open — once, on mount. Tying this to the Escape
+  // effect below meant it re-ran whenever `onClose` changed identity (it is an
+  // inline arrow in the caller, so on every parent render), snatching focus
+  // back to the × every time an edit re-rendered the editor.
   useEffect(() => {
     closeRef.current?.focus();
+  }, []);
+
+  // Close on Escape, so the dialog is operable from the keyboard alone (the
+  // editor canvas behind it also listens for Escape to deselect, so the keydown
+  // is stopped here).
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
+      // This listener is on the capture phase, so it would otherwise close the
+      // whole dialog before an open dropdown ever saw the key. A menu owns
+      // Escape while it is open — it closes itself and hands focus back to its
+      // trigger — and the dialog only takes the key once no menu is showing.
+      if (panelRef.current?.querySelector('[role="menu"]')) return;
       e.stopPropagation();
       onClose();
     };
     document.addEventListener("keydown", onKey, true);
     return () => document.removeEventListener("keydown", onKey, true);
   }, [onClose]);
+
+  const intervalItems: MenuSelectItem<number>[] = MONTAGE_INTERVALS.map(
+    (o) => ({
+      key: String(o.value),
+      value: o.value,
+      content: o.label,
+    }),
+  );
+  const intervalLabel =
+    MONTAGE_INTERVALS.find((o) => o.value === interval)?.label ??
+    `${interval} seconds`;
 
   const room = MAX_MONTAGE_IMAGES - items.length;
 
@@ -122,6 +147,7 @@ export function MontageDialog({
       onPointerDown={(e) => e.stopPropagation()}
     >
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label="Montage settings"
@@ -139,30 +165,26 @@ export function MontageDialog({
           />
         </div>
 
-        <div className="flex-none px-8 pt-5">
-          <label
-            htmlFor="montage-interval"
-            className="text-faint mb-1.5 block font-sans text-[11px] font-semibold tracking-[0.14em] uppercase"
-          >
-            Change image every
-          </label>
-          <select
-            id="montage-interval"
+        {/* The house dropdown, not a native <select>: a styled select still
+            opens the operating system's own picker, and this is the one
+            dropdown the rest of the admin uses. It names itself in its
+            trigger ("Change image every: 5 seconds"), the same labelling the
+            magazine settings cards use, so the words stay visible without a
+            second copy of them above it. */}
+        <div className="flex flex-none px-8 pt-5">
+          <MenuSelect
+            label="Change image every"
+            current={intervalLabel}
+            ariaLabel="Change image every"
+            items={intervalItems}
             value={interval}
-            onChange={(e) => onChangeInterval(Number(e.target.value))}
-            className="border-hair hover:border-accent focus:border-accent text-ink h-12 cursor-pointer rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-[15px] outline-none transition-[border-color] duration-150"
-          >
-            {MONTAGE_INTERVALS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-          <p className="text-faint2 mt-1.5 font-sans text-[12px]">
-            Readers can always step through with the arrows. Members who ask
-            their device for reduced motion never see it move on its own.
-          </p>
+            onSelect={onChangeInterval}
+          />
         </div>
+        <p className="text-faint2 flex-none px-8 pt-2 font-sans text-[12px]">
+          Readers can always step through with the arrows. Members who ask their
+          device for reduced motion never see it move on its own.
+        </p>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-8 pt-6">
           <span className="text-faint mb-1.5 block font-sans text-[11px] font-semibold tracking-[0.14em] uppercase">
