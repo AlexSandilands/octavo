@@ -54,8 +54,9 @@ type ButtonProps = {
 // The one button for the app. Every variant shares the same interaction
 // feedback — a hover lift, a tactile press (a slight scale-down, skipped under
 // prefers-reduced-motion) and the global focus-visible ring — so buttons feel
-// consistent and responsive everywhere (issue #64). forwardRef so callers that
-// manage focus (e.g. the confirm dialog) can target the underlying <button>.
+// consistent and responsive everywhere (issue #64), and every variant drops all
+// of it while disabled or busy (issue #117). forwardRef so callers that manage
+// focus (e.g. the confirm dialog) can target the underlying <button>.
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   function Button(
     {
@@ -77,28 +78,37 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref,
   ) {
     const isDisabled = disabled || busy;
-    const base = `${full ? "flex w-full" : "inline-flex"} items-center justify-center gap-2 rounded-lg font-sans font-semibold transition-[transform,background-color,border-color,box-shadow,color] duration-150 ease-out select-none motion-safe:active:scale-[0.97]`;
+    const base = `${full ? "flex w-full" : "inline-flex"} items-center justify-center gap-2 rounded-lg font-sans font-semibold transition-[transform,background-color,border-color,box-shadow,color] duration-150 ease-out select-none`;
     const sizes = {
       md: "h-12 px-5 text-[15px]",
       sm: "h-10 px-4 text-sm",
     }[size];
-    const styles = {
-      primary:
-        "bg-accent text-paper shadow-[0_2px_8px_rgba(29,77,62,0.25)] hover:bg-accent-strong hover:shadow-[0_4px_14px_rgba(29,77,62,0.3)] active:shadow-[0_1px_4px_rgba(29,77,62,0.25)]",
-      // The house style for white buttons: a hairline that lights up to an accent
-      // outline over a faint wash on hover (matches the editor toolbar / sponsor
-      // buttons the rest of the app already uses).
-      secondary:
-        "border-[1.5px] border-hair-warm bg-white text-ink hover:border-accent hover:bg-accent-wash active:bg-accent-wash",
-      danger:
-        "bg-warn text-paper shadow-[0_2px_10px_rgba(0,0,0,0.18)] hover:bg-warn-strong hover:shadow-[0_4px_14px_rgba(0,0,0,0.22)] active:shadow-[0_1px_5px_rgba(0,0,0,0.18)]",
+    const rest = {
+      primary: "bg-accent text-paper shadow-[0_2px_8px_rgba(29,77,62,0.25)]",
+      // The house style for white buttons: a hairline on white.
+      secondary: "border-[1.5px] border-hair-warm bg-white text-ink",
+      danger: "bg-warn text-paper shadow-[0_2px_10px_rgba(0,0,0,0.18)]",
     }[variant];
+    const feedback = {
+      primary:
+        "hover:bg-accent-strong hover:shadow-[0_4px_14px_rgba(29,77,62,0.3)] active:shadow-[0_1px_4px_rgba(29,77,62,0.25)]",
+      // That hairline lights up to an accent outline over a faint wash (matches
+      // the editor toolbar / sponsor buttons the rest of the app already uses).
+      secondary:
+        "hover:border-accent hover:bg-accent-wash active:bg-accent-wash",
+      danger:
+        "hover:bg-warn-strong hover:shadow-[0_4px_14px_rgba(0,0,0,0.22)] active:shadow-[0_1px_5px_rgba(0,0,0,0.18)]",
+    }[variant];
+    // The hover/press feedback is composed in only when the button can actually
+    // be pressed, so a disabled or busy one sits completely still. Gated here in
+    // JS rather than with Tailwind's `enabled:` variant: `:enabled` never matches
+    // an <a>, so that would silently kill hover on the link branch below.
     const state = isDisabled
       ? busy
         ? "cursor-default"
         : "cursor-default opacity-50"
-      : "cursor-pointer";
-    const cls = `${base} ${sizes} ${styles} ${state} ${className}`;
+      : `cursor-pointer motion-safe:active:scale-[0.97] ${feedback}`;
+    const cls = `${base} ${sizes} ${rest} ${state} ${className}`;
     const iconEl = icon && <Icon name={icon} size={17} strokeWidth={1.8} />;
     const inner = (
       <>
