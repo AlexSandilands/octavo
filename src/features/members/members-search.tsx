@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Icon } from "@/components/icons";
 
 // The members search box. The query lives in the URL (?q=) and the filtering
@@ -13,6 +13,7 @@ import { Icon } from "@/components/icons";
 export function MembersSearch({ query }: { query: string }) {
   const router = useRouter();
   const pathname = usePathname();
+  const search = useSearchParams();
   const [value, setValue] = useState(query);
   // The query this box last navigated to. A `query` prop echoing our own
   // navigation must not clobber what's being typed; one arriving from outside
@@ -41,7 +42,13 @@ export function MembersSearch({ query }: { query: string }) {
       const q = next.trim();
       if (q === sent.current) return;
       sent.current = q;
-      router.replace(q ? `${pathname}?q=${encodeURIComponent(q)}` : pathname);
+      // Keep the status filter; a new search starts from its own first page.
+      const params = new URLSearchParams(search);
+      params.delete("page");
+      if (q) params.set("q", q);
+      else params.delete("q");
+      const qs = params.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname);
     }, 250);
   };
 

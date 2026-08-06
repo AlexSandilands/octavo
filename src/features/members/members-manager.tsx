@@ -6,7 +6,7 @@ import { MemberDialog } from "./member-dialog";
 import { ImportDialog } from "./import-dialog";
 import { MembersTable } from "./members-table";
 import { MembersToolbar } from "./members-toolbar";
-import type { MemberList } from "@/server/users";
+import type { MemberFilter, MemberList } from "@/server/users";
 
 // Coordinates the members page: the header + toolbar, the table (or first-run
 // empty state), and the two dialogs. Owning the open/closed state here lets the
@@ -16,11 +16,14 @@ import type { MemberList } from "@/server/users";
 export function MembersManager({
   list,
   query,
+  filter,
   currentUserId,
 }: {
   list: MemberList;
   /** The active search from the URL — "" when the list is unfiltered. */
   query: string;
+  /** The active status filter from the URL — "all" when none. */
+  filter: MemberFilter;
   currentUserId: string;
 }) {
   const [dialog, setDialog] = useState<"add" | "import" | null>(null);
@@ -51,7 +54,12 @@ export function MembersManager({
           <EmptyMembers onImport={openImport} onAdd={openAdd} />
         </div>
       ) : (
-        <MembersTable list={list} query={query} currentUserId={currentUserId} />
+        <MembersTable
+          list={list}
+          query={query}
+          filter={filter}
+          currentUserId={currentUserId}
+        />
       )}
 
       {dialog === "add" && <MemberDialog onClose={close} />}

@@ -70,6 +70,17 @@ function likePattern(query: string): string {
   return `%${query.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
 }
 
+// The status filters the list offers beside the search (issue #123). Like the
+// search they run in the database, because the list only serves one page.
+export type MemberFilter = "all" | "admins" | "subscribed" | "unsubscribed";
+
+const FILTER_CONDITIONS = {
+  all: undefined,
+  admins: eq(users.isAdmin, true),
+  subscribed: eq(users.subscribed, true),
+  unsubscribed: eq(users.subscribed, false),
+} as const;
+
 // Newest first so a just-added member (and a fresh import) surfaces at the top;
 // email as a stable tiebreaker for the many near-simultaneous CSV rows. That
 // fixed, stable order is what makes plain offset paging safe here. The search
@@ -77,15 +88,19 @@ function likePattern(query: string): string {
 // out-of-range page is clamped rather than 404ed, so the URL an admin held
 // while rows were being removed still lands on the nearest real page.
 export async function listUsers(
-  opts: { query?: string; page?: number } = {},
+  opts: { query?: string; page?: number; filter?: MemberFilter } = {},
 ): Promise<MemberList> {
   const query = opts.query?.trim() ?? "";
-  const where = query
-    ? or(
-        ilike(users.name, likePattern(query)),
-        ilike(users.email, likePattern(query)),
-      )
-    : undefined;
+  const conditions = [
+    query
+      ? or(
+          ilike(users.name, likePattern(query)),
+          ilike(users.email, likePattern(query)),
+        )
+      : undefined,
+    FILTER_CONDITIONS[opts.filter ?? "all"],
+  ].filter((c) => c !== undefined);
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
 
   const everyone = await db
     .select({ id: users.id, subscribed: users.subscribed })

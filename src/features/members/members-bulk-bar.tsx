@@ -56,7 +56,8 @@ function subscribeResult(
 
 export function MembersBulkBar({
   shownCount,
-  filtered,
+  searching,
+  filtering,
   paged,
   selectedIds,
   hiddenSelectedCount,
@@ -68,7 +69,9 @@ export function MembersBulkBar({
   /** Rows on the served page — what the master checkbox acts on. */
   shownCount: number;
   /** Whether a search is narrowing the list (changes the wording only). */
-  filtered: boolean;
+  searching: boolean;
+  /** Whether a status filter is narrowing the list (wording only). */
+  filtering: boolean;
   /** Whether the list spans more than one page (changes the wording only). */
   paged: boolean;
   selectedIds: string[];
@@ -115,17 +118,25 @@ export function MembersBulkBar({
     });
 
   // "Select all" is honestly scoped to what's on screen — never the whole
-  // database — and says so once the list is filtered or paged. A selection's
+  // database — and says so once the list is narrowed or paged. A selection's
   // unseen remainder is attributed precisely when one cause holds: with a
-  // search on a single page every match is visible, so hidden rows can only be
-  // non-matches; unfiltered, they can only be on other pages. With both in
-  // play a hidden row could be either, so the wording goes neutral.
-  const scope = `${filtered ? " matching" : ""}${paged ? " on this page" : ""}`;
+  // search/filter on a single page every match is visible, so hidden rows can
+  // only be non-matches; un-narrowed, they can only be on other pages. With
+  // paging in play too a hidden row could be either, so the wording goes
+  // neutral.
+  const narrowed = searching || filtering;
+  const narrower =
+    searching && filtering
+      ? "these filters"
+      : searching
+        ? "this search"
+        : "this filter";
+  const scope = `${narrowed ? " matching" : ""}${paged ? " on this page" : ""}`;
   const hiddenNote =
-    filtered && paged
+    narrowed && paged
       ? "not shown here"
-      : filtered
-        ? "hidden by this search"
+      : narrowed
+        ? `hidden by ${narrower}`
         : "on other pages";
 
   const countText = (
@@ -156,7 +167,7 @@ export function MembersBulkBar({
           checked={allShownSelected}
           indeterminate={someShownSelected}
           onChange={onToggleAllShown}
-          label={`Select all ${shownCount} members${filtered ? " matching this search" : ""}${paged ? " on this page" : ""}`}
+          label={`Select all ${shownCount} members${narrowed ? ` matching ${narrower}` : ""}${paged ? " on this page" : ""}`}
         >
           {countText}
         </SelectCheckbox>

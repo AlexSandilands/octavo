@@ -14,6 +14,7 @@ export const dynamic = "force-dynamic";
 const paramsSchema = z.object({
   q: z.string().max(200).catch(""),
   page: z.coerce.number().int().min(1).catch(1),
+  filter: z.enum(["all", "admins", "subscribed", "unsubscribed"]).catch("all"),
 });
 
 export default async function MembersPage({
@@ -25,11 +26,20 @@ export default async function MembersPage({
   const admin = await requireAdminOrRedirect();
   const params = paramsSchema.parse(await searchParams);
   const query = params.q.trim();
-  const list = await listUsers({ query, page: params.page });
+  const list = await listUsers({
+    query,
+    page: params.page,
+    filter: params.filter,
+  });
 
   return (
     <AdminShell active="members" user={admin}>
-      <MembersManager list={list} query={query} currentUserId={admin.id} />
+      <MembersManager
+        list={list}
+        query={query}
+        filter={params.filter}
+        currentUserId={admin.id}
+      />
     </AdminShell>
   );
 }

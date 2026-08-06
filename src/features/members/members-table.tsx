@@ -3,26 +3,30 @@
 import { useMemo, useState } from "react";
 import { MemberRow } from "./member-row";
 import { MembersBulkBar } from "./members-bulk-bar";
+import { MembersFilter } from "./members-filter";
 import { MembersPagination } from "./members-pagination";
 import { MembersSearch } from "./members-search";
-import type { MemberList } from "@/server/users";
+import type { MemberFilter, MemberList } from "@/server/users";
 
-// The table shows one served page of an already-filtered list — the search and
-// the paging both happen server-side (see MembersSearch / MembersPagination);
-// this component owns only the selection.
+// The table shows one served page of an already-narrowed list — the search,
+// the status filter and the paging all happen server-side (see MembersSearch /
+// MembersFilter / MembersPagination); this component owns only the selection.
 export function MembersTable({
   list,
   query,
+  filter,
   currentUserId,
 }: {
   list: MemberList;
   query: string;
+  filter: MemberFilter;
   currentUserId: string;
 }) {
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
 
   const shown = list.rows;
-  const filtered = query.length > 0;
+  const searching = query.length > 0;
+  const filtering = filter !== "all";
   const paged = list.pageCount > 1;
 
   // Neither searching nor paging drops a selection — a row picked on one page
@@ -64,13 +68,27 @@ export function MembersTable({
       return s;
     });
 
+  const emptyMessage = searching
+    ? `No members match “${query}”.`
+    : filter === "admins"
+      ? "No admins yet."
+      : filter === "subscribed"
+        ? "No subscribed members."
+        : "No unsubscribed members.";
+
   return (
     <div className="mt-5">
-      <MembersSearch query={query} />
+      <div className="flex flex-col gap-3 lg:flex-row">
+        <div className="min-w-0 flex-1">
+          <MembersSearch query={query} />
+        </div>
+        <MembersFilter filter={filter} />
+      </div>
 
       <MembersBulkBar
         shownCount={shown.length}
-        filtered={filtered}
+        searching={searching}
+        filtering={filtering}
         paged={paged}
         selectedIds={selectedIds}
         hiddenSelectedCount={hiddenSelectedCount}
@@ -101,15 +119,11 @@ export function MembersTable({
 
       {shown.length === 0 && (
         <p className="text-faint py-10 text-center font-sans text-sm">
-          No members match “{query}”.
+          {emptyMessage}
         </p>
       )}
 
-      <MembersPagination
-        page={list.page}
-        pageCount={list.pageCount}
-        query={query}
-      />
+      <MembersPagination page={list.page} pageCount={list.pageCount} />
     </div>
   );
 }

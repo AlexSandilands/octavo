@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui";
 
 // The foot of the members table: previous/next plus where you are. Two big
@@ -11,20 +11,20 @@ import { Button } from "@/components/ui";
 export function MembersPagination({
   page,
   pageCount,
-  query,
 }: {
   page: number;
   pageCount: number;
-  query: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const search = useSearchParams();
   if (pageCount <= 1) return null;
 
   const go = (p: number) => {
-    const params = new URLSearchParams();
-    if (query) params.set("q", query);
+    // Keep the rest of the list state (?q=, ?filter=); page 1 stays implicit.
+    const params = new URLSearchParams(search);
     if (p > 1) params.set("page", String(p));
+    else params.delete("page");
     const qs = params.toString();
     router.push(qs ? `${pathname}?${qs}` : pathname);
   };
