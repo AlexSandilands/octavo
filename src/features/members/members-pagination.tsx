@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui";
 
@@ -18,6 +19,22 @@ export function MembersPagination({
   const router = useRouter();
   const pathname = usePathname();
   const search = useSearchParams();
+
+  // Turning a page starts reading again from the top, like any navigation.
+  // Next's own scroll-to-top can't do it here: in the admin shell the window
+  // never scrolls — the #admin-main pane does (as admin-drawer.tsx also
+  // knows). Keyed on the *served* page and run after render, so the jump
+  // lands on the new rows rather than racing ahead of them; back/forward and
+  // post-mutation clamps get the same treatment, which is what a page change
+  // means regardless of its trigger.
+  const lastPage = useRef(page);
+  useEffect(() => {
+    if (page !== lastPage.current) {
+      lastPage.current = page;
+      (document.getElementById("admin-main") ?? window).scrollTo({ top: 0 });
+    }
+  }, [page]);
+
   if (pageCount <= 1) return null;
 
   const go = (p: number) => {
