@@ -52,7 +52,7 @@ export function MembersSearch({ query }: { query: string }) {
   };
 
   return (
-    <div className="border-line text-faint2 flex h-11 items-center gap-2.5 rounded-lg border-[1.5px] bg-white px-3.5">
+    <div className="boxed-field border-line text-faint2 flex h-11 items-center gap-2.5 rounded-lg border-[1.5px] bg-white px-3.5">
       <Icon name="search" size={18} />
       <input
         value={value}
@@ -62,7 +62,7 @@ export function MembersSearch({ query }: { query: string }) {
         maxLength={MEMBERS_QUERY_MAX}
         placeholder="Search by name or email"
         aria-label="Search all members by name or email"
-        className="text-ink flex-1 border-none bg-transparent font-sans text-[15px] outline-none"
+        className="text-ink flex-1 border-none bg-transparent font-sans text-[15px]"
       />
     </div>
   );

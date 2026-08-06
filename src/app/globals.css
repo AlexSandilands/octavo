@@ -92,6 +92,17 @@ body {
   outline-offset: 2px;
 }
 
+/* A decorated box wrapping a bare <input> (e.g. the members search): the
+   global ring would land on the inner input and float a rectangle inside the
+   box, so the input opts out and the box itself carries the identical ring. */
+.boxed-field:focus-within {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+.boxed-field input:focus-visible {
+  outline: none;
+}
+
 /* Placeholder "photo" fill used wherever real imagery will go. */
 .photo-fill {
   background-image: repeating-linear-gradient(

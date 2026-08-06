@@ -3,11 +3,13 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Icon } from "@/components/icons";
 
-// The editor header's dropdown: a labelled pill trigger ("Theme: Classic") over
-// a small menu of mutually exclusive options. Extracted from ThemeMenu (issue
-// #40) when the footer-logo picker needed the same control (#97) — the keyboard
-// contract below is the reason it is shared rather than copied twice. This is an
-// accessibility-sensitive app; one implementation means one place to fix.
+// The house dropdown: a labelled pill trigger ("Theme: Classic") over a small
+// menu of mutually exclusive options. Extracted from ThemeMenu (issue #40)
+// when the footer-logo picker needed the same control (#97), and promoted out
+// of the editor once the magazine settings and the members filter needed it
+// too — the keyboard contract below is the reason it is shared rather than
+// copied. This is an accessibility-sensitive app; one implementation means
+// one place to fix.
 //
 // Accessible menu: opens on click (or ArrowDown), arrow keys move between
 // options, Enter/Space selects, Escape closes and returns focus to the trigger,
@@ -32,6 +34,8 @@ export function MenuSelect<T>({
   items,
   value,
   onSelect,
+  size = "sm",
+  className = "",
 }: {
   /** Trigger prefix — the control names itself, e.g. "Theme". */
   label: string;
@@ -42,6 +46,11 @@ export function MenuSelect<T>({
   items: MenuSelectItem<T>[];
   value: T;
   onSelect: (value: T) => void;
+  /** Trigger height: "sm" (40px) suits dense chrome like the editor header;
+   * "md" (44px) sits beside full-size fields and meets the tap-target floor. */
+  size?: "sm" | "md";
+  /** Extra classes for the trigger — widths and placement only, as on Button. */
+  className?: string;
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -124,7 +133,9 @@ export function MenuSelect<T>({
             setOpen(true);
           }
         }}
-        className="border-hair-warm text-ink hover:border-accent hover:bg-accent-wash flex h-10 cursor-pointer items-center gap-2 rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-sm font-medium transition-[transform,background-color,border-color] duration-150 ease-out select-none motion-safe:active:scale-[0.97]"
+        className={`border-hair-warm text-ink hover:border-accent hover:bg-accent-wash flex cursor-pointer items-center gap-2 rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-sm font-medium transition-[transform,background-color,border-color] duration-150 ease-out select-none motion-safe:active:scale-[0.97] ${
+          size === "md" ? "h-11" : "h-10"
+        } ${className}`}
       >
         {label}: {current}
         <Icon name="chevronDown" size={14} strokeWidth={1.8} />

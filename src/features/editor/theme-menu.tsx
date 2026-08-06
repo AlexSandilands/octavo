@@ -4,7 +4,7 @@ import type {
   LayoutTheme,
   LayoutThemeId,
 } from "@/features/blocks/themes/registry";
-import { MenuSelect, type MenuSelectItem } from "./menu-select";
+import { MenuSelect, type MenuSelectItem } from "@/components/menu-select";
 
 // The editor header's layout-theme picker. It replaced a click-to-cycle control
 // that read as a dropdown but stepped through themes — misleading, and awkward

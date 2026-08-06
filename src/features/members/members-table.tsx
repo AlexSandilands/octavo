@@ -91,7 +91,7 @@ export function MembersTable({
 
   return (
     <div className="mt-5">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+      <div className="flex flex-col gap-3 lg:flex-row">
         <div className="min-w-0 flex-1">
           <MembersSearch query={query} />
         </div>

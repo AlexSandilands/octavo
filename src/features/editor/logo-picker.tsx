@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { LogoListItem } from "@/lib/logos";
-import { MenuSelect, type MenuSelectItem } from "./menu-select";
+import { MenuSelect, type MenuSelectItem } from "@/components/menu-select";
 
 // The editor header's footer-mark control: choose one of the marks from the
 // logo library (/admin/magazine) for this issue's running page footer, or none.

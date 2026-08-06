@@ -14,7 +14,7 @@ import {
   type TextSize,
 } from "@/lib/branding";
 import { SettingsCard } from "@/components/settings-card";
-import { MenuSelect, type MenuSelectItem } from "@/features/editor/menu-select";
+import { MenuSelect, type MenuSelectItem } from "@/components/menu-select";
 import type { SettingsForm } from "./magazine-settings";
 
 // The settings form card on /admin/magazine. One card, because it is one form
