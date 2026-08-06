@@ -7,6 +7,7 @@ import {
   createUsers,
   deleteUser,
   deleteUsers,
+  listMatchingUserIds,
   setAdmin,
   setSubscribed,
   setSubscribedMany,
@@ -15,6 +16,7 @@ import {
   type BulkSubscribeResult,
 } from "@/server/users";
 import { requireAdmin } from "@/server/session";
+import { MEMBERS_QUERY_MAX } from "@/features/members/query-limit";
 
 // Mutations the members admin UI calls. Server-action arguments are
 // attacker-controlled JSON regardless of their TypeScript types, so every one
@@ -191,6 +193,34 @@ export async function setAdminAction(
   if (!result.ok) return { ok: false, reason: result.reason };
   revalidatePath("/admin/members");
   return { ok: true };
+}
+
+export type MatchingMemberIdsResult =
+  | { ok: true; ids: string[] }
+  | { ok: false; reason: "invalid" };
+
+// The bulk bar's "Select all N matching": the ids for the current search +
+// status filter, fetched only when the admin asks for them. A read, not a
+// mutation — but still admin-gated and re-validated, because member ids are
+// membership data. The ids feed the same bulk actions as hand-picked rows, so
+// idsSchema's 2000 bound covers whatever this returns for a realistic club.
+export async function matchingMemberIdsAction(
+  query: unknown,
+  filter: unknown,
+): Promise<MatchingMemberIdsResult> {
+  await requireAdmin();
+  const parsedQuery = z.string().max(MEMBERS_QUERY_MAX).safeParse(query);
+  const parsedFilter = z
+    .enum(["all", "admins", "subscribed", "unsubscribed"])
+    .safeParse(filter);
+  if (!parsedQuery.success || !parsedFilter.success) {
+    return { ok: false, reason: "invalid" };
+  }
+  const ids = await listMatchingUserIds({
+    query: parsedQuery.data,
+    filter: parsedFilter.data,
+  });
+  return { ok: true, ids };
 }
 
 export type ImportMembersResult =

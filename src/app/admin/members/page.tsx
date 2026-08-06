@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { AdminShell } from "@/components/admin-shell";
 import { MembersManager } from "@/features/members/members-manager";
+import { MEMBERS_QUERY_MAX } from "@/features/members/query-limit";
 import { listUsers } from "@/server/users";
 import { requireAdminOrRedirect } from "@/server/session";
 
@@ -10,9 +11,15 @@ export const dynamic = "force-dynamic";
 // mutation lands where the admin was and revalidatePath("/admin/members")
 // re-renders the same view. Params are attacker-typed strings; `catch` turns
 // anything malformed (arrays, "abc", page=-1) into the default rather than an
-// error page. Out-of-range pages are clamped by listUsers, not here.
+// error page. Out-of-range pages are clamped by listUsers, not here. An
+// overlong q is truncated rather than rejected: the search box can't produce
+// one (maxLength), so it came in a URL, and cutting it still narrows the list
+// where a `catch` would silently show everyone and wipe the box.
 const paramsSchema = z.object({
-  q: z.string().max(200).catch(""),
+  q: z
+    .string()
+    .catch("")
+    .transform((s) => s.slice(0, MEMBERS_QUERY_MAX)),
   page: z.coerce.number().int().min(1).catch(1),
   filter: z.enum(["all", "admins", "subscribed", "unsubscribed"]).catch("all"),
 });

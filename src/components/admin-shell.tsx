@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { ADMIN_MAIN_ID } from "./admin-main";
 import { AdminNavContent } from "./admin-nav-content";
 import { AdminDrawer } from "./admin-drawer";
 
@@ -25,7 +26,7 @@ export function AdminShell({
       <AdminDrawer>
         <AdminNavContent active={active} user={user} />
       </AdminDrawer>
-      <main id="admin-main" className="flex-1 overflow-y-auto p-7 sm:p-8">
+      <main id={ADMIN_MAIN_ID} className="flex-1 overflow-y-auto p-7 sm:p-8">
         {children}
       </main>
     </div>

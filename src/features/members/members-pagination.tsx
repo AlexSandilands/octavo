@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { adminMain } from "@/components/admin-main";
 import { Button } from "@/components/ui";
+import { useListUrl } from "./use-list-url";
 
 // The foot of the members table: previous/next plus where you are. Two big
 // labelled buttons rather than a row of page numbers — the audience is older
@@ -16,35 +17,26 @@ export function MembersPagination({
   page: number;
   pageCount: number;
 }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const search = useSearchParams();
+  const go = useListUrl();
 
   // Turning a page starts reading again from the top, like any navigation.
   // Next's own scroll-to-top can't do it here: in the admin shell the window
-  // never scrolls — the #admin-main pane does (as admin-drawer.tsx also
-  // knows). Keyed on the *served* page and run after render, so the jump
-  // lands on the new rows rather than racing ahead of them; back/forward and
-  // post-mutation clamps get the same treatment, which is what a page change
-  // means regardless of its trigger.
+  // never scrolls — the shared admin-main pane does. Keyed on the *served*
+  // page and run after render, so the jump lands on the new rows rather than
+  // racing ahead of them; back/forward and post-mutation clamps get the same
+  // treatment, which is what a page change means regardless of its trigger.
   const lastPage = useRef(page);
   useEffect(() => {
     if (page !== lastPage.current) {
       lastPage.current = page;
-      (document.getElementById("admin-main") ?? window).scrollTo({ top: 0 });
+      (adminMain() ?? window).scrollTo({ top: 0 });
     }
   }, [page]);
 
   if (pageCount <= 1) return null;
 
-  const go = (p: number) => {
-    // Keep the rest of the list state (?q=, ?filter=); page 1 stays implicit.
-    const params = new URLSearchParams(search);
-    if (p > 1) params.set("page", String(p));
-    else params.delete("page");
-    const qs = params.toString();
-    router.push(qs ? `${pathname}?${qs}` : pathname);
-  };
+  // Keep the rest of the list state (?q=, ?filter=); page 1 stays implicit.
+  const turnTo = (p: number) => go({ page: p > 1 ? String(p) : null });
 
   return (
     <nav
@@ -56,7 +48,7 @@ export function MembersPagination({
         icon="chevronLeft"
         iconPosition="left"
         disabled={page <= 1}
-        onClick={() => go(page - 1)}
+        onClick={() => turnTo(page - 1)}
       >
         Previous
       </Button>
@@ -67,7 +59,7 @@ export function MembersPagination({
         variant="secondary"
         icon="chevronRight"
         disabled={page >= pageCount}
-        onClick={() => go(page + 1)}
+        onClick={() => turnTo(page + 1)}
       >
         Next
       </Button>

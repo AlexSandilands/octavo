@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Icon } from "@/components/icons";
+import { MEMBERS_QUERY_MAX } from "./query-limit";
+import { useListUrl } from "./use-list-url";
 
 // The members search box. The query lives in the URL (?q=) and the filtering
 // happens in the database, so a search sees every member — not just the page
@@ -11,9 +12,7 @@ import { Icon } from "@/components/icons";
 // (replace, not push, so keystrokes don't pile up in history) and drops ?page,
 // because a new search starts from its own first page.
 export function MembersSearch({ query }: { query: string }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const search = useSearchParams();
+  const go = useListUrl();
   const [value, setValue] = useState(query);
   // The query this box last navigated to. A `query` prop echoing our own
   // navigation must not clobber what's being typed; one arriving from outside
@@ -23,6 +22,11 @@ export function MembersSearch({ query }: { query: string }) {
 
   useEffect(() => {
     if (query !== sent.current) {
+      // An outside navigation also cancels any armed debounce: a timer left
+      // ticking across Back would fire afterwards, clobber the entry the
+      // admin just returned to, and leave the box desynced from the URL.
+      if (timer.current) clearTimeout(timer.current);
+      timer.current = null;
       sent.current = query;
       setValue(query);
     }
@@ -43,12 +47,7 @@ export function MembersSearch({ query }: { query: string }) {
       if (q === sent.current) return;
       sent.current = q;
       // Keep the status filter; a new search starts from its own first page.
-      const params = new URLSearchParams(search);
-      params.delete("page");
-      if (q) params.set("q", q);
-      else params.delete("q");
-      const qs = params.toString();
-      router.replace(qs ? `${pathname}?${qs}` : pathname);
+      go({ q: q || null, page: null }, "replace");
     }, 250);
   };
 
@@ -58,6 +57,9 @@ export function MembersSearch({ query }: { query: string }) {
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        // The page schema truncates ?q= to the same bound, so nothing this
+        // box can produce is ever thrown away server-side.
+        maxLength={MEMBERS_QUERY_MAX}
         placeholder="Search by name or email"
         aria-label="Search all members by name or email"
         className="text-ink flex-1 border-none bg-transparent font-sans text-[15px] outline-none"

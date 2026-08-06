@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { matchingMemberIdsAction } from "@/app/admin/members/actions";
 import { MemberRow } from "./member-row";
 import { MembersBulkBar } from "./members-bulk-bar";
 import { MembersFilter } from "./members-filter";
@@ -32,15 +33,11 @@ export function MembersTable({
   // Neither searching nor paging drops a selection — a row picked on one page
   // or under one query stays picked (and counted) when the current view hides
   // it, so a batch can be built across several pages and searches; the bar
-  // names the unseen ones so the count is never a surprise. Rows that have
-  // left the list entirely (removed here or by another admin) are the one
-  // exception: they're pruned against the full id list so the count can't
-  // drift above what exists.
-  const present = useMemo(() => new Set(list.allIds), [list.allIds]);
-  const selectedIds = useMemo(
-    () => [...selected].filter((id) => present.has(id)),
-    [selected, present],
-  );
+  // names the unseen ones so the count is never a surprise. A selected row
+  // removed by another admin meanwhile is tolerated rather than tracked: the
+  // bulk actions skip and report ids that no longer exist, which costs one
+  // possibly-stale count here but spares every page render a full id list.
+  const selectedIds = useMemo(() => [...selected], [selected]);
   const shownIds = new Set(shown.map((m) => m.id));
   const hiddenSelectedCount = selectedIds.filter(
     (id) => !shownIds.has(id),
@@ -68,17 +65,33 @@ export function MembersTable({
       return s;
     });
 
+  // The bulk bar's "Select all N matching": the ids come from the server on
+  // demand (the page payload carries only the served rows), scoped by the
+  // same query + filter the list itself is narrowed by, and join whatever is
+  // already selected.
+  const selectAllMatching = async () => {
+    const res = await matchingMemberIdsAction(query, filter);
+    if (!res.ok) return false;
+    setSelected((prev) => new Set([...prev, ...res.ids]));
+    return true;
+  };
+
+  // The final branch covers the default view: with no search and no filter an
+  // empty page can only mean the list changed under the admin's feet, so say
+  // something true rather than borrowing another filter's message.
   const emptyMessage = searching
     ? `No members match “${query}”.`
     : filter === "admins"
       ? "No admins yet."
       : filter === "subscribed"
         ? "No subscribed members."
-        : "No unsubscribed members.";
+        : filter === "unsubscribed"
+          ? "No unsubscribed members."
+          : "No members to show.";
 
   return (
     <div className="mt-5">
-      <div className="flex flex-col gap-3 lg:flex-row">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <div className="min-w-0 flex-1">
           <MembersSearch query={query} />
         </div>
@@ -87,6 +100,7 @@ export function MembersTable({
 
       <MembersBulkBar
         shownCount={shown.length}
+        matching={list.matching}
         searching={searching}
         filtering={filtering}
         paged={paged}
@@ -95,6 +109,7 @@ export function MembersTable({
         allShownSelected={allShownSelected}
         someShownSelected={someShownSelected}
         onToggleAllShown={selectAllShown}
+        onSelectAllMatching={selectAllMatching}
         onClear={() => setSelected(new Set())}
       />
 
