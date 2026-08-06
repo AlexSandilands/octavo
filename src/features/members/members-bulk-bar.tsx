@@ -56,27 +56,42 @@ function subscribeResult(
 
 export function MembersBulkBar({
   shownCount,
-  filtered,
+  matching,
+  searching,
+  filtering,
+  paged,
   selectedIds,
   hiddenSelectedCount,
   allShownSelected,
   someShownSelected,
   onToggleAllShown,
+  onSelectAllMatching,
   onClear,
 }: {
-  /** Rows matching the current search — what the master checkbox acts on. */
+  /** Rows on the served page — what the master checkbox acts on. */
   shownCount: number;
+  /** Every member the search + filter matches, across all pages — what the
+   * "Select all N matching" reach-past-the-page action acts on. */
+  matching: number;
   /** Whether a search is narrowing the list (changes the wording only). */
-  filtered: boolean;
+  searching: boolean;
+  /** Whether a status filter is narrowing the list (wording only). */
+  filtering: boolean;
+  /** Whether the list spans more than one page (changes the wording only). */
+  paged: boolean;
   selectedIds: string[];
-  /** Selected rows the current search is hiding, so the count stays honest. */
+  /** Selected rows the current page/search isn't showing, kept in the count
+   * so it stays honest. */
   hiddenSelectedCount: number;
   allShownSelected: boolean;
   someShownSelected: boolean;
   onToggleAllShown: (next: boolean) => void;
+  /** Adds every matching id to the selection; false means it didn't land. */
+  onSelectAllMatching: () => Promise<boolean>;
   onClear: () => void;
 }) {
   const [pending, startTransition] = useTransition();
+  const [selectingAll, startSelectingAll] = useTransition();
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
@@ -110,17 +125,49 @@ export function MembersBulkBar({
       return res.ok ? subscribeResult(res, subscribed) : null;
     });
 
+  // The checkbox's "select all" is honestly scoped to what's on screen and
+  // says so once the list is narrowed or paged; reaching past the page is its
+  // own labelled act ("Select all N matching") rather than a silent widening
+  // of the checkbox. A selection's unseen remainder is attributed precisely
+  // when one cause holds: with a search/filter on a single page every match
+  // is visible, so hidden rows can only be non-matches; un-narrowed, they can
+  // only be on other pages. With paging in play too a hidden row could be
+  // either, so the wording goes neutral.
+  const narrowed = searching || filtering;
+
+  // Fetches ids, so it reports failure on the shared line; the checkbox's
+  // page-scoped select-all stays instant and local.
+  const selectAllMatching = () => {
+    setError(null);
+    setResult(null);
+    startSelectingAll(async () => {
+      const ok = await onSelectAllMatching();
+      if (!ok) setError("That didn’t go through. Please try again.");
+    });
+  };
+  const narrower =
+    searching && filtering
+      ? "these filters"
+      : searching
+        ? "this search"
+        : "this filter";
+  const scope = `${narrowed ? " matching" : ""}${paged ? " on this page" : ""}`;
+  const hiddenNote =
+    narrowed && paged
+      ? "not shown here"
+      : narrowed
+        ? `hidden by ${narrower}`
+        : "on other pages";
+
   const countText = (
     <>
       <span className={active ? "text-ink font-semibold" : undefined}>
-        {active
-          ? `${count} selected`
-          : `Select all ${shownCount}${filtered ? " matching" : ""}`}
+        {active ? `${count} selected` : `Select all ${shownCount}${scope}`}
       </span>
       {hiddenSelectedCount > 0 && (
         <span className="text-faint">
           {" "}
-          ({hiddenSelectedCount} hidden by this search)
+          ({hiddenSelectedCount} {hiddenNote})
         </span>
       )}
     </>
@@ -140,7 +187,7 @@ export function MembersBulkBar({
           checked={allShownSelected}
           indeterminate={someShownSelected}
           onChange={onToggleAllShown}
-          label={`Select all ${shownCount} members${filtered ? " matching this search" : ""}`}
+          label={`Select all ${shownCount} members${narrowed ? ` matching ${narrower}` : ""}${paged ? " on this page" : ""}`}
         >
           {countText}
         </SelectCheckbox>
@@ -150,6 +197,22 @@ export function MembersBulkBar({
             {countText}
           </span>
         )
+      )}
+
+      {/* The reach-past-the-page action, present whenever the matches don't
+          all fit on the served page. It also puts the total match count on
+          screen, which nothing else does. */}
+      {shownCount > 0 && matching > shownCount && (
+        <button
+          type="button"
+          onClick={selectAllMatching}
+          disabled={pending || selectingAll}
+          className="text-faint hover:text-accent cursor-pointer rounded px-2 py-2 font-sans text-[14px] font-medium underline underline-offset-4 disabled:cursor-default disabled:opacity-50"
+        >
+          {selectingAll
+            ? "Selecting…"
+            : `Select all ${matching}${narrowed ? " matching" : " members"}`}
+        </button>
       )}
 
       {active && (

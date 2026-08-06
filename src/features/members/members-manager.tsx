@@ -6,7 +6,7 @@ import { MemberDialog } from "./member-dialog";
 import { ImportDialog } from "./import-dialog";
 import { MembersTable } from "./members-table";
 import { MembersToolbar } from "./members-toolbar";
-import type { MemberRow as Member } from "@/server/users";
+import type { MemberFilter, MemberList } from "@/server/users";
 
 // Coordinates the members page: the header + toolbar, the table (or first-run
 // empty state), and the two dialogs. Owning the open/closed state here lets the
@@ -14,19 +14,26 @@ import type { MemberRow as Member } from "@/server/users";
 // re-renders from the server after each mutation (the actions revalidate
 // /admin/members), so the summary line and rows always reflect the database.
 export function MembersManager({
-  members,
+  list,
+  query,
+  filter,
   currentUserId,
 }: {
-  members: Member[];
+  list: MemberList;
+  /** The active search from the URL — "" when the list is unfiltered. */
+  query: string;
+  /** The active status filter from the URL — "all" when none. */
+  filter: MemberFilter;
   currentUserId: string;
 }) {
   const [dialog, setDialog] = useState<"add" | "import" | null>(null);
 
-  const subscribed = members.filter((m) => m.subscribed).length;
+  // Whole-club numbers, so the summary stays true whatever page or search the
+  // table below is showing.
   const summary =
-    members.length === 0
+    list.total === 0
       ? "No members yet"
-      : `${members.length} ${members.length === 1 ? "member" : "members"} · ${subscribed} subscribed`;
+      : `${list.total} ${list.total === 1 ? "member" : "members"} · ${list.subscribedTotal} subscribed`;
 
   const openAdd = () => setDialog("add");
   const openImport = () => setDialog("import");
@@ -42,12 +49,17 @@ export function MembersManager({
         <MembersToolbar onImport={openImport} onAdd={openAdd} />
       </div>
 
-      {members.length === 0 ? (
+      {list.total === 0 ? (
         <div className="mt-8">
           <EmptyMembers onImport={openImport} onAdd={openAdd} />
         </div>
       ) : (
-        <MembersTable members={members} currentUserId={currentUserId} />
+        <MembersTable
+          list={list}
+          query={query}
+          filter={filter}
+          currentUserId={currentUserId}
+        />
       )}
 
       {dialog === "add" && <MemberDialog onClose={close} />}

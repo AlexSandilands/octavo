@@ -1,40 +1,43 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Icon } from "@/components/icons";
+import { matchingMemberIdsAction } from "@/app/admin/members/actions";
 import { MemberRow } from "./member-row";
 import { MembersBulkBar } from "./members-bulk-bar";
-import type { MemberRow as Member } from "@/server/users";
+import { MembersFilter } from "./members-filter";
+import { MembersPagination } from "./members-pagination";
+import { MembersSearch } from "./members-search";
+import type { MemberFilter, MemberList } from "@/server/users";
 
+// The table shows one served page of an already-narrowed list — the search,
+// the status filter and the paging all happen server-side (see MembersSearch /
+// MembersFilter / MembersPagination); this component owns only the selection.
 export function MembersTable({
-  members,
+  list,
+  query,
+  filter,
   currentUserId,
 }: {
-  members: Member[];
+  list: MemberList;
+  query: string;
+  filter: MemberFilter;
   currentUserId: string;
 }) {
-  const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
 
-  const q = query.trim().toLowerCase();
-  const shown = members.filter(
-    (m) =>
-      !q ||
-      (m.name ?? "").toLowerCase().includes(q) ||
-      m.email.toLowerCase().includes(q),
-  );
+  const shown = list.rows;
+  const searching = query.length > 0;
+  const filtering = filter !== "all";
+  const paged = list.pageCount > 1;
 
-  // Searching never drops a selection — a row picked under one query stays
-  // picked (and counted) when the next query hides it, so a batch can be built
-  // from several searches; the bar names the hidden ones so the count is never
-  // a surprise. Rows that have left the list entirely (removed here or by
-  // another admin) are the one exception: they're filtered out so the count
-  // can't drift above what exists.
-  const present = useMemo(() => new Set(members.map((m) => m.id)), [members]);
-  const selectedIds = useMemo(
-    () => [...selected].filter((id) => present.has(id)),
-    [selected, present],
-  );
+  // Neither searching nor paging drops a selection — a row picked on one page
+  // or under one query stays picked (and counted) when the current view hides
+  // it, so a batch can be built across several pages and searches; the bar
+  // names the unseen ones so the count is never a surprise. A selected row
+  // removed by another admin meanwhile is tolerated rather than tracked: the
+  // bulk actions skip and report ids that no longer exist, which costs one
+  // possibly-stale count here but spares every page render a full id list.
+  const selectedIds = useMemo(() => [...selected], [selected]);
   const shownIds = new Set(shown.map((m) => m.id));
   const hiddenSelectedCount = selectedIds.filter(
     (id) => !shownIds.has(id),
@@ -62,27 +65,51 @@ export function MembersTable({
       return s;
     });
 
+  // The bulk bar's "Select all N matching": the ids come from the server on
+  // demand (the page payload carries only the served rows), scoped by the
+  // same query + filter the list itself is narrowed by, and join whatever is
+  // already selected.
+  const selectAllMatching = async () => {
+    const res = await matchingMemberIdsAction(query, filter);
+    if (!res.ok) return false;
+    setSelected((prev) => new Set([...prev, ...res.ids]));
+    return true;
+  };
+
+  // The final branch covers the default view: with no search and no filter an
+  // empty page can only mean the list changed under the admin's feet, so say
+  // something true rather than borrowing another filter's message.
+  const emptyMessage = searching
+    ? `No members match “${query}”.`
+    : filter === "admins"
+      ? "No admins yet."
+      : filter === "subscribed"
+        ? "No subscribed members."
+        : filter === "unsubscribed"
+          ? "No unsubscribed members."
+          : "No members to show.";
+
   return (
     <div className="mt-5">
-      <div className="border-line text-faint2 flex h-11 items-center gap-2.5 rounded-lg border-[1.5px] bg-white px-3.5">
-        <Icon name="search" size={18} />
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search by name or email"
-          aria-label="Search members by name or email"
-          className="text-ink flex-1 border-none bg-transparent font-sans text-[15px] outline-none"
-        />
+      <div className="flex flex-col gap-3 lg:flex-row">
+        <div className="min-w-0 flex-1">
+          <MembersSearch query={query} />
+        </div>
+        <MembersFilter filter={filter} />
       </div>
 
       <MembersBulkBar
         shownCount={shown.length}
-        filtered={q.length > 0}
+        matching={list.matching}
+        searching={searching}
+        filtering={filtering}
+        paged={paged}
         selectedIds={selectedIds}
         hiddenSelectedCount={hiddenSelectedCount}
         allShownSelected={allShownSelected}
         someShownSelected={someShownSelected}
         onToggleAllShown={selectAllShown}
+        onSelectAllMatching={selectAllMatching}
         onClear={() => setSelected(new Set())}
       />
 
@@ -107,9 +134,11 @@ export function MembersTable({
 
       {shown.length === 0 && (
         <p className="text-faint py-10 text-center font-sans text-sm">
-          No members match “{query}”.
+          {emptyMessage}
         </p>
       )}
+
+      <MembersPagination page={list.page} pageCount={list.pageCount} />
     </div>
   );
 }

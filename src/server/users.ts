@@ -1,5 +1,17 @@
 import "server-only";
-import { and, asc, desc, eq, inArray, isNull, ne, or } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  isNull,
+  ne,
+  or,
+  sql,
+} from "drizzle-orm";
 import { db } from "@/db";
 import { sessions, users } from "@/db/schema";
 
@@ -28,13 +40,125 @@ export type MemberRow = {
   createdAt: Date;
 };
 
+// The one page size for the members list — the table, the pagination control
+// and the offset maths all derive from this number (issue #121).
+export const MEMBERS_PAGE_SIZE = 25;
+
+export type MemberList = {
+  /** The rows for the effective page, in the fixed list order. */
+  rows: MemberRow[];
+  /** The page actually served — the requested one clamped into range. */
+  page: number;
+  pageCount: number;
+  /**
+   * Members matching the search + filter (all members when neither narrows).
+   * Drives the page count and the bulk bar's "Select all N matching".
+   */
+  matching: number;
+  /** Whole-club numbers for the summary line, independent of the search. */
+  total: number;
+  subscribedTotal: number;
+};
+
+// A search term becomes a substring ILIKE pattern; the LIKE metacharacters are
+// escaped so "100%" finds the member called that, not everything.
+function likePattern(query: string): string {
+  return `%${query.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+}
+
+// The status filters the list offers beside the search (issue #123). Like the
+// search they run in the database, because the list only serves one page.
+export type MemberFilter = "all" | "admins" | "subscribed" | "unsubscribed";
+
+const FILTER_CONDITIONS = {
+  all: undefined,
+  admins: eq(users.isAdmin, true),
+  subscribed: eq(users.subscribed, true),
+  unsubscribed: eq(users.subscribed, false),
+} as const;
+
+// The WHERE for a search + status filter, shared by listUsers and
+// listMatchingUserIds so "matching" can never mean two different things.
+function memberWhere(query: string, filter: MemberFilter) {
+  const conditions = [
+    query
+      ? or(
+          ilike(users.name, likePattern(query)),
+          ilike(users.email, likePattern(query)),
+        )
+      : undefined,
+    FILTER_CONDITIONS[filter],
+  ].filter((c) => c !== undefined);
+  return conditions.length > 0 ? and(...conditions) : undefined;
+}
+
 // Newest first so a just-added member (and a fresh import) surfaces at the top;
-// email as a stable tiebreaker for the many near-simultaneous CSV rows.
-export async function listUsers(): Promise<MemberRow[]> {
-  return db
-    .select(memberColumns)
-    .from(users)
-    .orderBy(desc(users.createdAt), asc(users.email));
+// email as a stable tiebreaker for the many near-simultaneous CSV rows. That
+// fixed, stable order is what makes plain offset paging safe here. The search
+// runs in the database so it sees every member, not just the served page; an
+// out-of-range page is clamped rather than 404ed, so the URL an admin held
+// while rows were being removed still lands on the nearest real page.
+//
+// Two statements — every count in one aggregate pass, then the page's rows —
+// inside a read-only REPEATABLE READ transaction, so both read one snapshot:
+// the clamp is computed from the same world the rows come from, and a bulk
+// removal landing mid-request can't produce an empty page labelled in-range
+// or totals that disagree with the rows below them.
+export async function listUsers(
+  opts: { query?: string; page?: number; filter?: MemberFilter } = {},
+): Promise<MemberList> {
+  const query = opts.query?.trim() ?? "";
+  const where = memberWhere(query, opts.filter ?? "all");
+
+  return db.transaction(
+    async (tx) => {
+      const [counts] = await tx
+        .select({
+          total: count(),
+          subscribedTotal:
+            sql`count(*) filter (where ${users.subscribed})`.mapWith(Number),
+          matching: where
+            ? sql`count(*) filter (where ${where})`.mapWith(Number)
+            : count(),
+        })
+        .from(users);
+      const matching = counts?.matching ?? 0;
+
+      const pageCount = Math.max(1, Math.ceil(matching / MEMBERS_PAGE_SIZE));
+      const page = Math.min(Math.max(1, opts.page ?? 1), pageCount);
+
+      const rows = await tx
+        .select(memberColumns)
+        .from(users)
+        .where(where)
+        .orderBy(desc(users.createdAt), asc(users.email))
+        .limit(MEMBERS_PAGE_SIZE)
+        .offset((page - 1) * MEMBERS_PAGE_SIZE);
+
+      return {
+        rows,
+        page,
+        pageCount,
+        matching,
+        total: counts?.total ?? 0,
+        subscribedTotal: counts?.subscribedTotal ?? 0,
+      };
+    },
+    { isolationLevel: "repeatable read", accessMode: "read only" },
+  );
+}
+
+// Every id matching a search + filter — the bulk bar's "Select all N
+// matching". Fetched on demand when the admin asks for it, not shipped with
+// every page render: ids for the whole club ride the wire once per gesture
+// instead of once per keystroke.
+export async function listMatchingUserIds(
+  opts: { query?: string; filter?: MemberFilter } = {},
+): Promise<string[]> {
+  const query = opts.query?.trim() ?? "";
+  const where = memberWhere(query, opts.filter ?? "all");
+  const rows = await db.select({ id: users.id }).from(users).where(where);
+  return rows.map((r) => r.id);
 }
 
 // True for Postgres unique-constraint violations (SQLSTATE 23505) — here, the

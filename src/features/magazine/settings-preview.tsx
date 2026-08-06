@@ -15,7 +15,7 @@ import {
   PAGE_W,
   PAGE_H,
 } from "@/features/blocks/page-frame";
-import { MenuSelect, type MenuSelectItem } from "@/features/editor/menu-select";
+import { MenuSelect, type MenuSelectItem } from "@/components/menu-select";
 import { usePrePaintEffect } from "./use-pre-paint-effect";
 
 // The live preview beside the settings form: one real magazine page, drawn by

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { adminMain } from "./admin-main";
 import { Wordmark } from "./ui";
 import { Icon } from "./icons";
 
@@ -33,7 +34,7 @@ export function AdminDrawer({ children }: { children: ReactNode }) {
   // scroll is locked so a backdrop drag doesn't move the page underneath.
   useEffect(() => {
     if (!open) return;
-    const main = document.getElementById("admin-main");
+    const main = adminMain();
     main?.setAttribute("inert", "");
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";

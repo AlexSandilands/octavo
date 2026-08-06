@@ -9,7 +9,7 @@ import {
   type MontageItem,
 } from "@/lib/blocks";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
-import { MenuSelect, type MenuSelectItem } from "./menu-select";
+import { MenuSelect, type MenuSelectItem } from "@/components/menu-select";
 
 // The montage block's settings panel (issue #95): the slide list — add, remove,
 // reorder, per-slide alt text — plus the cross-fade interval. Modelled on the

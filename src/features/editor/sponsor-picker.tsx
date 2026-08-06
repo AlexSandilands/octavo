@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { BlockPatch } from "@/lib/blocks";
 import type { SponsorListItem } from "@/lib/sponsors";
-import { MenuSelect, type MenuSelectItem } from "./menu-select";
+import { MenuSelect, type MenuSelectItem } from "@/components/menu-select";
 
 // The editor-only control for a sponsor block: choose a managed sponsor (the
 // primary flow — the block then renders that sponsor's live name/logo/link), or
