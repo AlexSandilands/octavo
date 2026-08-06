@@ -1,5 +1,16 @@
 import "server-only";
-import { and, asc, desc, eq, inArray, isNull, ne, or } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  isNull,
+  ne,
+  or,
+} from "drizzle-orm";
 import { db } from "@/db";
 import { sessions, users } from "@/db/schema";
 
@@ -28,13 +39,83 @@ export type MemberRow = {
   createdAt: Date;
 };
 
+// The one page size for the members list — the table, the pagination control
+// and the offset maths all derive from this number (issue #121).
+export const MEMBERS_PAGE_SIZE = 25;
+
+export type MemberList = {
+  /** The rows for the effective page, in the fixed list order. */
+  rows: MemberRow[];
+  /** The page actually served — the requested one clamped into range. */
+  page: number;
+  pageCount: number;
+  /** Members matching the search (all members when there is no search). */
+  matching: number;
+  /** Whole-club numbers for the summary line, independent of the search. */
+  total: number;
+  subscribedTotal: number;
+  /**
+   * Every member id (ids only — a fraction of the weight of full rows). The
+   * table uses this to prune its selection to rows that still exist, which
+   * offset paging otherwise makes unknowable client-side: a selected row
+   * absent from the current page is either alive elsewhere or deleted, and
+   * only the full id list can tell those apart.
+   */
+  allIds: string[];
+};
+
+// A search term becomes a substring ILIKE pattern; the LIKE metacharacters are
+// escaped so "100%" finds the member called that, not everything.
+function likePattern(query: string): string {
+  return `%${query.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+}
+
 // Newest first so a just-added member (and a fresh import) surfaces at the top;
-// email as a stable tiebreaker for the many near-simultaneous CSV rows.
-export async function listUsers(): Promise<MemberRow[]> {
-  return db
+// email as a stable tiebreaker for the many near-simultaneous CSV rows. That
+// fixed, stable order is what makes plain offset paging safe here. The search
+// runs in the database so it sees every member, not just the served page; an
+// out-of-range page is clamped rather than 404ed, so the URL an admin held
+// while rows were being removed still lands on the nearest real page.
+export async function listUsers(
+  opts: { query?: string; page?: number } = {},
+): Promise<MemberList> {
+  const query = opts.query?.trim() ?? "";
+  const where = query
+    ? or(
+        ilike(users.name, likePattern(query)),
+        ilike(users.email, likePattern(query)),
+      )
+    : undefined;
+
+  const everyone = await db
+    .select({ id: users.id, subscribed: users.subscribed })
+    .from(users);
+  const total = everyone.length;
+
+  const matching = where
+    ? ((await db.select({ n: count() }).from(users).where(where))[0]?.n ?? 0)
+    : total;
+
+  const pageCount = Math.max(1, Math.ceil(matching / MEMBERS_PAGE_SIZE));
+  const page = Math.min(Math.max(1, opts.page ?? 1), pageCount);
+
+  const rows = await db
     .select(memberColumns)
     .from(users)
-    .orderBy(desc(users.createdAt), asc(users.email));
+    .where(where)
+    .orderBy(desc(users.createdAt), asc(users.email))
+    .limit(MEMBERS_PAGE_SIZE)
+    .offset((page - 1) * MEMBERS_PAGE_SIZE);
+
+  return {
+    rows,
+    page,
+    pageCount,
+    matching,
+    total,
+    subscribedTotal: everyone.filter((m) => m.subscribed).length,
+    allIds: everyone.map((m) => m.id),
+  };
 }
 
 // True for Postgres unique-constraint violations (SQLSTATE 23505) — here, the

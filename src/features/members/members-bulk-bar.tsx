@@ -57,6 +57,7 @@ function subscribeResult(
 export function MembersBulkBar({
   shownCount,
   filtered,
+  paged,
   selectedIds,
   hiddenSelectedCount,
   allShownSelected,
@@ -64,12 +65,15 @@ export function MembersBulkBar({
   onToggleAllShown,
   onClear,
 }: {
-  /** Rows matching the current search — what the master checkbox acts on. */
+  /** Rows on the served page — what the master checkbox acts on. */
   shownCount: number;
   /** Whether a search is narrowing the list (changes the wording only). */
   filtered: boolean;
+  /** Whether the list spans more than one page (changes the wording only). */
+  paged: boolean;
   selectedIds: string[];
-  /** Selected rows the current search is hiding, so the count stays honest. */
+  /** Selected rows the current page/search isn't showing, kept in the count
+   * so it stays honest. */
   hiddenSelectedCount: number;
   allShownSelected: boolean;
   someShownSelected: boolean;
@@ -110,17 +114,29 @@ export function MembersBulkBar({
       return res.ok ? subscribeResult(res, subscribed) : null;
     });
 
+  // "Select all" is honestly scoped to what's on screen — never the whole
+  // database — and says so once the list is filtered or paged. A selection's
+  // unseen remainder is attributed precisely when one cause holds: with a
+  // search on a single page every match is visible, so hidden rows can only be
+  // non-matches; unfiltered, they can only be on other pages. With both in
+  // play a hidden row could be either, so the wording goes neutral.
+  const scope = `${filtered ? " matching" : ""}${paged ? " on this page" : ""}`;
+  const hiddenNote =
+    filtered && paged
+      ? "not shown here"
+      : filtered
+        ? "hidden by this search"
+        : "on other pages";
+
   const countText = (
     <>
       <span className={active ? "text-ink font-semibold" : undefined}>
-        {active
-          ? `${count} selected`
-          : `Select all ${shownCount}${filtered ? " matching" : ""}`}
+        {active ? `${count} selected` : `Select all ${shownCount}${scope}`}
       </span>
       {hiddenSelectedCount > 0 && (
         <span className="text-faint">
           {" "}
-          ({hiddenSelectedCount} hidden by this search)
+          ({hiddenSelectedCount} {hiddenNote})
         </span>
       )}
     </>
@@ -140,7 +156,7 @@ export function MembersBulkBar({
           checked={allShownSelected}
           indeterminate={someShownSelected}
           onChange={onToggleAllShown}
-          label={`Select all ${shownCount} members${filtered ? " matching this search" : ""}`}
+          label={`Select all ${shownCount} members${filtered ? " matching this search" : ""}${paged ? " on this page" : ""}`}
         >
           {countText}
         </SelectCheckbox>
