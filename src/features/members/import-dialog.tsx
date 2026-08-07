@@ -130,7 +130,7 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
           </div>
 
           <div className="flex justify-end gap-3 px-8 pt-6 pb-6">
-            <Button variant="secondary" onClick={onClose}>
+            <Button variant="secondary" onClick={onClose} disabled={pending}>
               {summary ? "Done" : "Cancel"}
             </Button>
             {!summary && (
