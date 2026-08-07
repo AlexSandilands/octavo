@@ -18,6 +18,7 @@ import {
 import { requireAdmin } from "@/server/session";
 import { MEMBERS_QUERY_MAX } from "@/features/members/query-limit";
 import { MEMBERS_IMPORT_MAX } from "@/features/members/import-limit";
+import { MEMBERS_SELECTION_MAX } from "@/features/members/selection-limit";
 import {
   isMemberEmail,
   MEMBER_EMAIL_MAX,
@@ -34,13 +35,13 @@ import {
 const idSchema = z.string().uuid();
 
 // A selection from the members table, which renders every member — so
-// select-all is legitimately the whole club list, and the bound has to sit
-// well clear of it or the UI could build a selection its own action refuses.
-// 2000 is roughly double a realistic club: no selection a person can make is
-// ever rejected, while an id list an order of magnitude longer still is. The
-// bound's job is to turn away scripts, not selections. Duplicates are harmless
-// — the data layer de-dupes.
-const idsSchema = z.array(idSchema).min(1).max(2000);
+// select-all is legitimately the whole club list, and the bound has to be one
+// the UI cannot out-build or it refuses selections it handed out itself. It is
+// MEMBERS_SELECTION_MAX, the same constant the select-all path stops at and
+// reports: no selection a person can make is ever rejected, while an id list
+// longer than the wire will carry still is. The bound's job is to turn away
+// scripts, not selections. Duplicates are harmless — the data layer de-dupes.
+const idsSchema = z.array(idSchema).min(1).max(MEMBERS_SELECTION_MAX);
 
 // Trim + lowercase before validating so "  Alex@Example.COM " becomes a clean,
 // canonical key that matches the unique index and future sign-ins. The address
@@ -227,8 +228,13 @@ export type MatchingMemberIdsResult =
 // The bulk bar's "Select all N matching": the ids for the current search +
 // status filter, fetched only when the admin asks for them. A read, not a
 // mutation — but still admin-gated and re-validated, because member ids are
-// membership data. The ids feed the same bulk actions as hand-picked rows, so
-// idsSchema's 2000 bound covers whatever this returns for a realistic club.
+// membership data.
+//
+// These ids feed the same bulk actions as hand-picked rows, so this stops at
+// exactly the bound those actions accept rather than handing back a selection
+// they would refuse. Stopping is never silent: the bulk bar knows the same
+// constant and the whole match count, so it labels the button for what it will
+// actually select and says why the selection ended where it did.
 export async function matchingMemberIdsAction(
   query: unknown,
   filter: unknown,
@@ -244,6 +250,7 @@ export async function matchingMemberIdsAction(
   const ids = await listMatchingUserIds({
     query: parsedQuery.data,
     filter: parsedFilter.data,
+    limit: MEMBERS_SELECTION_MAX,
   });
   return { ok: true, ids };
 }
