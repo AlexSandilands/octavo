@@ -1,13 +1,17 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { DialogShell } from "@/components/dialog-shell";
 import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui";
 import { importMembersAction } from "@/app/admin/members/actions";
 import { parseMembersCsv, type ParseResult } from "@/lib/parse-members-csv";
 import { ImportPreview } from "./import-preview";
-import { ImportSummary, type ImportSummaryData } from "./import-summary";
+import {
+  ImportSummary,
+  importSummaryAnnouncement,
+  type ImportSummaryData,
+} from "./import-summary";
 import { MEMBERS_IMPORT_MAX } from "./import-limit";
 
 type Preview = { fileName: string; parsed: ParseResult };
@@ -23,6 +27,17 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
+  const doneRef = useRef<HTMLButtonElement>(null);
+
+  // The import has landed, and the block holding the Import button unmounts
+  // with it — taking the control the admin was standing on, and dropping focus
+  // onto <body> (#133). So focus is placed deliberately, on the one button
+  // left: "Done" is where this ends either way. Explicitly, not by leaving it
+  // to the shell's focus trap, which only pulls focus back on the next Tab —
+  // nobody should have to press a key to find out where they are.
+  useEffect(() => {
+    if (summary) doneRef.current?.focus();
+  }, [summary]);
 
   const parsed = preview?.parsed;
   // A file the server would refuse whole. Caught here so the admin reads it in
@@ -124,13 +139,27 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
               </>
             )}
 
-            {error && (
-              <p className="text-warn mt-3 font-sans text-[14px]">{error}</p>
-            )}
+            {/* How the import ended, live. Mounted from the moment the dialog
+                opens and whatever has happened since — a region that arrives
+                together with its text is announced unreliably, and this is the
+                highest-stakes action on the page. An error is the visible
+                message it has always been; a landed summary is spoken only,
+                its words already on screen above in ink. Empty, it has no
+                height. Errors and summaries never coexist: starting an import
+                clears the error, and a summary is only set when one succeeds. */}
+            <p
+              role="status"
+              aria-live="polite"
+              className={
+                error ? "text-warn mt-3 font-sans text-[14px]" : "sr-only"
+              }
+            >
+              {error ?? (summary ? importSummaryAnnouncement(summary) : "")}
+            </p>
           </div>
 
           <div className="flex justify-end gap-3 px-8 pt-6 pb-6">
-            <Button variant="secondary" onClick={onClose}>
+            <Button ref={doneRef} variant="secondary" onClick={onClose}>
               {summary ? "Done" : "Cancel"}
             </Button>
             {!summary && (
