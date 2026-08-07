@@ -125,9 +125,9 @@ picker, the reader toggle and the PDF theme all derive from it.
   trap that wraps at both edges, focus back on the trigger when it closes), and hand-rolling
   it per dialog is how six of them ended up as bare `<div>`s with none of it (#130). The
   shell renders the backdrop and the panel and hands the heading's id to its children, so a
-  new dialog spends one prop on its own box and gets the rest. `locked` refuses Escape and
-  the backdrop press while a save is in flight — pass whatever the dialog's own Cancel
-  already disables on.
+  new dialog spends one prop on its own box and gets the rest. A press on the backdrop closes
+  a dialog, the same exit as Escape — every dialog, no opt-in. `locked` refuses both while a
+  save is in flight; pass whatever the dialog's own Cancel already disables on.
 - Large tap targets (min ~44px), generous default font size, high contrast (WCAG AA).
 - Provide the reader-mode/text-size affordances specced for the magazine view.
 - Test the core flows with keyboard and a screen reader before calling them done.

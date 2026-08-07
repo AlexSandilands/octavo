@@ -36,7 +36,6 @@ export function ConfirmDialog({
     <DialogShell
       panelClassName="bg-card w-[440px] max-w-full overflow-hidden rounded-[10px] shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
       locked={working}
-      closeOnOverlayPress
       onClose={onClose}
     >
       {(titleId) => (

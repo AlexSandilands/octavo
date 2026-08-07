@@ -86,6 +86,19 @@ const active = (page: Page) =>
     }`;
   });
 
+/**
+ * Where a block sits on screen, as a stable string. The editor canvas pans and
+ * scrolls, and either moves the block — so comparing this across an interaction
+ * says whether the canvas stayed put.
+ */
+const blockPosition = (page: Page, blockId: string) =>
+  page.evaluate((id) => {
+    const el = document.querySelector(`[data-block-id="${id}"]`);
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return `${Math.round(r.left)},${Math.round(r.top)}`;
+  }, blockId);
+
 const focusInsideDialog = (page: Page) =>
   page.evaluate(() => {
     const panel = document.querySelector("[role=dialog]");
@@ -190,6 +203,11 @@ async function checkOpenDialog(page: Page, expectedName: string) {
   );
 }
 
+// `active()` abbreviates long names, so compare on the same prefix it keeps —
+// a member's row buttons are named after their whole email address.
+const isTrigger = (landed: string, triggerLabel: string) =>
+  landed.includes(triggerLabel.slice(0, 30));
+
 /** c + d: Escape closes, and focus returns to the trigger that opened it. */
 async function checkEscapeRestores(page: Page, triggerLabel: string) {
   await page.keyboard.press("Escape");
@@ -197,9 +215,31 @@ async function checkEscapeRestores(page: Page, triggerLabel: string) {
   ok(!(await dialogOpen(page)), "Escape closes the dialog");
   const landed = await active(page);
   ok(
-    landed.includes(triggerLabel),
-    `focus returned to the trigger ("${triggerLabel}") — landed on ${landed}`,
+    isTrigger(landed, triggerLabel),
+    `Escape returned focus to the trigger ("${triggerLabel}") — landed on ${landed}`,
   );
+}
+
+/**
+ * c + d by the other exit: a press on the backdrop closes the dialog and puts
+ * focus back on the trigger. The corner is used deliberately — it is backdrop
+ * on every panel size, and it is where a stray click actually lands.
+ */
+async function checkBackdropRestores(page: Page, triggerLabel: string) {
+  await page.mouse.click(8, 8);
+  await page.waitForSelector("[role=dialog]", { state: "detached" });
+  ok(!(await dialogOpen(page)), "a press on the backdrop closes the dialog");
+  const landed = await active(page);
+  ok(
+    isTrigger(landed, triggerLabel),
+    `the backdrop close returned focus to the trigger ("${triggerLabel}") — landed on ${landed}`,
+  );
+}
+
+/** Re-open a dialog and leave it open, for a second exit to be tested. */
+async function reopen(page: Page, triggerSelector: string) {
+  await page.click(triggerSelector);
+  await page.waitForSelector("[role=dialog]");
 }
 
 const browser = await chromium.launch();
@@ -257,9 +297,11 @@ try {
   await checkOpenDialog(page, "Add a member");
   await checkEscapeRestores(page, "Add member");
 
+  await reopen(page, "button:has-text('Add member')");
+  await checkBackdropRestores(page, "Add member");
+
   // Cancel restores focus too.
-  await page.click("button:has-text('Add member')");
-  await page.waitForSelector("[role=dialog]");
+  await reopen(page, "button:has-text('Add member')");
   await page.click("[role=dialog] button:has-text('Cancel')");
   await page.waitForSelector("[role=dialog]", { state: "detached" });
   ok(
@@ -278,6 +320,9 @@ try {
   await checkOpenDialog(page, "Edit member");
 
   // A successful save closes the dialog; focus must land back on the pencil.
+  await checkBackdropRestores(page, editLabel);
+
+  await reopen(page, `button[aria-label="${editLabel}"]`);
   await page.fill("#member-name", "Scratch One Thirty");
   await page.click("[role=dialog] button:has-text('Save changes')");
   await page.waitForSelector("[role=dialog]", { state: "detached" });
@@ -305,6 +350,9 @@ try {
   );
   await checkEscapeRestores(page, "Import CSV");
 
+  await reopen(page, "button:has-text('Import CSV')");
+  await checkBackdropRestores(page, "Import CSV");
+
   // ── 4. ConfirmDialog ──────────────────────────────────────────────────────
   heading("ConfirmDialog");
   await page.goto(`${base}/admin/members?q=scratch-130-other`);
@@ -322,17 +370,9 @@ try {
     "initial focus is the safe Cancel button, never Confirm",
   );
   await checkOpenDialog(page, `Remove ${otherName}?`);
-  // The backdrop press this dialog has always had still closes it.
-  await page.mouse.click(8, 8);
-  await page.waitForSelector("[role=dialog]", { state: "detached" });
-  ok(true, "a press on the backdrop still closes the confirm dialog");
-  ok(
-    (await active(page)).includes(removeLabel),
-    `the backdrop close restores focus to the trigger (landed on ${await active(page)})`,
-  );
+  await checkBackdropRestores(page, removeLabel);
   // And Escape, which it never had.
-  await page.click(`button[aria-label="${removeLabel}"]`);
-  await page.waitForSelector("[role=dialog]");
+  await reopen(page, `button[aria-label="${removeLabel}"]`);
   await checkEscapeRestores(page, removeLabel);
 
   // ── 5. SponsorDialog — including the in-flight save lock ─────────────────
@@ -344,10 +384,12 @@ try {
   await checkOpenDialog(page, "Add sponsor");
   await checkEscapeRestores(page, "Add sponsor");
 
-  // (c)+(e) the lock: hold the save server-side, then prove Escape, Cancel and
-  // the × are all refused while it is in flight.
-  await page.click("button:has-text('Add sponsor')");
-  await page.waitForSelector("[role=dialog]");
+  await reopen(page, "button:has-text('Add sponsor')");
+  await checkBackdropRestores(page, "Add sponsor");
+
+  // (c)+(e) the lock: hold the save server-side, then prove Escape, the backdrop
+  // press, Cancel and the × are all refused while it is in flight.
+  await reopen(page, "button:has-text('Add sponsor')");
   await page.fill("#sponsor-name", "Scratch 130 Sponsor");
   // Stall the server action so `saving` stays true for the assertions below.
   // A one-shot flag rather than an unroute(): tearing the handler down while
@@ -377,6 +419,20 @@ try {
     await dialogOpen(page),
     "Escape does NOT close the dialog while the save is in flight",
   );
+  // Park focus somewhere real first: pressing Save disables it (`busy`), and a
+  // control that disables under the user's hands drops focus to <body> — the
+  // #131 class of bug, pre-existing here and not what this assertion is about.
+  await page.focus("#sponsor-name");
+  await page.mouse.click(8, 8);
+  await page.waitForTimeout(300);
+  ok(
+    await dialogOpen(page),
+    "a backdrop press does NOT close the dialog while the save is in flight",
+  );
+  ok(
+    await focusInsideDialog(page),
+    `the refused backdrop press left focus where it was rather than blurring it to <body> (${await active(page)})`,
+  );
   await page.waitForSelector("[role=dialog]", {
     state: "detached",
     timeout: 20_000,
@@ -404,7 +460,10 @@ try {
   await page.click("button:has-text('Add logo')");
   await page.waitForSelector("[role=dialog]");
   await checkOpenDialog(page, "Add logo");
+  await checkBackdropRestores(page, "Add logo");
+
   // The × closes it, and focus comes back.
+  await reopen(page, "button:has-text('Add logo')");
   await page.click('[role=dialog] button[aria-label="Close"]');
   await page.waitForSelector("[role=dialog]", { state: "detached" });
   ok(
@@ -449,6 +508,24 @@ try {
     "…and left the dialog open — an open menu still owns Escape",
   );
   await checkEscapeRestores(page, montageLabel);
+
+  // The backdrop press closes it too — and, because this dialog floats over the
+  // editor canvas, the closing press must not also reach what is behind it. The
+  // canvas deselects the current block on a stray click and pans on a drag, so
+  // the block staying selected (its toolbar is still on screen) and the canvas
+  // not having moved are the two things to hold.
+  await reopen(page, `button:has-text("${montageLabel}")`);
+  const before = await blockPosition(page, montageBlockId);
+  await checkBackdropRestores(page, montageLabel);
+  ok(
+    await montageTrigger.isVisible(),
+    "the closing press left the montage block selected — the editor behind it never saw the click",
+  );
+  const after = await blockPosition(page, montageBlockId);
+  ok(
+    before !== null && after === before,
+    `the canvas did not pan or scroll (${before} → ${after})`,
+  );
 
   await ctx.close();
   console.log("\nPASS — every converted dialog meets the #130 contract");

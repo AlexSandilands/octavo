@@ -15,20 +15,23 @@ import { useEffect, useId, useRef } from "react";
 // (kicker, close ×, type size), which is why the shell hands out the id rather
 // than rendering the heading itself.
 //
+// A press on the backdrop closes the dialog, on every dialog — the owner's call
+// on #130. It is the same exit as Escape and obeys the same rules: refused while
+// `locked`, and focus lands back on the trigger.
+//
 // Hand-rolled rather than the native <dialog> element. Native would give
-// modality, Escape and the top layer for free, but two of these dialogs treat
-// the backdrop as a real element — the confirm dialog closes on a press that
-// lands on it, the montage dialog stops presses reaching the editor canvas
-// behind — and ::backdrop is not an element you can listen to or hit-test. It
-// also wants imperative showModal()/close() against a React tree that mounts
-// dialogs only while open, and its user-agent box would have to be unpicked to
-// keep these panels pixel-identical. The one thing given up is true inertness:
-// a screen reader's virtual cursor can still browse the page behind. See the PR
-// for the full trade.
+// modality, Escape and the top layer for free, but every dialog here treats the
+// backdrop as a real element — each one closes on a press that lands on it, and
+// the montage dialog additionally stops presses reaching the editor canvas
+// behind — while ::backdrop is a pseudo-element you can neither listen to nor
+// hit-test. Native also wants imperative showModal()/close() against a React
+// tree that mounts dialogs only while open, and its user-agent box would have to
+// be unpicked to keep these panels pixel-identical. The one thing given up is
+// true inertness: a screen reader's virtual cursor can still browse the page
+// behind. See the PR for the full trade.
 export function DialogShell({
   panelClassName,
   locked = false,
-  closeOnOverlayPress = false,
   isolatePointerEvents = false,
   onClose,
   children,
@@ -38,12 +41,9 @@ export function DialogShell({
   /** An action is in flight: Escape and a backdrop press are refused, matching
    * what the dialog's own Cancel / × already do. */
   locked?: boolean;
-  /** Close when a press lands on the backdrop itself. Off by default — only
-   * the confirm dialog does this today, and adding it elsewhere would be a
-   * behaviour change, not an accessibility fix. */
-  closeOnOverlayPress?: boolean;
   /** Stop presses on the backdrop from reaching what is behind it (the editor
-   * canvas deselects the current block on a stray click and pans on a drag). */
+   * canvas deselects the current block on a stray click and pans on a drag).
+   * The closing press is handled either way; this is about everything else. */
   isolatePointerEvents?: boolean;
   onClose: () => void;
   children: (titleId: string) => React.ReactNode;
@@ -118,15 +118,18 @@ export function DialogShell({
       className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(32,32,28,0.4)] p-4"
       onPointerDown={(e) => {
         if (isolatePointerEvents) e.stopPropagation();
-        if (closeOnOverlayPress && !locked && e.target === e.currentTarget) {
-          // Suppress the compatibility mousedown this press would otherwise
-          // fire. Its default action is to blur whatever has focus, and it
-          // lands *after* React has torn the dialog down — so without this the
-          // restore below puts focus back on the trigger and the browser
-          // immediately takes it away again, to <body>.
-          e.preventDefault();
-          onClose();
-        }
+        // Only a press on the backdrop itself — one that started inside the
+        // panel and merely ended out here (dragging a selection off the edge of
+        // a field) is not someone asking to leave.
+        if (e.target !== e.currentTarget) return;
+        // Suppress the compatibility mousedown this press would otherwise fire.
+        // Its default action is to blur whatever has focus, and it lands *after*
+        // React has torn the dialog down — so without this the restore below
+        // puts focus back on the trigger and the browser immediately takes it
+        // away again, to <body>. Done even when the press is refused, so a
+        // locked dialog doesn't quietly lose focus to <body> either.
+        e.preventDefault();
+        if (!locked) onClose();
       }}
       onClick={isolatePointerEvents ? (e) => e.stopPropagation() : undefined}
     >
