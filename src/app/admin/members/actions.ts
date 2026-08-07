@@ -17,6 +17,12 @@ import {
 } from "@/server/users";
 import { requireAdmin } from "@/server/session";
 import { MEMBERS_QUERY_MAX } from "@/features/members/query-limit";
+import { MEMBERS_IMPORT_MAX } from "@/features/members/import-limit";
+import {
+  isMemberEmail,
+  MEMBER_EMAIL_MAX,
+  normaliseMemberEmail,
+} from "@/lib/member-email";
 
 // Mutations the members admin UI calls. Server-action arguments are
 // attacker-controlled JSON regardless of their TypeScript types, so every one
@@ -37,12 +43,21 @@ const idSchema = z.string().uuid();
 const idsSchema = z.array(idSchema).min(1).max(2000);
 
 // Trim + lowercase before validating so "  Alex@Example.COM " becomes a clean,
-// canonical key that matches the unique index and future sign-ins.
+// canonical key that matches the unique index and future sign-ins. The address
+// itself is judged by the shared predicate in lib/member-email — the same one
+// the browser's CSV preview uses, so the two ends cannot disagree about which
+// rows are importable (#124). It is zod's own `.email()` pattern, so nothing
+// the server used to accept is turned away now.
 const emailSchema = z
   .string()
   .trim()
   .toLowerCase()
-  .pipe(z.string().email().max(200));
+  .pipe(
+    z
+      .string()
+      .max(MEMBER_EMAIL_MAX)
+      .refine(isMemberEmail, "Not an address we can use"),
+  );
 const nameSchema = z.string().trim().max(200);
 
 const addSchema = z
@@ -52,11 +67,21 @@ const addSchema = z
 // Same shape as add: editing sets both fields (name absent/blank → null).
 const updateSchema = addSchema;
 
-const importSchema = z
-  .array(z.object({ email: emailSchema, name: nameSchema.nullable() }).strict())
-  // Cap the batch: the club is ~1000 members, so a five-figure import is a
-  // malformed file or an abuse attempt, not a real list.
-  .max(5000);
+// One row of an import, validated on its own — see importMembersAction for why
+// the batch is never validated as a whole.
+const importRowSchema = z
+  .object({ email: emailSchema, name: nameSchema.nullable() })
+  .strict();
+
+// Enough of a refused row to recognise it, if it has that much: the address it
+// carried. Read with zod like everything else here — the row is by definition
+// the part of the batch that didn't validate.
+const rowLabelSchema = z.object({ email: z.string() });
+
+// How many refused rows come back with their addresses. A real file has a
+// handful; a junk one has thousands, and neither the response nor the dialog
+// should carry a wall of them. The count comes back in full either way.
+const SKIPPED_REPORT_MAX = 20;
 
 export type AddMemberResult =
   | { ok: true }
@@ -223,26 +248,73 @@ export async function matchingMemberIdsAction(
   return { ok: true, ids };
 }
 
-export type ImportMembersResult =
-  | { ok: true; added: number; alreadyMembers: number; updated: number }
-  | { ok: false; reason: "invalid" };
+// A row the import refused, named for the admin: its position in the batch
+// (1-based) and the address it carried, when it carried one.
+export type SkippedImportRow = { row: number; email: string };
 
+export type ImportMembersResult =
+  | {
+      ok: true;
+      added: number;
+      alreadyMembers: number;
+      updated: number;
+      // The first SKIPPED_REPORT_MAX refused rows, and how many there were.
+      skipped: SkippedImportRow[];
+      skippedCount: number;
+    }
+  | { ok: false; reason: "invalid" }
+  | { ok: false; reason: "too-many"; limit: number };
+
+function rowLabel(row: unknown): string {
+  const parsed = rowLabelSchema.safeParse(row);
+  if (!parsed.success) return "";
+  return normaliseMemberEmail(parsed.data.email).slice(0, MEMBER_EMAIL_MAX);
+}
+
+// Import a batch of rows, validating each one on its own. The batch used to be
+// parsed as a single schema, which is all-or-nothing: one address zod wouldn't
+// have — a doubled dot, a non-ASCII local part, a numeric TLD — rejected the
+// whole roster and inserted nothing, with no way to tell which row was at fault
+// (#124). Now a row that fails validation is skipped and named in the result,
+// the rest are written, and the batch is only ever refused whole for something
+// the admin can act on: a payload that isn't a list, or one over the cap.
 export async function importMembersAction(
   rows: unknown,
 ): Promise<ImportMembersResult> {
   await requireAdmin();
-  const parsed = importSchema.safeParse(rows);
-  if (!parsed.success) return { ok: false, reason: "invalid" };
-  const normalised = parsed.data.map((r) => ({
-    email: r.email,
-    name: r.name && r.name.length > 0 ? r.name : null,
-  }));
-  const result = await createUsers(normalised);
+  const batch = z.array(z.unknown()).safeParse(rows);
+  if (!batch.success) return { ok: false, reason: "invalid" };
+  if (batch.data.length > MEMBERS_IMPORT_MAX) {
+    return { ok: false, reason: "too-many", limit: MEMBERS_IMPORT_MAX };
+  }
+
+  const valid: { email: string; name: string | null }[] = [];
+  const skipped: SkippedImportRow[] = [];
+  let skippedCount = 0;
+  batch.data.forEach((row, i) => {
+    const parsed = importRowSchema.safeParse(row);
+    if (!parsed.success) {
+      skippedCount++;
+      if (skipped.length < SKIPPED_REPORT_MAX) {
+        skipped.push({ row: i + 1, email: rowLabel(row) });
+      }
+      return;
+    }
+    const name = parsed.data.name;
+    valid.push({
+      email: parsed.data.email,
+      name: name && name.length > 0 ? name : null,
+    });
+  });
+
+  const result = await createUsers(valid);
   revalidatePath("/admin/members");
   return {
     ok: true,
     added: result.added,
     alreadyMembers: result.alreadyMembers,
     updated: result.updated,
+    skipped,
+    skippedCount,
   };
 }

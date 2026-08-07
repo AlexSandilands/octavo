@@ -6,24 +6,27 @@ import { Button } from "@/components/ui";
 import { importMembersAction } from "@/app/admin/members/actions";
 import { parseMembersCsv, type ParseResult } from "@/lib/parse-members-csv";
 import { ImportPreview } from "./import-preview";
+import { ImportSummary, type ImportSummaryData } from "./import-summary";
+import { MEMBERS_IMPORT_MAX } from "./import-limit";
 
 type Preview = { fileName: string; parsed: ParseResult };
-type Summary = {
-  added: number;
-  alreadyMembers: number;
-  updated: number;
-  invalid: number;
-};
 
 // Import a members CSV. Parsing and previewing happen entirely in the browser
 // (no half-parsed file reaches the server); the admin sees exactly what will be
 // added and what was skipped before committing, then a plain-language result.
+// The preview applies the server's own address test (lib/member-email) and its
+// batch cap, so what it counts is what the import writes.
 export function ImportDialog({ onClose }: { onClose: () => void }) {
   const [preview, setPreview] = useState<Preview | null>(null);
-  const [summary, setSummary] = useState<Summary | null>(null);
+  const [summary, setSummary] = useState<ImportSummaryData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const parsed = preview?.parsed;
+  // A file the server would refuse whole. Caught here so the admin reads it in
+  // the preview and never commits an import that cannot succeed (#124).
+  const tooMany = (parsed?.members.length ?? 0) > MEMBERS_IMPORT_MAX;
 
   const onFile = async (file: File | undefined) => {
     setError(null);
@@ -38,12 +41,18 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
   };
 
   const confirmImport = () => {
-    if (!preview) return;
+    if (!preview || tooMany) return;
     setError(null);
     startTransition(async () => {
       const res = await importMembersAction(preview.parsed.members);
       if (!res.ok) {
-        setError("The import couldn’t be completed. Please try again.");
+        // Neither message is a bare "try again": a retry that changes nothing
+        // fails the same way, so each one names the thing to change (#124).
+        setError(
+          res.reason === "too-many"
+            ? `That file holds more members than one import can take (the most is ${res.limit.toLocaleString()}). Split it into smaller files and import them one after another.`
+            : "The import couldn’t be started. Choose the file again — and if it still won’t go, export it once more from your spreadsheet as CSV.",
+        );
         return;
       }
       setSummary({
@@ -51,11 +60,11 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
         alreadyMembers: res.alreadyMembers,
         updated: res.updated,
         invalid: preview.parsed.invalid,
+        skipped: res.skipped,
+        skippedCount: res.skippedCount,
       });
     });
   };
-
-  const parsed = preview?.parsed;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(32,32,28,0.4)] p-4">
@@ -69,16 +78,7 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
           </h2>
 
           {summary ? (
-            <p className="text-muted mt-2.5 font-sans text-[15px] leading-relaxed">
-              Done — <strong className="text-ink">{summary.added} added</strong>
-              , {summary.alreadyMembers} already{" "}
-              {summary.alreadyMembers === 1 ? "a member" : "members"}
-              {summary.updated > 0 && (
-                <> ({summary.updated} of them given the name from this file)</>
-              )}
-              , {summary.invalid} invalid{" "}
-              {summary.invalid === 1 ? "row" : "rows"} skipped.
-            </p>
+            <ImportSummary summary={summary} />
           ) : (
             <>
               <p className="text-muted mt-2.5 font-sans text-[15px] leading-relaxed">
@@ -128,7 +128,7 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
             <Button
               onClick={confirmImport}
               busy={pending}
-              disabled={!parsed || parsed.members.length === 0}
+              disabled={!parsed || parsed.members.length === 0 || tooMany}
               icon="check"
               iconPosition="left"
             >
