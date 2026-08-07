@@ -1,5 +1,6 @@
 import { AdminShell } from "@/components/admin-shell";
 import { MagazineSettings } from "@/features/magazine/magazine-settings";
+import { SettingsUnavailable } from "@/features/magazine/settings-unavailable";
 import { listLogos } from "@/server/logos";
 import { requireAdminOrRedirect } from "@/server/session";
 import { getSettingsForAdmin } from "@/server/settings";
@@ -15,7 +16,7 @@ export const dynamic = "force-dynamic";
 // cards renders edits before they are saved.
 export default async function MagazinePage() {
   const admin = await requireAdminOrRedirect();
-  const [{ stored, defaults }, logos] = await Promise.all([
+  const [settings, logos] = await Promise.all([
     getSettingsForAdmin(),
     listLogos(),
   ]);
@@ -28,7 +29,19 @@ export default async function MagazinePage() {
           Changes go live as soon as you save — nothing needs rebuilding.
         </p>
 
-        <MagazineSettings stored={stored} defaults={defaults} logos={logos} />
+        {/* The form is only ever mounted with a row we actually read. That is
+            the whole guarantee behind issue #126: the save sends every field,
+            so a form seeded from a failed read would save empties over the
+            stored branding — and this is the one place the form exists. */}
+        {settings.ok ? (
+          <MagazineSettings
+            stored={settings.stored}
+            defaults={settings.defaults}
+            logos={logos}
+          />
+        ) : (
+          <SettingsUnavailable />
+        )}
       </div>
     </AdminShell>
   );
