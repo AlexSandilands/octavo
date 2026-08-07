@@ -152,19 +152,26 @@ export const IconButton = forwardRef<
     label: string;
     onClick?: () => void;
     size?: number;
+    disabled?: boolean;
     className?: string;
   }
 >(function IconButton(
-  { icon, label, onClick, size = 22, className = "" },
+  { icon, label, onClick, size = 22, disabled = false, className = "" },
   ref,
 ) {
+  // Same disabled treatment as Button: dimmed, no pointer, and the hover wash
+  // composed out entirely so it promises nothing it will not do (issue #117).
+  const state = disabled
+    ? "cursor-default opacity-50"
+    : "hover:bg-accent-wash hover:text-ink cursor-pointer";
   return (
     <button
       ref={ref}
       type="button"
       onClick={onClick}
+      disabled={disabled}
       aria-label={label}
-      className={`text-muted hover:bg-accent-wash hover:text-ink -m-2 inline-flex cursor-pointer items-center justify-center rounded-lg p-2 transition-[background-color,color] duration-150 ${className}`}
+      className={`text-muted -m-2 inline-flex items-center justify-center rounded-lg p-2 transition-[background-color,color] duration-150 ${state} ${className}`}
     >
       <Icon name={icon} size={size} strokeWidth={1.7} />
     </button>

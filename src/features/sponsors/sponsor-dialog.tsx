@@ -100,7 +100,12 @@ export function SponsorDialog({
           <h2 className="text-ink font-serif text-[26px] leading-tight">
             {editing ? "Edit sponsor" : "Add sponsor"}
           </h2>
-          <IconButton icon="close" label="Close" onClick={onClose} />
+          <IconButton
+            icon="close"
+            label="Close"
+            onClick={onClose}
+            disabled={saving}
+          />
         </div>
 
         <div className="space-y-5 px-8 pt-6">
