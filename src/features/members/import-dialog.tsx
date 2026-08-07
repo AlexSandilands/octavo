@@ -35,9 +35,16 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
   // left: "Done" is where this ends either way. Explicitly, not by leaving it
   // to the shell's focus trap, which only pulls focus back on the next Tab —
   // nobody should have to press a key to find out where they are.
+  //
+  // `pending` is in the condition, not just the deps: the summary paints while
+  // the transition is still settling, and for that window Done is disabled by
+  // the in-flight lock (#134). Focusing a disabled button is a silent no-op, so
+  // firing on the summary alone would put focus nowhere at all and leave the
+  // admin on <body> — the exact bug this fixes. Waiting for the lock to release
+  // costs a frame and always lands.
   useEffect(() => {
-    if (summary) doneRef.current?.focus();
-  }, [summary]);
+    if (summary && !pending) doneRef.current?.focus();
+  }, [summary, pending]);
 
   const parsed = preview?.parsed;
   // A file the server would refuse whole. Caught here so the admin reads it in
@@ -159,7 +166,12 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
           </div>
 
           <div className="flex justify-end gap-3 px-8 pt-6 pb-6">
-            <Button ref={doneRef} variant="secondary" onClick={onClose}>
+            <Button
+              ref={doneRef}
+              variant="secondary"
+              onClick={onClose}
+              disabled={pending}
+            >
               {summary ? "Done" : "Cancel"}
             </Button>
             {!summary && (

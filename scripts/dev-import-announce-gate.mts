@@ -24,7 +24,7 @@
 // it imports, in the finally block — it never seeds.
 // Run: npx tsx scripts/dev-import-announce-gate.mts <base-url>
 import postgres from "postgres";
-import { chromium } from "playwright";
+import { chromium, type Page } from "playwright";
 
 process.loadEnvFile?.(".env.local");
 const base = process.argv[2];
@@ -36,6 +36,56 @@ const ok = (cond: unknown, msg: string) => {
 };
 
 const sql = postgres(process.env.DATABASE_URL!);
+
+/**
+ * Park the next matching server action for `ms`, so the import sits in its
+ * pending state long enough to be inspected. A one-shot flag rather than an
+ * unroute(): tearing the handler down while its own request is still in the
+ * sleep aborts it. (The pattern is #134's, from dev-dialog-cancel-lock-gate.)
+ */
+async function stallOnce(page: Page, url: string, ms = 4000) {
+  let stall = true;
+  await page.route(url, async (route) => {
+    if (route.request().method() === "POST" && stall) {
+      stall = false;
+      await new Promise((r) => setTimeout(r, ms));
+    }
+    return route.continue();
+  });
+}
+
+/**
+ * Wait until the dialog has finished settling: Done is on screen AND no longer
+ * held by #134's in-flight lock. This is the honest moment to read focus — the
+ * summary can paint a commit before the transition ends, and Done is disabled
+ * for that window. No key is pressed to get here, which is the whole point.
+ */
+const waitForSettled = (page: Page) =>
+  page.waitForFunction(
+    () => {
+      const done = Array.from(
+        document.querySelectorAll<HTMLButtonElement>("[role=dialog] button"),
+      ).find((b) => b.textContent?.trim() === "Done");
+      return !!done && !done.disabled;
+    },
+    undefined,
+    { timeout: 20_000 },
+  );
+
+/** Where focus is, and whether it is anywhere useful. */
+const focusState = (page: Page) =>
+  page.evaluate(() => {
+    const panel = document.querySelector("[role=dialog]");
+    const el = document.activeElement as HTMLElement | null;
+    return {
+      inside: !!panel && !!el && panel.contains(el),
+      isBody: !el || el === document.body,
+      description:
+        !el || el === document.body
+          ? "<body>"
+          : `${el.tagName.toLowerCase()}[${el.textContent?.trim().slice(0, 20)}]`,
+    };
+  });
 
 const userId = crypto.randomUUID();
 const token = crypto.randomUUID();
@@ -49,6 +99,14 @@ const CSV = [
   `a11y133-002@example.test,${LONG_NAME}`,
   "not-an-address,Broken Row",
   "a11y133-003@example.test,Valid Three",
+].join("\n");
+
+// The second run, against a stalled round-trip: one new address and one the
+// first run already added, so the "already a member" wording is exercised too.
+const CSV_AGAIN = [
+  "email,name",
+  "a11y133-004@example.test,Valid Four",
+  "a11y133-001@example.test,Valid One",
 ].join("\n");
 
 const browser = await chromium.launch();
@@ -186,18 +244,8 @@ try {
   );
 
   // ── d. focus, with nothing pressed since Enter ────────────────────────────
-  const landed = await page.evaluate(() => {
-    const panel = document.querySelector("[role=dialog]");
-    const el = document.activeElement as HTMLElement | null;
-    return {
-      inside: !!panel && !!el && panel.contains(el),
-      isBody: !el || el === document.body,
-      description:
-        !el || el === document.body
-          ? "<body>"
-          : `${el.tagName.toLowerCase()}[${el.textContent?.trim().slice(0, 20)}]`,
-    };
-  });
+  await waitForSettled(page);
+  const landed = await focusState(page);
   ok(!landed.isBody, `focus is not on <body> (it is on ${landed.description})`);
   ok(
     landed.inside,
@@ -226,6 +274,63 @@ try {
   ok(
     written.length === 2,
     `the import wrote exactly the 2 valid rows (${written.map((r) => r.email).join(", ")})`,
+  );
+
+  // ── f. the same again, with the round-trip stalled ───────────────────────
+  // #134 locks Done while an import is in flight, and the summary can paint a
+  // commit before the transition finishes settling — so for a moment the very
+  // button this fix aims focus at is disabled, and .focus() on a disabled
+  // button is a silent no-op. Stalling the action holds that window open long
+  // enough to assert both halves: the lock is real, and focus still lands once
+  // it releases.
+  console.log("\n── stalled round-trip ".padEnd(74, "─"));
+  await page.click("[role=dialog] button:has-text('Done')");
+  await page.waitForSelector("[role=dialog]", { state: "detached" });
+  await page.click("button:has-text('Import CSV')");
+  await page.waitForSelector("[role=dialog]");
+  await page.setInputFiles(
+    "[role=dialog] input[type=file]",
+    {
+      name: "a11y133-again.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from(CSV_AGAIN),
+    },
+    { force: true },
+  );
+  await page.waitForSelector("[role=dialog] button:has-text('Import 2')");
+  await stallOnce(page, "**/admin/members**");
+  await page.locator("[role=dialog] button:has-text('Import 2')").focus();
+  await page.keyboard.press("Enter");
+
+  await page.waitForSelector("[role=dialog] button:has-text('Importing…')");
+  ok(true, "the second import is in flight (the button reads Importing…)");
+  ok(
+    await page.isDisabled("[role=dialog] button:has-text('Cancel')"),
+    "Cancel/Done is disabled while the import is in flight (#134's lock holds)",
+  );
+
+  await waitForSettled(page);
+  const landedAgain = await focusState(page);
+  ok(
+    !landedAgain.isBody,
+    `focus is not on <body> after a stalled import (it is on ${landedAgain.description})`,
+  );
+  ok(
+    landedAgain.description.includes("Done"),
+    `focus lands on Done once the lock releases — the disabled window did not swallow it (${landedAgain.description})`,
+  );
+  const announcedAgain = (
+    await page.evaluate(
+      () =>
+        document.querySelector("[role=dialog] [role=status][aria-live=polite]")
+          ?.textContent ?? "",
+    )
+  ).trim();
+  console.log(`\n  announced: "${announcedAgain}"\n`);
+  ok(
+    announcedAgain.includes("1 added") &&
+      announcedAgain.includes("1 already a member"),
+    "the second import is announced too, in the singular",
   );
 
   await ctx.close();
