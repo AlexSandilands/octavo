@@ -89,14 +89,38 @@ const themeSchema = z
 // them.
 const RENDER_VERSION = 6;
 
+// Percent-encode for an RFC 8187 ext-value (the `filename*=UTF-8''…` form).
+// Only attr-char may appear bare there: ALPHA / DIGIT / "!" / "#" / "$" / "&" /
+// "+" / "-" / "." / "^" / "_" / "`" / "|" / "~". encodeURIComponent leaves
+// `! ' ( ) * - . _ ~` unescaped, and of those `' ( ) *` are not attr-chars — the
+// single quote most of all, since it is the ext-value's own delimiter, so an
+// owner-set name like "St John's Gazette" (issue #107) would otherwise produce a
+// parameter strict clients reject outright.
+function extValue(value: string): string {
+  return encodeURIComponent(value).replace(
+    /['()*]/g,
+    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+}
+
 // A download filename the browser and the audience can read. Strip anything
 // path- or header-unsafe; keep an ASCII fallback plus a UTF-8 form for clients
-// that honour RFC 5987.
+// that honour RFC 8187.
 function contentDisposition(magazineName: string, issueNumber: number): string {
   const base = `${magazineName} No. ${issueNumber}`;
-  const ascii = base.replace(/[^\x20-\x7e]/g, "").replace(/["\\]/g, "");
-  const safe = (ascii || `Issue ${issueNumber}`).trim();
-  return `attachment; filename="${safe}.pdf"; filename*=UTF-8''${encodeURIComponent(base)}.pdf`;
+  // The plain parameter has to be ASCII, and can carry neither quote nor
+  // backslash without escaping out of its own quoted-string. Decompose first so
+  // accented letters keep their base form ("Kaipātiki" → "Kaipatiki") rather
+  // than losing the letter entirely. A name with no ASCII left at all (an
+  // all-CJK title, say) would reduce to a bare "No. 4", so name the issue
+  // instead.
+  const ascii = magazineName
+    .normalize("NFD")
+    .replace(/[^\x20-\x7e]/g, "")
+    .replace(/["\\]/g, "")
+    .trim();
+  const safe = ascii ? `${ascii} No. ${issueNumber}` : `Issue ${issueNumber}`;
+  return `attachment; filename="${safe}.pdf"; filename*=UTF-8''${extValue(base)}.pdf`;
 }
 
 export async function GET(
