@@ -5,6 +5,7 @@ import { resolveIssueImages } from "@/server/images";
 import { getLogoImage } from "@/server/logos";
 import { resolveIssueSponsors } from "@/server/sponsors";
 import { getSettings } from "@/server/settings";
+import { settingsForIssue } from "@/lib/branding";
 import { verifyPrintToken } from "@/lib/pdf-token";
 
 // The print view the PDF generator loads (src/lib/pdf.ts) over localhost. It is
@@ -49,7 +50,10 @@ export default async function PrintPage({
       // resolves it and degrades anything unknown to the reader's default.
       theme={typeof theme === "string" ? theme : ""}
       logo={logo}
-      settings={settings}
+      // Clamped to the issue's footer reserve (issue #128) — the same
+      // resolution the download endpoint fingerprints for the cache key, so the
+      // printed page and the key it is stored under can't disagree.
+      settings={settingsForIssue(settings, issue)}
       images={images}
       sponsors={sponsors}
     />

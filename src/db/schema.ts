@@ -97,6 +97,27 @@ export const issues = pgTable(
     logoId: text("logo_id").references((): AnyPgColumn => logos.id, {
       onDelete: "set null",
     }),
+    // The footer sizes this issue's pages were laid out against (issue #128).
+    // The running footer grows upward from the page's bottom margin, so a page
+    // filled to its limit is overlapped if the global setting later grows
+    // taller than it was authored for. Renderers clamp the live setting to
+    // these (`settingsForIssue`), so a bigger footer reaches the issues with
+    // room for it and waits on the rest until the author adopts it in the
+    // editor — where the overflow marker catches whatever no longer fits.
+    //
+    // NOT NULL with the shipped defaults: the guard is only as good as its
+    // weakest row, and an insert path that forgot these would otherwise be
+    // unclamped. The default fails safe (too short, never too tall); createIssue
+    // supplies the real values and the #128 migration backfilled every row that
+    // predates the column from the settings then in force.
+    footerMarkSize: text("footer_mark_size")
+      .$type<MarkSize>()
+      .notNull()
+      .default("medium"),
+    footerTextSize: text("footer_text_size")
+      .$type<TextSize>()
+      .notNull()
+      .default("medium"),
     // Bumped on every content write; autosaves send the revision they were
     // based on so a stale editor can't silently overwrite a newer one.
     revision: integer("revision").notNull().default(0),

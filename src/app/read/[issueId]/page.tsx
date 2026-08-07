@@ -7,6 +7,7 @@ import { getLogoImage } from "@/server/logos";
 import { resolveIssueSponsors } from "@/server/sponsors";
 import { requireMemberOrRedirect } from "@/server/session";
 import { getSettings } from "@/server/settings";
+import { settingsForIssue } from "@/lib/branding";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +41,10 @@ export default async function ReadPage({
         content={issue.content}
         issueNo={issue.number}
         logo={logo}
-        settings={settings}
+        // The footer is held to what this issue's pages were laid out against
+        // (issue #128), so a later settings change can't overlap their last
+        // lines. Applies to the mobile closer too — one issue, one footer.
+        settings={settingsForIssue(settings, issue)}
         images={images}
         sponsors={sponsors}
       />

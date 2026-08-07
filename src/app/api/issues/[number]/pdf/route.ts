@@ -12,6 +12,7 @@ import { DEFAULT_THEME_ID, THEME_IDS } from "@/features/blocks/themes/registry";
 import { getPublishedIssueByNumber } from "@/server/issues";
 import { getUserFailClosed } from "@/server/session";
 import { chromeFingerprint, getSettings } from "@/server/settings";
+import { settingsForIssue } from "@/lib/branding";
 
 // Members-only PDF download. The reader is gated, so this is too: a signed-out
 // request is refused. Demo mode (issue #50) ungates the reader, so this
@@ -82,8 +83,12 @@ const themeSchema = z
 // (issue #97). v5: the footer's wording and appearance now come from magazine
 // settings (issue #105) — the key gained a chrome segment, so this bump is
 // belt-and-braces, but the gate for print-visible changes is a blanket rule
-// (docs/workflow.md).
-const RENDER_VERSION = 5;
+// (docs/workflow.md). v6: the footer is clamped to the issue's own reserve
+// (issue #128), so the chrome segment now fingerprints a per-issue resolution
+// rather than the global one — same values on the day it ships (the migration
+// backfilled every issue from the settings then in force), but the segment's
+// meaning changed, and the blanket rule covers that too.
+const RENDER_VERSION = 6;
 
 // A download filename the browser and the audience can read. Strip anything
 // path- or header-unsafe; keep an ASCII fallback plus a UTF-8 form for clients
@@ -135,7 +140,12 @@ export async function GET(
   // one generation, the mismatched entry is only ever served again if the owner
   // reverts to exactly those older values, and the next edit re-keys past it.
   const settings = await getSettings();
-  const chrome = chromeFingerprint(settings);
+  // Fingerprint the settings *this issue* prints with — the magazine's, with the
+  // footer held to the issue's reserve (issue #128), exactly as the print route
+  // will resolve them. A settings change the issue is too full to take therefore
+  // leaves the key alone, which is right: the printed page doesn't change
+  // either, so the cached bytes are still the correct answer.
+  const chrome = chromeFingerprint(settingsForIssue(settings, issue));
   const key = `pdfs/${issue.id}/${issue.revision}-${theme}-${issue.logoId ?? "nologo"}-${chrome}-v${RENDER_VERSION}.pdf`;
 
   let pdf: Buffer | null;

@@ -16,7 +16,8 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import type { SiteSettings } from "@/lib/branding";
+import { footerHeldBack } from "@/lib/branding";
+import type { FooterReserve, FooterStyle, SiteSettings } from "@/lib/branding";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { LogoListItem } from "@/lib/logos";
 import type { SponsorListItem, SponsorMap } from "@/lib/sponsors";
@@ -41,13 +42,17 @@ import { PageRail } from "./page-rail";
 import { PublishModal } from "./publish-modal";
 import { EditorHeader, type SaveStatus } from "./editor-header";
 import { EditorToolbar } from "./editor-toolbar";
+import { FooterUpdateNotice } from "./footer-update-notice";
 import {
   publishIssueAction,
   saveIssueAction,
   saveMetaAction,
 } from "@/app/admin/actions";
 
-export type EditorIssue = {
+// Extends FooterReserve: the footer this issue's pages were laid out against
+// (issue #128) is what the canvas draws and measures overflow against, whatever
+// the magazine setting has since become.
+export type EditorIssue = FooterReserve & {
   id: string;
   number: number;
   title: string;
@@ -64,15 +69,20 @@ export function Editor({
   sponsors,
   logos,
   settings,
+  magazineFooter,
   subscriberCount,
 }: {
   issue: EditorIssue;
   images: ImageMap;
   sponsors: SponsorListItem[];
   logos: LogoListItem[];
-  /** The magazine's effective branding + footer appearance (issue #105), so the
-   *  editor canvas draws the same page chrome the reader will. */
+  /** The magazine's effective branding + footer appearance (issue #105), with
+   *  the footer already held to this issue's reserve (issue #128), so the editor
+   *  canvas draws — and measures against — the page chrome the reader will get. */
   settings: SiteSettings;
+  /** The magazine's footer as actually set, before that clamp. Only used to ask
+   *  whether this issue is holding a taller footer back. */
+  magazineFooter: FooterStyle;
   subscriberCount: number;
 }) {
   // The picker chooses from this list; the canvas previews a placed sponsor
@@ -296,6 +306,10 @@ export function Editor({
   }, []);
 
   const theme = getTheme(themeId);
+  // The magazine's footer is taller than this issue's pages have room for, so
+  // the canvas (and the reader) draw the smaller one it was made with until the
+  // author says otherwise — see FooterUpdateNotice.
+  const footerBehind = footerHeldBack(magazineFooter, issue);
 
   return (
     <div className="bg-card relative flex min-h-screen flex-col">
@@ -349,6 +363,9 @@ export function Editor({
         />
 
         <div className="bg-canvas flex flex-1 flex-col overflow-hidden">
+          {footerBehind && (
+            <FooterUpdateNotice issueId={issue.id} flushSave={flushSave} />
+          )}
           <EditorToolbar
             onAddBlock={addBlock}
             onToggleCover={toggleCover}

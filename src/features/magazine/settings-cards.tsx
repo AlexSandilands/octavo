@@ -107,11 +107,11 @@ export function SettingsFormCard({
       </div>
       <p className="text-faint2 font-sans text-[12px] leading-relaxed">
         Alignment is the same on both pages of a spread and on a phone — the
-        page number always sits at the opposite margin. A bigger mark or bigger
-        text makes the footer taller, which leaves slightly less room for words
-        on every page of every issue — so if you enlarge either, open your
-        fullest issues in the editor afterwards and it will mark any page whose
-        contents no longer fit.
+        page number always sits at the opposite margin. Making the footer
+        smaller applies everywhere at once. Making it bigger applies to every
+        issue with room for it; one whose pages were filled to the old footer
+        keeps the smaller one until you open it in the editor, which offers to
+        bring it up to date and marks any page that then no longer fits.
       </p>
 
       <div className="border-line-soft border-t pt-5">{footer}</div>

@@ -7,6 +7,7 @@ import { getLogoImage } from "@/server/logos";
 import { resolveIssueSponsors } from "@/server/sponsors";
 import { requireAdminOrRedirect } from "@/server/session";
 import { getSettings } from "@/server/settings";
+import { settingsForIssue } from "@/lib/branding";
 
 export const dynamic = "force-dynamic";
 
@@ -53,7 +54,7 @@ export default async function PreviewIssuePage({
         content={issue.content}
         issueNo={issue.number}
         logo={logo}
-        settings={settings}
+        settings={settingsForIssue(settings, issue)}
         images={images}
         sponsors={sponsors}
       />
