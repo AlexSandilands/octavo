@@ -76,11 +76,24 @@ export function MembersTable({
     return true;
   };
 
+  // What the current view is a list *of* — so a filter change reads as one
+  // ("No admins match “smith”." after "No members match “smith”.") instead of
+  // producing the same sentence twice and going unheard.
+  const noun =
+    filter === "admins"
+      ? "admin"
+      : filter === "subscribed"
+        ? "subscribed member"
+        : filter === "unsubscribed"
+          ? "unsubscribed member"
+          : "member";
+  const nouns = `${noun}s`;
+
   // The final branch covers the default view: with no search and no filter an
   // empty page can only mean the list changed under the admin's feet, so say
   // something true rather than borrowing another filter's message.
   const emptyMessage = searching
-    ? `No members match “${query}”.`
+    ? `No ${nouns} match “${query}”.`
     : filter === "admins"
       ? "No admins yet."
       : filter === "subscribed"
@@ -88,6 +101,19 @@ export function MembersTable({
         : filter === "unsubscribed"
           ? "No unsubscribed members."
           : "No members to show.";
+
+  // The outcome of the search + filter in one sentence, for the live region
+  // below. Built only from the query, the filter and the whole-list match
+  // count — never from the selection or the served page — so ticking a
+  // checkbox or turning a page leaves the text byte-identical and the region
+  // stays silent (a page turn already announces itself in MembersPagination).
+  const matching = list.matching;
+  const resultMessage =
+    matching === 0
+      ? emptyMessage
+      : searching
+        ? `${matching} ${matching === 1 ? `${noun} matches` : `${nouns} match`} “${query}”.`
+        : `Showing ${matching} ${matching === 1 ? noun : nouns}.`;
 
   return (
     <div className="mt-5">
@@ -132,11 +158,23 @@ export function MembersTable({
         />
       ))}
 
-      {shown.length === 0 && (
-        <p className="text-faint py-10 text-center font-sans text-sm">
-          {emptyMessage}
-        </p>
-      )}
+      {/* The result of the search / filter, live. Mounted whatever the
+          outcome — a region that arrives together with its text is announced
+          unreliably, and an admin searching for someone who isn't there needs
+          to hear the nothing. Visible only when there are no rows, where it is
+          also the empty state; otherwise the count is for screen readers, the
+          rows themselves being the sighted answer. */}
+      <p
+        role="status"
+        aria-live="polite"
+        className={
+          shown.length === 0
+            ? "text-faint py-10 text-center font-sans text-sm"
+            : "sr-only"
+        }
+      >
+        {resultMessage}
+      </p>
 
       <MembersPagination page={list.page} pageCount={list.pageCount} />
     </div>
