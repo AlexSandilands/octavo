@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { DialogShell } from "@/components/dialog-shell";
 import { Icon } from "@/components/icons";
 import { Button, IconButton } from "@/components/ui";
 import type { LogoListItem } from "@/lib/logos";
@@ -93,115 +94,124 @@ export function LogoDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(32,32,28,0.4)] p-4">
-      <div className="bg-card max-h-[90vh] w-[520px] overflow-y-auto rounded-[10px] shadow-[0_24px_60px_rgba(0,0,0,0.3)]">
-        <div className="flex items-center justify-between px-8 pt-7">
-          <h2 className="text-ink font-serif text-[26px] leading-tight">
-            {renaming ? "Rename logo" : "Add logo"}
-          </h2>
-          <IconButton
-            icon="close"
-            label="Close"
-            onClick={onClose}
-            disabled={saving}
-          />
-        </div>
-
-        <div className="space-y-5 px-8 pt-6">
-          <div>
-            <label
-              htmlFor="logo-name"
-              className="text-faint mb-1.5 block font-sans text-[11px] font-semibold tracking-[0.14em] uppercase"
+    <DialogShell
+      panelClassName="bg-card max-h-[90vh] w-[520px] overflow-y-auto rounded-[10px] shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
+      locked={saving}
+      onClose={onClose}
+    >
+      {(titleId) => (
+        <>
+          <div className="flex items-center justify-between px-8 pt-7">
+            <h2
+              id={titleId}
+              className="text-ink font-serif text-[26px] leading-tight"
             >
-              Name
-            </label>
-            <input
-              id="logo-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              maxLength={200}
-              placeholder="e.g. Club fern"
-              className="border-hair focus:border-accent text-ink h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-[15px] outline-none"
+              {renaming ? "Rename logo" : "Add logo"}
+            </h2>
+            <IconButton
+              icon="close"
+              label="Close"
+              onClick={onClose}
+              disabled={saving}
             />
           </div>
 
-          <div>
-            <span className="text-faint mb-1.5 block font-sans text-[11px] font-semibold tracking-[0.14em] uppercase">
-              Mark
-            </span>
-            <div className="flex items-center gap-4">
-              <div className="border-line flex h-20 w-20 flex-none items-center justify-center overflow-hidden rounded-lg border bg-white">
-                {imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={imageUrl}
-                    alt=""
-                    className="h-full w-full object-contain p-1.5"
-                  />
-                ) : (
-                  <span className="text-faint2 font-mono text-[10px]">
-                    NO MARK
-                  </span>
-                )}
-              </div>
-              {renaming ? (
-                <p className="text-faint2 max-w-[280px] font-sans text-[12px] leading-relaxed">
-                  The image itself can&rsquo;t be swapped — add a new logo and
-                  delete this one instead.
-                </p>
-              ) : (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => fileRef.current?.click()}
-                  busy={uploading}
-                >
-                  <Icon name="upload" size={15} className="text-accent" />
-                  {uploading
-                    ? "Uploading…"
-                    : imageUrl
-                      ? "Replace image"
-                      : "Choose image"}
-                </Button>
-              )}
+          <div className="space-y-5 px-8 pt-6">
+            <div>
+              <label
+                htmlFor="logo-name"
+                className="text-faint mb-1.5 block font-sans text-[11px] font-semibold tracking-[0.14em] uppercase"
+              >
+                Name
+              </label>
               <input
-                ref={fileRef}
-                type="file"
-                accept="image/png,image/webp,image/avif"
-                onChange={onFile}
-                className="hidden"
+                id="logo-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                maxLength={200}
+                placeholder="e.g. Club fern"
+                className="border-hair focus:border-accent text-ink h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-[15px] outline-none"
               />
             </div>
-            {!renaming && (
-              <p className="text-faint2 mt-2 font-sans text-[12px] leading-relaxed">
-                Use a PNG or WebP with a transparent background — see-through
-                areas are kept, so the mark sits cleanly on the page.
-              </p>
-            )}
+
+            <div>
+              <span className="text-faint mb-1.5 block font-sans text-[11px] font-semibold tracking-[0.14em] uppercase">
+                Mark
+              </span>
+              <div className="flex items-center gap-4">
+                <div className="border-line flex h-20 w-20 flex-none items-center justify-center overflow-hidden rounded-lg border bg-white">
+                  {imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={imageUrl}
+                      alt=""
+                      className="h-full w-full object-contain p-1.5"
+                    />
+                  ) : (
+                    <span className="text-faint2 font-mono text-[10px]">
+                      NO MARK
+                    </span>
+                  )}
+                </div>
+                {renaming ? (
+                  <p className="text-faint2 max-w-[280px] font-sans text-[12px] leading-relaxed">
+                    The image itself can&rsquo;t be swapped — add a new logo and
+                    delete this one instead.
+                  </p>
+                ) : (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => fileRef.current?.click()}
+                    busy={uploading}
+                  >
+                    <Icon name="upload" size={15} className="text-accent" />
+                    {uploading
+                      ? "Uploading…"
+                      : imageUrl
+                        ? "Replace image"
+                        : "Choose image"}
+                  </Button>
+                )}
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/png,image/webp,image/avif"
+                  onChange={onFile}
+                  className="hidden"
+                />
+              </div>
+              {!renaming && (
+                <p className="text-faint2 mt-2 font-sans text-[12px] leading-relaxed">
+                  Use a PNG or WebP with a transparent background — see-through
+                  areas are kept, so the mark sits cleanly on the page.
+                </p>
+              )}
+            </div>
           </div>
-        </div>
 
-        {error && (
-          <p className="text-warn px-8 pt-4 font-sans text-[13px] font-semibold">
-            {error}
-          </p>
-        )}
+          {error && (
+            <p className="text-warn px-8 pt-4 font-sans text-[13px] font-semibold">
+              {error}
+            </p>
+          )}
 
-        <div className="flex justify-end gap-3 px-8 pt-6 pb-7">
-          <Button variant="secondary" onClick={onClose} disabled={saving}>
-            Cancel
-          </Button>
-          <Button
-            onClick={save}
-            busy={saving}
-            disabled={uploading}
-            icon="check"
-            iconPosition="left"
-          >
-            {saving ? "Saving…" : renaming ? "Save name" : "Save logo"}
-          </Button>
-        </div>
-      </div>
-    </div>
+          <div className="flex justify-end gap-3 px-8 pt-6 pb-7">
+            <Button variant="secondary" onClick={onClose} disabled={saving}>
+              Cancel
+            </Button>
+            <Button
+              onClick={save}
+              busy={saving}
+              disabled={uploading}
+              icon="check"
+              iconPosition="left"
+            >
+              {saving ? "Saving…" : renaming ? "Save name" : "Save logo"}
+            </Button>
+          </div>
+        </>
+      )}
+    </DialogShell>
   );
 }

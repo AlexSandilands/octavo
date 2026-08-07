@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { DialogShell } from "@/components/dialog-shell";
 import { Icon } from "@/components/icons";
 import { Button, IconButton } from "@/components/ui";
 import type { SponsorListItem } from "@/lib/sponsors";
@@ -94,135 +95,144 @@ export function SponsorDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(32,32,28,0.4)] p-4">
-      <div className="bg-card max-h-[90vh] w-[520px] overflow-y-auto rounded-[10px] shadow-[0_24px_60px_rgba(0,0,0,0.3)]">
-        <div className="flex items-center justify-between px-8 pt-7">
-          <h2 className="text-ink font-serif text-[26px] leading-tight">
-            {editing ? "Edit sponsor" : "Add sponsor"}
-          </h2>
-          <IconButton
-            icon="close"
-            label="Close"
-            onClick={onClose}
-            disabled={saving}
-          />
-        </div>
-
-        <div className="space-y-5 px-8 pt-6">
-          <Field label="Name" htmlFor="sponsor-name">
-            <input
-              id="sponsor-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              maxLength={200}
-              placeholder="e.g. Kawau Bay Hardware"
-              className="border-hair focus:border-accent text-ink h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-[15px] outline-none"
+    <DialogShell
+      panelClassName="bg-card max-h-[90vh] w-[520px] overflow-y-auto rounded-[10px] shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
+      locked={saving}
+      onClose={onClose}
+    >
+      {(titleId) => (
+        <>
+          <div className="flex items-center justify-between px-8 pt-7">
+            <h2
+              id={titleId}
+              className="text-ink font-serif text-[26px] leading-tight"
+            >
+              {editing ? "Edit sponsor" : "Add sponsor"}
+            </h2>
+            <IconButton
+              icon="close"
+              label="Close"
+              onClick={onClose}
+              disabled={saving}
             />
-          </Field>
+          </div>
 
-          <Field label="Link (optional)" htmlFor="sponsor-href">
-            <input
-              id="sponsor-href"
-              value={href}
-              onChange={(e) => setHref(e.target.value)}
-              maxLength={2000}
-              placeholder="example.com or https://example.com"
-              className="border-hair focus:border-accent text-ink h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-[15px] outline-none"
-            />
-          </Field>
-
-          <Field label="Logo (optional)" htmlFor="">
-            <div className="flex items-center gap-4">
-              <div className="border-line flex h-16 w-28 flex-none items-center justify-center overflow-hidden rounded-lg border bg-white">
-                {logoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={logoUrl}
-                    alt=""
-                    className="h-full w-full object-contain"
-                  />
-                ) : (
-                  <span className="text-faint2 font-mono text-[10px]">
-                    NO LOGO
-                  </span>
-                )}
-              </div>
-              <div className="flex flex-col items-start gap-1.5">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => fileRef.current?.click()}
-                  busy={uploading}
-                >
-                  <Icon name="upload" size={15} className="text-accent" />
-                  {uploading
-                    ? "Uploading…"
-                    : logoUrl
-                      ? "Replace logo"
-                      : "Upload logo"}
-                </Button>
-                {logoUrl && (
-                  // A quiet text action, not a house Button — it only needed the
-                  // cursor and a transition to match the rest.
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLogoId(null);
-                      setLogoUrl(null);
-                    }}
-                    className="text-faint2 hover:text-warn cursor-pointer rounded-sm font-sans text-[12px] font-medium transition-[color] duration-150"
-                  >
-                    Remove logo
-                  </button>
-                )}
-              </div>
+          <div className="space-y-5 px-8 pt-6">
+            <Field label="Name" htmlFor="sponsor-name">
               <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                onChange={onFile}
-                className="hidden"
+                id="sponsor-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                maxLength={200}
+                placeholder="e.g. Kawau Bay Hardware"
+                className="border-hair focus:border-accent text-ink h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-[15px] outline-none"
               />
-            </div>
-          </Field>
+            </Field>
 
-          <Field label="Active until (optional)" htmlFor="sponsor-active">
-            <input
-              id="sponsor-active"
-              type="date"
-              value={activeUntil}
-              onChange={(e) => setActiveUntil(e.target.value)}
-              className="border-hair focus:border-accent text-ink h-12 rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-[15px] outline-none"
-            />
-            <p className="text-faint2 mt-1.5 font-sans text-[12px]">
-              After this date the sponsor is flagged expired here. It is not
-              removed from issues automatically.
+            <Field label="Link (optional)" htmlFor="sponsor-href">
+              <input
+                id="sponsor-href"
+                value={href}
+                onChange={(e) => setHref(e.target.value)}
+                maxLength={2000}
+                placeholder="example.com or https://example.com"
+                className="border-hair focus:border-accent text-ink h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-[15px] outline-none"
+              />
+            </Field>
+
+            <Field label="Logo (optional)" htmlFor="">
+              <div className="flex items-center gap-4">
+                <div className="border-line flex h-16 w-28 flex-none items-center justify-center overflow-hidden rounded-lg border bg-white">
+                  {logoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={logoUrl}
+                      alt=""
+                      className="h-full w-full object-contain"
+                    />
+                  ) : (
+                    <span className="text-faint2 font-mono text-[10px]">
+                      NO LOGO
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-col items-start gap-1.5">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => fileRef.current?.click()}
+                    busy={uploading}
+                  >
+                    <Icon name="upload" size={15} className="text-accent" />
+                    {uploading
+                      ? "Uploading…"
+                      : logoUrl
+                        ? "Replace logo"
+                        : "Upload logo"}
+                  </Button>
+                  {logoUrl && (
+                    // A quiet text action, not a house Button — it only needed the
+                    // cursor and a transition to match the rest.
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLogoId(null);
+                        setLogoUrl(null);
+                      }}
+                      className="text-faint2 hover:text-warn cursor-pointer rounded-sm font-sans text-[12px] font-medium transition-[color] duration-150"
+                    >
+                      Remove logo
+                    </button>
+                  )}
+                </div>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={onFile}
+                  className="hidden"
+                />
+              </div>
+            </Field>
+
+            <Field label="Active until (optional)" htmlFor="sponsor-active">
+              <input
+                id="sponsor-active"
+                type="date"
+                value={activeUntil}
+                onChange={(e) => setActiveUntil(e.target.value)}
+                className="border-hair focus:border-accent text-ink h-12 rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-[15px] outline-none"
+              />
+              <p className="text-faint2 mt-1.5 font-sans text-[12px]">
+                After this date the sponsor is flagged expired here. It is not
+                removed from issues automatically.
+              </p>
+            </Field>
+          </div>
+
+          {error && (
+            <p className="text-warn px-8 pt-4 font-sans text-[13px] font-semibold">
+              {error}
             </p>
-          </Field>
-        </div>
+          )}
 
-        {error && (
-          <p className="text-warn px-8 pt-4 font-sans text-[13px] font-semibold">
-            {error}
-          </p>
-        )}
-
-        <div className="flex justify-end gap-3 px-8 pt-6 pb-7">
-          <Button variant="secondary" onClick={onClose} disabled={saving}>
-            Cancel
-          </Button>
-          <Button
-            onClick={save}
-            busy={saving}
-            disabled={uploading}
-            icon="check"
-            iconPosition="left"
-          >
-            {saving ? "Saving…" : editing ? "Save changes" : "Save sponsor"}
-          </Button>
-        </div>
-      </div>
-    </div>
+          <div className="flex justify-end gap-3 px-8 pt-6 pb-7">
+            <Button variant="secondary" onClick={onClose} disabled={saving}>
+              Cancel
+            </Button>
+            <Button
+              onClick={save}
+              busy={saving}
+              disabled={uploading}
+              icon="check"
+              iconPosition="left"
+            >
+              {saving ? "Saving…" : editing ? "Save changes" : "Save sponsor"}
+            </Button>
+          </div>
+        </>
+      )}
+    </DialogShell>
   );
 }
 
