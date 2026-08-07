@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { SelectCheckbox } from "./select-checkbox";
@@ -96,6 +96,8 @@ export function MembersBulkBar({
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [selectionNote, setSelectionNote] = useState<string | null>(null);
+  const [awaitingSelection, setAwaitingSelection] = useState(false);
 
   const count = selectedIds.length;
   const active = count > 0;
@@ -111,6 +113,7 @@ export function MembersBulkBar({
   const run = (fn: () => Promise<Result | null>) => {
     setError(null);
     setResult(null);
+    setSelectionNote(null);
     startTransition(async () => {
       const next = await fn();
       if (next) setResult(next);
@@ -144,16 +147,39 @@ export function MembersBulkBar({
   // either, so the wording goes neutral.
   const narrowed = searching || filtering;
 
-  // Fetches ids, so it reports failure on the shared line; the checkbox's
-  // page-scoped select-all stays instant and local.
+  // Fetches ids, so it reports both outcomes on the shared line; the
+  // checkbox's page-scoped select-all stays instant and local.
   const selectAllMatching = () => {
     setError(null);
     setResult(null);
+    setSelectionNote(null);
     startSelectingAll(async () => {
       const ok = await onSelectAllMatching();
-      if (!ok) setError("That didn’t go through. Please try again.");
+      if (ok) setAwaitingSelection(true);
+      else setError("That didn’t go through. Please try again.");
     });
   };
+
+  // Success was otherwise silent (#132): the button label flips back to what
+  // it was and the new count sits in a checkbox label, neither of which a
+  // screen reader announces — so the admin about to press "Remove selected"
+  // had no way to hear that the selection had landed. The count is the
+  // table's state, not ours, so it can only be read once the transition's
+  // render has been through here; the sentence is then written once and left
+  // alone, because a line rebuilt from the running count would announce again
+  // on every tick of every row checkbox.
+  useEffect(() => {
+    if (!awaitingSelection) return;
+    setAwaitingSelection(false);
+    setSelectionNote(
+      // Capped, this echoes the button that was just pressed, so it and the
+      // cap note above say the same thing rather than two different ones.
+      atCap && overCap
+        ? `First ${MEMBERS_SELECTION_MAX} of ${matching}${narrowed ? " matching" : ""} selected.`
+        : `${plural(count, "member", "members")} selected.`,
+    );
+  }, [awaitingSelection, atCap, overCap, matching, narrowed, count]);
+
   const narrower =
     searching && filtering
       ? "these filters"
@@ -230,7 +256,10 @@ export function MembersBulkBar({
         <>
           <button
             type="button"
-            onClick={onClear}
+            onClick={() => {
+              setSelectionNote(null);
+              onClear();
+            }}
             disabled={pending}
             className="text-faint hover:text-accent cursor-pointer rounded px-2 py-2 font-sans text-[14px] font-medium underline underline-offset-4 disabled:cursor-default disabled:opacity-50"
           >
@@ -289,12 +318,18 @@ export function MembersBulkBar({
 
       {/* Always mounted, so a screen reader announces the outcome when it
           arrives — a live region added at the same moment as its text is
-          announced unreliably. Empty, it has no height. */}
+          announced unreliably. Empty, it has no height. A landed select-all
+          goes here too, but for screen readers only: its count is already on
+          screen in the checkbox label beside it, in ink. */}
       <p
         aria-live="polite"
-        className={`basis-full px-1 font-sans text-[14px] ${
-          error ? "text-warn pb-2" : result ? "text-muted pb-2" : ""
-        }`}
+        className={
+          selectionNote
+            ? "sr-only"
+            : `basis-full px-1 font-sans text-[14px] ${
+                error ? "text-warn pb-2" : result ? "text-muted pb-2" : ""
+              }`
+        }
       >
         {error}
         {!error && result && (
@@ -303,6 +338,7 @@ export function MembersBulkBar({
             {result.tail}
           </>
         )}
+        {selectionNote}
       </p>
 
       {confirming && (
