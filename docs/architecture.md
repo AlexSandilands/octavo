@@ -245,6 +245,20 @@ is that fallback layer and the settings resolver is its only reader — no compo
 reads branding from `process.env`. A deployment that never opens the page renders exactly from its
 env as before.
 
+**The footer's height is clamped per issue** (issue #128). The footer settings are global and the
+page's text limit is fixed when the page is authored (the editor measures against the footer's top
+edge; content never reflows at read time), so a footer the owner later makes _taller_ would print
+over the last lines of pages already filled to the old limit. Each issue therefore records the
+footer sizes its pages were laid out against — `issues.footerMarkSize` / `footerTextSize`, its
+**reserve** — and every surface that draws a page resolves
+`settingsForIssue(settings, issue)` ([`src/lib/branding.ts`](../src/lib/branding.ts)) instead of
+using the global footer directly: reader, mobile closer, editor canvas, cover thumbnails, the print
+document, and the PDF cache key's chrome fingerprint. A _smaller_ footer always applies at once (it
+can only free space); a larger one applies to the issues with room for it and waits on the rest
+until the author adopts it in the editor, where the overflow marker catches what no longer fits
+(`adoptFooterAction`). There is no room to solve this by growing the footer downward instead — the
+page's bottom margin is 22px (classic) / 16px (modern) against an 18px mark range.
+
 Local values live in `.env.local` (git-ignored); production values are set in Railway.
 `.env.example` lists every key.
 

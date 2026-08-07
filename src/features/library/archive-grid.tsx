@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { Label } from "@/components/ui";
 import type { Page } from "@/lib/blocks";
-import type { SiteSettings } from "@/lib/branding";
+import {
+  settingsForIssue,
+  type FooterReserve,
+  type SiteSettings,
+} from "@/lib/branding";
 import type { ImageMap } from "@/lib/images";
 import { PAGE_W, PAGE_H } from "@/features/blocks/page-frame";
 import { CoverThumb } from "./cover-thumb";
@@ -18,7 +22,10 @@ function stripes(tint: string) {
   return `repeating-linear-gradient(135deg, ${tint} 0, ${tint} 10px, #00000010 10px, #00000010 20px)`;
 }
 
-type ArchiveItem = {
+// `footerMarkSize`/`footerTextSize` are the issue's footer reserve (issue #128),
+// carried per card so each thumbnail draws the footer its issue actually reads
+// with — the whole point of the shared PageFrame is that every surface agrees.
+type ArchiveItem = FooterReserve & {
   id: string;
   number: number;
   title: string;
@@ -126,7 +133,7 @@ function ArchiveCard({
             theme={a.theme}
             images={images}
             issueNo={a.number}
-            settings={settings}
+            settings={settingsForIssue(settings, a)}
             width={THUMB_W}
           />
         ) : (

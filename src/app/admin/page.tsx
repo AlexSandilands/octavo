@@ -7,6 +7,7 @@ import { listIssues } from "@/server/issues";
 import { resolveIssueImages } from "@/server/images";
 import { requireAdminOrRedirect } from "@/server/session";
 import { getSettings } from "@/server/settings";
+import { settingsForIssue } from "@/lib/branding";
 import { CoverThumb } from "@/features/library/cover-thumb";
 import { PAGE_W, PAGE_H } from "@/features/blocks/page-frame";
 import { DeleteIssueButton } from "@/features/admin/delete-issue-button";
@@ -84,7 +85,7 @@ export default async function AdminDashboard() {
                         theme={i.theme}
                         images={coverImages}
                         issueNo={i.number}
-                        settings={settings}
+                        settings={settingsForIssue(settings, i)}
                         width={THUMB_W}
                       />
                     ) : (

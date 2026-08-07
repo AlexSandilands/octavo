@@ -5,6 +5,7 @@ import { resolveIssueImages } from "@/server/images";
 import { getLogoImage } from "@/server/logos";
 import { resolveIssueSponsors } from "@/server/sponsors";
 import { chromeFingerprint, getSettings } from "@/server/settings";
+import { settingsForIssue } from "@/lib/branding";
 import { verifyPrintToken } from "@/lib/pdf-token";
 
 // The print view the PDF generator loads (src/lib/pdf.ts) over localhost. It is
@@ -39,6 +40,12 @@ export default async function PrintPage({
     getSettings(),
   ]);
 
+  // The magazine's settings with the footer held to this issue's reserve
+  // (issue #128) — the resolution this page prints with, and the same one the
+  // download endpoint fingerprinted for the cache key. Resolved once here so
+  // the stamp below and the document below it cannot describe different things.
+  const printSettings = settingsForIssue(settings, issue);
+
   return (
     <>
       {/* The chrome fingerprint of the settings THIS request resolved, stamped
@@ -52,7 +59,7 @@ export default async function PrintPage({
           (issue #127). The generator compares and refuses to store a mismatch;
           see generateIssuePdf. React hoists this into <head>, so it costs the
           printed page nothing. */}
-      <meta name="print-chrome" content={chromeFingerprint(settings)} />
+      <meta name="print-chrome" content={chromeFingerprint(printSettings)} />
       <PrintDocument
         content={issue.content}
         issueNo={issue.number}
@@ -62,7 +69,7 @@ export default async function PrintPage({
         // resolves it and degrades anything unknown to the reader's default.
         theme={typeof theme === "string" ? theme : ""}
         logo={logo}
-        settings={settings}
+        settings={printSettings}
         images={images}
         sponsors={sponsors}
       />

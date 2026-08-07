@@ -33,9 +33,10 @@ export function SectionMagazine() {
           mark is, how big the wording is, and whether the lockup sits on the
           left, in the middle or on the right — the page number always takes the
           opposite margin, on both leaves of a spread and on a phone. These are
-          settings for the whole magazine, not for one issue: they apply at once
+          settings for the whole magazine, not for one issue: they apply
           everywhere a page is drawn — the reader, the editor, the PDF, and
-          issues you have already published.
+          issues you have already published. The one exception is an issue whose
+          pages have no room for a taller footer; see the note further down.
         </Step>
         <Step n={3} title="The page beside them, before you save">
           The picture on the right is a real magazine page, drawn by the same
@@ -64,13 +65,21 @@ export function SectionMagazine() {
         </Step>
       </Steps>
       <Callout title="After you make the footer bigger">
-        A bigger mark or bigger text makes the footer taller, and that leaves a
-        little less room for words on every page — of every issue, including the
-        ones you have already published. Nothing on the site breaks, but a page
-        that was filled right to the bottom may now have a line too many. Open
-        your fullest issues in the editor afterwards and have a look: it marks
-        any page whose contents no longer fit, and offers to move the overflow
-        onto the next page.
+        <p>
+          A bigger mark or bigger text makes the footer taller, and a taller
+          footer leaves a little less room for words on the page. An issue
+          written when the footer was shorter may have a page filled right to
+          the bottom, with no room to give — those issues keep the footer they
+          were made with rather than have the new one printed over their last
+          lines. Every issue with room takes the new one straight away, and
+          making the footer <em>smaller</em> always applies everywhere at once.
+        </p>
+        <p className="mt-3">
+          To bring an older issue up to date, open it in the editor: a bar above
+          the page offers the new footer, and once you take it, any page whose
+          contents no longer fit is marked — with an action to move the overflow
+          onto the next page.
+        </p>
       </Callout>
       <P>
         A mark only reaches an issue when that issue asks for it. To put one on,

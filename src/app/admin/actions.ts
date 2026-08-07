@@ -16,10 +16,13 @@ import {
   getIssue,
   publishIssue,
   updateIssueContent,
+  updateIssueFooterReserve,
   updateIssueMeta,
 } from "@/server/issues";
 import { sendIssueBlast, type BlastResult } from "@/server/publish-email";
 import { requireAdmin } from "@/server/session";
+import { getSettings } from "@/server/settings";
+import { footerReserveOf } from "@/lib/branding";
 
 // Mutations the admin UI calls. Server action arguments are attacker-controlled
 // JSON regardless of their TypeScript types, so every argument is re-validated
@@ -52,9 +55,33 @@ export type SaveResult =
 
 export async function createIssueAction() {
   await requireAdmin();
-  const issue = await createIssue();
+  // The new issue's pages will be authored against the footer that is set right
+  // now, so it starts with that as its reserve (issue #128).
+  const settings = await getSettings();
+  const issue = await createIssue(footerReserveOf(settings.footer));
   revalidatePath("/admin");
   redirect(`/admin/issues/${issue.id}/edit`);
+}
+
+// Bring one issue's footer up to the magazine's current setting (issue #128).
+// The value comes from the settings row here, never from the caller, so this
+// can only ever move an issue to the footer that is actually set.
+//
+// It is an explicit author action rather than something a settings save does to
+// every issue at once: adopting a taller footer takes room away from pages that
+// may be full, and the editor — where this is invoked from — is the one place
+// that measures the canvas and marks a page whose contents no longer fit.
+export async function adoptFooterAction(id: string): Promise<{ ok: boolean }> {
+  await requireAdmin();
+  const parsedId = idSchema.safeParse(id);
+  if (!parsedId.success) return { ok: false };
+  const settings = await getSettings();
+  await updateIssueFooterReserve(
+    parsedId.data,
+    footerReserveOf(settings.footer),
+  );
+  revalidatePath("/admin");
+  return { ok: true };
 }
 
 export async function saveIssueAction(

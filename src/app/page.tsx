@@ -8,6 +8,7 @@ import { listIssues } from "@/server/issues";
 import { resolveIssueImages } from "@/server/images";
 import { requireMemberOrRedirect } from "@/server/session";
 import { getSettings } from "@/server/settings";
+import { settingsForIssue } from "@/lib/branding";
 import { LatestIssue } from "@/features/library/latest-issue";
 import { ArchiveGrid } from "@/features/library/archive-grid";
 import { Masthead } from "@/features/library/masthead";
@@ -85,7 +86,7 @@ export default async function LibraryPage() {
             theme={latest.theme}
             cover={coverPageOf(latest.content)}
             images={coverImages}
-            settings={settings}
+            settings={settingsForIssue(settings, latest)}
           />
           {archive.length > 0 && (
             <ArchiveGrid
@@ -96,6 +97,10 @@ export default async function LibraryPage() {
                 publishedAt: i.publishedAt,
                 theme: i.theme,
                 cover: coverPageOf(i.content),
+                // The issue's footer reserve (issue #128) — each card clamps
+                // the magazine's footer to its own issue's.
+                footerMarkSize: i.footerMarkSize,
+                footerTextSize: i.footerTextSize,
               }))}
               images={coverImages}
               settings={settings}

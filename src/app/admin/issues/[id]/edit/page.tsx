@@ -8,6 +8,7 @@ import { countSubscribedRecipients } from "@/server/recipients";
 import { listSponsors } from "@/server/sponsors";
 import { requireAdminOrRedirect } from "@/server/session";
 import { getSettings } from "@/server/settings";
+import { settingsForIssue } from "@/lib/branding";
 
 export const dynamic = "force-dynamic";
 
@@ -46,11 +47,18 @@ export default async function EditIssuePage({
           content: issue.content,
           revision: issue.revision,
           status: issue.status,
+          footerMarkSize: issue.footerMarkSize,
+          footerTextSize: issue.footerTextSize,
         }}
         images={images}
         sponsors={sponsors}
         logos={logos}
-        settings={settings}
+        // The canvas draws — and measures overflow against — the footer this
+        // issue's pages were laid out for (issue #128), which is what the reader
+        // gets. `magazineFooter` is the unclamped setting, so the editor can
+        // offer to bring the issue up to it.
+        settings={settingsForIssue(settings, issue)}
+        magazineFooter={settings.footer}
         subscriberCount={subscriberCount}
       />
     </EditorGate>

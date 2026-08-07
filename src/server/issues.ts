@@ -3,6 +3,7 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { issues } from "@/db/schema";
 import { emptyIssueContent, type IssueContent } from "@/lib/blocks";
+import type { FooterReserve } from "@/lib/branding";
 
 // Server-only data access for issues. All callers (server components, server
 // actions) go through here — never query Drizzle from a component.
@@ -41,7 +42,11 @@ function isUniqueViolation(err: unknown): boolean {
   );
 }
 
-export async function createIssue() {
+// The issue's pages will be laid out against the footer that is set right now,
+// so that is the reserve the new row records (issue #128). Passed in rather than
+// read here: this module is data access, and the DB → env → default resolution
+// belongs to server/settings.ts alone.
+export async function createIssue(reserve: FooterReserve) {
   // Allocate `number` inside the INSERT itself so two concurrent creates can't
   // both read the same max. The unique constraint is the backstop; if we still
   // lose that race, retry with a freshly computed number.
@@ -55,6 +60,8 @@ export async function createIssue() {
           theme: "classic",
           status: "draft",
           content: emptyIssueContent(),
+          footerMarkSize: reserve.footerMarkSize,
+          footerTextSize: reserve.footerTextSize,
         })
         .returning();
       if (!row) throw new Error("Failed to create issue");
@@ -105,6 +112,29 @@ export async function updateIssueMeta(
       title: meta.title,
       theme: meta.theme,
       logoId: meta.logoId,
+      updatedAt: new Date(),
+    })
+    .where(eq(issues.id, id));
+}
+
+// Adopt a new footer reserve for one issue (issue #128) — the write behind the
+// editor's "use the magazine's current footer" action. Deliberately its own
+// function rather than a field on updateIssueMeta: the only value it is ever
+// given is the footer that is set right now (the caller reads it server-side),
+// so an issue's reserve can only ever become the live setting, never an
+// arbitrary one an editor client asked for.
+//
+// No `revision` bump: this changes no content. The PDF cache re-keys on it
+// anyway, because the clamped footer feeds the chrome fingerprint.
+export async function updateIssueFooterReserve(
+  id: string,
+  reserve: FooterReserve,
+) {
+  await db
+    .update(issues)
+    .set({
+      footerMarkSize: reserve.footerMarkSize,
+      footerTextSize: reserve.footerTextSize,
       updatedAt: new Date(),
     })
     .where(eq(issues.id, id));

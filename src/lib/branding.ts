@@ -7,6 +7,10 @@
 // public branding, so the resolved object is threaded into client components as
 // props (readers, editor, admin preview) without dragging `db`/`env` along.
 
+// Both scales are ordered by the footer HEIGHT they produce, smallest first
+// (mark: 18/27/36px, type: a 14/16/19px line box — measured, see page-footer).
+// The per-issue clamp below reads that order, so a new value must be inserted at
+// its height position rather than appended.
 export const MARK_SIZES = ["small", "medium", "large"] as const;
 export type MarkSize = (typeof MARK_SIZES)[number];
 
@@ -86,6 +90,88 @@ export function resolveSettings(
       textSize: stored.footerTextSize ?? defaults.footer.textSize,
       align: stored.footerAlign ?? defaults.footer.align,
     },
+  };
+}
+
+// ── The per-issue footer reserve (issue #128) ───────────────────────────────
+//
+// The footer settings are global, but a page's text limit is fixed at the
+// moment it is authored: the editor measures overflow against the footer's top
+// edge, and content never reflows at read time. The footer is bottom-anchored
+// and grows *upward*, so enlarging the mark or the type after the fact pushes
+// its top edge into the last lines of pages that were already filled — on
+// published issues, in the flipbook and in regenerated PDFs.
+//
+// There is no room to grow the other way: the page's bottom margin is 22px
+// (classic) / 16px (modern) and the mark's range is 18px, so pinning the top
+// edge and letting the mark grow down would hang it off the page edge. And a
+// settings-invariant limit can only ever be the *tallest* footer's, which is
+// lower than the limit small/medium-authored pages already used — so no
+// edit-time reservation can retroactively protect them either.
+//
+// What remains is to stop the footer growing past what the page left for it.
+// Each issue records the two sizes its pages were laid out against — its
+// *reserve* — and the rendered footer is clamped to it. A smaller footer always
+// applies (it can only free space); a larger one applies to the issues that have
+// the room, and waits on the rest until the author adopts it in the editor,
+// where the overflow marker is there to catch what no longer fits.
+
+/** The footer sizes an issue's pages were laid out against. Only the two that
+ *  change the footer's height — alignment moves the lockup, not the top edge.
+ *
+ *  Named for the `issues` columns that hold it, so an issue row satisfies this
+ *  as it comes out of the database and every render surface can pass the row
+ *  straight in without a translation step to get wrong. */
+export type FooterReserve = {
+  footerMarkSize: MarkSize;
+  footerTextSize: TextSize;
+};
+
+/** The smaller of two values on a height-ordered scale. */
+function shorter<T extends string>(scale: readonly T[], a: T, b: T): T {
+  return scale.indexOf(a) <= scale.indexOf(b) ? a : b;
+}
+
+/** The reserve new content is laid out against: whatever is set right now. */
+export function footerReserveOf(footer: FooterStyle): FooterReserve {
+  return { footerMarkSize: footer.markSize, footerTextSize: footer.textSize };
+}
+
+/** The footer that may actually render on an issue's pages: the live setting,
+ *  held to the issue's reserve on both height axes. Alignment passes through —
+ *  it has no effect on the footer's height, so it is safe retroactively. */
+export function clampFooterStyle(
+  live: FooterStyle,
+  reserve: FooterReserve,
+): FooterStyle {
+  return {
+    markSize: shorter(MARK_SIZES, live.markSize, reserve.footerMarkSize),
+    textSize: shorter(TEXT_SIZES, live.textSize, reserve.footerTextSize),
+    align: live.align,
+  };
+}
+
+/** True when the live setting is taller than the issue's pages have room for —
+ *  i.e. the issue is holding the footer back. Drives the editor's affordance. */
+export function footerHeldBack(
+  live: FooterStyle,
+  reserve: FooterReserve,
+): boolean {
+  const held = clampFooterStyle(live, reserve);
+  return held.markSize !== live.markSize || held.textSize !== live.textSize;
+}
+
+/** The settings one issue's pages render with. Every surface that draws a page
+ *  (reader, mobile closer, editor canvas, thumbnail, print document) resolves
+ *  this once and threads it down, so all of them agree — and so does the PDF
+ *  cache key, which fingerprints the same object. */
+export function settingsForIssue(
+  settings: SiteSettings,
+  reserve: FooterReserve,
+): SiteSettings {
+  return {
+    ...settings,
+    footer: clampFooterStyle(settings.footer, reserve),
   };
 }
 
