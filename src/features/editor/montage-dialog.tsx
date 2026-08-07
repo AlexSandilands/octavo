@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import { DialogShell } from "@/components/dialog-shell";
 import { Icon } from "@/components/icons";
 import { Button, IconButton } from "@/components/ui";
 import {
@@ -43,36 +44,8 @@ export function MontageDialog({
   onClose: () => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
-  const closeRef = useRef<HTMLButtonElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Focus into the panel on open — once, on mount. Tying this to the Escape
-  // effect below meant it re-ran whenever `onClose` changed identity (it is an
-  // inline arrow in the caller, so on every parent render), snatching focus
-  // back to the × every time an edit re-rendered the editor.
-  useEffect(() => {
-    closeRef.current?.focus();
-  }, []);
-
-  // Close on Escape, so the dialog is operable from the keyboard alone (the
-  // editor canvas behind it also listens for Escape to deselect, so the keydown
-  // is stopped here).
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      // This listener is on the capture phase, so it would otherwise close the
-      // whole dialog before an open dropdown ever saw the key. A menu owns
-      // Escape while it is open — it closes itself and hands focus back to its
-      // trigger — and the dialog only takes the key once no menu is showing.
-      if (panelRef.current?.querySelector('[role="menu"]')) return;
-      e.stopPropagation();
-      onClose();
-    };
-    document.addEventListener("keydown", onKey, true);
-    return () => document.removeEventListener("keydown", onKey, true);
-  }, [onClose]);
 
   const intervalItems: MenuSelectItem<number>[] = MONTAGE_INTERVALS.map(
     (o) => ({
@@ -139,126 +112,121 @@ export function MontageDialog({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(32,32,28,0.4)] p-4"
-      // The dialog floats over the editor canvas, which deselects the block on
-      // a stray click and pans on a drag — neither should reach it.
-      onClick={(e) => e.stopPropagation()}
-      onPointerDown={(e) => e.stopPropagation()}
+    // The dialog floats over the editor canvas, which deselects the block on a
+    // stray click and pans on a drag — neither should reach it, and nor should
+    // the Escape that closes this (the shell stops it).
+    <DialogShell
+      panelClassName="bg-card flex max-h-[90vh] w-[560px] flex-col rounded-[10px] shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
+      isolatePointerEvents
+      onClose={onClose}
     >
-      <div
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Montage settings"
-        className="bg-card flex max-h-[90vh] w-[560px] flex-col rounded-[10px] shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
-      >
-        <div className="flex flex-none items-center justify-between px-8 pt-7">
-          <h2 className="text-ink font-serif text-[26px] leading-tight">
-            Montage
-          </h2>
-          <IconButton
-            ref={closeRef}
-            icon="close"
-            label="Close"
-            onClick={onClose}
-          />
-        </div>
+      {(titleId) => (
+        <>
+          <div className="flex flex-none items-center justify-between px-8 pt-7">
+            <h2
+              id={titleId}
+              className="text-ink font-serif text-[26px] leading-tight"
+            >
+              Montage
+            </h2>
+            <IconButton icon="close" label="Close" onClick={onClose} />
+          </div>
 
-        {/* The house dropdown, not a native <select>: a styled select still
+          {/* The house dropdown, not a native <select>: a styled select still
             opens the operating system's own picker, and this is the one
             dropdown the rest of the admin uses. It names itself in its
             trigger ("Change image every: 5 seconds"), the same labelling the
             magazine settings cards use, so the words stay visible without a
             second copy of them above it. */}
-        <div className="flex flex-none px-8 pt-5">
-          <MenuSelect
-            label="Change image every"
-            current={intervalLabel}
-            ariaLabel="Change image every"
-            items={intervalItems}
-            value={interval}
-            onSelect={onChangeInterval}
-          />
-        </div>
-        <p className="text-faint2 flex-none px-8 pt-2 font-sans text-[12px]">
-          Readers can always step through with the arrows. Members who ask their
-          device for reduced motion never see it move on its own.
-        </p>
-
-        <div className="min-h-0 flex-1 overflow-y-auto px-8 pt-6">
-          <span className="text-faint mb-1.5 block font-sans text-[11px] font-semibold tracking-[0.14em] uppercase">
-            Images ({items.length})
-          </span>
-          {items.length === 0 ? (
-            <p className="border-hair text-faint2 rounded-lg border border-dashed px-4 py-8 text-center font-sans text-[13px]">
-              No images yet. Add two or more to build a montage.
-            </p>
-          ) : (
-            <ul className="space-y-2.5">
-              {items.map((item, i) => (
-                <MontageRow
-                  key={`${item.imageId}-${i}`}
-                  item={item}
-                  index={i}
-                  total={items.length}
-                  image={images[item.imageId]}
-                  onAlt={(alt) =>
-                    onChangeItems(
-                      items.map((it, j) => (j === i ? { ...it, alt } : it)),
-                    )
-                  }
-                  onMove={(dir) => move(i, dir)}
-                  onRemove={() =>
-                    onChangeItems(items.filter((_, j) => j !== i))
-                  }
-                />
-              ))}
-            </ul>
-          )}
-        </div>
-
-        {error && (
-          <p className="text-warn flex-none px-8 pt-4 font-sans text-[13px] font-semibold">
-            {error}
+          <div className="flex flex-none px-8 pt-5">
+            <MenuSelect
+              label="Change image every"
+              current={intervalLabel}
+              ariaLabel="Change image every"
+              items={intervalItems}
+              value={interval}
+              onSelect={onChangeInterval}
+            />
+          </div>
+          <p className="text-faint2 flex-none px-8 pt-2 font-sans text-[12px]">
+            Readers can always step through with the arrows. Members who ask
+            their device for reduced motion never see it move on its own.
           </p>
-        )}
 
-        <div className="flex flex-none items-center justify-between px-8 pt-6 pb-7">
-          {/* Two different states, so two different props: uploading is `busy`
+          <div className="min-h-0 flex-1 overflow-y-auto px-8 pt-6">
+            <span className="text-faint mb-1.5 block font-sans text-[11px] font-semibold tracking-[0.14em] uppercase">
+              Images ({items.length})
+            </span>
+            {items.length === 0 ? (
+              <p className="border-hair text-faint2 rounded-lg border border-dashed px-4 py-8 text-center font-sans text-[13px]">
+                No images yet. Add two or more to build a montage.
+              </p>
+            ) : (
+              <ul className="space-y-2.5">
+                {items.map((item, i) => (
+                  <MontageRow
+                    key={`${item.imageId}-${i}`}
+                    item={item}
+                    index={i}
+                    total={items.length}
+                    image={images[item.imageId]}
+                    onAlt={(alt) =>
+                      onChangeItems(
+                        items.map((it, j) => (j === i ? { ...it, alt } : it)),
+                      )
+                    }
+                    onMove={(dir) => move(i, dir)}
+                    onRemove={() =>
+                      onChangeItems(items.filter((_, j) => j !== i))
+                    }
+                  />
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {error && (
+            <p className="text-warn flex-none px-8 pt-4 font-sans text-[13px] font-semibold">
+              {error}
+            </p>
+          )}
+
+          <div className="flex flex-none items-center justify-between px-8 pt-6 pb-7">
+            {/* Two different states, so two different props: uploading is `busy`
               (undimmed — work in progress), a full montage is `disabled`. */}
-          <Button
-            variant="secondary"
-            onClick={() => fileRef.current?.click()}
-            busy={uploading}
-            disabled={room <= 0}
-          >
-            <Icon name="upload" size={17} className="text-accent" />
-            {uploading
-              ? "Uploading…"
-              : room <= 0
-                ? "Montage full"
-                : "Add images"}
-          </Button>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={onFiles}
-            className="hidden"
-          />
-          <Button
-            onClick={onClose}
-            disabled={uploading}
-            icon="check"
-            iconPosition="left"
-          >
-            Done
-          </Button>
-        </div>
-      </div>
-    </div>
+            <Button
+              variant="secondary"
+              onClick={() => fileRef.current?.click()}
+              busy={uploading}
+              disabled={room <= 0}
+            >
+              <Icon name="upload" size={17} className="text-accent" />
+              {uploading
+                ? "Uploading…"
+                : room <= 0
+                  ? "Montage full"
+                  : "Add images"}
+            </Button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={onFiles}
+              className="hidden"
+            />
+            <Button
+              onClick={onClose}
+              disabled={uploading}
+              icon="check"
+              iconPosition="left"
+            >
+              Done
+            </Button>
+          </div>
+        </>
+      )}
+    </DialogShell>
   );
 }
 

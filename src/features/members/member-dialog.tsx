@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { DialogShell } from "@/components/dialog-shell";
 import { Button } from "@/components/ui";
 import {
   addMemberAction,
@@ -49,14 +50,21 @@ export function MemberDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(32,32,28,0.4)] p-4">
-      <div className="bg-card w-[440px] max-w-full overflow-hidden rounded-[10px] shadow-[0_24px_60px_rgba(0,0,0,0.3)]">
+    <DialogShell
+      panelClassName="bg-card w-[440px] max-w-full overflow-hidden rounded-[10px] shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
+      locked={pending}
+      onClose={onClose}
+    >
+      {(titleId) => (
         <form onSubmit={submit}>
           <div className="px-8 pt-7">
             <div className="text-accent font-sans text-[10px] font-semibold tracking-[0.2em] uppercase">
               Members
             </div>
-            <h2 className="text-ink mt-3 font-serif text-[27px] leading-tight">
+            <h2
+              id={titleId}
+              className="text-ink mt-3 font-serif text-[27px] leading-tight"
+            >
               {editing ? "Edit member" : "Add a member"}
             </h2>
             <p className="text-muted mt-2.5 font-sans text-[15px] leading-relaxed">
@@ -75,7 +83,6 @@ export function MemberDialog({
               id="member-email"
               type="email"
               required
-              autoFocus
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="name@example.com"
@@ -122,7 +129,7 @@ export function MemberDialog({
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+      )}
+    </DialogShell>
   );
 }

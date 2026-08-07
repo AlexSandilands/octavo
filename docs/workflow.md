@@ -69,15 +69,16 @@ The durable lessons:
 
 ## Required gates, by change type
 
-| If the change touches…                | Then…                                                                                                                    |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Anything with a UI surface            | The user's browser pass on the PR is required (and do a headless Chromium pass first)                                    |
-| Palette tokens / brand CSS            | `npx tsx scripts/dev-contrast-gate.mts` — WCAG AA must hold for **every** brand (`docs/design-principles.md` §6)         |
-| Print-visible rendering (PDF path)    | Bump `RENDER_VERSION` in `src/app/api/issues/[number]/pdf/route.ts` **in the same commit** (it cache-busts stored PDFs)  |
-| The content model (`CONTENT_VERSION`) | Update the seed to author the new shape, keep one deliberate legacy page (see `docs/database.md`)                        |
-| The members CSV parser                | `npx tsx scripts/check-parse-members-csv.mts` — the header/delimiter cases an admin's export throws at it (#94)          |
-| New pages / inline scripts            | CSP is nonce-based in `src/middleware.ts` — pages must render dynamically; no new inline styles/scripts                  |
-| Every change                          | `npm run lint`, `npx tsc --noEmit`, prettier on touched files, and a production build (plain `npm run build`; see below) |
+| If the change touches…                | Then…                                                                                                                          |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Anything with a UI surface            | The user's browser pass on the PR is required (and do a headless Chromium pass first)                                          |
+| Palette tokens / brand CSS            | `npx tsx scripts/dev-contrast-gate.mts` — WCAG AA must hold for **every** brand (`docs/design-principles.md` §6)               |
+| Print-visible rendering (PDF path)    | Bump `RENDER_VERSION` in `src/app/api/issues/[number]/pdf/route.ts` **in the same commit** (it cache-busts stored PDFs)        |
+| The content model (`CONTENT_VERSION`) | Update the seed to author the new shape, keep one deliberate legacy page (see `docs/database.md`)                              |
+| The members CSV parser                | `npx tsx scripts/check-parse-members-csv.mts` — the header/delimiter cases an admin's export throws at it (#94)                |
+| Any modal dialog                      | `npx tsx scripts/dev-dialog-a11y-gate.mts <base-url>` — role/name, Escape, the focus trap and focus restore, per dialog (#130) |
+| New pages / inline scripts            | CSP is nonce-based in `src/middleware.ts` — pages must render dynamically; no new inline styles/scripts                        |
+| Every change                          | `npm run lint`, `npx tsc --noEmit`, prettier on touched files, and a production build (plain `npm run build`; see below)       |
 
 ## Briefing an agent
 
