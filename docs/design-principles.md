@@ -66,7 +66,7 @@ src/
   whitespace, hairline borders, no gradient/glass slop.
 - Extract repeated class strings into small components, not copy-paste.
 - **Build interactive controls from the house set** — `Button` / `IconButton`
-  (`src/components/ui.tsx`) and `MenuSelect` (`src/features/editor/menu-select.tsx`) — rather than
+  (`src/components/ui.tsx`) and `MenuSelect` (`src/components/menu-select.tsx`) — rather than
   reaching for a raw `<button>` or `<select>`. Under Tailwind v4's preflight a bare element gets
   nothing for free: no pointer cursor, no hover feedback, no press or focus treatment, and a
   `<select>` opens the operating system's picker instead of ours. Every one of them is a papercut
