@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { SelectCheckbox } from "./select-checkbox";
+import { MEMBERS_SELECTION_MAX } from "./selection-limit";
 import {
   removeMembersAction,
   setSubscribedManyAction,
@@ -98,6 +99,14 @@ export function MembersBulkBar({
 
   const count = selectedIds.length;
   const active = count > 0;
+
+  // A selection is bounded by what one bulk action can carry, so a club big
+  // enough to exceed it gets told rather than handed a selection that would
+  // come back as "please try again" (#125). Two places say it: the reach-past-
+  // the-page button promises only what it can deliver, and the note below
+  // stands for as long as the selection sits on the bound.
+  const overCap = matching > MEMBERS_SELECTION_MAX;
+  const atCap = count >= MEMBERS_SELECTION_MAX;
 
   const run = (fn: () => Promise<Result | null>) => {
     setError(null);
@@ -211,7 +220,9 @@ export function MembersBulkBar({
         >
           {selectingAll
             ? "Selecting…"
-            : `Select all ${matching}${narrowed ? " matching" : " members"}`}
+            : overCap
+              ? `Select first ${MEMBERS_SELECTION_MAX} of ${matching}${narrowed ? " matching" : ""}`
+              : `Select all ${matching}${narrowed ? " matching" : " members"}`}
         </button>
       )}
 
@@ -260,6 +271,21 @@ export function MembersBulkBar({
           </div>
         </>
       )}
+
+      {/* Why the selection stopped where it did. Mounted whatever the count,
+          like the result line below and for the same reason — a live region
+          that arrives together with its text is announced unreliably, and the
+          admin who just pressed "Select first 10000 of 24318" is exactly who
+          needs to hear this. Empty, it has no height. */}
+      <p
+        aria-live="polite"
+        className={`text-faint basis-full px-1 font-sans text-[14px] ${
+          atCap ? "pb-2" : ""
+        }`}
+      >
+        {atCap &&
+          `Selections stop at ${MEMBERS_SELECTION_MAX} members. Run this action, then select any that are left.`}
+      </p>
 
       {/* Always mounted, so a screen reader announces the outcome when it
           arrives — a live region added at the same moment as its text is

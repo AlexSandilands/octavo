@@ -7,6 +7,7 @@ import { MembersBulkBar } from "./members-bulk-bar";
 import { MembersFilter } from "./members-filter";
 import { MembersPagination } from "./members-pagination";
 import { MembersSearch } from "./members-search";
+import { MEMBERS_SELECTION_MAX } from "./selection-limit";
 import type { MemberFilter, MemberList } from "@/server/users";
 
 // The table shows one served page of an already-narrowed list — the search,
@@ -69,10 +70,24 @@ export function MembersTable({
   // demand (the page payload carries only the served rows), scoped by the
   // same query + filter the list itself is narrowed by, and join whatever is
   // already selected.
+  //
+  // The merge stops at MEMBERS_SELECTION_MAX — the bound the bulk actions
+  // themselves accept — because the server's ids are capped but the selection
+  // they join isn't: hand-pick a few rows under one filter, then select all
+  // under another, and the total could otherwise creep past it. Stopping here
+  // is what keeps every selection this table builds runnable; the bar says so
+  // whenever the cap is what ended the merge (#125).
   const selectAllMatching = async () => {
     const res = await matchingMemberIdsAction(query, filter);
     if (!res.ok) return false;
-    setSelected((prev) => new Set([...prev, ...res.ids]));
+    setSelected((prev) => {
+      const s = new Set(prev);
+      for (const id of res.ids) {
+        if (s.size >= MEMBERS_SELECTION_MAX && !s.has(id)) continue;
+        s.add(id);
+      }
+      return s;
+    });
     return true;
   };
 

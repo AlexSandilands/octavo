@@ -152,13 +152,43 @@ export async function listUsers(
 // matching". Fetched on demand when the admin asks for it, not shipped with
 // every page render: ids for the whole club ride the wire once per gesture
 // instead of once per keystroke.
-export async function listMatchingUserIds(
-  opts: { query?: string; filter?: MemberFilter } = {},
-): Promise<string[]> {
+//
+// `limit` is required rather than optional, because these ids go straight back
+// up as a bulk action's argument and that argument has a size the wire will
+// carry (see features/members/selection-limit) — an unbounded read here would
+// be a selection nothing could act on. The order is listUsers' order, so a
+// bounded answer is the *top of the list the admin is looking at* rather than
+// an arbitrary slice: "select the first N" means the N they can see.
+export async function listMatchingUserIds(opts: {
+  query?: string;
+  filter?: MemberFilter;
+  limit: number;
+}): Promise<string[]> {
   const query = opts.query?.trim() ?? "";
   const where = memberWhere(query, opts.filter ?? "all");
-  const rows = await db.select({ id: users.id }).from(users).where(where);
+  const rows = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(where)
+    .orderBy(desc(users.createdAt), asc(users.email))
+    .limit(opts.limit);
   return rows.map((r) => r.id);
+}
+
+// A whole-club selection is thousands of ids, and Postgres binds one parameter
+// per id in an `IN` list against a hard ceiling of 65,535 per statement — so
+// the bulk writes below send their ids to the database a chunk at a time. The
+// chunks are a statement-level detail only: they all run inside the one
+// transaction that took the guard-rail locks, so the operation stays atomic and
+// the invariants are decided once for the whole selection, never per chunk.
+const ID_CHUNK = 1000;
+
+function chunked<T>(items: T[]): T[][] {
+  const batches: T[][] = [];
+  for (let i = 0; i < items.length; i += ID_CHUNK) {
+    batches.push(items.slice(i, i + ID_CHUNK));
+  }
+  return batches;
 }
 
 // True for Postgres unique-constraint violations (SQLSTATE 23505) — here, the
@@ -314,12 +344,14 @@ export async function setSubscribed(
 
 export type BulkSubscribeResult = { changed: number; unchanged: number };
 
-// The members table's bulk subscribe/unsubscribe. One statement inside a
-// transaction, so a batch either lands whole or not at all. Rows already in the
-// requested state are left alone and counted separately, so the result line can
-// say something true ("12 subscribed · 2 already were") rather than claim work
-// it didn't do. Unlike removal there is nothing to guard: a subscription flag
-// can't lock anyone out, so the acting admin's own row is fair game.
+// The members table's bulk subscribe/unsubscribe. One transaction, so a batch
+// either lands whole or not at all — a whole-club selection reaches the
+// database as several statements (see `chunked`) but still commits once. Rows
+// already in the requested state are left alone and counted separately, so the
+// result line can say something true ("12 subscribed · 2 already were") rather
+// than claim work it didn't do. Unlike removal there is nothing to guard: a
+// subscription flag can't lock anyone out, so the acting admin's own row is
+// fair game.
 export async function setSubscribedMany(
   targetIds: string[],
   subscribed: boolean,
@@ -328,19 +360,22 @@ export async function setSubscribedMany(
   if (ids.length === 0) return { changed: 0, unchanged: 0 };
 
   return db.transaction(async (tx) => {
-    const found = await tx
-      .select({ id: users.id })
-      .from(users)
-      .where(inArray(users.id, ids));
-    const changed = await tx
-      .update(users)
-      .set({ subscribed })
-      .where(and(inArray(users.id, ids), ne(users.subscribed, subscribed)))
-      .returning({ id: users.id });
-    return {
-      changed: changed.length,
-      unchanged: found.length - changed.length,
-    };
+    let found = 0;
+    let changed = 0;
+    for (const batch of chunked(ids)) {
+      const [counted] = await tx
+        .select({ n: count() })
+        .from(users)
+        .where(inArray(users.id, batch));
+      found += counted?.n ?? 0;
+      const updated = await tx
+        .update(users)
+        .set({ subscribed })
+        .where(and(inArray(users.id, batch), ne(users.subscribed, subscribed)))
+        .returning({ id: users.id });
+      changed += updated.length;
+    }
+    return { changed, unchanged: found - changed };
   });
 }
 
@@ -445,6 +480,12 @@ export type BulkDeleteResult = {
 // skipped (refusing them all beats silently choosing a survivor). Everything
 // else happens in one transaction: a mid-batch failure leaves the list as it
 // was, never half-pruned.
+//
+// A whole-club selection is sent to the database in chunks, but the guard rails
+// are not chunked: the admin lock, the lookup of who is in the selection and
+// the decision about who to spare all complete before the first row is deleted,
+// over the entire selection. So a chunk boundary can never be the moment the
+// last admin goes.
 export async function deleteUsers(
   targetIds: string[],
   currentUserId: string,
@@ -466,10 +507,15 @@ export async function deleteUsers(
       .where(eq(users.isAdmin, true))
       .for("update");
 
-    const found = await tx
-      .select({ id: users.id, isAdmin: users.isAdmin })
-      .from(users)
-      .where(inArray(users.id, candidates));
+    const found: { id: string; isAdmin: boolean }[] = [];
+    for (const batch of chunked(candidates)) {
+      found.push(
+        ...(await tx
+          .select({ id: users.id, isAdmin: users.isAdmin })
+          .from(users)
+          .where(inArray(users.id, batch))),
+      );
+    }
 
     const adminsInBatch = found.filter((u) => u.isAdmin).map((u) => u.id);
     // In practice the acting admin is an admin and is already excluded, so an
@@ -479,11 +525,11 @@ export async function deleteUsers(
     const spared = new Set<string>(wouldStripLastAdmin ? adminsInBatch : []);
     const toDelete = found.map((u) => u.id).filter((id) => !spared.has(id));
 
-    if (toDelete.length > 0) {
+    for (const batch of chunked(toDelete)) {
       // Sessions cascade on delete, but drop them explicitly so the intent —
       // these people can no longer sign in — is legible here, as in deleteUser.
-      await tx.delete(sessions).where(inArray(sessions.userId, toDelete));
-      await tx.delete(users).where(inArray(users.id, toDelete));
+      await tx.delete(sessions).where(inArray(sessions.userId, batch));
+      await tx.delete(users).where(inArray(users.id, batch));
     }
 
     return {
