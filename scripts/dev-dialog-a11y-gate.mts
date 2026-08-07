@@ -11,7 +11,15 @@
 //   c. Escape closes — and is refused while a save is in flight,
 //   d. every close path (Escape, Cancel, ×, a successful save) puts focus back
 //      on the button that opened it,
-//   e. the in-flight locks (#141's disabled ×, the disabled Cancel) still hold.
+//   e. the in-flight locks (#141's disabled ×, the disabled Cancel) still hold,
+//   f. the page behind is inert (#154) — the Tab trap only ever held the
+//      keyboard, and browse mode walked straight past it.
+//
+// (f) gets a section of its own at the end as well, for the parts of the
+// contract that are about the sweep's lifetime rather than one open dialog:
+// content that mounts behind an open dialog is marked too, an element that was
+// already inert before the dialog opened is left alone on the way out, and
+// everything the sweep did mark is unmarked when it closes.
 //
 // It mints its own scratch admin + session + draft issue and removes them again
 // in the finally block — it never seeds and never touches existing rows.
@@ -105,6 +113,33 @@ const focusInsideDialog = (page: Page) =>
     return panel != null && panel.contains(document.activeElement);
   });
 
+const FOCUSABLE =
+  'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+
+/**
+ * f: what is still reachable behind the open dialog. Named rather than counted
+ * so a failure says which control leaked, and asserted the general way — every
+ * on-screen control in the document that is not inside the dialog's overlay
+ * must sit in an inert subtree — rather than by listing elements a page happens
+ * to have today.
+ */
+const reachableBehind = (page: Page) =>
+  page.evaluate((selector) => {
+    const overlay = document.querySelector("[role=dialog]")?.parentElement;
+    if (!overlay) return ["<no dialog open>"];
+    return Array.from(document.querySelectorAll<HTMLElement>(selector))
+      .filter(
+        (el) =>
+          !overlay.contains(el) &&
+          el.getClientRects().length > 0 &&
+          el.closest("[inert]") == null,
+      )
+      .map((el) => {
+        const name = el.getAttribute("aria-label") ?? el.textContent ?? "";
+        return `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ""}[${name.trim().slice(0, 24)}]`;
+      });
+  }, FOCUSABLE);
+
 /**
  * Tab all the way round and back. Returns the ordered focus stops and whether
  * focus ever escaped the panel — the point of the trap. Walks one more step
@@ -137,8 +172,8 @@ const focusableCount = (page: Page) =>
 // ── The shared checks, run against whatever dialog is open ──────────────────
 
 /**
- * a + b: semantics, initial focus, and the trap. `expectedName` is the visible
- * heading text the accessible name must resolve to.
+ * a + b + f: semantics, initial focus, the trap, and inertness. `expectedName`
+ * is the visible heading text the accessible name must resolve to.
  */
 async function checkOpenDialog(page: Page, expectedName: string) {
   const s = await semantics(page);
@@ -160,6 +195,14 @@ async function checkOpenDialog(page: Page, expectedName: string) {
   ok(
     s!.focusInside,
     `initial focus is inside the dialog (${s!.focusDescription})`,
+  );
+
+  // f: nothing behind the dialog is reachable at all — not by Tab, not by a
+  // press, and not by a screen reader's virtual cursor.
+  const leaked = await reachableBehind(page);
+  ok(
+    leaked.length === 0,
+    `every element outside the dialog is inert${leaked.length ? ` — still reachable: ${leaked.join(", ")}` : ""}`,
   );
 
   // b: a full lap plus one step. Nothing may land outside the panel.
@@ -527,8 +570,117 @@ try {
     `the canvas did not pan or scroll (${before} → ${after})`,
   );
 
+  // ── 8. Inertness over the dialog's lifetime (#154) ───────────────────────
+  // Every section above already proves the page behind an *open* dialog is
+  // inert. What is left is the sweep's lifetime: the list of siblings it
+  // captured goes stale (React re-renders the tree under an open dialog
+  // constantly — the editor autosaves, the members list revalidates after every
+  // mutation), and the undo has to put back exactly what it changed.
+  heading("Inert — mounts while open, and the undo");
+  await page.goto(`${base}/admin/members`);
+  await page.waitForSelector("button:has-text('Add member')");
+
+  // A node that is already inert before any dialog opens — someone else's mark
+  // (the admin drawer holds <main> this way on mobile). The sweep must skip it
+  // going in and, the point, leave it alone coming out.
+  await page.evaluate(() => {
+    const el = document.createElement("div");
+    el.id = "pre-inert";
+    el.setAttribute("inert", "");
+    el.innerHTML = '<button type="button">already inert</button>';
+    document.body.appendChild(el);
+  });
+
+  await page.click("button:has-text('Add member')");
+  await page.waitForSelector("[role=dialog]");
+
+  // Two mounts behind the open dialog, at the two structurally different places
+  // content can appear: beside <body>'s children (where the montage dialog's
+  // portal puts things) and beside the dialog's own overlay (where the five
+  // in-place dialogs' neighbours live).
+  // Written out twice rather than through a little helper: the bundler behind
+  // `tsx` rewrites a named nested function into a call to a `__name` helper,
+  // which does not exist inside the page.
+  await page.evaluate(() => {
+    const atBody = document.createElement("div");
+    atBody.id = "late-at-body";
+    atBody.innerHTML = '<button type="button">mounted late</button>';
+    document.body.appendChild(atBody);
+
+    const beside = document.createElement("div");
+    beside.id = "late-beside-dialog";
+    beside.innerHTML = '<button type="button">mounted late</button>';
+    const overlay = document.querySelector("[role=dialog]")!.parentElement!;
+    overlay.parentElement!.appendChild(beside);
+  });
+  // The observer runs as a microtask off the mutation; a frame is plenty.
+  await page.waitForTimeout(200);
+
+  const late = await page.evaluate(() => ({
+    atBody: document.getElementById("late-at-body")?.hasAttribute("inert"),
+    beside: document
+      .getElementById("late-beside-dialog")
+      ?.hasAttribute("inert"),
+  }));
+  ok(
+    late.atBody === true,
+    "content that mounts beside <body>'s children while a dialog is open is inerted too",
+  );
+  ok(
+    late.beside === true,
+    "…and so is content that mounts beside the dialog's own overlay",
+  );
+  ok(
+    (await reachableBehind(page)).length === 0,
+    "nothing behind the dialog is reachable after those mounts either",
+  );
+
+  // The members search announces through a live region outside the dialog
+  // (#129). Inerting it is the deliberate call, not an accident: the search box
+  // that feeds it is behind the modal and unreachable, so anything it had to say
+  // would be talking over the dialog.
+  ok(
+    await page.evaluate(
+      () =>
+        document
+          .querySelector("p[role=status][aria-live=polite]")
+          ?.closest("[inert]") != null,
+    ),
+    "the members list's live region is inert while the dialog is open — deliberate, per #154",
+  );
+
+  // Taken away again before the dialog closes: React owns that container and
+  // reconciles it on close, and a stray child of its own making is not this
+  // gate's to leave lying there.
+  await page.evaluate(() =>
+    document.getElementById("late-beside-dialog")?.remove(),
+  );
+
+  await page.keyboard.press("Escape");
+  await page.waitForSelector("[role=dialog]", { state: "detached" });
+
+  const afterClose = await page.evaluate(() => ({
+    preStillInert: document.getElementById("pre-inert")?.hasAttribute("inert"),
+    lateCleared: document.getElementById("late-at-body")?.hasAttribute("inert"),
+    stillMarked: Array.from(document.querySelectorAll("[inert]")).map(
+      (el) => `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ""}`,
+    ),
+  }));
+  ok(
+    afterClose.preStillInert === true,
+    "an element that was already inert before the dialog opened is still inert after it closes",
+  );
+  ok(
+    afterClose.lateCleared === false,
+    "an element the sweep marked after it mounted is unmarked on close",
+  );
+  ok(
+    afterClose.stillMarked.join(",") === "div#pre-inert",
+    `the only thing left inert is the mark the sweep never made (got ${afterClose.stillMarked.join(", ") || "nothing"})`,
+  );
+
   await ctx.close();
-  console.log("\nPASS — every converted dialog meets the #130 contract");
+  console.log("\nPASS — every converted dialog meets the #130 + #154 contract");
 } finally {
   await browser.close();
   // By pattern, not just by id: a run that dies mid-way still has to leave the

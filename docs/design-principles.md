@@ -122,7 +122,8 @@ picker, the reader toggle and the PDF theme all derive from it.
 - **Every modal goes through `DialogShell`** (`src/components/dialog-shell.tsx`) — the same
   reason `Button` and `MenuSelect` are shared. A modal owes the keyboard and the screen
   reader a long contract (`role="dialog"`, `aria-modal`, an accessible name, Escape, a focus
-  trap that wraps at both edges, focus back on the trigger when it closes), and hand-rolling
+  trap that wraps at both edges, the rest of the page held `inert` so browse mode can't walk
+  behind it either, focus back on the trigger when it closes), and hand-rolling
   it per dialog is how six of them ended up as bare `<div>`s with none of it (#130). The
   shell renders the backdrop and the panel and hands the heading's id to its children, so a
   new dialog spends one prop on its own box and gets the rest. A press on the backdrop closes
