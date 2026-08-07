@@ -47,9 +47,16 @@ function selfOrigin(): string {
 // theme flows to the PDF path with no change here (issue #40).
 export type PdfTheme = LayoutThemeId;
 
+// `chrome` is the magazine-chrome fingerprint the caller keyed its cache entry
+// under. The print page resolves settings in a *separate* request, so the two
+// can disagree (a settings edit landing in between, or a database blip degrading
+// that read to the deployment defaults) — and the caller would store branding
+// its key doesn't describe. So the page stamps what it actually rendered and we
+// refuse to hand back bytes that don't match it (issue #127).
 export async function generateIssuePdf(
   issueNumber: number,
   theme: PdfTheme,
+  chrome: string,
 ): Promise<Buffer> {
   const url = `${selfOrigin()}/read/${issueNumber}/print?token=${printToken()}&theme=${theme}`;
 
@@ -75,6 +82,24 @@ export async function generateIssuePdf(
         `print route returned ${res ? res.status() : "no response"} for issue ${issueNumber}`,
       );
     }
+    // The stamp, not the status, is what proves we are looking at the print
+    // document rendered from the expected settings: a refused or errored page
+    // does not carry one (and doesn't reliably carry a non-OK status either —
+    // Next serves the dev error overlay with a 200), and a mismatch means the
+    // settings moved under the cache key. Either way the caller must not store
+    // these bytes, so fail before the PDF exists to store.
+    const stamped = await page.evaluate(() =>
+      document
+        .querySelector('meta[name="print-chrome"]')
+        ?.getAttribute("content"),
+    );
+    if (stamped !== chrome) {
+      throw new Error(
+        `print route rendered chrome ${stamped ?? "none"} for issue ${issueNumber}, ` +
+          `expected ${chrome} — refusing to cache a PDF the key does not describe`,
+      );
+    }
+
     // networkidle can't see lazy images: next/image marks offscreen images
     // loading="lazy", and in this tall stacked document Chromium never fetches
     // the ones pages below the viewport — they'd print as gaps. Force every
