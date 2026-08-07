@@ -64,6 +64,13 @@ export function MembersPagination({
     startTransition(() => go({ page: next > 1 ? String(next) : null }));
   };
 
+  // `unavailable` rather than `disabled` at the ends. A real disabled attribute
+  // arriving on the button you are standing on can't hold focus, so the browser
+  // hands it to <body> — and with the scroll-to-top above, the next Tab restarts
+  // from the top of the admin shell and you have lost the list entirely (#131).
+  // Unavailable buttons stay put, dimmed and inert, and keep their place in the
+  // tab order; a screen reader still finds them and says they're unavailable
+  // rather than skipping over them as if the end of the list weren't a fact.
   return (
     <nav
       aria-label="Member list pages"
@@ -74,7 +81,7 @@ export function MembersPagination({
         variant="secondary"
         icon="chevronLeft"
         iconPosition="left"
-        disabled={target <= 1}
+        unavailable={target <= 1}
         onClick={() => turnTo(target - 1)}
       >
         Previous
@@ -92,7 +99,7 @@ export function MembersPagination({
       <Button
         variant="secondary"
         icon="chevronRight"
-        disabled={target >= pageCount}
+        unavailable={target >= pageCount}
         onClick={() => turnTo(target + 1)}
       >
         Next
