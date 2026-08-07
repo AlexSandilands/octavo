@@ -55,3 +55,24 @@ export function ImportSummary({ summary }: { summary: ImportSummaryData }) {
     </>
   );
 }
+
+// The same outcome in one breath, for the dialog's live region (#133). It lives
+// beside the visible copy so the two can't drift apart. Counts only: the refused
+// addresses are on screen to be read and corrected at leisure, and reciting a
+// list of them into a single announcement would bury the one number that
+// matters — how many members were actually added.
+export function importSummaryAnnouncement(summary: ImportSummaryData): string {
+  const { added, alreadyMembers, invalid, skippedCount } = summary;
+  const one = skippedCount === 1;
+  return [
+    `Import finished. ${added} added,`,
+    `${alreadyMembers} already ${alreadyMembers === 1 ? "a member" : "members"},`,
+    `${invalid} invalid ${invalid === 1 ? "row" : "rows"} skipped.`,
+    skippedCount > 0 &&
+      `${skippedCount} ${one ? "address" : "addresses"} couldn’t be used and ${
+        one ? "is" : "are"
+      } listed on screen.`,
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
