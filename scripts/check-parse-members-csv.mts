@@ -3,7 +3,9 @@
 // underscored and hyphenated headers, semicolon and tab separators, headerless
 // files, and headers we don't recognise at all. No browser, DB or dev server.
 // Run: npx tsx scripts/check-parse-members-csv.mts
+import { z } from "zod";
 import { parseMembersCsv } from "../src/lib/parse-members-csv.ts";
+import { isMemberEmail } from "../src/lib/member-email.ts";
 
 const ok = (cond: unknown, msg: string) => {
   if (!cond) throw new Error(`FAIL: ${msg}`);
@@ -233,6 +235,48 @@ expect(
   "Club export 2026\nFirst Name,Last Name,Email\nAda,Lovelace,ada@example.com",
   [["ada@example.com", "Ada Lovelace"]],
   { invalid: 1 },
+);
+
+console.log("\n— the address test the preview and the server share (#124) —");
+// The parser counts a row valid exactly when the server will accept it. If the
+// two ever disagree, a file the preview promised to import fails on one row, so
+// the agreement is checked here against zod itself — the shape the server
+// schema parses (trim → lowercase → .email() → .max(200)).
+const serverSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .pipe(z.string().email().max(200));
+for (const address of [
+  "ada@example.com",
+  "  Ada@Example.COM ",
+  "ada+news@example.co.uk",
+  "ada.lovelace@sub.example.com",
+  "a@b.co",
+  "john..doe@example.com", // the doubled dot that used to sink a batch
+  ".ada@example.com",
+  "ada@example.123", // numeric TLD
+  "адам@example.com", // non-ASCII local part
+  "ada@example",
+  "ada lovelace@example.com",
+  "not-an-address",
+  "",
+  `${"a".repeat(200)}@example.com`, // past the 200-character bound
+]) {
+  const shared = isMemberEmail(address);
+  const server = serverSchema.safeParse(address).success;
+  ok(
+    shared === server,
+    `"${address.slice(0, 40)}" → shared test ${shared}, server ${server}`,
+  );
+}
+
+console.log("\n— rows the server would refuse never reach it —");
+expect(
+  "addresses only zod's stricter test rejects are counted invalid",
+  "Name,Email\nAda,ada@example.com\nJohn,john..doe@example.com\nNum,alan@example.123\nDot,.grace@example.com",
+  [["ada@example.com", "Ada"]],
+  { invalid: 3 },
 );
 
 console.log("\nall checks passed");

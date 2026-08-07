@@ -7,6 +7,8 @@
 // "First Name"/"Last Name" columns. Anything it can't make a valid email out of
 // is counted and skipped, never thrown.
 
+import { isMemberEmail, normaliseMemberEmail } from "./member-email";
+
 export type ParsedMember = { email: string; name: string | null };
 
 export type ParseResult = {
@@ -17,10 +19,6 @@ export type ParseResult = {
   // Valid rows whose email repeated one already seen earlier in the file.
   duplicates: number;
 };
-
-// Intentionally simple: good enough to reject obvious junk client-side. The
-// server re-validates every address with zod before it touches the database.
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Separators a spreadsheet export might use, in preference order: the comma,
 // the semicolon a European Excel writes, and the tab of a pasted sheet.
@@ -84,8 +82,12 @@ function normaliseHeader(cell: string): string {
   return cell.toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
+// The same test the server applies before writing a row, so a row this parser
+// hands to the preview as valid is one the import can actually use — and a row
+// it drops is one the import would have dropped anyway (#124). It decides both
+// what counts as a member and, through `rowHasEmail`, which column is which.
 function isEmail(field: string): boolean {
-  return EMAIL_RE.test(field);
+  return isMemberEmail(field);
 }
 
 function rowHasEmail(row: string[] | undefined): boolean {
@@ -240,8 +242,8 @@ export function parseMembersCsv(input: string): ParseResult {
   let duplicates = 0;
 
   for (const fields of dataRows) {
-    const email = (fields[cols.emailIdx] ?? "").toLowerCase();
-    if (!EMAIL_RE.test(email)) {
+    const email = normaliseMemberEmail(fields[cols.emailIdx] ?? "");
+    if (!isEmail(email)) {
       invalid++;
       continue;
     }
