@@ -570,7 +570,108 @@ try {
     `the canvas did not pan or scroll (${before} → ${after})`,
   );
 
-  // ── 8. Inertness over the dialog's lifetime (#154) ───────────────────────
+  // ── 8. PublishModal (editor) ─────────────────────────────────────────────
+  // The last dialog left outside the shell (#153). It always had the semantics
+  // — role, aria-modal, a name — but no Escape, no trap and no focus restore,
+  // and its backdrop was `absolute` against the editor rather than fixed to the
+  // viewport. It is also the only dialog whose phases replace their own
+  // controls, so the trap, the in-flight lock and the focus restore each have
+  // to survive confirm → working → done.
+  //
+  // The publish below is real: it is the gate's own scratch draft, removed in
+  // the finally block. The email opt-in defaults ON for a first publish, so it
+  // is cleared — and the clearing asserted — before anything is pressed. On a
+  // shared dev database a stray publish is a blast at every subscribed member.
+  heading("PublishModal");
+  const publishTrigger = "header button:text-is('Publish')";
+  await page.goto(`${base}/admin/issues/${issueId}/edit`);
+  await page.waitForSelector(publishTrigger);
+  await page.click(publishTrigger);
+  await page.waitForSelector("[role=dialog]");
+  await checkOpenDialog(page, `Publish issue No. ${issueNumber}?`);
+  await checkEscapeRestores(page, "Publish");
+
+  await reopen(page, publishTrigger);
+  await checkBackdropRestores(page, "Publish");
+
+  await reopen(page, publishTrigger);
+  const optIn = page.locator("[role=dialog] input[type=checkbox]");
+  if (await optIn.isChecked()) await optIn.uncheck();
+  ok(
+    !(await optIn.isChecked()),
+    "the email opt-in is cleared — this publish sends nothing",
+  );
+
+  // Hold the publish server-side so the `working` phase stays on screen for the
+  // assertions. Same one-shot flag as the sponsor save above: unrouting while
+  // the request is still parked in the sleep aborts it.
+  let stallPublish = true;
+  const publishRoute = `**/admin/issues/${issueId}/edit`;
+  await page.route(publishRoute, async (route) => {
+    if (route.request().method() === "POST" && stallPublish) {
+      stallPublish = false;
+      await new Promise((r) => setTimeout(r, 4000));
+    }
+    return route.continue();
+  });
+  await page.click("[role=dialog] button:has-text('Publish')");
+  await page.waitForSelector("[role=dialog] button:has-text('Publishing')");
+  ok(true, "the publish is in flight (the button reads Publishing…)");
+  ok(
+    await focusInsideDialog(page),
+    `focus stayed inside the dialog when Publish switched itself off (${await active(page)})`,
+  );
+  ok(
+    (await page.getAttribute(
+      "[role=dialog] button:has-text('Keep as draft')",
+      "aria-disabled",
+    )) === "true",
+    "Keep as draft is inert while publishing — still there to stand on, but it does nothing",
+  );
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(300);
+  ok(
+    await dialogOpen(page),
+    "Escape does NOT close the dialog while the publish is in flight",
+  );
+  await page.mouse.click(8, 8);
+  await page.waitForTimeout(300);
+  ok(
+    await dialogOpen(page),
+    "a backdrop press does NOT close the dialog while the publish is in flight",
+  );
+  ok(
+    await focusInsideDialog(page),
+    `the refused backdrop press left focus where it was (${await active(page)})`,
+  );
+
+  // done: the two buttons are replaced by one, and the heading — the dialog's
+  // accessible name — is replaced with the result.
+  await page.waitForSelector("[role=dialog] button:has-text('Done')", {
+    timeout: 30_000,
+  });
+  const done = await semantics(page);
+  ok(
+    done!.name === `Issue No. ${issueNumber} is live.`,
+    `the accessible name follows the phase to the result heading (got "${done!.name}")`,
+  );
+  ok(
+    (await active(page)) === "button[Done]",
+    `the result phase put focus on the one control left, Done (landed on ${await active(page)})`,
+  );
+  ok(
+    (await reachableBehind(page)).length === 0,
+    "the page behind is still inert in the result phase",
+  );
+  await page.click("[role=dialog] button:has-text('Done')");
+  await page.waitForSelector("[role=dialog]", { state: "detached" });
+  ok(
+    (await active(page)).includes("Publish"),
+    `Done closed the dialog and restored focus to the trigger (landed on ${await active(page)})`,
+  );
+  await page.unroute(publishRoute);
+
+  // ── 9. Inertness over the dialog's lifetime (#154) ───────────────────────
   // Every section above already proves the page behind an *open* dialog is
   // inert. What is left is the sweep's lifetime: the list of siblings it
   // captured goes stale (React re-renders the tree under an open dialog
