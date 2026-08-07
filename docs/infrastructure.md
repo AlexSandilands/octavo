@@ -143,8 +143,20 @@ built now (no new service unless memory forces it — issue #16 budget).
 print. The reader is members-only, so this route must not be publicly reachable:
 it is excluded from the edge session gate (the cookie-less localhost generator
 has to reach it) and instead authorises with an **internal token** derived from
-`AUTH_SECRET` (`src/lib/pdf-token.ts`) — a request without a valid token 404s.
-It only ever renders already-published content, so no new secret is exposed.
+`AUTH_SECRET` (`src/lib/pdf-token.ts`) — a request without a valid token gets the
+not-found page (`notFound()`) instead of the issue. It only ever renders
+already-published content, so no new secret is exposed.
+
+The print page also stamps the **chrome fingerprint** of the magazine settings
+it resolved into the document (`<meta name="print-chrome">`), and the generator
+refuses to return a PDF unless that stamp is the one the download endpoint keyed
+its cache entry under. So a settings edit — or a database read failure degrading
+the print request to the deployment defaults — fails the download (500) with no
+cache write, rather than storing a wrongly-branded PDF under that key (issue
+#127); the member's retry succeeds. The check is on the rendered document rather
+than the HTTP status because a refused or errored render on this streamed
+dynamic route — the not-found page, an error page, the dev error overlay — does
+not reliably come back with a non-OK status, but it never carries the stamp.
 
 ## Demo project (marketing showcase)
 

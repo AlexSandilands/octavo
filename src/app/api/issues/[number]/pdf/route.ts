@@ -50,11 +50,12 @@ function generateOnce(
   key: string,
   issueNumber: number,
   theme: PdfTheme,
+  chrome: string,
 ): Promise<Buffer> {
   const existing = inFlight.get(key);
   if (existing) return existing;
   const task = (async () => {
-    const pdf = await generateIssuePdf(issueNumber, theme);
+    const pdf = await generateIssuePdf(issueNumber, theme, chrome);
     await putObject(key, pdf, "application/pdf");
     return pdf;
   })();
@@ -82,8 +83,11 @@ const themeSchema = z
 // (issue #97). v5: the footer's wording and appearance now come from magazine
 // settings (issue #105) — the key gained a chrome segment, so this bump is
 // belt-and-braces, but the gate for print-visible changes is a blanket rule
-// (docs/workflow.md).
-const RENDER_VERSION = 5;
+// (docs/workflow.md). v6: generation now verifies the print page rendered the
+// chrome this key names (issue #127) — any PDF already cached with fallback
+// branding under a custom-chrome key is wrong bytes, and only a bump discards
+// them.
+const RENDER_VERSION = 6;
 
 // A download filename the browser and the audience can read. Strip anything
 // path- or header-unsafe; keep an ASCII fallback plus a UTF-8 form for clients
@@ -129,11 +133,14 @@ export async function GET(
   }
   const theme = themeParam.data;
 
-  // The print route resolves settings again in its own request, so a settings
-  // edit landing between this read and Playwright's page load caches bytes
-  // under a fingerprint that names the older values. Accepted: the window is
-  // one generation, the mismatched entry is only ever served again if the owner
-  // reverts to exactly those older values, and the next edit re-keys past it.
+  // The print route resolves settings again in its own request, so the two can
+  // disagree — an edit landing in between, or a database blip degrading that
+  // read to the deployment defaults — and the bytes it prints would be stored
+  // under a fingerprint naming values it never rendered. The fingerprint is
+  // passed into generation for exactly that reason: the print page stamps what
+  // it rendered and the generator refuses to return bytes that don't match, so
+  // a mismatch fails here (500, nothing cached) instead of serving every member
+  // a wrongly-branded PDF for this revision (issue #127).
   const settings = await getSettings();
   const chrome = chromeFingerprint(settings);
   const key = `pdfs/${issue.id}/${issue.revision}-${theme}-${issue.logoId ?? "nologo"}-${chrome}-v${RENDER_VERSION}.pdf`;
@@ -141,7 +148,7 @@ export async function GET(
   let pdf: Buffer | null;
   try {
     pdf = await getObject(key);
-    if (!pdf) pdf = await generateOnce(key, number, theme);
+    if (!pdf) pdf = await generateOnce(key, number, theme, chrome);
   } catch (err) {
     // Chromium missing is an operator/deploy problem; a render/storage failure
     // is an infra one. Both are invisible to the member (they see a legible
