@@ -70,15 +70,26 @@ export function MenuSelect<T>({
     return () => document.removeEventListener("pointerdown", onDown, true);
   }, [open]);
 
-  // On open, move focus to the checked option so keyboard users land on it.
+  // The checked option, kept where the focus effect below can read it without
+  // depending on it. Callers build `items` inline (`OPTIONS.map(...)`), so the
+  // array is a new object on every render of the host; an effect that listed it
+  // re-ran whenever anything above re-rendered — an editor autosave tick, a
+  // members-list refresh — and pulled focus off whatever option the user had
+  // arrowed to, so the next Enter chose the wrong one (issue #136).
+  const checkedRef = useRef(0);
   useEffect(() => {
-    if (!open) return;
-    const idx = Math.max(
+    checkedRef.current = Math.max(
       0,
       items.findIndex((i) => i.value === value),
     );
-    itemsRef.current[idx]?.focus();
-  }, [open, value, items]);
+  });
+
+  // On open, move focus to the checked option so keyboard users land on it.
+  // Only on open: from there the menu's own key handling owns focus.
+  useEffect(() => {
+    if (!open) return;
+    itemsRef.current[checkedRef.current]?.focus();
+  }, [open]);
 
   const close = (returnFocus = true) => {
     setOpen(false);
