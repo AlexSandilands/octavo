@@ -99,7 +99,12 @@ export function LogoDialog({
           <h2 className="text-ink font-serif text-[26px] leading-tight">
             {renaming ? "Rename logo" : "Add logo"}
           </h2>
-          <IconButton icon="close" label="Close" onClick={onClose} />
+          <IconButton
+            icon="close"
+            label="Close"
+            onClick={onClose}
+            disabled={saving}
+          />
         </div>
 
         <div className="space-y-5 px-8 pt-6">

@@ -51,11 +51,12 @@ function generateOnce(
   key: string,
   issueNumber: number,
   theme: PdfTheme,
+  chrome: string,
 ): Promise<Buffer> {
   const existing = inFlight.get(key);
   if (existing) return existing;
   const task = (async () => {
-    const pdf = await generateIssuePdf(issueNumber, theme);
+    const pdf = await generateIssuePdf(issueNumber, theme, chrome);
     await putObject(key, pdf, "application/pdf");
     return pdf;
   })();
@@ -83,21 +84,48 @@ const themeSchema = z
 // (issue #97). v5: the footer's wording and appearance now come from magazine
 // settings (issue #105) — the key gained a chrome segment, so this bump is
 // belt-and-braces, but the gate for print-visible changes is a blanket rule
-// (docs/workflow.md). v6: the footer is clamped to the issue's own reserve
-// (issue #128), so the chrome segment now fingerprints a per-issue resolution
-// rather than the global one — same values on the day it ships (the migration
-// backfilled every issue from the settings then in force), but the segment's
-// meaning changed, and the blanket rule covers that too.
-const RENDER_VERSION = 6;
+// (docs/workflow.md). v6: generation now verifies the print page rendered the
+// chrome this key names (issue #127) — any PDF already cached with fallback
+// branding under a custom-chrome key is wrong bytes, and only a bump discards
+// them. v7: the footer is clamped to the issue's own reserve (issue #128), so
+// the chrome segment fingerprints a per-issue resolution rather than the global
+// one — the same values on the day it ships (the migration backfilled every
+// issue from the settings then in force), but the segment's meaning changed,
+// and the blanket rule covers that too.
+const RENDER_VERSION = 7;
+
+// Percent-encode for an RFC 8187 ext-value (the `filename*=UTF-8''…` form).
+// Only attr-char may appear bare there: ALPHA / DIGIT / "!" / "#" / "$" / "&" /
+// "+" / "-" / "." / "^" / "_" / "`" / "|" / "~". encodeURIComponent leaves
+// `! ' ( ) * - . _ ~` unescaped, and of those `' ( ) *` are not attr-chars — the
+// single quote most of all, since it is the ext-value's own delimiter, so an
+// owner-set name like "St John's Gazette" (issue #107) would otherwise produce a
+// parameter strict clients reject outright.
+function extValue(value: string): string {
+  return encodeURIComponent(value).replace(
+    /['()*]/g,
+    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+}
 
 // A download filename the browser and the audience can read. Strip anything
 // path- or header-unsafe; keep an ASCII fallback plus a UTF-8 form for clients
-// that honour RFC 5987.
+// that honour RFC 8187.
 function contentDisposition(magazineName: string, issueNumber: number): string {
   const base = `${magazineName} No. ${issueNumber}`;
-  const ascii = base.replace(/[^\x20-\x7e]/g, "").replace(/["\\]/g, "");
-  const safe = (ascii || `Issue ${issueNumber}`).trim();
-  return `attachment; filename="${safe}.pdf"; filename*=UTF-8''${encodeURIComponent(base)}.pdf`;
+  // The plain parameter has to be ASCII, and can carry neither quote nor
+  // backslash without escaping out of its own quoted-string. Decompose first so
+  // accented letters keep their base form ("Kaipātiki" → "Kaipatiki") rather
+  // than losing the letter entirely. A name with no ASCII left at all (an
+  // all-CJK title, say) would reduce to a bare "No. 4", so name the issue
+  // instead.
+  const ascii = magazineName
+    .normalize("NFD")
+    .replace(/[^\x20-\x7e]/g, "")
+    .replace(/["\\]/g, "")
+    .trim();
+  const safe = ascii ? `${ascii} No. ${issueNumber}` : `Issue ${issueNumber}`;
+  return `attachment; filename="${safe}.pdf"; filename*=UTF-8''${extValue(base)}.pdf`;
 }
 
 export async function GET(
@@ -134,11 +162,14 @@ export async function GET(
   }
   const theme = themeParam.data;
 
-  // The print route resolves settings again in its own request, so a settings
-  // edit landing between this read and Playwright's page load caches bytes
-  // under a fingerprint that names the older values. Accepted: the window is
-  // one generation, the mismatched entry is only ever served again if the owner
-  // reverts to exactly those older values, and the next edit re-keys past it.
+  // The print route resolves settings again in its own request, so the two can
+  // disagree — an edit landing in between, or a database blip degrading that
+  // read to the deployment defaults — and the bytes it prints would be stored
+  // under a fingerprint naming values it never rendered. The fingerprint is
+  // passed into generation for exactly that reason: the print page stamps what
+  // it rendered and the generator refuses to return bytes that don't match, so
+  // a mismatch fails here (500, nothing cached) instead of serving every member
+  // a wrongly-branded PDF for this revision (issue #127).
   const settings = await getSettings();
   // Fingerprint the settings *this issue* prints with — the magazine's, with the
   // footer held to the issue's reserve (issue #128), exactly as the print route
@@ -151,7 +182,7 @@ export async function GET(
   let pdf: Buffer | null;
   try {
     pdf = await getObject(key);
-    if (!pdf) pdf = await generateOnce(key, number, theme);
+    if (!pdf) pdf = await generateOnce(key, number, theme, chrome);
   } catch (err) {
     // Chromium missing is an operator/deploy problem; a render/storage failure
     // is an infra one. Both are invisible to the member (they see a legible

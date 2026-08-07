@@ -54,15 +54,15 @@ const storedSchema = z.object({
 // The stored row, or all-nulls when there is none (the first-run state, and
 // what every deployment looks like until someone opens the page).
 //
-// A read failure falls back to all-nulls instead of throwing: the chrome has a
-// perfectly good fallback in the deployment defaults, and the alternative is
-// that a database blip takes down the sign-in page, the 404 page and every
-// layout's <title> along with it (design-principles §10). It is logged, because
-// silently serving the old branding after an edit is otherwise baffling.
+// This one THROWS if the read itself fails, because "there is nothing stored"
+// and "we don't know what is stored" are different answers and only the caller
+// knows which of them it can live with. The two wrappers below make that choice
+// explicitly, in opposite directions (issue #126).
 //
 // React `cache()` so the dozen server components that need branding on one
-// request share a single query.
-const readStored = cache(async (): Promise<StoredSettings> => {
+// request share a single query — including the rejection, so a failure is the
+// same failure for every caller on the request.
+const queryStored = cache(async (): Promise<StoredSettings> => {
   // `next build` has no database (and no DATABASE_URL — issue #67), but it does
   // evaluate the root layout's generateMetadata while prerendering the shells
   // for the few genuinely static routes. Answering with the deployment defaults
@@ -71,26 +71,45 @@ const readStored = cache(async (): Promise<StoredSettings> => {
   if (process.env.NEXT_PHASE === "phase-production-build") {
     return EMPTY_SETTINGS;
   }
+  const [row] = await db
+    .select(settingsSelection)
+    .from(settings)
+    .where(eq(settings.id, SETTINGS_ID))
+    .limit(1);
+  if (!row) return EMPTY_SETTINGS;
+  return storedSchema.parse(row);
+});
+
+// The read path: a failure falls back to all-nulls instead of throwing, because
+// the chrome has a perfectly good fallback in the deployment defaults and the
+// alternative is that a database blip takes down the sign-in page, the 404 page
+// and every layout's <title> along with it (design-principles §10). It is
+// logged, because silently serving the old branding after an edit is otherwise
+// baffling.
+//
+// Read-only callers only. Anything that seeds an editable form must use
+// getSettingsForAdmin() — an empty form saved back over a live row is silent
+// data loss, which is the one thing worse than showing the defaults for a
+// minute.
+async function readStored(): Promise<StoredSettings> {
   try {
-    const [row] = await db
-      .select(settingsSelection)
-      .from(settings)
-      .where(eq(settings.id, SETTINGS_ID))
-      .limit(1);
-    if (!row) return EMPTY_SETTINGS;
-    return storedSchema.parse(row);
+    return await queryStored();
   } catch (err) {
-    // Captured explicitly: the catch means this never reaches Sentry's
-    // onRequestError, and a site quietly serving the wrong branding shouldn't
-    // depend on someone reading the server logs.
-    console.error(
+    logReadFailure(
       "Failed to read magazine settings — falling back to the deployment defaults",
       err,
     );
-    Sentry.captureException(err, { tags: { module: "settings" } });
     return EMPTY_SETTINGS;
   }
-});
+}
+
+// Captured explicitly: the catch means this never reaches Sentry's
+// onRequestError, and a site quietly serving the wrong branding shouldn't
+// depend on someone reading the server logs.
+function logReadFailure(message: string, err: unknown): void {
+  console.error(message, err);
+  Sentry.captureException(err, { tags: { module: "settings" } });
+}
 
 /** The branding + footer appearance that should render for this request. */
 export const getSettings = cache(async (): Promise<SiteSettings> => {
@@ -99,18 +118,38 @@ export const getSettings = cache(async (): Promise<SiteSettings> => {
 
 /** What /admin/magazine needs: the raw row (so a null field can show its
  *  default as a placeholder and say it is using it), the deployment defaults it
- *  falls back to, and the effective values the live preview starts from. */
-export async function getSettingsForAdmin(): Promise<{
-  stored: StoredSettings;
-  defaults: SiteSettings;
-  effective: SiteSettings;
-}> {
-  const stored = await readStored();
-  return {
-    stored,
-    defaults: siteDefaults,
-    effective: resolveSettings(stored, siteDefaults),
-  };
+ *  falls back to, and the effective values the live preview starts from —
+ *  or `ok: false` when the row could not be read at all. */
+export type AdminSettings =
+  | {
+      ok: true;
+      stored: StoredSettings;
+      defaults: SiteSettings;
+      effective: SiteSettings;
+    }
+  | { ok: false };
+
+// The write path's read. It reports the failure rather than swallowing it: the
+// admin form is seeded from `stored`, and all-nulls means "every box is empty"
+// — which the owner cannot tell apart from a never-customised deployment, and
+// which their next save would write straight over the magazine's real name, org
+// and tagline (issue #126). The caller must refuse to render the form.
+export async function getSettingsForAdmin(): Promise<AdminSettings> {
+  try {
+    const stored = await queryStored();
+    return {
+      ok: true,
+      stored,
+      defaults: siteDefaults,
+      effective: resolveSettings(stored, siteDefaults),
+    };
+  } catch (err) {
+    logReadFailure(
+      "Failed to read magazine settings for /admin/magazine — refusing to render the form",
+      err,
+    );
+    return { ok: false };
+  }
 }
 
 // Explicit column list — never spread caller input into the VALUES clause.

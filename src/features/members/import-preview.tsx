@@ -1,6 +1,7 @@
 "use client";
 
 import type { ParseResult } from "@/lib/parse-members-csv";
+import { MEMBERS_IMPORT_MAX } from "./import-limit";
 
 // How many parsed rows the admin sees before committing. Enough to recognise
 // the file (and to catch a name column we read wrong) without a wall of text.
@@ -19,6 +20,7 @@ export function ImportPreview({
 }) {
   const sample = parsed.members.slice(0, SAMPLE_SIZE);
   const rest = parsed.members.length - sample.length;
+  const tooMany = parsed.members.length > MEMBERS_IMPORT_MAX;
 
   return (
     <div className="border-line-soft mt-4 rounded-lg border bg-white px-4 py-3 font-sans text-[14px]">
@@ -41,6 +43,16 @@ export function ImportPreview({
           </li>
         )}
       </ul>
+
+      {/* Said before the admin commits, not after a failed import: one import
+          can only carry so many people, and this file carries more (#124). */}
+      {tooMany && (
+        <p className="text-warn mt-2 leading-relaxed">
+          That&rsquo;s more than one import can take — the most is{" "}
+          {MEMBERS_IMPORT_MAX.toLocaleString()}. Split the file into smaller
+          ones and import them one after another.
+        </p>
+      )}
 
       {sample.length > 0 && (
         <div className="border-line-soft mt-3 border-t pt-2.5">

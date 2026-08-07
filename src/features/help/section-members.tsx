@@ -1,3 +1,4 @@
+import { MEMBERS_IMPORT_MAX } from "@/features/members/import-limit";
 import { MembersFigure } from "./members-figure";
 import { Callout, GuideSection, P, Step, Steps } from "./guide-ui";
 
@@ -33,7 +34,11 @@ export function SectionMembers() {
           addresses and people already on the list are skipped, never duplicated
           &mdash; though re-importing does fill in a name for anyone on the list
           who hasn&rsquo;t got one yet (it never overwrites a name you already
-          have).
+          have). One bad address never stops the rest: everyone usable goes in,
+          and the ones left out are listed by address afterwards so you can
+          correct them and import again. A single file can carry up to{" "}
+          {MEMBERS_IMPORT_MAX.toLocaleString()} people &mdash; a longer list
+          imports in parts.
         </Step>
         <Step n={3} title="Subscribed — the announcements switch">
           Click the pill to flip it. It controls one thing: whether that member

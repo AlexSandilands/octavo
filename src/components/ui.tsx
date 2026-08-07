@@ -43,6 +43,13 @@ type ButtonProps = {
   onClick?: () => void;
   type?: "button" | "submit";
   disabled?: boolean;
+  /** Nothing left to do here, but the control stays reachable: it looks and
+   * behaves exactly like `disabled` without the attribute, so it keeps its
+   * place in the tab order and — the point — doesn't throw keyboard focus to
+   * <body> the moment it applies to the button someone is standing on (issue
+   * #131). Reach for it when a control switches off under the user's hands;
+   * plain `disabled` is still right for one that starts off. Buttons only. */
+  unavailable?: boolean;
   /** A working/loading state: disables the button but keeps it looking active
    * (no dimming) so a spinner or "Working…" label reads clearly. */
   busy?: boolean;
@@ -70,6 +77,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       onClick,
       type = "button",
       disabled = false,
+      unavailable = false,
       busy = false,
       className = "",
       "aria-label": ariaLabel,
@@ -78,6 +86,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref,
   ) {
     const isDisabled = disabled || busy;
+    // Every way of being unpressable, for the styling and the click guard —
+    // `unavailable` has no attribute doing either of those for it.
+    const inert = isDisabled || unavailable;
     const base = `${full ? "flex w-full" : "inline-flex"} items-center justify-center gap-2 rounded-lg font-sans font-semibold transition-[transform,background-color,border-color,box-shadow,color] duration-150 ease-out select-none`;
     const sizes = {
       md: "h-12 px-5 text-[15px]",
@@ -102,8 +113,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     // The hover/press feedback is composed in only when the button can actually
     // be pressed, so a disabled or busy one sits completely still. Gated here in
     // JS rather than with Tailwind's `enabled:` variant: `:enabled` never matches
-    // an <a>, so that would silently kill hover on the link branch below.
-    const state = isDisabled
+    // an <a>, so that would silently kill hover on the link branch below — nor
+    // would it match an `unavailable` button, which is enabled and shouldn't be.
+    const state = inert
       ? busy
         ? "cursor-default"
         : "cursor-default opacity-50"
@@ -128,8 +140,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         type={type}
-        onClick={onClick}
+        // Dropping the handler is what makes `unavailable` inert, for the mouse
+        // and for Enter/Space alike; there is no attribute doing it.
+        onClick={inert ? undefined : onClick}
         disabled={isDisabled}
+        aria-disabled={unavailable || undefined}
         aria-label={ariaLabel}
         title={title}
         className={cls}
@@ -152,19 +167,26 @@ export const IconButton = forwardRef<
     label: string;
     onClick?: () => void;
     size?: number;
+    disabled?: boolean;
     className?: string;
   }
 >(function IconButton(
-  { icon, label, onClick, size = 22, className = "" },
+  { icon, label, onClick, size = 22, disabled = false, className = "" },
   ref,
 ) {
+  // Same disabled treatment as Button: dimmed, no pointer, and the hover wash
+  // composed out entirely so it promises nothing it will not do (issue #117).
+  const state = disabled
+    ? "cursor-default opacity-50"
+    : "hover:bg-accent-wash hover:text-ink cursor-pointer";
   return (
     <button
       ref={ref}
       type="button"
       onClick={onClick}
+      disabled={disabled}
       aria-label={label}
-      className={`text-muted hover:bg-accent-wash hover:text-ink -m-2 inline-flex cursor-pointer items-center justify-center rounded-lg p-2 transition-[background-color,color] duration-150 ${className}`}
+      className={`text-muted -m-2 inline-flex items-center justify-center rounded-lg p-2 transition-[background-color,color] duration-150 ${state} ${className}`}
     >
       <Icon name={icon} size={size} strokeWidth={1.7} />
     </button>

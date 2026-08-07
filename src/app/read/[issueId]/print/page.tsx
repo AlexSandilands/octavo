@@ -4,7 +4,7 @@ import { getPublishedIssueByNumber } from "@/server/issues";
 import { resolveIssueImages } from "@/server/images";
 import { getLogoImage } from "@/server/logos";
 import { resolveIssueSponsors } from "@/server/sponsors";
-import { getSettings } from "@/server/settings";
+import { chromeFingerprint, getSettings } from "@/server/settings";
 import { settingsForIssue } from "@/lib/branding";
 import { verifyPrintToken } from "@/lib/pdf-token";
 
@@ -40,22 +40,39 @@ export default async function PrintPage({
     getSettings(),
   ]);
 
+  // The magazine's settings with the footer held to this issue's reserve
+  // (issue #128) — the resolution this page prints with, and the same one the
+  // download endpoint fingerprinted for the cache key. Resolved once here so
+  // the stamp below and the document below it cannot describe different things.
+  const printSettings = settingsForIssue(settings, issue);
+
   return (
-    <PrintDocument
-      content={issue.content}
-      issueNo={issue.number}
-      // The reader's theme is a member-facing toggle (client state, not stored
-      // on the issue), so the generator forwards the selection here; the
-      // download endpoint validated it against the registry. PrintDocument
-      // resolves it and degrades anything unknown to the reader's default.
-      theme={typeof theme === "string" ? theme : ""}
-      logo={logo}
-      // Clamped to the issue's footer reserve (issue #128) — the same
-      // resolution the download endpoint fingerprints for the cache key, so the
-      // printed page and the key it is stored under can't disagree.
-      settings={settingsForIssue(settings, issue)}
-      images={images}
-      sponsors={sponsors}
-    />
+    <>
+      {/* The chrome fingerprint of the settings THIS request resolved, stamped
+          into the document so the generator can check it before printing.
+          The download endpoint read settings in its own request and named them
+          in the cache key it will store these bytes under; a settings edit
+          landing in between, or a database blip degrading getSettings() here to
+          the deployment defaults (server/settings.ts), would print branding
+          that key doesn't describe — and every member would be served those
+          wrong bytes for that revision until the next edit re-keyed past them
+          (issue #127). The generator compares and refuses to store a mismatch;
+          see generateIssuePdf. React hoists this into <head>, so it costs the
+          printed page nothing. */}
+      <meta name="print-chrome" content={chromeFingerprint(printSettings)} />
+      <PrintDocument
+        content={issue.content}
+        issueNo={issue.number}
+        // The reader's theme is a member-facing toggle (client state, not stored
+        // on the issue), so the generator forwards the selection here; the
+        // download endpoint validated it against the registry. PrintDocument
+        // resolves it and degrades anything unknown to the reader's default.
+        theme={typeof theme === "string" ? theme : ""}
+        logo={logo}
+        settings={printSettings}
+        images={images}
+        sponsors={sponsors}
+      />
+    </>
   );
 }
