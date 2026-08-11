@@ -570,7 +570,32 @@ try {
     `the canvas did not pan or scroll (${before} → ${after})`,
   );
 
-  // ── 8. PublishModal (editor) ─────────────────────────────────────────────
+  // ── 8. VideoDialog (editor) ──────────────────────────────────────────────
+  // The video block's link panel (issue #161). Same shape as the montage one —
+  // portalled over the scaled editor canvas — so it owes the same two exits and
+  // the same isolation. Its block is inserted here rather than copied from the
+  // seed: an empty video block is exactly the state the dialog opens in first.
+  heading("VideoDialog");
+  await page.goto(`${base}/admin/issues/${issueId}/edit`);
+  await page.waitForSelector("button:has-text('Theme:')");
+  await page.click("button:has-text('Video')");
+  const videoTrigger = page.locator("button", {
+    hasText: /^Add a video link$/,
+  });
+  await videoTrigger.waitFor({ timeout: 15_000 });
+  await videoTrigger.click();
+  await page.waitForSelector("[role=dialog]");
+  await checkOpenDialog(page, "Video");
+  await checkEscapeRestores(page, "Add a video link");
+
+  await reopen(page, "button:has-text('Add a video link')");
+  await checkBackdropRestores(page, "Add a video link");
+  ok(
+    await videoTrigger.isVisible(),
+    "the closing press left the video block selected — the editor behind it never saw the click",
+  );
+
+  // ── 9. PublishModal (editor) ─────────────────────────────────────────────
   // The last dialog left outside the shell (#153). It always had the semantics
   // — role, aria-modal, a name — but no Escape, no trap and no focus restore,
   // and its backdrop was `absolute` against the editor rather than fixed to the
@@ -671,7 +696,7 @@ try {
   );
   await page.unroute(publishRoute);
 
-  // ── 9. Inertness over the dialog's lifetime (#154) ───────────────────────
+  // ── 10. Inertness over the dialog's lifetime (#154) ──────────────────────
   // Every section above already proves the page behind an *open* dialog is
   // inert. What is left is the sweep's lifetime: the list of siblings it
   // captured goes stale (React re-renders the tree under an open dialog

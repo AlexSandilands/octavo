@@ -15,6 +15,7 @@ import { ImageBlockControl } from "./image-upload";
 import { ImageLayoutControls } from "./image-layout";
 import { HeadingLevelControl } from "./heading-level-control";
 import { MontageBlockControl } from "./montage-control";
+import { VideoBlockControl } from "./video-control";
 import { SponsorPicker } from "./sponsor-picker";
 import { RichTextEditor } from "./rich-text-editor";
 
@@ -191,6 +192,29 @@ export function EditorBlock({
                   <span className="bg-line h-5 w-px" />
                   {/* Placement/size are the image block's controls verbatim —
                       a montage occupies a photo slot, so it sizes like one. */}
+                  <ImageLayoutControls
+                    align={block.align ?? "full"}
+                    width={block.width ?? 100}
+                    onChange={onChange}
+                  />
+                </>
+              )}
+            </div>
+          ) : block.type === "video" ? (
+            <div className="border-hair absolute bottom-full left-0 z-20 mb-2 flex items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap shadow-[0_4px_14px_rgba(40,36,28,0.16)]">
+              <VideoBlockControl
+                videoId={block.videoId}
+                posterImageId={block.posterImageId}
+                issueId={issueId}
+                images={images}
+                onChange={onChange}
+                onRegisterImage={onRegisterImage}
+              />
+              {block.videoId && (
+                <>
+                  <span className="bg-line h-5 w-px" />
+                  {/* Placement/size are the image block's controls verbatim —
+                      a video occupies a photo slot, so it sizes like one. */}
                   <ImageLayoutControls
                     align={block.align ?? "full"}
                     width={block.width ?? 100}

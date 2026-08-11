@@ -73,6 +73,17 @@ export const SEED_IMAGES = [
     palette: petanque,
     style: { kind: "field", motif: "rings" },
   },
+  // The video block's poster (content v5, issue #161). 16:9 because that is the
+  // shape a video frame is, and the seed must generate its own bytes — a poster
+  // is normally captured from YouTube at edit time, but the seed never touches
+  // the network, so this stands in for one.
+  {
+    key: "finals",
+    width: 1600,
+    height: 900,
+    palette: petanque,
+    style: { kind: "duotone", motif: "arcs" },
+  },
   // Aperture (camera club — modern theme, image-led)
   {
     key: "silver",

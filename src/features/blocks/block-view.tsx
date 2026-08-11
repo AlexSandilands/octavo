@@ -9,6 +9,8 @@ import { RichText } from "./rich-text";
 import { Editable } from "./editable";
 import { MontageStill, resolveMontageSlides } from "./montage";
 import { MontagePlayer } from "./montage-player";
+import { VideoLink, VideoStill } from "./video";
+import { VideoPlayer } from "./video-player";
 
 // A resolved image, scaled to its container width at its natural aspect ratio.
 // next/image needs intrinsic dimensions; older records may lack them, so fall
@@ -276,6 +278,50 @@ export function BlockView({
             theme.image.caption(
               f((v) => ({ caption: v }), block.caption, "Caption (optional)"),
             )}
+        </figure>
+      );
+    }
+
+    case "video": {
+      // Content v5. Same figure and caption treatment as an image block — a
+      // video occupies a photo slot that happens to move — so it picks up the
+      // theme's frame for free, in a 16:9 box. On the read path it plays behind
+      // a facade (no third-party frame until the member presses play);
+      // everywhere else (print/PDF, the editor canvas, the library thumbnail) it
+      // is the poster plus the address in readable text.
+      const poster = block.posterImageId
+        ? images?.[block.posterImageId]
+        : undefined;
+      const picture = !block.videoId ? (
+        <div className={theme.image.placeholder.box}>
+          <span className={theme.image.placeholder.label}>
+            {block.caption || "VIDEO"}
+          </span>
+        </div>
+      ) : interactive ? (
+        <VideoPlayer
+          videoId={block.videoId}
+          poster={poster}
+          label={block.caption}
+        />
+      ) : (
+        <VideoStill poster={poster} priority={priority} />
+      );
+      const showCaption = edit || block.caption;
+      return (
+        <figure>
+          {picture}
+          {showCaption &&
+            theme.image.caption(
+              f((v) => ({ caption: v }), block.caption, "Caption (optional)"),
+            )}
+          {/* The address, under the caption, on every non-playing surface — it
+              is the whole point of the printed representation. In the editor it
+              renders as text rather than a link: an admin mid-edit clicking
+              their own page's furniture should not leave the editor. */}
+          {!interactive && block.videoId && (
+            <VideoLink videoId={block.videoId} asLink={!edit} />
+          )}
         </figure>
       );
     }

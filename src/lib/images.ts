@@ -14,10 +14,13 @@ export type ResolvedImage = {
 // imageId -> resolved R2 image.
 export type ImageMap = Record<string, ResolvedImage>;
 
-// Every imageId referenced by image *or* montage blocks in an issue (deduped).
-// Accepts any pages-holding shape so callers can resolve a subset (e.g. just
-// the covers). A montage contributes one id per slide, so a single resolve call
-// still gives the renderers everything a page needs.
+// Every imageId referenced by an issue's blocks (deduped) — image, montage and
+// video alike. Accepts any pages-holding shape so callers can resolve a subset
+// (e.g. just the covers). A montage contributes one id per slide and a video its
+// stored poster frame, so a single resolve call still gives the renderers
+// everything a page needs. This is the only traversal that feeds the ImageMap,
+// so a block type that references an image and is missed here resolves to
+// nothing on every surface at once.
 export function collectImageIds(
   content: Pick<IssueContent, "pages">,
 ): string[] {
@@ -27,6 +30,9 @@ export function collectImageIds(
       if (block.type === "image" && block.imageId) ids.add(block.imageId);
       if (block.type === "montage") {
         for (const item of block.items) ids.add(item.imageId);
+      }
+      if (block.type === "video" && block.posterImageId) {
+        ids.add(block.posterImageId);
       }
     }
   }
