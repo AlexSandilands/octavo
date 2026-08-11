@@ -10,13 +10,16 @@ import type { Block } from "@/lib/blocks";
 const GAP = 14; // px — matches the old flex gap-3.5
 const FLOAT_GUTTER = 18; // px between a floated image and the wrapping text
 
-// The picture-shaped blocks: a single image and a montage of them. They share
-// the align/width fields and therefore the identical flow rules, so a montage
-// drops into a layout wherever a photo would (issue #95).
-type PictureBlock = Extract<Block, { type: "image" | "montage" }>;
+// The picture-shaped blocks: a single image, a montage of them, and a video
+// (which is a poster frame until someone plays it). They share the align/width
+// fields and therefore the identical flow rules, so a montage (issue #95) or a
+// video (issue #161) drops into a layout wherever a photo would.
+type PictureBlock = Extract<Block, { type: "image" | "montage" | "video" }>;
 
 export function isPictureBlock(block: Block): block is PictureBlock {
-  return block.type === "image" || block.type === "montage";
+  return (
+    block.type === "image" || block.type === "montage" || block.type === "video"
+  );
 }
 
 // A picture block that floats, so the text after it wraps alongside. The editor

@@ -7,6 +7,7 @@ import {
   type SeedImages,
   Spon,
   T,
+  Vid,
 } from "./builders";
 
 // No. 1 — The Boule & Bay Gazette. The archetypal small-club quarterly: classic
@@ -90,6 +91,24 @@ export const issue01 = (img: SeedImages) =>
       H("The Release", "", "paragraph"),
       T(
         "Release low and release early. The commonest beginner's fault is to hang on a fraction too long, lofting the boule so it lands flat and skids. Let it go while your hand is still rising and your knuckles are barely above your knee. It will feel wrong for about three hundred throws. Then, one Tuesday twilight, it will feel like the only sensible way a person could possibly let go of anything, and you will wonder how you ever did otherwise.",
+      ),
+    ]),
+
+    // The video block (content v5, issue #161): the club films its finals and
+    // now has somewhere to put the footage. Plays inline in both readers behind
+    // a poster; prints as that poster plus the address, since paper cannot play.
+    page([
+      H("The Last End, in Full", "Watch", "main"),
+      T(
+        "Douglas from the Tuesday twilight crowd has filmed every final since he was given a camera for his seventieth, and this year he finally let us have the file. Nine minutes, one fixed angle, no commentary but the gravel — which is, we think, exactly right.",
+      ),
+      Vid("kQ9dTvW2rXs", img.finals, {
+        caption:
+          "The deciding end of the Winter Doubles, filmed from the northern boards.",
+      }),
+      T(
+        "Watch Margaret's second boule at four minutes in. She does not look at the cochonnet once.",
+        "s",
       ),
     ]),
 

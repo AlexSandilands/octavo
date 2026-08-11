@@ -91,8 +91,11 @@ const themeSchema = z
 // the chrome segment fingerprints a per-issue resolution rather than the global
 // one — the same values on the day it ships (the migration backfilled every
 // issue from the settings then in force), but the segment's meaning changed,
-// and the blanket rule covers that too.
-const RENDER_VERSION = 7;
+// and the blanket rule covers that too. v8: video blocks (issue #161) — a new
+// block type the print document renders (its poster frame plus the address in
+// visible text, since a PDF cannot play anything), so every cached PDF must be
+// rebuilt from the current renderer, exactly as v3's montage bump did.
+const RENDER_VERSION = 8;
 
 // Percent-encode for an RFC 8187 ext-value (the `filename*=UTF-8''…` form).
 // Only attr-char may appear bare there: ALPHA / DIGIT / "!" / "#" / "$" / "&" /

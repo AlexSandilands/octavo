@@ -87,6 +87,32 @@ export const Mont = (
   align: opts.align ?? "full",
   width: opts.width ?? 100,
 });
+// A video (content v5): a YouTube video id plus the poster frame we hold
+// ourselves, played behind a facade in the readers and printed as poster + link.
+// Sizing/placement mirror Img, since a video occupies the same kind of slot.
+//
+// The id is a plausible fake — the seed is self-contained and must never reach
+// the network, so nothing here resolves to a real video, and the poster is
+// generated art like every other seed image. An admin pasting a real link in the
+// editor is what captures a real poster.
+export const Vid = (
+  videoId: string,
+  posterImageId: string,
+  opts: {
+    caption?: string;
+    align?: "full" | "left" | "right";
+    width?: number;
+  } = {},
+): Block => ({
+  id: id(),
+  type: "video",
+  provider: "youtube",
+  videoId,
+  posterImageId,
+  caption: opts.caption ?? "",
+  align: opts.align ?? "full",
+  width: opts.width ?? 100,
+});
 export const Spon = (name: string, href?: string): Block => ({
   id: id(),
   type: "sponsor",

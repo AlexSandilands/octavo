@@ -48,6 +48,11 @@ const ICONS: Record<string, ReactNode> = {
       <rect x="13" y="13" width="7" height="7" rx="1" />
     </>
   ),
+  // Solid, not outlined: at the sizes this is used (a 30px play disc, an 11px
+  // run-in mark on the printed link) a hollow triangle reads as a shape rather
+  // than a play button. Every other icon here is a stroke, so it fills with
+  // currentColor and cancels the shared stroke explicitly.
+  play: <path d="M8 5.5l10 6.5-10 6.5z" fill="currentColor" stroke="none" />,
   banner: (
     <>
       <path d="M4 7h16v10H4z" />

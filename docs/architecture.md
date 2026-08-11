@@ -33,10 +33,12 @@ src/
       actions.ts       server actions (mutations)
       issues/[id]/edit editor (standalone full-screen)
     api/admin/images/  image upload route handler (multipart → sharp → R2)
+    api/admin/video-poster/  captures a YouTube poster frame into that same
+                       pipeline (the app's only outbound fetch)
   components/          shared presentational UI (ui.tsx, icons.tsx, admin-shell, ...)
   features/            feature modules with their own UI/logic
-    blocks/            BlockView — themed block renderer (+ the montage widget);
-                       page-frame + page-footer — the shared page chrome
+    blocks/            BlockView — themed block renderer (+ the montage and
+                       video widgets); page-frame + page-footer — page chrome
     magazine/          the magazine-details settings form + its live page preview
     editor/            the page-based editor (client) + per-block edit controls
     reader/            desktop-reader, mobile-reader (client)
@@ -74,14 +76,15 @@ scripts/               dev-only helpers (not part of the app), e.g. the headless
 
 An **issue** owns one JSON document (`content`) shaped as **pages → ordered blocks**. This is the
 **source of truth**; the reader and editor both render from it, and the PDF derives from it.
-Block types: `heading | text | image | montage | sponsor`. Defined once in
+Block types: `heading | text | image | montage | video | sponsor`. Defined once in
 [`src/lib/blocks.ts`](../src/lib/blocks.ts) as zod schemas + inferred types, imported everywhere
 (editor, reader, DB column type). See [database.md](database.md) for how it's stored.
 
 `BlockView` renders every one of them, and takes an **`interactive`** flag that only the two readers
 set. It marks the render paths where a block may animate and be driven by the member; the print/PDF
 document, the editor canvas and the library thumbnail leave it off and get one deterministic frame
-with no client JS. Today the only block that reads it is `montage` (player vs. first slide).
+with no client JS. Two blocks read it: `montage` (player vs. first slide) and `video` (a play-button
+facade vs. the poster frame plus the address in printable text).
 
 **Pagination happens once, in the editor.** Content never reflows at read time — a page is a fixed
 canvas, and what the author placed is what every reader and the PDF get. So when a page overruns,

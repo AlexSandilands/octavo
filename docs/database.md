@@ -98,6 +98,36 @@ canvas, the library cover thumbnail — it renders `MontageStill`, its **first s
 timer and no client JS. That is what makes the PDF deterministic, and why `RENDER_VERSION` in the
 PDF route was bumped alongside this.
 
+**Content v5 (issue #161) — the `video` block.** A YouTube video, carrying the image block's
+`caption`/`align`/`width` (so it is a "picture block" to `blockFlowStyle` like a montage is) in a box
+that is always 16:9. What is stored is the **extracted video id** (`videoId`, 11 characters of the
+URL-safe base64 alphabet, regex-validated in the schema), never the pasted URL: the editor parses the
+link at the boundary (`src/lib/youtube.ts`, shared with the server) and everything downstream — the
+embed src, the poster fetch, the printed address — is composed from a hardcoded template with that id
+in it. A link that doesn't parse is refused in the editor with a readable message and never reaches
+the document. `provider` is stored (`"youtube"` today) so a second service later is a widened enum
+rather than a migration.
+
+The **poster frame is ours**: on applying a link the editor calls `POST /api/admin/video-poster`,
+which fetches `i.ytimg.com/vi/<id>/maxresdefault.jpg` (falling back to `hqdefault.jpg`, which every
+video has) and puts the bytes through the ordinary upload pipeline — `processImage` → `putObject` →
+`createImageRecord` — so `posterImageId` is an `images` row indistinguishable from an upload. That is
+why the readers hit no Google origin until someone presses play, and why the poster prints at all.
+The trade, decided in the issue thread: a poster goes stale if the uploader changes their thumbnail,
+and re-pasting the link refreshes it. `collectImageIds` resolves `posterImageId` alongside image and
+montage ids — it is the single traversal feeding the `ImageMap`, so a poster missed there would be
+missing on every surface at once.
+
+Where it plays is again a **render-path** decision: with `interactive`, the block mounts the client
+`VideoPlayer` — a facade showing the poster and one large play button, which injects a
+`youtube-nocookie.com` iframe only on activation (never autoplaying on load, and moving focus into
+the frame so the keyboard isn't dropped). Without it — print/PDF, the editor canvas, the library
+thumbnail — it renders `VideoStill`: the poster, a play mark, and the address as visible text
+(`youtu.be/<id>`, a real link on the print page so Chromium emits a PDF link annotation). A PDF
+cannot play video, so that pair is its deterministic single representation, the same call the montage
+makes by printing only its first slide — and the same reason `RENDER_VERSION` was bumped with it. The
+embed is also the one thing the CSP's `frame-src` allows (`src/middleware.ts`).
+
 Defined as zod schemas + inferred types in [`src/lib/blocks.ts`](../src/lib/blocks.ts) and applied to
 the column via `jsonb(...).$type<IssueContent>()`.
 
@@ -210,6 +240,23 @@ one-off migration and none is needed — nothing about the older shapes changed 
 The seed authors the new shape rather than leaning on the fallback (issue-02, the camera-club
 quarterly, carries a three-slide montage with per-slide alt text), and issue-05's deliberately
 legacy-shaped page stays exactly as it was.
+
+### The v5 bump (issue #161) — a new block type, purely additive
+
+The same cheap kind of bump, on the same terms: a version-1…4 document contains no video blocks, so
+it parses and renders **byte-for-byte unchanged**, gains none of v5's fields, and no stored row is
+rewritten or migrated. `CONTENT_VERSION` moves to `5`; new documents and any resave stamp it. There
+is no one-off migration and none is needed.
+
+The seed authors the new shape (issue-01, the pétanque quarterly, carries a video with a caption and
+a stored poster) and stays self-contained: the video id is a plausible fake and the poster is
+generated art from the `SEED_IMAGES` manifest — the seed never reaches the network, so it never
+fetches a real thumbnail.
+
+`scripts/dev-video-gate.mts` checks all of it in memory (link forms accepted and refused, the seed's
+shape, the poster reaching `collectImageIds`, a malformed id rejected by the schema, and a v4
+document surviving untouched) — **run that, never `npm run db:seed`**, which wipes every authored
+issue.
 
 ### A version bump includes updating the seed
 

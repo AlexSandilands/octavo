@@ -8,6 +8,7 @@ const INSERT: { type: BlockType; label: string; icon: IconName }[] = [
   { type: "text", label: "Text", icon: "menu" },
   { type: "image", label: "Image", icon: "image" },
   { type: "montage", label: "Montage", icon: "grid" },
+  { type: "video", label: "Video", icon: "play" },
   { type: "sponsor", label: "Sponsor", icon: "banner" },
 ];
 

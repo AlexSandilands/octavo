@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createId } from "./id";
 import { richTextValueSchema } from "./rich-text-doc";
+import { YOUTUBE_ID_RE } from "./youtube";
 
 // The canonical content model. Editor, reader and (later) PDF all speak this.
 // An issue is pages → ordered blocks; stored as one JSONB document on the issue.
@@ -109,6 +110,35 @@ export const montageBlockSchema = z.object({
   width: z.number().min(20).max(100).default(100),
 });
 
+export const videoBlockSchema = z.object({
+  id: z.string().max(ID_MAX),
+  type: z.literal("video"),
+  // Which service hosts the video. Only YouTube ships (issue #161), but the
+  // field is stored from day one so adding a second provider later is a widened
+  // enum rather than a migration: every existing block already says which one it
+  // is. Defaulted, so a document written before the field existed still parses.
+  provider: z.literal("youtube").default("youtube"),
+  // The *extracted* video id, never the pasted URL — 11 characters of the
+  // URL-safe base64 alphabet, validated here as well as at the paste boundary,
+  // because this is what the embed src and the poster URL are built from. See
+  // lib/youtube.ts. Optional like the image block's `imageId`: a freshly
+  // inserted block has no video yet and renders the placeholder.
+  videoId: z.string().regex(YOUTUBE_ID_RE).optional(),
+  // The poster frame, fetched once at edit time and stored through the ordinary
+  // image pipeline (an `images` row like any upload). Holding our own copy is
+  // what lets the readers show the video without touching a Google origin until
+  // someone presses play — and it is what makes the poster printable, since the
+  // PDF container already reaches R2 and reaches nothing else.
+  posterImageId: z.string().max(ID_MAX).optional(),
+  caption: z.string().max(SHORT_TEXT_MAX).default(""),
+  // Placement/sizing are the image block's fields verbatim (same flow rules in
+  // blockFlowStyle), so a video drops into a layout wherever a photo would. The
+  // box itself is always 16:9 — the frame's shape belongs to the video, not to
+  // the page.
+  align: z.enum(["full", "left", "right"]).default("full"),
+  width: z.number().min(20).max(100).default(100),
+});
+
 export const sponsorBlockSchema = z.object({
   id: z.string().max(ID_MAX),
   type: z.literal("sponsor"),
@@ -131,6 +161,7 @@ export const blockSchema = z.discriminatedUnion("type", [
   textBlockSchema,
   imageBlockSchema,
   montageBlockSchema,
+  videoBlockSchema,
   sponsorBlockSchema,
 ]);
 
@@ -165,7 +196,15 @@ export const pageSchema = z.object({
 // version-1…3 document (which has no montage blocks) parses and renders
 // unchanged, and no stored row is rewritten. New documents and any resave stamp
 // version 4. The print/PDF path renders only the first image, deterministically.
-export const CONTENT_VERSION = 4;
+//
+// v5 (issue #161): a new `video` block type — a YouTube video, stored as the
+// extracted video id plus a poster frame we hold ourselves (an ordinary
+// `images` row), played inline in the readers behind a facade that loads no
+// third-party frame until the member presses play. Additive in exactly the way
+// v4 was: a version-1…4 document has no video blocks, so it parses and renders
+// unchanged and no stored row is rewritten. The print/PDF path renders the
+// poster plus the visible link, deterministically — a PDF cannot play video.
+export const CONTENT_VERSION = 5;
 
 export const issueContentSchema = z.object({
   version: z.number().int().min(1).default(CONTENT_VERSION),
@@ -195,6 +234,7 @@ export const BLOCK_TYPES: BlockType[] = [
   "text",
   "image",
   "montage",
+  "video",
   "sponsor",
 ];
 
@@ -253,6 +293,15 @@ export function makeBlock(type: BlockType): Block {
         items: [],
         caption: "",
         interval: MONTAGE_DEFAULT_INTERVAL,
+        align: "full",
+        width: 100,
+      };
+    case "video":
+      return {
+        id,
+        type,
+        provider: "youtube",
+        caption: "",
         align: "full",
         width: 100,
       };

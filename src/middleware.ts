@@ -102,6 +102,13 @@ function buildCsp(nonce: string): string {
     // inherited from default-src, so no existing request is affected.
     `connect-src 'self'${sentryOrigin ? ` ${sentryOrigin}` : ""}`,
     "font-src 'self'",
+    // The one third-party frame the app may embed: a video block's player
+    // (issue #161), and only after the member presses play — the readers show
+    // our own stored poster until then. Named exactly, and only the
+    // no-cookie host, so nothing else can be framed. This governs what *we*
+    // embed; `frame-ancestors 'none'` below governs who may embed us and is
+    // untouched. Mirrors how img-src and connect-src opt in R2 and Sentry.
+    "frame-src https://www.youtube-nocookie.com",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
