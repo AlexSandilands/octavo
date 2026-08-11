@@ -20,9 +20,11 @@ import { parseYouTubeId, youtubeWatchLabel } from "@/lib/youtube";
 // Pressing "Use this link" captures the poster through POST
 // /api/admin/video-poster — the ordinary image pipeline with a fetch on the
 // front of it — and hands the stored image back to the editor so the canvas
-// previews immediately. Every edit writes back through the block's normal
-// `onChange`, so it rides the existing autosave; this dialog persists nothing
-// itself.
+// previews immediately. Pressing it on the link already in use ("Refresh
+// image") captures it again: our copy of the poster is a snapshot, and taking
+// it again is the documented way to catch up with a thumbnail the uploader has
+// since changed. Every edit writes back through the block's normal `onChange`,
+// so it rides the existing autosave; this dialog persists nothing itself.
 
 export function VideoDialog({
   videoId,
@@ -57,6 +59,11 @@ export function VideoDialog({
   const parsed = parseYouTubeId(url);
   const unusable = typed !== "" && !parsed;
   const poster = posterImageId ? images[posterImageId] : undefined;
+  // The link already in use. It does NOT disable the button: capturing the same
+  // link again is how a poster is refreshed after the uploader changes their
+  // thumbnail, which is the accepted cost of holding our own copy (issue #161).
+  // It only changes what the button calls itself, so pressing it says what it
+  // will do rather than repeating "use this link" at someone already using it.
   const isCurrent = Boolean(parsed && parsed === videoId);
 
   const apply = async () => {
@@ -78,8 +85,9 @@ export function VideoDialog({
       });
       onChangeVideo({ videoId: parsed, posterImageId: data.imageId });
     } catch (err) {
-      // The video is only set once its poster is stored, so a failure here
-      // leaves the block exactly as it was rather than half-applied.
+      // The block is only written once the poster is stored, so a failure here
+      // leaves it exactly as it was rather than half-applied — a refresh that
+      // fails keeps the poster it already had.
       setError(
         err instanceof Error ? err.message : "Could not add that video.",
       );
@@ -187,8 +195,8 @@ export function VideoDialog({
                   </div>
                   <p className="text-faint2 min-w-0 font-sans text-[12.5px]">
                     Kept as our own copy, so readers load nothing from YouTube
-                    until they press play — and so it prints. Paste the link
-                    again to refresh it.
+                    until they press play — and so it prints. If it changes on
+                    YouTube, press Refresh image to take it again.
                   </p>
                 </div>
               ) : (
@@ -224,9 +232,15 @@ export function VideoDialog({
                 variant="secondary"
                 onClick={() => void apply()}
                 busy={busy}
-                disabled={!parsed || isCurrent}
+                disabled={!parsed}
               >
-                {busy ? "Adding…" : isCurrent ? "Link in use" : "Use this link"}
+                {busy
+                  ? isCurrent
+                    ? "Refreshing…"
+                    : "Adding…"
+                  : isCurrent
+                    ? "Refresh image"
+                    : "Use this link"}
               </Button>
               <Button
                 onClick={onClose}
