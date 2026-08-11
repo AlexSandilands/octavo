@@ -1,6 +1,7 @@
 import type { Page } from "@/lib/blocks";
 import type { SiteSettings } from "@/lib/branding";
 import type { ImageMap } from "@/lib/images";
+import type { SponsorMap } from "@/lib/sponsors";
 import { BlockView } from "@/features/blocks/block-view";
 import { resolveTheme } from "@/features/blocks/themes/registry";
 import { blockFlowStyle } from "@/features/blocks/layout";
@@ -23,6 +24,7 @@ export function CoverThumb({
   page,
   theme,
   images,
+  sponsors,
   issueNo,
   settings,
   width,
@@ -31,6 +33,11 @@ export function CoverThumb({
   page: Page;
   theme: string;
   images: ImageMap;
+  /** Required, like `images`: a cover's sponsor blocks store only a `sponsorId`
+   *  (content v2), and BlockView renders a managed reference it cannot resolve
+   *  as nothing at all. Without the map the block would silently vanish from an
+   *  otherwise to-scale render (issue #170), so every caller must resolve it. */
+  sponsors: SponsorMap;
   issueNo: number;
   /** The magazine's effective branding + footer appearance (issue #105) — the
    *  thumbnail is a real page render, chrome and all. */
@@ -66,6 +73,7 @@ export function CoverThumb({
                   block={b}
                   theme={resolved}
                   images={images}
+                  sponsors={sponsors}
                   variant={page.cover ? "cover" : undefined}
                   priority={priority}
                   anchors={false}

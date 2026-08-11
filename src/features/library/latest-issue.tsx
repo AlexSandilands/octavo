@@ -3,6 +3,7 @@ import { Button, Kicker, Label } from "@/components/ui";
 import type { SiteSettings } from "@/lib/branding";
 import type { IssueContent, Page } from "@/lib/blocks";
 import type { ImageMap } from "@/lib/images";
+import type { SponsorMap } from "@/lib/sponsors";
 import { CoverThumb } from "./cover-thumb";
 import { DownloadPdfButton } from "./download-pdf-button";
 import { issueMonth, issueSections } from "./contents";
@@ -15,6 +16,9 @@ type LatestIssueProps = {
   theme: string;
   cover?: Page;
   images: ImageMap;
+  /** Resolved managed sponsors for the cover pages — the thumbnail needs them
+   *  to draw a sponsor block the same way the reader does (issue #170). */
+  sponsors: SponsorMap;
   /** The magazine's effective branding + footer appearance (issue #105). */
   settings: SiteSettings;
 };
@@ -29,6 +33,7 @@ export function LatestIssue({
   theme,
   cover,
   images,
+  sponsors,
   settings,
 }: LatestIssueProps) {
   const pageCount = content.pages.length;
@@ -52,6 +57,7 @@ export function LatestIssue({
               page={cover}
               theme={theme}
               images={images}
+              sponsors={sponsors}
               issueNo={number}
               settings={settings}
               width={240}

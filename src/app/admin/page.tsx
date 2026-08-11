@@ -5,6 +5,7 @@ import { EmptyIssues } from "@/components/empty-states";
 import { coverPageOf, type Page } from "@/lib/blocks";
 import { listIssues } from "@/server/issues";
 import { resolveIssueImages } from "@/server/images";
+import { resolveIssueSponsors } from "@/server/sponsors";
 import { requireAdminOrRedirect } from "@/server/session";
 import { getSettings } from "@/server/settings";
 import { settingsForIssue } from "@/lib/branding";
@@ -28,12 +29,17 @@ export default async function AdminDashboard() {
   const issues = await listIssues();
   const draftCount = issues.filter((i) => i.status === "draft").length;
 
-  // Resolve every cover's images in one query, then render each issue's cover
-  // page as its thumbnail (shared map; extra ids are harmless per thumb).
+  // Resolve every cover's images and managed sponsors in one query each, then
+  // render each issue's cover page as its thumbnail (shared maps; extra ids are
+  // harmless per thumb). The row thumbnail runs the same pipeline the library
+  // does, so it needs the same resolutions (issue #170).
   const covers = issues
     .map((i) => coverPageOf(i.content))
     .filter((p): p is Page => Boolean(p));
-  const coverImages = await resolveIssueImages({ pages: covers });
+  const [coverImages, coverSponsors] = await Promise.all([
+    resolveIssueImages({ pages: covers }),
+    resolveIssueSponsors({ pages: covers }),
+  ]);
 
   return (
     <AdminShell active="issues" user={admin}>
@@ -84,6 +90,7 @@ export default async function AdminDashboard() {
                         page={cover}
                         theme={i.theme}
                         images={coverImages}
+                        sponsors={coverSponsors}
                         issueNo={i.number}
                         settings={settingsForIssue(settings, i)}
                         width={THUMB_W}
