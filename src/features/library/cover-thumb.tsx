@@ -15,7 +15,10 @@ import {
 // thumbnail. Reuses the exact reader pipeline (PageFrame + BlockView + the cover
 // variant) at a small fixed scale, so it always matches what the editor shows —
 // no screenshots or separate render path. Read-only and inert (no `edit`), so it
-// renders server-side with no client JS.
+// renders server-side with no client JS — and `anchors={false}`, because both
+// library surfaces wrap this whole render in a card-sized <Link href="/read/…">
+// and a page carrying a sponsor link or a video address would otherwise nest an
+// <a> inside that one (issue #166).
 export function CoverThumb({
   page,
   theme,
@@ -65,6 +68,7 @@ export function CoverThumb({
                   images={images}
                   variant={page.cover ? "cover" : undefined}
                   priority={priority}
+                  anchors={false}
                 />
               </div>
             ))}

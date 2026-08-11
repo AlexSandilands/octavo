@@ -81,6 +81,7 @@ export function BlockView({
   variant,
   priority = false,
   interactive = false,
+  anchors = true,
 }: {
   block: Block;
   theme: LayoutTheme;
@@ -100,6 +101,18 @@ export function BlockView({
    * currently the difference between a playing montage and its first slide.
    */
   interactive?: boolean;
+  /**
+   * Whether this surface may emit real <a> elements — the sponsor card's link
+   * and the video block's address line. Cleared by the library thumbnail, which
+   * renders a whole page *inside* its card's own <Link href="/read/…">: an
+   * anchor nested in an anchor is invalid HTML that the parser splits apart, so
+   * the server markup and the client tree disagree (hydration mismatch) and the
+   * inner link claims part of the card's click area. With it off both render
+   * their identical text as a <span>. Left on everywhere else — in particular
+   * the print/PDF document, where the real <a> is what Chromium's page.pdf()
+   * turns into the PDF's live link annotation.
+   */
+  anchors?: boolean;
 }) {
   // A text field: editable in place when `edit` is set, otherwise the raw
   // text. The caller supplies the patch shape, so writes stay typed per block.
@@ -320,7 +333,7 @@ export function BlockView({
               renders as text rather than a link: an admin mid-edit clicking
               their own page's furniture should not leave the editor. */}
           {!interactive && block.videoId && (
-            <VideoLink videoId={block.videoId} asLink={!edit} />
+            <VideoLink videoId={block.videoId} asLink={!edit && anchors} />
           )}
         </figure>
       );
@@ -360,7 +373,10 @@ export function BlockView({
           ? f((v) => ({ href: v }), block.href ?? "", "https://link (optional)")
           : null,
       });
-      return link ? (
+      // The card still takes `link` when anchors are off, so the affordance it
+      // draws from it (the "→", the "Visit the store" line) is unchanged — the
+      // thumbnail is a to-scale render of the page, not a different page.
+      return link && anchors ? (
         <a
           href={link}
           target="_blank"

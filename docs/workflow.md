@@ -77,6 +77,7 @@ The durable lessons:
 | The content model (`CONTENT_VERSION`) | Update the seed to author the new shape, keep one deliberate legacy page (see `docs/database.md`)                              |
 | The members CSV parser                | `npx tsx scripts/check-parse-members-csv.mts` — the header/delimiter cases an admin's export throws at it (#94)                |
 | Any modal dialog                      | `npx tsx scripts/dev-dialog-a11y-gate.mts <base-url>` — role/name, Escape, the focus trap and focus restore, per dialog (#130) |
+| A block that can render a link        | `npx tsx --tsconfig scripts/tsconfig.json scripts/dev-thumb-anchor-gate.mts` — the thumbnail must emit no `<a>` (#166)         |
 | New pages / inline scripts            | CSP is nonce-based in `src/middleware.ts` — pages must render dynamically; no new inline styles/scripts                        |
 | Every change                          | `npm run lint`, `npx tsc --noEmit`, prettier on touched files, and a production build (plain `npm run build`; see below)       |
 
