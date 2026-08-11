@@ -7,6 +7,7 @@ import {
   type SiteSettings,
 } from "@/lib/branding";
 import type { ImageMap } from "@/lib/images";
+import type { SponsorMap } from "@/lib/sponsors";
 import { PAGE_W, PAGE_H } from "@/features/blocks/page-frame";
 import { CoverThumb } from "./cover-thumb";
 
@@ -71,10 +72,14 @@ function groupByYear(items: ArchiveItem[]): YearGroup[] {
 export function ArchiveGrid({
   items,
   images,
+  sponsors,
   settings,
 }: {
   items: ArchiveItem[];
   images: ImageMap;
+  /** Resolved managed sponsors for the cover pages — the thumbnail needs them
+   *  to draw a sponsor block the same way the reader does (issue #170). */
+  sponsors: SponsorMap;
   /** The magazine's effective branding + footer appearance (issue #105). */
   settings: SiteSettings;
 }) {
@@ -95,6 +100,7 @@ export function ArchiveGrid({
                   item={a}
                   index={idx}
                   images={images}
+                  sponsors={sponsors}
                   settings={settings}
                 />
               ))}
@@ -112,11 +118,13 @@ function ArchiveCard({
   item: a,
   index,
   images,
+  sponsors,
   settings,
 }: {
   item: ArchiveItem;
   index: number;
   images: ImageMap;
+  sponsors: SponsorMap;
   settings: SiteSettings;
 }) {
   const tint = ARCHIVE_TINTS[index % ARCHIVE_TINTS.length] ?? "#cdbfa6";
@@ -132,6 +140,7 @@ function ArchiveCard({
             page={a.cover}
             theme={a.theme}
             images={images}
+            sponsors={sponsors}
             issueNo={a.number}
             settings={settingsForIssue(settings, a)}
             width={THUMB_W}

@@ -6,6 +6,7 @@ import { initials } from "@/lib/initials";
 import { coverPageOf, type Page } from "@/lib/blocks";
 import { listIssues } from "@/server/issues";
 import { resolveIssueImages } from "@/server/images";
+import { resolveIssueSponsors } from "@/server/sponsors";
 import { requireMemberOrRedirect } from "@/server/session";
 import { getSettings } from "@/server/settings";
 import { settingsForIssue } from "@/lib/branding";
@@ -30,12 +31,19 @@ export default async function LibraryPage() {
     .filter((y): y is number => y != null);
   const estYear = years.length ? Math.min(...years) : null;
 
-  // Resolve every cover's images in one query, then render each issue's cover
-  // page as its thumbnail (shared map; extra ids are harmless per thumb).
+  // Resolve every cover's images and managed sponsors in one query each, then
+  // render each issue's cover page as its thumbnail (shared maps; extra ids are
+  // harmless per thumb). Both traverse only the cover pages, so neither reads a
+  // row the shelf can't draw. The sponsors half matters because a managed
+  // sponsor block carries nothing but its id — unresolved, BlockView renders it
+  // as nothing and the block drops out of a supposedly to-scale render (#170).
   const covers = published
     .map((i) => coverPageOf(i.content))
     .filter((p): p is Page => Boolean(p));
-  const coverImages = await resolveIssueImages({ pages: covers });
+  const [coverImages, coverSponsors] = await Promise.all([
+    resolveIssueImages({ pages: covers }),
+    resolveIssueSponsors({ pages: covers }),
+  ]);
 
   return (
     <main className="mx-auto max-w-5xl px-5 py-6 sm:px-8 sm:py-10">
@@ -86,6 +94,7 @@ export default async function LibraryPage() {
             theme={latest.theme}
             cover={coverPageOf(latest.content)}
             images={coverImages}
+            sponsors={coverSponsors}
             settings={settingsForIssue(settings, latest)}
           />
           {archive.length > 0 && (
@@ -103,6 +112,7 @@ export default async function LibraryPage() {
                 footerTextSize: i.footerTextSize,
               }))}
               images={coverImages}
+              sponsors={coverSponsors}
               settings={settings}
             />
           )}
