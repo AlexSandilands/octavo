@@ -176,6 +176,36 @@ migration from a DB that matches the committed migrations — wipe and re-migrat
 (`docker compose down -v && docker compose up -d && npm run db:migrate && npm run db:seed`)
 if unsure. (`npm run db:studio` opens a browser DB UI.)
 
+### `db:push` leaves the journal behind
+
+Drizzle records what it has applied in a bookkeeping table, `drizzle.__drizzle_migrations`
+(one row per migration: the folder `name`, a sha256 `hash` of its `migration.sql`, and
+`created_at` from the folder's timestamp prefix). `db:migrate` decides what to run by
+**name** — anything in `drizzle/` without a matching row gets applied.
+
+`db:push` writes your schema change into the database but adds no such row. Generate the
+migration afterwards and your local DB is carrying that migration's effects with nothing
+recording it, so the next `npm run db:migrate` re-runs it and dies on a collision:
+
+```
+error: column "footer_mark_size" of relation "issues" already exists
+```
+
+That is local state only — the committed migration is correct, and a real deploy (which
+never pushes) applies it once, normally. To recover:
+
+```
+npx tsx scripts/dev-journal-reconcile.mts        # --dry-run to look first
+```
+
+It inserts the missing journal rows for migrations whose effects are **already in the
+database**, proving each one by checking the live catalogue for the tables, columns,
+indexes, types and constraints its SQL creates. It is additive only: it never runs
+migration SQL and never touches an existing row, so a migration that genuinely hasn't run
+is left for `db:migrate`, and a half-applied one is reported for a human. Running it twice
+is safe — the second run has nothing to do. Wiping and re-migrating (above) is the other
+way out, at the cost of your local data.
+
 ## Changing the content model
 
 The block shapes are validated by zod in `src/lib/blocks.ts`. When you add/rename a block field:
