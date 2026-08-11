@@ -49,7 +49,10 @@ export function DesktopReader({
     defaultEnabledThemeId(),
   );
   const theme = getTheme(themeId);
-  // The PDF renders in whichever theme is currently on screen.
+  // The PDF renders in whichever theme is currently on screen. Called whether
+  // or not the owner offers downloads (issue #162) — hooks can't be
+  // conditional, and it costs nothing until something calls `download`; only
+  // the control below is conditional.
   const pdf = useIssuePdf(issueNo, themeId);
 
   // Page-turn animation. `turn` holds the in-flight flip (direction + target
@@ -333,6 +336,7 @@ export function DesktopReader({
         onZoom={panZoom.applyZoom}
         isFullscreen={isFullscreen}
         onToggleFullscreen={toggleFullscreen}
+        pdfEnabled={settings.pdfDownloads}
         pdfState={pdf.state}
         onDownloadPdf={pdf.download}
       />

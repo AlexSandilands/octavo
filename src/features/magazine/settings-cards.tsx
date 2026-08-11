@@ -19,11 +19,17 @@ import type { SettingsForm } from "./magazine-settings";
 
 // The settings form card on /admin/magazine. One card, because it is one form
 // with one Save: the naming fields, then the page-footer controls as a titled
-// section, then the save row (passed in as `footer`) closing the card — so the
-// button visibly belongs to everything above it and nothing floats between
-// cards. Presentation only — every value and setter comes from
-// MagazineSettings, which owns the form state so the preview beside it can
-// render the same unsaved edits.
+// section, then the PDF download switch as another, then the save row (passed
+// in as `footer`) closing the card — so the button visibly belongs to
+// everything above it and nothing floats between cards. Presentation only —
+// every value and setter comes from MagazineSettings, which owns the form state
+// so the preview beside it can render the same unsaved edits.
+//
+// The download switch is the one control here the preview can't show, since it
+// changes nothing on a page. It is still in this card rather than one of its
+// own: on a phone the split collapses to a stack, and a switch in a card below
+// the Save button would be a setting you toggle and then have to scroll back up
+// to keep. Its own titled section is the separation it needs.
 
 export function SettingsFormCard({
   form,
@@ -114,8 +120,69 @@ export function SettingsFormCard({
         bring it up to date and marks any page that then no longer fits.
       </p>
 
+      <div className="border-line-soft border-t pt-5">
+        <h3 className="text-ink font-serif text-lg leading-tight">
+          PDF downloads
+        </h3>
+        <p className="text-muted mt-1.5 font-sans text-[13px] leading-relaxed">
+          Whether members may save an issue to keep. This one is about who gets
+          the file, not how a page is set — so it is the one setting here the
+          preview beside it never shows.
+        </p>
+      </div>
+      <PdfDownloadsToggle
+        value={form.pdfDownloads}
+        onChange={(pdfDownloads) => onChange({ pdfDownloads })}
+      />
+
       <div className="border-line-soft border-t pt-5">{footer}</div>
     </SettingsCard>
+  );
+}
+
+// The one switch on the page (issue #162). No house switch component exists, so
+// this follows the publish modal's opt-in: a bordered card that *is* the label,
+// so the whole box toggles rather than a 20px square — the p-4 box stands 50-odd
+// pixels tall, comfortably past the 44px minimum, and reads as something you
+// press. The ring lands on the box (.boxed-field) instead of floating a
+// rectangle around the inner checkbox.
+function PdfDownloadsToggle({
+  value,
+  onChange,
+}: {
+  value: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <div>
+      <label className="boxed-field border-hair flex cursor-pointer items-start gap-3 rounded-lg border-[1.5px] bg-white p-4">
+        <input
+          type="checkbox"
+          checked={value}
+          onChange={(e) => onChange(e.target.checked)}
+          aria-describedby="pdf-downloads-hint"
+          className="accent-accent mt-0.5 h-5 w-5 flex-none"
+        />
+        <span className="font-sans text-[14px] leading-snug">
+          <span className="text-ink font-semibold">
+            Let members download issues as a PDF
+          </span>
+          <span className="text-muted mt-0.5 block">
+            Puts a Download PDF button beside the latest issue in the library
+            and in the reader.
+          </span>
+        </span>
+      </label>
+      <p
+        id="pdf-downloads-hint"
+        className="text-faint2 mt-1.5 font-sans text-[12px] leading-relaxed"
+      >
+        Turn it off and the button goes from every one of those places, and the
+        download address stops working — including for a member who saved it.
+        Copies already made aren&rsquo;t deleted, so switching it back on offers
+        them again straight away.
+      </p>
+    </div>
   );
 }
 
