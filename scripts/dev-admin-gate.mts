@@ -24,7 +24,9 @@ const ok = (cond: unknown, msg: string) => {
 
 const browser = await chromium.launch();
 
-async function signIn(email: string): Promise<BrowserContext> {
+// An arrow, not a declaration: only a closure created *after* the usage guard
+// above sees `base`/`logPath` as the strings that guard proved them to be.
+const signIn = async (email: string): Promise<BrowserContext> => {
   const ctx = await browser.newContext();
   const page = await ctx.newPage();
   await page.goto(`${base}/signin`);
@@ -39,7 +41,7 @@ async function signIn(email: string): Promise<BrowserContext> {
   await page.waitForLoadState();
   await page.close();
   return ctx;
-}
+};
 
 // ── Signed out ───────────────────────────────────────────────────────────────
 const anon = await browser.newContext();
@@ -127,7 +129,8 @@ const replay = async (cookie: string | undefined) => {
   const res = await fetch(url, {
     method: "POST",
     headers: h,
-    body,
+    // `fetch` won't take a Node Buffer; the same bytes as a plain Uint8Array.
+    body: new Uint8Array(body),
     redirect: "manual",
   });
   return res.status;
@@ -157,7 +160,7 @@ ok(
 // ── Shell identity + sign-out ────────────────────────────────────────────────
 await adminPage.goto(`${base}/admin`);
 ok(
-  (await adminPage.textContent("aside")).includes("admin@example.com"),
+  (await adminPage.textContent("aside"))?.includes("admin@example.com"),
   "sidebar shows the signed-in admin identity",
 );
 const adminSessions = async () =>

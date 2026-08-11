@@ -202,8 +202,8 @@ try {
   await browser.close();
   await sql`delete from sessions where session_token = ${token}`;
   await sql`delete from users where email like ${`${tag}-%@example.test`}`;
-  const [{ count }] = await sql`
+  const left = await sql`
     select count(*)::int as count from users where email like ${`${tag}-%`}`;
-  console.log(`scratch rows removed (${count} left)`);
+  console.log(`scratch rows removed (${left[0]!.count} left)`);
   await sql.end();
 }

@@ -69,17 +69,17 @@ The durable lessons:
 
 ## Required gates, by change type
 
-| If the change touches…                | Then…                                                                                                                          |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Anything with a UI surface            | The user's browser pass on the PR is required (and do a headless Chromium pass first)                                          |
-| Palette tokens / brand CSS            | `npx tsx scripts/dev-contrast-gate.mts` — WCAG AA must hold for **every** brand (`docs/design-principles.md` §6)               |
-| Print-visible rendering (PDF path)    | Bump `RENDER_VERSION` in `src/app/api/issues/[number]/pdf/route.ts` **in the same commit** (it cache-busts stored PDFs)        |
-| The content model (`CONTENT_VERSION`) | Update the seed to author the new shape, keep one deliberate legacy page (see `docs/database.md`)                              |
-| The members CSV parser                | `npx tsx scripts/check-parse-members-csv.mts` — the header/delimiter cases an admin's export throws at it (#94)                |
-| Any modal dialog                      | `npx tsx scripts/dev-dialog-a11y-gate.mts <base-url>` — role/name, Escape, the focus trap and focus restore, per dialog (#130) |
-| A block that can render a link        | `npx tsx --tsconfig scripts/tsconfig.json scripts/dev-thumb-anchor-gate.mts` — the thumbnail must emit no `<a>` (#166)         |
-| New pages / inline scripts            | CSP is nonce-based in `src/middleware.ts` — pages must render dynamically; no new inline styles/scripts                        |
-| Every change                          | `npm run lint`, `npx tsc --noEmit`, prettier on touched files, and a production build (plain `npm run build`; see below)       |
+| If the change touches…                | Then…                                                                                                                                                 |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Anything with a UI surface            | The user's browser pass on the PR is required (and do a headless Chromium pass first)                                                                 |
+| Palette tokens / brand CSS            | `npx tsx scripts/dev-contrast-gate.mts` — WCAG AA must hold for **every** brand (`docs/design-principles.md` §6)                                      |
+| Print-visible rendering (PDF path)    | Bump `RENDER_VERSION` in `src/app/api/issues/[number]/pdf/route.ts` **in the same commit** (it cache-busts stored PDFs)                               |
+| The content model (`CONTENT_VERSION`) | Update the seed to author the new shape, keep one deliberate legacy page (see `docs/database.md`)                                                     |
+| The members CSV parser                | `npx tsx scripts/check-parse-members-csv.mts` — the header/delimiter cases an admin's export throws at it (#94)                                       |
+| Any modal dialog                      | `npx tsx scripts/dev-dialog-a11y-gate.mts <base-url>` — role/name, Escape, the focus trap and focus restore, per dialog (#130)                        |
+| A block that can render a link        | `npx tsx --tsconfig scripts/tsconfig.json scripts/dev-thumb-anchor-gate.mts` — the thumbnail must emit no `<a>` (#166)                                |
+| New pages / inline scripts            | CSP is nonce-based in `src/middleware.ts` — pages must render dynamically; no new inline styles/scripts                                               |
+| Every change                          | `npm run lint`, `npx tsc --noEmit`, `npm run typecheck:scripts`, prettier on touched files, and a production build (plain `npm run build`; see below) |
 
 ## Briefing an agent
 
@@ -118,6 +118,14 @@ Hand each subagent:
   the build-eval graph) makes `next build` demand that secret again — CI builds
   with no runtime secrets set precisely to catch that (the CI workflow is updated
   in this same PR).
+- **`npx tsc --noEmit` does not see the gate scripts.** The root include is
+  `**/*.ts`, which does not match `.mts`, so every `scripts/*.mts` file was
+  invisible to the type-check until #174. They are their own tsc project now —
+  `npm run typecheck:scripts` (`scripts/tsconfig.json`) — because they need two
+  compiler options the app must not have: `jsx: react-jsx` (they render
+  components without a bundler) and `allowImportingTsExtensions` (several import
+  `../src/lib/*.ts` by full path, which is how tsx resolves them). Run both
+  checks; CI does.
 - Never _install_ Playwright browsers — Chromium is already installed locally,
   and _using_ it for headless verification is fine.
 - The seed **wipes all issues** (it refuses when published issues exist unless
