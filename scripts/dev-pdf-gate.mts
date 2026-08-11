@@ -15,9 +15,10 @@
 // The switch check writes to the shared dev database (settings.pdf_downloads_
 // enabled, through the same upsert the app uses, so it works on a database that
 // has never saved settings) and mints a throwaway session. Both are undone in a
-// finally, restoring whichever state was found — the column back to NULL, or the
-// whole row dropped if the check created it — so a failed run never leaves a
-// site with its downloads switched off.
+// finally, restoring exactly the state found — the column back to the value it
+// held (true, false or NULL), or the whole row dropped if the check created it —
+// so a failed run never leaves a site with its downloads switched either way
+// against the owner's choice.
 //
 // What it deliberately does NOT do: launch Chromium or drive the authenticated
 // generate→cache→serve path — that needs a real browser (forbidden here);
@@ -149,15 +150,20 @@ const rendered = (html: string) => html.includes("pdf-page");
   const sql = postgres(process.env.DATABASE_URL!, { max: 1 });
   const sessionToken = randomUUID();
 
-  // Whether a settings row exists *before* this check writes anything, read
-  // outside the try so the restore below always knows which state to put back.
+  // The switch as found *before* this check writes anything — both whether a
+  // settings row exists at all and, if it does, the value it holds — read
+  // outside the try so the restore below always knows exactly what to put back.
   // A database that has never saved settings has no row at all, and an UPDATE
   // against it would quietly affect nothing — the assertions would then read as
   // "the switch doesn't work" on a perfectly healthy fresh clone. (If this read
   // itself fails, nothing has been written yet, so crashing here leaves the
   // database untouched — better than guessing what to restore.)
-  const [existingRow] = await sql`select 1 from settings where id = 1`;
+  // (Aliased: this client runs without a column-name transform, so the key comes
+  // back exactly as named here.)
+  const [existingRow] = await sql<{ found: boolean | null }[]>`
+    select pdf_downloads_enabled as found from settings where id = 1`;
   const rowPreexisted = Boolean(existingRow);
+  const foundValue = existingRow?.found ?? null;
 
   // Writes the switch the way the app does — an upsert on the fixed singleton
   // id (cf. updateSettings in src/server/settings.ts), so the row is created if
@@ -181,7 +187,8 @@ const rendered = (html: string) => html.includes("pdf-page");
     // it must get past the two 403s, so anything other than 403 is the pass.
     // "Unconfigured" on a fresh database means no row at all, the strongest form
     // of the assertion, so don't create one just to hold a NULL: only clear the
-    // column when a row is already there.
+    // column when a row is already there. Clearing it is what the baseline is
+    // *for* — whatever the owner had set is put back by the finally, not here.
     if (rowPreexisted) await setDownloads(null);
     const onRes = await fetch(`${base}/api/issues/${ISSUE}/pdf`, {
       headers: cookie,
@@ -230,10 +237,13 @@ const rendered = (html: string) => html.includes("pdf-page");
   } finally {
     // Leave the database exactly as it was found — this one is shared with the
     // owner and with other work in progress. A row that was already there keeps
-    // its other columns and gets the switch back to NULL; a row this check
-    // created goes away entirely, since "no row" was the state it found.
+    // its other columns and gets the switch back to the value it held, which is
+    // not always NULL: an owner who deliberately turned downloads off must not
+    // find them back on because a test ran. A row this check created goes away
+    // entirely, since "no row" was the state it found.
     if (rowPreexisted) {
-      await sql`update settings set pdf_downloads_enabled = null where id = 1`;
+      await sql`
+        update settings set pdf_downloads_enabled = ${foundValue} where id = 1`;
     } else {
       await sql`delete from settings where id = 1`;
     }
