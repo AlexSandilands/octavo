@@ -1,0 +1,1 @@
+ALTER TABLE "settings" ADD COLUMN "pdf_downloads_enabled" boolean;

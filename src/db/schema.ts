@@ -219,6 +219,12 @@ export const settings = pgTable(
     footerMarkSize: text("footer_mark_size").$type<MarkSize>(),
     footerTextSize: text("footer_text_size").$type<TextSize>(),
     footerAlign: text("footer_align").$type<FooterAlign>(),
+    // Whether members are offered the PDF download (issue #162). Nullable like
+    // every column above it — NULL is "not configured", which resolves to the
+    // shipped default (enabled), so a deployment that never opens the page keeps
+    // the downloads it has always had. A `default true` here would say the same
+    // thing in the wrong place and break the table's one rule.
+    pdfDownloads: boolean("pdf_downloads_enabled"),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

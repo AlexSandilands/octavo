@@ -35,6 +35,7 @@ const settingsSelection = {
   footerMarkSize: settings.footerMarkSize,
   footerTextSize: settings.footerTextSize,
   footerAlign: settings.footerAlign,
+  pdfDownloads: settings.pdfDownloads,
 };
 
 // The appearance columns are plain text, so a value hand-edited into the
@@ -49,6 +50,11 @@ const storedSchema = z.object({
   footerMarkSize: z.enum(MARK_SIZES).nullable().catch(null),
   footerTextSize: z.enum(TEXT_SIZES).nullable().catch(null),
   footerAlign: z.enum(FOOTER_ALIGNS).nullable().catch(null),
+  // Postgres types this one, so `.catch(null)` only fires on a row that isn't
+  // the shape the driver promised. Same treatment anyway: unreadable means "not
+  // configured", which is the enabled default — see DEFAULT_PDF_DOWNLOADS for
+  // why that direction is the deliberate one (issue #162).
+  pdfDownloads: z.boolean().nullable().catch(null),
 });
 
 // The stored row, or all-nulls when there is none (the first-run state, and
@@ -163,6 +169,7 @@ export async function updateSettings(input: StoredSettings): Promise<void> {
     footerMarkSize: input.footerMarkSize,
     footerTextSize: input.footerTextSize,
     footerAlign: input.footerAlign,
+    pdfDownloads: input.pdfDownloads,
     updatedAt: new Date(),
   };
   await db
@@ -180,8 +187,11 @@ export async function updateSettings(input: StoredSettings): Promise<void> {
 // It hashes the *effective* values, and only the ones that reach the printed
 // page: the tagline is deliberately absent because it never renders in a PDF,
 // and hashing it would rebuild every cached issue for a change nobody can see
-// there. Values are joined with a NUL so no pair of fields can be rearranged
-// into the same string.
+// there. `pdfDownloads` is absent for the same reason and must stay that way —
+// it decides who may *fetch* a PDF, not what one looks like, so folding it in
+// would rebuild every cached issue each time the owner flipped the switch
+// (issue #162). Values are joined with a NUL so no pair of fields can be
+// rearranged into the same string.
 export function chromeFingerprint(s: SiteSettings): string {
   const material = [
     s.name,

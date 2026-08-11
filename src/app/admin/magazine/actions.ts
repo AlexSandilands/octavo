@@ -40,6 +40,8 @@ const optionalText = (max: number) =>
 // constants with no env counterpart, so "medium" and "the default" are the same
 // value and a null option in the picker would be a distinction without a
 // difference. The columns stay nullable for the untouched-deployment case.
+// `pdfDownloads` is the same kind of field — the switch is always up or down —
+// so it too arrives concrete and is stored concrete (issue #162).
 const settingsSchema = z
   .object({
     magazineName: optionalText(80),
@@ -48,6 +50,7 @@ const settingsSchema = z
     footerMarkSize: z.enum(MARK_SIZES),
     footerTextSize: z.enum(TEXT_SIZES),
     footerAlign: z.enum(FOOTER_ALIGNS),
+    pdfDownloads: z.boolean(),
   })
   .strict();
 

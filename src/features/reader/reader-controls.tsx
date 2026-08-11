@@ -17,6 +17,7 @@ export function ReaderControls({
   onZoom,
   isFullscreen,
   onToggleFullscreen,
+  pdfEnabled,
   pdfState,
   onDownloadPdf,
 }: {
@@ -29,6 +30,10 @@ export function ReaderControls({
   onZoom: (next: number) => void;
   isFullscreen: boolean;
   onToggleFullscreen: () => void;
+  /** Whether the owner offers PDF downloads at all (issue #162) — resolved from
+   *  the magazine settings on the server. False drops the control and its
+   *  divider from the dock entirely; there is no disabled state to find. */
+  pdfEnabled: boolean;
   pdfState: PdfState;
   onDownloadPdf: () => void;
 }) {
@@ -70,22 +75,28 @@ export function ReaderControls({
             className="accent-reader-slider h-1 w-20 cursor-pointer"
           />
         </div>
-        <Divider />
-        <CtrlBtn
-          title={pdfTitle}
-          onClick={onDownloadPdf}
-          disabled={pdfState === "loading"}
-        >
-          {pdfState === "loading" ? (
-            <Spinner />
-          ) : (
-            <Icon
-              name="download"
-              size={17}
-              className={pdfState === "error" ? "text-alert" : undefined}
-            />
-          )}
-        </CtrlBtn>
+        {/* The divider goes with the button it introduces — left behind it
+            would open a group of one. */}
+        {pdfEnabled && (
+          <>
+            <Divider />
+            <CtrlBtn
+              title={pdfTitle}
+              onClick={onDownloadPdf}
+              disabled={pdfState === "loading"}
+            >
+              {pdfState === "loading" ? (
+                <Spinner />
+              ) : (
+                <Icon
+                  name="download"
+                  size={17}
+                  className={pdfState === "error" ? "text-alert" : undefined}
+                />
+              )}
+            </CtrlBtn>
+          </>
+        )}
         <CtrlBtn
           onClick={onToggleFullscreen}
           title={isFullscreen ? "Exit full screen" : "Full screen"}

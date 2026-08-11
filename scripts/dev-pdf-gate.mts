@@ -3,16 +3,28 @@
 //   - the internal print route's token gate (no/invalid token → 404),
 //   - the print route rendering the issue HTML (the exact input Chromium prints)
 //     when given the valid token, and 404 for an unpublished/unknown issue,
-//   - the download endpoint's members-only gate (signed out → 403 JSON).
+//   - the download endpoint's members-only gate (signed out → 403 JSON),
+//   - the owner's site-wide download switch (issue #162): with it off, a
+//     *signed-in member* is refused too, and the internal print route still
+//     renders (turning downloads off is a distribution choice, not a rendering
+//     one — the owner's next issue must still print).
 // It derives the internal print token the same way the app does, from
 // AUTH_SECRET in .env.local. Requires a running dev server and the seed's
 // published issue number 3.
 //
+// The switch check writes to the shared dev database (settings.pdf_downloads_
+// enabled, through the same upsert the app uses, so it works on a database that
+// has never saved settings) and mints a throwaway session. Both are undone in a
+// finally, restoring whichever state was found — the column back to NULL, or the
+// whole row dropped if the check created it — so a failed run never leaves a
+// site with its downloads switched off.
+//
 // What it deliberately does NOT do: launch Chromium or drive the authenticated
-// generate→cache→serve path — that needs a real browser (forbidden here) and a
-// member session; verify those in the manual pass (see the issue report).
+// generate→cache→serve path — that needs a real browser (forbidden here);
+// verify those in the manual pass (see the issue report).
 // Run: npx tsx scripts/dev-pdf-gate.mts <base-url>
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
+import postgres from "postgres";
 
 process.loadEnvFile?.(".env.local");
 const [base] = process.argv.slice(2);
@@ -128,6 +140,106 @@ const rendered = (html: string) => html.includes("pdf-page");
   ok(res.status === 403, `signed-out PDF download → 403 (got ${res.status})`);
   const body = (await res.json()) as { error?: string };
   ok(typeof body.error === "string", "403 carries a JSON error message");
+}
+
+// 7. The owner's site-wide switch (issue #162). A signed-in member sails past
+//    the members-only gate above, so this is the only way to prove the switch
+//    itself refuses rather than the session doing the work.
+{
+  const sql = postgres(process.env.DATABASE_URL!, { max: 1 });
+  const sessionToken = randomUUID();
+
+  // Whether a settings row exists *before* this check writes anything, read
+  // outside the try so the restore below always knows which state to put back.
+  // A database that has never saved settings has no row at all, and an UPDATE
+  // against it would quietly affect nothing — the assertions would then read as
+  // "the switch doesn't work" on a perfectly healthy fresh clone. (If this read
+  // itself fails, nothing has been written yet, so crashing here leaves the
+  // database untouched — better than guessing what to restore.)
+  const [existingRow] = await sql`select 1 from settings where id = 1`;
+  const rowPreexisted = Boolean(existingRow);
+
+  // Writes the switch the way the app does — an upsert on the fixed singleton
+  // id (cf. updateSettings in src/server/settings.ts), so the row is created if
+  // this is a database nobody has saved settings on yet.
+  const setDownloads = (value: boolean | null) => sql`
+    insert into settings (id, pdf_downloads_enabled)
+    values (1, ${value})
+    on conflict (id) do update set pdf_downloads_enabled = ${value}`;
+
+  try {
+    const [member] = await sql<{ id: string }[]>`
+      select id from users order by created_at limit 1`;
+    ok(member, "a member exists to sign in as");
+    await sql`
+      insert into sessions (session_token, user_id, expires)
+      values (${sessionToken}, ${member!.id}, now() + interval '1 hour')`;
+    const cookie = { Cookie: `authjs.session-token=${sessionToken}` };
+
+    // Baseline: unconfigured, which is the shipped default and serves the
+    // member. Not a 200 — that would generate a PDF, which needs Chromium — but
+    // it must get past the two 403s, so anything other than 403 is the pass.
+    // "Unconfigured" on a fresh database means no row at all, the strongest form
+    // of the assertion, so don't create one just to hold a NULL: only clear the
+    // column when a row is already there.
+    if (rowPreexisted) await setDownloads(null);
+    const onRes = await fetch(`${base}/api/issues/${ISSUE}/pdf`, {
+      headers: cookie,
+      redirect: "manual",
+    });
+    ok(
+      onRes.status !== 403,
+      `downloads on (unconfigured = default): member is not refused (got ${onRes.status})`,
+    );
+
+    await setDownloads(false);
+    const offRes = await fetch(`${base}/api/issues/${ISSUE}/pdf`, {
+      headers: cookie,
+      redirect: "manual",
+    });
+    ok(
+      offRes.status === 403,
+      `downloads off: signed-in member → 403 (got ${offRes.status})`,
+    );
+    const offBody = (await offRes.json()) as { error?: string };
+    ok(
+      typeof offBody.error === "string",
+      "downloads off: 403 carries a JSON error message",
+    );
+
+    // The print route is not part of the switch — it is how a PDF is made, and
+    // it must keep working so the setting can be turned back on.
+    const print = await fetch(`${base}/read/${ISSUE}/print?token=${token}`, {
+      redirect: "manual",
+    });
+    ok(
+      rendered(await print.text()),
+      "downloads off: the internal print route still renders",
+    );
+
+    // And back on explicitly, not just via the default.
+    await setDownloads(true);
+    const backRes = await fetch(`${base}/api/issues/${ISSUE}/pdf`, {
+      headers: cookie,
+      redirect: "manual",
+    });
+    ok(
+      backRes.status !== 403,
+      `downloads back on: member is not refused (got ${backRes.status})`,
+    );
+  } finally {
+    // Leave the database exactly as it was found — this one is shared with the
+    // owner and with other work in progress. A row that was already there keeps
+    // its other columns and gets the switch back to NULL; a row this check
+    // created goes away entirely, since "no row" was the state it found.
+    if (rowPreexisted) {
+      await sql`update settings set pdf_downloads_enabled = null where id = 1`;
+    } else {
+      await sql`delete from settings where id = 1`;
+    }
+    await sql`delete from sessions where session_token = ${sessionToken}`;
+    await sql.end();
+  }
 }
 
 console.log("\nall checks passed");

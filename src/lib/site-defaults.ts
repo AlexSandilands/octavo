@@ -1,4 +1,8 @@
-import { DEFAULT_FOOTER_STYLE, type SiteSettings } from "./branding";
+import {
+  DEFAULT_FOOTER_STYLE,
+  DEFAULT_PDF_DOWNLOADS,
+  type SiteSettings,
+} from "./branding";
 
 // Deployment defaults for the magazine's branding text, set per-deployment via
 // NEXT_PUBLIC_* env vars (see .env.example) so a fresh install has sensible
@@ -25,4 +29,7 @@ export const siteDefaults: SiteSettings = {
   // The footer appearance has no env var — its default is the look the code
   // shipped with, so an untouched deployment is unchanged by issue #105.
   footer: DEFAULT_FOOTER_STYLE,
+  // Likewise the PDF download switch (issue #162): no env var, its default is
+  // the behaviour the code shipped with — downloads on.
+  pdfDownloads: DEFAULT_PDF_DOWNLOADS,
 };

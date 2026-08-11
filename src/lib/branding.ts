@@ -40,8 +40,15 @@ export type Branding = {
   tagline: string;
 };
 
-/** Everything the owner controls at /admin/magazine, resolved for a request. */
-export type SiteSettings = Branding & { footer: FooterStyle };
+/** Everything the owner controls at /admin/magazine, resolved for a request.
+ *
+ *  `pdfDownloads` is its own member rather than part of Branding or FooterStyle:
+ *  it is not wording and it is not an appearance, it is whether the download is
+ *  offered at all (issue #162). Nothing that draws a page reads it. */
+export type SiteSettings = Branding & {
+  footer: FooterStyle;
+  pdfDownloads: boolean;
+};
 
 // The deployment defaults for the appearance group. These reproduce the
 // footer exactly as it shipped in issue #104, so a deployment that never opens
@@ -51,6 +58,21 @@ export const DEFAULT_FOOTER_STYLE: FooterStyle = {
   textSize: "medium",
   align: "left",
 };
+
+// Same story for the download switch: a code constant, no env counterpart (the
+// footer appearance set that precedent — see src/lib/site-defaults.ts). It is
+// `true` because the download is what the site shipped with, so an untouched
+// deployment is unchanged by issue #162.
+//
+// Note the asymmetry this creates with the other settings. Their bad-value
+// fallback is "render the default", and a wrong footer size is cosmetic; here
+// the default is *enabled*, so a database read failure (which degrades every
+// field to its default — see readStored in src/server/settings.ts) serves
+// downloads to a club that turned them off. That is a deliberate fail-open: the
+// alternative is that a database blip silently withdraws a working feature from
+// every member, and the setting is a distribution preference, not an auth gate —
+// the members-only check on the route is separate and fails closed.
+export const DEFAULT_PDF_DOWNLOADS = true;
 
 /** The `settings` row as stored: every field nullable, NULL meaning "use the
  *  deployment default". This is the admin form's state as well as the database
@@ -63,6 +85,7 @@ export type StoredSettings = {
   footerMarkSize: MarkSize | null;
   footerTextSize: TextSize | null;
   footerAlign: FooterAlign | null;
+  pdfDownloads: boolean | null;
 };
 
 export const EMPTY_SETTINGS: StoredSettings = {
@@ -72,6 +95,7 @@ export const EMPTY_SETTINGS: StoredSettings = {
   footerMarkSize: null,
   footerTextSize: null,
   footerAlign: null,
+  pdfDownloads: null,
 };
 
 /** Stored row + deployment defaults → the values that actually render. Pure and
@@ -90,6 +114,10 @@ export function resolveSettings(
       textSize: stored.footerTextSize ?? defaults.footer.textSize,
       align: stored.footerAlign ?? defaults.footer.align,
     },
+    // `??`, not `||`: a stored `false` is the owner's answer, and `||` would
+    // read it as "nothing stored" and hand back the enabled default — the one
+    // value they went to the admin to change.
+    pdfDownloads: stored.pdfDownloads ?? defaults.pdfDownloads,
   };
 }
 

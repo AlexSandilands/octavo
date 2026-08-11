@@ -38,7 +38,19 @@ export function SectionMagazine() {
           issues you have already published. The one exception is an issue whose
           pages have no room for a taller footer; see the note further down.
         </Step>
-        <Step n={3} title="The page beside them, before you save">
+        <Step n={3} title="PDF downloads — whether members can keep a copy">
+          One switch: <strong>Let members download issues as a PDF</strong>.
+          Leave it on and every member gets a download button in the library and
+          in the reader. Turn it off and the button goes, and so does the
+          download itself — a member who saved the link finds it no longer
+          works. Some clubs would rather it that way, since a PDF can be
+          forwarded to anyone once it leaves the site. It is not a permanent
+          decision: copies already made are kept, so turning it back on offers
+          them again the same moment. This is the one setting on the screen the
+          preview beside it can&rsquo;t show you, because it changes nothing
+          about how a page looks.
+        </Step>
+        <Step n={4} title="The page beside them, before you save">
           The picture on the right is a real magazine page, drawn by the same
           parts the reader and the PDF use, from the choices currently in the
           form — so it shows the footer you are about to have, not the one the
@@ -48,7 +60,7 @@ export function SectionMagazine() {
           are offered here only so you can look at the combination you care
           about.
         </Step>
-        <Step n={4} title="Logos — the club’s own marks">
+        <Step n={5} title="Logos — the club’s own marks">
           A small library of the club&rsquo;s marks — a crest, an emblem, a
           wordmark. Give each one a name, upload the picture once, and it is
           available to the rest of the magazine; rename it any time. Adding,
@@ -56,12 +68,12 @@ export function SectionMagazine() {
           button of its own and does not use the one above it. It&rsquo;s
           separate from Sponsors, which is for other people&rsquo;s businesses.
         </Step>
-        <Step n={5} title="Save changes — one button for the lot">
-          The wording and the footer settings are one form with one button, so
-          the whole screen commits together. Until you press it nothing has
-          changed anywhere but that preview, and the line beside the button
-          tells you which of the two you are looking at. Once saved, it is live
-          on the site immediately.
+        <Step n={6} title="Save changes — one button for the lot">
+          The wording, the footer settings and the download switch are one form
+          with one button, so the whole screen commits together. Until you press
+          it nothing has changed anywhere but that preview, and the line beside
+          the button tells you which of the two you are looking at. Once saved,
+          it is live on the site immediately.
         </Step>
       </Steps>
       <Callout title="After you make the footer bigger">

@@ -125,7 +125,10 @@ export function LatestIssue({
           <Button href={`/read/${number}`} icon="arrowRight">
             Read this issue
           </Button>
-          <DownloadPdfButton issueNumber={number} />
+          {/* The owner can switch downloads off site-wide (issue #162). This is
+              a Server Component, so "off" means the control is never built —
+              not hidden with CSS, not decided in the browser. */}
+          {settings.pdfDownloads && <DownloadPdfButton issueNumber={number} />}
         </div>
       </div>
     </section>

@@ -143,6 +143,24 @@ export async function GET(
     );
   }
 
+  // The owner can switch downloads off for the whole site (issue #162). Refused
+  // here as well as unrendered in the UI, so a saved link, a bookmark or a
+  // guessed URL is no way around it. It applies in demo mode too — this is the
+  // owner's distribution choice, not an auth gate, and demo mode only ungates
+  // the member check above.
+  //
+  // The internal print route (/read/[id]/print, token-guarded) is deliberately
+  // NOT gated: it is how a PDF is produced, and the owner's next issue must
+  // still print if they switch downloads back on. Nothing reaches it without
+  // the token, so leave it be.
+  const settings = await getSettings();
+  if (!settings.pdfDownloads) {
+    return NextResponse.json(
+      { error: "PDF downloads are turned off." },
+      { status: 403 },
+    );
+  }
+
   const { number: raw } = await params;
   const number = Number(raw);
   if (!Number.isInteger(number) || number <= 0) {
@@ -169,8 +187,10 @@ export async function GET(
   // passed into generation for exactly that reason: the print page stamps what
   // it rendered and the generator refuses to return bytes that don't match, so
   // a mismatch fails here (500, nothing cached) instead of serving every member
-  // a wrongly-branded PDF for this revision (issue #127).
-  const settings = await getSettings();
+  // a wrongly-branded PDF for this revision (issue #127). (`settings` is read
+  // above, at the download switch — getSettings is React-`cache()`d, so that is
+  // one query either way.)
+  //
   // Fingerprint the settings *this issue* prints with — the magazine's, with the
   // footer held to the issue's reserve (issue #128), exactly as the print route
   // will resolve them. A settings change the issue is too full to take therefore

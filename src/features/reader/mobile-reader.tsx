@@ -40,6 +40,8 @@ export function MobileReader({
   sponsors: SponsorMap;
 }) {
   const [m, setM] = useState(19);
+  // Unconditional — hooks always are. Whether the button that uses it renders
+  // is the owner's call (issue #162); see the header below.
   const pdf = useIssuePdf(issueNo);
   const [drawer, setDrawer] = useState(false);
   const menuBtnRef = useRef<HTMLButtonElement>(null);
@@ -101,31 +103,36 @@ export function MobileReader({
           >
             <Icon name="menu" size={22} />
           </button>
-          <button
-            onClick={pdf.download}
-            disabled={pdf.state === "loading"}
-            className="text-ink flex h-10 w-10 items-center justify-center rounded-[9px] disabled:cursor-default"
-            aria-label={
-              pdf.state === "loading"
-                ? "Preparing PDF…"
-                : pdf.state === "error"
-                  ? "PDF failed — tap to retry"
-                  : "Download PDF"
-            }
-          >
-            {pdf.state === "loading" ? (
-              <span
-                aria-hidden="true"
-                className="h-[18px] w-[18px] animate-spin rounded-full border-2 border-current border-t-transparent opacity-70"
-              />
-            ) : (
-              <Icon
-                name="download"
-                size={20}
-                className={pdf.state === "error" ? "text-alert" : undefined}
-              />
-            )}
-          </button>
+          {/* Dropped entirely when the owner has switched downloads off (issue
+              #162). The menu button is left alone in this div — the header's
+              justify-between keeps the title centred either way. */}
+          {settings.pdfDownloads && (
+            <button
+              onClick={pdf.download}
+              disabled={pdf.state === "loading"}
+              className="text-ink flex h-10 w-10 items-center justify-center rounded-[9px] disabled:cursor-default"
+              aria-label={
+                pdf.state === "loading"
+                  ? "Preparing PDF…"
+                  : pdf.state === "error"
+                    ? "PDF failed — tap to retry"
+                    : "Download PDF"
+              }
+            >
+              {pdf.state === "loading" ? (
+                <span
+                  aria-hidden="true"
+                  className="h-[18px] w-[18px] animate-spin rounded-full border-2 border-current border-t-transparent opacity-70"
+                />
+              ) : (
+                <Icon
+                  name="download"
+                  size={20}
+                  className={pdf.state === "error" ? "text-alert" : undefined}
+                />
+              )}
+            </button>
+          )}
         </div>
         <span className="text-ink font-serif text-[17px] tracking-[0.02em]">
           {settings.name}
