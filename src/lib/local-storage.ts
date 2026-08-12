@@ -1,5 +1,5 @@
 import "server-only";
-import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 // Dev-only object storage on the local filesystem, used when R2 isn't configured
@@ -40,6 +40,34 @@ export async function deleteLocalObject(key: string): Promise<void> {
   } catch {
     // already gone — nothing to do
   }
+}
+
+// Every key under a folder prefix (the facade guarantees the trailing slash),
+// so it maps straight onto a directory walk. A prefix with nothing under it is
+// an empty list — the ordinary case of an issue nobody ever downloaded a PDF of.
+// Anything else — a permission error, a broken tree — is thrown rather than
+// swallowed: unlike a missing object, it means storage did not answer, and the
+// caller (the post-delete sweep) is what decides that leaked objects are worth
+// reporting.
+export async function listLocalKeys(prefix: string): Promise<string[]> {
+  let entries;
+  try {
+    entries = await readdir(resolveSafe(prefix), {
+      recursive: true,
+      withFileTypes: true,
+    });
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException)?.code === "ENOENT") return [];
+    throw err;
+  }
+  return entries
+    .filter((entry) => entry.isFile())
+    .map((entry) =>
+      path
+        .relative(ROOT, path.join(entry.parentPath, entry.name))
+        .split(path.sep)
+        .join("/"),
+    );
 }
 
 export function localKeyToUrl(key: string): string {

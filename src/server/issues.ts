@@ -1,9 +1,11 @@
 import "server-only";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { issues } from "@/db/schema";
+import { images, issues } from "@/db/schema";
 import { emptyIssueContent, type IssueContent } from "@/lib/blocks";
 import type { FooterReserve } from "@/lib/branding";
+import { collectImageIds } from "@/lib/images";
+import { sweepOrphanedObjects, takeOrphanedImages } from "./asset-cleanup";
 
 // Server-only data access for issues. All callers (server components, server
 // actions) go through here — never query Drizzle from a component.
@@ -151,6 +153,58 @@ export async function publishIssue(id: string) {
     .where(eq(issues.id, id));
 }
 
+// Deleting an issue takes its now-orphaned images with it (issue #84) — the
+// photographs, montage slides and video poster frames that were only ever on
+// these pages, plus anything uploaded while editing it that never made it onto
+// a page. This is the last moment either is identifiable: `images.issueId` is
+// set to null by the foreign key as the issue row goes, so an image nobody
+// placed would afterwards be indistinguishable from a stray upload.
+//
+// Which of those candidates actually go is decided by the reference scan, not
+// by `images.issueId` — that column records which issue an image was uploaded
+// *under*, and an image uploaded under one issue can be placed in another, in a
+// sponsor's logo, or be a club mark. See server/asset-cleanup.ts.
+//
+// The scan runs inside this transaction, after the issue row is gone, so it
+// reads one consistent picture of what survives. The residual race, honestly:
+// at READ COMMITTED another admin's autosave could commit a new reference to a
+// candidate image in the moment between the scan and this commit, and we would
+// delete an image that issue now shows. Closing it means SERIALIZABLE and
+// aborting one of the two transactions — usually the author's autosave, which
+// is a poor trade for a window of milliseconds between two admins doing rare
+// things at once. The damage if it ever lands is one missing picture on one
+// page, which re-uploading fixes; the delete itself is never wrong.
 export async function deleteIssue(id: string) {
-  await db.delete(issues).where(eq(issues.id, id));
+  const orphanedKeys = await db.transaction(async (tx) => {
+    const [issue] = await tx
+      .select({ content: issues.content })
+      .from(issues)
+      .where(eq(issues.id, id))
+      .limit(1);
+    if (!issue) return [];
+
+    const uploaded = await tx
+      .select({ id: images.id })
+      .from(images)
+      .where(eq(images.issueId, id));
+    const candidates = [
+      ...new Set([
+        ...collectImageIds(issue.content),
+        ...uploaded.map((row) => row.id),
+      ]),
+    ];
+
+    await tx.delete(issues).where(eq(issues.id, id));
+    return takeOrphanedImages(tx, candidates);
+  });
+
+  // Committed. Everything from here is best-effort and cannot undo the delete.
+  await sweepOrphanedObjects({
+    keys: orphanedKeys,
+    // The cached PDFs. Derived bytes under one folder per issue, keyed by a
+    // revision, theme and fingerprint that nothing records once the row is gone
+    // (see the key built in /api/issues/[number]/pdf), so they go by prefix.
+    prefixes: [`pdfs/${id}/`],
+    context: { issueId: id },
+  });
 }

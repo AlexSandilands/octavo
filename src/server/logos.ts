@@ -5,6 +5,7 @@ import { images, issues, logos } from "@/db/schema";
 import { keyToUrl } from "@/lib/storage";
 import type { ResolvedImage } from "@/lib/images";
 import type { LogoListItem } from "@/lib/logos";
+import { sweepOrphanedObjects, takeOrphanedImages } from "./asset-cleanup";
 
 // Server-only data access for the logo library. The admin page goes through
 // here — never Drizzle directly. Every read joins the mark so callers get a
@@ -107,10 +108,33 @@ export async function countLogoReferences(logoId: string): Promise<number> {
 // Refuses while anything still points at the logo — unlike a sponsor (whose
 // slot is meant to disappear when the sponsor goes), a referenced logo is a
 // layout element, and silently emptying it would break pages the admin can't
-// see from here. The underlying image row is left alone: nothing in the app
-// deletes images, and an orphaned one costs a key in storage, not a broken page.
+// see from here.
+//
+// The mark itself goes with it when nothing else shows it (issue #84). The same
+// guard as everywhere else decides that: an uploaded mark can also have been
+// placed on a page or given to a sponsor, and the reference scan — run inside
+// this transaction, after the logo row is gone — is what knows.
+//
+// The count above and the delete below are still two steps, as they always
+// were: an issue that adopts this logo in between loses its mark. Sweeping the
+// image adds nothing to that race — the footer is already text-only once the
+// logo row goes, whether or not the bytes survive it.
 export async function deleteLogo(id: string): Promise<"deleted" | "in-use"> {
   if ((await countLogoReferences(id)) > 0) return "in-use";
-  await db.delete(logos).where(eq(logos.id, id));
+
+  const orphanedKeys = await db.transaction(async (tx) => {
+    const [row] = await tx
+      .select({ imageId: logos.imageId })
+      .from(logos)
+      .where(eq(logos.id, id))
+      .limit(1);
+    if (!row) return [];
+
+    await tx.delete(logos).where(eq(logos.id, id));
+    return takeOrphanedImages(tx, [row.imageId]);
+  });
+
+  // Committed — best-effort from here (see server/asset-cleanup.ts).
+  await sweepOrphanedObjects({ keys: orphanedKeys, context: { logoId: id } });
   return "deleted";
 }

@@ -4,10 +4,12 @@ import {
   getObject as getR2,
   isR2Configured,
   keyToUrl as r2KeyToUrl,
+  listKeys as listR2Keys,
   putObject as putR2,
 } from "./r2";
 import {
   deleteLocalObject,
+  listLocalKeys,
   localKeyToUrl,
   putLocalObject,
   readLocalObject,
@@ -41,6 +43,38 @@ export async function putObject(
 
 export async function deleteObject(key: string): Promise<void> {
   return isR2Configured() ? deleteR2(key) : deleteLocalObject(key);
+}
+
+// Prefix operations are the only storage calls whose blast radius isn't one
+// named object, so they take a *folder* and nothing else: non-empty, relative,
+// no traversal, and ending in "/" — which is what stops a caller from passing
+// "" (the whole bucket) or an accidental "pdfs" that would also sweep "pdfs-v2/".
+// Enforced here rather than in each backend so both obey the same rule.
+function requireFolderPrefix(prefix: string): string {
+  const ok =
+    prefix.length > 0 &&
+    prefix.endsWith("/") &&
+    !prefix.startsWith("/") &&
+    !prefix.split("/").includes("..");
+  if (!ok) throw new Error(`Unsafe storage prefix: ${JSON.stringify(prefix)}`);
+  return prefix;
+}
+
+// Every key stored under a folder prefix.
+export async function listKeys(prefix: string): Promise<string[]> {
+  requireFolderPrefix(prefix);
+  return isR2Configured() ? listR2Keys(prefix) : listLocalKeys(prefix);
+}
+
+// Delete everything under a folder prefix, returning how many objects went.
+// Used for derived artefacts the database doesn't name key by key — the cached
+// PDFs of a deleted issue. Never for images: those are deleted by the exact keys
+// their rows carry, because an image's key prefix says which issue *uploaded* it,
+// not which issues still show it.
+export async function deleteByPrefix(prefix: string): Promise<number> {
+  const keys = await listKeys(prefix);
+  for (const key of keys) await deleteObject(key);
+  return keys.length;
 }
 
 // Read stored bytes, or null when the key isn't present. Backs the cached-PDF

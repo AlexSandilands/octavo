@@ -47,7 +47,8 @@ src/
   lib/                 framework-agnostic helpers
     blocks.ts          the canonical content model (zod + types)
     images.ts          ImageMap type + content imageId traversal
-    storage.ts         storage facade: R2 if configured, else local disk
+    storage.ts         storage facade: R2 if configured, else local disk —
+                       put/get/delete one key, and list/delete a folder prefix
     r2.ts              R2/S3 client (server-only): upload, keyToUrl
     local-storage.ts   dev fallback: .data/uploads on the filesystem
     image-processing.ts sharp: normalise uploads to WebP
@@ -67,6 +68,9 @@ src/
     unsubscribe-token.ts  HMAC-signed, session-less unsubscribe tokens
     settings.ts        the magazine settings: cached per-request resolve, the
                        admin update, and the PDF chrome fingerprint
+    asset-cleanup.ts   the asset lifecycle: which images anything still
+                       references, and the post-commit storage sweep the
+                       issue/sponsor/logo deletes run (see database.md)
     session.ts         getSession()/getUser() — how the app reads who's signed in
 scripts/               dev-only helpers (not part of the app), e.g. the headless
                        magic-link flow check (dev-auth-flow.mts)

@@ -4,7 +4,18 @@
     // The scripts render components with no bundler in front of them…
     "jsx": "react-jsx",
     // …and several import `../src/lib/*.ts` by full path, as tsx resolves them.
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+    // Scripts run under plain `tsx`, outside Next's module graph. Two of Next's
+    // resolutions have to be stated by hand for that: the "@/" alias (paths are
+    // replaced wholesale by `extends`, not merged, so it is repeated here), and
+    // the `server-only` marker, which is a webpack alias inside Next rather than
+    // an installed package — pointed at the same empty module Next resolves it
+    // to, so a gate can import src/server/* and exercise the real code path.
+    // Run those scripts as: npx tsx --tsconfig scripts/tsconfig.json <script>
+    "paths": {
+      "@/*": ["../src/*"],
+      "server-only": ["../node_modules/next/dist/compiled/server-only/empty.js"]
+    }
   },
   // The scripts themselves plus the app modules they pull in. `include` is what
   // tsx consults to decide whether a file it loads is covered by this config —

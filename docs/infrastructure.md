@@ -386,7 +386,13 @@ retained; keep at least one known-good snapshot from before each large change
 **R2 has no object versioning** — unlike S3, there's no per-object history to
 enable, and the bucket's lifecycle rules only _delete_ current objects (a
 "delete uploaded objects after N days" rule would destroy live images, not
-protect them — don't add one for backup). So the backup mechanism is an external
+protect them — don't add one for backup). **Nor for tidying:** the app deletes
+its own orphans (issue #84 — deleting an issue, sponsor or logo removes the
+images nothing else references, and an issue's cached PDFs under
+`pdfs/{issueId}/`; see [database.md](database.md#asset-lifecycle-issue-84)). A
+bucket rule can't tell a live image from a stale one, so anything it removed
+would be a hole in a published page. Keep deletion in the app.
+So the backup mechanism is an external
 copy: a periodic **`rclone sync`** of the bucket to a second location (another R2
 bucket or local disk), e.g. `rclone sync r2:club-images backup:club-images-YYYYMM`.
 
