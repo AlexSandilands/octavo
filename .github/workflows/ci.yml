@@ -43,6 +43,11 @@ jobs:
       - name: Type-check
         run: npx tsc --noEmit
 
+      # The gate scripts are .mts, which the root include (`**/*.ts`) misses, so
+      # they need their own tsc project — see docs/workflow.md (#174).
+      - name: Type-check the gate scripts
+        run: npm run typecheck:scripts
+
       - name: Build
         run: npm run build
         # Build-time env only. Runtime secrets (DATABASE_URL, AUTH_SECRET, R2_*,

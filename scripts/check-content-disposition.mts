@@ -70,20 +70,18 @@ let failures = 0;
 for (const [label, name, issue] of CASES) {
   const header = contentDisposition(name, issue);
 
-  const starMatch = /filename\*=UTF-8''([^;]*)$/.exec(header);
-  const plainMatch = /filename="([^"]*)"/.exec(header);
-  if (!starMatch || !plainMatch) {
+  const ext = /filename\*=UTF-8''([^;]*)$/.exec(header)?.[1];
+  const plain = /filename="([^"]*)"/.exec(header)?.[1];
+  if (ext === undefined || plain === undefined) {
     console.error(`FAIL [${label}] header did not parse: ${header}`);
     failures++;
     continue;
   }
-  const ext = starMatch[1];
-  const plain = plainMatch[1];
 
   // 1. The ext-value is attr-char / pct-escape only.
   let extOk = true;
   for (let i = 0; i < ext.length; i++) {
-    const c = ext[i];
+    const c = ext.charAt(i);
     if (c === "%") {
       if (!/^[0-9A-Fa-f]{2}$/.test(ext.slice(i + 1, i + 3))) extOk = false;
       i += 2;

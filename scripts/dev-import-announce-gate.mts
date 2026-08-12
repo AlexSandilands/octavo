@@ -174,11 +174,11 @@ try {
   });
 
   // ── e. #144's preview still counts what it always did ─────────────────────
-  await page.setInputFiles(
-    "[role=dialog] input[type=file]",
-    { name: "a11y133.csv", mimeType: "text/csv", buffer: Buffer.from(CSV) },
-    { force: true },
-  );
+  await page.setInputFiles("[role=dialog] input[type=file]", {
+    name: "a11y133.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(CSV),
+  });
   await page.waitForSelector("[role=dialog] button:has-text('Import 3')");
   ok(true, "the preview counts the 3 importable rows (#144 unregressed)");
 
@@ -288,15 +288,11 @@ try {
   await page.waitForSelector("[role=dialog]", { state: "detached" });
   await page.click("button:has-text('Import CSV')");
   await page.waitForSelector("[role=dialog]");
-  await page.setInputFiles(
-    "[role=dialog] input[type=file]",
-    {
-      name: "a11y133-again.csv",
-      mimeType: "text/csv",
-      buffer: Buffer.from(CSV_AGAIN),
-    },
-    { force: true },
-  );
+  await page.setInputFiles("[role=dialog] input[type=file]", {
+    name: "a11y133-again.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(CSV_AGAIN),
+  });
   await page.waitForSelector("[role=dialog] button:has-text('Import 2')");
   await stallOnce(page, "**/admin/members**");
   await page.locator("[role=dialog] button:has-text('Import 2')").focus();

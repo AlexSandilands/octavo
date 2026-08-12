@@ -1,7 +1,10 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
+    // The scripts render components with no bundler in front of them…
     "jsx": "react-jsx",
+    // …and several import `../src/lib/*.ts` by full path, as tsx resolves them.
+    "allowImportingTsExtensions": true,
     // Scripts run under plain `tsx`, outside Next's module graph. Two of Next's
     // resolutions have to be stated by hand for that: the "@/" alias (paths are
     // replaced wholesale by `extends`, not merged, so it is repeated here), and
@@ -13,5 +16,14 @@
       "@/*": ["../src/*"],
       "server-only": ["../node_modules/next/dist/compiled/server-only/empty.js"]
     }
-  }
+  },
+  // The scripts themselves plus the app modules they pull in. `include` is what
+  // tsx consults to decide whether a file it loads is covered by this config —
+  // drop `../src` and the app's .tsx compiles with the wrong JSX factory.
+  "include": [
+    "**/*.mts",
+    "../next-env.d.ts",
+    "../src/**/*.ts",
+    "../src/**/*.tsx"
+  ]
 }
