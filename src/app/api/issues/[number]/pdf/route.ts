@@ -7,11 +7,13 @@ import {
   ChromiumUnavailableError,
   generateIssuePdf,
   type PdfTheme,
+  type PrintStamps,
 } from "@/lib/pdf";
 import { DEFAULT_THEME_ID, THEME_IDS } from "@/features/blocks/themes/registry";
 import { getPublishedIssueByNumber } from "@/server/issues";
 import { getUserFailClosed } from "@/server/session";
 import { chromeFingerprint, getSettings } from "@/server/settings";
+import { resolveIssueSponsors, sponsorFingerprint } from "@/server/sponsors";
 import { settingsForIssue } from "@/lib/branding";
 
 // Members-only PDF download. The reader is gated, so this is too: a signed-out
@@ -21,21 +23,26 @@ import { settingsForIssue } from "@/lib/branding";
 //
 // The PDF is a derived artifact cached in R2 keyed by every input that changes
 // what it looks like: issue id + revision + theme + footer logo + magazine
-// chrome + render version
-// (`pdfs/{issueId}/{revision}-{theme}-{logo}-{chrome}-v{RENDER_VERSION}.pdf`) —
-// a cache hit serves the stored bytes; a miss generates once via Playwright,
+// chrome + sponsors + render version
+// (`pdfs/{issueId}/{revision}-{theme}-{logo}-{chrome}-{sponsors}-v{RENDER_VERSION}.pdf`)
+// — a cache hit serves the stored bytes; a miss generates once via Playwright,
 // stores, and serves. Since `revision` bumps on every content write (and
 // RENDER_VERSION on renderer changes), editing + republishing yields a new key
 // and a fresh PDF with no manual invalidation (design-principles §4).
 //
-// Two of those segments are *render* inputs living outside `content`, so
-// neither bumps `revision`; without them a re-download would keep serving a
+// Three of those segments are *render* inputs living outside `content`, so none
+// of them bumps `revision`; without them a re-download would keep serving a
 // stale document:
 //   - the logo: swapping the issue's mark is a meta save (issue #97).
 //   - the chrome fingerprint: a short hash of the branding + footer appearance
 //     the owner edits at /admin/magazine (issue #105), baked into every printed
 //     page (classic running head, footer name, footer lockup). See
 //     chromeFingerprint() for exactly what it does and does not cover.
+//   - the sponsor fingerprint: a short hash of the sponsors this issue's blocks
+//     reference, as they resolve right now (issue #180). A sponsor block stores
+//     an id, not a name — so renaming a sponsor, relinking it, replacing its
+//     logo or deleting it altogether changes every page it appears on without
+//     touching the issue. See sponsorFingerprint() for the material.
 //
 // The bytes are proxied through this endpoint rather than served from a public
 // URL: unlike images, a whole-issue PDF stays behind the member gate.
@@ -51,12 +58,12 @@ function generateOnce(
   key: string,
   issueNumber: number,
   theme: PdfTheme,
-  chrome: string,
+  stamps: PrintStamps,
 ): Promise<Buffer> {
   const existing = inFlight.get(key);
   if (existing) return existing;
   const task = (async () => {
-    const pdf = await generateIssuePdf(issueNumber, theme, chrome);
+    const pdf = await generateIssuePdf(issueNumber, theme, stamps);
     await putObject(key, pdf, "application/pdf");
     return pdf;
   })();
@@ -95,6 +102,11 @@ const themeSchema = z
 // block type the print document renders (its poster frame plus the address in
 // visible text, since a PDF cannot play anything), so every cached PDF must be
 // rebuilt from the current renderer, exactly as v3's montage bump did.
+//
+// Not bumped for the sponsor segment (issue #180): the renderer is untouched —
+// the key merely learned an input it was always missing, and adding the segment
+// re-keys every cached PDF exactly once by itself. A bump would only discard the
+// same objects twice over.
 const RENDER_VERSION = 8;
 
 // Percent-encode for an RFC 8187 ext-value (the `filename*=UTF-8''…` form).
@@ -183,10 +195,10 @@ export async function GET(
   }
   const theme = themeParam.data;
 
-  // The print route resolves settings again in its own request, so the two can
-  // disagree — an edit landing in between, or a database blip degrading that
-  // read to the deployment defaults — and the bytes it prints would be stored
-  // under a fingerprint naming values it never rendered. The fingerprint is
+  // The print route resolves settings and sponsors again in its own request, so
+  // the two can disagree — an edit landing in between, or a database blip
+  // degrading that read to the deployment defaults — and the bytes it prints
+  // would be stored under fingerprints naming state it never rendered. Both are
   // passed into generation for exactly that reason: the print page stamps what
   // it rendered and the generator refuses to return bytes that don't match, so
   // a mismatch fails here (500, nothing cached) instead of serving every member
@@ -199,13 +211,25 @@ export async function GET(
   // will resolve them. A settings change the issue is too full to take therefore
   // leaves the key alone, which is right: the printed page doesn't change
   // either, so the cached bytes are still the correct answer.
+  //
+  // The sponsor read is the same resolution the print route does, and costs a
+  // query only for an issue that actually places a managed sponsor —
+  // resolveIssueSponsors answers an unsponsored document without touching the
+  // database (issue #180).
   const chrome = chromeFingerprint(settingsForIssue(settings, issue));
-  const key = `pdfs/${issue.id}/${issue.revision}-${theme}-${issue.logoId ?? "nologo"}-${chrome}-v${RENDER_VERSION}.pdf`;
+  const stamps: PrintStamps = {
+    chrome,
+    sponsors: sponsorFingerprint(
+      issue.content,
+      await resolveIssueSponsors(issue.content),
+    ),
+  };
+  const key = `pdfs/${issue.id}/${issue.revision}-${theme}-${issue.logoId ?? "nologo"}-${chrome}-${stamps.sponsors}-v${RENDER_VERSION}.pdf`;
 
   let pdf: Buffer | null;
   try {
     pdf = await getObject(key);
-    if (!pdf) pdf = await generateOnce(key, number, theme, chrome);
+    if (!pdf) pdf = await generateOnce(key, number, theme, stamps);
   } catch (err) {
     // Chromium missing is an operator/deploy problem; a render/storage failure
     // is an infra one. Both are invisible to the member (they see a legible

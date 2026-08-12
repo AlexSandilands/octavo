@@ -7,7 +7,10 @@
 //   - the owner's site-wide download switch (issue #162): with it off, a
 //     *signed-in member* is refused too, and the internal print route still
 //     renders (turning downloads off is a distribution choice, not a rendering
-//     one — the owner's next issue must still print).
+//     one — the owner's next issue must still print),
+//   - the sponsor segment of the cache key (issue #180), watched through the
+//     stamp the print route renders it into — see that section for why the two
+//     are the same value.
 // It derives the internal print token the same way the app does, from
 // AUTH_SECRET in .env.local. Requires a running dev server and the seed's
 // published issue number 3.
@@ -248,6 +251,166 @@ const rendered = (html: string) => html.includes("pdf-page");
       await sql`delete from settings where id = 1`;
     }
     await sql`delete from sessions where session_token = ${sessionToken}`;
+    await sql.end();
+  }
+}
+
+// 8. The sponsor segment of the PDF cache key (issue #180). A sponsor block
+//    stores only a sponsorId — the name, link and logo resolve at print time —
+//    so editing or deleting a sponsor changes the printed page while leaving
+//    `issues.content` and `issues.revision` untouched. The key therefore carries
+//    a hash of the resolved sponsors, and the print route stamps the very same
+//    value it rendered with (<meta name="print-sponsors">) for the generator to
+//    check. Both sides call sponsorFingerprint(), so the stamp IS the key
+//    segment: watching it here is watching the key, without a browser.
+//
+//    Scratch rows, cleaned up in the finally: one sponsor, one issue that places
+//    it, and one issue that doesn't (which proves the hash covers the sponsors a
+//    document actually references rather than the table at large — otherwise
+//    every issue's PDF would be rebuilt each time any sponsor was touched).
+{
+  const sql = postgres(process.env.DATABASE_URL!, { max: 1 });
+  const sponsorId = randomUUID();
+  const imageId = randomUUID();
+  const withSponsor = { id: randomUUID(), number: 0 };
+  const without = { id: randomUUID(), number: 0 };
+  const NAME = "Gate Sponsor 180";
+  const RENAMED = "Gate Sponsor 180 (renamed)";
+
+  const page = (blocks: Record<string, string>[]) => ({
+    id: String(randomUUID()),
+    blocks,
+  });
+  const cover = { ...page([]), cover: true };
+  const contentWith = {
+    version: 5,
+    pages: [
+      cover,
+      page([{ id: randomUUID(), type: "sponsor", sponsorId, name: "" }]),
+    ],
+  };
+  const contentWithout = {
+    version: 5,
+    pages: [
+      cover,
+      page([{ id: randomUUID(), type: "heading", text: "No sponsors here" }]),
+    ],
+  };
+
+  // React renders the attributes in source order, but read the tag rather than a
+  // fixed string so a reordering (or a second meta) can't quietly pass.
+  const stamp = (html: string, name: string) => {
+    const tag = new RegExp(`<meta[^>]*name="${name}"[^>]*>`).exec(html)?.[0];
+    return tag ? /content="([^"]*)"/.exec(tag)?.[1] : undefined;
+  };
+  const printed = async (number: number) => {
+    const res = await fetch(`${base}/read/${number}/print?token=${token}`, {
+      redirect: "manual",
+    });
+    const html = await res.text();
+    ok(rendered(html), `scratch issue ${number}: print route renders`);
+    return html;
+  };
+
+  try {
+    await sql`
+      insert into sponsors (id, name, href)
+      values (${sponsorId}, ${NAME}, 'gate-sponsor.example/shop')`;
+    // Numbered above everything published so far; both scratch issues are
+    // removed again below, so the numbering stays as it was found.
+    const [next] = await sql<{ n: number }[]>`
+      select coalesce(max(number), 0) + 1 as n from issues`;
+    withSponsor.number = Number(next!.n);
+    without.number = withSponsor.number + 1;
+    for (const [issue, content] of [
+      [withSponsor, contentWith],
+      [without, contentWithout],
+    ] as const) {
+      await sql`
+        insert into issues (id, number, title, theme, status, content, published_at)
+        values (${issue.id}, ${issue.number}, ${"PDF gate 180"}, 'classic',
+                'published', ${sql.json(content)}, now())`;
+    }
+
+    const first = await printed(withSponsor.number);
+    const before = stamp(first, "print-sponsors");
+    ok(before, "sponsored issue: print document carries a sponsor stamp");
+    ok(first.includes(NAME), "sponsored issue: the sponsor's name is printed");
+
+    const plainStamp = stamp(await printed(without.number), "print-sponsors");
+    ok(
+      plainStamp === "nosponsors",
+      `unsponsored issue: stamp says so (got ${plainStamp})`,
+    );
+
+    // Nothing changed: the same state must hash the same, or every download
+    // would miss the cache and relaunch Chromium.
+    ok(
+      stamp(await printed(withSponsor.number), "print-sponsors") === before,
+      "unchanged sponsor state: the stamp is stable (the cache key holds)",
+    );
+
+    // An edit to the sponsor row alone — no content write, so `revision` is
+    // untouched and this segment is the only thing that can re-key.
+    await sql`update sponsors set name = ${RENAMED} where id = ${sponsorId}`;
+    const editedHtml = await printed(withSponsor.number);
+    const edited = stamp(editedHtml, "print-sponsors");
+    ok(edited !== before, `renamed sponsor: new stamp (${before} → ${edited})`);
+    ok(
+      editedHtml.includes(RENAMED) && !editedHtml.includes(`>${NAME}<`),
+      "renamed sponsor: the print document carries the new name only",
+    );
+
+    // The link becomes a PDF annotation, so it is part of what a cached PDF
+    // shows and has to be part of the hash.
+    await sql`update sponsors set href = 'gate-sponsor.example/moved' where id = ${sponsorId}`;
+    const relinked = stamp(await printed(withSponsor.number), "print-sponsors");
+    ok(relinked !== edited, `relinked sponsor: new stamp (got ${relinked})`);
+
+    // Giving the sponsor a logo changes the card, and re-uploading one mints a
+    // fresh images row and a fresh storage key — which is why the hash takes the
+    // resolved URL rather than the logo id. (This row points at no real object;
+    // the print HTML only needs the <img src> the URL becomes.)
+    await sql`
+      insert into images (id, key) values (${imageId}, ${`pdf-gate-180/${imageId}.webp`})`;
+    await sql`update sponsors set logo_id = ${imageId} where id = ${sponsorId}`;
+    const withLogo = stamp(await printed(withSponsor.number), "print-sponsors");
+    ok(
+      withLogo !== relinked,
+      `sponsor logo added: new stamp (got ${withLogo})`,
+    );
+
+    // And the case the issue was filed for: a removed sponsor must not keep
+    // advertising in a cached PDF. The reference is left dangling by design, so
+    // absence has to hash differently from presence.
+    await sql`delete from sponsors where id = ${sponsorId}`;
+    const goneHtml = await printed(withSponsor.number);
+    const gone = stamp(goneHtml, "print-sponsors");
+    ok(
+      gone && ![before, edited, relinked, withLogo].includes(gone),
+      `deleted sponsor: new stamp again (got ${gone})`,
+    );
+    ok(
+      !goneHtml.includes(RENAMED),
+      "deleted sponsor: the slot is gone from the print document",
+    );
+    ok(
+      gone !== "nosponsors",
+      "deleted sponsor: a dangling reference is not the same as never having one",
+    );
+
+    // The unsponsored issue sat through all of that untouched — its PDFs must
+    // not be rebuilt for somebody else's sponsor.
+    ok(
+      stamp(await printed(without.number), "print-sponsors") === plainStamp,
+      "unsponsored issue: unaffected by every sponsor change above",
+    );
+  } finally {
+    // Scratch rows only, addressed by the ids this check minted — the database
+    // is shared, so nothing here touches a row it did not create.
+    await sql`delete from issues where id in (${withSponsor.id}, ${without.id})`;
+    await sql`delete from sponsors where id = ${sponsorId}`;
+    await sql`delete from images where id = ${imageId}`;
     await sql.end();
   }
 }
