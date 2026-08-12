@@ -1,4 +1,17 @@
 {
   "extends": "../tsconfig.json",
-  "compilerOptions": { "jsx": "react-jsx" }
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    // Scripts run under plain `tsx`, outside Next's module graph. Two of Next's
+    // resolutions have to be stated by hand for that: the "@/" alias (paths are
+    // replaced wholesale by `extends`, not merged, so it is repeated here), and
+    // the `server-only` marker, which is a webpack alias inside Next rather than
+    // an installed package — pointed at the same empty module Next resolves it
+    // to, so a gate can import src/server/* and exercise the real code path.
+    // Run those scripts as: npx tsx --tsconfig scripts/tsconfig.json <script>
+    "paths": {
+      "@/*": ["../src/*"],
+      "server-only": ["../node_modules/next/dist/compiled/server-only/empty.js"]
+    }
+  }
 }

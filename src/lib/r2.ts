@@ -4,6 +4,7 @@ import {
   PutObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
+  ListObjectsV2Command,
 } from "@aws-sdk/client-s3";
 import { env } from "./env";
 
@@ -85,6 +86,32 @@ export async function putObject(
 export async function deleteObject(key: string): Promise<void> {
   const { client, bucket } = requireR2();
   await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+}
+
+// Every key under `prefix`. The bucket is the only record of the PDF cache's
+// keys (they encode a revision, theme and fingerprint the database stops
+// naming the moment the issue row goes), so cleaning that up means asking the
+// bucket what is there. Paginated: ListObjectsV2 caps at 1000 keys per call and
+// a long-lived issue accumulates one PDF per revision × theme.
+export async function listKeys(prefix: string): Promise<string[]> {
+  const { client, bucket } = requireR2();
+  const keys: string[] = [];
+  let token: string | undefined;
+  do {
+    const res = await client.send(
+      new ListObjectsV2Command({
+        Bucket: bucket,
+        Prefix: prefix,
+        ContinuationToken: token,
+      }),
+    );
+    for (const object of res.Contents ?? []) {
+      if (object.Key) keys.push(object.Key);
+    }
+    // NextContinuationToken is only meaningful while IsTruncated is set.
+    token = res.IsTruncated ? res.NextContinuationToken : undefined;
+  } while (token);
+  return keys;
 }
 
 // Fetch stored bytes, or null when the object doesn't exist. Used to serve

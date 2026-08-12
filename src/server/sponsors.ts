@@ -12,6 +12,7 @@ import {
   type SponsorMap,
 } from "@/lib/sponsors";
 import type { IssueContent } from "@/lib/blocks";
+import { sweepOrphanedObjects, takeOrphanedImages } from "./asset-cleanup";
 
 // Server-only data access for managed sponsors. Editor, reader and the admin
 // sponsors page go through here — never Drizzle directly. Every read joins the
@@ -130,6 +131,27 @@ export async function updateSponsor(
 // Deleting a sponsor leaves the sponsorId dangling in any issue that placed it;
 // that is intentional — the reader resolves a missing sponsor to nothing and
 // hides the slot (a removed sponsor must not keep advertising). See BlockView.
+//
+// Its logo image goes too, under the same guard as an issue's images (issue
+// #84): the same file may well be a club mark or sit in an issue's pages, and
+// the reference scan — run inside this transaction, once the sponsor row is
+// gone — is what decides. Storage cleanup follows the commit and is best-effort;
+// the ordering argument is the one in server/asset-cleanup.ts.
 export async function deleteSponsor(id: string): Promise<void> {
-  await db.delete(sponsors).where(eq(sponsors.id, id));
+  const orphanedKeys = await db.transaction(async (tx) => {
+    const [row] = await tx
+      .select({ logoId: sponsors.logoId })
+      .from(sponsors)
+      .where(eq(sponsors.id, id))
+      .limit(1);
+    if (!row) return [];
+
+    await tx.delete(sponsors).where(eq(sponsors.id, id));
+    return row.logoId ? takeOrphanedImages(tx, [row.logoId]) : [];
+  });
+
+  await sweepOrphanedObjects({
+    keys: orphanedKeys,
+    context: { sponsorId: id },
+  });
 }
