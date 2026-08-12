@@ -1,4 +1,5 @@
 import "server-only";
+import { createHash } from "node:crypto";
 import { desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { images, sponsors } from "@/db/schema";
@@ -89,6 +90,51 @@ export async function resolveIssueSponsors(
     map[row.id] = { name: row.name, href: row.href, logo: rowLogo(row) };
   }
   return map;
+}
+
+// The sponsor fingerprint the PDF cache key carries (issue #180), the sibling of
+// chromeFingerprint(). A sponsor block stores only a `sponsorId`; the name, link
+// and logo are resolved at render time from the `sponsors` table, and editing or
+// deleting a sponsor touches neither `issues.content` nor `issues.revision` — so
+// without this segment every already-cached PDF would keep printing the old
+// sponsor (or a deleted one) until something else re-keyed it. The reader hides
+// a removed sponsor at once; the PDF must not go on advertising it.
+//
+// The material is the *resolved* state that actually reaches a printed sponsor
+// card, for exactly the sponsors this document references:
+//   - the name and the href, because the card prints the name and Chromium turns
+//     the link into a PDF annotation (null and "" are the same thing here —
+//     externalHref refuses both, so neither prints a link).
+//   - the logo's URL, which carries the storage key: replacing a logo mints a new
+//     image row and a new key, so the URL moves. Its width/height are deliberately
+//     absent — SponsorLogo draws a plain object-contain <img> in a fixed slot and
+//     never reads them (themes/shared.tsx), so they cannot change the page.
+//   - a presence flag, so a referenced-but-deleted sponsor (no map entry — the
+//     slot renders as nothing) hashes differently from the same sponsor existing.
+//     It also fixes the arity at five fields per sponsor, so no set of names and
+//     links can be rearranged into another set's material.
+// Ids are sorted so the map's iteration order can't flip the hash, and fields are
+// NUL-joined for the same reason chromeFingerprint does it.
+//
+// Inline (v1/manual) sponsor blocks carry their name/href in `content` and so are
+// covered by `revision` already; only managed references contribute here. An
+// issue with none says so in the key rather than hashing the empty string —
+// most issues are that case, and a key is easier to read than to decode.
+export function sponsorFingerprint(
+  content: Pick<IssueContent, "pages">,
+  resolved: SponsorMap,
+): string {
+  const ids = collectSponsorIds(content).sort();
+  if (ids.length === 0) return "nosponsors";
+  const material = ids
+    .flatMap((id) => {
+      const sponsor = resolved[id];
+      return sponsor
+        ? [id, "1", sponsor.name, sponsor.href ?? "", sponsor.logo?.url ?? ""]
+        : [id, "0", "", "", ""];
+    })
+    .join("\u0000");
+  return createHash("sha256").update(material).digest("hex").slice(0, 10);
 }
 
 export type SponsorInput = {

@@ -3,7 +3,7 @@ import { PrintDocument } from "@/features/reader/print-document";
 import { getPublishedIssueByNumber } from "@/server/issues";
 import { resolveIssueImages } from "@/server/images";
 import { getLogoImage } from "@/server/logos";
-import { resolveIssueSponsors } from "@/server/sponsors";
+import { resolveIssueSponsors, sponsorFingerprint } from "@/server/sponsors";
 import { chromeFingerprint, getSettings } from "@/server/settings";
 import { settingsForIssue } from "@/lib/branding";
 import { verifyPrintToken } from "@/lib/pdf-token";
@@ -60,6 +60,18 @@ export default async function PrintPage({
           see generateIssuePdf. React hoists this into <head>, so it costs the
           printed page nothing. */}
       <meta name="print-chrome" content={chromeFingerprint(printSettings)} />
+      {/* The same guarantee for the sponsors this request resolved (issue
+          #180). Sponsor names, links and logos live in the `sponsors` table,
+          not in `content`, so a sponsor edited or deleted between the
+          endpoint's read and this one would print a card its key doesn't
+          describe — and a deleted sponsor would go on advertising in every
+          member's copy. Fingerprinted from the very map handed to
+          PrintDocument below, so the stamp cannot describe a different set of
+          sponsors than the pages do. */}
+      <meta
+        name="print-sponsors"
+        content={sponsorFingerprint(issue.content, sponsors)}
+      />
       <PrintDocument
         content={issue.content}
         issueNo={issue.number}

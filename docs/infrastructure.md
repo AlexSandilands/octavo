@@ -87,20 +87,24 @@ Member ── Cloudflare (DNS/CDN) ── Railway (Next.js + Postgres)
 PDF export (issue #16) uses headless Chromium via Playwright, in the **main
 service** (no separate service). How it works: the download endpoint
 (`GET /api/issues/[number]/pdf`, members-only) checks R2 for a cached PDF keyed
-by issue id + revision + reader theme + footer mark + magazine chrome + render
-version (`pdfs/{issueId}/{revision}-{theme}-{logoId}-{chrome}-v{N}.pdf` — the
+by issue id, revision, reader theme, footer mark, magazine chrome, sponsors and
+render version
+(`pdfs/{issueId}/{revision}-{theme}-{logoId}-{chrome}-{sponsors}-v{N}.pdf` — the
 theme follows the desktop reader's toggle; `{chrome}` is a short hash of the
 branding and footer settings that appear on a printed page, so editing them in
-the admin regenerates rather than serving stale PDFs; `v{N}` is a code constant
-bumped alongside any print-rendering change so stale artifacts regenerate); on a
-miss it launches
-Chromium, loads the issue's print route over localhost, prints the fixed
-PAGE_W×PAGE_H canvas to a paginated PDF, caches the bytes, and serves them.
-Because `revision` bumps on every content write, an edit + republish yields a
-fresh key with no manual invalidation, and repeat downloads of the same revision
-are cache hits. Generation is coalesced per key within an instance, so the first
-click after a publish launches one Chromium even if several members click at
-once. Chromium is a transient, on-demand cost — not held between requests.
+the admin regenerates rather than serving stale PDFs; `{sponsors}` is the same
+idea for the managed sponsors the issue places (a sponsor block stores an id, and
+its name, link and logo are resolved at print time), so renaming or removing a
+sponsor regenerates instead of leaving cached PDFs advertising it; `v{N}` is a
+code constant bumped alongside any print-rendering change so stale artifacts
+regenerate); on a miss it launches Chromium, loads the issue's print route over
+localhost, prints the fixed PAGE_W×PAGE_H canvas to a paginated PDF, caches the
+bytes, and serves them. Because `revision` bumps on every content write, editing
+and republishing yields a fresh key with no manual invalidation, and repeat
+downloads of the same revision are cache hits. Generation is coalesced per key
+within an instance, so the first click after a publish launches one Chromium even
+if several members click at once. Chromium is a transient, on-demand cost — not
+held between requests.
 
 **Container deps — [`nixpacks.toml`](../nixpacks.toml)** installs the shared
 libraries Chromium needs (`aptPkgs`) and downloads Playwright's pinned Chromium

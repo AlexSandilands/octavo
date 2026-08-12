@@ -47,16 +47,29 @@ function selfOrigin(): string {
 // theme flows to the PDF path with no change here (issue #40).
 export type PdfTheme = LayoutThemeId;
 
-// `chrome` is the magazine-chrome fingerprint the caller keyed its cache entry
-// under. The print page resolves settings in a *separate* request, so the two
-// can disagree (a settings edit landing in between, or a database blip degrading
-// that read to the deployment defaults) — and the caller would store branding
-// its key doesn't describe. So the page stamps what it actually rendered and we
-// refuse to hand back bytes that don't match it (issue #127).
+// The fingerprints the caller keyed its cache entry under: the magazine chrome
+// (issue #127) and the issue's resolved sponsors (issue #180). Both name state
+// that lives outside `issues.content`, and the print page resolves both again in
+// a *separate* request — so the two can disagree (an owner's edit landing in
+// between, a sponsor deleted mid-generation, or a database blip degrading the
+// settings read to the deployment defaults), and the caller would store a
+// document its key doesn't describe. The page stamps what it actually rendered
+// and we refuse to hand back bytes that don't match.
+export type PrintStamps = {
+  chrome: string;
+  sponsors: string;
+};
+
+// The <meta> each stamp is carried in, and the name to say when it doesn't match.
+const STAMP_META: Record<keyof PrintStamps, string> = {
+  chrome: "print-chrome",
+  sponsors: "print-sponsors",
+};
+
 export async function generateIssuePdf(
   issueNumber: number,
   theme: PdfTheme,
-  chrome: string,
+  expected: PrintStamps,
 ): Promise<Buffer> {
   const url = `${selfOrigin()}/read/${issueNumber}/print?token=${printToken()}&theme=${theme}`;
 
@@ -82,21 +95,25 @@ export async function generateIssuePdf(
         `print route returned ${res ? res.status() : "no response"} for issue ${issueNumber}`,
       );
     }
-    // The stamp, not the status, is what proves we are looking at the print
-    // document rendered from the expected settings: a refused or errored page
-    // does not carry one (and doesn't reliably carry a non-OK status either —
-    // Next serves the dev error overlay with a 200), and a mismatch means the
-    // settings moved under the cache key. Either way the caller must not store
+    // The stamps, not the status, are what prove we are looking at the print
+    // document rendered from the expected inputs: a refused or errored page
+    // carries none of them (and doesn't reliably carry a non-OK status either —
+    // Next serves the dev error overlay with a 200), and a mismatch means that
+    // input moved under the cache key. Either way the caller must not store
     // these bytes, so fail before the PDF exists to store.
-    const stamped = await page.evaluate(() =>
-      document
-        .querySelector('meta[name="print-chrome"]')
-        ?.getAttribute("content"),
-    );
-    if (stamped !== chrome) {
+    const stamped = await page.evaluate((meta) => {
+      const read = (name: string) =>
+        document.querySelector(`meta[name="${name}"]`)?.getAttribute("content");
+      return {
+        chrome: read(meta.chrome),
+        sponsors: read(meta.sponsors),
+      };
+    }, STAMP_META);
+    for (const field of Object.keys(STAMP_META) as (keyof PrintStamps)[]) {
+      if (stamped[field] === expected[field]) continue;
       throw new Error(
-        `print route rendered chrome ${stamped ?? "none"} for issue ${issueNumber}, ` +
-          `expected ${chrome} — refusing to cache a PDF the key does not describe`,
+        `print route rendered ${field} ${stamped[field] ?? "none"} for issue ${issueNumber}, ` +
+          `expected ${expected[field]} — refusing to cache a PDF the key does not describe`,
       );
     }
 
