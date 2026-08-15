@@ -76,4 +76,4 @@ jobs:
         run: railway up --service "$RAILWAY_SERVICE" --environment production --ci
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-          RAILWAY_SERVICE: "Octavo - Petanque NZ"
+          RAILWAY_SERVICE: "On The Terrain"
