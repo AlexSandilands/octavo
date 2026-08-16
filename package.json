@@ -19,7 +19,8 @@
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx src/db/seed.ts",
     "db:migrate-content": "tsx src/db/migrate-content.ts",
-    "db:admin": "tsx src/db/bootstrap-admin.ts"
+    "db:admin": "tsx src/db/bootstrap-admin.ts",
+    "invoice": "tsx --tsconfig scripts/tsconfig.json scripts/invoice/generate.mts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.700.0",
@@ -45,12 +46,14 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
     "@tailwindcss/postcss": "^4.0.0",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "drizzle-kit": "^1.0.0-rc.4",
     "eslint": "^9.17.0",
     "eslint-config-next": "^15.5.20",
+    "js-yaml": "^5.3.0",
     "prettier": "^3.4.0",
     "prettier-plugin-tailwindcss": "^0.6.9",
     "tailwindcss": "^4.0.0",

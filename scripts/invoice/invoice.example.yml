@@ -1,0 +1,71 @@
+# Invoice config template (issue #187) — fake data throughout, mirroring the
+# .env.example pattern. To write a real invoice:
+#
+#   1. Copy this file to temp/invoices/<number>.yml (temp/ is git-ignored —
+#      real configs and PDFs hold client billing details and are never
+#      committed).
+#   2. Edit the values.
+#   3. npm run invoice -- temp/invoices/<number>.yml
+#
+# The PDF lands next to the config. Full field reference: the zod schema in
+# scripts/invoice/config.mts is the source of truth; docs/invoicing.md has the
+# usage notes.
+
+invoice:
+  number: INV-2026-001
+  issueDate: 2026-08-16
+  dueDate: 2026-08-30
+  # Optional billing period, shown under the title (quarterly, in arrears).
+  period: May – August 2026
+
+issuer:
+  name: octavo
+  contact:
+    - Ada Example
+    - billing@example.com
+  # Bank / payment details, printed line-for-line in the payment block.
+  payment:
+    - "Example Bank"
+    - "Ada Example — 00-0000-0000000-00"
+    - "Reference: INV-2026-001"
+
+client:
+  name: Example Pétanque Club
+  contact:
+    - The Treasurer
+    - treasurer@example.org.nz
+
+# Invoice currency — every total is stated in this. Line items may carry a
+# different native `currency`; those lines are converted (and show the
+# original alongside).
+currency: NZD
+
+# Exchange rate pin: 1 unit of the foreign currency = fxRate units of the
+# invoice currency, as of fxDate. Leave both out for a fresh invoice — the
+# tool fetches the live ECB rate (frankfurter.app) and prints these two lines
+# for you to paste in. PIN THEM before sending: an invoice must be
+# reproducible, and a pinned config never silently changes amounts.
+# fxRate: 1.6543
+# fxDate: 2026-08-15
+
+items:
+  - description: Railway Pro workspace subscription
+    qty: 3
+    unit: month
+    amount: 20.00
+    currency: USD
+  - description: Resend Pro subscription
+    qty: 3
+    unit: month
+    amount: 20.00
+    currency: USD
+  - description: Domain registration — example.org.nz (annual, Cloudflare)
+    amount: 25.30
+
+# GST — omit entirely unless GST-registered (rate in percent).
+# gst:
+#   rate: 15
+
+# Optional closing note, set in the serif italic.
+notes: |
+  Thank you — it's a pleasure making the magazine with you.
