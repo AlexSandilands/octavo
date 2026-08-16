@@ -22,8 +22,11 @@
 # One-time setup (see docs/infrastructure.md#release-workflow):
 #   1. Railway → project → Settings → Tokens: create a token scoped to the
 #      *production* environment. Add it to GitHub as the RAILWAY_TOKEN secret.
-#   2. Railway → production service → Settings → Source: disconnect the branch
-#      (or leave auto-deploy off) so ONLY this workflow deploys production.
+#   2. Railway → production service → Settings → Source: disconnect the Source
+#      Repo ENTIRELY (not just the branch) so ONLY this workflow deploys
+#      production — with a repo still attached, a dashboard rebuild (e.g. a
+#      NEXT_PUBLIC_* var change) builds the repo's latest main, not the tag.
+#      `railway up` needs no repo connection; rebuilds use its uploaded snapshot.
 
 name: Deploy to production
 
