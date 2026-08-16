@@ -357,9 +357,14 @@ problem.)
 1. **Railway token** — project → Settings → Tokens: create a token scoped to the
    **production** environment. Add it to GitHub → repo Settings → Secrets → Actions as
    `RAILWAY_TOKEN`.
-2. **Stop branch auto-deploy on prod** — Railway → production service → Settings →
-   Source: disconnect the branch (or leave _Auto deploy_ off) so the Action is the
-   only thing that deploys production.
+2. **Disconnect the repo from prod entirely** — Railway → production service →
+   Settings → Source: disconnect the **Source Repo** itself, not just the branch.
+   Disconnecting only the branch stops push-triggered deploys, but any
+   dashboard-triggered rebuild (e.g. applying a `NEXT_PUBLIC_*` variable change,
+   which forces a full rebuild) still checks out the connected repo's latest
+   `main` — silently deploying untagged work (observed at go-live, 2026-08).
+   `railway up` doesn't need the connection: it uploads the tagged checkout
+   directly, and later rebuilds use that uploaded snapshot.
 3. **Keep "Wait for CI to pass"** on the **demo** service so a red
    `lint · types · build` never redeploys `demo.octavo.dev`. (Prod doesn't need it —
    you only tag commits that were already green on `main`.)
