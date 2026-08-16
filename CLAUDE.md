@@ -39,6 +39,7 @@ fires the `Deploy to production` Action. See `docs/infrastructure.md#release-wor
 - `npm run db:generate` / `db:migrate` / `db:seed` / `db:studio` — Drizzle workflow: migrations are committed in `drizzle/` and run on deploy (`db:push` is a local iteration convenience only; see `docs/database.md`)
 - `npm run db:admin -- you@example.com` — create/promote an admin user (first-run bootstrap; idempotent)
 - `npm run lint` / `npm run format` — lint / format
+- `npm run invoice -- invoices/<name>.yml` — client invoice PDF from a YAML config (local-only tool, data in git-ignored `invoices/`; see `docs/invoicing.md`)
 
 ## Status
 

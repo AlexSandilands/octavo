@@ -35,6 +35,11 @@ yarn-error.log*
 # local dev storage (image upload filesystem fallback)
 /.data
 
+# client invoice configs + generated PDFs — real billing data, never committed
+# (the tool lives in scripts/invoice; the committed template is
+# scripts/invoice/invoice.example.yml)
+/invoices/
+
 # misc
 /coverage
 *.tsbuildinfo

@@ -28,6 +28,19 @@ export const BRAND_ICON_COLORS: Record<BrandId, { bg: string; fg: string }> = {
   coastal: { bg: "#1f4e63", fg: "#ecedf1" },
 };
 
+// The octavo book mark — two paper pages opened nearly flat, drawn in a
+// 32×32 viewBox. Shared by the generated app icon (src/lib/site-icon.tsx) and
+// the invoice tool's header (scripts/invoice/template.mts) so the silhouette
+// can't drift between the favicon and the one document sent to paying
+// clients. Left page's outer edge is lifted ~3 units above the spine edge so
+// the book reads as almost-but-not-quite flat open; the right page mirrors
+// it, and the 2-unit gap between them is the spine crease.
+export const BOOK_MARK_VIEWBOX = "0 0 32 32";
+export const BOOK_MARK_PATHS = [
+  "M2.5 8 L15 11 L15 25.5 L2.5 22.5 Z",
+  "M29.5 8 L17 11 L17 25.5 L29.5 22.5 Z",
+] as const;
+
 // The active deployment brand, read from the build-time-inlined
 // NEXT_PUBLIC_BRAND. env.ts already validates this strictly at boot (an unknown
 // value fails there), so this is a lightweight, server-only-free accessor for
