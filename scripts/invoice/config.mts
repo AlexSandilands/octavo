@@ -54,8 +54,12 @@ export const invoiceConfigSchema = z
   .object({
     invoice: z.object({
       number: z.string().min(1),
+      // Document title, e.g. "Statement" for an information-only document.
+      title: z.string().min(1).default("Invoice"),
       issueDate: isoDate,
-      dueDate: isoDate,
+      // Optional so a statement can carry no due date — omitting it drops the
+      // DUE box, the "Due by" line, and relabels the total from "Total due".
+      dueDate: isoDate.optional(),
       // Billing period rendered under the title (e.g. "May – August 2026").
       period: z.string().min(1).optional(),
     }),
@@ -87,6 +91,9 @@ export const invoiceConfigSchema = z
         label: z.string().min(1).optional(),
       })
       .optional(),
+    // A prominent banner under the billed-to band — e.g. "For information
+    // only — no payment due now." on a statement.
+    notice: z.string().min(1).optional(),
     notes: z.string().min(1).optional(),
   })
   .refine((c) => (c.fxRate === undefined) === (c.fxDate === undefined), {

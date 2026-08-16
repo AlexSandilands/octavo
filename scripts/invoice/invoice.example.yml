@@ -13,7 +13,12 @@
 
 invoice:
   number: INV-2026-001
+  # Optional document title, default "Invoice" — set e.g. "Statement" for an
+  # information-only document.
+  # title: Statement
   issueDate: 2026-08-16
+  # Optional: omit on a statement that asks for no payment — the DUE box, the
+  # "Due by" line and the "due" in "Total due" all drop with it.
   dueDate: 2026-08-30
   # Optional billing period, shown under the title (quarterly, in arrears).
   period: May – August 2026
@@ -65,6 +70,10 @@ items:
 # GST — omit entirely unless GST-registered (rate in percent).
 # gst:
 #   rate: 15
+
+# Optional highlighted banner under the billed-to band — pairs with title:
+# Statement / no dueDate for an information-only document.
+# notice: For information only — no payment due now.
 
 # Optional closing note, set in the serif italic.
 notes: |

@@ -48,9 +48,14 @@ conversion on the page; the schema enforces it.
   turns it on later without touching the template — and only then does the
   subtotal/GST block render.
 - Cadence is quarterly, in arrears: `qty: 3, unit: month` per monthly
-  subscription, plus whatever annual renewals fell in the quarter. Numbering is
-  sequential with year (`INV-2026-001`), the `period:` renders under the title.
+  subscription, plus a ¼ share of each annual fee (domains) so a year's renewal
+  is recovered across the four invoices that follow it. Numbering is sequential
+  with year (`INV-2026-001`), the `period:` renders under the title.
 - All arithmetic is integer cents; amounts validate to at most 2 decimal places.
+- **Statements** (information-only documents) are the same config with
+  `invoice.title: Statement`, no `dueDate` (the DUE box, "Due by" line and the
+  "due" in "Total due" all drop), and a `notice:` banner — e.g. "For
+  information only — no payment due now."
 
 ## How it renders
 

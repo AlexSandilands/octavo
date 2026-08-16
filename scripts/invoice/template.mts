@@ -121,8 +121,11 @@ function totalsHtml(config: InvoiceConfig, totals: ComputedTotals): string {
       <span class="totals-value">${fmtMoney(totals.gstCents, cur)}</span>
     </div>`);
   }
+  // Without a due date this document asks for nothing, so the total drops the
+  // "due" as well.
+  const totalLabel = config.invoice.dueDate ? "Total due" : "Total";
   rows.push(`<div class="totals-row total-due">
-    <span class="totals-label">Total due <span class="cur">${esc(cur)}</span></span>
+    <span class="totals-label">${totalLabel} <span class="cur">${esc(cur)}</span></span>
     <span class="totals-value">${fmtMoney(totals.totalCents, cur)}</span>
   </div>`);
   return rows.join("\n");
@@ -210,6 +213,11 @@ export function renderInvoiceHtml(
   .dates { display: flex; gap: 12mm; text-align: right; }
   .date-value { font-size: 10pt; color: ${C.body}; margin-top: 2mm; }
 
+  /* ---- notice banner (e.g. "no payment due now" on a statement) ---- */
+  .notice { margin-top: 7mm; padding: 3.2mm 4.5mm; border: 1px solid ${C.accent}33;
+    background: #e8efe9; border-radius: 1.2mm; color: ${C.accentInk};
+    font-size: 10pt; font-weight: 600; }
+
   /* ---- items ---- */
   table { width: 100%; border-collapse: collapse; margin-top: 9mm; }
   thead th { text-align: left; padding: 0 0 2.2mm; white-space: nowrap;
@@ -269,7 +277,7 @@ export function renderInvoiceHtml(
       </div>
     </div>
     <div class="doc-id">
-      <div class="doc-title">Invoice</div>
+      <div class="doc-title">${esc(inv.title)}</div>
       <div class="doc-number">${esc(inv.number)}</div>
       ${inv.period ? `<div class="doc-period">${esc(inv.period)}</div>` : ""}
     </div>
@@ -287,12 +295,18 @@ export function renderInvoiceHtml(
         <div class="caps">Issued</div>
         <div class="date-value">${fmtDate(inv.issueDate)}</div>
       </div>
-      <div>
+      ${
+        inv.dueDate
+          ? `<div>
         <div class="caps">Due</div>
         <div class="date-value">${fmtDate(inv.dueDate)}</div>
-      </div>
+      </div>`
+          : ""
+      }
     </div>
   </div>
+
+  ${config.notice ? `<div class="notice">${esc(config.notice)}</div>` : ""}
 
   <table>
     <thead>
@@ -316,7 +330,7 @@ export function renderInvoiceHtml(
   <div class="payment">
     <div class="caps">Payment</div>
     ${contactLines(config.issuer.payment, "payment-line")}
-    <div class="due">Due by ${fmtDate(inv.dueDate)}.</div>
+    ${inv.dueDate ? `<div class="due">Due by ${fmtDate(inv.dueDate)}.</div>` : ""}
   </div>
 
   ${config.notes ? `<div class="notes">${esc(config.notes.trim())}</div>` : ""}
