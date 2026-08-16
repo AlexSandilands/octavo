@@ -1,5 +1,10 @@
 import { ImageResponse } from "next/og";
-import { BRAND_ICON_COLORS, activeBrand } from "@/lib/brands";
+import {
+  BOOK_MARK_PATHS,
+  BOOK_MARK_VIEWBOX,
+  BRAND_ICON_COLORS,
+  activeBrand,
+} from "@/lib/brands";
 
 // Shared renderer for the App Router icon routes (src/app/icon.tsx +
 // apple-icon.tsx). Draws Octavo's mark — an open book (an octavo is a book
@@ -25,13 +30,17 @@ export function renderSiteIcon(px: number): ImageResponse {
         borderRadius: px * 0.18,
       }}
     >
-      <svg width={px * 0.82} height={px * 0.82} viewBox="0 0 32 32" fill="none">
-        {/* Left page: outer edge lifted ~3 units above the spine edge, so the
-            book reads as almost-but-not-quite flat open. */}
-        <path d="M2.5 8 L15 11 L15 25.5 L2.5 22.5 Z" fill={fg} />
-        {/* Right page, mirrored; the 2-unit accent gap between them is the
-            spine crease. */}
-        <path d="M29.5 8 L17 11 L17 25.5 L29.5 22.5 Z" fill={fg} />
+      {/* The two-page silhouette lives in brands.ts (BOOK_MARK_PATHS), shared
+          with the invoice tool so the mark can't drift between surfaces. */}
+      <svg
+        width={px * 0.82}
+        height={px * 0.82}
+        viewBox={BOOK_MARK_VIEWBOX}
+        fill="none"
+      >
+        {BOOK_MARK_PATHS.map((d) => (
+          <path key={d} d={d} fill={fg} />
+        ))}
       </svg>
     </div>,
     { width: px, height: px },

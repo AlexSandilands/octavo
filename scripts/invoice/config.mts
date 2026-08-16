@@ -5,9 +5,9 @@ import { z } from "zod";
 // The invoice config schema — the "data" half of the tool's template + data
 // split (issue #187). Every invoice is one YAML file matching this shape; the
 // committed `invoice.example.yml` documents it with fake values. Real configs
-// hold client billing details, so they live in git-ignored `temp/invoices/`.
-// All input is zod-validated at the boundary (design-principles §4) — a YAML
-// file is external input like any other.
+// hold client billing details, so they live in the git-ignored `invoices/`
+// directory. All input is zod-validated at the boundary (design-principles
+// §4) — a YAML file is external input like any other.
 
 // Calendar dates as written in the config (YYYY-MM-DD), checked to be real
 // days — `2026-02-30` round-trips through Date to a different ISO string and
@@ -28,7 +28,7 @@ const money = z
   .finite()
   .nonnegative()
   .refine(
-    (v) => Math.abs(v * 100 - Math.round(v * 100)) < 1e-6,
+    (v) => Number(v.toFixed(2)) === v,
     "amounts must have at most 2 decimal places",
   );
 
@@ -74,13 +74,16 @@ export const invoiceConfigSchema = z
       contact: lines.optional(),
     }),
     currency: currencyCode.default("NZD"),
-    // Pinned exchange rate: 1 unit of the foreign currency = fxRate units of
-    // the invoice currency, as of fxDate. Present → overrides the live fetch,
-    // making the invoice reproducible; absent → fx.mts fetches today's ECB
-    // rate and the tool prints the pair to paste in. Always both or neither —
-    // the footer states the rate's date, so a rate without one is meaningless.
+    // Pinned exchange rate: 1 fxFrom = fxRate units of the invoice currency,
+    // as of fxDate. Present → overrides the live fetch, making the invoice
+    // reproducible; absent → fx.mts fetches today's ECB rate and the tool
+    // prints the trio to paste in. Always all three or none: the footer
+    // states the rate's date, so a rate without one is meaningless, and a
+    // rate without its currency (fxFrom) could silently convert the wrong
+    // currency when a config is copied for the next invoice.
     fxRate: z.number().finite().positive().optional(),
     fxDate: isoDate.optional(),
+    fxFrom: currencyCode.optional(),
     items: z.array(item).min(1),
     // GST is optional and off by default — the issuer is not GST-registered.
     // The field exists so registering later is a config edit, not a template
@@ -96,9 +99,28 @@ export const invoiceConfigSchema = z
     notice: z.string().min(1).optional(),
     notes: z.string().min(1).optional(),
   })
-  .refine((c) => (c.fxRate === undefined) === (c.fxDate === undefined), {
-    message: "fxRate and fxDate must be set together",
-  })
+  .refine(
+    (c) =>
+      (c.fxRate === undefined) === (c.fxDate === undefined) &&
+      (c.fxRate === undefined) === (c.fxFrom === undefined),
+    { message: "fxRate, fxDate and fxFrom must be set together" },
+  )
+  // The pin must describe the conversion actually on the page: a pin for a
+  // currency no item uses (foreign line deleted, config copied for a
+  // different client) would otherwise go silently unapplied — or worse, get
+  // applied to a different currency under a confident footer.
+  .refine(
+    (c) =>
+      c.fxFrom === undefined ||
+      (c.fxFrom !== c.currency &&
+        c.items.some((i) => (i.currency ?? c.currency) === c.fxFrom)),
+    {
+      message:
+        "fxFrom must name the foreign currency the line items actually use — " +
+        "a pin for any other currency would not describe the conversion on " +
+        "the invoice",
+    },
+  )
   .refine(
     (c) =>
       new Set(

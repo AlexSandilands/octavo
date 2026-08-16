@@ -1,6 +1,10 @@
 import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { chromium } from "playwright";
+import {
+  ChromiumUnavailableError,
+  isMissingBrowser,
+} from "../../src/lib/chromium.ts";
 import { loadInvoiceConfig } from "./config.mts";
 import { resolveFx } from "./fx.mts";
 import { computeTotals } from "./totals.mts";
@@ -8,7 +12,7 @@ import { renderInvoiceHtml } from "./template.mts";
 
 // Local invoice PDF generator (issue #187) — the CLI. Usage:
 //
-//   npm run invoice -- temp/invoices/<name>.yml [--out <path>.pdf]
+//   npm run invoice -- invoices/<name>.yml [--out <path>.pdf]
 //
 // Loads + validates the YAML config, resolves the exchange rate (pinned in
 // the config, else fetched live from frankfurter.app), renders the invoice
@@ -18,7 +22,8 @@ import { renderInvoiceHtml } from "./template.mts";
 // optional rate fetch. Needs Chromium once: `npx playwright install chromium`.
 //
 // The PDF is written next to the config unless --out says otherwise. Configs
-// and PDFs hold client billing details — keep both in git-ignored temp/.
+// and PDFs hold client billing details — keep both in the git-ignored
+// invoices/ directory.
 
 function parseArgs(argv: string[]): { configPath: string; outPath: string } {
   const args = [...argv];
@@ -46,13 +51,9 @@ async function printToPdf(html: string): Promise<Buffer> {
   try {
     browser = await chromium.launch({ headless: true });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    if (msg.includes("Executable doesn't exist") || msg.includes("install")) {
-      throw new Error(
-        "Headless Chromium is not available. Install it once with: " +
-          "npx playwright install chromium",
-      );
-    }
+    // Shared detector with the magazine PDF generator (src/lib/chromium.ts);
+    // the error carries the original launch failure alongside the hint.
+    if (isMissingBrowser(err)) throw new ChromiumUnavailableError(err);
     throw err;
   }
   try {
@@ -91,7 +92,8 @@ async function main(): Promise<void> {
       `\nRate fetched live (1 ${fx.from} = ${fx.rate} ${fx.to}, ECB ${fx.date}).\n` +
         `Pin it in the config so regenerating never changes amounts:\n\n` +
         `fxRate: ${fx.rate}\n` +
-        `fxDate: ${fx.date}\n`,
+        `fxDate: ${fx.date}\n` +
+        `fxFrom: ${fx.from}\n`,
     );
   }
 }

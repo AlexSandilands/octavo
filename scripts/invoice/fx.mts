@@ -72,6 +72,12 @@ export async function resolveFx(
   if (!from) return null;
   const to = config.currency;
   if (config.fxRate !== undefined && config.fxDate !== undefined) {
+    // The schema proved fxFrom === the one foreign currency in use, so the
+    // pin is known to describe this conversion; keep a guard for the
+    // impossible case anyway.
+    if (config.fxFrom !== from) {
+      throw new Error(`fx pin is for ${config.fxFrom}, items use ${from}`);
+    }
     return { rate: config.fxRate, date: config.fxDate, from, to, pinned: true };
   }
   const live = await fetchEcbRate(from, to);

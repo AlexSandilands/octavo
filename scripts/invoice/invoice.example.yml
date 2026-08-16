@@ -1,11 +1,12 @@
 # Invoice config template (issue #187) — fake data throughout, mirroring the
 # .env.example pattern. To write a real invoice:
 #
-#   1. Copy this file to temp/invoices/<number>.yml (temp/ is git-ignored —
+#   1. Copy this file to invoices/<number>.yml (`mkdir -p invoices` first on a
+#      fresh clone; the committed .gitignore excludes the whole directory —
 #      real configs and PDFs hold client billing details and are never
 #      committed).
 #   2. Edit the values.
-#   3. npm run invoice -- temp/invoices/<number>.yml
+#   3. npm run invoice -- invoices/<number>.yml
 #
 # The PDF lands next to the config. Full field reference: the zod schema in
 # scripts/invoice/config.mts is the source of truth; docs/invoicing.md has the
@@ -45,13 +46,15 @@ client:
 # original alongside).
 currency: NZD
 
-# Exchange rate pin: 1 unit of the foreign currency = fxRate units of the
-# invoice currency, as of fxDate. Leave both out for a fresh invoice — the
-# tool fetches the live ECB rate (frankfurter.app) and prints these two lines
-# for you to paste in. PIN THEM before sending: an invoice must be
-# reproducible, and a pinned config never silently changes amounts.
+# Exchange rate pin: 1 fxFrom = fxRate units of the invoice currency, as of
+# fxDate. Leave all three out for a fresh invoice — the tool fetches the live
+# ECB rate (frankfurter.app) and prints these lines for you to paste in. PIN
+# THEM before sending: an invoice must be reproducible, and a pinned config
+# never silently changes amounts. fxFrom must be the foreign currency the
+# items use, so a config copied for another client can't misapply the rate.
 # fxRate: 1.6543
 # fxDate: 2026-08-15
+# fxFrom: USD
 
 items:
   - description: Railway Pro workspace subscription

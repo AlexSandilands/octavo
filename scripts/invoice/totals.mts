@@ -24,7 +24,9 @@ export type ComputedTotals = {
   totalCents: number;
 };
 
-function toCents(amount: number): number {
+// Exported so the template converts display amounts (the unit price column)
+// with the same rule the arithmetic uses.
+export function toCents(amount: number): number {
   return Math.round(amount * 100);
 }
 

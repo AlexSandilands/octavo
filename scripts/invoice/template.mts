@@ -1,10 +1,16 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { BRAND_ICON_COLORS, DEFAULT_BRAND } from "../../src/lib/brands.ts";
+import {
+  BOOK_MARK_PATHS,
+  BOOK_MARK_VIEWBOX,
+  BRAND_ICON_COLORS,
+  DEFAULT_BRAND,
+} from "../../src/lib/brands.ts";
+import { escapeAttr as esc } from "../../src/lib/rich-text.ts";
 import type { InvoiceConfig } from "./config.mts";
 import type { FxResolution } from "./fx.mts";
-import type { ComputedLine, ComputedTotals } from "./totals.mts";
+import { toCents, type ComputedLine, type ComputedTotals } from "./totals.mts";
 
 // The invoice layout — the "template" half of the template + data split
 // (issue #187). One fixed A4 page in the octavo house style: the heritage
@@ -14,17 +20,20 @@ import type { ComputedLine, ComputedTotals } from "./totals.mts";
 // The invoice is from octavo TO a client, so it carries octavo's branding
 // regardless of any client magazine's skin.
 
-// Heritage palette, mirrored from the @theme block in globals.css. This tool
-// renders outside Next/Tailwind, so the tokens are restated here — if the
-// heritage identity ever shifts, update these alongside globals.css.
+// Heritage palette. The two identity colors — accent and paper — come from
+// BRAND_ICON_COLORS (brands.ts), the same source the app icon uses, so a
+// shift in the brand's identity reaches the invoice through the import. The
+// remaining tokens render outside Next/Tailwind and are mirrored from the
+// @theme block in globals.css — if those ever shift, update them alongside.
+const ICON = BRAND_ICON_COLORS[DEFAULT_BRAND];
 const C = {
-  paper: "#f4f0e8",
+  paper: ICON.fg,
+  accent: ICON.bg,
   ink: "#20201c",
   body: "#2a2722",
   muted: "#56524a",
   faint: "#615c50",
   faint2: "#6d685a",
-  accent: "#1d4d3e",
   accentInk: "#143a2e",
   line: "#e6e0d3",
   hair: "#ddd6c8",
@@ -51,14 +60,6 @@ function fontFace(
   }`;
 }
 
-function esc(s: string): string {
-  return s
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
-}
-
 // "16 August 2026" — the audience-friendly long form, from a YYYY-MM-DD the
 // schema already proved is a real date.
 function fmtDate(iso: string): string {
@@ -79,21 +80,22 @@ function fmtMoney(cents: number, currency: string): string {
   }).format(cents / 100);
 }
 
-// The octavo mark — the same two-parallelogram open book the app's icon route
-// draws (src/lib/site-icon.tsx), on the brand accent, sized for print.
+// The octavo mark — the same open-book silhouette the app's icon route draws,
+// from the shared paths in brands.ts, on the brand accent, sized for print.
 function markHtml(): string {
-  const { bg, fg } = BRAND_ICON_COLORS[DEFAULT_BRAND];
-  return `<div class="mark" style="background:${bg}">
-    <svg viewBox="0 0 32 32" fill="none">
-      <path d="M2.5 8 L15 11 L15 25.5 L2.5 22.5 Z" fill="${fg}" />
-      <path d="M29.5 8 L17 11 L17 25.5 L29.5 22.5 Z" fill="${fg}" />
+  const paths = BOOK_MARK_PATHS.map(
+    (d) => `<path d="${d}" fill="${ICON.fg}" />`,
+  ).join("\n      ");
+  return `<div class="mark" style="background:${ICON.bg}">
+    <svg viewBox="${BOOK_MARK_VIEWBOX}" fill="none">
+      ${paths}
     </svg>
   </div>`;
 }
 
 function itemRow(line: ComputedLine, invoiceCurrency: string): string {
   const { item } = line;
-  const unitPrice = fmtMoney(Math.round(item.amount * 100), line.currency);
+  const unitPrice = fmtMoney(toCents(item.amount), line.currency);
   const per = item.unit ? ` / ${esc(item.unit)}` : "";
   // A converted line shows its native total under the invoice-currency amount
   // so the original is always on the page next to what it became.
@@ -133,7 +135,10 @@ function totalsHtml(config: InvoiceConfig, totals: ComputedTotals): string {
 
 function fxNote(fx: FxResolution | null): string {
   if (!fx) return "";
-  return `<p class="fx-note">Converted at 1 ${esc(fx.from)} = ${fx.rate.toFixed(4)} ${esc(fx.to)}, European Central Bank rate of ${fmtDate(fx.date)}.</p>`;
+  // The rate prints at full precision — the exact number the arithmetic used
+  // — so anyone recomputing a line from the stated rate lands on the same
+  // cents. Never round it for display.
+  return `<p class="fx-note">Converted at 1 ${esc(fx.from)} = ${fx.rate} ${esc(fx.to)}, European Central Bank rate of ${fmtDate(fx.date)}.</p>`;
 }
 
 export function renderInvoiceHtml(

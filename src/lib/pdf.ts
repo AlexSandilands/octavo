@@ -2,7 +2,10 @@ import "server-only";
 import { chromium } from "playwright";
 import { PAGE_W, PAGE_H } from "@/features/blocks/page-frame";
 import type { LayoutThemeId } from "@/features/blocks/themes/registry";
+import { ChromiumUnavailableError, isMissingBrowser } from "./chromium";
 import { printToken } from "./pdf-token";
+
+export { ChromiumUnavailableError };
 
 // Server-only PDF generation. Headless Chromium loads the issue's print route
 // (a localhost self-fetch, authorised by the internal print token) and prints
@@ -10,30 +13,6 @@ import { printToken } from "./pdf-token";
 // page. This is the ONLY place Playwright is imported; it stays out of every
 // client bundle and off the normal request path (design-principles §8). The
 // download endpoint calls this once per (issue, revision) and caches the bytes.
-
-// Chromium isn't installed on the build machine or in a bare container. Surface
-// that as its own error so the caller can report it clearly (and the operator
-// knows to run `npx playwright install --with-deps chromium`) rather than
-// bury it in a generic failure.
-export class ChromiumUnavailableError extends Error {
-  constructor(cause: unknown) {
-    super(
-      "Headless Chromium is not available. Install it with: " +
-        "npx playwright install --with-deps chromium",
-    );
-    this.name = "ChromiumUnavailableError";
-    this.cause = cause;
-  }
-}
-
-function isMissingBrowser(err: unknown): boolean {
-  const msg = err instanceof Error ? err.message : String(err);
-  return (
-    msg.includes("Executable doesn't exist") ||
-    msg.includes("playwright install") ||
-    msg.includes("Failed to launch")
-  );
-}
 
 // The origin the generator self-fetches. Localhost by design: it avoids the
 // public CDN/edge, incurs no egress, and never leaves the box. Railway injects

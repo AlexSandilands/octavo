@@ -12,14 +12,16 @@ the tool_ (issue #187).
 # once, if Chromium isn't already installed for Playwright:
 npx playwright install chromium
 
-cp scripts/invoice/invoice.example.yml temp/invoices/INV-2026-001.yml
+mkdir -p invoices   # git-ignored; doesn't exist on a fresh clone
+cp scripts/invoice/invoice.example.yml invoices/INV-2026-001.yml
 # …edit the config…
-npm run invoice -- temp/invoices/INV-2026-001.yml          # writes …/INV-2026-001.pdf
-npm run invoice -- temp/invoices/INV-2026-001.yml --out somewhere/else.pdf
+npm run invoice -- invoices/INV-2026-001.yml          # writes …/INV-2026-001.pdf
+npm run invoice -- invoices/INV-2026-001.yml --out somewhere/else.pdf
 ```
 
 **Never commit invoice data.** Configs and PDFs carry client billing details, so
-they live in `temp/invoices/` (git-ignored). The only committed config is
+they live in the top-level `invoices/` directory, which the committed
+`.gitignore` excludes. The only committed config is
 `scripts/invoice/invoice.example.yml` — fake data, mirroring the `.env.example`
 pattern — and it is the template to copy from. The schema's source of truth is
 `scripts/invoice/config.mts` (zod, like every other external input).
@@ -33,11 +35,14 @@ alongside, and the footer states the rate and its date.
 
 The rate comes from one of two places:
 
-- **Pinned** — `fxRate:` + `fxDate:` in the config. This is the normal state of
-  a finished invoice: regenerating it must never silently change amounts.
+- **Pinned** — `fxRate:` + `fxDate:` + `fxFrom:` in the config (all three
+  together; `fxFrom` names the foreign currency so a config copied for a
+  different client can't silently apply the old rate to a new currency). This
+  is the normal state of a finished invoice: regenerating it must never
+  silently change amounts.
 - **Live** — with no pin, the tool fetches the current ECB reference rate from
-  frankfurter.app (no key) and prints the two lines to paste into the config.
-  Pin them before sending the invoice.
+  frankfurter.app (no key) and prints the three lines to paste into the
+  config. Pin them before sending the invoice.
 
 Only one foreign currency per invoice — one `fxRate` must describe every
 conversion on the page; the schema enforces it.
