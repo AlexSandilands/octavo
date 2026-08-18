@@ -26,7 +26,12 @@ export function AdminShell({
       <AdminDrawer>
         <AdminNavContent active={active} user={user} />
       </AdminDrawer>
-      <main id={ADMIN_MAIN_ID} className="flex-1 overflow-y-auto p-7 sm:p-8">
+      {/* `relative` keeps absolute descendants (e.g. sr-only live regions) in
+          this scroll pane; unanchored they stretch the document (#189). */}
+      <main
+        id={ADMIN_MAIN_ID}
+        className="relative flex-1 overflow-y-auto p-7 sm:p-8"
+      >
         {children}
       </main>
     </div>
