@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
+import { ListPagination } from "@/components/list-pagination";
 import { Button } from "@/components/ui";
-import type { SponsorListItem } from "@/lib/sponsors";
+import type { SponsorList, SponsorListItem } from "@/lib/sponsors";
 import { SponsorRow } from "./sponsor-row";
 import { SponsorDialog } from "./sponsor-dialog";
 
@@ -16,16 +17,16 @@ import { SponsorDialog } from "./sponsor-dialog";
 // null = closed; "new" = add; a sponsor = edit that record.
 type Editing = SponsorListItem | "new" | null;
 
-export function SponsorsManager({ sponsors }: { sponsors: SponsorListItem[] }) {
+export function SponsorsManager({ list }: { list: SponsorList }) {
   const router = useRouter();
   const [editing, setEditing] = useState<Editing>(null);
 
-  const expiredCount = sponsors.filter((s) => s.expired).length;
+  // Whole-list numbers, so the summary stays true whichever page is showing.
   const summary =
-    sponsors.length === 0
+    list.total === 0
       ? "No sponsors yet"
-      : `${sponsors.length} ${sponsors.length === 1 ? "sponsor" : "sponsors"}` +
-        (expiredCount > 0 ? ` · ${expiredCount} expired` : "");
+      : `${list.total} ${list.total === 1 ? "sponsor" : "sponsors"}` +
+        (list.expiredTotal > 0 ? ` · ${list.expiredTotal} expired` : "");
 
   return (
     <>
@@ -34,7 +35,7 @@ export function SponsorsManager({ sponsors }: { sponsors: SponsorListItem[] }) {
           <h1 className="text-ink font-serif text-3xl">Sponsors</h1>
           <p className="text-faint mt-1.5 font-sans text-sm">{summary}</p>
         </div>
-        {sponsors.length > 0 && (
+        {list.total > 0 && (
           <Button
             icon="plus"
             onClick={() => setEditing("new")}
@@ -45,7 +46,7 @@ export function SponsorsManager({ sponsors }: { sponsors: SponsorListItem[] }) {
         )}
       </div>
 
-      {sponsors.length === 0 ? (
+      {list.total === 0 ? (
         <div className="mt-8">
           <div className="bg-card border-line flex min-h-[360px] flex-col items-center justify-center rounded-md border p-9 text-center shadow-[0_1px_3px_rgba(0,0,0,0.07)]">
             <div className="bg-tint text-accent flex h-[72px] w-[72px] items-center justify-center rounded-full">
@@ -73,7 +74,7 @@ export function SponsorsManager({ sponsors }: { sponsors: SponsorListItem[] }) {
             <span className="w-[150px]">Active until</span>
             <span className="w-[80px]" />
           </div>
-          {sponsors.map((s) => (
+          {list.rows.map((s) => (
             <SponsorRow
               key={s.id}
               sponsor={s}
@@ -81,6 +82,11 @@ export function SponsorsManager({ sponsors }: { sponsors: SponsorListItem[] }) {
               onChanged={() => router.refresh()}
             />
           ))}
+          <ListPagination
+            page={list.page}
+            pageCount={list.pageCount}
+            label="Sponsor list pages"
+          />
         </div>
       )}
 

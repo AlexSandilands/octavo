@@ -5,17 +5,21 @@ import { adminMain } from "@/components/admin-main";
 import { Button } from "@/components/ui";
 import { useListUrl } from "./use-list-url";
 
-// The foot of the members table: previous/next plus where you are. Two big
+// The foot of an admin list: previous/next plus where you are. Two big
 // labelled buttons rather than a row of page numbers — the audience is older
 // and phone-heavy, and the house md Button gives the 48px targets and focus
 // treatment for free. The buttons navigate (?page= in the URL) so the position
 // survives a refresh; page 1 keeps a bare URL. Absent on a single page.
-export function MembersPagination({
+// Shared by the members, issues and sponsors lists.
+export function ListPagination({
   page,
   pageCount,
+  label,
 }: {
   page: number;
   pageCount: number;
+  /** Names the nav for screen readers, e.g. "Member list pages". */
+  label: string;
 }) {
   const go = useListUrl();
 
@@ -53,7 +57,8 @@ export function MembersPagination({
 
   if (pageCount <= 1) return null;
 
-  // Keep the rest of the list state (?q=, ?filter=); page 1 stays implicit.
+  // Keep whatever else the list keeps in the URL (?q=, ?filter=); page 1 stays
+  // implicit.
   // Wrapped in a transition for the same reason the bulk bar's actions are:
   // it gives us a pending flag for the whole round trip, so a slow turn says
   // so instead of looking like a dead button.
@@ -73,7 +78,7 @@ export function MembersPagination({
   // rather than skipping over them as if the end of the list weren't a fact.
   return (
     <nav
-      aria-label="Member list pages"
+      aria-label={label}
       aria-busy={pending}
       className="mt-6 flex items-center justify-between gap-3"
     >

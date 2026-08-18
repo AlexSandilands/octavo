@@ -1,9 +1,12 @@
 import Link from "next/link";
+import { z } from "zod";
 import { AdminShell } from "@/components/admin-shell";
+import { ListPagination } from "@/components/list-pagination";
 import { Button, Pill } from "@/components/ui";
 import { EmptyIssues } from "@/components/empty-states";
 import { coverPageOf, type Page } from "@/lib/blocks";
-import { listIssues } from "@/server/issues";
+import { pageParamSchema } from "@/lib/pagination";
+import { listIssuesPage } from "@/server/issues";
 import { resolveIssueImages } from "@/server/images";
 import { resolveIssueSponsors } from "@/server/sponsors";
 import { requireAdminOrRedirect } from "@/server/session";
@@ -22,12 +25,21 @@ export const dynamic = "force-dynamic";
 const THUMB_W = 46;
 const THUMB_H = Math.round((THUMB_W * PAGE_H) / PAGE_W);
 
-export default async function AdminDashboard() {
+// The page lives in the URL (?page=), so a refresh — and the revalidate after a
+// create, publish or delete — lands the admin back where they were.
+const paramsSchema = z.object({ page: pageParamSchema });
+
+export default async function AdminDashboard({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   // The layout gates too, but layouts don't re-run on soft navigation.
   const admin = await requireAdminOrRedirect();
+  const params = paramsSchema.parse(await searchParams);
   const settings = await getSettings();
-  const issues = await listIssues();
-  const draftCount = issues.filter((i) => i.status === "draft").length;
+  const list = await listIssuesPage(params.page);
+  const issues = list.rows;
 
   // Resolve every cover's images and managed sponsors in one query each, then
   // render each issue's cover page as its thumbnail (shared maps; extra ids are
@@ -46,9 +58,10 @@ export default async function AdminDashboard() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-ink font-serif text-3xl">Issues</h1>
+          {/* Whole-list numbers, so the summary holds on every page. */}
           <p className="text-faint mt-1.5 font-sans text-sm">
-            {issues.length} {issues.length === 1 ? "issue" : "issues"} ·{" "}
-            {draftCount} in draft
+            {list.total} {list.total === 1 ? "issue" : "issues"} ·{" "}
+            {list.draftTotal} in draft
           </p>
         </div>
         <form action={createIssueAction} className="flex-none">
@@ -63,7 +76,7 @@ export default async function AdminDashboard() {
         </form>
       </div>
 
-      {issues.length === 0 ? (
+      {list.total === 0 ? (
         <div className="mt-8">
           <EmptyIssues />
         </div>
@@ -134,6 +147,11 @@ export default async function AdminDashboard() {
               </div>
             );
           })}
+          <ListPagination
+            page={list.page}
+            pageCount={list.pageCount}
+            label="Issue list pages"
+          />
         </div>
       )}
     </AdminShell>

@@ -1,14 +1,17 @@
 import "server-only";
 import { createHash } from "node:crypto";
-import { desc, eq, inArray } from "drizzle-orm";
+import { count, desc, eq, inArray, lt, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { images, sponsors } from "@/db/schema";
 import { keyToUrl } from "@/lib/storage";
 import type { ResolvedImage } from "@/lib/images";
+import { pageBounds } from "@/lib/pagination";
 import {
   activeUntilToDateString,
   collectSponsorIds,
+  expiredBefore,
   isSponsorExpired,
+  type SponsorList,
   type SponsorListItem,
   type SponsorMap,
 } from "@/lib/sponsors";
@@ -62,7 +65,11 @@ export async function listSponsors(): Promise<SponsorListItem[]> {
     .from(sponsors)
     .leftJoin(images, eq(sponsors.logoId, images.id))
     .orderBy(desc(sponsors.createdAt));
-  return rows.map((row) => ({
+  return rows.map(toListItem);
+}
+
+function toListItem(row: SponsorRow): SponsorListItem {
+  return {
     id: row.id,
     name: row.name,
     href: row.href,
@@ -70,7 +77,50 @@ export async function listSponsors(): Promise<SponsorListItem[]> {
     logo: rowLogo(row),
     activeUntil: activeUntilToDateString(row.activeUntil),
     expired: isSponsorExpired(row.activeUntil),
-  }));
+  };
+}
+
+// One page of the admin sponsors list — the members list's size, so the two
+// read alike.
+export const SPONSORS_PAGE_SIZE = 25;
+
+// The admin list, paged. Newest-first is the fixed order that makes plain
+// offset paging safe; counts and rows share one REPEATABLE READ snapshot (as in
+// listUsers) so neither the clamp nor the summary can disagree with the rows
+// served.
+export async function listSponsorsPage(page = 1): Promise<SponsorList> {
+  return db.transaction(
+    async (tx) => {
+      const [counts] = await tx
+        .select({
+          total: count(),
+          expiredTotal:
+            sql`count(*) filter (where ${lt(sponsors.activeUntil, expiredBefore())})`.mapWith(
+              Number,
+            ),
+        })
+        .from(sponsors);
+      const total = counts?.total ?? 0;
+      const bounds = pageBounds(total, SPONSORS_PAGE_SIZE, page);
+
+      const rows = await tx
+        .select(sponsorSelection)
+        .from(sponsors)
+        .leftJoin(images, eq(sponsors.logoId, images.id))
+        .orderBy(desc(sponsors.createdAt))
+        .limit(SPONSORS_PAGE_SIZE)
+        .offset(bounds.offset);
+
+      return {
+        rows: rows.map(toListItem),
+        page: bounds.page,
+        pageCount: bounds.pageCount,
+        total,
+        expiredTotal: counts?.expiredTotal ?? 0,
+      };
+    },
+    { isolationLevel: "repeatable read", accessMode: "read only" },
+  );
 }
 
 // sponsorId -> { name, href, logo } for every sponsor a document references.
