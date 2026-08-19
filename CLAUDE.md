@@ -69,5 +69,5 @@ custom CSS-transform flipbook (`reader-spread.tsx`) · Playwright (on-demand PDF
 - Keep files under 500 lines; see `docs/design-principles.md` for the full rule set.
 - Server Components by default; `"use client"` only when needed.
 - Validate all external input with zod; never expose secrets to the client.
-- Comments state a constraint the code can't show — 1–2 lines max, an issue ref over a retold story; the narrative belongs in the PR, not the file.
+- If adding comments to code, keep them concise and to the point. One or two lines of explicit description is better than an essay. Only add more detailed explanations if the code change deserves it and subsequent readers would benefit.
 - Build for an older, phone-heavy, accessibility-sensitive audience.
