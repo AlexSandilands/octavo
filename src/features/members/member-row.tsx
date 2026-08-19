@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { nudgeActionCommit } from "@/components/action-commit-rescue";
 import { Icon } from "@/components/icons";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { MemberDialog } from "./member-dialog";
@@ -57,6 +58,7 @@ export function MemberRow({
       const res = await fn();
       if (!res.ok)
         setError(REASONS[res.reason ?? "invalid"] ?? REASONS.invalid!);
+      else nudgeActionCommit();
     });
   };
 

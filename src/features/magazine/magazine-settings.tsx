@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { nudgeActionCommit } from "@/components/action-commit-rescue";
 import { Button } from "@/components/ui";
 import {
   resolveSettings,
@@ -108,6 +109,7 @@ export function MagazineSettings({
       // The branding is already re-rendered everywhere by the action's
       // revalidate; refresh so this page's own server data matches too.
       router.refresh();
+      nudgeActionCommit();
     } catch (err) {
       console.error("Saving magazine settings failed", err);
       setStatus("error");

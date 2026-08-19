@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { nudgeActionCommit } from "@/components/action-commit-rescue";
 import { Button } from "@/components/ui";
 import { adoptFooterAction } from "@/app/admin/actions";
 
@@ -50,7 +51,10 @@ export function FooterUpdateNotice({
           setBusy(true);
           try {
             if (!(await flushSave())) return;
-            if ((await adoptFooterAction(issueId)).ok) router.refresh();
+            if ((await adoptFooterAction(issueId)).ok) {
+              router.refresh();
+              nudgeActionCommit();
+            }
           } finally {
             setBusy(false);
           }

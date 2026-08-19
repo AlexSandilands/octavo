@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { nudgeActionCommit } from "@/components/action-commit-rescue";
 import { Button } from "@/components/ui";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { SelectCheckbox } from "@/components/select-checkbox";
@@ -116,8 +117,10 @@ export function MembersBulkBar({
     setSelectionNote(null);
     startTransition(async () => {
       const next = await fn();
-      if (next) setResult(next);
-      else setError("That didn’t go through. Please try again.");
+      if (next) {
+        setResult(next);
+        nudgeActionCommit();
+      } else setError("That didn’t go through. Please try again.");
     });
   };
 
