@@ -63,14 +63,14 @@ freed, another PR's sign-off state, shared-DB churn that may flake a count).
 Re-read the fix commit, re-run the gates it touches, re-run your spot check.
 Only then post the sign-off comment — say what was verified and under whose
 run ("re-run by me"), note any merge-ordering hazards with sibling PRs, and
-tell Alex it's ready for their browser pass. **Do not merge** — Alex merges,
+tell the user it's ready for their browser pass. **Do not merge** — the user merges,
 unless they explicitly ask you to (their own PRs can't self-approve, so a
 requested merge may need `--admin`; disclose when used).
 
 ## Verifying claimed bugs (before filing or relaying)
 
 An implementor reporting a bug outside their diff is reporting a hypothesis.
-Before filing an issue or alarming Alex:
+Before filing an issue or alarming the user:
 
 - Reproduce it yourself with their script or your own.
 - **Sample flaky repros several times per environment.** A failure that hit

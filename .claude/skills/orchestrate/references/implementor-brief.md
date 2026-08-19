@@ -40,7 +40,7 @@ silently.}
   admin server action calls the admin gate first.
 - Accessibility is first-class (older, phone-heavy audience): 44px+ targets,
   visible focus, WCAG AA, announced result counts, comfortable at ~390px.
-- **Comment policy (Alex's explicit instruction): code comments are 1–2
+- **Comment policy (the project owner's explicit instruction): code comments are 1–2
   concise lines, never an essay, and NEVER contain issue numbers or
   references.** State constraints the code can't show; narrative goes in the
   PR body.
