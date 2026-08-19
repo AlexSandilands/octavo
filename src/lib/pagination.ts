@@ -1,7 +1,10 @@
 import { z } from "zod";
 
-// What a page means for every admin list: members, issues and sponsors all read
-// `?page=` with this schema, hold this many rows, and clamp with these bounds.
+// What a page means for every paginated list — the admin's members, issues and
+// sponsors tables and the members' issue archive all read `?page=` with this
+// schema and clamp with these bounds. Only the page *size* differs, since a
+// shelf of covers and a table of rows have no reason to move together (the
+// archive's is in features/library/archive-limits.ts).
 
 // One size for every admin list, so they read alike and the offset maths, the
 // tables and the gate script can never drift onto different numbers.
@@ -19,9 +22,9 @@ export type PagedList<T> = {
   pageCount: number;
   /**
    * The rows the pagination spans — every row in the list, unless a search or
-   * filter narrows it (only the members list has either). Drives the page
-   * count, so it is the number a summary line must quote to stay true on every
-   * page.
+   * filter narrows it (the members list and the issue archive have both).
+   * Drives the page count, so it is the number a summary line must quote to
+   * stay true on every page.
    */
   matching: number;
 };

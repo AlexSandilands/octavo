@@ -1,17 +1,14 @@
-import Link from "next/link";
-import { Wordmark, Avatar } from "@/components/ui";
-import { DemoBadge } from "@/components/demo-badge";
-import { SignOutButton } from "@/components/sign-out-button";
-import { initials } from "@/lib/initials";
+import { Button } from "@/components/ui";
 import { coverPageOf, type Page } from "@/lib/blocks";
-import { listIssues } from "@/server/issues";
+import { getLibraryHome } from "@/server/issues";
 import { resolveIssueImages } from "@/server/images";
 import { resolveIssueSponsors } from "@/server/sponsors";
 import { requireMemberOrRedirect } from "@/server/session";
 import { getSettings } from "@/server/settings";
 import { settingsForIssue } from "@/lib/branding";
 import { LatestIssue } from "@/features/library/latest-issue";
-import { ArchiveGrid } from "@/features/library/archive-grid";
+import { ArchiveGrid, toArchiveItems } from "@/features/library/archive-grid";
+import { LibraryHeader } from "@/features/library/library-header";
 import { Masthead } from "@/features/library/masthead";
 import { SiteFooter } from "@/features/library/site-footer";
 
@@ -20,16 +17,11 @@ export const dynamic = "force-dynamic";
 export default async function LibraryPage() {
   const user = await requireMemberOrRedirect("/");
   const settings = await getSettings();
-  const all = await listIssues();
-  const published = all.filter((i) => i.status === "published");
-  const latest = published[0];
-  const archive = published.slice(1);
-
-  // Earliest publication year across the catalogue — the footer's "Est." line.
-  const years = published
-    .map((i) => i.publishedAt?.getFullYear())
-    .filter((y): y is number => y != null);
-  const estYear = years.length ? Math.min(...years) : null;
+  // The featured issue plus a capped run of back-issues — the deep catalogue
+  // lives at /archive, so this page stays the same length however long the
+  // magazine runs (issue #192).
+  const { latest, recent, publishedTotal, estYear, older } =
+    await getLibraryHome();
 
   // Resolve every cover's images and managed sponsors in one query each, then
   // render each issue's cover page as its thumbnail (shared maps; extra ids are
@@ -37,7 +29,8 @@ export default async function LibraryPage() {
   // row the shelf can't draw. The sponsors half matters because a managed
   // sponsor block carries nothing but its id — unresolved, BlockView renders it
   // as nothing and the block drops out of a supposedly to-scale render (#170).
-  const covers = published
+  const shelf = latest ? [latest, ...recent] : [];
+  const covers = shelf
     .map((i) => coverPageOf(i.content))
     .filter((p): p is Page => Boolean(p));
   const [coverImages, coverSponsors] = await Promise.all([
@@ -47,30 +40,7 @@ export default async function LibraryPage() {
 
   return (
     <main className="mx-auto max-w-5xl px-5 py-6 sm:px-8 sm:py-10">
-      <header className="border-line flex items-center justify-between gap-3 border-b pb-4">
-        <Wordmark size={24} />
-        <nav className="flex flex-none items-center gap-3 font-sans text-sm sm:gap-4">
-          {/* No user only happens in demo mode (the gate redirects otherwise):
-              swap the account affordances for the demo chip. */}
-          {user ? (
-            <>
-              {/* UX only — /admin is gated server-side regardless (issue #4). */}
-              {user.isAdmin && (
-                <Link
-                  href="/admin"
-                  className="border-hair text-ink hover:border-accent hover:text-accent rounded-lg border px-3 py-1.5 font-medium"
-                >
-                  Admin
-                </Link>
-              )}
-              <SignOutButton />
-              <Avatar initials={initials(user.name?.trim() || user.email)} />
-            </>
-          ) : (
-            <DemoBadge />
-          )}
-        </nav>
-      </header>
+      <LibraryHeader user={user} />
 
       <Masthead org={settings.org} tagline={settings.tagline} />
 
@@ -97,31 +67,29 @@ export default async function LibraryPage() {
             sponsors={coverSponsors}
             settings={settingsForIssue(settings, latest)}
           />
-          {archive.length > 0 && (
+          {recent.length > 0 && (
             <ArchiveGrid
-              items={archive.map((i) => ({
-                id: i.id,
-                number: i.number,
-                title: i.title,
-                publishedAt: i.publishedAt,
-                theme: i.theme,
-                cover: coverPageOf(i.content),
-                // The issue's footer reserve (issue #128) — each card clamps
-                // the magazine's footer to its own issue's.
-                footerMarkSize: i.footerMarkSize,
-                footerTextSize: i.footerTextSize,
-              }))}
+              items={toArchiveItems(recent)}
               images={coverImages}
               sponsors={coverSponsors}
               settings={settings}
             />
+          )}
+          {/* Only once the catalogue outgrows the shelf above: a magazine with
+              a page's worth of issues shows them all and needs no way out. */}
+          {older > 0 && (
+            <div className="border-line-soft flex justify-center border-t pt-8 pb-4">
+              <Button href="/archive" variant="secondary" icon="arrowRight">
+                View the full archive
+              </Button>
+            </div>
           )}
         </>
       )}
 
       <SiteFooter
         org={settings.org}
-        issueCount={published.length}
+        issueCount={publishedTotal}
         estYear={estYear}
         signedIn={Boolean(user)}
       />
