@@ -37,8 +37,7 @@ export type SponsorListItem = {
 // One page of the admin sponsors list. The editor's picker still takes the
 // whole set — only the admin list pages.
 export type SponsorList = PagedList<SponsorListItem> & {
-  /** Whole-list numbers for the summary line, not just the served page. */
-  total: number;
+  /** Expired sponsors across the whole list, for the summary line. */
   expiredTotal: number;
 };
 

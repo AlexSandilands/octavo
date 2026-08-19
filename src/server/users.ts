@@ -14,7 +14,11 @@ import {
 } from "drizzle-orm";
 import { db } from "@/db";
 import { sessions, users } from "@/db/schema";
-import { pageBounds, type PagedList } from "@/lib/pagination";
+import {
+  ADMIN_LIST_PAGE_SIZE,
+  pageBounds,
+  type PagedList,
+} from "@/lib/pagination";
 
 // Server-only data access for the club member list (the `users` table). All
 // callers (server components, server actions) go through here — never query
@@ -41,16 +45,7 @@ export type MemberRow = {
   createdAt: Date;
 };
 
-// The one page size for the members list — the table, the pagination control
-// and the offset maths all derive from this number (issue #121).
-export const MEMBERS_PAGE_SIZE = 25;
-
 export type MemberList = PagedList<MemberRow> & {
-  /**
-   * Members matching the search + filter (all members when neither narrows).
-   * Drives the page count and the bulk bar's "Select all N matching".
-   */
-  matching: number;
   /** Whole-club numbers for the summary line, independent of the search. */
   total: number;
   subscribedTotal: number;
@@ -120,14 +115,14 @@ export async function listUsers(
         .from(users);
       const matching = counts?.matching ?? 0;
 
-      const bounds = pageBounds(matching, MEMBERS_PAGE_SIZE, opts.page);
+      const bounds = pageBounds(matching, ADMIN_LIST_PAGE_SIZE, opts.page);
 
       const rows = await tx
         .select(memberColumns)
         .from(users)
         .where(where)
         .orderBy(desc(users.createdAt), asc(users.email))
-        .limit(MEMBERS_PAGE_SIZE)
+        .limit(ADMIN_LIST_PAGE_SIZE)
         .offset(bounds.offset);
 
       return {

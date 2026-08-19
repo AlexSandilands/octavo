@@ -60,7 +60,7 @@ export default async function AdminDashboard({
           <h1 className="text-ink font-serif text-3xl">Issues</h1>
           {/* Whole-list numbers, so the summary holds on every page. */}
           <p className="text-faint mt-1.5 font-sans text-sm">
-            {list.total} {list.total === 1 ? "issue" : "issues"} ·{" "}
+            {list.matching} {list.matching === 1 ? "issue" : "issues"} ·{" "}
             {list.draftTotal} in draft
           </p>
         </div>
@@ -76,7 +76,7 @@ export default async function AdminDashboard({
         </form>
       </div>
 
-      {list.total === 0 ? (
+      {list.matching === 0 ? (
         <div className="mt-8">
           <EmptyIssues />
         </div>

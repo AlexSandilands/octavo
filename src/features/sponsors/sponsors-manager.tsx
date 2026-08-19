@@ -23,9 +23,9 @@ export function SponsorsManager({ list }: { list: SponsorList }) {
 
   // Whole-list numbers, so the summary stays true whichever page is showing.
   const summary =
-    list.total === 0
+    list.matching === 0
       ? "No sponsors yet"
-      : `${list.total} ${list.total === 1 ? "sponsor" : "sponsors"}` +
+      : `${list.matching} ${list.matching === 1 ? "sponsor" : "sponsors"}` +
         (list.expiredTotal > 0 ? ` · ${list.expiredTotal} expired` : "");
 
   return (
@@ -35,7 +35,7 @@ export function SponsorsManager({ list }: { list: SponsorList }) {
           <h1 className="text-ink font-serif text-3xl">Sponsors</h1>
           <p className="text-faint mt-1.5 font-sans text-sm">{summary}</p>
         </div>
-        {list.total > 0 && (
+        {list.matching > 0 && (
           <Button
             icon="plus"
             onClick={() => setEditing("new")}
@@ -46,7 +46,7 @@ export function SponsorsManager({ list }: { list: SponsorList }) {
         )}
       </div>
 
-      {list.total === 0 ? (
+      {list.matching === 0 ? (
         <div className="mt-8">
           <div className="bg-card border-line flex min-h-[360px] flex-col items-center justify-center rounded-md border p-9 text-center shadow-[0_1px_3px_rgba(0,0,0,0.07)]">
             <div className="bg-tint text-accent flex h-[72px] w-[72px] items-center justify-center rounded-full">

@@ -5,7 +5,11 @@ import { images, issues } from "@/db/schema";
 import { emptyIssueContent, type IssueContent } from "@/lib/blocks";
 import type { FooterReserve } from "@/lib/branding";
 import { collectImageIds } from "@/lib/images";
-import { pageBounds, type PagedList } from "@/lib/pagination";
+import {
+  ADMIN_LIST_PAGE_SIZE,
+  pageBounds,
+  type PagedList,
+} from "@/lib/pagination";
 import { sweepOrphanedObjects, takeOrphanedImages } from "./asset-cleanup";
 
 // Server-only data access for issues. All callers (server components, server
@@ -17,47 +21,42 @@ export async function listIssues() {
 
 export type IssueRow = typeof issues.$inferSelect;
 
-// One page of the admin dashboard's list — the members list's size, so the two
-// read alike.
-export const ISSUES_PAGE_SIZE = 25;
-
 export type IssueList = PagedList<IssueRow> & {
-  /** Whole-list numbers for the summary line, not just the served page. */
-  total: number;
+  /** Drafts across the whole list, for the summary line. */
   draftTotal: number;
 };
 
-// The dashboard list, paged. Number-descending is the fixed order that makes
-// plain offset paging safe; counts and rows share one REPEATABLE READ snapshot
-// (as in listUsers) so neither the clamp nor the summary can disagree with the
-// rows served.
+// The dashboard list, paged. Unique issue numbers descending are a total order,
+// which is what makes plain offset paging safe; the counts and the rows share
+// one read-only REPEATABLE READ snapshot, so neither the clamp nor the summary
+// can disagree with the rows served.
 export async function listIssuesPage(page = 1): Promise<IssueList> {
   return db.transaction(
     async (tx) => {
       const [counts] = await tx
         .select({
-          total: count(),
+          matching: count(),
           draftTotal:
             sql`count(*) filter (where ${eq(issues.status, "draft")})`.mapWith(
               Number,
             ),
         })
         .from(issues);
-      const total = counts?.total ?? 0;
-      const bounds = pageBounds(total, ISSUES_PAGE_SIZE, page);
+      const matching = counts?.matching ?? 0;
+      const bounds = pageBounds(matching, ADMIN_LIST_PAGE_SIZE, page);
 
       const rows = await tx
         .select()
         .from(issues)
         .orderBy(desc(issues.number))
-        .limit(ISSUES_PAGE_SIZE)
+        .limit(ADMIN_LIST_PAGE_SIZE)
         .offset(bounds.offset);
 
       return {
         rows,
         page: bounds.page,
         pageCount: bounds.pageCount,
-        total,
+        matching,
         draftTotal: counts?.draftTotal ?? 0,
       };
     },

@@ -5,7 +5,7 @@ import { db } from "@/db";
 import { images, sponsors } from "@/db/schema";
 import { keyToUrl } from "@/lib/storage";
 import type { ResolvedImage } from "@/lib/images";
-import { pageBounds } from "@/lib/pagination";
+import { ADMIN_LIST_PAGE_SIZE, pageBounds } from "@/lib/pagination";
 import {
   activeUntilToDateString,
   collectSponsorIds,
@@ -36,6 +36,9 @@ const sponsorSelection = {
   logoHeight: images.height,
 };
 
+// The database handle or a transaction on it, so one query builder serves both.
+type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 type SponsorRow = {
   id: string;
   name: string;
@@ -57,18 +60,28 @@ function rowLogo(row: SponsorRow): ResolvedImage | null {
   };
 }
 
-// The admin list + editor picker shape: every sponsor, newest first, with logo
-// resolved and expiry pre-computed on the server.
-export async function listSponsors(): Promise<SponsorListItem[]> {
-  const rows = await db
+// Every sponsor read the admin sees, from one builder: same columns, same logo
+// join, same order. The id breaks ties on `createdAt`, which two sponsors can
+// share, so the order is total and a page boundary can't drop or repeat a row.
+function sponsorList(executor: Executor) {
+  return executor
     .select(sponsorSelection)
     .from(sponsors)
     .leftJoin(images, eq(sponsors.logoId, images.id))
-    .orderBy(desc(sponsors.createdAt));
-  return rows.map(toListItem);
+    .orderBy(desc(sponsors.createdAt), desc(sponsors.id));
 }
 
-function toListItem(row: SponsorRow): SponsorListItem {
+// The admin list + editor picker shape: every sponsor, newest first, with logo
+// resolved and expiry pre-computed on the server.
+export async function listSponsors(): Promise<SponsorListItem[]> {
+  const now = new Date();
+  const rows = await sponsorList(db);
+  return rows.map((row) => toListItem(row, now));
+}
+
+// One clock per read: the flag on each row and the count in the summary have to
+// agree even when a request straddles local midnight.
+function toListItem(row: SponsorRow, now: Date): SponsorListItem {
   return {
     id: row.id,
     name: row.name,
@@ -76,46 +89,36 @@ function toListItem(row: SponsorRow): SponsorListItem {
     logoId: row.logoId,
     logo: rowLogo(row),
     activeUntil: activeUntilToDateString(row.activeUntil),
-    expired: isSponsorExpired(row.activeUntil),
+    expired: isSponsorExpired(row.activeUntil, now),
   };
 }
 
-// One page of the admin sponsors list — the members list's size, so the two
-// read alike.
-export const SPONSORS_PAGE_SIZE = 25;
-
-// The admin list, paged. Newest-first is the fixed order that makes plain
-// offset paging safe; counts and rows share one REPEATABLE READ snapshot (as in
-// listUsers) so neither the clamp nor the summary can disagree with the rows
-// served.
+// The admin list, paged — the snapshot and clamp rationale is listIssuesPage's.
 export async function listSponsorsPage(page = 1): Promise<SponsorList> {
+  const now = new Date();
   return db.transaction(
     async (tx) => {
       const [counts] = await tx
         .select({
-          total: count(),
+          matching: count(),
           expiredTotal:
-            sql`count(*) filter (where ${lt(sponsors.activeUntil, expiredBefore())})`.mapWith(
+            sql`count(*) filter (where ${lt(sponsors.activeUntil, expiredBefore(now))})`.mapWith(
               Number,
             ),
         })
         .from(sponsors);
-      const total = counts?.total ?? 0;
-      const bounds = pageBounds(total, SPONSORS_PAGE_SIZE, page);
+      const matching = counts?.matching ?? 0;
+      const bounds = pageBounds(matching, ADMIN_LIST_PAGE_SIZE, page);
 
-      const rows = await tx
-        .select(sponsorSelection)
-        .from(sponsors)
-        .leftJoin(images, eq(sponsors.logoId, images.id))
-        .orderBy(desc(sponsors.createdAt))
-        .limit(SPONSORS_PAGE_SIZE)
+      const rows = await sponsorList(tx)
+        .limit(ADMIN_LIST_PAGE_SIZE)
         .offset(bounds.offset);
 
       return {
-        rows: rows.map(toListItem),
+        rows: rows.map((row) => toListItem(row, now)),
         page: bounds.page,
         pageCount: bounds.pageCount,
-        total,
+        matching,
         expiredTotal: counts?.expiredTotal ?? 0,
       };
     },
