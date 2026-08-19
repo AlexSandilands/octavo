@@ -65,22 +65,24 @@ function hasSessionCookie(req: NextRequest): boolean {
   return SESSION_COOKIES.some((name) => req.cookies.has(name));
 }
 
-// The three members-only prefixes the auth gate covers — unchanged from when
-// this lived in the matcher (`/`, `/read/:path*`, `/admin/:path*`). The one
+// The members-only prefixes the auth gate covers (`/`, `/archive`,
+// `/read/:path*`, `/admin/:path*`). The one
 // carve-out is the PDF print route (`/read/[n]/print`): it carries no session
 // cookie (the generator self-fetches over localhost) and would be redirected to
 // /signin here, so it is let through the edge and guarded instead by the
 // internal print token it validates in-route (src/lib/pdf-token.ts) — without a
 // valid token it 404s, so it stays unreachable from outside.
 //
-// Demo mode (issue #50) drops `/` and `/read/*` from the gate so a showcase
-// deployment is publicly browsable — `/admin/*` stays gated unconditionally.
-// requireMemberOrRedirect honours the same DEMO_MODE flag, so the edge and the
-// in-component authority agree.
+// Demo mode (issue #50) drops the member-facing routes from the gate so a
+// showcase deployment is publicly browsable — `/admin/*` stays gated
+// unconditionally. requireMemberOrRedirect honours the same DEMO_MODE flag, so
+// the edge and the in-component authority agree.
 function isGatedRoute(pathname: string): boolean {
   if (pathname === "/admin" || pathname.startsWith("/admin/")) return true;
   if (DEMO_MODE) return false;
   if (pathname === "/") return true;
+  // The archive is the library's own back catalogue, so it follows `/`.
+  if (pathname === "/archive") return true;
   if (pathname === "/read") return true;
   if (pathname.startsWith("/read/")) return !pathname.endsWith("/print");
   return false;

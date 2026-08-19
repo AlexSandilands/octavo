@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Label } from "@/components/ui";
-import type { Page } from "@/lib/blocks";
+import { coverPageOf, type Page } from "@/lib/blocks";
+import type { IssueRow } from "@/server/issues";
 import {
   settingsForIssue,
   type FooterReserve,
@@ -34,6 +35,23 @@ type ArchiveItem = FooterReserve & {
   theme: string;
   cover?: Page;
 };
+
+// Issue rows as shelf cards — one mapping for the home page and /archive, so
+// both draw the same card from the same columns.
+export function toArchiveItems(rows: IssueRow[]): ArchiveItem[] {
+  return rows.map((i) => ({
+    id: i.id,
+    number: i.number,
+    title: i.title,
+    publishedAt: i.publishedAt,
+    theme: i.theme,
+    cover: coverPageOf(i.content),
+    // The issue's footer reserve (issue #128) — each card clamps the
+    // magazine's footer to its own issue's.
+    footerMarkSize: i.footerMarkSize,
+    footerTextSize: i.footerTextSize,
+  }));
+}
 
 type YearGroup = { key: string; label: string; items: ArchiveItem[] };
 
@@ -74,6 +92,7 @@ export function ArchiveGrid({
   images,
   sponsors,
   settings,
+  heading = "The archive",
 }: {
   items: ArchiveItem[];
   images: ImageMap;
@@ -82,12 +101,14 @@ export function ArchiveGrid({
   sponsors: SponsorMap;
   /** The magazine's effective branding + footer appearance (issue #105). */
   settings: SiteSettings;
+  /** null on a page that already names the shelf in its own heading. */
+  heading?: string | null;
 }) {
   const groups = groupByYear(items);
   return (
-    <section className="py-9">
-      <Label>The archive</Label>
-      <div className="mt-6 space-y-9">
+    <section className={heading ? "py-9" : "pb-9"}>
+      {heading && <Label>{heading}</Label>}
+      <div className={`space-y-9 ${heading ? "mt-6" : ""}`}>
         {groups.map((group) => (
           <div key={group.key}>
             <div className="border-line-soft border-t pt-3">
