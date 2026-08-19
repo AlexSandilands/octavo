@@ -153,8 +153,12 @@ individual blocks in SQL. Trade-off accepted.
 ## Data access
 
 All reads/writes go through [`src/server/issues.ts`](../src/server/issues.ts) (`server-only`):
-`listIssues`, `getIssue`, `getPublishedIssueByNumber`, `createIssue`, `updateIssueContent`,
-`updateIssueMeta`, `publishIssue`, `deleteIssue`. Components call these — never Drizzle directly.
+`listIssues`, `listIssuesPage`, `listIssueYears`, `listMatchingIssues`, `getIssue`,
+`getPublishedIssueByNumber`, `createIssue`, `updateIssueContent`, `updateIssueMeta`,
+`publishIssue`, `deleteIssue`, `deleteIssues`. Components call these — never Drizzle directly.
+The dashboard's search and filters are all in `listIssuesPage`'s WHERE, so a search sees the whole
+list rather than the served page; `deleteIssue` is `deleteIssues` of one, so the single and bulk
+deletes cannot drift apart on cleanup.
 Mutations are invoked via Server Actions in `src/app/admin/actions.ts`, which zod-validate input.
 
 ## Asset lifecycle (issue #84)

@@ -37,9 +37,14 @@ export type SponsorListItem = {
 // One page of the admin sponsors list. The editor's picker still takes the
 // whole set — only the admin list pages.
 export type SponsorList = PagedList<SponsorListItem> & {
-  /** Expired sponsors across the whole list, for the summary line. */
+  /** Whole-list numbers for the summary line, independent of the search. */
+  total: number;
   expiredTotal: number;
 };
+
+// The status filter the admin list offers beside the search. Like the search it
+// runs in the database, because the list only serves one page.
+export type SponsorFilter = "all" | "active" | "expired";
 
 // Every sponsorId referenced by sponsor blocks in an issue (deduped). Accepts
 // any pages-holding shape so callers can resolve a subset if needed.

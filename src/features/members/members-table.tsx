@@ -4,15 +4,22 @@ import { useMemo, useState } from "react";
 import { matchingMemberIdsAction } from "@/app/admin/members/actions";
 import { MemberRow } from "./member-row";
 import { MembersBulkBar } from "./members-bulk-bar";
-import { MembersFilter } from "./members-filter";
+import { ListFilter, type ListFilterOption } from "@/components/list-filter";
 import { ListPagination } from "@/components/list-pagination";
-import { MembersSearch } from "./members-search";
+import { ListSearch } from "@/components/list-search";
 import { MEMBERS_SELECTION_MAX } from "./selection-limit";
 import type { MemberFilter, MemberList } from "@/server/users";
 
+const FILTERS: ListFilterOption<MemberFilter>[] = [
+  { value: "all", label: "All" },
+  { value: "admins", label: "Admins" },
+  { value: "subscribed", label: "Subscribed" },
+  { value: "unsubscribed", label: "Unsubscribed" },
+];
+
 // The table shows one served page of an already-narrowed list — the search,
-// the status filter and the paging all happen server-side (see MembersSearch /
-// MembersFilter / ListPagination); this component owns only the selection.
+// the status filter and the paging all happen server-side (see ListSearch /
+// ListFilter / ListPagination); this component owns only the selection.
 export function MembersTable({
   list,
   query,
@@ -134,9 +141,19 @@ export function MembersTable({
     <div className="mt-5">
       <div className="flex flex-col gap-3 lg:flex-row">
         <div className="min-w-0 flex-1">
-          <MembersSearch query={query} />
+          <ListSearch
+            query={query}
+            placeholder="Search by name or email"
+            ariaLabel="Search all members by name or email"
+          />
         </div>
-        <MembersFilter filter={filter} />
+        <ListFilter
+          label="Filter"
+          ariaLabel="Filter members"
+          param="filter"
+          value={filter}
+          options={FILTERS}
+        />
       </div>
 
       <MembersBulkBar

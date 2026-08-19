@@ -1,16 +1,31 @@
 import "server-only";
 import { createHash } from "node:crypto";
-import { count, desc, eq, inArray, lt, sql } from "drizzle-orm";
+import {
+  and,
+  count,
+  desc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  isNull,
+  lt,
+  or,
+  sql,
+  type SQL,
+} from "drizzle-orm";
 import { db } from "@/db";
 import { images, sponsors } from "@/db/schema";
 import { keyToUrl } from "@/lib/storage";
 import type { ResolvedImage } from "@/lib/images";
+import { likePattern } from "@/lib/like-pattern";
 import { ADMIN_LIST_PAGE_SIZE, pageBounds } from "@/lib/pagination";
 import {
   activeUntilToDateString,
   collectSponsorIds,
   expiredBefore,
   isSponsorExpired,
+  type SponsorFilter,
   type SponsorList,
   type SponsorListItem,
   type SponsorMap,
@@ -63,12 +78,30 @@ function rowLogo(row: SponsorRow): ResolvedImage | null {
 // Every sponsor read the admin sees, from one builder: same columns, same logo
 // join, same order. The id breaks ties on `createdAt`, which two sponsors can
 // share, so the order is total and a page boundary can't drop or repeat a row.
-function sponsorList(executor: Executor) {
+function sponsorList(executor: Executor, where?: SQL) {
   return executor
     .select(sponsorSelection)
     .from(sponsors)
     .leftJoin(images, eq(sponsors.logoId, images.id))
+    .where(where)
     .orderBy(desc(sponsors.createdAt), desc(sponsors.id));
+}
+
+// The WHERE for a search + status filter. Expiry is the day-level rule in
+// lib/sponsors, in the form a SQL `where` can take — the same cutoff the
+// per-row flag and the summary's tally are computed from, so the three agree
+// even when a request straddles local midnight.
+function sponsorWhere(query: string, filter: SponsorFilter, now: Date) {
+  const cutoff = expiredBefore(now);
+  const conditions = [
+    query ? ilike(sponsors.name, likePattern(query)) : undefined,
+    filter === "expired"
+      ? lt(sponsors.activeUntil, cutoff)
+      : filter === "active"
+        ? or(isNull(sponsors.activeUntil), gte(sponsors.activeUntil, cutoff))
+        : undefined,
+  ].filter((c) => c !== undefined);
+  return conditions.length > 0 ? and(...conditions) : undefined;
 }
 
 // The admin list + editor picker shape: every sponsor, newest first, with logo
@@ -94,23 +127,33 @@ function toListItem(row: SponsorRow, now: Date): SponsorListItem {
 }
 
 // The admin list, paged — the snapshot and clamp rationale is listIssuesPage's.
-export async function listSponsorsPage(page = 1): Promise<SponsorList> {
+// The search and the filter run in the database, so they see every sponsor
+// rather than only the served page.
+export async function listSponsorsPage(
+  opts: { query?: string; page?: number; filter?: SponsorFilter } = {},
+): Promise<SponsorList> {
   const now = new Date();
+  const query = opts.query?.trim() ?? "";
+  const where = sponsorWhere(query, opts.filter ?? "all", now);
+
   return db.transaction(
     async (tx) => {
       const [counts] = await tx
         .select({
-          matching: count(),
+          total: count(),
           expiredTotal:
             sql`count(*) filter (where ${lt(sponsors.activeUntil, expiredBefore(now))})`.mapWith(
               Number,
             ),
+          matching: where
+            ? sql`count(*) filter (where ${where})`.mapWith(Number)
+            : count(),
         })
         .from(sponsors);
       const matching = counts?.matching ?? 0;
-      const bounds = pageBounds(matching, ADMIN_LIST_PAGE_SIZE, page);
+      const bounds = pageBounds(matching, ADMIN_LIST_PAGE_SIZE, opts.page);
 
-      const rows = await sponsorList(tx)
+      const rows = await sponsorList(tx, where)
         .limit(ADMIN_LIST_PAGE_SIZE)
         .offset(bounds.offset);
 
@@ -119,6 +162,7 @@ export async function listSponsorsPage(page = 1): Promise<SponsorList> {
         page: bounds.page,
         pageCount: bounds.pageCount,
         matching,
+        total: counts?.total ?? 0,
         expiredTotal: counts?.expiredTotal ?? 0,
       };
     },

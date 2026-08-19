@@ -418,6 +418,39 @@ try {
   await reopen(page, `button[aria-label="${removeLabel}"]`);
   await checkEscapeRestores(page, removeLabel);
 
+  // ── 4b. ConfirmDialog — the issues bulk delete ───────────────────────────
+  // The same shell and the same component, but a different trigger: a bulk-bar
+  // Button rather than a row's icon. Opened and closed here without confirming,
+  // so nothing is deleted; the search narrows the list to this run's own draft.
+  heading("ConfirmDialog — issues bulk delete");
+  await page.goto(`${base}/admin?q=${encodeURIComponent("Scratch 130")}`);
+  await page.waitForSelector("h1:has-text('Issues')");
+  const scratchRows = await page.locator('a[aria-label^="Edit "]').count();
+  ok(
+    scratchRows > 0,
+    `the search narrows the dashboard to ${scratchRows} row(s)`,
+  );
+  await page.click('input[aria-label^="Select all "]');
+  const bulkTrigger = "button:has-text('Delete selected')";
+  await page.click(bulkTrigger);
+  await page.waitForSelector("[role=dialog]");
+  ok(
+    await page.evaluate(
+      () =>
+        (document.activeElement as HTMLElement | null)?.textContent?.trim() ===
+        "Cancel",
+    ),
+    "initial focus is the safe Cancel button, never Confirm",
+  );
+  await checkOpenDialog(
+    page,
+    `Delete ${scratchRows} ${scratchRows === 1 ? "issue" : "issues"}?`,
+  );
+  await checkEscapeRestores(page, "Delete selected");
+
+  await reopen(page, bulkTrigger);
+  await checkBackdropRestores(page, "Delete selected");
+
   // ── 5. SponsorDialog — including the in-flight save lock ─────────────────
   heading("SponsorDialog");
   await page.goto(`${base}/admin/sponsors`);

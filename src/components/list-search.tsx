@@ -2,16 +2,26 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
-import { MEMBERS_QUERY_MAX } from "./query-limit";
+import { ADMIN_LIST_QUERY_MAX } from "@/lib/list-query";
 import { useListUrl } from "@/components/use-list-url";
 
-// The members search box. The query lives in the URL (?q=) and the filtering
-// happens in the database, so a search sees every member — not just the page
-// the table happens to be serving — and survives the refresh after a mutation.
-// Typing stays local and debounced; each settled value replaces the URL
-// (replace, not push, so keystrokes don't pile up in history) and drops ?page,
-// because a new search starts from its own first page.
-export function MembersSearch({ query }: { query: string }) {
+// The search box for an admin list. The query lives in the URL (?q=) and the
+// filtering happens in the database, so a search sees every row — not just the
+// page the list happens to be serving — and survives the refresh after a
+// mutation. Typing stays local and debounced; each settled value replaces the
+// URL (replace, not push, so keystrokes don't pile up in history) and drops
+// ?page, because a new search starts from its own first page.
+// Shared by the members, issues and sponsors lists.
+export function ListSearch({
+  query,
+  placeholder,
+  ariaLabel,
+}: {
+  query: string;
+  placeholder: string;
+  /** Names the box for screen readers, e.g. "Search all issues by title". */
+  ariaLabel: string;
+}) {
   const go = useListUrl();
   const [value, setValue] = useState(query);
   // The query this box last navigated to. A `query` prop echoing our own
@@ -46,7 +56,7 @@ export function MembersSearch({ query }: { query: string }) {
       const q = next.trim();
       if (q === sent.current) return;
       sent.current = q;
-      // Keep the status filter; a new search starts from its own first page.
+      // Keep whatever filters are on; a new search starts from its own page 1.
       go({ q: q || null, page: null }, "replace");
     }, 250);
   };
@@ -59,9 +69,9 @@ export function MembersSearch({ query }: { query: string }) {
         onChange={(e) => onChange(e.target.value)}
         // The page schema truncates ?q= to the same bound, so nothing this
         // box can produce is ever thrown away server-side.
-        maxLength={MEMBERS_QUERY_MAX}
-        placeholder="Search by name or email"
-        aria-label="Search all members by name or email"
+        maxLength={ADMIN_LIST_QUERY_MAX}
+        placeholder={placeholder}
+        aria-label={ariaLabel}
         className="text-ink flex-1 border-none bg-transparent font-sans text-[15px]"
       />
     </div>

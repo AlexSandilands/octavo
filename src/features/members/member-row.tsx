@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { Icon } from "@/components/icons";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { MemberDialog } from "./member-dialog";
-import { SelectCheckbox } from "./select-checkbox";
+import { SelectCheckbox } from "@/components/select-checkbox";
 import { Avatar, Pill } from "@/components/ui";
 import { initials } from "@/lib/initials";
 import {

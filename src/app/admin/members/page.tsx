@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { AdminShell } from "@/components/admin-shell";
 import { MembersManager } from "@/features/members/members-manager";
-import { MEMBERS_QUERY_MAX } from "@/features/members/query-limit";
+import { ADMIN_LIST_QUERY_MAX } from "@/lib/list-query";
 import { pageParamSchema } from "@/lib/pagination";
 import { listUsers } from "@/server/users";
 import { requireAdminOrRedirect } from "@/server/session";
@@ -20,7 +20,7 @@ const paramsSchema = z.object({
   q: z
     .string()
     .catch("")
-    .transform((s) => s.slice(0, MEMBERS_QUERY_MAX)),
+    .transform((s) => s.slice(0, ADMIN_LIST_QUERY_MAX)),
   page: pageParamSchema,
   filter: z.enum(["all", "admins", "subscribed", "unsubscribed"]).catch("all"),
 });

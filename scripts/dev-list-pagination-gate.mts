@@ -253,7 +253,7 @@ try {
   // The picker takes the whole list unpaged; both go through one query builder,
   // so page 1 has to be the head of what the picker sees, row for row.
   const picker = await listSponsors();
-  const pagedFirst = await listSponsorsPage(1);
+  const pagedFirst = await listSponsorsPage({ page: 1 });
   ok(
     pagedFirst.rows.map((s) => s.id).join() ===
       picker
