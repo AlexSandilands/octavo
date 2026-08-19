@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { nudgeActionCommit } from "@/components/action-commit-rescue";
 import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui";
 import type {
@@ -86,7 +87,10 @@ export function SponsorsManager({
           query={query}
           filter={filter}
           onEdit={setEditing}
-          onChanged={() => router.refresh()}
+          onChanged={() => {
+            router.refresh();
+            nudgeActionCommit();
+          }}
         />
       )}
 
@@ -97,6 +101,7 @@ export function SponsorsManager({
           onSaved={() => {
             setEditing(null);
             router.refresh();
+            nudgeActionCommit();
           }}
         />
       )}
