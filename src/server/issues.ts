@@ -67,10 +67,17 @@ export async function listIssuesPage(page = 1): Promise<IssueList> {
 
 const published = eq(issues.status, "published");
 
-// The year an aggregate's timestamp falls in — the catalogue's "Est." line,
-// read in the app's timezone so it agrees with the shelf's year headings.
-function yearOf(at: Date | string | null | undefined): number | null {
-  return at ? new Date(at).getFullYear() : null;
+// Which year an issue belongs to, decided once. Postgres and Node run in
+// different session timezones, so a bare `extract(year …)` can put an issue in
+// a year the shelf's own headings (JS getFullYear) disagree with; every year
+// this module computes is taken in Node's zone instead.
+const APP_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+const publishedYear = sql`extract(year from ${issues.publishedAt} at time zone ${APP_TZ})`;
+
+// extract() comes back as numeric, and min() over no rows as null — which a
+// plain Number() would report as the year 0.
+function asYear(value: unknown): number | null {
+  return value == null ? null : Number(value);
 }
 
 export type LibraryHome = {
@@ -93,10 +100,7 @@ export async function getLibraryHome(): Promise<LibraryHome> {
   return db.transaction(
     async (tx) => {
       const [counts] = await tx
-        .select({
-          total: count(),
-          earliest: sql<Date | string | null>`min(${issues.publishedAt})`,
-        })
+        .select({ total: count(), estYear: sql`min(${publishedYear})` })
         .from(issues)
         .where(published);
 
@@ -113,7 +117,7 @@ export async function getLibraryHome(): Promise<LibraryHome> {
         latest: latest ?? null,
         recent,
         publishedTotal,
-        estYear: yearOf(counts?.earliest),
+        estYear: asYear(counts?.estYear),
         older: Math.max(0, publishedTotal - rows.length),
       };
     },
@@ -124,16 +128,14 @@ export async function getLibraryHome(): Promise<LibraryHome> {
 // The years the archive's filter offers, newest first — only years that have a
 // published issue, so the menu can never name an empty view.
 export async function listPublishedYears(): Promise<number[]> {
+  // Sorted here, not in SQL: the timezone rides in as a bind parameter, and
+  // SELECT DISTINCT rejects an ORDER BY whose copy of it is a second parameter.
+  // One row per year, so the sort is free.
   const rows = await db
-    .selectDistinct({
-      year: sql<number>`extract(year from ${issues.publishedAt})`.mapWith(
-        Number,
-      ),
-    })
+    .selectDistinct({ year: publishedYear })
     .from(issues)
-    .where(and(published, isNotNull(issues.publishedAt)))
-    .orderBy(desc(sql`extract(year from ${issues.publishedAt})`));
-  return rows.map((r) => r.year);
+    .where(and(published, isNotNull(issues.publishedAt)));
+  return rows.map((r) => Number(r.year)).sort((a, b) => b - a);
 }
 
 // The archive's title search + year filter, as one WHERE. Both narrow in the
@@ -143,9 +145,7 @@ function archiveWhere(query: string, year: number | null) {
   const conditions = [
     published,
     query ? ilike(issues.title, likePattern(query)) : undefined,
-    year != null
-      ? sql`extract(year from ${issues.publishedAt}) = ${year}`
-      : undefined,
+    year != null ? sql`${publishedYear} = ${year}` : undefined,
   ].filter((c) => c !== undefined);
   return and(...conditions);
 }
@@ -173,7 +173,7 @@ export async function listArchivePage(
       const [counts] = await tx
         .select({
           total: count(),
-          earliest: sql<Date | string | null>`min(${issues.publishedAt})`,
+          estYear: sql`min(${publishedYear})`,
           matching: sql`count(*) filter (where ${where})`.mapWith(Number),
         })
         .from(issues)
@@ -195,7 +195,7 @@ export async function listArchivePage(
         pageCount: bounds.pageCount,
         matching,
         total: counts?.total ?? 0,
-        estYear: yearOf(counts?.earliest),
+        estYear: asYear(counts?.estYear),
       };
     },
     { isolationLevel: "repeatable read", accessMode: "read only" },

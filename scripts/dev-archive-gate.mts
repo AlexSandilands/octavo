@@ -4,9 +4,11 @@
 // with all three living in the URL. Signed-out access is checked through the
 // real magic-link flow, so the ?next= round trip is exercised end to end.
 // Run: npx tsx --tsconfig scripts/tsconfig.json scripts/dev-archive-gate.mts <base-url> <dev-log-path>
+import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { chromium, type Page } from "playwright";
 import postgres from "postgres";
+import { emptyIssueContent } from "../src/lib/blocks.ts";
 import {
   ARCHIVE_PAGE_SIZE,
   HOME_ARCHIVE_MAX,
@@ -20,6 +22,12 @@ if (!base || !logPath)
 // A real member the dev database always holds; the console transport logs its
 // magic link, so no session has to be forged for this run.
 const MEMBER = "member@example.com";
+
+// The one row this run creates, stamped and deleted by its tracked id: two runs
+// against the shared dev database must not select or clean up each other's.
+const stamp = randomUUID().slice(0, 8);
+const boundaryTitle = `i192 ${stamp} Boundary`;
+let boundaryId: string | undefined;
 
 const sql = postgres(process.env.DATABASE_URL!, { max: 1 });
 const ok = (cond: unknown, msg: string) => {
@@ -289,12 +297,62 @@ try {
     nextBox.height >= 44 && nextBox.x + nextBox.width <= 390,
     `the page control keeps a ${Math.round(nextBox.height)}px target at 390px`,
   );
+  await page.setViewportSize({ width: 1280, height: 900 });
+
+  // ── One year, one clock ───────────────────────────────────────────────────
+  // Postgres and Node need not share a session timezone, so an issue published
+  // just after local New Year falls in one year for the SQL filter and the
+  // other for the shelf's JS-grouped headings. Everything the archive says
+  // about a year has to agree, whatever the two zones are. Left until last: the
+  // scratch row moves the counts every check above is asserted against.
+  const [maxRow] = await sql`select coalesce(max(number), 0)::int as n,
+                                    coalesce(max(extract(year from published_at)), 0)::int as y
+                             from issues`;
+  const jsYear = (maxRow!.y as number) + 1;
+  // 00:30 on 1 January, in *Node's* zone — the instant whose UTC year differs
+  // wherever the machine is ahead of UTC.
+  const at = new Date(jsYear, 0, 1, 0, 30);
+  ok(at.getFullYear() === jsYear, `the scratch issue is ${jsYear} in Node`);
+  boundaryId = randomUUID();
+  await sql`insert into issues (id, number, title, status, published_at, content)
+            values (${boundaryId}, ${(maxRow!.n as number) + 1},
+                    ${boundaryTitle}, 'published', ${at},
+                    ${sql.json(emptyIssueContent())})`;
+
+  await page.goto(`${base}/archive?year=${jsYear}`);
+  await page.waitForSelector("h1:has-text('The archive')");
+  ok(
+    await says(RESULT, `Showing 1 issue from ${jsYear}.`),
+    `?year=${jsYear} finds the issue published just after local New Year`,
+  );
+  ok(
+    (await page.getByText(boundaryTitle).count()) === 1,
+    "the filtered shelf shows that issue",
+  );
+  // exact, so the filter's own "Year: <n>" trigger is not what matches.
+  const heads = (year: number) =>
+    page.locator("main").getByText(String(year), { exact: true }).count();
+  ok(
+    (await heads(jsYear)) > 0 && (await heads(jsYear - 1)) === 0,
+    `the shelf heads it "${jsYear}" — the same year the filter matched on`,
+  );
+  ok(
+    (await page.getByRole("button", { name: `Year: ${jsYear}` }).count()) === 1,
+    `the year menu offers ${jsYear} and names it on the trigger`,
+  );
+  await page.goto(`${base}/archive?year=${jsYear - 1}`);
+  await page.waitForSelector("h1:has-text('The archive')");
+  ok(
+    (await page.getByText(boundaryTitle).count()) === 0,
+    `?year=${jsYear - 1} does not claim it — the UTC reading of the same instant`,
+  );
 
   console.log("\nall archive checks passed");
 } finally {
   await browser.close();
-  // Only the session this run signed in with — other agents share this
-  // database, and the member row itself is a fixture we never touch.
+  // By tracked id, and only the session this run signed in with — other agents
+  // share this database, and the member row itself is a fixture we never touch.
+  if (boundaryId) await sql`delete from issues where id = ${boundaryId}`;
   if (sessionToken)
     await sql`delete from sessions where session_token = ${sessionToken}`;
   await sql.end();
