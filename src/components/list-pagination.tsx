@@ -5,12 +5,13 @@ import { adminMain } from "@/components/admin-main";
 import { Button } from "@/components/ui";
 import { useListUrl } from "./use-list-url";
 
-// The foot of an admin list: previous/next plus where you are. Two big
+// The foot of a paginated list: previous/next plus where you are. Two big
 // labelled buttons rather than a row of page numbers — the audience is older
 // and phone-heavy, and the house md Button gives the 48px targets and focus
 // treatment for free. The buttons navigate (?page= in the URL) so the position
 // survives a refresh; page 1 keeps a bare URL. Absent on a single page.
-// Shared by the members, issues and sponsors lists.
+// Shared by the members, issues and sponsors lists and the members' archive —
+// the scroll-to-top below falls back to the window off the admin shell.
 export function ListPagination({
   page,
   pageCount,
