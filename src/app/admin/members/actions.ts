@@ -16,7 +16,7 @@ import {
   type BulkSubscribeResult,
 } from "@/server/users";
 import { requireAdmin } from "@/server/session";
-import { MEMBERS_QUERY_MAX } from "@/features/members/query-limit";
+import { ADMIN_LIST_QUERY_MAX } from "@/lib/list-query";
 import { MEMBERS_IMPORT_MAX } from "@/features/members/import-limit";
 import { MEMBERS_SELECTION_MAX } from "@/features/members/selection-limit";
 import {
@@ -240,7 +240,7 @@ export async function matchingMemberIdsAction(
   filter: unknown,
 ): Promise<MatchingMemberIdsResult> {
   await requireAdmin();
-  const parsedQuery = z.string().max(MEMBERS_QUERY_MAX).safeParse(query);
+  const parsedQuery = z.string().max(ADMIN_LIST_QUERY_MAX).safeParse(query);
   const parsedFilter = z
     .enum(["all", "admins", "subscribed", "unsubscribed"])
     .safeParse(filter);

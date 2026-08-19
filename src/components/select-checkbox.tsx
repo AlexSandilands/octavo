@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { Icon } from "@/components/icons";
 
-// The one checkbox for the members table's row selection. A real
+// The one checkbox an admin list's row selection is built from. A real
 // `<input type="checkbox">` inside a `<label>`, so keyboard operation (Space),
 // the announced checked/mixed state and the "click the words" affordance all
 // come for free; the visible box is drawn on top and the input is stretched

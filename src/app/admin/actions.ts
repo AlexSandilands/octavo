@@ -13,12 +13,18 @@ import { env } from "@/lib/env";
 import {
   createIssue,
   deleteIssue,
+  deleteIssues,
   getIssue,
+  listMatchingIssues,
   publishIssue,
   updateIssueContent,
   updateIssueFooterReserve,
   updateIssueMeta,
+  type DeleteIssuesResult,
+  type IssueStatus,
 } from "@/server/issues";
+import { ISSUES_SELECTION_MAX } from "@/features/admin/selection-limit";
+import { ADMIN_LIST_QUERY_MAX } from "@/lib/list-query";
 import { sendIssueBlast, type BlastResult } from "@/server/publish-email";
 import { requireAdmin } from "@/server/session";
 import { getSettings } from "@/server/settings";
@@ -172,4 +178,59 @@ export async function deleteIssueAction(id: string): Promise<{ ok: boolean }> {
   await deleteIssue(parsed.data);
   revalidatePath("/admin");
   return { ok: true };
+}
+
+// The dashboard's search + filters, as the two actions below re-read them.
+// Attacker-typed like every other argument: a malformed filter is refused
+// rather than quietly widened to "everything", which a delete would then act on.
+const listOptsSchema = z.object({
+  query: z.string().max(ADMIN_LIST_QUERY_MAX),
+  filter: z.enum(["all", "draft", "published"]),
+  year: z.number().int().min(1000).max(9999).nullable(),
+});
+
+// A selection from the dashboard, which lists every issue — so select-all is
+// legitimately the whole archive, and the bound is the one the UI itself stops
+// at (see features/admin/selection-limit), never a smaller one it could
+// out-build. Duplicates are harmless — the data layer de-dupes.
+const idsSchema = z.array(idSchema).min(1).max(ISSUES_SELECTION_MAX);
+
+export type MatchingIssuesResult =
+  | { ok: true; issues: { id: string; status: IssueStatus }[] }
+  | { ok: false; reason: "invalid" };
+
+// The bulk bar's "Select all N matching": the issues for the current search +
+// filters, fetched only when the admin asks for them. A read, not a mutation —
+// but still admin-gated and re-validated, because drafts are unpublished work.
+export async function matchingIssuesAction(
+  opts: unknown,
+): Promise<MatchingIssuesResult> {
+  await requireAdmin();
+  const parsed = listOptsSchema.safeParse(opts);
+  if (!parsed.success) return { ok: false, reason: "invalid" };
+  const rows = await listMatchingIssues({
+    ...parsed.data,
+    limit: ISSUES_SELECTION_MAX,
+  });
+  return { ok: true, issues: rows };
+}
+
+export type DeleteIssuesActionResult =
+  | ({ ok: true } & DeleteIssuesResult)
+  | { ok: false; reason: "invalid" };
+
+// Bulk delete from the dashboard's selection. It runs the same per-issue
+// cleanup the single delete does (the two share one routine), and revalidates
+// the library too: a deleted published issue must leave the members' shelf in
+// the same breath.
+export async function deleteIssuesAction(
+  ids: unknown,
+): Promise<DeleteIssuesActionResult> {
+  await requireAdmin();
+  const parsed = idsSchema.safeParse(ids);
+  if (!parsed.success) return { ok: false, reason: "invalid" };
+  const result = await deleteIssues(parsed.data);
+  revalidatePath("/admin");
+  revalidatePath("/");
+  return { ok: true, ...result };
 }

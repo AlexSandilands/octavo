@@ -1,10 +1,20 @@
 import "server-only";
-import { and, count, desc, eq, sql } from "drizzle-orm";
+import {
+  and,
+  count,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  isNotNull,
+  sql,
+} from "drizzle-orm";
 import { db } from "@/db";
 import { images, issues } from "@/db/schema";
 import { emptyIssueContent, type IssueContent } from "@/lib/blocks";
 import type { FooterReserve } from "@/lib/branding";
 import { collectImageIds } from "@/lib/images";
+import { likePattern } from "@/lib/list-query";
 import {
   ADMIN_LIST_PAGE_SIZE,
   pageBounds,
@@ -20,34 +30,84 @@ export async function listIssues() {
 }
 
 export type IssueRow = typeof issues.$inferSelect;
+export type IssueStatus = IssueRow["status"];
 
 export type IssueList = PagedList<IssueRow> & {
-  /** Drafts across the whole list, for the summary line. */
+  /** Whole-list numbers for the summary line, independent of the search. */
+  total: number;
   draftTotal: number;
+};
+
+// The status filter the dashboard offers beside the search. Like the search it
+// runs in the database, because the list only serves one page.
+export type IssueFilter = "all" | "draft" | "published";
+
+const FILTER_CONDITIONS = {
+  all: undefined,
+  draft: eq(issues.status, "draft"),
+  published: eq(issues.status, "published"),
+} as const;
+
+// The year an issue was published, as the database reads it. The year dropdown's
+// options and the year filter both go through this one expression, so a year can
+// never be offered that the filter then matches nothing under.
+const publishedYear = sql`extract(year from ${issues.publishedAt})`;
+
+// The WHERE for a search + status + year, shared by every query below so
+// "matching" can never mean two different things. A year narrows on publication
+// date, so it never matches a draft — which is what filtering by "when it was
+// published" means.
+function issueWhere(query: string, filter: IssueFilter, year: number | null) {
+  const conditions = [
+    query ? ilike(issues.title, likePattern(query)) : undefined,
+    FILTER_CONDITIONS[filter],
+    year !== null ? sql`${publishedYear} = ${year}` : undefined,
+  ].filter((c) => c !== undefined);
+  return conditions.length > 0 ? and(...conditions) : undefined;
+}
+
+export type IssueListOptions = {
+  query?: string;
+  page?: number;
+  filter?: IssueFilter;
+  /** null = every year. */
+  year?: number | null;
 };
 
 // The dashboard list, paged. Unique issue numbers descending are a total order,
 // which is what makes plain offset paging safe; the counts and the rows share
 // one read-only REPEATABLE READ snapshot, so neither the clamp nor the summary
-// can disagree with the rows served.
-export async function listIssuesPage(page = 1): Promise<IssueList> {
+// can disagree with the rows served. The search and filters run in the database
+// so they see every issue, not just the served page; an out-of-range page is
+// clamped rather than 404ed, so the URL an admin held while rows were being
+// deleted still lands on the nearest real page.
+export async function listIssuesPage(
+  opts: IssueListOptions = {},
+): Promise<IssueList> {
+  const query = opts.query?.trim() ?? "";
+  const where = issueWhere(query, opts.filter ?? "all", opts.year ?? null);
+
   return db.transaction(
     async (tx) => {
       const [counts] = await tx
         .select({
-          matching: count(),
+          total: count(),
           draftTotal:
             sql`count(*) filter (where ${eq(issues.status, "draft")})`.mapWith(
               Number,
             ),
+          matching: where
+            ? sql`count(*) filter (where ${where})`.mapWith(Number)
+            : count(),
         })
         .from(issues);
       const matching = counts?.matching ?? 0;
-      const bounds = pageBounds(matching, ADMIN_LIST_PAGE_SIZE, page);
+      const bounds = pageBounds(matching, ADMIN_LIST_PAGE_SIZE, opts.page);
 
       const rows = await tx
         .select()
         .from(issues)
+        .where(where)
         .orderBy(desc(issues.number))
         .limit(ADMIN_LIST_PAGE_SIZE)
         .offset(bounds.offset);
@@ -57,11 +117,48 @@ export async function listIssuesPage(page = 1): Promise<IssueList> {
         page: bounds.page,
         pageCount: bounds.pageCount,
         matching,
+        total: counts?.total ?? 0,
         draftTotal: counts?.draftTotal ?? 0,
       };
     },
     { isolationLevel: "repeatable read", accessMode: "read only" },
   );
+}
+
+// The years the date filter offers: only those that actually have a published
+// issue, newest first. Drafts have no publication date and so no year.
+export async function listIssueYears(): Promise<number[]> {
+  const year = sql<number>`${publishedYear}::int`;
+  const rows = await db
+    .select({ year })
+    .from(issues)
+    .where(isNotNull(issues.publishedAt))
+    .groupBy(year)
+    .orderBy(desc(year));
+  return rows.map((r) => r.year);
+}
+
+// Every issue matching a search + filters — the bulk bar's "Select all N
+// matching". Fetched on demand when the admin asks for it, not shipped with
+// every page render.
+//
+// `limit` is required rather than optional, because these ids go straight back
+// up as the bulk delete's argument and that argument has a size the wire will
+// carry (see features/admin/selection-limit). The order is listIssuesPage's, so
+// a bounded answer is the top of the list the admin is looking at. The status
+// rides along so the confirmation can say how many of the selection are
+// published without a second round trip.
+export async function listMatchingIssues(
+  opts: IssueListOptions & { limit: number },
+): Promise<{ id: string; status: IssueStatus }[]> {
+  const query = opts.query?.trim() ?? "";
+  const where = issueWhere(query, opts.filter ?? "all", opts.year ?? null);
+  return db
+    .select({ id: issues.id, status: issues.status })
+    .from(issues)
+    .where(where)
+    .orderBy(desc(issues.number))
+    .limit(opts.limit);
 }
 
 export async function getIssue(id: string) {
@@ -203,6 +300,14 @@ export async function publishIssue(id: string) {
     .where(eq(issues.id, id));
 }
 
+export type DeleteIssuesResult = {
+  deleted: number;
+  /** How many of the deleted issues members could read (for the report). */
+  publishedDeleted: number;
+  /** Ids that were already gone (a stale list). */
+  missing: number;
+};
+
 // Deleting an issue takes its now-orphaned images with it (issue #84) — the
 // photographs, montage slides and video poster frames that were only ever on
 // these pages, plus anything uploaded while editing it that never made it onto
@@ -224,28 +329,45 @@ export async function publishIssue(id: string) {
 // is a poor trade for a window of milliseconds between two admins doing rare
 // things at once. The damage if it ever lands is one missing picture on one
 // page, which re-uploading fixes; the delete itself is never wrong.
-export async function deleteIssue(id: string) {
-  const orphanedKeys = await db.transaction(async (tx) => {
-    const [issue] = await tx
-      .select({ content: issues.content })
-      .from(issues)
-      .where(eq(issues.id, id))
-      .limit(1);
-    if (!issue) return [];
+// A batch is one transaction and one reference scan rather than a loop of
+// single deletes: every row goes first, then the scan decides what survives, so
+// an image two of the deleted issues shared is judged once against the world
+// that is left. Storage is swept once afterwards, for the same reason it is
+// swept last at all.
+export async function deleteIssues(ids: string[]): Promise<DeleteIssuesResult> {
+  const unique = [...new Set(ids)];
+  if (unique.length === 0) {
+    return { deleted: 0, publishedDeleted: 0, missing: 0 };
+  }
 
+  const { orphanedKeys, found } = await db.transaction(async (tx) => {
+    const rows = await tx
+      .select({
+        id: issues.id,
+        status: issues.status,
+        content: issues.content,
+      })
+      .from(issues)
+      .where(inArray(issues.id, unique));
+    if (rows.length === 0) return { orphanedKeys: [], found: rows };
+
+    const doomed = rows.map((row) => row.id);
     const uploaded = await tx
       .select({ id: images.id })
       .from(images)
-      .where(eq(images.issueId, id));
+      .where(inArray(images.issueId, doomed));
     const candidates = [
       ...new Set([
-        ...collectImageIds(issue.content),
+        ...rows.flatMap((row) => collectImageIds(row.content)),
         ...uploaded.map((row) => row.id),
       ]),
     ];
 
-    await tx.delete(issues).where(eq(issues.id, id));
-    return takeOrphanedImages(tx, candidates);
+    await tx.delete(issues).where(inArray(issues.id, doomed));
+    return {
+      orphanedKeys: await takeOrphanedImages(tx, candidates),
+      found: rows,
+    };
   });
 
   // Committed. Everything from here is best-effort and cannot undo the delete.
@@ -254,7 +376,17 @@ export async function deleteIssue(id: string) {
     // The cached PDFs. Derived bytes under one folder per issue, keyed by a
     // revision, theme and fingerprint that nothing records once the row is gone
     // (see the key built in /api/issues/[number]/pdf), so they go by prefix.
-    prefixes: [`pdfs/${id}/`],
-    context: { issueId: id },
+    prefixes: found.map((row) => `pdfs/${row.id}/`),
+    context: { issueIds: found.map((row) => row.id) },
   });
+
+  return {
+    deleted: found.length,
+    publishedDeleted: found.filter((row) => row.status === "published").length,
+    missing: unique.length - found.length,
+  };
+}
+
+export async function deleteIssue(id: string) {
+  await deleteIssues([id]);
 }

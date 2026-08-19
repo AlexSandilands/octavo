@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { SelectCheckbox } from "./select-checkbox";
+import { SelectCheckbox } from "@/components/select-checkbox";
 import { MEMBERS_SELECTION_MAX } from "./selection-limit";
 import {
   removeMembersAction,

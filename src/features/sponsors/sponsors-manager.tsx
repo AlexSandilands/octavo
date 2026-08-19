@@ -3,10 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
-import { ListPagination } from "@/components/list-pagination";
 import { Button } from "@/components/ui";
-import type { SponsorList, SponsorListItem } from "@/lib/sponsors";
-import { SponsorRow } from "./sponsor-row";
+import type {
+  SponsorFilter,
+  SponsorList,
+  SponsorListItem,
+} from "@/lib/sponsors";
+import { SponsorsTable } from "./sponsors-table";
 import { SponsorDialog } from "./sponsor-dialog";
 
 // Client owner of the sponsors admin: the header actions, the empty state, the
@@ -17,15 +20,26 @@ import { SponsorDialog } from "./sponsor-dialog";
 // null = closed; "new" = add; a sponsor = edit that record.
 type Editing = SponsorListItem | "new" | null;
 
-export function SponsorsManager({ list }: { list: SponsorList }) {
+export function SponsorsManager({
+  list,
+  query,
+  filter,
+}: {
+  list: SponsorList;
+  /** The active search from the URL — "" when the list is unfiltered. */
+  query: string;
+  /** The active status filter from the URL — "all" when none. */
+  filter: SponsorFilter;
+}) {
   const router = useRouter();
   const [editing, setEditing] = useState<Editing>(null);
 
-  // Whole-list numbers, so the summary stays true whichever page is showing.
+  // Whole-list numbers, so the summary stays true whichever page — and
+  // whichever search — is showing.
   const summary =
-    list.matching === 0
+    list.total === 0
       ? "No sponsors yet"
-      : `${list.matching} ${list.matching === 1 ? "sponsor" : "sponsors"}` +
+      : `${list.total} ${list.total === 1 ? "sponsor" : "sponsors"}` +
         (list.expiredTotal > 0 ? ` · ${list.expiredTotal} expired` : "");
 
   return (
@@ -35,7 +49,7 @@ export function SponsorsManager({ list }: { list: SponsorList }) {
           <h1 className="text-ink font-serif text-3xl">Sponsors</h1>
           <p className="text-faint mt-1.5 font-sans text-sm">{summary}</p>
         </div>
-        {list.matching > 0 && (
+        {list.total > 0 && (
           <Button
             icon="plus"
             onClick={() => setEditing("new")}
@@ -46,7 +60,7 @@ export function SponsorsManager({ list }: { list: SponsorList }) {
         )}
       </div>
 
-      {list.matching === 0 ? (
+      {list.total === 0 ? (
         <div className="mt-8">
           <div className="bg-card border-line flex min-h-[360px] flex-col items-center justify-center rounded-md border p-9 text-center shadow-[0_1px_3px_rgba(0,0,0,0.07)]">
             <div className="bg-tint text-accent flex h-[72px] w-[72px] items-center justify-center rounded-full">
@@ -67,27 +81,13 @@ export function SponsorsManager({ list }: { list: SponsorList }) {
           </div>
         </div>
       ) : (
-        <div className="mt-6">
-          <div className="border-line text-faint2 hidden items-center border-b px-1.5 pb-2.5 font-sans text-[10px] font-semibold tracking-[0.14em] uppercase sm:flex">
-            <span className="flex-1">Sponsor</span>
-            <span className="w-[190px]">Link</span>
-            <span className="w-[150px]">Active until</span>
-            <span className="w-[80px]" />
-          </div>
-          {list.rows.map((s) => (
-            <SponsorRow
-              key={s.id}
-              sponsor={s}
-              onEdit={() => setEditing(s)}
-              onChanged={() => router.refresh()}
-            />
-          ))}
-          <ListPagination
-            page={list.page}
-            pageCount={list.pageCount}
-            label="Sponsor list pages"
-          />
-        </div>
+        <SponsorsTable
+          list={list}
+          query={query}
+          filter={filter}
+          onEdit={setEditing}
+          onChanged={() => router.refresh()}
+        />
       )}
 
       {editing !== null && (

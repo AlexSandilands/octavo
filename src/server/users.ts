@@ -14,6 +14,7 @@ import {
 } from "drizzle-orm";
 import { db } from "@/db";
 import { sessions, users } from "@/db/schema";
+import { likePattern } from "@/lib/list-query";
 import {
   ADMIN_LIST_PAGE_SIZE,
   pageBounds,
@@ -50,12 +51,6 @@ export type MemberList = PagedList<MemberRow> & {
   total: number;
   subscribedTotal: number;
 };
-
-// A search term becomes a substring ILIKE pattern; the LIKE metacharacters are
-// escaped so "100%" finds the member called that, not everything.
-function likePattern(query: string): string {
-  return `%${query.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
-}
 
 // The status filters the list offers beside the search (issue #123). Like the
 // search they run in the database, because the list only serves one page.
