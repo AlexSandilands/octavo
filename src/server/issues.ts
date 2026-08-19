@@ -14,7 +14,7 @@ import { images, issues } from "@/db/schema";
 import { emptyIssueContent, type IssueContent } from "@/lib/blocks";
 import type { FooterReserve } from "@/lib/branding";
 import { collectImageIds } from "@/lib/images";
-import { likePattern } from "@/lib/list-query";
+import { likePattern } from "@/lib/like-pattern";
 import {
   ADMIN_LIST_PAGE_SIZE,
   pageBounds,
@@ -48,10 +48,12 @@ const FILTER_CONDITIONS = {
   published: eq(issues.status, "published"),
 } as const;
 
-// The year an issue was published, as the database reads it. The year dropdown's
-// options and the year filter both go through this one expression, so a year can
-// never be offered that the filter then matches nothing under.
-const publishedYear = sql`extract(year from ${issues.publishedAt})`;
+// Which year an issue belongs to, decided once. Postgres and Node run in
+// different session timezones, so a bare `extract(year …)` can put an issue in
+// a year the shelf's own headings (JS getFullYear) disagree with; every year
+// this module computes is taken in Node's zone instead.
+const APP_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+const publishedYear = sql`extract(year from ${issues.publishedAt} at time zone ${APP_TZ})`;
 
 // The WHERE for a search + status + year, shared by every query below so
 // "matching" can never mean two different things. A year narrows on publication
@@ -128,14 +130,14 @@ export async function listIssuesPage(
 // The years the date filter offers: only those that actually have a published
 // issue, newest first. Drafts have no publication date and so no year.
 export async function listIssueYears(): Promise<number[]> {
-  const year = sql<number>`${publishedYear}::int`;
+  // Sorted here, not in SQL: the timezone rides in as a bind parameter, and
+  // SELECT DISTINCT rejects an ORDER BY whose copy of it is a second parameter.
+  // One row per year, so the sort is free.
   const rows = await db
-    .select({ year })
+    .selectDistinct({ year: publishedYear })
     .from(issues)
-    .where(isNotNull(issues.publishedAt))
-    .groupBy(year)
-    .orderBy(desc(year));
-  return rows.map((r) => r.year);
+    .where(isNotNull(issues.publishedAt));
+  return rows.map((r) => Number(r.year)).sort((a, b) => b - a);
 }
 
 // Every issue matching a search + filters — the bulk bar's "Select all N

@@ -14,7 +14,7 @@ import {
 } from "drizzle-orm";
 import { db } from "@/db";
 import { sessions, users } from "@/db/schema";
-import { likePattern } from "@/lib/list-query";
+import { likePattern } from "@/lib/like-pattern";
 import {
   ADMIN_LIST_PAGE_SIZE,
   pageBounds,
