@@ -2,7 +2,7 @@
 
 import { MenuSelect } from "@/components/menu-select";
 import type { MemberFilter } from "@/server/users";
-import { useListUrl } from "./use-list-url";
+import { useListUrl } from "@/components/use-list-url";
 
 const OPTIONS: { value: MemberFilter; label: string }[] = [
   { value: "all", label: "All" },

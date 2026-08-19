@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { MEMBERS_QUERY_MAX } from "./query-limit";
-import { useListUrl } from "./use-list-url";
+import { useListUrl } from "@/components/use-list-url";
 
 // The members search box. The query lives in the URL (?q=) and the filtering
 // happens in the database, so a search sees every member — not just the page

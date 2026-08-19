@@ -5,14 +5,14 @@ import { matchingMemberIdsAction } from "@/app/admin/members/actions";
 import { MemberRow } from "./member-row";
 import { MembersBulkBar } from "./members-bulk-bar";
 import { MembersFilter } from "./members-filter";
-import { MembersPagination } from "./members-pagination";
+import { ListPagination } from "@/components/list-pagination";
 import { MembersSearch } from "./members-search";
 import { MEMBERS_SELECTION_MAX } from "./selection-limit";
 import type { MemberFilter, MemberList } from "@/server/users";
 
 // The table shows one served page of an already-narrowed list — the search,
 // the status filter and the paging all happen server-side (see MembersSearch /
-// MembersFilter / MembersPagination); this component owns only the selection.
+// MembersFilter / ListPagination); this component owns only the selection.
 export function MembersTable({
   list,
   query,
@@ -121,7 +121,7 @@ export function MembersTable({
   // below. Built only from the query, the filter and the whole-list match
   // count — never from the selection or the served page — so ticking a
   // checkbox or turning a page leaves the text byte-identical and the region
-  // stays silent (a page turn already announces itself in MembersPagination).
+  // stays silent (a page turn already announces itself in ListPagination).
   const matching = list.matching;
   const resultMessage =
     matching === 0
@@ -191,7 +191,11 @@ export function MembersTable({
         {resultMessage}
       </p>
 
-      <MembersPagination page={list.page} pageCount={list.pageCount} />
+      <ListPagination
+        page={list.page}
+        pageCount={list.pageCount}
+        label="Member list pages"
+      />
     </div>
   );
 }

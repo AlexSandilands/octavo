@@ -40,8 +40,8 @@ const tag = "a11y132";
 const adminId = crypto.randomUUID();
 const token = crypto.randomUUID();
 const adminEmail = `${tag}-000@example.test`;
-// More than one page of them (MEMBERS_PAGE_SIZE is 25), so the reach-past-the-
-// page button is on screen at all.
+// More than one page of them (ADMIN_LIST_PAGE_SIZE is 25), so the reach-past-
+// the-page button is on screen at all.
 const memberEmails = Array.from(
   { length: 30 },
   (_, i) => `${tag}-${String(i + 1).padStart(3, "0")}@example.test`,

@@ -1,10 +1,15 @@
 import "server-only";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, count, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { images, issues } from "@/db/schema";
 import { emptyIssueContent, type IssueContent } from "@/lib/blocks";
 import type { FooterReserve } from "@/lib/branding";
 import { collectImageIds } from "@/lib/images";
+import {
+  ADMIN_LIST_PAGE_SIZE,
+  pageBounds,
+  type PagedList,
+} from "@/lib/pagination";
 import { sweepOrphanedObjects, takeOrphanedImages } from "./asset-cleanup";
 
 // Server-only data access for issues. All callers (server components, server
@@ -12,6 +17,51 @@ import { sweepOrphanedObjects, takeOrphanedImages } from "./asset-cleanup";
 
 export async function listIssues() {
   return db.select().from(issues).orderBy(desc(issues.number));
+}
+
+export type IssueRow = typeof issues.$inferSelect;
+
+export type IssueList = PagedList<IssueRow> & {
+  /** Drafts across the whole list, for the summary line. */
+  draftTotal: number;
+};
+
+// The dashboard list, paged. Unique issue numbers descending are a total order,
+// which is what makes plain offset paging safe; the counts and the rows share
+// one read-only REPEATABLE READ snapshot, so neither the clamp nor the summary
+// can disagree with the rows served.
+export async function listIssuesPage(page = 1): Promise<IssueList> {
+  return db.transaction(
+    async (tx) => {
+      const [counts] = await tx
+        .select({
+          matching: count(),
+          draftTotal:
+            sql`count(*) filter (where ${eq(issues.status, "draft")})`.mapWith(
+              Number,
+            ),
+        })
+        .from(issues);
+      const matching = counts?.matching ?? 0;
+      const bounds = pageBounds(matching, ADMIN_LIST_PAGE_SIZE, page);
+
+      const rows = await tx
+        .select()
+        .from(issues)
+        .orderBy(desc(issues.number))
+        .limit(ADMIN_LIST_PAGE_SIZE)
+        .offset(bounds.offset);
+
+      return {
+        rows,
+        page: bounds.page,
+        pageCount: bounds.pageCount,
+        matching,
+        draftTotal: counts?.draftTotal ?? 0,
+      };
+    },
+    { isolationLevel: "repeatable read", accessMode: "read only" },
+  );
 }
 
 export async function getIssue(id: string) {

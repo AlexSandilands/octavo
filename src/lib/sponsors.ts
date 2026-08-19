@@ -1,5 +1,6 @@
 import type { IssueContent } from "./blocks";
 import type { ResolvedImage } from "./images";
+import type { PagedList } from "./pagination";
 
 // Content v2: sponsor blocks store only a `sponsorId`. To render, the server
 // resolves those ids to the managed sponsor's name/href/logo and hands the
@@ -33,6 +34,13 @@ export type SponsorListItem = {
   expired: boolean;
 };
 
+// One page of the admin sponsors list. The editor's picker still takes the
+// whole set — only the admin list pages.
+export type SponsorList = PagedList<SponsorListItem> & {
+  /** Expired sponsors across the whole list, for the summary line. */
+  expiredTotal: number;
+};
+
 // Every sponsorId referenced by sponsor blocks in an issue (deduped). Accepts
 // any pages-holding shape so callers can resolve a subset if needed.
 export function collectSponsorIds(
@@ -56,14 +64,21 @@ export function isSponsorExpired(
   now: Date = new Date(),
 ): boolean {
   if (!activeUntil) return false;
-  const floor = (d: Date) =>
-    new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-  return floor(activeUntil) < floor(now);
+  return activeUntil.getTime() < expiredBefore(now).getTime();
+}
+
+// The instant an `activeUntil` has to fall before to count as expired: today's
+// local midnight. Flooring one side is the same test as flooring both, so this
+// is the rule above in the form a SQL `where` can take.
+export function expiredBefore(now: Date = new Date()): Date {
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
 }
 
 // A timestamptz -> the YYYY-MM-DD the admin entered (in local time), for the
 // date input's value and the list display. Null passes through.
-export function activeUntilToDateString(activeUntil: Date | null): string | null {
+export function activeUntilToDateString(
+  activeUntil: Date | null,
+): string | null {
   if (!activeUntil) return null;
   const y = activeUntil.getFullYear();
   const m = String(activeUntil.getMonth() + 1).padStart(2, "0");
