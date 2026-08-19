@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { nudgeActionCommit } from "@/components/action-commit-rescue";
 import { Button } from "@/components/ui";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { SelectCheckbox } from "@/components/select-checkbox";
@@ -89,7 +88,6 @@ export function IssuesBulkBar({
       }
       // A deletion consumes the selection: those rows no longer exist.
       onClear();
-      nudgeActionCommit();
       setResult(
         `${plural(res.deleted, "issue", "issues")} deleted` +
           (res.missing > 0 ? `, ${res.missing} already gone.` : "."),

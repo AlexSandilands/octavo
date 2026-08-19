@@ -2,7 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { DEMO_MODE } from "@/lib/demo";
 import { safeNextPath } from "@/lib/next-path";
 
-// This middleware does two jobs on every HTML-serving request:
+// This proxy (Next 16's name for middleware) does two jobs on every
+// HTML-serving request:
 //
 //   1. Content-Security-Policy (per request). Body text is stored as structured
 //      JSON and rendered through React elements (content v3 — no
@@ -21,10 +22,10 @@ import { safeNextPath } from "@/lib/next-path";
 //      with `script-src` locked down. `img-src` allows the R2 origin so served
 //      uploads load. Dev keeps 'unsafe-eval' for React Fast Refresh.
 //
-//   2. Edge auth gate for the members-only routes (`/`, `/read/*`, `/admin/*`).
-//      It only checks for the *presence* of a session cookie — it runs on the
-//      Edge runtime and can't reach Postgres to validate a database session,
-//      so the in-component gates (requireMember / requireAdmin in
+//   2. Auth gate for the members-only routes (`/`, `/read/*`, `/admin/*`).
+//      It only checks for the *presence* of a session cookie — it runs before
+//      routing on every matched request, so it stays off the database and the
+//      in-component gates (requireMember / requireAdmin in
 //      src/server/session.ts) stay the authority. Its jobs are:
 //        - issue the sign-in redirect before any HTML streams, so signed-out
 //          visitors never see a flash of the route's loading skeleton (#5),
@@ -69,14 +70,14 @@ function hasSessionCookie(req: NextRequest): boolean {
 // `/read/:path*`, `/admin/:path*`). The one
 // carve-out is the PDF print route (`/read/[n]/print`): it carries no session
 // cookie (the generator self-fetches over localhost) and would be redirected to
-// /signin here, so it is let through the edge and guarded instead by the
+// /signin here, so it is let through the gate and guarded instead by the
 // internal print token it validates in-route (src/lib/pdf-token.ts) — without a
 // valid token it 404s, so it stays unreachable from outside.
 //
 // Demo mode (issue #50) drops the member-facing routes from the gate so a
 // showcase deployment is publicly browsable — `/admin/*` stays gated
 // unconditionally. requireMemberOrRedirect honours the same DEMO_MODE flag, so
-// the edge and the in-component authority agree.
+// this gate and the in-component authority agree.
 function isGatedRoute(pathname: string): boolean {
   if (pathname === "/admin" || pathname.startsWith("/admin/")) return true;
   if (DEMO_MODE) return false;
@@ -88,6 +89,9 @@ function isGatedRoute(pathname: string): boolean {
   return false;
 }
 
+// Known Next 16 defect: streamed pages emit one duplicate <script> for the
+// next/link chunk without the nonce, which this CSP blocks — console noise
+// only, since the same module also arrives inside a nonce-tagged chunk.
 function buildCsp(nonce: string): string {
   return [
     "default-src 'self'",
@@ -118,11 +122,11 @@ function buildCsp(nonce: string): string {
   ].join("; ");
 }
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
 
   // Auth gate first: a redirect response renders no HTML, so it needs no CSP —
-  // the redirect *target* (/signin) gets its own pass through this middleware.
+  // the redirect *target* (/signin) gets its own pass through this proxy.
   if (isGatedRoute(pathname) && !hasSessionCookie(req)) {
     const signin = new URL("/signin", req.url);
     // Member routes carry the return path; /admin mirrors

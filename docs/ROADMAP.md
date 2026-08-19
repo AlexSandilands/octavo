@@ -2,8 +2,8 @@
 
 How the app gets from "runs locally" to a hosted, members-only magazine the club runs
 itself. **Work is tracked as GitHub issues** — one milestone per phase, one issue per
-agent-sized task. Read this file for the ordering and the *why*; read the issue for the
-task brief; read the code for the *how*.
+agent-sized task. Read this file for the ordering and the _why_; read the issue for the
+task brief; read the code for the _how_.
 
 This file supersedes `docs/planning/` (removed — see git history for the original spec,
 design handover and implementation plan). Still-current infrastructure/runbook detail
@@ -51,7 +51,7 @@ correctness fixes from the 2026-07 code review.
 ### Phase 1 — Auth (#3–#6)
 
 Auth.js magic-link with Resend + the Drizzle adapter (tables already exist). Explicit
-`requireAdmin()` in every server action and the upload route — middleware is
+`requireAdmin()` in every server action and the upload route — the proxy (formerly middleware) is
 belt-and-braces only, since server actions bypass route matchers. Gate the reader per
 open decision #1. Long-lived sessions (~90 days) so members aren't re-requesting links.
 Rate-limit upload + signin. Decide and implement the image-serving model.

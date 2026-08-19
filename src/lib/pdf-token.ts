@@ -6,9 +6,9 @@ import { env } from "./env";
 // (`/read/[n]/print`). PDF generation is a localhost self-fetch: the generator
 // (src/lib/pdf.ts) passes this token, the print page verifies it. Because the
 // reader is members-only, the print route must not be publicly reachable — the
-// token is what keeps it internal (the edge auth gate lets `/print` through so
+// token is what keeps it internal (the proxy auth gate lets `/print` through so
 // the cookie-less generator can reach it, so this is the only guard on the
-// route; see src/middleware.ts).
+// route; see src/proxy.ts).
 //
 // It is a static value derived from AUTH_SECRET, not a per-request nonce: the
 // print route only ever renders already-published issue content (which members

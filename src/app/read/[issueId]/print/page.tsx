@@ -9,7 +9,7 @@ import { settingsForIssue } from "@/lib/branding";
 import { verifyPrintToken } from "@/lib/pdf-token";
 
 // The print view the PDF generator loads (src/lib/pdf.ts) over localhost. It is
-// NOT session-gated — the edge auth gate lets `/print` through so the cookie-
+// NOT session-gated — the proxy auth gate lets `/print` through so the cookie-
 // less generator can reach it — so the internal print token is the only guard:
 // a request without a valid token is indistinguishable from a missing page
 // (404). That keeps the route unreachable from outside even though the reader

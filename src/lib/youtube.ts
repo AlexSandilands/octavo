@@ -71,7 +71,7 @@ function validId(candidate: string | null | undefined): string | null {
 // The privacy-preserving embed host: youtube-nocookie.com sets no tracking
 // cookie until the member actually plays something, and the readers only ever
 // mount this frame after a deliberate press (see VideoPlayer). `frame-src` in
-// the middleware CSP allows this one origin and nothing else.
+// the proxy CSP allows this one origin and nothing else.
 export function youtubeEmbedUrl(videoId: string): string {
   return `https://www.youtube-nocookie.com/embed/${videoId}`;
 }

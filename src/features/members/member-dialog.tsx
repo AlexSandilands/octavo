@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { nudgeActionCommit } from "@/components/action-commit-rescue";
 import { DialogShell } from "@/components/dialog-shell";
 import { Button } from "@/components/ui";
 import {
@@ -40,7 +39,6 @@ export function MemberDialog({
         : await addMemberAction({ email, name: name.trim() || undefined });
       if (res.ok) {
         onClose();
-        nudgeActionCommit();
       } else if (res.reason === "duplicate") {
         setError("That address already belongs to another member.");
       } else if (res.reason === "missing") {

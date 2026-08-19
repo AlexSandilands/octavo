@@ -5,7 +5,7 @@ visual editor; members read them as a page-turning flipbook on desktop or a clea
 mobile. Access is by magic link — no passwords, membership is presence in the members table.
 
 [![CI](https://github.com/AlexSandilands/octavo/actions/workflows/ci.yml/badge.svg)](https://github.com/AlexSandilands/octavo/actions/workflows/ci.yml)
-[![Next.js 15](https://img.shields.io/badge/Next.js-15-000?logo=nextdotjs&logoColor=white)](https://nextjs.org)
+[![Next.js 16](https://img.shields.io/badge/Next.js-16-000?logo=nextdotjs&logoColor=white)](https://nextjs.org)
 [![React 19](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![Tailwind CSS 4](https://img.shields.io/badge/Tailwind_CSS-4-38BDF8?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
@@ -67,7 +67,7 @@ issues in a live, autosaving block editor with a page rail and a WYSIWYG cover (
 
 ## Tech stack
 
-Next.js 15 (App Router) · React 19 · TypeScript · Tailwind v4 · Drizzle ORM (Postgres) ·
+Next.js 16 (App Router) · React 19 · TypeScript · Tailwind v4 · Drizzle ORM (Postgres) ·
 Auth.js v5 (magic link) · Resend (email) · Cloudflare R2 via the AWS S3 SDK · sharp (WebP) ·
 a custom CSS-transform flipbook (`src/features/reader/reader-spread.tsx`) · Playwright
 (on-demand PDF). Hosted on Railway. See [infrastructure.md](docs/infrastructure.md).

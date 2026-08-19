@@ -17,7 +17,7 @@ import { PlayMark, VideoPoster, VIDEO_ASPECT } from "./video";
 // anything. And it means a reader who never presses play loads no third-party
 // frame and is handed no third-party cookie — which is also why the frame, when
 // it does come, comes from youtube-nocookie.com (the one origin `frame-src`
-// allows; see src/middleware.ts).
+// allows; see src/proxy.ts).
 //
 // Accessibility (the audience is older and phone-heavy):
 //   * The control is a real <button> covering the whole poster — a 16:9 tap

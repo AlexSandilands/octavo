@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { nudgeActionCommit } from "@/components/action-commit-rescue";
 import { Button } from "@/components/ui";
 import { SettingsCard } from "@/components/settings-card";
 import type { LogoListItem } from "@/lib/logos";
@@ -52,10 +51,7 @@ export function LogosManager({ logos }: { logos: LogoListItem[] }) {
               key={logo.id}
               logo={logo}
               onRename={() => setEditing(logo)}
-              onChanged={() => {
-                router.refresh();
-                nudgeActionCommit();
-              }}
+              onChanged={() => router.refresh()}
             />
           ))}
           <div className="border-line-soft border-t pt-4">
@@ -78,7 +74,6 @@ export function LogosManager({ logos }: { logos: LogoListItem[] }) {
           onSaved={() => {
             setEditing(null);
             router.refresh();
-            nudgeActionCommit();
           }}
         />
       )}

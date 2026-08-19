@@ -11,7 +11,7 @@
 // to the same value as SENTRY_DSN. With neither set, init is skipped and every
 // capture call is a no-op, so the app runs identically without Sentry.
 //
-// Client events are sent directly to the Sentry ingest host; src/middleware.ts
+// Client events are sent directly to the Sentry ingest host; src/proxy.ts
 // adds that host to the CSP `connect-src` so the strict nonce CSP doesn't block
 // them (it derives the host from the DSN — see buildCsp there).
 import * as Sentry from "@sentry/nextjs";

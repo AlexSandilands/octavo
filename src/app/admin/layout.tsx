@@ -1,4 +1,3 @@
-import { ActionCommitRescue } from "@/components/action-commit-rescue";
 import { requireAdminOrRedirect } from "@/server/session";
 
 // Gate every /admin page load (dashboard, editor, preview, members,
@@ -13,12 +12,5 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   await requireAdminOrRedirect();
-  // The stamp changes on every server render, telling the rescuer a refresh
-  // landed; see action-commit-rescue.tsx for the bug it works around.
-  return (
-    <>
-      <ActionCommitRescue stamp={Date.now()} />
-      {children}
-    </>
-  );
+  return children;
 }

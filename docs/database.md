@@ -126,7 +126,7 @@ thumbnail — it renders `VideoStill`: the poster, a play mark, and the address 
 (`youtu.be/<id>`, a real link on the print page so Chromium emits a PDF link annotation). A PDF
 cannot play video, so that pair is its deterministic single representation, the same call the montage
 makes by printing only its first slide — and the same reason `RENDER_VERSION` was bumped with it. The
-embed is also the one thing the CSP's `frame-src` allows (`src/middleware.ts`).
+embed is also the one thing the CSP's `frame-src` allows (`src/proxy.ts`).
 
 Defined as zod schemas + inferred types in [`src/lib/blocks.ts`](../src/lib/blocks.ts) and applied to
 the column via `jsonb(...).$type<IssueContent>()`.
