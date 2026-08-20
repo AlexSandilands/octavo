@@ -5,6 +5,7 @@ import type { PagedList } from "@/lib/pagination";
 import type { SponsorMap } from "@/lib/sponsors";
 import type { IssueRow } from "@/server/issues";
 import { ArchiveGrid, toArchiveItems } from "./archive-grid";
+import { archiveResultMessage } from "./archive-message";
 import { ArchiveSearch } from "./archive-search";
 import { ArchiveYearFilter } from "./archive-year-filter";
 
@@ -30,24 +31,15 @@ export function ArchiveShelf({
   sponsors: SponsorMap;
   settings: SiteSettings;
 }) {
-  const { matching } = list;
-  const issues = matching === 1 ? "issue" : "issues";
-  const from = year ? ` from ${year}` : "";
-
   // The outcome of the search + filter in one sentence for the live region
   // below — built only from the query, the year and the whole-list match
   // count, so turning a page leaves it byte-identical and the region stays
   // silent (the page control announces its own turn).
-  const resultMessage =
-    matching === 0
-      ? query
-        ? `No issues${from} match “${query}”.`
-        : year
-          ? `No issues published in ${year}.`
-          : "No issues published yet."
-      : query
-        ? `${matching} ${issues}${from} ${matching === 1 ? "matches" : "match"} “${query}”.`
-        : `Showing ${matching} ${issues}${from}.`;
+  const resultMessage = archiveResultMessage({
+    matching: list.matching,
+    query,
+    year,
+  });
 
   return (
     <div className="mt-6">
