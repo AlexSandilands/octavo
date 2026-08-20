@@ -44,7 +44,7 @@ export function useMontage(
   count: number,
   intervalSeconds: number,
 ): Montage {
-  const [index, setIndex] = useState(0);
+  const [rawIndex, setRawIndex] = useState(0);
   const [manual, setManual] = useState(false);
   const [interacting, setInteracting] = useState(false);
   const onScreen = useOnScreen(ref);
@@ -52,10 +52,10 @@ export function useMontage(
   const reduceMotion = usePrefersReducedMotion();
 
   // The slide list can shrink under us (the editor's live preview, or an
-  // autosave round-trip that dropped a deleted image), so keep the index legal.
-  useEffect(() => {
-    setIndex((i) => (count > 0 ? Math.min(i, count - 1) : 0));
-  }, [count]);
+  // autosave round-trip that dropped a deleted image), so the legal index is
+  // derived — the raw one is clamped wherever it is read.
+  const clamp = (i: number) => (count > 0 ? Math.min(i, count - 1) : 0);
+  const index = clamp(rawIndex);
 
   const playing =
     count > 1 &&
@@ -69,7 +69,7 @@ export function useMontage(
   useEffect(() => {
     if (!playing) return;
     const timer = window.setInterval(
-      () => setIndex((i) => (i + 1) % count),
+      () => setRawIndex((i) => (Math.min(i, count - 1) + 1) % count),
       intervalSeconds * 1000,
     );
     return () => window.clearInterval(timer);
@@ -78,7 +78,7 @@ export function useMontage(
   const step = (dir: 1 | -1) => {
     if (count === 0) return;
     setManual(true);
-    setIndex((i) => (i + dir + count) % count);
+    setRawIndex((i) => (clamp(i) + dir + count) % count);
   };
 
   return {
@@ -103,8 +103,10 @@ function useOnScreen(ref: RefObject<HTMLElement | null>): boolean {
     const el = ref.current;
     if (!el) return;
     // No IntersectionObserver (a very old browser): assume visible, so the
-    // montage degrades to plain autoplay rather than never advancing.
+    // montage degrades to plain autoplay rather than never advancing. The
+    // one-time set stands in for the observer's first delivery.
     if (typeof IntersectionObserver === "undefined") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setOnScreen(true);
       return;
     }

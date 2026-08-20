@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 // Zoom bounds shared by the editor canvas and the desktop reader (and the
 // reader's zoom slider). The page is a fixed-size canvas scaled to fit, then
@@ -36,11 +36,12 @@ export type PanZoomOptions = {
   isBlocked?: () => boolean;
 };
 
-// The shared pan/zoom engine. Owns zoom/pan state, mirrors it into refs for the
-// once-bound native (non-passive) wheel handler, clamps the pan so a sliver of
-// the content always stays on screen, and exposes pointer handlers plus a slider
-// `applyZoom` and a `resetView`. Behaviour is identical across the editor and
-// reader; the differences (spread vs single page, fit margins, the mid-turn
+// The shared pan/zoom engine. Owns zoom/pan state, clamps the pan so a sliver
+// of the content always stays on screen, and exposes pointer handlers plus a
+// slider `applyZoom` and a `resetView`. The once-bound native (non-passive)
+// wheel handler and the ResizeObserver callback are effect events, so they see
+// current state without re-binding. Behaviour is identical across the editor
+// and reader; the differences (spread vs single page, fit margins, the mid-turn
 // block) are the options above.
 export function useCanvasPanZoom(opts: PanZoomOptions) {
   const { blockSelector, initialFitScale } = opts;
@@ -51,34 +52,23 @@ export function useCanvasPanZoom(opts: PanZoomOptions) {
   const [pan, setPan] = useState<Pan>({ x: 0, y: 0 });
   const [panning, setPanning] = useState(false);
 
-  // Latest values mirrored into refs for the native wheel handler and clampPan,
-  // which are bound once and can't close over fresh state.
-  const zoomRef = useRef(zoom);
-  const panRef = useRef(pan);
-  const fitScaleRef = useRef(fitScale);
-  zoomRef.current = zoom;
-  panRef.current = pan;
-  fitScaleRef.current = fitScale;
-  // Geometry + the mid-turn guard change per render but the handlers bind once,
-  // so read them through a ref to stay current.
-  const geomRef = useRef(opts);
-  geomRef.current = opts;
-  const isBlocked = () => Boolean(geomRef.current.isBlocked?.());
+  const isBlocked = () => Boolean(opts.isBlocked?.());
 
   // Fit the content to the container (zoom = 1), re-measuring on resize.
+  const measureFit = useEffectEvent(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const { contentWidth, contentHeight, fitMargin, fitClamp } = opts;
+    const availH = el.clientHeight - fitMargin.y;
+    const availW = el.clientWidth - fitMargin.x;
+    const s = Math.min(availH / contentHeight, availW / contentWidth);
+    setFitScale(Math.max(fitClamp.min, Math.min(fitClamp.max, s)));
+  });
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const update = () => {
-      const { contentWidth, contentHeight, fitMargin, fitClamp } =
-        geomRef.current;
-      const availH = el.clientHeight - fitMargin.y;
-      const availW = el.clientWidth - fitMargin.x;
-      const s = Math.min(availH / contentHeight, availW / contentWidth);
-      setFitScale(Math.max(fitClamp.min, Math.min(fitClamp.max, s)));
-    };
-    update();
-    const ro = new ResizeObserver(update);
+    measureFit();
+    const ro = new ResizeObserver(() => measureFit());
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
@@ -87,8 +77,8 @@ export function useCanvasPanZoom(opts: PanZoomOptions) {
   const clampPan = (p: Pan, zoomVal: number): Pan => {
     const el = containerRef.current;
     if (!el) return p;
-    const { contentWidth, contentHeight } = geomRef.current;
-    const sc = fitScaleRef.current * zoomVal;
+    const { contentWidth, contentHeight } = opts;
+    const sc = fitScale * zoomVal;
     const keep = 90;
     const maxX = Math.max(0, (contentWidth * sc + el.clientWidth) / 2 - keep);
     const maxY = Math.max(0, (contentHeight * sc + el.clientHeight) / 2 - keep);
@@ -101,15 +91,13 @@ export function useCanvasPanZoom(opts: PanZoomOptions) {
   // Zoom to `next`, holding a focal point (offset from the container centre, in
   // px) fixed. The slider/reset pass the centre; the wheel passes the cursor.
   const applyZoom = (nextRaw: number, focalX = 0, focalY = 0) => {
-    const prev = zoomRef.current;
     const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, nextRaw));
-    if (next === prev) return;
-    const f = next / prev;
-    const p = panRef.current;
+    if (next === zoom) return;
+    const f = next / zoom;
     setZoom(next);
     setPan(
       clampPan(
-        { x: f * p.x + (1 - f) * focalX, y: f * p.y + (1 - f) * focalY },
+        { x: f * pan.x + (1 - f) * focalX, y: f * pan.y + (1 - f) * focalY },
         next,
       ),
     );
@@ -120,21 +108,23 @@ export function useCanvasPanZoom(opts: PanZoomOptions) {
     setPan({ x: 0, y: 0 });
   };
 
+  // An effect event so the once-bound listener always zooms from current state.
+  const onWheel = useEffectEvent((e: WheelEvent) => {
+    e.preventDefault();
+    if (isBlocked()) return;
+    const el = containerRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const focalX = e.clientX - rect.left - rect.width / 2;
+    const focalY = e.clientY - rect.top - rect.height / 2;
+    applyZoom(zoom * Math.exp(-e.deltaY * 0.0015), focalX, focalY);
+  });
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      if (isBlocked()) return;
-      const rect = el.getBoundingClientRect();
-      const focalX = e.clientX - rect.left - rect.width / 2;
-      const focalY = e.clientY - rect.top - rect.height / 2;
-      applyZoom(zoomRef.current * Math.exp(-e.deltaY * 0.0015), focalX, focalY);
-    };
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
-    // applyZoom / isBlocked read refs, so they never go stale; bind once.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const handler = (e: WheelEvent) => onWheel(e);
+    el.addEventListener("wheel", handler, { passive: false });
+    return () => el.removeEventListener("wheel", handler);
   }, []);
 
   // Click-drag to move the content, started only on blank areas (see the block
@@ -159,8 +149,8 @@ export function useCanvasPanZoom(opts: PanZoomOptions) {
     drag.current = {
       x: e.clientX,
       y: e.clientY,
-      px: panRef.current.x,
-      py: panRef.current.y,
+      px: pan.x,
+      py: pan.y,
       moved: false,
     };
     el.setPointerCapture(e.pointerId);
@@ -174,7 +164,7 @@ export function useCanvasPanZoom(opts: PanZoomOptions) {
     setPan(
       clampPan(
         { x: d.px + (e.clientX - d.x), y: d.py + (e.clientY - d.y) },
-        zoomRef.current,
+        zoom,
       ),
     );
   };

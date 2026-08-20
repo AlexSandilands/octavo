@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { type IssueContent } from "@/lib/blocks";
 import {
@@ -158,11 +158,15 @@ export function Editor({
   // editor (another tab) gets a visible conflict instead of silently
   // overwriting newer work. Failures surface in the status pill with a retry.
   const statusRef = useRef(status);
-  statusRef.current = status;
   const revisionRef = useRef(issue.revision);
   const latestRef = useRef({ pages, title, theme: themeId, logoId });
-  latestRef.current = { pages, title, theme: themeId, logoId };
   const chainRef = useRef<Promise<boolean>>(Promise.resolve(true));
+  // Mirrored during render on purpose: a queued save runs on a microtask,
+  // which can beat an effect-time mirror to these values.
+  // eslint-disable-next-line react-hooks/refs
+  statusRef.current = status;
+  // eslint-disable-next-line react-hooks/refs
+  latestRef.current = { pages, title, theme: themeId, logoId };
 
   const enqueueSave = (kind: "content" | "meta" | "all") => {
     const run = async (): Promise<boolean> => {
@@ -262,7 +266,19 @@ export function Editor({
   // page edge is reached by dragging, and the overflow marker shows where the
   // page ran out. Drag starts only on blank areas so blocks stay
   // selectable/editable/draggable (dnd-kit owns their pointer events).
-  const panZoom = useCanvasPanZoom({
+  // Destructured: property access on the returned object would read through
+  // the ref it carries, which the render can't do.
+  const {
+    containerRef: stageRef,
+    scale,
+    pan,
+    panning,
+    resetView,
+    onPointerDown,
+    onPointerMove,
+    onPointerUp,
+    consumeClickSuppression,
+  } = useCanvasPanZoom({
     contentWidth: PAGE_W,
     contentHeight: PAGE_H,
     fitMargin: { x: 80, y: 80 },
@@ -273,7 +289,7 @@ export function Editor({
 
   // Reset zoom/pan to the fitted view when switching pages.
   useEffect(() => {
-    panZoom.resetView();
+    resetView();
     // resetView is recreated each render; page change is the trigger that matters.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [curPage]);
@@ -293,13 +309,13 @@ export function Editor({
     }
     window.getSelection()?.removeAllRanges();
   };
-  const deselectRef = useRef(deselect);
-  deselectRef.current = deselect;
+  // An effect event so the once-bound listener calls the latest closure.
+  const deselectByKey = useEffectEvent(() => deselect());
 
   // Escape deselects the current block (click-off on the canvas does too).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") deselectRef.current();
+      if (e.key === "Escape") deselectByKey();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -374,27 +390,27 @@ export function Editor({
           />
 
           <div
-            ref={panZoom.containerRef}
+            ref={stageRef}
             onClick={() => {
               // A drag-pan ends in a click; don't let it deselect the block.
-              if (panZoom.consumeClickSuppression()) return;
+              if (consumeClickSuppression()) return;
               deselect();
             }}
-            onPointerDown={panZoom.onPointerDown}
-            onPointerMove={panZoom.onPointerMove}
-            onPointerUp={panZoom.onPointerUp}
-            onPointerCancel={panZoom.onPointerUp}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
             className={`flex flex-1 items-center justify-center overflow-hidden p-10 ${
-              panZoom.panning ? "cursor-grabbing select-none" : "cursor-grab"
+              panning ? "cursor-grabbing select-none" : "cursor-grab"
             }`}
           >
             <div
               className="shadow-[0_10px_30px_rgba(40,36,28,0.14)]"
               style={{
-                transform: `translate(${panZoom.pan.x}px, ${panZoom.pan.y}px)`,
+                transform: `translate(${pan.x}px, ${pan.y}px)`,
               }}
             >
-              <ScaledPage scale={panZoom.scale}>
+              <ScaledPage scale={scale}>
                 <PageFrame
                   theme={theme}
                   w={PAGE_W}
