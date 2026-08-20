@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Button } from "@/components/ui";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { SelectCheckbox } from "@/components/select-checkbox";
@@ -111,18 +111,18 @@ export function IssuesBulkBar({
   // Success is otherwise silent: the button label flips back to what it was and
   // the new count sits in a checkbox label, neither of which a screen reader
   // announces. The count is the table's state, not ours, so it can only be read
-  // once the transition's render has been through here; the sentence is then
-  // written once and left alone, because a line rebuilt from the running count
-  // would announce again on every tick of every row checkbox.
-  useEffect(() => {
-    if (!awaitingSelection) return;
+  // in the render that carries the landed selection (adjusted here, during
+  // render); the sentence is then written once and left alone, because a line
+  // rebuilt from the running count would announce again on every tick of every
+  // row checkbox.
+  if (awaitingSelection) {
     setAwaitingSelection(false);
     setSelectionNote(
       atCap && overCap
         ? `First ${ISSUES_SELECTION_MAX} of ${matching}${narrowed ? " matching" : ""} selected.`
         : `${plural(count, "issue", "issues")} selected.`,
     );
-  }, [awaitingSelection, atCap, overCap, matching, narrowed, count]);
+  }
 
   const narrower =
     searching && filtering

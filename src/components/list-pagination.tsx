@@ -33,14 +33,12 @@ export function ListPagination({
   const [pending, startTransition] = useTransition();
 
   // At rest the target is just the served page — it only leads while a turn is
-  // in flight. Reconciling on settle rather than on every render is what keeps
-  // it from sliding backwards onto a page the reader is already leaving, and it
+  // in flight. Reconciling on settle (adjusted during render) is what keeps it
+  // from sliding backwards onto a page the reader is already leaving, and it
   // costs nothing to cover the moves that don't come from these buttons at all:
   // back/forward, and the server clamping a ?page= that fell off the end when
   // rows were removed under the admin's feet.
-  useEffect(() => {
-    if (!pending) setTarget(page);
-  }, [pending, page]);
+  if (!pending && target !== page) setTarget(page);
 
   // Turning a page starts reading again from the top, like any navigation.
   // Next's own scroll-to-top can't do it here: in the admin shell the window

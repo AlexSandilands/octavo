@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import type { SiteSettings } from "@/lib/branding";
 import type { LogoListItem } from "@/lib/logos";
@@ -115,14 +115,15 @@ export function SettingsPreview({
     setChoseNone(id === null);
   };
   // The library is edited beside this preview and router.refresh() keeps client
-  // state, so the mount-time default above never re-runs. Follow the list: adopt
-  // the first mark added to an empty library (the owner adds one precisely to
-  // see the lockup), and fall off a mark that has been deleted.
-  useEffect(() => {
-    if (choseNone) return;
-    if (logoId !== null && logos.some((l) => l.id === logoId)) return;
-    setLogoId(logos[0]?.id ?? null);
-  }, [logos, logoId, choseNone]);
+  // state, so the mount-time default above never re-runs. Follow the list
+  // (adjusted during render): adopt the first mark added to an empty library
+  // (the owner adds one precisely to see the lockup), and fall off a mark that
+  // has been deleted.
+  const kept =
+    logoId !== null && logos.some((l) => l.id === logoId)
+      ? logoId
+      : (logos[0]?.id ?? null);
+  if (!choseNone && logoId !== kept) setLogoId(kept);
   const logo = logos.find((l) => l.id === logoId)?.image ?? null;
 
   const themeItems: MenuSelectItem<LayoutThemeId>[] = themes.map((t) => ({

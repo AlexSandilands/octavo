@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import type { IssueContent } from "@/lib/blocks";
 import type { SiteSettings } from "@/lib/branding";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
@@ -64,8 +64,6 @@ export function DesktopReader({
   // Opacity driver for the cover-open/close: the facing left leaf fades in as
   // the cover opens (0→1) and out as it closes (1→0), kicked alongside turnAngle.
   const [leftFade, setLeftFade] = useState(1);
-  const turnRef = useRef(turn);
-  turnRef.current = turn;
   const spreadRef = useRef<HTMLDivElement>(null);
   // The commit timer of an in-flight page turn — cleared on unmount so it
   // can't fire setState on an unmounted reader.
@@ -100,14 +98,27 @@ export function DesktopReader({
   // then wheel/drag zoom+pan ride on top. Pan is deliberately preserved across
   // page turns (Fit recenters); the mid-turn guard blocks zoom/drag while a leaf
   // is flipping. (Accessibility: the mobile reader reflows; here, zoom magnifies.)
-  const panZoom = useCanvasPanZoom({
+  // Destructured: property access on the returned object would read through
+  // the ref it carries, which the render can't do.
+  const {
+    containerRef: stageRef,
+    scale,
+    zoom,
+    pan,
+    panning,
+    applyZoom,
+    resetView,
+    onPointerDown,
+    onPointerMove,
+    onPointerUp,
+  } = useCanvasPanZoom({
     contentWidth: 2 * PAGE_W,
     contentHeight: PAGE_H,
     fitMargin: { x: 48, y: 72 },
     fitClamp: { min: 0.4, max: Infinity },
     initialFitScale: 0.7,
     blockSelector: "[data-reader-block]",
-    isBlocked: () => Boolean(turnRef.current),
+    isBlocked: () => Boolean(turn),
   });
 
   // Like a real magazine, the cover (page 1) stands alone, then the rest pair up
@@ -174,11 +185,10 @@ export function DesktopReader({
     }, FLIP_MS + 30);
   };
 
-  // Keyboard paging (WCAG 2.1.1): arrow keys turn the spread. Mirrored into a ref
+  // Keyboard paging (WCAG 2.1.1): arrow keys turn the spread. An effect event
   // so the once-bound window listener always calls the latest closure without
   // re-binding on every state change.
-  const startTurnRef = useRef(startTurn);
-  startTurnRef.current = startTurn;
+  const turnByKey = useEffectEvent((dir: "next" | "prev") => startTurn(dir));
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
@@ -193,10 +203,10 @@ export function DesktopReader({
       }
       if (e.key === "ArrowRight") {
         e.preventDefault();
-        startTurnRef.current("next");
+        turnByKey("next");
       } else if (e.key === "ArrowLeft") {
         e.preventDefault();
-        startTurnRef.current("prev");
+        turnByKey("prev");
       }
     };
     window.addEventListener("keydown", onKey);
@@ -268,13 +278,13 @@ export function DesktopReader({
       />
 
       <div
-        ref={panZoom.containerRef}
-        onPointerDown={panZoom.onPointerDown}
-        onPointerMove={panZoom.onPointerMove}
-        onPointerUp={panZoom.onPointerUp}
-        onPointerCancel={panZoom.onPointerUp}
+        ref={stageRef}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
         className={`relative flex-1 overflow-hidden ${
-          panZoom.panning ? "cursor-grabbing select-none" : "cursor-grab"
+          panning ? "cursor-grabbing select-none" : "cursor-grab"
         }`}
       >
         <div className="flex min-h-full min-w-full items-center justify-center p-6">
@@ -285,7 +295,7 @@ export function DesktopReader({
           <div
             className="relative"
             style={{
-              transform: `translate(${panZoom.pan.x}px, ${panZoom.pan.y}px)`,
+              transform: `translate(${pan.x}px, ${pan.y}px)`,
             }}
           >
             <div
@@ -314,7 +324,7 @@ export function DesktopReader({
                 turnAngle={turnAngle}
                 leftFade={coverTurn ? leftFade : undefined}
                 theme={theme}
-                scale={panZoom.scale}
+                scale={scale}
                 issueNo={issueNo}
                 logo={logo}
                 settings={settings}
@@ -331,9 +341,9 @@ export function DesktopReader({
         onPrev={() => startTurn("prev")}
         onNext={() => startTurn("next")}
         onToggleContents={() => setCollapsed((c) => !c)}
-        onResetView={panZoom.resetView}
-        zoom={panZoom.zoom}
-        onZoom={panZoom.applyZoom}
+        onResetView={resetView}
+        zoom={zoom}
+        onZoom={applyZoom}
         isFullscreen={isFullscreen}
         onToggleFullscreen={toggleFullscreen}
         pdfEnabled={settings.pdfDownloads}
