@@ -12,7 +12,7 @@ This doc is the fast orientation for the codebase. For data specifics see
 
 | Concern        | Choice                                                                            |
 | -------------- | --------------------------------------------------------------------------------- |
-| Framework      | Next.js 15 (App Router), React 19, TypeScript                                     |
+| Framework      | Next.js 16 (App Router), React 19, TypeScript                                     |
 | Styling        | Tailwind v4 (tokens in `src/app/globals.css`)                                     |
 | Database       | Postgres via Drizzle ORM                                                          |
 | Object storage | Cloudflare R2 — images (WebP via sharp) + cached PDFs; local-disk fallback in dev |
@@ -183,7 +183,7 @@ unsubscribe anyone. The `/unsubscribe` route sits outside the member gate by des
 
 Route-level `loading.tsx`/`error.tsx` cover `/`, `/archive`, `/read/[issueId]` and `/admin/*`. Static
 security headers (`nosniff`, `X-Frame-Options`, referrer/permissions policies) are set globally
-in `next.config.ts`; the CSP is set per request in `src/middleware.ts`, where `script-src` gets
+in `next.config.ts`; the CSP is set per request in `src/proxy.ts`, where `script-src` gets
 a fresh nonce (+ `'strict-dynamic'`) instead of `'unsafe-inline'`. Body text is stored as
 structured JSON and rendered through React (content v3 — no `dangerouslySetInnerHTML`, no HTML
 sanitiser; see `src/lib/rich-text-doc.ts` + `src/features/blocks/rich-text.tsx`), so the nonce CSP
@@ -232,7 +232,7 @@ A build-time flag (`NEXT_PUBLIC_DEMO_MODE=1`, issue #50) turns the site into a p
 ungated showcase without touching the code paths that protect authoring. It lives in one
 constant, [`src/lib/demo.ts`](../src/lib/demo.ts): `NEXT_PUBLIC_*` is inlined at build time,
 so **both gate layers read the same value and cannot disagree at runtime** — the edge
-`isGatedRoute()` (`src/middleware.ts`) drops `/`, `/archive` and `/read/*` from the gate, and
+`isGatedRoute()` (`src/proxy.ts`) drops `/`, `/archive` and `/read/*` from the gate, and
 `requireMemberOrRedirect()` returns `null` for an anonymous visitor instead of redirecting
 (the type change forces every member page to decide its signed-in affordances for a guest).
 **`/admin/*`, every server action and `POST /api/admin/images` stay locked** — `getAdminUser()`

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { nudgeActionCommit } from "@/components/action-commit-rescue";
 import { Icon } from "@/components/icons";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { deleteIssueAction } from "@/app/admin/actions";
@@ -36,7 +35,6 @@ export function DeleteIssueButton({
         // On success the revalidated list unmounts this row, dialog and all.
         const res = await deleteIssueAction(id);
         if (!res.ok) setFailed(true);
-        else nudgeActionCommit();
       } catch {
         setFailed(true);
       }

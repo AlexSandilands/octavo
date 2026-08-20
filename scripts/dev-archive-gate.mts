@@ -111,6 +111,12 @@ try {
   // ── Home page: the featured issue plus a capped run ───────────────────────
   await page.goto(`${base}/`);
   await page.waitForSelector("main");
+  // Since Next 16 the shelf streams in behind the shell and is revealed a beat
+  // after <main> exists, so give it a moment before the instant checks below.
+  await page
+    .getByRole("link", { name: "View the full archive" })
+    .waitFor({ timeout: 10_000 })
+    .catch(() => undefined);
   // The hero's cover and its "Read this issue" both point at the same issue,
   // so the shelf is what is left once the featured issue's links are removed.
   const homeLinks = await cards.evaluateAll((els) =>

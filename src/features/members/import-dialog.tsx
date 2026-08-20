@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { DialogShell } from "@/components/dialog-shell";
-import { nudgeActionCommit } from "@/components/action-commit-rescue";
 import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui";
 import { importMembersAction } from "@/app/admin/members/actions";
@@ -79,7 +78,6 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
         );
         return;
       }
-      nudgeActionCommit();
       setSummary({
         added: res.added,
         alreadyMembers: res.alreadyMembers,

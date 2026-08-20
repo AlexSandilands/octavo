@@ -62,7 +62,7 @@ map in `docs/architecture.md`; phase plan in `docs/ROADMAP.md`.
 
 ## Stack
 
-Next.js 15 · React 19 · TypeScript · Tailwind v4 · Drizzle ORM (Postgres) ·
+Next.js 16 · React 19 · TypeScript · Tailwind v4 · Drizzle ORM (Postgres) ·
 Auth.js (magic link) · Resend (email) · R2 via AWS S3 SDK · sharp (WebP) ·
 custom CSS-transform flipbook (`reader-spread.tsx`) · Playwright (on-demand PDF).
 
@@ -73,3 +73,13 @@ custom CSS-transform flipbook (`reader-spread.tsx`) · Playwright (on-demand PDF
 - Validate all external input with zod; never expose secrets to the client.
 - If adding comments to code, keep them concise and to the point. One or two lines of explicit description is better than an essay. Only add more detailed explanations if the code change deserves it and subsequent readers would benefit.
 - Build for an older, phone-heavy, accessibility-sensitive audience.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

@@ -1,7 +1,7 @@
 import { Wordmark, Button } from "@/components/ui";
 import { getSettings } from "@/server/settings";
 
-// Rendered per request so the middleware's CSP nonce reaches this page's
+// Rendered per request so the proxy's CSP nonce reaches this page's
 // scripts — a build-time static render bakes in no nonce, and 'strict-dynamic'
 // would then block Next's bootstrap on any 404. Cost is nil (static content).
 export const dynamic = "force-dynamic";

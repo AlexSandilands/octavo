@@ -257,7 +257,7 @@ site passes an address); only counts/ids that a diagnosis needs.
 **Config layout** (for reference): `sentry.server.config.ts` /
 `sentry.edge.config.ts` init the two server runtimes, `src/instrumentation-client.ts`
 inits the browser, `src/instrumentation.ts` registers them, and
-`next.config.ts` is wrapped with `withSentryConfig`. The middleware CSP allows
+`next.config.ts` is wrapped with `withSentryConfig`. The proxy CSP allows
 the Sentry ingest host in `connect-src` (derived from the DSN) so browser events
 aren't blocked by the strict nonce policy.
 

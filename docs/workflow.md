@@ -87,7 +87,7 @@ The durable lessons:
 | A block that can render a link        | `npx tsx --tsconfig scripts/tsconfig.json scripts/dev-thumb-anchor-gate.mts` — the thumbnail must emit no `<a>` (#166)                                              |
 | The library shelf or `/archive`       | `npx tsx --tsconfig scripts/tsconfig.json scripts/dev-archive-gate.mts <base-url> <dev-log>` — the home cap, the archive's URL state, the sign-in round trip (#192) |
 | An admin mutation flow / list refresh | `npx tsx --tsconfig scripts/tsconfig.json scripts/prod-action-refresh-gate.mts <base-url>` against a **production build** (`npm run build` + `next start`) (#198)   |
-| New pages / inline scripts            | CSP is nonce-based in `src/middleware.ts` — pages must render dynamically; no new inline styles/scripts                                                             |
+| New pages / inline scripts            | CSP is nonce-based in `src/proxy.ts` — pages must render dynamically; no new inline styles/scripts                                                                  |
 | Every change                          | `npm run lint`, `npx tsc --noEmit`, `npm run typecheck:scripts`, prettier on touched files, and a production build (plain `npm run build`; see below)               |
 
 ## Briefing an agent
@@ -130,11 +130,11 @@ Hand each subagent:
 - **`npx tsc --noEmit` does not see the gate scripts.** The root include is
   `**/*.ts`, which does not match `.mts`, so every `scripts/*.mts` file was
   invisible to the type-check until #174. They are their own tsc project now —
-  `npm run typecheck:scripts` (`scripts/tsconfig.json`) — because they need two
-  compiler options the app must not have: `jsx: react-jsx` (they render
-  components without a bundler) and `allowImportingTsExtensions` (several import
-  `../src/lib/*.ts` by full path, which is how tsx resolves them). Run both
-  checks; CI does.
+  `npm run typecheck:scripts` (`scripts/tsconfig.json`) — because they need
+  `allowImportingTsExtensions` (several import `../src/lib/*.ts` by full path,
+  which is how tsx resolves them), which the app config must not carry. (The
+  other historical difference, `jsx: react-jsx`, stopped being one when Next 16
+  set the app config to the same value.) Run both checks; CI does.
 - Never _install_ Playwright browsers — Chromium is already installed locally,
   and _using_ it for headless verification is fine.
 - The seed **wipes all issues** (it refuses when published issues exist unless
@@ -151,18 +151,11 @@ Hand each subagent:
 - Layout themes live in `src/features/blocks/themes/` behind a registry; the
   brand palette is env-selectable (`NEXT_PUBLIC_BRAND`). Adding either is a
   module/CSS-block + registry entry — no conditional edits.
-- **Every admin mutation flow ends with `nudgeActionCommit()`**
-  (`src/components/action-commit-rescue.tsx`). The React canary Next 15.5
-  vendors (`19.2.0-canary-0bdb9206-20250818`) has a lost-wakeup race —
-  introduced by [facebook/react#34031](https://github.com/facebook/react/pull/34031),
-  fixed by [facebook/react#36134](https://github.com/facebook/react/pull/36134),
-  first shipped in Next `16.2.1-canary.11` and never backported to 15.x — that
-  intermittently (~2/3 of attempts on a fast connection) leaves the re-render
-  after a server action's revalidation suspended forever in **production
-  builds only**: the action commits, the RSC refetch returns the right
-  payload, and the old list stays on screen with the transition stuck pending
-  (#198). Any plain state update un-wedges it (React clears its
-  suspended-lane bookkeeping and retries), which is what the rescuer mounted
-  in the admin layout does until the refresh lands. Wire any new mutation
-  flow to it, run the production gate above, and delete the whole mechanism
-  once Next is upgraded to a version vendoring the fixed React (≥16.2).
+- **Admin list refreshes once wedged in production builds** (#198): the React
+  canary Next 15.5 vendored had a lost-wakeup race that intermittently left
+  the re-render after a server action's revalidation suspended forever under
+  `next start` — fixed upstream and vendored from Next 16.2, which the app now
+  runs (#201, which also removed the temporary `nudgeActionCommit()` rescuer).
+  The production gate above stays as the permanent regression detector: run it
+  for any admin mutation flow, always against a production build — the bug
+  class is invisible under `next dev`.

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getSettings } from "@/server/settings";
 import { SignInCard } from "../card";
 
-// Rendered per request so the middleware's CSP nonce reaches this page's
+// Rendered per request so the proxy's CSP nonce reaches this page's
 // scripts — a build-time static render bakes in no nonce, and 'strict-dynamic'
 // would then block Next's bootstrap here. Cost is nil (trivial static content).
 export const dynamic = "force-dynamic";
