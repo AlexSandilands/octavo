@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { Icon } from "@/components/icons";
+import { useQuietScrollbar } from "@/components/use-quiet-scrollbar";
 import { type Page, type PageTemplate } from "@/lib/blocks";
 import {
   DndContext,
@@ -72,6 +73,7 @@ export function PageRail({
       ?.querySelector('[aria-current="page"]')
       ?.scrollIntoView({ block: "nearest" });
   }, [curPage]);
+  useQuietScrollbar(scrollerRef);
 
   return (
     <div className="bg-paper border-line flex w-[150px] flex-none flex-col items-center border-r py-4">
@@ -82,7 +84,7 @@ export function PageRail({
           the gutter is reserved on both edges so a scrollbar never shifts the thumbs. */}
       <div
         ref={scrollerRef}
-        className="flex min-h-0 w-full flex-col items-center gap-3 overflow-y-auto py-3 [scrollbar-gutter:stable_both-edges] [scrollbar-width:thin]"
+        className="scrollbar-soft scrollbar-soft-quiet flex min-h-0 w-full flex-col items-center gap-3 overflow-y-auto py-3 [scrollbar-gutter:stable_both-edges]"
       >
         <DndContext
           sensors={sensors}

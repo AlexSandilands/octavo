@@ -103,6 +103,57 @@ body {
   outline: none;
 }
 
+/* A quieter scrollbar for the app's own scroll regions: no track, a rounded
+   thumb in a darker shade of the surface it sits on, a little narrower than the
+   browser's thin one. `--scrollbar-surface` is the host surface the thumb is
+   mixed from — paper unless the region sets it (a card-backed panel: card).
+   `.scrollbar-soft-quiet` (with the base) hides it at rest and shows it on
+   hover, focus-within, or for a moment after a scroll (`data-scrolling`). */
+.scrollbar-soft {
+  --scrollbar-thumb: color-mix(
+    in oklab,
+    var(--scrollbar-surface, var(--color-paper)),
+    var(--color-ink) 50%
+  );
+  --scrollbar-thumb-shown: var(--scrollbar-thumb);
+}
+/* The reveal states set a property on the element rather than styling the
+   pseudo-element directly: Chrome only restyles a scrollbar when the element's
+   own style changes. */
+.scrollbar-soft-quiet {
+  --scrollbar-thumb-shown: transparent;
+}
+.scrollbar-soft-quiet:is(:hover, :focus-within, [data-scrolling]) {
+  --scrollbar-thumb-shown: var(--scrollbar-thumb);
+}
+/* Chrome ignores the ::-webkit-scrollbar parts once the standard properties are
+   set on the element, so the two branches are exclusive. */
+@supports selector(::-webkit-scrollbar) {
+  .scrollbar-soft::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+    background: transparent;
+  }
+  .scrollbar-soft::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-soft::-webkit-scrollbar-button {
+    display: none;
+  }
+  .scrollbar-soft::-webkit-scrollbar-thumb {
+    border: 1px solid transparent;
+    border-radius: 9999px;
+    background-color: var(--scrollbar-thumb-shown);
+    background-clip: padding-box;
+  }
+}
+@supports not selector(::-webkit-scrollbar) {
+  .scrollbar-soft {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb-shown) transparent;
+  }
+}
+
 /* Placeholder "photo" fill used wherever real imagery will go. */
 .photo-fill {
   background-image: repeating-linear-gradient(
