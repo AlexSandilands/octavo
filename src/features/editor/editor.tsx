@@ -328,7 +328,7 @@ export function Editor({
   const footerBehind = footerHeldBack(magazineFooter, issue);
 
   return (
-    <div className="bg-card relative flex min-h-screen flex-col">
+    <div className="bg-card relative flex h-dvh flex-col">
       <EditorHeader
         title={title}
         onTitleChange={setTitle}
