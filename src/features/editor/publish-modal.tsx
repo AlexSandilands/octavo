@@ -13,10 +13,9 @@ import type { PublishResult } from "@/app/admin/actions";
 // server action) and hands back the outcome.
 //
 // The backdrop is the shell's viewport-fixed one (issue #153). It used to be
-// `absolute inset-0` against the editor root — which is `min-h-screen`, so on an
-// unscrolled editor the two paint identically, and where they differ the fixed
-// one is right: an absolute overlay on a taller-than-viewport editor centres the
-// panel on the document rather than on what the admin is looking at.
+// `absolute inset-0` against the editor root, which could then grow taller than
+// the viewport — and an absolute overlay on a taller-than-viewport editor
+// centres the panel on the document rather than on what the admin is looking at.
 
 type Phase = "confirm" | "working" | "done";
 

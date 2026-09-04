@@ -1,7 +1,8 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { Icon } from "@/components/icons";
-import { PAGE_TEMPLATES, type Page, type PageTemplate } from "@/lib/blocks";
+import { type Page, type PageTemplate } from "@/lib/blocks";
 import {
   DndContext,
   KeyboardSensor,
@@ -18,11 +19,13 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { AddPageMenu } from "./add-page-menu";
 
 // The editor's left "Pages" rail: a vertical, drag-to-reorder list of page
 // thumbnails plus the "Add page" template menu. Reordering uses dnd-kit (same
 // library the block canvas uses); a small drag threshold means a plain click on
-// a thumbnail still just selects the page.
+// a thumbnail still just selects the page. The thumbnails scroll within the
+// rail on a long issue; the label and the Add control stay put either side.
 export function PageRail({
   pages,
   curPage,
@@ -60,66 +63,60 @@ export function PageRail({
     onReorder(from, to);
   };
 
+  // Keep the page being edited in view: a page reached by any route other than
+  // a click on its thumb (add, reorder, delete) may sit outside the scrolled
+  // part of the rail.
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    scrollerRef.current
+      ?.querySelector('[aria-current="page"]')
+      ?.scrollIntoView({ block: "nearest" });
+  }, [curPage]);
+
   return (
-    <div className="bg-paper border-line flex w-[150px] flex-none flex-col items-center gap-3 border-r py-4">
+    <div className="bg-paper border-line flex w-[150px] flex-none flex-col items-center border-r py-4">
       <span className="text-faint w-full pl-[18px] font-sans text-[10px] font-semibold tracking-[0.18em] uppercase">
         Pages
       </span>
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={onDragEnd}
+      {/* The scroller's vertical padding stands in for the gaps around it, so
+          a rail that fits lays out exactly as one that never scrolled. The
+          gutter is reserved on both edges so a scrollbar never shifts the
+          thumbs, and the room it leaves keeps a thumb's delete button and
+          focus ring inside the clip. */}
+      <div
+        ref={scrollerRef}
+        className="flex min-h-0 w-full flex-col items-center gap-3 overflow-y-auto py-3 [scrollbar-gutter:stable_both-edges] [scrollbar-width:thin]"
       >
-        <SortableContext
-          items={pages.map((p) => p.id)}
-          strategy={verticalListSortingStrategy}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={onDragEnd}
         >
-          {pages.map((p, i) => (
-            <SortableThumb
-              key={p.id}
-              page={p}
-              index={i}
-              active={i === curPage}
-              canDelete={pages.length > 1}
-              onSelect={() => onSelectPage(i)}
-              onDelete={() => onDeletePage(i)}
-            />
-          ))}
-        </SortableContext>
-      </DndContext>
-
-      <div className="relative">
-        <button
-          onClick={onToggleAddMenu}
-          aria-expanded={addMenu}
-          className="text-faint hover:border-accent hover:text-accent border-dash flex h-10 w-[84px] items-center justify-center gap-1.5 rounded-[3px] border-[1.5px] border-dashed font-sans text-[11px] font-semibold"
-        >
-          <Icon name="plus" size={14} strokeWidth={1.8} />
-          Add
-        </button>
-        {addMenu && (
-          <>
-            {/* Click-off backdrop */}
-            <div className="fixed inset-0 z-20" onClick={onCloseAddMenu} />
-            <div className="bg-card border-hair-warm absolute top-0 left-[92px] z-30 w-56 overflow-hidden rounded-lg border shadow-[0_12px_32px_rgba(40,36,28,0.18)]">
-              {PAGE_TEMPLATES.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => onAddPage(t.id)}
-                  className="hover:bg-accent-wash block w-full px-3.5 py-2.5 text-left"
-                >
-                  <div className="text-ink font-sans text-[13px] font-semibold">
-                    {t.label}
-                  </div>
-                  <div className="text-faint2 mt-0.5 font-sans text-[11px] leading-snug">
-                    {t.description}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </>
-        )}
+          <SortableContext
+            items={pages.map((p) => p.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            {pages.map((p, i) => (
+              <SortableThumb
+                key={p.id}
+                page={p}
+                index={i}
+                active={i === curPage}
+                canDelete={pages.length > 1}
+                onSelect={() => onSelectPage(i)}
+                onDelete={() => onDeletePage(i)}
+              />
+            ))}
+          </SortableContext>
+        </DndContext>
       </div>
+
+      <AddPageMenu
+        open={addMenu}
+        onToggle={onToggleAddMenu}
+        onClose={onCloseAddMenu}
+        onAdd={onAddPage}
+      />
     </div>
   );
 }
@@ -163,7 +160,8 @@ function SortableThumb({
         {...attributes}
         {...listeners}
         onClick={onSelect}
-        className={`bg-page relative block h-[108px] w-[84px] touch-none rounded-[3px] p-2.5 text-left ${
+        aria-current={active ? "page" : undefined}
+        className={`bg-page relative block h-[108px] w-[84px] touch-none scroll-my-3 rounded-[3px] p-2.5 text-left ${
           isDragging ? "cursor-grabbing" : "cursor-grab"
         } ${
           active
