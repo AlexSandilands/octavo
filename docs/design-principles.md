@@ -74,6 +74,16 @@ src/
 - A control that genuinely needs its own shape (a dashed drop target, a bordered icon square) may
   keep it, but it still owes the same contract: pointer cursor, hover feedback, a transition, and a
   disabled state that reads as disabled and promises nothing on hover.
+- **Scrollbars: use the house one wherever the app makes something scroll.** Any
+  `overflow-y-auto` region we own — a thumbnail rail, a dialog panel, the admin content pane,
+  the reader's contents list — takes `.scrollbar-soft` (`src/app/globals.css`): no track, a
+  rounded thumb mixed from its host surface and the ink token. A card-backed panel sets
+  `--scrollbar-surface` to the card colour so the thumb darkens the surface it actually sits on.
+  Add `.scrollbar-soft-quiet` with `useQuietScrollbar` (`src/components/use-quiet-scrollbar.ts`)
+  only where the content itself shows there is more (the editor's page rail); long lists and
+  forms keep the always-visible base, because a visible scrollbar is how an older reader knows
+  the page continues. Leave the document's own scrollbar alone. Keep `scrollbar-gutter: stable`
+  on the region so a thumb appearing never shifts layout.
 
 ### Brand skins (the per-deployment palette)
 
