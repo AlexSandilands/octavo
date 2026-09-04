@@ -78,11 +78,8 @@ export function PageRail({
       <span className="text-faint w-full pl-[18px] font-sans text-[10px] font-semibold tracking-[0.18em] uppercase">
         Pages
       </span>
-      {/* The scroller's vertical padding stands in for the gaps around it, so
-          a rail that fits lays out exactly as one that never scrolled. The
-          gutter is reserved on both edges so a scrollbar never shifts the
-          thumbs, and the room it leaves keeps a thumb's delete button and
-          focus ring inside the clip. */}
+      {/* Padding replaces the old gaps, so a rail that fits lays out unchanged;
+          the gutter is reserved on both edges so a scrollbar never shifts the thumbs. */}
       <div
         ref={scrollerRef}
         className="flex min-h-0 w-full flex-col items-center gap-3 overflow-y-auto py-3 [scrollbar-gutter:stable_both-edges] [scrollbar-width:thin]"
