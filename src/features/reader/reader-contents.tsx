@@ -97,7 +97,7 @@ export function ReaderContents({
         {magazineName} · No. {issueNo}
       </p>
       <div className="bg-line mx-5 my-4 h-px" />
-      <nav className="flex-1 overflow-auto">
+      <nav className="scrollbar-soft flex-1 overflow-y-auto [--scrollbar-surface:var(--color-card)] [scrollbar-gutter:stable]">
         {toc.length === 0 && (
           <p className="text-faint2 px-5 font-sans text-[13px]">
             Headings appear here.

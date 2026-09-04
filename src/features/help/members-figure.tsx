@@ -64,7 +64,7 @@ function MockRow({
 export function MembersFigure() {
   return (
     <FigureFrame caption="A sketch of the Members screen. The numbers match the list below.">
-      <div className="overflow-x-auto">
+      <div className="scrollbar-soft overflow-x-auto [--scrollbar-surface:var(--color-card)]">
         <div className="border-line bg-paper min-w-[460px] overflow-hidden rounded-lg border">
           <div className="border-line flex items-center justify-between gap-2 border-b px-4 py-2.5">
             <span className="text-ink font-serif text-[16px]">Members</span>

@@ -117,7 +117,7 @@ export function VideoDialog({
             <IconButton icon="close" label="Close" onClick={onClose} />
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-8 pt-6">
+          <div className="scrollbar-soft min-h-0 flex-1 overflow-y-auto px-8 pt-6 [--scrollbar-surface:var(--color-card)] [scrollbar-gutter:stable]">
             <label className="block">
               <span className="text-faint mb-1.5 block font-sans text-[11px] font-semibold tracking-[0.14em] uppercase">
                 YouTube link
