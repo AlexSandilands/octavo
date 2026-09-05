@@ -3,16 +3,10 @@
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import type { Page } from "@/lib/blocks";
 
-// Undo/redo for the editor's *document* — pages, blocks and where the author was
-// in them (issue #222). Text typed inside a block has its own, finer history:
-// Tiptap's while a body block has focus, the browser's inside the in-place
-// editables and the plain inputs. This layer never fights those (see
-// useUndoShortcuts); it snapshots what they produce so a whole typing run is one
-// step once focus leaves.
-//
-// Snapshots are the whole `pages` array. It is immutably updated everywhere, so
-// a snapshot is a handful of pointers, and an issue is small enough that the cap
-// below is generous rather than a compromise.
+// Undo/redo for the editor's *document* — pages, blocks and the author's place
+// in them (issue #222). Text typed inside a block keeps its own finer history
+// (Tiptap's, the browser's), which useUndoShortcuts stands down for. Snapshots
+// are whole `pages` arrays: immutably updated everywhere, so each one is cheap.
 
 /** A restorable editor state: the document plus the author's place in it. */
 export type EditorSnapshot = {
@@ -20,6 +14,9 @@ export type EditorSnapshot = {
   curPage: number;
   sel: string | null;
 };
+
+/** Live-region text, with a counter so a repeat is still a change to announce. */
+export type HistoryNotice = { text: string; n: number };
 
 const CAP = 100;
 /** Edits to the same field closer together than this fold into one step. */
@@ -33,7 +30,7 @@ export function useEditorHistory() {
   const future = useRef<EditorSnapshot[]>([]);
   const stream = useRef<{ name: string; at: number } | null>(null);
   const [ends, setEnds] = useState({ canUndo: false, canRedo: false });
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState<HistoryNotice>({ text: "", n: 0 });
 
   const sync = () =>
     setEnds({
@@ -41,10 +38,15 @@ export function useEditorHistory() {
       canRedo: future.current.length > 0,
     });
 
+  // The counter moves even when the text repeats, so pressing Ctrl+Z again at
+  // the end of the stack still changes the live region and is announced again.
+  const announce = (text: string) =>
+    setNotice((v) => (v.text === "" && text === "" ? v : { text, n: v.n + 1 }));
+
   /**
-   * Take a step, called with the state *before* the edit lands. `name` marks a
-   * run of edits to one field (typing, a size nudge held down, a drag): a repeat
-   * within the window keeps the step the run started from instead of adding one.
+   * Take a step, called with the state *before* the edit lands. A repeated
+   * `name` within the window folds a run of edits to one field (typing, a size
+   * nudge held down, a drag) into the step the run started from.
    */
   const record = (snapshot: EditorSnapshot, name?: string) => {
     const now = Date.now();
@@ -53,7 +55,7 @@ export function useEditorHistory() {
     if (name && last?.name === name && now - last.at < COALESCE_MS) return;
     past.current = [...past.current.slice(1 - CAP), snapshot];
     future.current = [];
-    setNotice("");
+    announce("");
     sync();
   };
 
@@ -65,14 +67,14 @@ export function useEditorHistory() {
   ) => {
     const next = from.current.at(-1);
     if (!next) {
-      setNotice(empty);
+      announce(empty);
       return null;
     }
     from.current = from.current.slice(0, -1);
     to.current = [...to.current, current];
     // A restore ends any run in progress, so the next edit always starts a step.
     stream.current = null;
-    setNotice("");
+    announce("");
     sync();
     return next;
   };
@@ -89,8 +91,10 @@ export function useEditorHistory() {
   };
 }
 
-/** Block ids whose content differs between two documents — the uncontrolled
- *  in-place editors holding them have to be re-seeded (see `reseed`). */
+/**
+ * Block ids whose content differs between two documents — the uncontrolled
+ * in-place editors holding them have to be re-seeded (see `reseed`).
+ */
 export function changedBlockIds(before: Page[], after: Page[]): string[] {
   const seen = new Map<string, string>();
   for (const p of before) {
@@ -108,8 +112,7 @@ export function changedBlockIds(before: Page[], after: Page[]): string[] {
 
 // Editor-level Ctrl/Cmd+Z · Shift+Z · Y. Deliberately silent while focus is in
 // any text entry: Tiptap, the in-place editables and the inputs all have their
-// own undo there, and stealing the keystroke would break it. A dialog on top
-// owns the keyboard too.
+// own undo there, and stealing the keystroke would break it.
 export function useUndoShortcuts({
   undo,
   redo,
@@ -131,6 +134,8 @@ export function useUndoShortcuts({
         (el.isContentEditable ||
           el instanceof HTMLInputElement ||
           el instanceof HTMLTextAreaElement);
+      // The dialog query is deliberate: a modal on top owns the keyboard, and
+      // asking the DOM is cheaper than threading a flag down to this hook.
       if (typing || document.querySelector('[role="dialog"]')) return;
       e.preventDefault();
       if (key === "y" || e.shiftKey) onRedo();

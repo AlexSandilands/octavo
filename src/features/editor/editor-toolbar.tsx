@@ -2,6 +2,7 @@
 
 import { Icon, type IconName } from "@/components/icons";
 import type { BlockType } from "@/lib/blocks";
+import type { HistoryNotice } from "./use-editor-history";
 
 const INSERT: { type: BlockType; label: string; icon: IconName }[] = [
   { type: "heading", label: "Heading", icon: "heading" },
@@ -12,18 +13,14 @@ const INSERT: { type: BlockType; label: string; icon: IconName }[] = [
   { type: "sponsor", label: "Sponsor", icon: "banner" },
 ];
 
-/** Canvas height the floating bar is given, so the fitted page clears it. */
-export const TOOLBAR_RESERVE = 92;
+/** Height of the canvas row the tool bar sits in, below the stage. */
+export const TOOLBAR_RESERVE = 84;
 
 // The editor's tool bar: undo/redo, the block-insert buttons and the cover-page
-// toggle. It floats over the foot of the canvas rather than sitting in a strip
-// above it (issue #222) — the tools then sit beside the end of the page, which
-// is where an inserted block lands, and beside the overflow marker that says a
-// block no longer fits. The canvas reserves TOOLBAR_RESERVE below the fitted
-// page for it, so at the fitted view it covers no page content at all.
-//
-// Every target is 40px, always visible (never hover-to-appear) and labelled in
-// words as well as by icon.
+// toggle. It has its own row at the foot of the canvas rather than a strip above
+// it (issue #222) — the tools sit beside the end of the page, which is where an
+// inserted block lands and where the overflow marker appears. Every target is
+// 40px and always visible; labels come in from `xl`, where the pill has room.
 export function EditorToolbar({
   onAddBlock,
   onToggleCover,
@@ -44,21 +41,22 @@ export function EditorToolbar({
   onUndo: () => void;
   onRedo: () => void;
   /** Announced politely when a shortcut found the history stack empty. */
-  notice: string;
+  notice: HistoryNotice;
 }) {
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex justify-center px-4 pb-5">
+    <div
+      style={{ height: TOOLBAR_RESERVE }}
+      className="flex flex-none items-end justify-center px-4 pb-5"
+    >
       {/* A group, not role="toolbar": that role promises arrow-key navigation
-          within a single tab stop, and here every button is its own ordinary
-          tab stop. */}
+          within one tab stop, and here every button is its own tab stop. */}
       <div
         role="group"
         aria-label="Editor tools"
-        className="border-hair-warm pointer-events-auto flex max-w-full items-center gap-2 rounded-[14px] border bg-white px-2.5 py-2 shadow-[0_8px_28px_rgba(40,36,28,0.22)]"
+        className="border-hair-warm flex max-w-full items-center gap-2 rounded-[14px] border bg-white px-2.5 py-2 shadow-[0_8px_28px_rgba(40,36,28,0.22)]"
       >
-        {/* Nothing left to undo doesn't take the button out of the tab order —
-            it would throw focus to <body> under the hands of whoever just
-            pressed it to the end of the stack (issue #131). */}
+        {/* `unavailable`, not `disabled`: it keeps the button focusable — see
+            `unavailable` in `ui.tsx`. */}
         <Tool
           icon="undo"
           label="Undo"
@@ -102,7 +100,8 @@ export function EditorToolbar({
           onClick={onToggleCover}
         />
         <span role="status" aria-live="polite" className="sr-only">
-          {notice}
+          {/* Keyed by the counter so the same text twice is still a change. */}
+          <span key={notice.n}>{notice.text}</span>
         </span>
       </div>
     </div>
@@ -113,10 +112,9 @@ function Divider() {
   return <span className="bg-line mx-0.5 h-6 w-px" />;
 }
 
-// Its own shape rather than the house Button: a 40px square for the icon-only
-// controls, plus the aria-pressed / aria-keyshortcuts a tool bar owes. The
-// interaction contract is the house one — pointer cursor, hover feedback, a
-// press, and a disabled state that promises nothing on hover.
+// Its own shape rather than the house Button (§6 allows a bordered icon square):
+// a 40px square that grows a label from `xl`, plus the aria-pressed and
+// aria-keyshortcuts a tool bar owes. The interaction contract is the house one.
 function Tool({
   icon,
   label,
@@ -134,6 +132,7 @@ function Tool({
   hint: string;
   shortcut?: string;
   iconClass?: string;
+  /** Show the label beside the icon from `xl` up; below that, icon only. */
   showLabel?: boolean;
   pressed?: boolean;
   disabled?: boolean;
@@ -157,10 +156,10 @@ function Tool({
       aria-label={label}
       aria-pressed={pressed}
       aria-keyshortcuts={shortcut}
-      className={`flex h-10 flex-none items-center justify-center gap-1.5 rounded-[9px] border font-sans text-[13px] font-semibold transition-[transform,background-color,border-color,color] duration-150 ease-out select-none ${showLabel ? "px-3.5" : "w-10"} ${look}`}
+      className={`flex h-10 w-10 flex-none items-center justify-center gap-1.5 rounded-[9px] border font-sans text-[13px] font-semibold transition-[transform,background-color,border-color,color] duration-150 ease-out select-none ${showLabel ? "xl:w-auto xl:px-3.5" : ""} ${look}`}
     >
       <Icon name={icon} size={16} className={pressed ? "" : iconClass} />
-      {showLabel && label}
+      {showLabel && <span className="hidden xl:inline">{label}</span>}
     </button>
   );
 }

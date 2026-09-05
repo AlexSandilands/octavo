@@ -41,7 +41,7 @@ import { reportEditorError } from "./report-error";
 import { PageRail } from "./page-rail";
 import { PublishModal } from "./publish-modal";
 import { EditorHeader } from "./editor-header";
-import { EditorToolbar, TOOLBAR_RESERVE } from "./editor-toolbar";
+import { EditorToolbar } from "./editor-toolbar";
 import { FooterUpdateNotice } from "./footer-update-notice";
 import { useEditorAutosave } from "./use-editor-autosave";
 import { publishIssueAction } from "@/app/admin/actions";
@@ -193,9 +193,9 @@ export function Editor({
   } = useCanvasPanZoom({
     contentWidth: PAGE_W,
     contentHeight: PAGE_H,
-    // The vertical margin is the stage's own padding: 40px above the page and
-    // the reserve the floating tool bar sits in below it.
-    fitMargin: { x: 80, y: 40 + TOOLBAR_RESERVE },
+    // The stage's own padding — the tool bar's row is outside it, so only the
+    // 40px above the page and the 8px below it come off here.
+    fitMargin: { x: 80, y: 48 },
     fitClamp: { min: 0.5, max: 1.4 },
     initialFitScale: 0.75,
     blockSelector: "[data-editor-block]",
@@ -308,8 +308,7 @@ export function Editor({
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerUp}
-            style={{ paddingBottom: TOOLBAR_RESERVE }}
-            className={`flex flex-1 items-center justify-center overflow-hidden px-10 pt-10 ${
+            className={`flex flex-1 items-center justify-center overflow-hidden px-10 pt-10 pb-2 ${
               panning ? "cursor-grabbing select-none" : "cursor-grab"
             }`}
           >
@@ -354,10 +353,8 @@ export function Editor({
                         )}
                         {page?.blocks.map((b) => (
                           <EditorBlock
-                            // The reseed counter is part of the key: a body or
-                            // heading rewritten behind an uncontrolled in-place
-                            // editor's back (a flow split, an undo) reaches it
-                            // by remounting the block.
+                            // Remounting is how a rewrite behind an
+                            // uncontrolled editor's back (a split, an undo) lands.
                             key={`${b.id}:${reseed[b.id] ?? 0}`}
                             block={b}
                             theme={theme}
