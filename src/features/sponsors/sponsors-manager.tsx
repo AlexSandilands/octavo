@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ADMIN_LIST_PAGE } from "@/components/admin-list-layout";
 import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui";
 import type {
@@ -43,8 +44,10 @@ export function SponsorsManager({
         (list.expiredTotal > 0 ? ` · ${list.expiredTotal} expired` : "");
 
   return (
-    <>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    // Pinned header and filters over scrolling rows from md up; see
+    // admin-list-layout.ts.
+    <div className={ADMIN_LIST_PAGE}>
+      <div className="flex flex-none flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-ink font-serif text-3xl">Sponsors</h1>
           <p className="text-faint mt-1.5 font-sans text-sm">{summary}</p>
@@ -100,6 +103,6 @@ export function SponsorsManager({
           }}
         />
       )}
-    </>
+    </div>
   );
 }

@@ -87,6 +87,13 @@ src/
   document's own scrollbar alone. Keep `scrollbar-gutter: stable` on the region so a thumb
   appearing never shifts layout. The thumb is a UI affordance, so it must clear 3:1 against its
   surface on every brand — `scripts/dev-contrast-gate.mts` checks the paper and card mixes.
+- **Admin lists: pin the controls, scroll the rows.** On the issues, members and sponsors
+  pages the heading, its actions, the search and filters and the bulk bar stay put from the
+  sidebar breakpoint up and only the rows scroll, so the selection count and the search are
+  always in reach. On a phone that would leave a few rows under half a screen of controls,
+  so there the pane scrolls as a whole and only the search row sticks. The layers live in
+  `src/components/admin-list-layout.ts`; a new list page composes them rather than
+  restating the classes.
 
 ### Brand skins (the per-deployment palette)
 
