@@ -144,7 +144,9 @@ Hand each subagent:
   `.env.local`); `cp -al /home/riv/Projects/octavo/node_modules node_modules`
   (Turbopack rejects a `node_modules` symlink that points outside the tree);
   `mkdir -p .data && ln -s <main checkout>/.data/uploads .data/uploads` so
-  local images resolve; run the dev server on its own port. `AUTH_URL` names
+  local images resolve (remove that symlink before `npm run build` — Next
+  refuses a symlink that points out of the project root, put it back after);
+  run the dev server on its own port. `AUTH_URL` names
   port 3000, so a magic link signs in on the wrong server — mint a `sessions`
   row and set the `authjs.session-token` cookie instead (the pattern in
   `scripts/dev-dialog-a11y-gate.mts`). A branch carrying a migration gets its
