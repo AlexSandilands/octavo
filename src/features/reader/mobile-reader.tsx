@@ -14,6 +14,7 @@ import {
   footerTextStyle,
 } from "@/features/blocks/page-footer";
 import { headingDomId, MobileBlock } from "./mobile-block";
+import { breakSpacing, readerSections } from "./mobile-sections";
 import { useIssuePdf } from "./use-issue-pdf";
 
 // Mobile reader: the whole issue as one flowing column (also the accessibility
@@ -81,7 +82,8 @@ export function MobileReader({
     el.focus({ preventScroll: true });
   };
 
-  const blocks: Block[] = content.pages.flatMap((p) => p.blocks);
+  const sections = readerSections(content.pages);
+  const blocks: Block[] = sections.flatMap((s) => s.blocks);
   const headings = blocks.filter(
     (b): b is Extract<Block, { type: "heading" }> =>
       b.type === "heading" &&
@@ -155,35 +157,29 @@ export function MobileReader({
       </header>
 
       <article className="flex-1 px-5 pt-6 pb-10">
-        {content.pages.map((p) =>
-          p.cover ? (
-            <section
-              key={p.id}
-              className="border-line-soft mb-8 border-b py-8 text-center"
-            >
-              {p.blocks.map((b) => (
-                <MobileBlock
-                  key={b.id}
-                  block={b}
-                  m={m}
-                  images={images}
-                  sponsors={sponsors}
-                  cover
-                />
-              ))}
-            </section>
-          ) : (
-            p.blocks.map((b) => (
+        {/* One section per authored page (issue #221). A divided section opens
+            with the soft rule; an undivided one is grouping only, so a page the
+            overflow flow filled reads on from the last exactly as before. */}
+        {sections.map((s) => (
+          <section
+            key={s.id}
+            className={`${s.divided ? "border-line-soft border-t" : ""} ${
+              s.cover ? "py-8 text-center" : ""
+            }`}
+            style={s.divided ? breakSpacing(m) : undefined}
+          >
+            {s.blocks.map((b) => (
               <MobileBlock
                 key={b.id}
                 block={b}
                 m={m}
                 images={images}
                 sponsors={sponsors}
+                cover={s.cover}
               />
-            ))
-          ),
-        )}
+            ))}
+          </section>
+        ))}
 
         {/* This reader has no pages, so it has no running footer to carry the
             mark. It closes with it once instead — the same lockup the printed
