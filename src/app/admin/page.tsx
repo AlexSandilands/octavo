@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ADMIN_LIST_PAGE } from "@/components/admin-list-layout";
 import { AdminShell } from "@/components/admin-shell";
 import { Button } from "@/components/ui";
 import { EmptyIssues } from "@/components/empty-states";
@@ -95,44 +96,48 @@ export default async function AdminDashboard({
 
   return (
     <AdminShell active="issues" user={admin}>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-ink font-serif text-3xl">Issues</h1>
-          {/* Whole-list numbers, so the summary holds on every page and under
+      {/* Pinned header and filters over scrolling rows from md up; see
+          admin-list-layout.ts. */}
+      <div className={ADMIN_LIST_PAGE}>
+        <div className="flex flex-none flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-ink font-serif text-3xl">Issues</h1>
+            {/* Whole-list numbers, so the summary holds on every page and under
               every search. */}
-          <p className="text-faint mt-1.5 font-sans text-sm">
-            {list.total} {list.total === 1 ? "issue" : "issues"} ·{" "}
-            {list.draftTotal} in draft
-          </p>
+            <p className="text-faint mt-1.5 font-sans text-sm">
+              {list.total} {list.total === 1 ? "issue" : "issues"} ·{" "}
+              {list.draftTotal} in draft
+            </p>
+          </div>
+          <form action={createIssueAction} className="flex-none">
+            <Button
+              type="submit"
+              icon="plus"
+              iconPosition="left"
+              className="w-full whitespace-nowrap sm:w-auto"
+            >
+              Create new issue
+            </Button>
+          </form>
         </div>
-        <form action={createIssueAction} className="flex-none">
-          <Button
-            type="submit"
-            icon="plus"
-            iconPosition="left"
-            className="w-full whitespace-nowrap sm:w-auto"
-          >
-            Create new issue
-          </Button>
-        </form>
-      </div>
 
-      {list.total === 0 ? (
-        <div className="mt-8">
-          <EmptyIssues />
-        </div>
-      ) : (
-        <IssuesTable
-          rows={rows}
-          page={list.page}
-          pageCount={list.pageCount}
-          matching={list.matching}
-          query={query}
-          filter={params.filter}
-          year={params.year}
-          years={years}
-        />
-      )}
+        {list.total === 0 ? (
+          <div className="mt-8">
+            <EmptyIssues />
+          </div>
+        ) : (
+          <IssuesTable
+            rows={rows}
+            page={list.page}
+            pageCount={list.pageCount}
+            matching={list.matching}
+            query={query}
+            filter={params.filter}
+            year={params.year}
+            years={years}
+          />
+        )}
+      </div>
     </AdminShell>
   );
 }

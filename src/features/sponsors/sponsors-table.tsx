@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  ADMIN_LIST_ROWS,
+  ADMIN_LIST_TABLE,
+  ADMIN_LIST_TOOLBAR,
+} from "@/components/admin-list-layout";
 import { ListFilter, type ListFilterOption } from "@/components/list-filter";
 import { ListPagination } from "@/components/list-pagination";
 import { ListSearch } from "@/components/list-search";
@@ -55,8 +60,10 @@ export function SponsorsTable({
         : `Showing ${matching} ${matching === 1 ? noun : nouns}.`;
 
   return (
-    <div className="mt-5">
-      <div className="flex flex-col gap-3 lg:flex-row">
+    // Pinned filters over scrolling rows from md up, a sticky search row on a
+    // phone — see admin-list-layout.ts for the layers.
+    <div className={ADMIN_LIST_TABLE}>
+      <div className={ADMIN_LIST_TOOLBAR}>
         <div className="min-w-0 flex-1">
           <ListSearch
             query={query}
@@ -74,7 +81,7 @@ export function SponsorsTable({
       </div>
 
       {list.rows.length > 0 && (
-        <div className="border-line text-faint2 mt-4 hidden items-center border-b px-1.5 pb-2.5 font-sans text-[10px] font-semibold tracking-[0.14em] uppercase sm:flex">
+        <div className="border-line text-faint2 mt-4 hidden flex-none items-center border-b px-1.5 pb-2.5 font-sans text-[10px] font-semibold tracking-[0.14em] uppercase sm:flex">
           <span className="flex-1">Sponsor</span>
           <span className="w-[190px]">Link</span>
           <span className="w-[150px]">Active until</span>
@@ -82,36 +89,38 @@ export function SponsorsTable({
         </div>
       )}
 
-      {list.rows.map((s) => (
-        <SponsorRow
-          key={s.id}
-          sponsor={s}
-          onEdit={() => onEdit(s)}
-          onChanged={onChanged}
-        />
-      ))}
+      <div className={ADMIN_LIST_ROWS}>
+        {list.rows.map((s) => (
+          <SponsorRow
+            key={s.id}
+            sponsor={s}
+            onEdit={() => onEdit(s)}
+            onChanged={onChanged}
+          />
+        ))}
 
-      {/* The result of the search / filter, live. Mounted whatever the outcome
+        {/* The result of the search / filter, live. Mounted whatever the outcome
           — a region that arrives together with its text is announced
           unreliably. Visible only when there are no rows, where it is also the
           empty state; otherwise the rows are the sighted answer. */}
-      <p
-        role="status"
-        aria-live="polite"
-        className={
-          list.rows.length === 0
-            ? "text-faint py-10 text-center font-sans text-sm"
-            : "sr-only"
-        }
-      >
-        {resultMessage}
-      </p>
+        <p
+          role="status"
+          aria-live="polite"
+          className={
+            list.rows.length === 0
+              ? "text-faint py-10 text-center font-sans text-sm"
+              : "sr-only"
+          }
+        >
+          {resultMessage}
+        </p>
 
-      <ListPagination
-        page={list.page}
-        pageCount={list.pageCount}
-        label="Sponsor list pages"
-      />
+        <ListPagination
+          page={list.page}
+          pageCount={list.pageCount}
+          label="Sponsor list pages"
+        />
+      </div>
     </div>
   );
 }

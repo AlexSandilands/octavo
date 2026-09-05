@@ -12,6 +12,19 @@ import { useListUrl } from "./use-list-url";
 // survives a refresh; page 1 keeps a bare URL. Absent on a single page.
 // Shared by the members, issues and sponsors lists and the members' archive —
 // the scroll-to-top below falls back to the window off the admin shell.
+// The nearest ancestor that is a scroll container with something to scroll.
+function scrollParent(el: HTMLElement | null): HTMLElement | null {
+  for (let n = el?.parentElement; n; n = n.parentElement) {
+    const { overflowY } = getComputedStyle(n);
+    if (
+      (overflowY === "auto" || overflowY === "scroll") &&
+      n.scrollHeight > n.clientHeight
+    )
+      return n;
+  }
+  return null;
+}
+
 export function ListPagination({
   page,
   pageCount,
@@ -46,11 +59,17 @@ export function ListPagination({
   // page and run after render, so the jump lands on the new rows rather than
   // racing ahead of them; back/forward and post-mutation clamps get the same
   // treatment, which is what a page change means regardless of its trigger.
+  // Reset whatever actually scrolls the list: its own region where the
+  // filters are pinned above it (the wide members list), else the admin pane,
+  // else the window (the members' archive).
+  const navRef = useRef<HTMLElement>(null);
   const lastPage = useRef(page);
   useEffect(() => {
     if (page !== lastPage.current) {
       lastPage.current = page;
-      (adminMain() ?? window).scrollTo({ top: 0 });
+      (scrollParent(navRef.current) ?? adminMain() ?? window).scrollTo({
+        top: 0,
+      });
     }
   }, [page]);
 
@@ -77,6 +96,7 @@ export function ListPagination({
   // rather than skipping over them as if the end of the list weren't a fact.
   return (
     <nav
+      ref={navRef}
       aria-label={label}
       aria-busy={pending}
       className="mt-6 flex items-center justify-between gap-3"

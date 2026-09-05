@@ -4,6 +4,11 @@ import { useMemo, useState } from "react";
 import { matchingMemberIdsAction } from "@/app/admin/members/actions";
 import { MemberRow } from "./member-row";
 import { MembersBulkBar } from "./members-bulk-bar";
+import {
+  ADMIN_LIST_ROWS,
+  ADMIN_LIST_TABLE,
+  ADMIN_LIST_TOOLBAR,
+} from "@/components/admin-list-layout";
 import { ListFilter, type ListFilterOption } from "@/components/list-filter";
 import { ListPagination } from "@/components/list-pagination";
 import { ListSearch } from "@/components/list-search";
@@ -138,8 +143,10 @@ export function MembersTable({
         : `Showing ${matching} ${matching === 1 ? noun : nouns}.`;
 
   return (
-    <div className="mt-5">
-      <div className="flex flex-col gap-3 lg:flex-row">
+    // Pinned filters over scrolling rows from md up, a sticky search row on a
+    // phone — see admin-list-layout.ts for the layers.
+    <div className={ADMIN_LIST_TABLE}>
+      <div className={ADMIN_LIST_TOOLBAR}>
         <div className="min-w-0 flex-1">
           <ListSearch
             query={query}
@@ -171,7 +178,7 @@ export function MembersTable({
         onClear={() => setSelected(new Set())}
       />
 
-      <div className="border-line text-faint2 mt-3 hidden items-center px-1.5 pb-2.5 font-sans text-[10px] font-semibold tracking-[0.14em] uppercase sm:flex">
+      <div className="border-line text-faint2 mt-3 hidden flex-none items-center px-1.5 pb-2.5 font-sans text-[10px] font-semibold tracking-[0.14em] uppercase sm:flex">
         <span className="w-11 flex-none" />
         <span className="ml-3 flex-1">Member</span>
         <span className="w-[120px]">Subscription</span>
@@ -180,39 +187,41 @@ export function MembersTable({
         <span className="w-[58px]" />
       </div>
 
-      {shown.map((m) => (
-        <MemberRow
-          key={m.id}
-          member={m}
-          currentUserId={currentUserId}
-          selected={selected.has(m.id)}
-          onSelect={select}
-        />
-      ))}
+      <div className={ADMIN_LIST_ROWS}>
+        {shown.map((m) => (
+          <MemberRow
+            key={m.id}
+            member={m}
+            currentUserId={currentUserId}
+            selected={selected.has(m.id)}
+            onSelect={select}
+          />
+        ))}
 
-      {/* The result of the search / filter, live. Mounted whatever the
+        {/* The result of the search / filter, live. Mounted whatever the
           outcome — a region that arrives together with its text is announced
           unreliably, and an admin searching for someone who isn't there needs
           to hear the nothing. Visible only when there are no rows, where it is
           also the empty state; otherwise the count is for screen readers, the
           rows themselves being the sighted answer. */}
-      <p
-        role="status"
-        aria-live="polite"
-        className={
-          shown.length === 0
-            ? "text-faint py-10 text-center font-sans text-sm"
-            : "sr-only"
-        }
-      >
-        {resultMessage}
-      </p>
+        <p
+          role="status"
+          aria-live="polite"
+          className={
+            shown.length === 0
+              ? "text-faint py-10 text-center font-sans text-sm"
+              : "sr-only"
+          }
+        >
+          {resultMessage}
+        </p>
 
-      <ListPagination
-        page={list.page}
-        pageCount={list.pageCount}
-        label="Member list pages"
-      />
+        <ListPagination
+          page={list.page}
+          pageCount={list.pageCount}
+          label="Member list pages"
+        />
+      </div>
     </div>
   );
 }

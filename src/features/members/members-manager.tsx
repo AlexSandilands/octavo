@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ADMIN_LIST_PAGE } from "@/components/admin-list-layout";
 import { EmptyMembers } from "@/components/empty-states";
 import { MemberDialog } from "./member-dialog";
 import { ImportDialog } from "./import-dialog";
@@ -40,8 +41,8 @@ export function MembersManager({
   const close = () => setDialog(null);
 
   return (
-    <>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div className={ADMIN_LIST_PAGE}>
+      <div className="flex flex-none flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-ink font-serif text-3xl">Members</h1>
           <p className="text-faint mt-1.5 font-sans text-sm">{summary}</p>
@@ -64,6 +65,6 @@ export function MembersManager({
 
       {dialog === "add" && <MemberDialog onClose={close} />}
       {dialog === "import" && <ImportDialog onClose={close} />}
-    </>
+    </div>
   );
 }

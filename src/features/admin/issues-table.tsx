@@ -2,6 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { matchingIssuesAction } from "@/app/admin/actions";
+import {
+  ADMIN_LIST_ROWS,
+  ADMIN_LIST_TABLE,
+  ADMIN_LIST_TOOLBAR,
+} from "@/components/admin-list-layout";
 import { ListFilter, type ListFilterOption } from "@/components/list-filter";
 import { ListPagination } from "@/components/list-pagination";
 import { ListSearch } from "@/components/list-search";
@@ -140,8 +145,10 @@ export function IssuesTable({
   ];
 
   return (
-    <div className="mt-5">
-      <div className="flex flex-col gap-3 lg:flex-row">
+    // Pinned filters over scrolling rows from md up, a sticky search row on a
+    // phone — see admin-list-layout.ts for the layers.
+    <div className={ADMIN_LIST_TABLE}>
+      <div className={ADMIN_LIST_TOOLBAR}>
         <div className="min-w-0 flex-1">
           <ListSearch
             query={query}
@@ -190,7 +197,7 @@ export function IssuesTable({
         onClear={() => setSelected(new Map())}
       />
 
-      <div className="mt-2">
+      <div className={`${ADMIN_LIST_ROWS} mt-2`}>
         {rows.map((issue) => (
           <IssueRow
             key={issue.id}
@@ -199,31 +206,31 @@ export function IssuesTable({
             onSelect={select}
           />
         ))}
-      </div>
 
-      {/* The result of the search / filters, live. Mounted whatever the
+        {/* The result of the search / filters, live. Mounted whatever the
           outcome — a region that arrives together with its text is announced
           unreliably, and an admin searching for an issue that isn't there needs
           to hear the nothing. Visible only when there are no rows, where it is
           also the empty state; otherwise the count is for screen readers, the
           rows themselves being the sighted answer. */}
-      <p
-        role="status"
-        aria-live="polite"
-        className={
-          rows.length === 0
-            ? "text-faint py-10 text-center font-sans text-sm"
-            : "sr-only"
-        }
-      >
-        {resultMessage}
-      </p>
+        <p
+          role="status"
+          aria-live="polite"
+          className={
+            rows.length === 0
+              ? "text-faint py-10 text-center font-sans text-sm"
+              : "sr-only"
+          }
+        >
+          {resultMessage}
+        </p>
 
-      <ListPagination
-        page={page}
-        pageCount={pageCount}
-        label="Issue list pages"
-      />
+        <ListPagination
+          page={page}
+          pageCount={pageCount}
+          label="Issue list pages"
+        />
+      </div>
     </div>
   );
 }
