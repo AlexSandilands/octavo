@@ -101,13 +101,15 @@ const themeSchema = z
 // and the blanket rule covers that too. v8: video blocks (issue #161) — a new
 // block type the print document renders (its poster frame plus the address in
 // visible text, since a PDF cannot play anything), so every cached PDF must be
-// rebuilt from the current renderer, exactly as v3's montage bump did.
+// rebuilt from the current renderer, exactly as v3's montage bump did. v9:
+// footer sizes are px numbers (issue #216) — the chrome segment now
+// fingerprints "27" where it fingerprinted "medium".
 //
 // Not bumped for the sponsor segment (issue #180): the renderer is untouched —
 // the key merely learned an input it was always missing, and adding the segment
 // re-keys every cached PDF exactly once by itself. A bump would only discard the
 // same objects twice over.
-const RENDER_VERSION = 8;
+const RENDER_VERSION = 9;
 
 // Percent-encode for an RFC 8187 ext-value (the `filename*=UTF-8''…` form).
 // Only attr-char may appear bare there: ALPHA / DIGIT / "!" / "#" / "$" / "&" /

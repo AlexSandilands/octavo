@@ -6,10 +6,8 @@ import { Button } from "@/components/ui";
 import {
   resolveSettings,
   type FooterAlign,
-  type MarkSize,
   type SiteSettings,
   type StoredSettings,
-  type TextSize,
 } from "@/lib/branding";
 import type { LogoListItem } from "@/lib/logos";
 import { LogosManager } from "@/features/logos/logos-manager";
@@ -31,8 +29,9 @@ export type SettingsForm = {
   magazineName: string;
   orgName: string;
   tagline: string;
-  footerMarkSize: MarkSize;
-  footerTextSize: TextSize;
+  /** In px; the preset-or-custom distinction is the size field's own. */
+  footerMarkSize: number;
+  footerTextSize: number;
   footerAlign: FooterAlign;
   /** A real boolean, not a tri-state: a switch is up or down, and the null the
    *  column allows only ever describes a deployment nobody has saved yet. */

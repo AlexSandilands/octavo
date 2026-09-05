@@ -14,7 +14,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { createId } from "@/lib/id";
 import type { IssueContent } from "@/lib/blocks";
-import type { FooterAlign, MarkSize, TextSize } from "@/lib/branding";
+import { MARK_SIZE, TEXT_SIZE, type FooterAlign } from "@/lib/branding";
 
 // All timestamps are timestamptz: the app runs in a different timezone locally
 // than on Railway, and naive timestamps make publishedAt comparisons drift.
@@ -105,19 +105,15 @@ export const issues = pgTable(
     // room for it and waits on the rest until the author adopts it in the
     // editor — where the overflow marker catches whatever no longer fits.
     //
-    // NOT NULL with the shipped defaults: the guard is only as good as its
-    // weakest row, and an insert path that forgot these would otherwise be
-    // unclamped. The default fails safe (too short, never too tall); createIssue
-    // supplies the real values and the #128 migration backfilled every row that
-    // predates the column from the settings then in force.
-    footerMarkSize: text("footer_mark_size")
-      .$type<MarkSize>()
+    // NOT NULL, in px (issue #216): an insert path that forgot these would
+    // otherwise be unclamped. The default is the smallest preset so it fails
+    // safe; createIssue and the seed supply the real values.
+    footerMarkSize: integer("footer_mark_size")
       .notNull()
-      .default("medium"),
-    footerTextSize: text("footer_text_size")
-      .$type<TextSize>()
+      .default(MARK_SIZE.presets.small),
+    footerTextSize: integer("footer_text_size")
       .notNull()
-      .default("medium"),
+      .default(TEXT_SIZE.presets.small),
     // Bumped on every content write; autosaves send the revision they were
     // based on so a stale editor can't silently overwrite a newer one.
     revision: integer("revision").notNull().default(0),
@@ -205,10 +201,10 @@ export const logos = pgTable(
 // defaults to disagree with the env, and clearing a field in the admin puts the
 // deployment value back rather than blanking the site.
 //
-// The three appearance columns are plain text validated in the app (zod against
-// the unions in src/lib/branding.ts), not pgEnums: the sets are presentational
-// and expected to grow, and adding a value to a Postgres enum is a migration
-// this app doesn't need to pay for.
+// The appearance columns are validated in the app (zod against
+// src/lib/branding.ts), not the database: the sizes are px integers and the
+// alignment plain text rather than a pgEnum, since the set is presentational
+// and adding an enum value is a migration this app doesn't need to pay for.
 export const settings = pgTable(
   "settings",
   {
@@ -216,8 +212,8 @@ export const settings = pgTable(
     magazineName: text("magazine_name"),
     orgName: text("org_name"),
     tagline: text("tagline"),
-    footerMarkSize: text("footer_mark_size").$type<MarkSize>(),
-    footerTextSize: text("footer_text_size").$type<TextSize>(),
+    footerMarkSize: integer("footer_mark_size"),
+    footerTextSize: integer("footer_text_size"),
     footerAlign: text("footer_align").$type<FooterAlign>(),
     // Whether members are offered the PDF download (issue #162). Nullable like
     // every column above it — NULL is "not configured", which resolves to the

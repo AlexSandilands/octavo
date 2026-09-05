@@ -9,6 +9,13 @@
 //
 // Run: npm run db:seed  (after `docker compose up -d` and `npm run db:migrate`)
 import sharp from "sharp";
+import {
+  DEFAULT_FOOTER_STYLE,
+  MARK_SIZE,
+  TEXT_SIZE,
+  clampSize,
+  type FooterReserve,
+} from "../lib/branding";
 import { buildIssues } from "./seed-data";
 import { renderArtSvg, type SeedArtSpec } from "./seed/art";
 import { SEED_IMAGES, type SeedImages } from "./seed/images";
@@ -67,7 +74,7 @@ async function main() {
   const { drizzle } = await import("drizzle-orm/postgres-js");
   const { default: postgres } = await import("postgres");
   const { eq } = await import("drizzle-orm");
-  const { issues, images } = await import("./schema");
+  const { issues, images, settings } = await import("./schema");
   const client = postgres(url, { max: 1 });
   const db = drizzle({ client });
 
@@ -118,7 +125,27 @@ async function main() {
       issueId: null,
     });
   }
-  const rows = buildIssues(imageIds);
+  // Record the footer in force as each issue's reserve, as createIssue does
+  // (#128); the column default is the smallest preset and would hold the demo
+  // issues below the footer they were designed for.
+  const [stored] = await db
+    .select({
+      footerMarkSize: settings.footerMarkSize,
+      footerTextSize: settings.footerTextSize,
+    })
+    .from(settings)
+    .limit(1);
+  const reserve: FooterReserve = {
+    footerMarkSize: clampSize(
+      MARK_SIZE,
+      stored?.footerMarkSize ?? DEFAULT_FOOTER_STYLE.markSize,
+    ),
+    footerTextSize: clampSize(
+      TEXT_SIZE,
+      stored?.footerTextSize ?? DEFAULT_FOOTER_STYLE.textSize,
+    ),
+  };
+  const rows = buildIssues(imageIds).map((issue) => ({ ...issue, ...reserve }));
 
   await db.transaction(async (tx) => {
     // Wipe (images first — they FK onto issues).

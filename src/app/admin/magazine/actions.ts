@@ -4,12 +4,12 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import {
   FOOTER_ALIGNS,
-  MARK_SIZES,
-  TEXT_SIZES,
+  MARK_SIZE,
+  TEXT_SIZE,
   type StoredSettings,
 } from "@/lib/branding";
 import { requireAdmin } from "@/server/session";
-import { updateSettings } from "@/server/settings";
+import { footerSizeSchema, updateSettings } from "@/server/settings";
 
 // The one mutation behind /admin/magazine. Like every other admin action, the
 // argument is attacker-controlled JSON whatever its TypeScript type says, so it
@@ -37,9 +37,11 @@ const optionalText = (max: number) =>
     });
 
 // The appearance fields always carry a concrete choice: their defaults are code
-// constants with no env counterpart, so "medium" and "the default" are the same
+// constants with no env counterpart, so "27px" and "the default" are the same
 // value and a null option in the picker would be a distinction without a
 // difference. The columns stay nullable for the untouched-deployment case.
+// The two sizes are whole px within their axis (issue #216); the number field
+// is not the boundary, so this refuses the same range.
 // `pdfDownloads` is the same kind of field — the switch is always up or down —
 // so it too arrives concrete and is stored concrete (issue #162).
 const settingsSchema = z
@@ -47,8 +49,8 @@ const settingsSchema = z
     magazineName: optionalText(80),
     orgName: optionalText(80),
     tagline: optionalText(200),
-    footerMarkSize: z.enum(MARK_SIZES),
-    footerTextSize: z.enum(TEXT_SIZES),
+    footerMarkSize: footerSizeSchema(MARK_SIZE),
+    footerTextSize: footerSizeSchema(TEXT_SIZE),
     footerAlign: z.enum(FOOTER_ALIGNS),
     pdfDownloads: z.boolean(),
   })
