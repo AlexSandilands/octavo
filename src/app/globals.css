@@ -233,11 +233,9 @@ body {
   content: "\00a0";
 }
 
-/* Editor chrome (the block toolbars) layered over the page canvas. Cancelling
-   the canvas's fit scale keeps it one crisp size at every zoom; the origin is
-   the bottom-left corner it's positioned from. */
+/* Editor chrome (block toolbars) over the page canvas: cancel the canvas's
+   fit scale so it stays one size at every zoom. */
 .chrome-unscaled {
-  /* Sizes the chrome once the canvas scale is out. */
   --chrome-scale: 1.1;
   transform: scale(calc(var(--chrome-scale) / var(--page-scale, 1)));
   transform-origin: bottom left;

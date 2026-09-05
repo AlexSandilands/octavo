@@ -36,8 +36,7 @@ export function ScaledPage({
             height: PAGE_H,
             transform: `scale(${scale})`,
             transformOrigin: "top left",
-            // Published so editor chrome layered over the page can cancel this
-            // scale and paint at 1:1 screen pixels (see `.chrome-unscaled`).
+            // Lets editor chrome cancel the scale (see `.chrome-unscaled`).
             "--page-scale": scale,
           } as React.CSSProperties
         }

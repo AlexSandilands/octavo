@@ -108,11 +108,8 @@ const ICONS: Record<string, ReactNode> = {
       <path d="M12 17h.01" />
     </>
   ),
-  // These two sit beside 12px letter labels in the rich-text toolbar, so their
-  // ink is drawn to the same 13.4-unit band (≈ the labels' cap height at a
-  // matching icon size) rather than to whatever the artwork happened to span —
-  // the bullet used to read a size smaller than the letters and the link a size
-  // larger (issue #214).
+  // Drawn to the same ink band as the rich-text toolbar's letter labels so
+  // they read as one size (#214).
   listBullet: (
     <>
       <circle cx="5" cy="6.5" r="1.2" fill="currentColor" stroke="none" />

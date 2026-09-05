@@ -236,11 +236,8 @@ function Toolbar({
   );
 }
 
-// Flex centres a label's *line box*, but the cap-height ink inside it sits high
-// by an amount only the font knows — and Newsreader italic's is half again
-// Hanken's, which is why the `I` floated above `B` and `U` (issue #214). These
-// push each family's ink back onto the button's centre-line, where the icons and
-// the active fill already are. Measured at this 12px size.
+// Flex centres the label's line box, not its ink; these drop each family's
+// cap height onto the button's centre-line (#214). Measured at 12px.
 const CAP_NUDGE = {
   sans: "translate-y-[1.7px]",
   serif: "translate-y-[2.55px]",
