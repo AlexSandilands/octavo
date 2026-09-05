@@ -142,7 +142,7 @@ export function EditorBlock({
       {selected && (
         <>
           {block.type === "image" ? (
-            <div className="border-hair absolute bottom-full left-0 z-20 mb-2 flex items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap shadow-[0_4px_14px_rgba(40,36,28,0.16)]">
+            <div className="border-hair chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap shadow-[0_4px_14px_rgba(40,36,28,0.16)]">
               <ImageBlockControl
                 issueId={issueId}
                 hasImage={Boolean(block.imageId)}
@@ -178,7 +178,7 @@ export function EditorBlock({
               )}
             </div>
           ) : block.type === "montage" ? (
-            <div className="border-hair absolute bottom-full left-0 z-20 mb-2 flex items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap shadow-[0_4px_14px_rgba(40,36,28,0.16)]">
+            <div className="border-hair chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap shadow-[0_4px_14px_rgba(40,36,28,0.16)]">
               <MontageBlockControl
                 items={block.items}
                 interval={block.interval}
@@ -201,7 +201,7 @@ export function EditorBlock({
               )}
             </div>
           ) : block.type === "video" ? (
-            <div className="border-hair absolute bottom-full left-0 z-20 mb-2 flex items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap shadow-[0_4px_14px_rgba(40,36,28,0.16)]">
+            <div className="border-hair chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap shadow-[0_4px_14px_rgba(40,36,28,0.16)]">
               <VideoBlockControl
                 videoId={block.videoId}
                 posterImageId={block.posterImageId}
@@ -228,14 +228,14 @@ export function EditorBlock({
             // rich-text editor below, so nothing is rendered here.
             <></>
           ) : block.type === "heading" && !cover ? (
-            <div className="absolute bottom-full left-0 z-20 mb-2">
+            <div className="chrome-unscaled absolute bottom-full left-0 z-20 mb-2">
               <HeadingLevelControl
                 level={block.level ?? "main"}
                 onChange={onChange}
               />
             </div>
           ) : block.type === "sponsor" ? (
-            <div className="border-hair absolute bottom-full left-0 z-20 mb-2 flex items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 shadow-[0_4px_14px_rgba(40,36,28,0.16)]">
+            <div className="border-hair chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 shadow-[0_4px_14px_rgba(40,36,28,0.16)]">
               <SponsorPicker
                 sponsorId={block.sponsorId}
                 sponsors={sponsors}
@@ -243,7 +243,7 @@ export function EditorBlock({
               />
             </div>
           ) : (
-            <span className="bg-accent text-paper absolute bottom-full left-0 z-10 mb-2 rounded-[3px] px-1.5 py-[3px] font-sans text-[9px] font-semibold tracking-[0.1em] uppercase">
+            <span className="bg-accent text-paper chrome-unscaled absolute bottom-full left-0 z-10 mb-2 rounded-[3px] px-1.5 py-[3px] font-sans text-[9px] font-semibold tracking-[0.1em] uppercase">
               {block.type}
             </span>
           )}

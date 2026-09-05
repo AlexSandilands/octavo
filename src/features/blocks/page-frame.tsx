@@ -30,12 +30,17 @@ export function ScaledPage({
       className="flex-none"
     >
       <div
-        style={{
-          width: PAGE_W,
-          height: PAGE_H,
-          transform: `scale(${scale})`,
-          transformOrigin: "top left",
-        }}
+        style={
+          {
+            width: PAGE_W,
+            height: PAGE_H,
+            transform: `scale(${scale})`,
+            transformOrigin: "top left",
+            // Published so editor chrome layered over the page can cancel this
+            // scale and paint at 1:1 screen pixels (see `.chrome-unscaled`).
+            "--page-scale": scale,
+          } as React.CSSProperties
+        }
       >
         {children}
       </div>

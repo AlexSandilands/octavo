@@ -234,3 +234,16 @@ body {
 .ProseMirror p:empty::after {
   content: "\00a0";
 }
+
+/* Editor chrome that floats over the scaled page canvas (the block toolbars).
+   The page is drawn at a fixed size and scaled to fit, so anything inside it —
+   including chrome that is not part of the page — paints at that fraction, and
+   12px labels land on ~9px of blurred, sub-pixel-snapped type. Cancelling the
+   canvas scale (published as --page-scale by ScaledPage) puts the chrome back
+   on the screen's own pixel grid at every zoom. transform-origin keeps the
+   anchor these toolbars are positioned from — their bottom-left corner, above
+   the block — exactly where the layout put it. */
+.chrome-unscaled {
+  transform: scale(calc(1 / var(--page-scale, 1)));
+  transform-origin: bottom left;
+}

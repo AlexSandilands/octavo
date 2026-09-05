@@ -146,7 +146,7 @@ function Toolbar({
   };
 
   return (
-    <div className="border-hair absolute bottom-full left-0 z-20 mb-2 flex flex-col gap-1.5 rounded-[8px] border bg-white p-1.5 shadow-[0_4px_14px_rgba(40,36,28,0.16)]">
+    <div className="border-hair chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex flex-col gap-1.5 rounded-[8px] border bg-white p-1.5 shadow-[0_4px_14px_rgba(40,36,28,0.16)]">
       <div className="flex items-center gap-1.5 whitespace-nowrap">
         <div className="border-hair flex overflow-hidden rounded-[6px] border">
           {TEXT_SIZES.map((s) => (
@@ -170,6 +170,7 @@ function Toolbar({
         <TbBtn
           label="I"
           labelClass="font-serif italic"
+          labelFont="serif"
           title="Italic"
           active={editor.isActive("italic")}
           onClick={() => editor.chain().focus().toggleItalic().run()}
@@ -235,9 +236,20 @@ function Toolbar({
   );
 }
 
+// Flex centres a label's *line box*, but the cap-height ink inside it sits high
+// by an amount only the font knows — and Newsreader italic's is half again
+// Hanken's, which is why the `I` floated above `B` and `U` (issue #214). These
+// push each family's ink back onto the button's centre-line, where the icons and
+// the active fill already are. Measured at this 12px size.
+const CAP_NUDGE = {
+  sans: "translate-y-[1.7px]",
+  serif: "translate-y-[2.55px]",
+} as const;
+
 function TbBtn({
   label,
-  labelClass,
+  labelClass = "",
+  labelFont = "sans",
   icon,
   title,
   active,
@@ -245,6 +257,8 @@ function TbBtn({
 }: {
   label?: string;
   labelClass?: string;
+  /** Which family the label is set in — picks its cap-height nudge. */
+  labelFont?: keyof typeof CAP_NUDGE;
   icon?: "listBullet" | "link";
   title: string;
   active: boolean;
@@ -271,7 +285,7 @@ function TbBtn({
       {icon ? (
         <Icon name={icon} size={15} />
       ) : (
-        <span className={labelClass}>{label}</span>
+        <span className={`${CAP_NUDGE[labelFont]} ${labelClass}`}>{label}</span>
       )}
     </button>
   );
