@@ -278,7 +278,7 @@ until the author adopts it in the editor, where the overflow marker catches what
 (`adoptFooterAction`). There is no room to solve this by growing the footer downward instead — the
 page's bottom margin is 22px (classic) / 16px (modern) against a 12–48px mark range. Both sizes are
 whole px (issue #216): the Small/Medium/Large presets are 18/27/36 (mark) and 9/10/12 (type), and
-Custom takes any value within the caps (mark 12–48, type 8–14) — so the reserve clamp is
+Custom takes any value within the caps (mark 12–48, type 8–16) — so the reserve clamp is
 `Math.min` per axis and the footer sets its height and type size as inline styles.
 
 Local values live in `.env.local` (git-ignored); production values are set in Railway.

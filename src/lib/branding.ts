@@ -10,7 +10,7 @@
 // The footer's two height axes are pixel numbers (issue #216): the mark's box
 // height and the type size. Each axis has a floor and a ceiling — a mark under
 // 12px is a smudge and one over 48px overruns the page's bottom margin; type
-// under 8px is unreadable and over 14px stops looking like a footer — and three
+// under 8px is unreadable and over 16px stops looking like a footer — and three
 // named presets on it, which are exactly the values the three-step dropdowns
 // produced before a custom size existed, so a preset renders as it always did.
 export const SIZE_PRESETS = ["small", "medium", "large"] as const;
@@ -35,7 +35,7 @@ export const MARK_SIZE: SizeAxis = {
 // accounted for exactly as a preset is.
 export const TEXT_SIZE: SizeAxis = {
   min: 8,
-  max: 14,
+  max: 16,
   presets: { small: 9, medium: 10, large: 12 },
 };
 
