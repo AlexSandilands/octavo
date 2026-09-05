@@ -27,10 +27,9 @@ import {
 // returned handlers to the header, rail, toolbar and canvas, and reads `pages`
 // for autosave. The cover-first invariant is enforced on every structural edit.
 //
-// Every operation below takes an undo step first (issue #222) — `commit()` for a
-// discrete edit, `commit("<stream>")` for one that repeats under the author's
-// hand and should undo as a run. An operation that can turn out to be a no-op
-// works out its result before committing, so undo never has an empty step in it.
+// Every operation takes an undo step first (issue #222) — `commit()`, or
+// `commit("<stream>")` for one that repeats under the author's hand and should
+// undo as a run. A no-op resolves before it commits, so no step is ever empty.
 export function useEditorPages(content: IssueContent) {
   const initialPages = ensureCoverFirst(
     content.pages.length > 0 ? content.pages : [makePage("cover-classic")],
@@ -51,6 +50,8 @@ export function useEditorPages(content: IssueContent) {
   const page = pages[curPage] ?? pages[0];
 
   const history = useEditorHistory();
+  // Snapshots this render's state, so two operations in one event would push the
+  // same pre-state twice — every op here is its own user event.
   const commit = (stream?: string) =>
     history.record({ pages, curPage, sel }, stream);
 
