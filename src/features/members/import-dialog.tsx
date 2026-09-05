@@ -91,7 +91,7 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <DialogShell
-      panelClassName="bg-card max-h-[90vh] w-[480px] max-w-full overflow-y-auto rounded-[10px] shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
+      panelClassName="scrollbar-soft bg-card max-h-[90vh] w-[480px] max-w-full overflow-y-auto rounded-[10px] [--scrollbar-surface:var(--color-card)] [scrollbar-gutter:stable] shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
       locked={pending}
       onClose={onClose}
     >

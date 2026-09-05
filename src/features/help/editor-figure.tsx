@@ -10,7 +10,7 @@ const INSERT_CHIPS = ["Heading", "Text", "Image", "Sponsor"];
 export function EditorFigure() {
   return (
     <FigureFrame caption="A sketch of the editor. The numbers match the steps below: 1 — title and autosave, 2 — the pages rail, 3 — the Insert row, 4 — Preview and Publish.">
-      <div className="overflow-x-auto">
+      <div className="scrollbar-soft overflow-x-auto [--scrollbar-surface:var(--color-card)]">
         <div className="border-line bg-paper min-w-[440px] overflow-hidden rounded-lg border">
           {/* Top bar: title, draft chip, autosave note / Preview + Publish. */}
           <div className="border-line flex items-center justify-between gap-2 border-b px-4 py-2.5">
