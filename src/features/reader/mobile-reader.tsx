@@ -157,15 +157,15 @@ export function MobileReader({
       </header>
 
       <article className="flex-1 px-5 pt-6 pb-10">
-        {/* One section per authored page (issue #221). A divided section opens
-            with the soft rule; an undivided one is grouping only, so a page the
-            overflow flow filled reads on from the last exactly as before. */}
         {sections.map((s) => (
           <section
             key={s.id}
-            className={`${s.divided ? "border-line-soft border-t" : ""} ${
-              s.cover ? "py-8 text-center" : ""
-            }`}
+            className={[
+              s.divided && "border-line-soft border-t",
+              s.cover && "py-8 text-center",
+            ]
+              .filter(Boolean)
+              .join(" ")}
             style={s.divided ? breakSpacing(m) : undefined}
           >
             {s.blocks.map((b) => (
