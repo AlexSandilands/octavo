@@ -301,7 +301,10 @@ export function DesktopReader({
             <div
               ref={spreadRef}
               onPointerDown={onSpreadPointerDown}
-              className="relative inline-flex transition-transform duration-700 ease-[cubic-bezier(0.3,0.1,0.2,1)] motion-reduce:transition-none"
+              // `flex`, not `inline-flex`: mid-turn every child is absolutely
+              // positioned, and an inline-level box would then synthesise a
+              // baseline and jump the spread for the turn's duration (#217).
+              className="relative flex transition-transform duration-700 ease-[cubic-bezier(0.3,0.1,0.2,1)] motion-reduce:transition-none"
               style={{ transform: `translateX(${atCover ? "-25%" : "0%"})` }}
             >
               {/* Drop-shadow plate behind the pages, sized to the visible sheet:
