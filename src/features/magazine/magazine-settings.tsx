@@ -29,8 +29,7 @@ export type SettingsForm = {
   magazineName: string;
   orgName: string;
   tagline: string;
-  /** The two footer sizes in px (issue #216) — always a concrete number here;
-   *  the preset-or-custom distinction is the size field's own. */
+  /** In px; the preset-or-custom distinction is the size field's own. */
   footerMarkSize: number;
   footerTextSize: number;
   footerAlign: FooterAlign;

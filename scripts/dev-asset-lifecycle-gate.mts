@@ -77,7 +77,7 @@ const made = {
   dirs: [] as string[],
 };
 
-// The shipped footer reserve in px (issue #216): the medium presets.
+// The medium presets, in px.
 const RESERVE = { footerMarkSize: 27, footerTextSize: 10 } as const;
 const UPLOADS = path.join(process.cwd(), ".data", "uploads");
 

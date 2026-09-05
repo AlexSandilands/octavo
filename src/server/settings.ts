@@ -39,18 +39,16 @@ const settingsSelection = {
   pdfDownloads: settings.pdfDownloads,
 };
 
-/** A footer size as the owner may store it: a whole number of px within its
- *  axis (issue #216). Shared with the admin action so the save and the read
- *  refuse exactly the same values. */
+/** A footer size: whole px within its axis (issue #216). Shared with the
+ *  admin action so save and read refuse the same values. */
 export function footerSizeSchema(axis: SizeAxis) {
   return z.number().int().min(axis.min).max(axis.max);
 }
 
 // The appearance columns are validated only by the app, so a value hand-edited
 // into the database is external input like any other. `.catch(null)` degrades
-// anything unrecognised — an out-of-range size, an unknown alignment — to "use
-// the default" rather than styling a page with it; reading is never gated by
-// bad config (the same rule resolveTheme follows for layout themes).
+// anything unrecognised to "use the default" — reading is never gated by bad
+// config (the same rule resolveTheme follows for layout themes).
 const storedSchema = z.object({
   magazineName: z.string().nullable().catch(null),
   orgName: z.string().nullable().catch(null),

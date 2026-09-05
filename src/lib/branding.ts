@@ -7,12 +7,9 @@
 // public branding, so the resolved object is threaded into client components as
 // props (readers, editor, admin preview) without dragging `db`/`env` along.
 
-// The footer's two height axes are pixel numbers (issue #216): the mark's box
-// height and the type size. Each axis has a floor and a ceiling — a mark under
-// 12px is a smudge and one over 48px overruns the page's bottom margin; type
-// under 8px is unreadable and over 16px stops looking like a footer — and three
-// named presets on it, which are exactly the values the three-step dropdowns
-// produced before a custom size existed, so a preset renders as it always did.
+// The footer's two height axes (mark box height, type size) are px numbers
+// (issue #216). Each has a floor, a ceiling and three presets — the exact px
+// the old three-step dropdowns rendered, so a preset looks as it always did.
 export const SIZE_PRESETS = ["small", "medium", "large"] as const;
 export type SizePreset = (typeof SIZE_PRESETS)[number];
 
@@ -29,18 +26,15 @@ export const MARK_SIZE: SizeAxis = {
   presets: { small: 18, medium: 27, large: 36 },
 };
 
-// The line box is 1.6× the type size (inherited leading), so 9/10/12px set
-// 14/16/19px rows — but nothing downstream assumes that: the editor measures
-// the rendered footer's top edge (page-metrics.ts), so a custom size is
-// accounted for exactly as a preset is.
+// The line box is 1.6× the type size; the editor measures the rendered
+// footer anyway (page-metrics.ts), so custom sizes need no special handling.
 export const TEXT_SIZE: SizeAxis = {
   min: 8,
   max: 16,
   presets: { small: 9, medium: 10, large: 12 },
 };
 
-/** A size held to its axis. Non-finite input lands on the floor rather than
- *  propagating NaN into a style. */
+/** A size held to its axis; non-finite input lands on the floor. */
 export function clampSize(axis: SizeAxis, px: number): number {
   if (!Number.isFinite(px)) return axis.min;
   return Math.min(axis.max, Math.max(axis.min, Math.round(px)));
@@ -199,10 +193,8 @@ export function footerReserveOf(footer: FooterStyle): FooterReserve {
 /** The footer that may actually render on an issue's pages: the live setting,
  *  held to the issue's reserve on both height axes. Alignment passes through —
  *  it has no effect on the footer's height, so it is safe retroactively.
- *
- *  The result is held to each axis's range as well: the columns are plain
- *  integers, so a row holding a number outside it must never print a footer
- *  the page has no room for, nor one too small to read. */
+ *  The result is also held to each axis's range, since the columns are plain
+ *  integers. */
 export function clampFooterStyle(
   live: FooterStyle,
   reserve: FooterReserve,

@@ -11,20 +11,11 @@ import {
 } from "@/lib/branding";
 import { MenuSelect, type MenuSelectItem } from "@/components/menu-select";
 
-// One of the footer's two size controls on /admin/magazine (issue #216): the
-// house dropdown offering the three presets and Custom, and — only once Custom
-// is chosen — a number field beside it for an exact size in px.
-//
-// The form holds a plain number; whether it came from a preset or was typed is
-// this control's own business. A value that matches no preset opens as Custom
-// so a saved 30px is never shown as "Medium"; picking a preset fills the number
-// in and puts the field away.
-//
-// The field refuses a size outside its axis: while the text is out of range
-// nothing reaches the form (the preview keeps the last good value) and the
-// hint says what is allowed; on leaving the field the text is held to the
-// nearest allowed value. The server refuses the same range, since this field
-// is not the boundary.
+// One of the footer's two size controls on /admin/magazine (issue #216): a
+// dropdown of the three presets plus Custom, which reveals a number field for
+// an exact px size. The form holds a plain number; a value matching no preset
+// opens as Custom. Out-of-range text reaches nothing (the preview keeps the
+// last good value) and is held to the range on blur.
 
 type Choice = SizePreset | "custom";
 
@@ -76,8 +67,7 @@ export function FooterSizeField({
     if (Number.isInteger(n) && n >= axis.min && n <= axis.max) onChange(n);
   };
 
-  // Leaving the field with something unusable in it: hold it to the range, or
-  // put the current value back when there is nothing to hold.
+  // On blur, hold an unusable draft to the range or restore the current value.
   const settle = () => {
     if (valid) return;
     const held = Number.isFinite(parsed) ? clampSize(axis, parsed) : value;

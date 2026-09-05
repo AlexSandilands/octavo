@@ -85,9 +85,8 @@ export function SettingsFormCard({
           sits apply to issues that have one.
         </p>
       </div>
-      {/* Each size control is its own row: choosing Custom reveals a number
-          field beside its dropdown, and a wrapping row of all three would put
-          that field somewhere else each time. */}
+      {/* One control per row so Custom's number field stays beside its own
+          dropdown. */}
       <div className="flex flex-col items-start gap-3">
         <FooterSizeField
           label="Mark size"

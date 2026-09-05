@@ -125,11 +125,9 @@ async function main() {
       issueId: null,
     });
   }
-  // Each issue records the footer its pages are laid out against, exactly as
-  // createIssue does (issue #128): the setting in force, or the shipped default
-  // when nothing is stored. Set here rather than left to the column default,
-  // which is the smallest preset and would hold a default-footer deployment's
-  // demo issues below the footer they were designed for.
+  // Record the footer in force as each issue's reserve, as createIssue does
+  // (#128); the column default is the smallest preset and would hold the demo
+  // issues below the footer they were designed for.
   const [stored] = await db
     .select({
       footerMarkSize: settings.footerMarkSize,

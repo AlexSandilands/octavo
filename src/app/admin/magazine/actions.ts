@@ -40,8 +40,8 @@ const optionalText = (max: number) =>
 // constants with no env counterpart, so "27px" and "the default" are the same
 // value and a null option in the picker would be a distinction without a
 // difference. The columns stay nullable for the untouched-deployment case.
-// The two sizes are whole px within their axis (issue #216) — the number field
-// refuses anything else, and so does this, since the field is not the boundary.
+// The two sizes are whole px within their axis (issue #216); the number field
+// is not the boundary, so this refuses the same range.
 // `pdfDownloads` is the same kind of field — the switch is always up or down —
 // so it too arrives concrete and is stored concrete (issue #162).
 const settingsSchema = z

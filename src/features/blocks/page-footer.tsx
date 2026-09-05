@@ -33,16 +33,13 @@ import type { FooterAlign, SiteSettings } from "@/lib/branding";
 // and alignment have nothing to act on in the no-logo form, which keeps its
 // fixed name / issue-no / folio spread.
 //
-// The two sizes are numbers of px (issue #216) and go on as inline styles: an
-// owner-typed value is not a literal Tailwind can see at build time, and the
-// house CSP keeps style attributes allowed for exactly this kind of measured
-// layout (ScaledPage sets its transform the same way).
+// The two sizes are px numbers (issue #216) set as inline styles: an
+// owner-typed value is not a literal Tailwind can see at build time.
 
 // The footer row's own type treatment — deliberately the no-logo footer's, so
 // turning from an issue that carries a mark to one that doesn't is not a change
 // of voice. Shared with the mobile reader, which has no pages to put a footer on
-// but closes the issue with the same lockup. The type size is the row's inline
-// style (`footerTextStyle`), which every user of this class must set too.
+// but closes the issue with the same lockup. Pair with `footerTextStyle`.
 export const FOOTER_ROW_CLASS =
   "text-faint2 flex items-center font-sans font-medium tracking-[0.12em] uppercase";
 
