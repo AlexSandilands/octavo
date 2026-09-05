@@ -62,18 +62,11 @@ ok(
   "sign-in via ?next lands on /read/3",
 );
 
-// 2.5. A page turn must not move the spread (issue #217): the pan-wrapper's
-// height and the spread's top stay identical before, mid-turn (two frames
-// after the click, when the in-flight leaf's absolutely-positioned-only
-// content used to synthesise a baseline and grow the line box under
-// `inline-flex`), and after the turn commits. Forward, back, and the
-// cover-closing turn (issue 3 has a cover + two spreads).
-//
-// A fresh context with a DB-minted session, not the magic-link flow above:
-// `AUTH_URL` names a fixed port (usually :3000), so the emailed link's
-// `callbackUrl` always lands there regardless of `base` — harmless for the
-// pathname-only checks elsewhere in this file, but this check compares
-// pixel geometry, so it must land on the server actually being verified.
+// 2.5. A page turn must not move the spread (issue #217): pan-wrapper height
+// and spread top must match before, two frames into, and after the turn.
+// Uses a DB-minted session in a fresh context: the magic link's callback is
+// pinned to AUTH_URL's port, and this check compares pixel geometry so it
+// must land on `base`.
 const sql = postgres(process.env.DATABASE_URL!);
 const [member] = await sql<
   { id: string }[]
@@ -104,11 +97,8 @@ try {
       const spreadRect = spread.getBoundingClientRect();
       return { panHeight: panRect.height, spreadTop: spreadRect.top };
     });
-  // The reader mounts client-side (`ssr: false`, viewport-driven pick of
-  // desktop vs. mobile) and its fit-to-stage scale seeds a guess before the
-  // container's first real measurement lands (use-canvas-pan-zoom.ts) — both
-  // settle a beat after the stage first appears. Poll until two reads a
-  // moment apart agree, or the settle itself would read as a jump.
+  // The reader mounts client-side and its fit scale settles a beat later;
+  // poll until two reads agree so the settle doesn't read as a jump.
   await turnPage.waitForSelector('button[title="Next"]');
   let prev = await spreadMetrics(turnPage);
   for (let i = 0; i < 20; i++) {
@@ -122,8 +112,7 @@ try {
   async function turnAndMeasure(p: Page, buttonTitle: string) {
     const before = await spreadMetrics(p);
     await p.click(`button[title="${buttonTitle}"]`);
-    // Two frames in, then measure inline — no nested named helper, so tsx's
-    // `__name` rewrite (dev worktree gotcha) can't reach into the page.
+    // Measured inline: a nested named helper trips tsx's `__name` rewrite.
     const mid = await p.evaluate(
       () =>
         new Promise<{ panHeight: number; spreadTop: number }>((resolve) => {

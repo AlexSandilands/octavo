@@ -301,12 +301,9 @@ export function DesktopReader({
             <div
               ref={spreadRef}
               onPointerDown={onSpreadPointerDown}
-              // `flex`, not `inline-flex`: while a turn is in flight (TurnLeaf,
-              // reader-spread.tsx) every child here is absolutely positioned, so
-              // an inline-level box would synthesise its baseline from its own
-              // bottom edge and pick up a line-box strut the static spread
-              // doesn't have, jumping the whole spread up for the turn's
-              // duration (#217). Block-level removes the baseline entirely.
+              // `flex`, not `inline-flex`: mid-turn every child is absolutely
+              // positioned, and an inline-level box would then synthesise a
+              // baseline and jump the spread for the turn's duration (#217).
               className="relative flex transition-transform duration-700 ease-[cubic-bezier(0.3,0.1,0.2,1)] motion-reduce:transition-none"
               style={{ transform: `translateX(${atCover ? "-25%" : "0%"})` }}
             >
