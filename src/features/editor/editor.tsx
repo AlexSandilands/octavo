@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { type IssueContent } from "@/lib/blocks";
 import {
@@ -40,14 +40,11 @@ import { EditorBlock } from "./editor-block";
 import { reportEditorError } from "./report-error";
 import { PageRail } from "./page-rail";
 import { PublishModal } from "./publish-modal";
-import { EditorHeader, type SaveStatus } from "./editor-header";
-import { EditorToolbar } from "./editor-toolbar";
+import { EditorHeader } from "./editor-header";
+import { EditorToolbar, TOOLBAR_RESERVE } from "./editor-toolbar";
 import { FooterUpdateNotice } from "./footer-update-notice";
-import {
-  publishIssueAction,
-  saveIssueAction,
-  saveMetaAction,
-} from "@/app/admin/actions";
+import { useEditorAutosave } from "./use-editor-autosave";
+import { publishIssueAction } from "@/app/admin/actions";
 
 // Extends FooterReserve: the footer this issue's pages were laid out against
 // (issue #128) is what the canvas draws and measures overflow against, whatever
@@ -107,6 +104,11 @@ export function Editor({
     setAddMenu,
     reseed,
     page,
+    canUndo,
+    canRedo,
+    historyNotice,
+    undo,
+    redo,
     selectPage,
     toggleCover,
     addBlock,
@@ -150,68 +152,16 @@ export function Editor({
   // Once published (now or on load), the publish modal defaults email OFF so a
   // later correction can't re-blast the list.
   const [published, setPublished] = useState(issue.status === "published");
-  const [status, setStatus] = useState<SaveStatus>("saved");
   const router = useRouter();
 
-  // Saves are serialized through one promise chain and carry the revision they
-  // were based on, so an autosave can never overtake an earlier one and a stale
-  // editor (another tab) gets a visible conflict instead of silently
-  // overwriting newer work. Failures surface in the status pill with a retry.
-  const statusRef = useRef(status);
-  const revisionRef = useRef(issue.revision);
-  const latestRef = useRef({ pages, title, theme: themeId, logoId });
-  const chainRef = useRef<Promise<boolean>>(Promise.resolve(true));
-  // Mirrored during render on purpose: a queued save runs on a microtask,
-  // which can beat an effect-time mirror to these values.
-  // eslint-disable-next-line react-hooks/refs
-  statusRef.current = status;
-  // eslint-disable-next-line react-hooks/refs
-  latestRef.current = { pages, title, theme: themeId, logoId };
-
-  const enqueueSave = (kind: "content" | "meta" | "all") => {
-    const run = async (): Promise<boolean> => {
-      // After a conflict only a reload makes sense — don't keep writing.
-      if (statusRef.current === "conflict") return false;
-      setStatus("saving");
-      try {
-        const { pages, title, theme, logoId } = latestRef.current;
-        if (kind !== "meta") {
-          const res = await saveIssueAction(
-            issue.id,
-            { pages },
-            revisionRef.current,
-          );
-          if (!res.ok) {
-            setStatus(res.reason === "conflict" ? "conflict" : "error");
-            return false;
-          }
-          revisionRef.current = res.revision;
-        }
-        if (kind !== "content") {
-          const res = await saveMetaAction(issue.id, { title, theme, logoId });
-          if (!res.ok) {
-            setStatus("error");
-            return false;
-          }
-        }
-        setStatus("saved");
-        return true;
-      } catch (error) {
-        reportEditorError(error, "save", { issueId: issue.id, kind });
-        setStatus("error");
-        return false;
-      }
-    };
-    const next = chainRef.current.then(run, run);
-    chainRef.current = next;
-    return next;
-  };
-
-  // Flush the latest content + meta to the server *now*, bypassing the debounce.
-  // Navigating to Preview (or publishing) before the 800ms autosave fires would
-  // otherwise drop the most recent edits — they'd reload stale from the DB.
-  // Returns false when the save didn't land, so callers don't proceed.
-  const flushSave = () => enqueueSave("all");
+  const { status, setStatus, enqueueSave, flushSave } = useEditorAutosave({
+    issueId: issue.id,
+    revision: issue.revision,
+    pages,
+    title,
+    theme: themeId,
+    logoId,
+  });
 
   // Drag from the handle, or move with the keyboard once the handle is focused.
   // A small distance threshold lets a plain click on the handle still select.
@@ -221,44 +171,6 @@ export function Editor({
       coordinateGetter: sortableKeyboardCoordinates,
     }),
   );
-
-  // Debounced autosave of content.
-  const firstContent = useRef(true);
-  useEffect(() => {
-    if (firstContent.current) {
-      firstContent.current = false;
-      return;
-    }
-    if (statusRef.current !== "conflict") setStatus("saving");
-    const t = setTimeout(() => void enqueueSave("content"), 800);
-    return () => clearTimeout(t);
-    // enqueueSave reads latest state through refs; the deps that matter are the
-    // edits themselves.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pages, issue.id]);
-
-  // Debounced autosave of meta (title + theme + footer logo).
-  const firstMeta = useRef(true);
-  useEffect(() => {
-    if (firstMeta.current) {
-      firstMeta.current = false;
-      return;
-    }
-    if (statusRef.current !== "conflict") setStatus("saving");
-    const t = setTimeout(() => void enqueueSave("meta"), 800);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, themeId, logoId, issue.id]);
-
-  // Warn before closing the tab while an edit hasn't landed on the server.
-  useEffect(() => {
-    const onBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (statusRef.current === "saved") return;
-      e.preventDefault();
-    };
-    window.addEventListener("beforeunload", onBeforeUnload);
-    return () => window.removeEventListener("beforeunload", onBeforeUnload);
-  }, []);
 
   // Fit-and-zoom the fixed PAGE_W×PAGE_H canvas to the editor stage (zoom=1),
   // exactly as the reader does — so the editor is a faithful, to-scale preview —
@@ -281,7 +193,9 @@ export function Editor({
   } = useCanvasPanZoom({
     contentWidth: PAGE_W,
     contentHeight: PAGE_H,
-    fitMargin: { x: 80, y: 80 },
+    // The vertical margin is the stage's own padding: 40px above the page and
+    // the reserve the floating tool bar sits in below it.
+    fitMargin: { x: 80, y: 40 + TOOLBAR_RESERVE },
     fitClamp: { min: 0.5, max: 1.4 },
     initialFitScale: 0.75,
     blockSelector: "[data-editor-block]",
@@ -378,16 +292,10 @@ export function Editor({
           onCloseAddMenu={() => setAddMenu(false)}
         />
 
-        <div className="bg-canvas flex flex-1 flex-col overflow-hidden">
+        <div className="bg-canvas relative flex flex-1 flex-col overflow-hidden">
           {footerBehind && (
             <FooterUpdateNotice issueId={issue.id} flushSave={flushSave} />
           )}
-          <EditorToolbar
-            onAddBlock={addBlock}
-            onToggleCover={toggleCover}
-            coverDisabled={curPage === 0}
-            coverActive={Boolean(page?.cover)}
-          />
 
           <div
             ref={stageRef}
@@ -400,7 +308,8 @@ export function Editor({
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerUp}
-            className={`flex flex-1 items-center justify-center overflow-hidden p-10 ${
+            style={{ paddingBottom: TOOLBAR_RESERVE }}
+            className={`flex flex-1 items-center justify-center overflow-hidden px-10 pt-10 ${
               panning ? "cursor-grabbing select-none" : "cursor-grab"
             }`}
           >
@@ -440,12 +349,16 @@ export function Editor({
                       >
                         {page && page.blocks.length === 0 && (
                           <div className="text-faint2 py-16 text-center font-serif text-sm">
-                            This page is empty. Add a block above.
+                            This page is empty. Add a block below.
                           </div>
                         )}
                         {page?.blocks.map((b) => (
                           <EditorBlock
-                            key={b.id}
+                            // The reseed counter is part of the key: a body or
+                            // heading rewritten behind an uncontrolled in-place
+                            // editor's back (a flow split, an undo) reaches it
+                            // by remounting the block.
+                            key={`${b.id}:${reseed[b.id] ?? 0}`}
                             block={b}
                             theme={theme}
                             cover={page.cover}
@@ -460,7 +373,6 @@ export function Editor({
                                 : undefined
                             }
                             fitsAlone={overflow?.fitsAlone}
-                            reseed={reseed[b.id]}
                             onSelect={() => setSel(b.id)}
                             onChange={(patch) => updateBlock(b.id, patch)}
                             onMove={(dir) => moveBlock(b.id, dir)}
@@ -476,6 +388,18 @@ export function Editor({
               </ScaledPage>
             </div>
           </div>
+
+          <EditorToolbar
+            onAddBlock={addBlock}
+            onToggleCover={toggleCover}
+            coverDisabled={curPage === 0}
+            coverActive={Boolean(page?.cover)}
+            canUndo={canUndo}
+            canRedo={canRedo}
+            onUndo={undo}
+            onRedo={redo}
+            notice={historyNotice}
+          />
         </div>
       </div>
 

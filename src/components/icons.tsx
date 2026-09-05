@@ -26,6 +26,8 @@ const ICONS: Record<string, ReactNode> = {
     </>
   ),
   refresh: <path d="M20 11a8 8 0 10-2.3 5.6M20 11V5m0 6h-6" />,
+  undo: <path d="M9 8l-4 4 4 4M5 12h8.5a4.5 4.5 0 010 9H11" />,
+  redo: <path d="M15 8l4 4-4 4M19 12h-8.5a4.5 4.5 0 000 9H13" />,
   zoom: (
     <path d="M4 9V5a1 1 0 011-1h4M20 9V5a1 1 0 00-1-1h-4M4 15v4a1 1 0 001 1h4M20 15v4a1 1 0 01-1 1h-4" />
   ),

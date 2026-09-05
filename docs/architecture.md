@@ -109,6 +109,15 @@ The split cuts the structured document, never an HTML string (`lib/rich-text-spl
 and lists survive it. The result is ordinary fixed blocks on ordinary pages: nothing downstream
 knows it happened, and no block shape changed (`CONTENT_VERSION` unaffected). Issue #93.
 
+**Editing is undoable at the document level.** `features/editor/use-editor-history.ts` keeps a capped
+stack (100) of `{pages, curPage, sel}` snapshots — the whole document plus the author's place in it —
+and `useEditorPages` takes a step before every structural edit. Edits to one field in a run (typing,
+a size nudge, a caption) fold into a single step, so undo moves in author-sized units. Text typed
+inside a block keeps its own finer history (Tiptap's, and the browser's inside the in-place
+editables), and the editor-level Ctrl/Cmd+Z stands down whenever focus is in a text entry, so the two
+never fight. Restoring re-seeds the uncontrolled in-place editors by remounting the blocks whose
+content changed, and the ordinary autosave carries the restored document to the server. Issue #222.
+
 ## Data flow
 
 ```
