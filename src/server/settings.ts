@@ -9,9 +9,10 @@ import { settings } from "@/db/schema";
 import {
   EMPTY_SETTINGS,
   FOOTER_ALIGNS,
-  MARK_SIZES,
-  TEXT_SIZES,
+  MARK_SIZE,
+  TEXT_SIZE,
   resolveSettings,
+  type SizeAxis,
   type SiteSettings,
   type StoredSettings,
 } from "@/lib/branding";
@@ -38,17 +39,24 @@ const settingsSelection = {
   pdfDownloads: settings.pdfDownloads,
 };
 
-// The appearance columns are plain text, so a value hand-edited into the
-// database is external input like any other. `.catch(null)` degrades anything
-// unrecognised to "use the default" rather than emitting a class name nothing
-// styles — reading is never gated by bad config (the same rule resolveTheme
-// follows for layout themes).
+/** A footer size as the owner may store it: a whole number of px within its
+ *  axis (issue #216). Shared with the admin action so the save and the read
+ *  refuse exactly the same values. */
+export function footerSizeSchema(axis: SizeAxis) {
+  return z.number().int().min(axis.min).max(axis.max);
+}
+
+// The appearance columns are validated only by the app, so a value hand-edited
+// into the database is external input like any other. `.catch(null)` degrades
+// anything unrecognised — an out-of-range size, an unknown alignment — to "use
+// the default" rather than styling a page with it; reading is never gated by
+// bad config (the same rule resolveTheme follows for layout themes).
 const storedSchema = z.object({
   magazineName: z.string().nullable().catch(null),
   orgName: z.string().nullable().catch(null),
   tagline: z.string().nullable().catch(null),
-  footerMarkSize: z.enum(MARK_SIZES).nullable().catch(null),
-  footerTextSize: z.enum(TEXT_SIZES).nullable().catch(null),
+  footerMarkSize: footerSizeSchema(MARK_SIZE).nullable().catch(null),
+  footerTextSize: footerSizeSchema(TEXT_SIZE).nullable().catch(null),
   footerAlign: z.enum(FOOTER_ALIGNS).nullable().catch(null),
   // Postgres types this one, so `.catch(null)` only fires on a row that isn't
   // the shape the driver promised. Same treatment anyway: unreadable means "not

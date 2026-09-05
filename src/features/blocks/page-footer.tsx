@@ -1,10 +1,6 @@
+import type { CSSProperties } from "react";
 import type { ResolvedImage } from "@/lib/images";
-import type {
-  FooterAlign,
-  MarkSize,
-  SiteSettings,
-  TextSize,
-} from "@/lib/branding";
+import type { FooterAlign, SiteSettings } from "@/lib/branding";
 
 // The running footer at the foot of every magazine page. Two forms:
 //
@@ -30,33 +26,29 @@ import type {
 // name as a name, so the wording is set at the footer's ordinary tracking here.
 //
 // The owner sets the type size, the mark's size and the lockup's alignment at
-// /admin/magazine (issue #105); the medium/medium/left defaults reproduce the
+// /admin/magazine (issue #105); the 27px/10px/left defaults reproduce the
 // footer exactly as issue #104 shipped it. Type size deliberately applies to
 // BOTH forms — they share one treatment, so sizing only one would reintroduce
 // the change of voice between an issue with a mark and one without. Mark size
 // and alignment have nothing to act on in the no-logo form, which keeps its
 // fixed name / issue-no / folio spread.
-
-// Static class tables: Tailwind only emits classes it can see as literals, and
-// the footer's sizes are a fixed three-step scale rather than free numbers.
-const TEXT_CLASS: Record<TextSize, string> = {
-  small: "text-[9px]",
-  medium: "text-[10px]",
-  large: "text-[12px]",
-};
-
-const MARK_CLASS: Record<MarkSize, string> = {
-  small: "h-[18px]",
-  medium: "h-[27px]",
-  large: "h-[36px]",
-};
+//
+// The two sizes are numbers of px (issue #216) and go on as inline styles: an
+// owner-typed value is not a literal Tailwind can see at build time, and the
+// house CSP keeps style attributes allowed for exactly this kind of measured
+// layout (ScaledPage sets its transform the same way).
 
 // The footer row's own type treatment — deliberately the no-logo footer's, so
 // turning from an issue that carries a mark to one that doesn't is not a change
 // of voice. Shared with the mobile reader, which has no pages to put a footer on
-// but closes the issue with the same lockup.
-export function footerRow(textSize: TextSize): string {
-  return `text-faint2 flex items-center font-sans ${TEXT_CLASS[textSize]} font-medium tracking-[0.12em] uppercase`;
+// but closes the issue with the same lockup. The type size is the row's inline
+// style (`footerTextStyle`), which every user of this class must set too.
+export const FOOTER_ROW_CLASS =
+  "text-faint2 flex items-center font-sans font-medium tracking-[0.12em] uppercase";
+
+/** The footer's type size, as the style the row carries beside FOOTER_ROW_CLASS. */
+export function footerTextStyle(textSize: number): CSSProperties {
+  return { fontSize: textSize };
 }
 
 // Where the lockup sits in a row that holds nothing else (the mobile closer).
@@ -94,7 +86,8 @@ export function PageFooter({
     return (
       <div
         data-page-footer
-        className={`text-faint2 absolute right-10 bottom-4 left-10 flex justify-between font-sans ${TEXT_CLASS[footer.textSize]} font-medium tracking-[0.12em] uppercase`}
+        style={footerTextStyle(footer.textSize)}
+        className="text-faint2 absolute right-10 bottom-4 left-10 flex justify-between font-sans font-medium tracking-[0.12em] uppercase"
       >
         <span>{side === "left" ? settings.name : `No. ${issueNo}`}</span>
         <span>{pageNo ?? ""}</span>
@@ -111,7 +104,8 @@ export function PageFooter({
   return (
     <div
       data-page-footer
-      className={`absolute right-10 left-10 justify-between ${logoBottom} ${footerRow(footer.textSize)}`}
+      style={footerTextStyle(footer.textSize)}
+      className={`absolute right-10 left-10 justify-between ${logoBottom} ${FOOTER_ROW_CLASS}`}
     >
       {/* pl-6/pr-6 rather than a row gap: the folio is the only thing at the far
           margin, and the padding keeps it off a long name that has run out of
@@ -152,7 +146,8 @@ export function FooterWordmark({
 }: {
   logo: ResolvedImage;
   org: string;
-  markSize: MarkSize;
+  /** The mark's box height in px. */
+  markSize: number;
 }) {
   return (
     <span className="flex min-w-0 items-center gap-3">
@@ -164,7 +159,8 @@ export function FooterWordmark({
       <img
         src={logo.url}
         alt=""
-        className={`${MARK_CLASS[markSize]} w-auto flex-none opacity-60`}
+        style={{ height: markSize }}
+        className="w-auto flex-none opacity-60"
         aria-hidden="true"
       />
       {/* Truncating is the graceful end of the range for an organisation name

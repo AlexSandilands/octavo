@@ -4,17 +4,14 @@ import type { ReactNode } from "react";
 import {
   FOOTER_ALIGNS,
   FOOTER_ALIGN_LABELS,
-  MARK_SIZES,
-  MARK_SIZE_LABELS,
-  TEXT_SIZES,
-  TEXT_SIZE_LABELS,
+  MARK_SIZE,
+  TEXT_SIZE,
   type FooterAlign,
-  type MarkSize,
   type SiteSettings,
-  type TextSize,
 } from "@/lib/branding";
 import { SettingsCard } from "@/components/settings-card";
 import { MenuSelect, type MenuSelectItem } from "@/components/menu-select";
+import { FooterSizeField } from "./footer-size-field";
 import type { SettingsForm } from "./magazine-settings";
 
 // The settings form card on /admin/magazine. One card, because it is one form
@@ -88,20 +85,21 @@ export function SettingsFormCard({
           sits apply to issues that have one.
         </p>
       </div>
-      <div className="flex flex-wrap items-start gap-3">
-        <Choice
+      {/* Each size control is its own row: choosing Custom reveals a number
+          field beside its dropdown, and a wrapping row of all three would put
+          that field somewhere else each time. */}
+      <div className="flex flex-col items-start gap-3">
+        <FooterSizeField
           label="Mark size"
-          options={MARK_SIZES}
-          labels={MARK_SIZE_LABELS}
+          axis={MARK_SIZE}
           value={form.footerMarkSize}
-          onSelect={(footerMarkSize: MarkSize) => onChange({ footerMarkSize })}
+          onChange={(footerMarkSize) => onChange({ footerMarkSize })}
         />
-        <Choice
+        <FooterSizeField
           label="Text size"
-          options={TEXT_SIZES}
-          labels={TEXT_SIZE_LABELS}
+          axis={TEXT_SIZE}
           value={form.footerTextSize}
-          onSelect={(footerTextSize: TextSize) => onChange({ footerTextSize })}
+          onChange={(footerTextSize) => onChange({ footerTextSize })}
         />
         <Choice
           label="Align"
@@ -112,12 +110,14 @@ export function SettingsFormCard({
         />
       </div>
       <p className="text-faint2 font-sans text-[12px] leading-relaxed">
-        Alignment is the same on both pages of a spread and on a phone — the
-        page number always sits at the opposite margin. Making the footer
-        smaller applies everywhere at once. Making it bigger applies to every
-        issue with room for it; one whose pages were filled to the old footer
-        keeps the smaller one until you open it in the editor, which offers to
-        bring it up to date and marks any page that then no longer fits.
+        Small, Medium and Large are the sizes the footer has always offered;
+        Custom takes an exact size in pixels. Alignment is the same on both
+        pages of a spread and on a phone — the page number always sits at the
+        opposite margin. Making the footer smaller applies everywhere at once.
+        Making it bigger applies to every issue with room for it; one whose
+        pages were filled to the old footer keeps the smaller one until you open
+        it in the editor, which offers to bring it up to date and marks any page
+        that then no longer fits.
       </p>
 
       <div className="border-line-soft border-t pt-5">
@@ -270,6 +270,7 @@ function Choice<T extends string>({
       items={items}
       value={value}
       onSelect={onSelect}
+      size="md"
     />
   );
 }

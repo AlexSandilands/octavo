@@ -8,9 +8,10 @@ import type { Block, IssueContent } from "@/lib/blocks";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 import {
+  FOOTER_ROW_CLASS,
   LOCKUP_ALIGN,
   FooterWordmark,
-  footerRow,
+  footerTextStyle,
 } from "@/features/blocks/page-footer";
 import { headingDomId, MobileBlock } from "./mobile-block";
 import { useIssuePdf } from "./use-issue-pdf";
@@ -190,9 +191,8 @@ export function MobileReader({
             no logo, so an issue without one ends exactly as it did before. */}
         {logo && (
           <div
-            className={`border-line-soft mt-10 border-t pt-5 ${footerRow(
-              settings.footer.textSize,
-            )} ${LOCKUP_ALIGN[settings.footer.align]}`}
+            style={footerTextStyle(settings.footer.textSize)}
+            className={`border-line-soft mt-10 border-t pt-5 ${FOOTER_ROW_CLASS} ${LOCKUP_ALIGN[settings.footer.align]}`}
           >
             <FooterWordmark
               logo={logo}

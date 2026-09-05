@@ -77,7 +77,8 @@ const made = {
   dirs: [] as string[],
 };
 
-const RESERVE = { footerMarkSize: "medium", footerTextSize: "medium" } as const;
+// The shipped footer reserve in px (issue #216): the medium presets.
+const RESERVE = { footerMarkSize: 27, footerTextSize: 10 } as const;
 const UPLOADS = path.join(process.cwd(), ".data", "uploads");
 
 // Rows that existed before this run. Asserted unchanged at the end — the one

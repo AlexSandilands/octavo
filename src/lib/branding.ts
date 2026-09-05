@@ -7,15 +7,49 @@
 // public branding, so the resolved object is threaded into client components as
 // props (readers, editor, admin preview) without dragging `db`/`env` along.
 
-// Both scales are ordered by the footer HEIGHT they produce, smallest first
-// (mark: 18/27/36px, type: a 14/16/19px line box — measured, see page-footer).
-// The per-issue clamp below reads that order, so a new value must be inserted at
-// its height position rather than appended.
-export const MARK_SIZES = ["small", "medium", "large"] as const;
-export type MarkSize = (typeof MARK_SIZES)[number];
+// The footer's two height axes are pixel numbers (issue #216): the mark's box
+// height and the type size. Each axis has a floor and a ceiling — a mark under
+// 12px is a smudge and one over 48px overruns the page's bottom margin; type
+// under 8px is unreadable and over 14px stops looking like a footer — and three
+// named presets on it, which are exactly the values the three-step dropdowns
+// produced before a custom size existed, so a preset renders as it always did.
+export const SIZE_PRESETS = ["small", "medium", "large"] as const;
+export type SizePreset = (typeof SIZE_PRESETS)[number];
 
-export const TEXT_SIZES = ["small", "medium", "large"] as const;
-export type TextSize = (typeof TEXT_SIZES)[number];
+/** One height axis of the footer: the allowed span in px and its presets. */
+export type SizeAxis = {
+  min: number;
+  max: number;
+  presets: Record<SizePreset, number>;
+};
+
+export const MARK_SIZE: SizeAxis = {
+  min: 12,
+  max: 48,
+  presets: { small: 18, medium: 27, large: 36 },
+};
+
+// The line box is 1.6× the type size (inherited leading), so 9/10/12px set
+// 14/16/19px rows — but nothing downstream assumes that: the editor measures
+// the rendered footer's top edge (page-metrics.ts), so a custom size is
+// accounted for exactly as a preset is.
+export const TEXT_SIZE: SizeAxis = {
+  min: 8,
+  max: 14,
+  presets: { small: 9, medium: 10, large: 12 },
+};
+
+/** A size held to its axis. Non-finite input lands on the floor rather than
+ *  propagating NaN into a style. */
+export function clampSize(axis: SizeAxis, px: number): number {
+  if (!Number.isFinite(px)) return axis.min;
+  return Math.min(axis.max, Math.max(axis.min, Math.round(px)));
+}
+
+/** The preset a size is, or null when it is a custom value. */
+export function presetOf(axis: SizeAxis, px: number): SizePreset | null {
+  return SIZE_PRESETS.find((p) => axis.presets[p] === px) ?? null;
+}
 
 // Absolute, not mirrored: both pages of a spread (and the mobile closer) align
 // the same way, so a spread reads as one setting rather than two. A fourth
@@ -28,8 +62,10 @@ export type FooterAlign = (typeof FOOTER_ALIGNS)[number];
  *  alignment) and, for the type size, to the no-logo footer as well — the two
  *  forms share one type treatment on purpose (see page-footer.tsx). */
 export type FooterStyle = {
-  markSize: MarkSize;
-  textSize: TextSize;
+  /** The mark's box height in px, within MARK_SIZE. */
+  markSize: number;
+  /** The type size in px, within TEXT_SIZE. */
+  textSize: number;
   align: FooterAlign;
 };
 
@@ -54,8 +90,8 @@ export type SiteSettings = Branding & {
 // footer exactly as it shipped in issue #104, so a deployment that never opens
 // the page renders byte-identically to before this setting existed.
 export const DEFAULT_FOOTER_STYLE: FooterStyle = {
-  markSize: "medium",
-  textSize: "medium",
+  markSize: MARK_SIZE.presets.medium,
+  textSize: TEXT_SIZE.presets.medium,
   align: "left",
 };
 
@@ -82,8 +118,8 @@ export type StoredSettings = {
   magazineName: string | null;
   orgName: string | null;
   tagline: string | null;
-  footerMarkSize: MarkSize | null;
-  footerTextSize: TextSize | null;
+  footerMarkSize: number | null;
+  footerTextSize: number | null;
   footerAlign: FooterAlign | null;
   pdfDownloads: boolean | null;
 };
@@ -151,14 +187,9 @@ export function resolveSettings(
  *  as it comes out of the database and every render surface can pass the row
  *  straight in without a translation step to get wrong. */
 export type FooterReserve = {
-  footerMarkSize: MarkSize;
-  footerTextSize: TextSize;
+  footerMarkSize: number;
+  footerTextSize: number;
 };
-
-/** The smaller of two values on a height-ordered scale. */
-function shorter<T extends string>(scale: readonly T[], a: T, b: T): T {
-  return scale.indexOf(a) <= scale.indexOf(b) ? a : b;
-}
 
 /** The reserve new content is laid out against: whatever is set right now. */
 export function footerReserveOf(footer: FooterStyle): FooterReserve {
@@ -167,14 +198,24 @@ export function footerReserveOf(footer: FooterStyle): FooterReserve {
 
 /** The footer that may actually render on an issue's pages: the live setting,
  *  held to the issue's reserve on both height axes. Alignment passes through —
- *  it has no effect on the footer's height, so it is safe retroactively. */
+ *  it has no effect on the footer's height, so it is safe retroactively.
+ *
+ *  The result is held to each axis's range as well: the columns are plain
+ *  integers, so a row holding a number outside it must never print a footer
+ *  the page has no room for, nor one too small to read. */
 export function clampFooterStyle(
   live: FooterStyle,
   reserve: FooterReserve,
 ): FooterStyle {
   return {
-    markSize: shorter(MARK_SIZES, live.markSize, reserve.footerMarkSize),
-    textSize: shorter(TEXT_SIZES, live.textSize, reserve.footerTextSize),
+    markSize: clampSize(
+      MARK_SIZE,
+      Math.min(live.markSize, reserve.footerMarkSize),
+    ),
+    textSize: clampSize(
+      TEXT_SIZE,
+      Math.min(live.textSize, reserve.footerTextSize),
+    ),
     align: live.align,
   };
 }
@@ -205,13 +246,7 @@ export function settingsForIssue(
 
 // Human labels for the admin dropdowns. Kept beside the unions so adding a
 // value can't leave the picker showing a raw id.
-export const MARK_SIZE_LABELS: Record<MarkSize, string> = {
-  small: "Small",
-  medium: "Medium",
-  large: "Large",
-};
-
-export const TEXT_SIZE_LABELS: Record<TextSize, string> = {
+export const SIZE_PRESET_LABELS: Record<SizePreset, string> = {
   small: "Small",
   medium: "Medium",
   large: "Large",
