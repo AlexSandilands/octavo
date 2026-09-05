@@ -5,6 +5,7 @@
 // Run: npx tsx scripts/dev-reader-gate.mts <base-url> <dev-log-path>
 import { readFile } from "node:fs/promises";
 import { chromium, type Page } from "playwright";
+import postgres from "postgres";
 
 process.loadEnvFile?.(".env.local");
 const [base, logPath] = process.argv.slice(2);
@@ -60,6 +61,111 @@ ok(
   new URL(page.url()).pathname === "/read/3",
   "sign-in via ?next lands on /read/3",
 );
+
+// 2.5. A page turn must not move the spread (issue #217): the pan-wrapper's
+// height and the spread's top stay identical before, mid-turn (two frames
+// after the click, when the in-flight leaf's absolutely-positioned-only
+// content used to synthesise a baseline and grow the line box under
+// `inline-flex`), and after the turn commits. Forward, back, and the
+// cover-closing turn (issue 3 has a cover + two spreads).
+//
+// A fresh context with a DB-minted session, not the magic-link flow above:
+// `AUTH_URL` names a fixed port (usually :3000), so the emailed link's
+// `callbackUrl` always lands there regardless of `base` — harmless for the
+// pathname-only checks elsewhere in this file, but this check compares
+// pixel geometry, so it must land on the server actually being verified.
+const sql = postgres(process.env.DATABASE_URL!);
+const [member] = await sql<
+  { id: string }[]
+>`select id from users where email = 'member@example.com'`;
+if (!member)
+  throw new Error(
+    "member@example.com not found — run dev-auth-check.mts first",
+  );
+const sessionToken = crypto.randomUUID();
+await sql`insert into sessions (session_token, user_id, expires)
+          values (${sessionToken}, ${member.id}, now() + interval '1 day')`;
+try {
+  const turnCtx = await browser.newContext();
+  await turnCtx.addCookies([
+    { name: "authjs.session-token", value: sessionToken, url: base },
+  ]);
+  const turnPage = await turnCtx.newPage();
+  await turnPage.goto(`${base}/read/3`);
+
+  const spreadMetrics = (p: Page) =>
+    p.evaluate(() => {
+      const stage = document.querySelector<HTMLElement>(
+        ".cursor-grab, .cursor-grabbing",
+      )!;
+      const pan = stage.firstElementChild!.firstElementChild as HTMLElement;
+      const spread = pan.firstElementChild as HTMLElement;
+      const panRect = pan.getBoundingClientRect();
+      const spreadRect = spread.getBoundingClientRect();
+      return { panHeight: panRect.height, spreadTop: spreadRect.top };
+    });
+  // The reader mounts client-side (`ssr: false`, viewport-driven pick of
+  // desktop vs. mobile) and its fit-to-stage scale seeds a guess before the
+  // container's first real measurement lands (use-canvas-pan-zoom.ts) — both
+  // settle a beat after the stage first appears. Poll until two reads a
+  // moment apart agree, or the settle itself would read as a jump.
+  await turnPage.waitForSelector('button[title="Next"]');
+  let prev = await spreadMetrics(turnPage);
+  for (let i = 0; i < 20; i++) {
+    await turnPage.waitForTimeout(100);
+    const next = await spreadMetrics(turnPage);
+    if (next.panHeight === prev.panHeight && next.spreadTop === prev.spreadTop)
+      break;
+    prev = next;
+  }
+
+  async function turnAndMeasure(p: Page, buttonTitle: string) {
+    const before = await spreadMetrics(p);
+    await p.click(`button[title="${buttonTitle}"]`);
+    // Two frames in, then measure inline — no nested named helper, so tsx's
+    // `__name` rewrite (dev worktree gotcha) can't reach into the page.
+    const mid = await p.evaluate(
+      () =>
+        new Promise<{ panHeight: number; spreadTop: number }>((resolve) => {
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() => {
+              const stage = document.querySelector<HTMLElement>(
+                ".cursor-grab, .cursor-grabbing",
+              )!;
+              const pan = stage.firstElementChild!
+                .firstElementChild as HTMLElement;
+              const spread = pan.firstElementChild as HTMLElement;
+              const panRect = pan.getBoundingClientRect();
+              const spreadRect = spread.getBoundingClientRect();
+              resolve({
+                panHeight: panRect.height,
+                spreadTop: spreadRect.top,
+              });
+            }),
+          );
+        }),
+    );
+    await p.waitForTimeout(750); // FLIP_MS (700, reader-spread.tsx) + the commit's 30ms margin
+    const after = await spreadMetrics(p);
+    return { before, mid, after };
+  }
+  for (const title of ["Next", "Previous"] as const) {
+    const { before, mid, after } = await turnAndMeasure(turnPage, title);
+    ok(
+      mid.panHeight === before.panHeight && mid.spreadTop === before.spreadTop,
+      `${title}: spread doesn't move 2 frames into the turn (before ${JSON.stringify(before)}, mid ${JSON.stringify(mid)})`,
+    );
+    ok(
+      after.panHeight === before.panHeight &&
+        after.spreadTop === before.spreadTop,
+      `${title}: spread is back where it started once the turn commits (before ${JSON.stringify(before)}, after ${JSON.stringify(after)})`,
+    );
+  }
+  await turnCtx.close();
+} finally {
+  await sql`delete from sessions where session_token = ${sessionToken}`;
+  await sql.end();
+}
 
 // 3. Member header: Sign out visible, no Admin; sign out re-gates.
 await page.goto(`${base}/`);
