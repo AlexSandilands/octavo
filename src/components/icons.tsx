@@ -108,18 +108,20 @@ const ICONS: Record<string, ReactNode> = {
       <path d="M12 17h.01" />
     </>
   ),
+  // Drawn to the same ink band as the rich-text toolbar's letter labels so
+  // they read as one size (#214).
   listBullet: (
     <>
-      <circle cx="5" cy="7" r="1.1" fill="currentColor" stroke="none" />
-      <circle cx="5" cy="12" r="1.1" fill="currentColor" stroke="none" />
-      <circle cx="5" cy="17" r="1.1" fill="currentColor" stroke="none" />
-      <path d="M9 7h11M9 12h11M9 17h11" />
+      <circle cx="5" cy="6.5" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="5" cy="12" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="5" cy="17.5" r="1.2" fill="currentColor" stroke="none" />
+      <path d="M9 6.5h11M9 12h11M9 17.5h11" />
     </>
   ),
   link: (
     <>
-      <path d="M10 13.5a3.5 3.5 0 005 0l3-3a3.5 3.5 0 00-5-5l-1.4 1.4" />
-      <path d="M14 10.5a3.5 3.5 0 00-5 0l-3 3a3.5 3.5 0 005 5l1.4-1.4" />
+      <path d="M10.4 13.2a2.8 2.8 0 003.9 0l2.35-2.35a2.8 2.8 0 00-3.9-3.9l-1.1 1.1" />
+      <path d="M13.6 10.8a2.8 2.8 0 00-3.9 0l-2.35 2.35a2.8 2.8 0 003.9 3.9l1.1-1.1" />
     </>
   ),
   fullscreen: (

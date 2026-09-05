@@ -103,12 +103,10 @@ body {
   outline: none;
 }
 
-/* A quieter scrollbar for the app's own scroll regions: no track, a rounded
-   thumb in a darker shade of the surface it sits on, a little narrower than the
-   browser's thin one. `--scrollbar-surface` is the host surface the thumb is
-   mixed from — paper unless the region sets it (a card-backed panel: card).
-   `.scrollbar-soft-quiet` (with the base) hides it at rest and shows it on
-   hover, focus-within, or for a moment after a scroll (`data-scrolling`). */
+/* A quieter scrollbar for the app's own scroll regions. The thumb is mixed from
+   `--scrollbar-surface`, the surface it sits on (paper unless a region sets it);
+   `.scrollbar-soft-quiet` adds to the base, hiding the thumb until hover,
+   focus-within or a recent scroll (`data-scrolling`). */
 .scrollbar-soft {
   --scrollbar-thumb: color-mix(
     in oklab,
@@ -233,4 +231,12 @@ body {
 }
 .ProseMirror p:empty::after {
   content: "\00a0";
+}
+
+/* Editor chrome (block toolbars) over the page canvas: cancel the canvas's
+   fit scale so it stays one size at every zoom. */
+.chrome-unscaled {
+  --chrome-scale: 1.1;
+  transform: scale(calc(var(--chrome-scale) / var(--page-scale, 1)));
+  transform-origin: bottom left;
 }
