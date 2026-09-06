@@ -89,26 +89,24 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     // Every way of being unpressable, for the styling and the click guard —
     // `unavailable` has no attribute doing either of those for it.
     const inert = isDisabled || unavailable;
-    const base = `${full ? "flex w-full" : "inline-flex"} items-center justify-center gap-2 rounded-lg font-sans font-semibold transition-[transform,background-color,border-color,box-shadow,color] duration-150 ease-out select-none`;
+    const base = `${full ? "flex w-full" : "inline-flex"} items-center justify-center gap-2 rounded-[4px] font-sans font-semibold tracking-[0.01em] transition-[transform,background-color,border-color,box-shadow,color] duration-150 ease-out select-none`;
     const sizes = {
-      md: "h-12 px-5 text-[15px]",
-      sm: "h-10 px-4 text-sm",
+      md: "h-12 px-6 text-[15px]",
+      sm: "h-9 px-3.5 text-xs font-semibold uppercase tracking-[0.05em]",
     }[size];
     const rest = {
-      primary: "bg-accent text-paper shadow-[0_2px_8px_rgba(29,77,62,0.25)]",
+      primary: "bg-accent text-paper shadow-[0_2px_6px_rgba(140,36,36,0.24)] border border-accent-strong",
       // The house style for white buttons: a hairline on white.
-      secondary: "border-[1.5px] border-hair-warm bg-white text-ink",
-      danger: "bg-warn text-paper shadow-[0_2px_10px_rgba(0,0,0,0.18)]",
+      secondary: "border border-hair bg-white text-ink shadow-[0_1px_3px_rgba(0,0,0,0.05)]",
+      danger: "bg-warn text-paper shadow-[0_2px_6px_rgba(0,0,0,0.18)] border border-warn-strong",
     }[variant];
     const feedback = {
       primary:
-        "hover:bg-accent-strong hover:shadow-[0_4px_14px_rgba(29,77,62,0.3)] active:shadow-[0_1px_4px_rgba(29,77,62,0.25)]",
-      // That hairline lights up to an accent outline over a faint wash (matches
-      // the editor toolbar / sponsor buttons the rest of the app already uses).
+        "hover:bg-accent-strong hover:shadow-[0_4px_12px_rgba(140,36,36,0.32)] active:shadow-[0_1px_3px_rgba(140,36,36,0.25)]",
       secondary:
-        "hover:border-accent hover:bg-accent-wash active:bg-accent-wash",
+        "hover:border-accent hover:text-accent hover:bg-accent-wash active:bg-accent-wash",
       danger:
-        "hover:bg-warn-strong hover:shadow-[0_4px_14px_rgba(0,0,0,0.22)] active:shadow-[0_1px_5px_rgba(0,0,0,0.18)]",
+        "hover:bg-warn-strong hover:shadow-[0_4px_12px_rgba(0,0,0,0.22)] active:shadow-[0_1px_4px_rgba(0,0,0,0.18)]",
     }[variant];
     // The hover/press feedback is composed in only when the button can actually
     // be pressed, so a disabled or busy one sits completely still. Gated here in
@@ -214,10 +212,10 @@ export function Pill({ status }: { status: Status }) {
   const p = PILL[status];
   return (
     <span
-      className={`inline-flex items-center gap-2 rounded-full px-3 py-1 ${p.bg}`}
+      className={`inline-flex items-center gap-1.5 rounded-[3px] border border-current/20 px-2.5 py-0.5 ${p.bg}`}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${p.dot}`} />
-      <span className={`font-sans text-xs font-semibold ${p.ink}`}>
+      <span className={`font-sans text-[11px] font-bold uppercase tracking-[0.08em] ${p.ink}`}>
         {status}
       </span>
     </span>
@@ -226,7 +224,7 @@ export function Pill({ status }: { status: Status }) {
 
 export function Avatar({ initials }: { initials: string }) {
   return (
-    <span className="bg-tint text-accent flex h-9 w-9 flex-none items-center justify-center rounded-full font-sans text-[13px] font-semibold">
+    <span className="bg-tint text-accent border border-accent/25 flex h-9 w-9 flex-none items-center justify-center rounded-[4px] font-serif text-[14px] font-bold">
       {initials}
     </span>
   );

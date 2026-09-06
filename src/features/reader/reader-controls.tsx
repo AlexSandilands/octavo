@@ -45,11 +45,11 @@ export function ReaderControls({
         : "Download PDF";
   return (
     <div className="group absolute inset-x-0 bottom-0 flex justify-center px-4 pt-12 pb-4">
-      <div className="bg-reader-chrome text-reader-chrome-text flex items-center gap-1.5 rounded-full px-2.5 py-2 opacity-50 shadow-[0_8px_24px_rgba(0,0,0,0.28)] transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
+      <div className="bg-paper text-ink border border-line shadow-[0_6px_20px_rgba(0,0,0,0.12)] flex items-center gap-1.5 rounded-[6px] px-3 py-1.5 opacity-80 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
         <CtrlBtn onClick={onPrev} title="Previous">
           <Icon name="chevronLeft" size={18} strokeWidth={1.7} />
         </CtrlBtn>
-        <span className="text-reader-chrome-muted min-w-[76px] text-center font-sans text-[13px]">
+        <span className="text-muted min-w-[80px] text-center font-serif text-[13px] font-semibold">
           {label}
         </span>
         <CtrlBtn onClick={onNext} title="Next">
@@ -72,7 +72,7 @@ export function ReaderControls({
             onChange={(e) => onZoom(parseFloat(e.target.value))}
             aria-label="Zoom page"
             title={`Zoom ${Math.round(zoom * 100)}%`}
-            className="accent-reader-slider h-1 w-20 cursor-pointer"
+            className="accent-accent h-1 w-20 cursor-pointer"
           />
         </div>
         {/* The divider goes with the button it introduces — left behind it
@@ -128,14 +128,14 @@ function CtrlBtn({
       title={title}
       aria-label={title}
       disabled={disabled}
-      className="hover:bg-reader-chrome-hover flex h-11 w-11 items-center justify-center rounded-full disabled:cursor-default"
+      className="text-ink hover:bg-accent-wash hover:text-accent flex h-10 w-10 items-center justify-center rounded-[4px] transition-colors disabled:cursor-default disabled:opacity-40"
     >
       {children}
     </button>
   );
 }
 
-// A small spinning ring in the current (chrome) text colour, shown while the PDF
+// A small spinning ring in the current text colour, shown while the PDF
 // generates. aria is carried by the button's title/label, so this is decorative.
 function Spinner() {
   return (
@@ -147,5 +147,5 @@ function Spinner() {
 }
 
 function Divider() {
-  return <div className="bg-reader-chrome-line mx-1 h-[22px] w-px" />;
+  return <div className="bg-line mx-1 h-[20px] w-px" />;
 }

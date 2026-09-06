@@ -13,26 +13,25 @@ export function AdminShell({
   children: ReactNode;
 }) {
   return (
-    // Column on mobile (top bar over content), row on desktop (rail beside it).
-    // h-screen + overflow-y-auto on <main>: only the content pane scrolls, so
-    // the sidebar (and its mt-auto footer) stays pinned to the viewport.
-    <div className="bg-card flex h-screen flex-col md:flex-row">
-      {/* Desktop rail — hidden below md, where the drawer takes over. Unchanged
-          from the original fixed 214px sidebar at md+. */}
-      <aside className="bg-paper border-line hidden w-[214px] flex-none flex-col border-r py-6 md:flex">
-        <AdminNavContent active={active} user={user} />
-      </aside>
-      {/* Mobile top bar + off-canvas drawer (client island for open/close). */}
+    // Top bar on desktop, mobile drawer below md.
+    // main scrolls independently.
+    <div className="bg-card flex h-screen flex-col">
+      {/* Desktop broadsheet top bar (hidden on mobile) */}
+      <header className="bg-paper border-line hidden flex-none border-b shadow-xs md:block">
+        <AdminNavContent active={active} user={user} mobile={false} />
+      </header>
+      {/* Mobile top bar + off-canvas drawer */}
       <AdminDrawer>
-        <AdminNavContent active={active} user={user} />
+        <AdminNavContent active={active} user={user} mobile={true} />
       </AdminDrawer>
-      {/* `relative` keeps absolute descendants (e.g. sr-only live regions) in
-          this scroll pane; unanchored they stretch the document (#189). */}
+      {/* `relative` keeps absolute descendants in this scroll pane */}
       <main
         id={ADMIN_MAIN_ID}
-        className="scrollbar-soft relative flex-1 overflow-y-auto p-7 [--scrollbar-surface:var(--color-card)] [scrollbar-gutter:stable] sm:p-8"
+        className="scrollbar-soft relative flex-1 overflow-y-auto p-6 [--scrollbar-surface:var(--color-card)] [scrollbar-gutter:stable] sm:p-8"
       >
-        {children}
+        <div className="mx-auto w-full max-w-6xl md:h-full md:flex md:flex-col">
+          {children}
+        </div>
       </main>
     </div>
   );
