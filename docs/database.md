@@ -150,7 +150,10 @@ the column via `jsonb(...).$type<IssueContent>()`.
 
 A page may set `cover: true` — it then renders through the dedicated cover
 treatment (vertically centred, oversized hero type) in both readers and the
-editor, rather than the normal flow. A `Text` block carries an optional `size`
+editor, rather than the normal flow. Covers carry no running footer in the
+desktop reader, editor, PDF or thumbnails; theme decoration stays, and interior
+page numbers still count the cover as page 1. The mobile reader has no page
+footers and keeps its closing lockup. A `Text` block carries an optional `size`
 (`s|m|l|xl`); since the page is a **fixed design canvas** that scales as a whole
 (see below), that size is absolute px on desktop/print and a relative multiplier
 in the reflowing mobile reader. Both fields are optional, so older content

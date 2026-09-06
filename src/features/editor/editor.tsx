@@ -297,7 +297,7 @@ export function Editor({
         />
 
         <div className="bg-canvas relative flex flex-1 flex-col overflow-hidden">
-          {footerBehind && (
+          {footerBehind && page && !page.cover && !filled && (
             <FooterUpdateNotice issueId={issue.id} flushSave={flushSave} />
           )}
 
@@ -331,6 +331,7 @@ export function Editor({
                   logo={logo}
                   settings={settings}
                   clip={false}
+                  cover={page?.cover}
                   bleed={filled}
                 >
                   <DndContext

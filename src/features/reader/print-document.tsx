@@ -72,6 +72,7 @@ export function PrintDocument({
               side={side}
               logo={logo}
               settings={settings}
+              cover={page.cover}
               bleed={pageFillsCanvas(page)}
             >
               <PageBlocks

@@ -80,9 +80,10 @@ export function SettingsFormCard({
           Page footer
         </h3>
         <p className="text-muted mt-1.5 font-sans text-[13px] leading-relaxed">
-          How the foot of every page is set. Text size applies whether or not
-          the issue carries a mark; the mark&rsquo;s size and where the lockup
-          sits apply to issues that have one.
+          How the running footer on interior pages is set. Covers and full-page
+          photos have no footer. Text size applies whether or not the issue
+          carries a mark; the mark&rsquo;s size and where the lockup sits apply
+          to issues that have one.
         </p>
       </div>
       {/* One control per row so Custom's number field stays beside its own
