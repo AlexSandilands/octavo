@@ -48,3 +48,7 @@ yarn-error.log*
 
 # sentry (source-map upload writes this when an auth token is set at build)
 .env.sentry-build-plugin
+
+# claude code — share project config, keep local state out
+.claude/settings.local.json
+.claude/worktrees/
