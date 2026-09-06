@@ -8,65 +8,55 @@
    Tokens drive Tailwind utilities (bg-paper, text-accent, font-serif, ...).
    These @theme tokens ARE the `heritage` brand — the per-deployment default. */
 @theme {
-  --color-paper: #f4f0e8;
-  --color-page: #faf7f0;
-  --color-card: #fbf9f4;
-  --color-stage: #efe9dd;
-  --color-tint: #e8efe9;
+  --color-paper: #f8fafc;
+  --color-page: #ffffff;
+  --color-card: #ffffff;
+  --color-stage: #f1f5f9;
+  --color-tint: #eff6ff;
 
-  --color-accent: #1d4d3e;
-  --color-accent-strong: #184034;
-  --color-accent-ink: #143a2e;
-  --color-accent-soft: #3f6b5b;
-  --color-cream: #cfe0d6;
+  --color-accent: #1d4ed8;
+  --color-accent-strong: #1e40af;
+  --color-accent-ink: #172554;
+  --color-accent-soft: #3b82f6;
+  --color-cream: #dbeafe;
 
-  --color-ink: #20201c;
-  --color-body: #2a2722;
-  --color-muted: #56524a;
-  /* Two warm greys for de-emphasised text. Both clear WCAG AA (≥4.5:1) on the
-     paper/page/card/stage backgrounds they render on, so metadata, hints and
-     page numbers stay legible for the older audience — faint2 is the lighter of
-     the pair, faint a step darker for text that carries a little more weight. */
-  --color-faint: #615c50;
-  --color-faint2: #6d685a;
+  --color-ink: #0f172a;
+  --color-body: #1e293b;
+  --color-muted: #475569;
+  --color-faint: #4f5d6f;
+  --color-faint2: #576679;
 
-  --color-line: #e6e0d3;
-  --color-line-soft: #efe9dc;
-  --color-hair: #ddd6c8;
+  --color-line: #e2e8f0;
+  --color-line-soft: #edf2f7;
+  --color-hair: #cbd5e1;
 
-  /* Amber warning ink, darkened to clear AA both as text on warn-soft and as a
-     background under paper-coloured text (the draft ribbon). */
-  --color-warn: #8a5d1c;
-  --color-warn-strong: #6f4a14; /* darker warn — hover on destructive buttons */
-  --color-warn-soft: #f3ece0;
+  --color-warn: #92400e;
+  --color-warn-strong: #78350f;
+  --color-warn-soft: #fef3c7;
 
-  /* Status dots. */
-  --color-ok: #2f8f6b; /* success / subscribed */
-  --color-alert: #c8923f; /* caution — bounced / planned */
+  --color-ok: #059669;
+  --color-alert: #d97706;
 
-  /* Warm chrome neutrals — hairlines, chips and washes on the paper UI. */
-  --color-hair-warm: #e0d9c9; /* border on white chips/buttons/thumbnails */
-  --color-rule: #cfc6b4; /* decorative heading + cover hairline rules */
-  --color-dash: #c9c1b1; /* dashed empty-state borders */
-  --color-placeholder-line: #e2dccf; /* photo placeholder outline */
-  --color-chip: #efeae0; /* neutral pill / badge background */
-  --color-chip-dot: #b8b1a2; /* neutral status dot */
-  --color-chip-soft: #f0ece2; /* lighter neutral control background */
-  --color-accent-wash: #f4f8f5; /* faint accent tint — hover on white controls */
-  --color-canvas: #ece7dc; /* editor canvas backdrop */
+  --color-hair-warm: #d1d9e2;
+  --color-rule: #cbd5e1;
+  --color-dash: #94a3b8;
+  --color-placeholder-line: #e2e8f0;
+  --color-chip: #f1f5f9;
+  --color-chip-dot: #94a3b8;
+  --color-chip-soft: #f8fafc;
+  --color-accent-wash: #eff6ff;
+  --color-canvas: #edf2f7;
 
-  /* Page decorations. */
-  --color-page-seam: #efe7d8; /* spine-side divider between spread pages */
-  --color-page-frame: #dcd1b6; /* classic outer decorative frame */
-  --color-page-frame-soft: #e8e0cb; /* classic inner decorative frame */
+  --color-page-seam: #e2e8f0;
+  --color-page-frame: #cbd5e1;
+  --color-page-frame-soft: #e2e8f0;
 
-  /* Reader control dock — dark chrome floating over the paper stage. */
-  --color-reader-chrome: #211f1a;
-  --color-reader-chrome-text: #e7e2d6;
-  --color-reader-chrome-muted: #cfc9bb;
-  --color-reader-chrome-hover: #34312a;
-  --color-reader-chrome-line: #413d35;
-  --color-reader-slider: #9db8ac; /* zoom slider accent */
+  --color-reader-chrome: #0f172a;
+  --color-reader-chrome-text: #f8fafc;
+  --color-reader-chrome-muted: #94a3b8;
+  --color-reader-chrome-hover: #1e293b;
+  --color-reader-chrome-line: #334155;
+  --color-reader-slider: #60a5fa;
 
   --font-serif: var(--font-newsreader), Georgia, serif;
   --font-sans: var(--font-hanken), system-ui, sans-serif;
@@ -165,10 +155,10 @@ body {
 .photo-fill-green {
   background-image: repeating-linear-gradient(
     135deg,
-    #214f41 0,
-    #214f41 10px,
-    #1d4a3c 10px,
-    #1d4a3c 20px
+    #1d4ed8 0,
+    #1d4ed8 10px,
+    #1e40af 10px,
+    #1e40af 20px
   );
 }
 

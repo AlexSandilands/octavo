@@ -144,7 +144,7 @@ function ArchiveCard({
       className="group"
       style={{ width: THUMB_W }}
     >
-      <div className="overflow-hidden rounded-[5px] shadow-[0_2px_10px_-5px_rgba(20,32,28,0.3)] transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-[0_14px_28px_-10px_rgba(20,32,28,0.4)]">
+      <div className="overflow-hidden rounded-xl shadow-sm border border-line/60 transition-all duration-300 group-hover:-translate-y-1.5 group-hover:shadow-[0_12px_24px_rgba(29,78,216,0.16)] group-hover:border-accent/40">
         {a.cover ? (
           <CoverThumb
             page={a.cover}
@@ -159,12 +159,12 @@ function ArchiveCard({
           <PlaceholderCover number={a.number} tint={tint} />
         )}
       </div>
-      <div className="mt-2.5">
-        <span className="text-ink font-serif text-[15px] leading-tight group-hover:underline">
+      <div className="mt-3 flex flex-col gap-0.5">
+        <span className="text-ink font-sans font-bold text-[14px] leading-tight group-hover:text-accent transition-colors">
           {a.title}
-        </span>{" "}
-        <span className="text-faint2 inline-block font-mono text-[11px] whitespace-nowrap">
-          No. {a.number}
+        </span>
+        <span className="text-faint font-sans text-[11px] font-medium">
+          Issue #{a.number}
         </span>
       </div>
     </Link>

@@ -3,13 +3,14 @@ import { forwardRef, type ReactNode } from "react";
 import { Icon, type IconName } from "./icons";
 import { MagazineName } from "./branding";
 
-export function Wordmark({ size = 22 }: { size?: number }) {
+export function Wordmark({ size = 20 }: { size?: number }) {
   return (
     <span
-      className="font-serif text-ink"
-      style={{ fontSize: size, fontWeight: 500, letterSpacing: ".02em" }}
+      className="font-sans font-bold text-ink tracking-tight flex items-center gap-1.5 uppercase"
+      style={{ fontSize: size }}
     >
       <MagazineName />
+      <span className="h-1.5 w-1.5 rounded-full bg-accent inline-block" />
     </span>
   );
 }
@@ -89,26 +90,24 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     // Every way of being unpressable, for the styling and the click guard —
     // `unavailable` has no attribute doing either of those for it.
     const inert = isDisabled || unavailable;
-    const base = `${full ? "flex w-full" : "inline-flex"} items-center justify-center gap-2 rounded-lg font-sans font-semibold transition-[transform,background-color,border-color,box-shadow,color] duration-150 ease-out select-none`;
+    const base = `${full ? "flex w-full" : "inline-flex"} items-center justify-center gap-2 rounded-xl font-sans font-semibold tracking-[-0.01em] transition-[transform,background-color,border-color,box-shadow,color] duration-150 ease-out select-none`;
     const sizes = {
-      md: "h-12 px-5 text-[15px]",
-      sm: "h-10 px-4 text-sm",
+      md: "h-11 px-5 text-[14px]",
+      sm: "h-9 px-3.5 text-xs",
     }[size];
     const rest = {
-      primary: "bg-accent text-paper shadow-[0_2px_8px_rgba(29,77,62,0.25)]",
+      primary: "bg-accent text-white shadow-[0_4px_14px_rgba(29,78,216,0.24)]",
       // The house style for white buttons: a hairline on white.
-      secondary: "border-[1.5px] border-hair-warm bg-white text-ink",
-      danger: "bg-warn text-paper shadow-[0_2px_10px_rgba(0,0,0,0.18)]",
+      secondary: "border border-line bg-white text-ink shadow-[0_1px_2px_rgba(0,0,0,0.04)]",
+      danger: "bg-warn text-white shadow-[0_4px_14px_rgba(146,64,14,0.22)]",
     }[variant];
     const feedback = {
       primary:
-        "hover:bg-accent-strong hover:shadow-[0_4px_14px_rgba(29,77,62,0.3)] active:shadow-[0_1px_4px_rgba(29,77,62,0.25)]",
-      // That hairline lights up to an accent outline over a faint wash (matches
-      // the editor toolbar / sponsor buttons the rest of the app already uses).
+        "hover:bg-accent-strong hover:shadow-[0_6px_18px_rgba(29,78,216,0.32)] active:shadow-[0_1px_4px_rgba(29,78,216,0.25)]",
       secondary:
-        "hover:border-accent hover:bg-accent-wash active:bg-accent-wash",
+        "hover:border-accent hover:text-accent hover:bg-accent-wash active:bg-accent-wash",
       danger:
-        "hover:bg-warn-strong hover:shadow-[0_4px_14px_rgba(0,0,0,0.22)] active:shadow-[0_1px_5px_rgba(0,0,0,0.18)]",
+        "hover:bg-warn-strong hover:shadow-[0_6px_18px_rgba(146,64,14,0.28)] active:shadow-[0_1px_4px_rgba(146,64,14,0.2)]",
     }[variant];
     // The hover/press feedback is composed in only when the button can actually
     // be pressed, so a disabled or busy one sits completely still. Gated here in

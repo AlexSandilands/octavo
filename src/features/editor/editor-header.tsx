@@ -53,21 +53,21 @@ export function EditorHeader({
   onPublish: () => void;
 }) {
   return (
-    <header className="border-line flex h-[60px] flex-none items-center justify-between border-b px-6">
+    <header className="border-line bg-white flex h-[60px] flex-none items-center justify-between border-b px-6 shadow-2xs">
       <div className="flex items-center gap-3.5">
-        <Link href="/admin" className="text-muted" aria-label="Back to issues">
+        <Link href="/admin" className="text-muted hover:text-ink hover:bg-slate-100 rounded-lg p-1 transition-colors" aria-label="Back to issues">
           <Icon name="chevronLeft" size={20} />
         </Link>
         <input
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
-          className="text-ink min-w-0 border-none bg-transparent font-serif text-[21px] outline-none"
+          className="text-ink min-w-0 border-none bg-transparent font-sans font-bold text-[19px] tracking-tight outline-none"
           placeholder="Untitled issue"
         />
-        <span className="bg-chip flex items-center gap-1.5 rounded-full px-3 py-1">
-          <span className="bg-chip-dot h-1.5 w-1.5 rounded-full" />
-          <span className="text-faint font-sans text-[11px] font-semibold">
-            Draft · No. {issueNumber}
+        <span className="bg-slate-100 text-slate-700 flex items-center gap-1.5 rounded-full px-3 py-1">
+          <span className="bg-accent h-1.5 w-1.5 rounded-full" />
+          <span className="text-slate-700 font-sans text-[11px] font-semibold">
+            Draft #{issueNumber}
           </span>
         </span>
         {status === "error" ? (

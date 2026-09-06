@@ -42,16 +42,13 @@ export function LatestIssue({
   const shown = sections.slice(0, 4);
 
   return (
-    <section className="border-line-soft grid gap-8 border-b py-9 md:grid-cols-[240px_1fr]">
+    <section className="border-line/70 grid gap-8 border-b py-10 md:grid-cols-[240px_1fr]">
       <Link
         href={`/read/${number}`}
         aria-label={`Read ${title}`}
         className="group relative block w-[240px] self-start"
       >
-        {/* Stacked page edges peeking out behind the cover. */}
-        <div className="bg-hair absolute inset-y-2 -right-[3px] w-[3px] rounded-r-[3px]" />
-        <div className="bg-line-soft absolute inset-y-1 -right-[6px] w-[3px] rounded-r-[3px]" />
-        <div className="relative overflow-hidden rounded-[5px] shadow-[0_18px_38px_-14px_rgba(20,40,33,0.45)] transition-transform duration-300 group-hover:-translate-y-1">
+        <div className="relative overflow-hidden rounded-xl shadow-[0_10px_30px_rgba(15,23,42,0.14)] transition-all duration-300 group-hover:-translate-y-1.5 group-hover:shadow-[0_20px_40px_rgba(29,78,216,0.22)]">
           {cover ? (
             <CoverThumb
               page={cover}
@@ -65,13 +62,11 @@ export function LatestIssue({
             />
           ) : (
             // Legacy issues without a cover page keep the stylised book panel.
-            <div className="photo-fill-green relative flex h-[330px] flex-col justify-between p-5">
-              <div className="absolute inset-y-0 left-0 w-[7px] bg-black/20" />
-              <div className="absolute inset-y-0 left-[7px] w-px bg-white/10" />
-              <div className="text-cream font-serif text-[13px] tracking-[0.1em]">
+            <div className="photo-fill-green relative flex h-[330px] flex-col justify-between p-6 rounded-xl">
+              <div className="text-cream font-sans text-[12px] font-bold tracking-[0.16em] uppercase">
                 {settings.name} · No. {number}
               </div>
-              <div className="text-paper font-serif text-4xl leading-[0.96]">
+              <div className="text-white font-sans font-black text-3xl leading-[1.0] tracking-tight">
                 {title}
               </div>
             </div>
@@ -80,14 +75,19 @@ export function LatestIssue({
       </Link>
 
       <div className="flex flex-col">
-        <Kicker>The latest issue</Kicker>
+        <Kicker>Latest Release</Kicker>
         {/* h2: the page's single h1 is the masthead standfirst (see page.tsx). */}
-        <h2 className="text-ink mt-3 font-serif text-4xl leading-[1.02] sm:text-5xl">
+        <h2 className="text-ink mt-3 font-sans text-4xl font-black tracking-tight leading-[1.05] sm:text-5xl">
           {title}
         </h2>
-        <div className="text-faint mt-3 font-sans text-[13px] tracking-wide">
-          No. {number} · {pageCount} {pageCount === 1 ? "page" : "pages"}
-          {month ? ` · ${month}` : ""}
+        <div className="mt-3 flex items-center gap-2">
+          <span className="bg-slate-100 text-muted rounded-full px-3 py-1 font-sans text-xs font-semibold">
+            Issue #{number}
+          </span>
+          <span className="text-faint font-sans text-xs font-medium">
+            {pageCount} {pageCount === 1 ? "page" : "pages"}
+            {month ? ` · ${month}` : ""}
+          </span>
         </div>
 
         {shown.length > 0 && (

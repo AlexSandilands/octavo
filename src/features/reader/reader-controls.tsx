@@ -44,24 +44,24 @@ export function ReaderControls({
         ? "PDF failed — tap to retry"
         : "Download PDF";
   return (
-    <div className="group absolute inset-x-0 bottom-0 flex justify-center px-4 pt-12 pb-4">
-      <div className="bg-reader-chrome text-reader-chrome-text flex items-center gap-1.5 rounded-full px-2.5 py-2 opacity-50 shadow-[0_8px_24px_rgba(0,0,0,0.28)] transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
+    <div className="group absolute inset-x-0 bottom-0 flex justify-center px-4 pt-12 pb-5">
+      <div className="bg-slate-900/90 backdrop-blur-md text-white border border-white/10 flex items-center gap-2 rounded-full px-3 py-1.5 opacity-75 shadow-[0_12px_32px_rgba(0,0,0,0.35)] transition-all duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
         <CtrlBtn onClick={onPrev} title="Previous">
-          <Icon name="chevronLeft" size={18} strokeWidth={1.7} />
+          <Icon name="chevronLeft" size={17} strokeWidth={2} />
         </CtrlBtn>
-        <span className="text-reader-chrome-muted min-w-[76px] text-center font-sans text-[13px]">
+        <span className="text-slate-300 min-w-[76px] text-center font-sans text-xs font-semibold tracking-wide">
           {label}
         </span>
         <CtrlBtn onClick={onNext} title="Next">
-          <Icon name="chevronRight" size={18} strokeWidth={1.7} />
+          <Icon name="chevronRight" size={17} strokeWidth={2} />
         </CtrlBtn>
         <Divider />
         <CtrlBtn onClick={onToggleContents} title="Contents">
-          <Icon name="menu" size={18} />
+          <Icon name="menu" size={17} />
         </CtrlBtn>
         <div className="flex items-center gap-2 pr-1 pl-1">
           <CtrlBtn onClick={onResetView} title="Fit to screen">
-            <Icon name="fitScreen" size={18} />
+            <Icon name="fitScreen" size={17} />
           </CtrlBtn>
           <input
             type="range"
@@ -72,7 +72,7 @@ export function ReaderControls({
             onChange={(e) => onZoom(parseFloat(e.target.value))}
             aria-label="Zoom page"
             title={`Zoom ${Math.round(zoom * 100)}%`}
-            className="accent-reader-slider h-1 w-20 cursor-pointer"
+            className="accent-accent h-1 w-20 cursor-pointer"
           />
         </div>
         {/* The divider goes with the button it introduces — left behind it
