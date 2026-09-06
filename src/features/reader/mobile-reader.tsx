@@ -186,10 +186,13 @@ export function MobileReader({
                   ? { minHeight: `calc(100dvh - ${HEADER_HEIGHT}px)` }
                   : undefined
               }
+              // A photo-owned page keeps no vertical padding, so the photo runs
+              // from the break above it to the one below.
               className={[
                 "px-5",
-                i === 0 && "pt-6",
-                (i === sections.length - 1 || sections[i + 1]?.divided) &&
+                !s.filled && i === 0 && "pt-6",
+                !s.filled &&
+                  (i === sections.length - 1 || sections[i + 1]?.divided) &&
                   "pb-8",
                 s.cover && "py-8 text-center",
                 front && "flex flex-col justify-center",
@@ -201,7 +204,7 @@ export function MobileReader({
               {s.divided && (
                 <div
                   aria-hidden
-                  className="bg-canvas -mx-5 mb-6 shadow-[inset_0_2px_3px_rgba(40,36,28,0.08)]"
+                  className={`bg-canvas -mx-5 shadow-[inset_0_2px_3px_rgba(40,36,28,0.08)] ${s.filled ? "" : "mb-6"}`}
                   style={{ height: breakHeight(m) }}
                 />
               )}

@@ -115,10 +115,11 @@ export function MobileBlock({
     case "image": {
       const resolved = block.imageId ? images[block.imageId] : undefined;
       // Runs the full phone width: -mx-5 cancels the section's px-5
-      // (mobile-reader.tsx); no crop, since there is no page shape here.
+      // (mobile-reader.tsx), and no vertical margin, since the section it owns
+      // carries none either. No crop — there is no page shape here.
       if (resolved && isFillPage(block)) {
         return (
-          <figure className="-mx-5 my-3">
+          <figure className="-mx-5">
             <BlockImage image={resolved} alt={block.alt || block.caption} />
           </figure>
         );
