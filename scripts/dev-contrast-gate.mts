@@ -56,6 +56,11 @@ for (const id of BRAND_IDS) {
   brands.set(id, new Map([...heritage, ...override]));
 }
 
+const harbour = parseTokens(await read("../src/app/harbour.css"));
+for (const [id, tokens] of [...brands]) {
+  brands.set(`${id}/harbour-shell`, new Map([...tokens, ...harbour]));
+}
+
 // Relative luminance + contrast ratio, per WCAG 2.x.
 const luminance = (h: string) => {
   const c = h.replace("#", "");

@@ -89,7 +89,7 @@ export function MemberRow({
   };
 
   return (
-    <div className="border-line-soft border-b py-3">
+    <div className="border-line my-3 rounded-[16px] border bg-white px-3 py-4">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5 px-1.5">
         <div className="flex min-w-0 basis-full items-center gap-3 sm:basis-0 sm:flex-1">
           <SelectCheckbox

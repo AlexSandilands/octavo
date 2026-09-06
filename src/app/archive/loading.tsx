@@ -4,7 +4,11 @@ import { Wordmark } from "@/components/ui";
 // own file because the root skeleton leads with a hero this page never has.
 export default function ArchiveLoading() {
   return (
-    <main className="mx-auto max-w-5xl px-5 py-6 sm:px-8 sm:py-10">
+    <main
+      className="harbour-library"
+      aria-busy="true"
+      aria-label="Loading archive"
+    >
       <header className="border-line flex items-center justify-between border-b pb-4">
         <Wordmark size={24} />
         <div className="bg-line-soft h-8 w-40 animate-pulse rounded-lg" />
@@ -19,7 +23,10 @@ export default function ArchiveLoading() {
       </div>
       <div className="mt-12 grid grid-cols-2 gap-6 sm:grid-cols-5">
         {Array.from({ length: 10 }, (_, i) => (
-          <div key={i}>
+          <div
+            key={i}
+            className="rounded-[18px] border border-line bg-white p-4"
+          >
             <div className="bg-line-soft aspect-[5/7] animate-pulse rounded-[4px]" />
             <div className="bg-line-soft mt-3 h-4 w-3/4 animate-pulse rounded" />
           </div>

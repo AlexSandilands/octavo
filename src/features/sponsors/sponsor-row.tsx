@@ -34,7 +34,7 @@ export function SponsorRow({
 
   return (
     <div
-      className={`border-line-soft flex flex-wrap items-center gap-x-3 gap-y-2 border-b px-1.5 py-3.5 sm:gap-0 ${
+      className={`border-line my-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[16px] border bg-white p-4 sm:gap-0 ${
         pending ? "opacity-40" : ""
       }`}
     >

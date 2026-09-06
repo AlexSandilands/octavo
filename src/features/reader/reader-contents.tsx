@@ -73,10 +73,10 @@ export function ReaderContents({
   }
 
   return (
-    <aside className="bg-card border-line flex w-[248px] flex-none flex-col border-r py-5">
+    <aside className="bg-card border-line m-4 mr-0 flex w-[220px] xl:w-[264px] flex-none flex-col rounded-[22px] border py-5">
       <Link
         href="/"
-        className="text-muted hover:text-accent mb-4 flex items-center gap-1.5 px-5 font-sans text-[13px] font-medium"
+        className="text-accent hover:bg-tint mx-4 mb-4 flex min-h-11 items-center gap-1.5 rounded-full bg-paper px-4 font-sans text-[15px] font-semibold"
       >
         <Icon name="chevronLeft" size={16} />
         Library
@@ -110,12 +110,12 @@ export function ReaderContents({
               key={`${t.page}-${t.label}`}
               onClick={() => onNavigate(t.page)}
               aria-current={active ? "true" : undefined}
-              className={`flex w-full items-baseline justify-between gap-2.5 border-l-2 px-5 py-2.5 text-left ${
-                active ? "border-accent" : "border-transparent"
+              className={`flex min-h-12 w-full items-baseline justify-between gap-2.5 border-l-4 px-5 py-3 text-left hover:bg-paper ${
+                active ? "border-accent bg-tint" : "border-transparent"
               }`}
             >
               <span
-                className={`font-serif text-[15px] leading-snug ${
+                className={`font-sans text-[16px] leading-snug ${
                   active ? "text-accent" : "text-body"
                 }`}
               >

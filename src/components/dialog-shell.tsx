@@ -124,7 +124,7 @@ export function DialogShell({
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(32,32,28,0.4)] p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(15,45,51,0.5)] backdrop-blur-sm p-4"
       onPointerDown={(e) => {
         if (isolatePointerEvents) e.stopPropagation();
         // Only a press on the backdrop itself — one that started inside the
@@ -148,7 +148,7 @@ export function DialogShell({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className={panelClassName}
+        className={`harbour-dialog ${panelClassName}`}
       >
         {children(titleId)}
       </div>

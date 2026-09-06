@@ -32,22 +32,22 @@ export default function GlobalError({
           alignItems: "center",
           justifyContent: "center",
           padding: "48px 20px",
-          background: "#f4f0e8",
-          fontFamily: "Georgia, 'Times New Roman', serif",
-          color: "#20201c",
+          background: "#f3f5f2",
+          fontFamily: "Arial, Helvetica, sans-serif",
+          color: "#172e35",
         }}
       >
         <div
           style={{
             maxWidth: "560px",
             width: "100%",
-            background: "#fbf9f4",
-            border: "1px solid #e6e0d3",
-            borderRadius: "5px",
+            background: "#ffffff",
+            border: "1px solid #dce5df",
+            borderRadius: "24px",
             padding: "40px",
           }}
         >
-          <p style={{ margin: 0, fontStyle: "italic", color: "#1d4d3e" }}>
+          <p style={{ margin: 0, fontWeight: 600, color: "#164e55" }}>
             Something went wrong
           </p>
           <h1
@@ -61,7 +61,7 @@ export default function GlobalError({
               fontFamily: "Arial, Helvetica, sans-serif",
               fontSize: "16px",
               lineHeight: 1.6,
-              color: "#56524a",
+              color: "#4c6062",
             }}
           >
             It&rsquo;s not you &mdash; something on our side didn&rsquo;t
@@ -74,13 +74,13 @@ export default function GlobalError({
               appearance: "none",
               border: "none",
               cursor: "pointer",
-              background: "#1d4d3e",
-              color: "#f4f0e8",
+              background: "#164e55",
+              color: "#f3f5f2",
               fontFamily: "Arial, Helvetica, sans-serif",
               fontSize: "15px",
               fontWeight: 600,
               padding: "14px 22px",
-              borderRadius: "8px",
+              borderRadius: "999px",
             }}
           >
             Try again

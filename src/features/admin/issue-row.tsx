@@ -29,7 +29,7 @@ export function IssueRow({
   const editHref = `/admin/issues/${issue.id}/edit`;
 
   return (
-    <div className="border-line-soft flex flex-col gap-3 border-b py-4 sm:flex-row sm:items-center sm:gap-5">
+    <div className="border-line my-3 flex flex-col gap-3 rounded-[18px] border bg-white p-5 sm:flex-row sm:items-center sm:gap-5">
       <div className="flex min-w-0 items-center gap-3 sm:flex-1 sm:gap-4">
         <SelectCheckbox
           checked={selected}
@@ -49,7 +49,7 @@ export function IssueRow({
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
             <Link
               href={editHref}
-              className="text-ink hover:text-accent font-serif text-[19px] leading-tight hover:underline"
+              className="text-ink hover:text-accent font-sans text-[19px] font-semibold leading-tight hover:underline"
             >
               {issue.title}
             </Link>
@@ -69,7 +69,7 @@ export function IssueRow({
         <div className="flex items-center gap-2 sm:gap-4">
           <Link
             href={editHref}
-            className="text-accent text-right font-sans text-sm font-semibold hover:underline sm:w-14"
+            className="text-accent bg-tint flex min-h-11 items-center justify-center rounded-full px-5 text-right font-sans text-sm font-semibold hover:underline"
           >
             Edit
           </Link>

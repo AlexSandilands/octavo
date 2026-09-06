@@ -2,7 +2,15 @@
 // routes (members, sponsors, editor) while their data loads.
 export default function AdminLoading() {
   return (
-    <main className="mx-auto max-w-4xl px-5 py-10 sm:px-8">
+    <main
+      className="mx-auto max-w-[1440px] px-5 py-10 sm:px-8"
+      aria-busy="true"
+      aria-label="Loading workspace"
+    >
+      <div
+        aria-hidden="true"
+        className="bg-accent mb-8 h-24 animate-pulse rounded-[20px]"
+      />
       <div className="flex items-center justify-between">
         <div>
           <div className="bg-line-soft h-9 w-40 animate-pulse rounded" />
@@ -10,11 +18,11 @@ export default function AdminLoading() {
         </div>
         <div className="bg-line-soft h-12 w-44 animate-pulse rounded-lg" />
       </div>
-      <div className="mt-8 space-y-0">
+      <div className="mt-8 space-y-3">
         {Array.from({ length: 5 }, (_, i) => (
           <div
             key={i}
-            className="border-line-soft flex items-center gap-5 border-b py-4"
+            className="border-line flex items-center gap-5 rounded-[18px] border bg-white p-5"
           >
             <div className="bg-line-soft h-[60px] w-[46px] flex-none animate-pulse rounded-[3px]" />
             <div className="min-w-0 flex-1">

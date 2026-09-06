@@ -391,20 +391,19 @@ export function Editor({
               </ScaledPage>
             </div>
           </div>
-
-          <EditorToolbar
-            onAddBlock={addBlock}
-            insertDisabled={filled}
-            onToggleCover={toggleCover}
-            coverDisabled={curPage === 0}
-            coverActive={Boolean(page?.cover)}
-            canUndo={canUndo}
-            canRedo={canRedo}
-            onUndo={undo}
-            onRedo={redo}
-            notice={historyNotice}
-          />
         </div>
+        <EditorToolbar
+          onAddBlock={addBlock}
+          insertDisabled={filled}
+          onToggleCover={toggleCover}
+          coverDisabled={curPage === 0}
+          coverActive={Boolean(page?.cover)}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          onUndo={undo}
+          onRedo={redo}
+          notice={historyNotice}
+        />
       </div>
 
       {pub && (

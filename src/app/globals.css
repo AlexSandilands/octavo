@@ -3,6 +3,7 @@
    @theme block below is the `heritage` default; brands.css only holds the others,
    so a deployment with no NEXT_PUBLIC_BRAND set renders exactly this file. */
 @import "./brands.css";
+@import "./harbour.css";
 
 /* Design system from docs/claude-design — editorial, paper + one accent.
    Tokens drive Tailwind utilities (bg-paper, text-accent, font-serif, ...).

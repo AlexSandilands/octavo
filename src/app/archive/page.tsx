@@ -61,7 +61,7 @@ export default async function ArchivePage({
   ]);
 
   return (
-    <main className="mx-auto max-w-5xl px-5 py-6 sm:px-8 sm:py-10">
+    <main className="harbour-library">
       <LibraryHeader user={user} home />
 
       <div className="pt-8 pb-2">

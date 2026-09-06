@@ -63,6 +63,7 @@ export function AdminNavContent({
             <Link
               key={n.key}
               href={n.href}
+              aria-current={on ? "page" : undefined}
               className={`flex items-center gap-3 border-l-2 px-6 py-2.5 font-sans text-[15px] transition-colors ${
                 on
                   ? "bg-tint text-accent border-accent font-semibold"

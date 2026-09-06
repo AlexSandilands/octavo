@@ -162,7 +162,7 @@ export function MobileReader({
         </div>
       </header>
 
-      <article className="flex-1 pb-10">
+      <article className="authored-surface bg-page flex-1 pb-10">
         {sections.map((s, i) => {
           // The front cover fills what's left of the viewport under the header
           // (and grows past it rather than clipping); other covers keep their

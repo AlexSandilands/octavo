@@ -13,15 +13,10 @@ const INSERT: { type: BlockType; label: string; icon: IconName }[] = [
   { type: "sponsor", label: "Sponsor", icon: "banner" },
 ];
 
-/** Stage padding kept below the fitted page, so the floating bar clears it. */
-export const TOOLBAR_RESERVE = 92;
+/** Breathing room below the fitted page; tools live in their own side panel. */
+export const TOOLBAR_RESERVE = 24;
 
-// The editor's tool bar: undo/redo, the block-insert buttons and the cover-page
-// toggle. It floats over the foot of the canvas rather than sitting in a strip
-// above it (issue #222) — the tools sit beside the end of the page, which is
-// where an inserted block lands and where the overflow marker appears; a panned
-// page shows through around it. Every target is 40px and always visible; labels
-// come in from `xl`, where the pill has room.
+// Persistent labelled tools keep insertion, history and page settings in reach.
 export function EditorToolbar({
   onAddBlock,
   insertDisabled = false,
@@ -48,13 +43,17 @@ export function EditorToolbar({
   notice: HistoryNotice;
 }) {
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex justify-center px-4 pb-5">
+    <aside className="harbour-insert-panel scrollbar-soft border-line overflow-y-auto [scrollbar-gutter:stable] [--scrollbar-surface:var(--color-card)] flex w-[210px] flex-none flex-col border-l bg-white p-5">
+      <h2 className="text-ink text-lg font-semibold">Build your page</h2>
+      <p className="text-muted mt-1 mb-5 text-sm">
+        Choose what to add, then edit it on the page.
+      </p>
       {/* A group, not role="toolbar": that role promises arrow-key navigation
           within one tab stop, and here every button is its own tab stop. */}
       <div
         role="group"
         aria-label="Editor tools"
-        className="border-hair-warm pointer-events-auto flex max-w-full items-center gap-2 rounded-[14px] border bg-white px-2.5 py-2 shadow-[0_8px_28px_rgba(40,36,28,0.22)]"
+        className="flex flex-col gap-3"
       >
         {/* `unavailable`, not `disabled`: it keeps the button focusable — see
             `unavailable` in `ui.tsx`. */}
@@ -110,24 +109,22 @@ export function EditorToolbar({
           <span key={notice.n}>{notice.text}</span>
         </span>
       </div>
-    </div>
+    </aside>
   );
 }
 
 function Divider() {
-  return <span className="bg-line mx-0.5 h-6 w-px" />;
+  return <span className="bg-line my-1 h-px w-full" />;
 }
 
-// Its own shape rather than the house Button (§6 allows a bordered icon square):
-// a 40px square that grows a label from `xl`, plus the aria-pressed and
-// aria-keyshortcuts a tool bar owes. The interaction contract is the house one.
+// Shares the button feedback contract and adds editor-specific ARIA states.
 function Tool({
   icon,
   label,
   hint,
   shortcut,
   iconClass = "",
-  showLabel = false,
+  showLabel = true,
   pressed,
   disabled = false,
   unavailable = false,
@@ -138,7 +135,7 @@ function Tool({
   hint: string;
   shortcut?: string;
   iconClass?: string;
-  /** Show the label beside the icon from `xl` up; below that, icon only. */
+  /** Keep the tool name visible beside its icon. */
   showLabel?: boolean;
   pressed?: boolean;
   disabled?: boolean;
@@ -162,10 +159,10 @@ function Tool({
       aria-label={label}
       aria-pressed={pressed}
       aria-keyshortcuts={shortcut}
-      className={`flex h-10 w-10 flex-none items-center justify-center gap-1.5 rounded-[9px] border font-sans text-[13px] font-semibold transition-[transform,background-color,border-color,color] duration-150 ease-out select-none ${showLabel ? "xl:w-auto xl:px-3.5" : ""} ${look}`}
+      className={`flex h-11 w-full flex-none items-center justify-start px-3 gap-1.5 rounded-[9px] border font-sans text-[13px] font-semibold transition-[transform,background-color,border-color,color] duration-150 ease-out select-none  ${look}`}
     >
       <Icon name={icon} size={16} className={pressed ? "" : iconClass} />
-      {showLabel && <span className="hidden xl:inline">{label}</span>}
+      {showLabel && <span>{label}</span>}
     </button>
   );
 }

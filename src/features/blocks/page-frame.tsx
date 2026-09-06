@@ -102,7 +102,7 @@ export function PageFrame({
       // (see features/editor/page-metrics.ts), so the page's real padding and
       // footer position stay the single source of truth for where a page ends.
       data-page-frame
-      className={`bg-page relative ${
+      className={`authored-surface bg-page relative ${
         clip ? "overflow-hidden" : "overflow-visible"
       } ${side === "left" ? "border-page-seam border-r" : ""}`}
     >

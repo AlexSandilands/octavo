@@ -1,41 +1,33 @@
 import { Wordmark, Button } from "@/components/ui";
-import { getSettings } from "@/server/settings";
 
-// Rendered per request so the proxy's CSP nonce reaches this page's
-// scripts — a build-time static render bakes in no nonce, and 'strict-dynamic'
-// would then block Next's bootstrap on any 404. Cost is nil (static content).
 export const dynamic = "force-dynamic";
 
-// 404 / "not a member yet" — friendly, never a raw error.
-export default async function NotFound() {
-  const settings = await getSettings();
+export default function NotFound() {
   return (
     <main className="flex min-h-screen items-center justify-center px-5 py-12">
-      <div className="bg-card border-line flex min-h-[420px] w-full max-w-xl flex-col rounded-[5px] border p-10 shadow-[0_1px_3px_rgba(0,0,0,0.07)]">
-        <Wordmark size={18} />
-        <div className="my-auto">
-          <p className="text-accent font-serif text-[15px] italic">
-            404 — page not found
+      <div className="bg-card border-line flex min-h-[420px] w-full max-w-xl flex-col rounded-[24px] border p-8 shadow-sm sm:p-10">
+        <Wordmark size={24} />
+        <div className="my-10">
+          <p className="text-accent text-sm font-semibold">
+            404 · Page not found
           </p>
-          <h1 className="text-ink mt-3 font-serif text-4xl leading-[1.05]">
-            You&apos;re not a
+          <h1 className="text-ink mt-3 text-4xl font-semibold leading-[1.1]">
+            Let’s get you back
             <br />
-            member — yet.
+            to the library.
           </h1>
-          <p className="text-muted mt-4 max-w-prose font-sans text-[16px] leading-relaxed">
-            {settings.name} is read by members of the {settings.org}. If
-            you&apos;ve just joined, the link in your welcome email will let you
-            in.
+          <p className="text-muted mt-4 text-base leading-relaxed">
+            This page may have moved, or the address may be incomplete. Your
+            club’s published issues are in the library.
           </p>
         </div>
-        <div className="flex items-center gap-4">
-          <Button>Ask about joining</Button>
-          <a
-            href="/signin"
-            className="text-accent font-sans text-[15px] font-medium underline underline-offset-[3px]"
-          >
+        <div className="flex flex-wrap items-center gap-4">
+          <Button href="/" icon="arrowRight">
+            Go to library
+          </Button>
+          <Button href="/signin" variant="secondary">
             Sign in
-          </a>
+          </Button>
         </div>
       </div>
     </main>

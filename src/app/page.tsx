@@ -38,54 +38,61 @@ export default async function LibraryPage() {
   ]);
 
   return (
-    <main className="mx-auto max-w-5xl px-5 py-6 sm:px-8 sm:py-10">
+    <main className="harbour-library">
       <LibraryHeader user={user} />
 
-      <Masthead org={settings.org} tagline={settings.tagline} />
-
-      {!latest ? (
-        <section className="py-20 text-center">
-          <h2 className="text-ink font-serif text-3xl">
-            No issues published yet
-          </h2>
-          <p className="text-muted mt-3 font-sans">
-            The first issue of {settings.name} will appear here once it&apos;s
-            published.
-          </p>
-        </section>
-      ) : (
-        <>
-          <LatestIssue
-            number={latest.number}
-            title={latest.title}
-            content={latest.content}
-            publishedAt={latest.publishedAt}
-            theme={latest.theme}
-            cover={coverPageOf(latest.content)}
-            images={coverImages}
-            sponsors={coverSponsors}
-            settings={settings}
-          />
-          {recent.length > 0 && (
-            <ArchiveGrid
-              items={toArchiveItems(recent)}
-              images={coverImages}
-              sponsors={coverSponsors}
-              settings={settings}
-            />
-          )}
-          {/* Only once the catalogue outgrows the shelf above: a magazine with
+      <div className="harbour-library-layout">
+        <Masthead
+          org={settings.org}
+          tagline={settings.tagline}
+          hasRecent={recent.length > 0}
+          latestNumber={latest?.number}
+        />
+        <div className="min-w-0">
+          {!latest ? (
+            <section className="py-20 text-center">
+              <h2 className="text-ink font-serif text-3xl">
+                No issues published yet
+              </h2>
+              <p className="text-muted mt-3 font-sans">
+                The first issue of {settings.name} will appear here once
+                it&apos;s published.
+              </p>
+            </section>
+          ) : (
+            <>
+              <LatestIssue
+                number={latest.number}
+                title={latest.title}
+                content={latest.content}
+                publishedAt={latest.publishedAt}
+                theme={latest.theme}
+                cover={coverPageOf(latest.content)}
+                images={coverImages}
+                sponsors={coverSponsors}
+                settings={settings}
+              />
+              {recent.length > 0 && (
+                <ArchiveGrid
+                  items={toArchiveItems(recent)}
+                  images={coverImages}
+                  sponsors={coverSponsors}
+                  settings={settings}
+                />
+              )}
+              {/* Only once the catalogue outgrows the shelf above: a magazine with
               a page's worth of issues shows them all and needs no way out. */}
-          {older > 0 && (
-            <div className="border-line-soft flex justify-center border-t pt-8 pb-4">
-              <Button href="/archive" variant="secondary" icon="arrowRight">
-                View the full archive
-              </Button>
-            </div>
+              {older > 0 && (
+                <div className="border-line-soft flex justify-center border-t pt-8 pb-4">
+                  <Button href="/archive" variant="secondary" icon="arrowRight">
+                    View the full archive
+                  </Button>
+                </div>
+              )}
+            </>
           )}
-        </>
-      )}
-
+        </div>
+      </div>
       <SiteFooter
         org={settings.org}
         issueCount={publishedTotal}

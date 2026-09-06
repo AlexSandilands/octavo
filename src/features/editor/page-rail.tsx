@@ -76,9 +76,9 @@ export function PageRail({
   useQuietScrollbar(scrollerRef);
 
   return (
-    <div className="bg-paper border-line flex w-[150px] flex-none flex-col items-center border-r py-4">
-      <span className="text-faint w-full pl-[18px] font-sans text-[10px] font-semibold tracking-[0.18em] uppercase">
-        Pages
+    <div className="bg-card border-line flex w-[150px] flex-none flex-col items-center border-r py-4">
+      <span className="text-faint w-full pl-[18px] font-sans text-[14px] font-semibold">
+        Your pages · {pages.length}
       </span>
       {/* Padding replaces the old gaps, so a rail that fits lays out unchanged;
           the gutter is reserved on both edges so a scrollbar never shifts the thumbs. */}

@@ -22,7 +22,7 @@ async function Frame({ children }: { children: React.ReactNode }) {
   const { org } = await getSettings();
   return (
     <main className="flex min-h-screen items-center justify-center px-5 py-12">
-      <div className="bg-card border-line w-full max-w-md rounded-2xl border p-8 shadow-[0_14px_34px_rgba(0,0,0,0.08)] sm:p-10">
+      <div className="bg-card border-line w-full max-w-md rounded-[24px] border p-8 shadow-[0_14px_34px_rgba(0,0,0,0.08)] sm:p-10">
         <Wordmark size={22} />
         <Label>{org}</Label>
         {children}
@@ -48,7 +48,7 @@ export default async function UnsubscribePage({
   if (!token || !member) {
     return (
       <Frame>
-        <h1 className="text-ink mt-10 font-serif text-3xl leading-[1.1]">
+        <h1 className="text-ink mt-10 font-sans text-3xl font-semibold leading-[1.1]">
           This link isn&rsquo;t valid.
         </h1>
         <p className="text-muted mt-4 font-sans text-[16px] leading-relaxed">
@@ -62,7 +62,7 @@ export default async function UnsubscribePage({
   if (member.subscribed) {
     return (
       <Frame>
-        <h1 className="text-ink mt-10 font-serif text-3xl leading-[1.1]">
+        <h1 className="text-ink mt-10 font-sans text-3xl font-semibold leading-[1.1]">
           Unsubscribe from {magazineName}?
         </h1>
         <p className="text-muted mt-4 font-sans text-[16px] leading-relaxed">
@@ -83,7 +83,7 @@ export default async function UnsubscribePage({
 
   return (
     <Frame>
-      <h1 className="text-ink mt-10 font-serif text-3xl leading-[1.1]">
+      <h1 className="text-ink mt-10 font-sans text-3xl font-semibold leading-[1.1]">
         You&rsquo;ve been unsubscribed.
       </h1>
       <p className="text-muted mt-4 font-sans text-[16px] leading-relaxed">

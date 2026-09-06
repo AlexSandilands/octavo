@@ -23,8 +23,7 @@ type LatestIssueProps = {
   settings: SiteSettings;
 };
 
-// The library hero: the cover as a physical object on the left, and an editorial
-// "in this issue" teaser on the right so the latest issue sells itself.
+// The current issue pairs a reading invitation with the original authored cover.
 export function LatestIssue({
   number,
   title,
@@ -42,11 +41,11 @@ export function LatestIssue({
   const shown = sections.slice(0, 4);
 
   return (
-    <section className="border-line-soft grid gap-8 border-b py-9 md:grid-cols-[240px_1fr]">
+    <section className="harbour-latest">
       <Link
         href={`/read/${number}`}
         aria-label={`Read ${title}`}
-        className="group relative block w-[240px] self-start"
+        className="harbour-cover group relative block w-[240px]"
       >
         {/* Stacked page edges peeking out behind the cover. */}
         <div className="bg-hair absolute inset-y-2 -right-[3px] w-[3px] rounded-r-[3px]" />
@@ -79,10 +78,10 @@ export function LatestIssue({
         </div>
       </Link>
 
-      <div className="flex flex-col">
-        <Kicker>The latest issue</Kicker>
+      <div className="harbour-latest-details flex flex-col">
+        <Kicker>Fresh from the club</Kicker>
         {/* h2: the page's single h1 is the masthead standfirst (see page.tsx). */}
-        <h2 className="text-ink mt-3 font-serif text-4xl leading-[1.02] sm:text-5xl">
+        <h2 className="text-ink mt-3 font-sans text-[30px] font-semibold leading-[1.12] tracking-tight sm:text-[36px]">
           {title}
         </h2>
         <div className="text-faint mt-3 font-sans text-[13px] tracking-wide">
@@ -104,17 +103,12 @@ export function LatestIssue({
                     aria-label={`Read this issue: ${s.title}`}
                     className="group/entry flex min-h-11 items-baseline gap-3 py-2.5"
                   >
-                    <span className="text-accent/70 w-5 flex-none font-mono text-[11px] tabular-nums">
+                    <span className="text-accent w-5 flex-none font-mono text-[11px] tabular-nums">
                       {String(i + 1).padStart(2, "0")}
                     </span>
-                    <span className="text-ink font-serif text-[17px] leading-snug group-hover/entry:underline">
+                    <span className="text-ink font-sans text-[16px] font-medium leading-snug group-hover/entry:underline">
                       {s.title}
                     </span>
-                    {s.kicker && (
-                      <span className="text-faint ml-auto flex-none pl-3 font-sans text-[10px] tracking-[0.18em] uppercase">
-                        {s.kicker}
-                      </span>
-                    )}
                   </Link>
                 </li>
               ))}

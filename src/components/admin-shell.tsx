@@ -1,7 +1,12 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { ADMIN_MAIN_ID } from "./admin-main";
-import { AdminNavContent } from "./admin-nav-content";
+import { ADMIN_NAV, AdminNavContent } from "./admin-nav-content";
 import { AdminDrawer } from "./admin-drawer";
+import { Wordmark, Avatar } from "./ui";
+import { SignOutButton } from "./sign-out-button";
+import { Icon } from "./icons";
+import { initials } from "@/lib/initials";
 
 export function AdminShell({
   active,
@@ -13,24 +18,49 @@ export function AdminShell({
   children: ReactNode;
 }) {
   return (
-    // Column on mobile (top bar over content), row on desktop (rail beside it).
-    // h-screen + overflow-y-auto on <main>: only the content pane scrolls, so
-    // the sidebar (and its mt-auto footer) stays pinned to the viewport.
-    <div className="bg-card flex h-screen flex-col md:flex-row">
-      {/* Desktop rail — hidden below md, where the drawer takes over. Unchanged
-          from the original fixed 214px sidebar at md+. */}
-      <aside className="bg-paper border-line hidden w-[214px] flex-none flex-col border-r py-6 md:flex">
-        <AdminNavContent active={active} user={user} />
-      </aside>
-      {/* Mobile top bar + off-canvas drawer (client island for open/close). */}
+    <div className="harbour-admin flex h-dvh flex-col">
+      <header className="harbour-admin-top hidden md:block">
+        <div className="flex items-center justify-between gap-6">
+          <div className="flex items-center gap-5">
+            <Wordmark size={27} />
+            <span className="border-l border-white/30 pl-5 text-sm text-[#d7e8e3]">
+              Club workspace
+            </span>
+          </div>
+          <div className="flex items-center gap-5 text-sm">
+            <Link
+              className="flex min-h-11 items-center gap-2 font-semibold hover:underline"
+              href="/"
+            >
+              <Icon name="arrowRight" size={17} />
+              View library
+            </Link>
+            <span className="hidden lg:inline">{user.name ?? user.email}</span>
+            <Avatar initials={initials(user.name?.trim() || user.email)} />
+            <span className="rounded-full bg-white px-3">
+              <SignOutButton />
+            </span>
+          </div>
+        </div>
+        <nav aria-label="Administration" className="harbour-admin-nav">
+          {ADMIN_NAV.map((n) => (
+            <Link
+              key={n.key}
+              href={n.href}
+              aria-current={n.key === active ? "page" : undefined}
+            >
+              <Icon name={n.icon} size={18} />
+              {n.label}
+            </Link>
+          ))}
+        </nav>
+      </header>
       <AdminDrawer>
         <AdminNavContent active={active} user={user} />
       </AdminDrawer>
-      {/* `relative` keeps absolute descendants (e.g. sr-only live regions) in
-          this scroll pane; unanchored they stretch the document (#189). */}
       <main
         id={ADMIN_MAIN_ID}
-        className="scrollbar-soft relative flex-1 overflow-y-auto p-7 [--scrollbar-surface:var(--color-card)] [scrollbar-gutter:stable] sm:p-8"
+        className="harbour-admin-main scrollbar-soft relative flex-1 overflow-y-auto p-7 [--scrollbar-surface:var(--color-card)] [scrollbar-gutter:stable] sm:p-8"
       >
         {children}
       </main>

@@ -5,8 +5,8 @@ import { MIN_ZOOM, MAX_ZOOM } from "@/features/blocks/use-canvas-pan-zoom";
 import type { PdfState } from "./use-issue-pdf";
 
 // The floating control dock at the bottom of the reader: paging, the spread
-// label, contents toggle, fit + zoom slider, PDF and full screen. Fades back to
-// 50% until hovered/focused so it sits behind the page while reading.
+// label, contents toggle, fit + zoom slider, PDF and full screen. The dock stays
+// fully visible so its labels and controls keep their contrast while reading.
 export function ReaderControls({
   label,
   onPrev,
@@ -45,7 +45,7 @@ export function ReaderControls({
         : "Download PDF";
   return (
     <div className="group absolute inset-x-0 bottom-0 flex justify-center px-4 pt-12 pb-4">
-      <div className="bg-reader-chrome text-reader-chrome-text flex items-center gap-1.5 rounded-full px-2.5 py-2 opacity-50 shadow-[0_8px_24px_rgba(0,0,0,0.28)] transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
+      <div className="harbour-reader-dock bg-reader-chrome text-reader-chrome-text flex items-center gap-1.5 rounded-[18px] px-4 py-2 shadow-[0_8px_24px_rgba(0,0,0,0.18)]">
         <CtrlBtn onClick={onPrev} title="Previous">
           <Icon name="chevronLeft" size={18} strokeWidth={1.7} />
         </CtrlBtn>
@@ -58,6 +58,7 @@ export function ReaderControls({
         <Divider />
         <CtrlBtn onClick={onToggleContents} title="Contents">
           <Icon name="menu" size={18} />
+          <span className="ml-2 hidden text-sm xl:inline">Contents</span>
         </CtrlBtn>
         <div className="flex items-center gap-2 pr-1 pl-1">
           <CtrlBtn onClick={onResetView} title="Fit to screen">
@@ -128,7 +129,7 @@ function CtrlBtn({
       title={title}
       aria-label={title}
       disabled={disabled}
-      className="hover:bg-reader-chrome-hover flex h-11 w-11 items-center justify-center rounded-full disabled:cursor-default"
+      className="hover:bg-reader-chrome-hover flex h-11 min-w-11 items-center justify-center rounded-xl px-2 disabled:cursor-default"
     >
       {children}
     </button>

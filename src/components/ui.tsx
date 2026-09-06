@@ -6,8 +6,8 @@ import { MagazineName } from "./branding";
 export function Wordmark({ size = 22 }: { size?: number }) {
   return (
     <span
-      className="font-serif text-ink"
-      style={{ fontSize: size, fontWeight: 500, letterSpacing: ".02em" }}
+      className="harbour-wordmark font-sans text-ink"
+      style={{ fontSize: size, fontWeight: 700, letterSpacing: "-.035em" }}
     >
       <MagazineName />
     </span>
@@ -16,7 +16,7 @@ export function Wordmark({ size = 22 }: { size?: number }) {
 
 export function Kicker({ children }: { children: ReactNode }) {
   return (
-    <div className="font-sans text-[11px] font-semibold tracking-[0.2em] text-accent uppercase">
+    <div className="font-sans text-[12px] font-semibold tracking-[0.12em] text-accent uppercase">
       {children}
     </div>
   );
@@ -24,7 +24,7 @@ export function Kicker({ children }: { children: ReactNode }) {
 
 export function Label({ children }: { children: ReactNode }) {
   return (
-    <div className="font-sans text-[11px] font-semibold tracking-[0.2em] text-faint uppercase">
+    <div className="font-sans text-[12px] font-semibold tracking-[0.12em] text-faint uppercase">
       {children}
     </div>
   );
@@ -89,10 +89,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     // Every way of being unpressable, for the styling and the click guard —
     // `unavailable` has no attribute doing either of those for it.
     const inert = isDisabled || unavailable;
-    const base = `${full ? "flex w-full" : "inline-flex"} items-center justify-center gap-2 rounded-lg font-sans font-semibold transition-[transform,background-color,border-color,box-shadow,color] duration-150 ease-out select-none`;
+    const base = `${full ? "flex w-full" : "inline-flex"} items-center justify-center gap-2 rounded-full font-sans font-semibold transition-[transform,background-color,border-color,box-shadow,color] duration-150 ease-out select-none`;
     const sizes = {
       md: "h-12 px-5 text-[15px]",
-      sm: "h-10 px-4 text-sm",
+      sm: "h-11 px-4 text-sm",
     }[size];
     const rest = {
       primary: "bg-accent text-paper shadow-[0_2px_8px_rgba(29,77,62,0.25)]",
