@@ -17,6 +17,9 @@ import { headingDomId, MobileBlock } from "./mobile-block";
 import { breakHeight, readerSections } from "./mobile-sections";
 import { useIssuePdf } from "./use-issue-pdf";
 
+// Header height, shared with the front cover's min-height below (#235).
+const HEADER_HEIGHT = 52;
+
 // Mobile reader: the whole issue as one flowing column (also the accessibility
 // fallback). Same block data as the flipbook, presented single-column. The
 // chrome lives here — header, text-size control, contents drawer, the closing
@@ -93,7 +96,10 @@ export function MobileReader({
 
   return (
     <div className="bg-page relative flex min-h-screen flex-col">
-      <header className="border-line-soft bg-page flex h-[52px] flex-none items-center justify-between border-b px-4">
+      <header
+        style={{ height: HEADER_HEIGHT }}
+        className="border-line-soft bg-page flex flex-none items-center justify-between border-b px-4"
+      >
         <div className="flex items-center">
           <button
             ref={menuBtnRef}
@@ -157,42 +163,57 @@ export function MobileReader({
       </header>
 
       <article className="flex-1 pb-10">
-        {sections.map((s, i) => (
-          <section
-            key={s.id}
-            // A photo-owned page keeps no vertical padding, so the photo runs
-            // from the break above it to the one below.
-            className={[
-              "px-5",
-              !s.filled && i === 0 && "pt-6",
-              !s.filled &&
-                (i === sections.length - 1 || sections[i + 1]?.divided) &&
-                "pb-8",
-              s.cover && "py-8 text-center",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-          >
-            {/* The page break: a band of canvas between two sheets of page. */}
-            {s.divided && (
-              <div
-                aria-hidden
-                className={`bg-canvas -mx-5 shadow-[inset_0_2px_3px_rgba(40,36,28,0.08)] ${s.filled ? "" : "mb-6"}`}
-                style={{ height: breakHeight(m) }}
-              />
-            )}
-            {s.blocks.map((b) => (
-              <MobileBlock
-                key={b.id}
-                block={b}
-                m={m}
-                images={images}
-                sponsors={sponsors}
-                cover={s.cover}
-              />
-            ))}
-          </section>
-        ))}
+        {sections.map((s, i) => {
+          // The front cover fills what's left of the viewport under the header
+          // (and grows past it rather than clipping); other covers keep their
+          // content height.
+          const front = i === 0 && s.cover;
+          const body = s.blocks.map((b) => (
+            <MobileBlock
+              key={b.id}
+              block={b}
+              m={m}
+              images={images}
+              sponsors={sponsors}
+              cover={s.cover}
+            />
+          ));
+          return (
+            <section
+              key={s.id}
+              style={
+                front
+                  ? { minHeight: `calc(100dvh - ${HEADER_HEIGHT}px)` }
+                  : undefined
+              }
+              // A photo-owned page keeps no vertical padding, so the photo runs
+              // from the break above it to the one below.
+              className={[
+                "px-5",
+                !s.filled && i === 0 && "pt-6",
+                !s.filled &&
+                  (i === sections.length - 1 || sections[i + 1]?.divided) &&
+                  "pb-8",
+                s.cover && "py-8 text-center",
+                front && "flex flex-col justify-center",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              {/* The page break: a band of canvas between two sheets of page. */}
+              {s.divided && (
+                <div
+                  aria-hidden
+                  className={`bg-canvas -mx-5 shadow-[inset_0_2px_3px_rgba(40,36,28,0.08)] ${s.filled ? "" : "mb-6"}`}
+                  style={{ height: breakHeight(m) }}
+                />
+              )}
+              {/* One flex child, so centring the cover leaves the blocks' own
+                  collapsed margins alone. */}
+              {front ? <div>{body}</div> : body}
+            </section>
+          );
+        })}
 
         {/* This reader has no pages, so it has no running footer to carry the
             mark. It closes with it once instead — the same lockup the printed
