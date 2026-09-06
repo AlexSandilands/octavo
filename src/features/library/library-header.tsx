@@ -28,7 +28,7 @@ export function LibraryHeader({
       ) : (
         <Wordmark size={24} />
       )}
-      <nav className="flex flex-none items-center gap-3 font-sans text-sm sm:gap-4">
+      <nav className="flex flex-none items-center gap-3 font-ui text-sm sm:gap-4">
         {/* No user only happens in demo mode (the gate redirects otherwise):
             swap the account affordances for the demo chip. */}
         {user ? (

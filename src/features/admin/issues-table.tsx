@@ -218,7 +218,7 @@ export function IssuesTable({
           aria-live="polite"
           className={
             rows.length === 0
-              ? "text-faint py-10 text-center font-sans text-sm"
+              ? "text-faint py-10 text-center font-ui text-sm"
               : "sr-only"
           }
         >

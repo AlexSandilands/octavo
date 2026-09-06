@@ -29,11 +29,13 @@ export function ListPagination({
   page,
   pageCount,
   label,
+  tone = "paper",
 }: {
   page: number;
   pageCount: number;
   /** Names the nav for screen readers, e.g. "Member list pages". */
   label: string;
+  tone?: "paper" | "dark";
 }) {
   const go = useListUrl();
 
@@ -103,6 +105,7 @@ export function ListPagination({
     >
       <Button
         variant="secondary"
+        tone={tone}
         icon="chevronLeft"
         iconPosition="left"
         unavailable={target <= 1}
@@ -115,13 +118,19 @@ export function ListPagination({
           just pressed would take their keyboard focus with it. The pending
           wording is the feedback instead, and a screen reader hears the turn
           start and then land. */}
-      <span aria-live="polite" className="text-faint font-sans text-sm">
+      <span
+        aria-live="polite"
+        className={`font-meta text-[14px] tabular-nums ${
+          tone === "dark" ? "text-chrome-muted" : "text-faint"
+        }`}
+      >
         {pending
           ? `Turning to page ${target}…`
           : `Page ${page} of ${pageCount}`}
       </span>
       <Button
         variant="secondary"
+        tone={tone}
         icon="chevronRight"
         unavailable={target >= pageCount}
         onClick={() => turnTo(target + 1)}

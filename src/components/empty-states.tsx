@@ -22,8 +22,8 @@ export function EmptyIssues() {
   return (
     <EmptyCard>
       <EmptyIcon name="doc" />
-      <h2 className="text-ink mt-5 font-serif text-2xl">No issues yet</h2>
-      <p className="text-muted mt-2.5 max-w-sm font-sans text-[15px] leading-relaxed">
+      <h2 className="text-ink mt-5 font-display text-2xl">No issues yet</h2>
+      <p className="text-muted mt-2.5 max-w-sm font-ui text-[15px] leading-relaxed">
         The first one is the hardest — we&apos;ll guide you, page by page. Start
         with a cover and a heading.
       </p>
@@ -46,8 +46,8 @@ export function EmptyMembers({
   return (
     <EmptyCard>
       <EmptyIcon name="users" />
-      <h2 className="text-ink mt-5 font-serif text-2xl">No members yet</h2>
-      <p className="text-muted mt-2.5 max-w-sm font-sans text-[15px] leading-relaxed">
+      <h2 className="text-ink mt-5 font-display text-2xl">No members yet</h2>
+      <p className="text-muted mt-2.5 max-w-sm font-ui text-[15px] leading-relaxed">
         Bring your club&apos;s list across as a CSV, or add the first few by
         hand. They&apos;ll get every new issue.
       </p>

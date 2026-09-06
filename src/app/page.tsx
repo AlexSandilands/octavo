@@ -45,10 +45,10 @@ export default async function LibraryPage() {
 
       {!latest ? (
         <section className="py-20 text-center">
-          <h2 className="text-ink font-serif text-3xl">
+          <h2 className="text-ink font-display text-3xl">
             No issues published yet
           </h2>
-          <p className="text-muted mt-3 font-sans">
+          <p className="text-muted mt-3 font-ui">
             The first issue of {settings.name} will appear here once it&apos;s
             published.
           </p>

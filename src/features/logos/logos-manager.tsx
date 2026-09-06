@@ -35,7 +35,7 @@ export function LogosManager({ logos }: { logos: LogoListItem[] }) {
     >
       {logos.length === 0 ? (
         <div className="border-hair-warm rounded-lg border border-dashed p-6 text-center">
-          <p className="text-muted font-sans text-[14px] leading-relaxed">
+          <p className="text-muted font-ui text-[14px] leading-relaxed">
             No marks yet. Add one and it becomes available to every issue.
           </p>
           <div className="mt-4 flex justify-center">

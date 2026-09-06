@@ -110,7 +110,7 @@ export function VideoDialog({
           <div className="flex flex-none items-center justify-between px-8 pt-7">
             <h2
               id={titleId}
-              className="text-ink font-serif text-[26px] leading-tight"
+              className="text-ink font-display text-[26px] leading-tight"
             >
               Video
             </h2>
@@ -119,14 +119,14 @@ export function VideoDialog({
 
           <div className="scrollbar-soft min-h-0 flex-1 overflow-y-auto px-8 pt-6 [--scrollbar-surface:var(--color-card)] [scrollbar-gutter:stable]">
             <label className="block">
-              <span className="text-faint mb-1.5 block font-sans text-[11px] font-semibold tracking-[0.14em] uppercase">
+              <span className="text-faint mb-1.5 block font-ui text-[11px] font-semibold tracking-[0.14em] uppercase">
                 YouTube link
               </span>
               {/* The focus ring goes on the decorated box, not the bare input
                   inside it (the .boxed-field pattern in globals.css). */}
               <span
                 className={`boxed-field flex h-11 items-center rounded-md border bg-white px-3 ${
-                  unusable ? "border-warn" : "border-hair"
+                  unusable ? "border-danger" : "border-hair"
                 }`}
               >
                 <input
@@ -148,7 +148,7 @@ export function VideoDialog({
                   aria-invalid={unusable || undefined}
                   aria-describedby={`${titleId}-hint`}
                   placeholder="https://www.youtube.com/watch?v=…"
-                  className="text-ink min-w-0 flex-1 bg-transparent font-sans text-[14px] outline-none"
+                  className="text-ink min-w-0 flex-1 bg-transparent font-ui text-[14px] outline-none"
                 />
               </span>
             </label>
@@ -159,8 +159,8 @@ export function VideoDialog({
                 them — so it names the forms that do work. */}
             <p
               id={`${titleId}-hint`}
-              className={`mt-2 font-sans text-[12.5px] ${
-                unusable ? "text-warn font-semibold" : "text-faint2"
+              className={`mt-2 font-ui text-[12.5px] ${
+                unusable ? "text-danger font-semibold" : "text-faint2"
               }`}
             >
               {unusable
@@ -173,7 +173,7 @@ export function VideoDialog({
             </p>
 
             <div className="mt-6">
-              <span className="text-faint mb-1.5 block font-sans text-[11px] font-semibold tracking-[0.14em] uppercase">
+              <span className="text-faint mb-1.5 block font-ui text-[11px] font-semibold tracking-[0.14em] uppercase">
                 Video image
               </span>
               {poster && videoId ? (
@@ -193,14 +193,14 @@ export function VideoDialog({
                       </span>
                     </span>
                   </div>
-                  <p className="text-faint2 min-w-0 font-sans text-[12.5px]">
+                  <p className="text-faint2 min-w-0 font-ui text-[12.5px]">
                     Kept as our own copy, so readers load nothing from YouTube
                     until they press play — and so it prints. If it changes on
                     YouTube, press Refresh image to take it again.
                   </p>
                 </div>
               ) : (
-                <p className="border-hair text-faint2 rounded-lg border border-dashed px-4 py-6 text-center font-sans text-[13px]">
+                <p className="border-hair text-faint2 rounded-lg border border-dashed px-4 py-6 text-center font-ui text-[13px]">
                   The video&rsquo;s own picture is saved here once you add a
                   link.
                 </p>
@@ -209,7 +209,7 @@ export function VideoDialog({
           </div>
 
           {error && (
-            <p className="text-warn flex-none px-8 pt-4 font-sans text-[13px] font-semibold">
+            <p className="text-danger flex-none px-8 pt-4 font-ui text-[13px] font-semibold">
               {error}
             </p>
           )}
@@ -224,7 +224,7 @@ export function VideoDialog({
               }}
               disabled={busy || !videoId}
             >
-              <Icon name="trash" size={17} className="text-warn" />
+              <Icon name="trash" size={17} className="text-danger" />
               Remove video
             </Button>
             <div className="flex items-center gap-2.5">

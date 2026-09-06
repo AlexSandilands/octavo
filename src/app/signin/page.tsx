@@ -48,7 +48,7 @@ export default async function SignInPage({
 
   return (
     <SignInCard>
-      <h1 className="text-ink mt-12 font-serif text-4xl leading-[1.05]">
+      <h1 className="text-ink mt-12 font-display text-4xl leading-[1.05]">
         Welcome
         <br />
         back.
@@ -58,15 +58,15 @@ export default async function SignInPage({
           role="alert"
           className="border-hair bg-paper mt-6 rounded-[10px] border-[1.5px] p-4"
         >
-          <p className="text-ink font-sans text-[15px] font-semibold">
+          <p className="text-ink font-ui text-[15px] font-semibold">
             {notice.title}
           </p>
-          <p className="text-muted mt-1 font-sans text-[15px] leading-relaxed">
+          <p className="text-muted mt-1 font-ui text-[15px] leading-relaxed">
             {notice.body}
           </p>
         </div>
       ) : (
-        <p className="text-muted mt-4 font-sans text-[16px] leading-relaxed">
+        <p className="text-muted mt-4 font-ui text-[16px] leading-relaxed">
           Members read {name} with a private link. Enter your email and
           we&apos;ll send one over.
         </p>
@@ -78,7 +78,7 @@ export default async function SignInPage({
         <input type="hidden" name="next" value={next} />
         <label
           htmlFor="email"
-          className="text-faint font-sans text-xs font-semibold tracking-wide uppercase"
+          className="text-faint font-ui text-xs font-semibold tracking-wide uppercase"
         >
           Email
         </label>
@@ -89,14 +89,14 @@ export default async function SignInPage({
           required
           autoComplete="email"
           placeholder="you@example.com"
-          className="border-hair text-ink mt-2 h-14 w-full rounded-[10px] border-[1.5px] bg-white px-4 font-sans text-[17px] outline-none focus:border-accent"
+          className="border-hair text-ink mt-2 h-14 w-full rounded-[10px] border-[1.5px] bg-white px-4 font-ui text-[17px] outline-none focus:border-accent"
         />
         <div className="mt-3">
           <Button type="submit" icon="arrowRight" full>
             Email me a link
           </Button>
         </div>
-        <p className="text-faint mt-4 text-center font-sans text-[13px]">
+        <p className="text-faint mt-4 text-center font-ui text-[13px]">
           No password to remember.
         </p>
       </form>

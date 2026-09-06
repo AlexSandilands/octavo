@@ -135,7 +135,7 @@ export function MagazineSettings({
                 <p
                   role="status"
                   aria-live="polite"
-                  className="font-sans text-[13px] font-medium"
+                  className="font-ui text-[13px] font-medium"
                 >
                   {status === "saved" && !dirty && (
                     <span className="text-accent">
@@ -143,7 +143,7 @@ export function MagazineSettings({
                     </span>
                   )}
                   {status === "error" && (
-                    <span className="text-warn">
+                    <span className="text-danger">
                       Couldn&rsquo;t save. Please try again.
                     </span>
                   )}

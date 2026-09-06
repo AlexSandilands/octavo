@@ -48,10 +48,10 @@ export function SponsorRow({
               className="h-full w-full object-contain"
             />
           ) : (
-            <span className="text-faint2 font-mono text-[9px]">NO LOGO</span>
+            <span className="text-faint2 font-meta text-[9px]">NO LOGO</span>
           )}
         </div>
-        <div className="text-ink truncate font-sans text-[15px] font-semibold">
+        <div className="text-ink truncate font-ui text-[15px] font-semibold">
           {sponsor.name}
         </div>
       </div>
@@ -62,29 +62,29 @@ export function SponsorRow({
             href={link}
             target="_blank"
             rel="noopener noreferrer nofollow"
-            className="text-accent block truncate font-sans text-[13px] font-medium hover:underline"
+            className="text-accent block truncate font-ui text-[13px] font-medium hover:underline"
           >
             {sponsor.href}
           </a>
         ) : (
-          <span className="text-faint2 font-sans text-[13px]">—</span>
+          <span className="text-faint2 font-ui text-[13px]">—</span>
         )}
       </div>
 
       <div className="flex items-center gap-2 sm:w-[150px]">
         {sponsor.activeUntil ? (
           <>
-            <span className="text-faint font-sans text-[13px]">
+            <span className="text-faint font-ui text-[13px]">
               {sponsor.activeUntil}
             </span>
             {sponsor.expired && (
-              <span className="bg-warn-soft text-warn rounded-full px-2 py-0.5 font-sans text-[10px] font-semibold">
+              <span className="bg-caution-soft text-caution rounded-full px-2 py-0.5 font-ui text-[10px] font-semibold">
                 Expired
               </span>
             )}
           </>
         ) : (
-          <span className="text-faint2 font-sans text-[13px]">No end date</span>
+          <span className="text-faint2 font-ui text-[13px]">No end date</span>
         )}
       </div>
 
@@ -95,7 +95,7 @@ export function SponsorRow({
           disabled={pending}
           title={`Edit ${sponsor.name}`}
           aria-label={`Edit ${sponsor.name}`}
-          className="text-accent w-9 cursor-pointer text-right font-sans text-sm font-semibold hover:underline disabled:opacity-40"
+          className="text-accent w-9 cursor-pointer text-right font-ui text-sm font-semibold hover:underline disabled:opacity-40"
         >
           Edit
         </button>
@@ -105,7 +105,7 @@ export function SponsorRow({
           disabled={pending}
           title={`Delete ${sponsor.name}`}
           aria-label={`Delete ${sponsor.name}`}
-          className="text-faint2 hover:text-warn hover:border-warn flex h-9 w-9 items-center justify-center rounded-lg border border-transparent disabled:opacity-40"
+          className="text-faint2 hover:text-danger hover:border-danger flex h-9 w-9 items-center justify-center rounded-lg border border-transparent disabled:opacity-40"
         >
           <Icon name="trash" size={17} strokeWidth={1.8} />
         </button>

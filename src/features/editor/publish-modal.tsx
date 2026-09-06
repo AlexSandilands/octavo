@@ -76,7 +76,7 @@ export function PublishModal({
       {(titleId) => (
         <>
           <div className="px-8 pt-7">
-            <div className="text-accent font-sans text-[10px] font-semibold tracking-[0.2em] uppercase">
+            <div className="text-accent font-ui text-[10px] font-semibold tracking-[0.2em] uppercase">
               Publish &amp; send
             </div>
 
@@ -86,11 +86,11 @@ export function PublishModal({
               <>
                 <h2
                   id={titleId}
-                  className="text-ink mt-3 font-serif text-[27px] leading-tight"
+                  className="text-ink mt-3 font-display text-[27px] leading-tight"
                 >
                   Publish issue No. {number}?
                 </h2>
-                <p className="text-muted mt-2.5 font-sans text-[15px] leading-relaxed">
+                <p className="text-muted mt-2.5 font-ui text-[15px] leading-relaxed">
                   This marks the issue published so members can read it.
                 </p>
 
@@ -106,7 +106,7 @@ export function PublishModal({
                     onChange={(e) => setSendEmail(e.target.checked)}
                     className="accent-accent mt-0.5 h-5 w-5 flex-none"
                   />
-                  <span className="font-sans text-[14px] leading-snug">
+                  <span className="font-ui text-[14px] leading-snug">
                     <span className="text-ink font-semibold">
                       Email the new issue
                     </span>
@@ -175,11 +175,11 @@ function ResultBody({
       <>
         <h2
           id={titleId}
-          className="text-warn mt-3 font-serif text-[27px] leading-tight"
+          className="text-danger mt-3 font-display text-[27px] leading-tight"
         >
           Publish failed.
         </h2>
-        <p className="text-muted mt-2.5 font-sans text-[15px] leading-relaxed">
+        <p className="text-muted mt-2.5 font-ui text-[15px] leading-relaxed">
           Issue No. {number} couldn&rsquo;t be published. Nothing was sent — try
           again.
         </p>
@@ -192,11 +192,11 @@ function ResultBody({
     <>
       <h2
         id={titleId}
-        className="text-ink mt-3 font-serif text-[27px] leading-tight"
+        className="text-ink mt-3 font-display text-[27px] leading-tight"
       >
         Issue No. {number} is live.
       </h2>
-      <p className="text-muted mt-2.5 font-sans text-[15px] leading-relaxed">
+      <p className="text-muted mt-2.5 font-ui text-[15px] leading-relaxed">
         {emailed === null
           ? "Published without emailing members."
           : emailed.failed === 0

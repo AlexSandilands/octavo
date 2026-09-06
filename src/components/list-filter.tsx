@@ -19,6 +19,7 @@ export function ListFilter<T extends string>({
   value,
   options,
   defaultValue = "all" as T,
+  tone = "paper",
 }: {
   /** Trigger prefix — the control names itself, e.g. "Status". */
   label: string;
@@ -30,6 +31,7 @@ export function ListFilter<T extends string>({
   options: ListFilterOption<T>[];
   /** The choice that means "no narrowing" and so writes no param. */
   defaultValue?: T;
+  tone?: "paper" | "dark";
 }) {
   const go = useListUrl();
   const current = options.find((o) => o.value === value) ?? options[0]!;
@@ -44,6 +46,7 @@ export function ListFilter<T extends string>({
       current={current.label}
       ariaLabel={ariaLabel}
       size="md"
+      tone={tone}
       // Full-width in whatever the toolbar gives it on a phone (and the menu
       // stays on-screen under it); its natural pill width once it goes to a row.
       className="w-full justify-between lg:w-auto lg:justify-start"

@@ -38,7 +38,7 @@ export function SelectCheckbox({
   // would render empty.
   const box =
     checked || mixed
-      ? "border-accent bg-accent text-paper"
+      ? "border-brass-ink bg-brass-ink text-paper"
       : "border-hair-warm bg-white";
 
   return (
@@ -54,14 +54,14 @@ export function SelectCheckbox({
         />
         <span
           aria-hidden
-          className={`flex h-[22px] w-[22px] items-center justify-center rounded-[5px] border-[1.5px] transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--color-accent)] ${box}`}
+          className={`flex h-[22px] w-[22px] items-center justify-center rounded-[4px] border-[1.5px] transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--color-brass-ink)] ${box}`}
         >
           {checked && <Icon name="check" size={14} strokeWidth={2.6} />}
           {mixed && <Icon name="minus" size={14} strokeWidth={2.6} />}
         </span>
       </span>
       {children && (
-        <span className="text-muted pr-2 font-sans text-[14px]">
+        <span className="text-muted pr-2 font-ui text-[15px]">
           {children}
         </span>
       )}

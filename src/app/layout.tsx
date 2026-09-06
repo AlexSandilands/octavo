@@ -5,29 +5,21 @@ import { BrandingProvider } from "@/components/branding";
 import { getSettings } from "@/server/settings";
 import { env } from "@/lib/env";
 
-// The three families are self-hosted from ./fonts rather than fetched from
-// Google (issue #167): next/font/google downloads them at *build* time, so every
-// CI run and every production deploy needed fonts.gstatic.com reachable, and one
-// flaked fetch failed an otherwise-green build. The committed woff2 files are the
-// same faces at the same versions Google was serving — see ./fonts/README.md for
-// each file's source URL and the command that rebuilds it.
+// Every family is self-hosted from ./fonts rather than fetched from Google
+// (issue #167): next/font/google downloads them at *build* time, so every CI run
+// and every production deploy needed fonts.gstatic.com reachable, and one flaked
+// fetch failed an otherwise-green build. See ./fonts/README.md for each file's
+// source URL and the command that rebuilds it.
+//
+// Two sets of type live here. Newsreader + Hanken Grotesk are the *page* faces:
+// every issue was laid out in them, so they are exposed only as --font-page-*
+// and used only by the page-content pipeline. Libre Caslon Text + IBM Plex Sans
+// + IBM Plex Mono are the *chrome* faces the Lantern interface is set in.
 //
 // preload:false on purpose (issue #72). These faces are applied indirectly —
-// as CSS variables consumed through Tailwind utilities (font-serif / font-sans /
-// font-mono), never via a next/font className on the rendered element — so
-// next/font can't tell which faces the first paint actually needs and emits a
-// <link rel="preload"> for every declared weight/style. The LCP on every
-// members-facing route is a cover/page image (which keeps its own correct,
-// always-used preload), not text, so those speculative font preloads sit unused
-// and Chrome logs "preloaded … but not used". With preload off the faces still
-// load from the stylesheet and swap in (display:swap default, size-adjusted
-// fallback → negligible CLS); we just stop asking the browser to preload them.
-//
-// Newsreader and Hanken Grotesk are variable fonts, so one file covers the whole
-// weight range each was declared at; IBM Plex Mono has no variable cut and keeps
-// a file per weight. adjustFontFallback names the family next/font measures its
-// size-adjusted fallback against — the serif wants Times New Roman, matching what
-// next/font/google picked for it from the family's category.
+// as CSS variables consumed through Tailwind utilities — so next/font can't tell
+// which faces the first paint actually needs and would preload every one. The
+// LCP on every members-facing route is a cover/page image, not text.
 //
 // Name these bindings after the typeface, not the role it plays: next/font/local
 // takes the CSS `font-family` straight from the variable name, so `serif`/`sans`/
@@ -60,6 +52,37 @@ const hanken = localFont({
     },
   ],
   variable: "--font-hanken",
+  preload: false,
+});
+
+const caslon = localFont({
+  src: [
+    {
+      path: "./fonts/libre-caslon-text-400.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "./fonts/libre-caslon-text-400-italic.woff2",
+      weight: "400",
+      style: "italic",
+    },
+    {
+      path: "./fonts/libre-caslon-text-700.woff2",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+  variable: "--font-caslon",
+  adjustFontFallback: "Times New Roman",
+  preload: false,
+});
+
+const plexSans = localFont({
+  src: [
+    { path: "./fonts/ibm-plex-sans.woff2", weight: "100 700", style: "normal" },
+  ],
+  variable: "--font-plex-sans",
   preload: false,
 });
 
@@ -98,7 +121,7 @@ export default async function RootLayout({
     <html
       lang="en"
       data-brand={env.NEXT_PUBLIC_BRAND}
-      className={`${newsreader.variable} ${hanken.variable} ${plexMono.variable}`}
+      className={`${newsreader.variable} ${hanken.variable} ${caslon.variable} ${plexSans.variable} ${plexMono.variable}`}
     >
       <body>
         {/* The branding text for the two client surfaces that have no server

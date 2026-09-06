@@ -93,7 +93,7 @@ export function ImageLayoutControls({
               title={`${s.value}%`}
               onClick={() => onChange({ width: s.value })}
             >
-              <span className="px-0.5 font-sans text-[12px] font-semibold">
+              <span className="px-0.5 font-ui text-[12px] font-semibold">
                 {s.label}
               </span>
             </Seg>
@@ -113,7 +113,7 @@ function Group({
 }) {
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-faint2 font-sans text-[9px] font-semibold tracking-[0.14em] uppercase">
+      <span className="text-faint2 font-ui text-[9px] font-semibold tracking-[0.14em] uppercase">
         {label}
       </span>
       <div className="border-hair flex overflow-hidden rounded-[6px] border">
@@ -147,7 +147,7 @@ function Seg({
       className={`flex h-7 min-w-7 items-center justify-center px-1.5 ${
         active
           ? "bg-accent text-paper"
-          : "text-muted hover:bg-accent-wash hover:text-accent bg-white"
+          : "text-muted hover:bg-brass-wash hover:text-accent bg-white"
       }`}
     >
       {children}

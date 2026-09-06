@@ -98,12 +98,12 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
       {(titleId) => (
         <>
           <div className="px-8 pt-7">
-            <div className="text-accent font-sans text-[10px] font-semibold tracking-[0.2em] uppercase">
+            <div className="text-accent font-ui text-[10px] font-semibold tracking-[0.2em] uppercase">
               Members
             </div>
             <h2
               id={titleId}
-              className="text-ink mt-3 font-serif text-[27px] leading-tight"
+              className="text-ink mt-3 font-display text-[27px] leading-tight"
             >
               Import from CSV
             </h2>
@@ -112,7 +112,7 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
               <ImportSummary summary={summary} />
             ) : (
               <>
-                <p className="text-muted mt-2.5 font-sans text-[15px] leading-relaxed">
+                <p className="text-muted mt-2.5 font-ui text-[15px] leading-relaxed">
                   A file with an <strong>email</strong> column (and an optional{" "}
                   <strong>name</strong>, or <strong>first</strong> and{" "}
                   <strong>last name</strong> columns). We’ll skip anything that
@@ -124,7 +124,7 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
                 <button
                   type="button"
                   onClick={() => inputRef.current?.click()}
-                  className="border-line text-muted hover:border-accent hover:bg-accent-wash hover:text-accent mt-5 flex h-14 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border-[1.5px] border-dashed font-sans text-[15px] font-semibold transition-[background-color,border-color,color] duration-150"
+                  className="border-line text-muted hover:border-accent hover:bg-brass-wash hover:text-accent mt-5 flex h-14 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border-[1.5px] border-dashed font-ui text-[15px] font-semibold transition-[background-color,border-color,color] duration-150"
                 >
                   <Icon name="upload" size={18} strokeWidth={1.8} />
                   {preview ? "Choose a different file" : "Choose CSV file"}
@@ -158,7 +158,7 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
               role="status"
               aria-live="polite"
               className={
-                error ? "text-warn mt-3 font-sans text-[14px]" : "sr-only"
+                error ? "text-danger mt-3 font-ui text-[14px]" : "sr-only"
               }
             >
               {error ?? (summary ? importSummaryAnnouncement(summary) : "")}

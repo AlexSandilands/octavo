@@ -16,7 +16,7 @@ export function HeadingLevelControl({
 }) {
   return (
     <div className="border-hair flex items-center gap-2 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap shadow-[0_4px_14px_rgba(40,36,28,0.16)]">
-      <span className="text-faint2 font-sans text-[9px] font-semibold tracking-[0.14em] uppercase">
+      <span className="text-faint2 font-ui text-[9px] font-semibold tracking-[0.14em] uppercase">
         Heading
       </span>
       <div className="border-hair flex overflow-hidden rounded-[6px] border">
@@ -29,10 +29,10 @@ export function HeadingLevelControl({
               e.stopPropagation();
               onChange({ level: l.value });
             }}
-            className={`flex h-7 items-center justify-center px-2.5 font-sans text-[12px] font-semibold ${
+            className={`flex h-7 items-center justify-center px-2.5 font-ui text-[12px] font-semibold ${
               level === l.value
                 ? "bg-accent text-paper"
-                : "text-muted hover:bg-accent-wash hover:text-accent bg-white"
+                : "text-muted hover:bg-brass-wash hover:text-accent bg-white"
             }`}
           >
             {l.label}

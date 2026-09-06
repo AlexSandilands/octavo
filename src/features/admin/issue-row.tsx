@@ -49,15 +49,15 @@ export function IssueRow({
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
             <Link
               href={editHref}
-              className="text-ink hover:text-accent font-serif text-[19px] leading-tight hover:underline"
+              className="text-ink hover:text-accent font-display text-[19px] leading-tight hover:underline"
             >
               {issue.title}
             </Link>
-            <span className="text-faint2 font-mono text-[11px]">
+            <span className="text-faint2 font-meta text-[11px]">
               No. {issue.number}
             </span>
           </div>
-          <div className="text-faint mt-1 font-sans text-[13px]">
+          <div className="text-faint mt-1 font-ui text-[13px]">
             {issue.pages} {issue.pages === 1 ? "page" : "pages"}
           </div>
         </div>
@@ -69,7 +69,7 @@ export function IssueRow({
         <div className="flex items-center gap-2 sm:gap-4">
           <Link
             href={editHref}
-            className="text-accent text-right font-sans text-sm font-semibold hover:underline sm:w-14"
+            className="text-accent text-right font-ui text-sm font-semibold hover:underline sm:w-14"
           >
             Edit
           </Link>

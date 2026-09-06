@@ -211,7 +211,7 @@ export function MembersBulkBar({
   return (
     <div
       className={`mt-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-lg border-[1.5px] px-2 ${
-        active ? "border-line bg-accent-wash" : "border-transparent"
+        active ? "border-line bg-brass-wash" : "border-transparent"
       }`}
     >
       {/* A search matching nothing has nothing to select all of, so the box
@@ -228,7 +228,7 @@ export function MembersBulkBar({
         </SelectCheckbox>
       ) : (
         active && (
-          <span className="text-muted py-2.5 pl-2 font-sans text-[14px]">
+          <span className="text-muted py-2.5 pl-2 font-ui text-[14px]">
             {countText}
           </span>
         )
@@ -242,7 +242,7 @@ export function MembersBulkBar({
           type="button"
           onClick={selectAllMatching}
           disabled={pending || selectingAll}
-          className="text-faint hover:text-accent cursor-pointer rounded px-2 py-2 font-sans text-[14px] font-medium underline underline-offset-4 disabled:cursor-default disabled:opacity-50"
+          className="text-faint hover:text-accent cursor-pointer rounded px-2 py-2 font-ui text-[14px] font-medium underline underline-offset-4 disabled:cursor-default disabled:opacity-50"
         >
           {selectingAll
             ? "Selecting…"
@@ -261,7 +261,7 @@ export function MembersBulkBar({
               onClear();
             }}
             disabled={pending}
-            className="text-faint hover:text-accent cursor-pointer rounded px-2 py-2 font-sans text-[14px] font-medium underline underline-offset-4 disabled:cursor-default disabled:opacity-50"
+            className="text-faint hover:text-accent cursor-pointer rounded px-2 py-2 font-ui text-[14px] font-medium underline underline-offset-4 disabled:cursor-default disabled:opacity-50"
           >
             Clear
           </button>
@@ -308,7 +308,7 @@ export function MembersBulkBar({
           needs to hear this. Empty, it has no height. */}
       <p
         aria-live="polite"
-        className={`text-faint basis-full px-1 font-sans text-[14px] ${
+        className={`text-faint basis-full px-1 font-ui text-[14px] ${
           atCap ? "pb-2" : ""
         }`}
       >
@@ -326,8 +326,8 @@ export function MembersBulkBar({
         className={
           selectionNote
             ? "sr-only"
-            : `basis-full px-1 font-sans text-[14px] ${
-                error ? "text-warn pb-2" : result ? "text-muted pb-2" : ""
+            : `basis-full px-1 font-ui text-[14px] ${
+                error ? "text-danger pb-2" : result ? "text-muted pb-2" : ""
               }`
         }
       >

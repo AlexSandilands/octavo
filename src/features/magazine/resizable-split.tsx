@@ -192,8 +192,8 @@ export function ResizableSplit({
           />
           <span
             aria-hidden="true"
-            className={`border-hair-warm group-hover:border-accent group-hover:bg-accent-wash relative h-10 w-[7px] rounded-full border-[1.5px] bg-white transition-colors ${
-              dragging ? "border-accent bg-accent-wash" : ""
+            className={`border-hair-warm group-hover:border-accent group-hover:bg-brass-wash relative h-10 w-[7px] rounded-full border-[1.5px] bg-white transition-colors ${
+              dragging ? "border-accent bg-brass-wash" : ""
             }`}
           />
         </div>

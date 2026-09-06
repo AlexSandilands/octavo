@@ -140,13 +140,13 @@ export function MobileReader({
             </button>
           )}
         </div>
-        <span className="text-ink font-serif text-[17px] tracking-[0.02em]">
+        <span className="text-ink font-display text-[17px] tracking-[0.02em]">
           {settings.name}
         </span>
         <div className="border-line bg-chip-soft flex items-center overflow-hidden rounded-full border">
           <button
             onClick={() => setM((v) => Math.max(16, v - 2))}
-            className="text-ink flex h-10 w-10 items-center justify-center font-sans text-sm font-medium"
+            className="text-ink flex h-10 w-10 items-center justify-center font-ui text-sm font-medium"
             aria-label="Smaller text"
           >
             A−
@@ -154,7 +154,7 @@ export function MobileReader({
           <div className="bg-hair h-5 w-px" />
           <button
             onClick={() => setM((v) => Math.min(26, v + 2))}
-            className="text-ink flex h-10 w-10 items-center justify-center font-sans text-lg font-semibold"
+            className="text-ink flex h-10 w-10 items-center justify-center font-ui text-lg font-semibold"
             aria-label="Larger text"
           >
             A+
@@ -186,7 +186,7 @@ export function MobileReader({
               {s.divided && (
                 <div
                   aria-hidden
-                  className="bg-canvas shadow-[inset_0_2px_3px_rgba(40,36,28,0.08)]"
+                  className="bg-ground shadow-[inset_0_2px_3px_rgba(40,36,28,0.08)]"
                   style={{ height: breakHeight(m) }}
                 />
               )}
@@ -250,7 +250,7 @@ export function MobileReader({
             className="bg-card absolute top-0 bottom-0 left-0 flex w-[250px] flex-col py-6 shadow-[8px_0_30px_rgba(0,0,0,0.2)]"
           >
             <div className="flex items-center justify-between px-5">
-              <span className="text-accent font-sans text-[11px] font-semibold tracking-[0.2em] uppercase">
+              <span className="text-accent font-ui text-[11px] font-semibold tracking-[0.2em] uppercase">
                 In this issue
               </span>
               <button
@@ -265,7 +265,7 @@ export function MobileReader({
             <div className="bg-line mx-5 my-4 h-px" />
             <Link
               href="/"
-              className="text-muted flex items-center gap-1.5 px-5 pb-3 font-sans text-[14px] font-medium"
+              className="text-muted flex items-center gap-1.5 px-5 pb-3 font-ui text-[14px] font-medium"
             >
               <Icon name="chevronLeft" size={16} />
               Library
@@ -274,7 +274,7 @@ export function MobileReader({
               <button
                 key={h.id}
                 onClick={() => goToHeading(h.id)}
-                className="text-accent px-5 py-2.5 text-left font-serif text-[19px]"
+                className="text-accent px-5 py-2.5 text-left font-display text-[19px]"
               >
                 {h.title}
               </button>

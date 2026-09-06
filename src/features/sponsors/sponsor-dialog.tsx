@@ -105,7 +105,7 @@ export function SponsorDialog({
           <div className="flex items-center justify-between px-8 pt-7">
             <h2
               id={titleId}
-              className="text-ink font-serif text-[26px] leading-tight"
+              className="text-ink font-display text-[26px] leading-tight"
             >
               {editing ? "Edit sponsor" : "Add sponsor"}
             </h2>
@@ -125,7 +125,7 @@ export function SponsorDialog({
                 onChange={(e) => setName(e.target.value)}
                 maxLength={200}
                 placeholder="e.g. Kawau Bay Hardware"
-                className="border-hair focus:border-accent text-ink h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-[15px] outline-none"
+                className="border-hair focus:border-accent text-ink h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-ui text-[15px] outline-none"
               />
             </Field>
 
@@ -136,7 +136,7 @@ export function SponsorDialog({
                 onChange={(e) => setHref(e.target.value)}
                 maxLength={2000}
                 placeholder="example.com or https://example.com"
-                className="border-hair focus:border-accent text-ink h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-[15px] outline-none"
+                className="border-hair focus:border-accent text-ink h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-ui text-[15px] outline-none"
               />
             </Field>
 
@@ -151,7 +151,7 @@ export function SponsorDialog({
                       className="h-full w-full object-contain"
                     />
                   ) : (
-                    <span className="text-faint2 font-mono text-[10px]">
+                    <span className="text-faint2 font-meta text-[10px]">
                       NO LOGO
                     </span>
                   )}
@@ -179,7 +179,7 @@ export function SponsorDialog({
                         setLogoId(null);
                         setLogoUrl(null);
                       }}
-                      className="text-faint2 hover:text-warn cursor-pointer rounded-sm font-sans text-[12px] font-medium transition-[color] duration-150"
+                      className="text-faint2 hover:text-danger cursor-pointer rounded-sm font-ui text-[12px] font-medium transition-[color] duration-150"
                     >
                       Remove logo
                     </button>
@@ -201,9 +201,9 @@ export function SponsorDialog({
                 type="date"
                 value={activeUntil}
                 onChange={(e) => setActiveUntil(e.target.value)}
-                className="border-hair focus:border-accent text-ink h-12 rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-[15px] outline-none"
+                className="border-hair focus:border-accent text-ink h-12 rounded-lg border-[1.5px] bg-white px-3.5 font-ui text-[15px] outline-none"
               />
-              <p className="text-faint2 mt-1.5 font-sans text-[12px]">
+              <p className="text-faint2 mt-1.5 font-ui text-[12px]">
                 After this date the sponsor is flagged expired here. It is not
                 removed from issues automatically.
               </p>
@@ -211,7 +211,7 @@ export function SponsorDialog({
           </div>
 
           {error && (
-            <p className="text-warn px-8 pt-4 font-sans text-[13px] font-semibold">
+            <p className="text-danger px-8 pt-4 font-ui text-[13px] font-semibold">
               {error}
             </p>
           )}
@@ -249,7 +249,7 @@ function Field({
     <div>
       <label
         htmlFor={htmlFor || undefined}
-        className="text-faint mb-1.5 block font-sans text-[11px] font-semibold tracking-[0.14em] uppercase"
+        className="text-faint mb-1.5 block font-ui text-[11px] font-semibold tracking-[0.14em] uppercase"
       >
         {label}
       </label>

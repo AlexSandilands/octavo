@@ -1,8 +1,16 @@
 # Self-hosted fonts
 
-The three families the magazine sets type in, committed as woff2 so that no build
+The five families the site sets type in, committed as woff2 so that no build
 needs a network round-trip to Google (issue #167). They are loaded by
 `src/app/layout.tsx` through `next/font/local`; nothing else references them.
+
+Two of them are the **page** faces — Newsreader and Hanken Grotesk, which every
+issue was laid out in and which the PDF prints. They are exposed only as the
+`--font-page-serif` / `--font-page-sans` tokens and used only by the page-content
+pipeline. The other three are the **chrome** faces of the Lantern interface:
+Libre Caslon Text (names and headings), IBM Plex Sans (the UI) and IBM Plex Mono
+(every metadata label). Swapping a chrome face changes nothing a member prints;
+swapping a page face repaginates every issue and needs a `RENDER_VERSION` bump.
 
 Each file is the same face, at the same version, that `next/font/google` was
 downloading at build time before the swap — see "Verification" for how that was
@@ -17,8 +25,12 @@ checked. Re-fetching or upgrading one is a deliberate act, not a build step.
 | `hanken-grotesk.woff2`    | Hanken Grotesk | v12 (font 3.013) | wght 100–900          |
 | `ibm-plex-mono-400.woff2` | IBM Plex Mono  | v20 (font 2.3)   | 400 (no variable cut) |
 | `ibm-plex-mono-500.woff2` | IBM Plex Mono  | v20 (font 2.3)   | 500 (no variable cut) |
+| `libre-caslon-text-400.woff2` | Libre Caslon Text | v5 (font 1.1) | 400, upright |
+| `libre-caslon-text-400-italic.woff2` | Libre Caslon Text | v5 (font 1.1) | 400, italic |
+| `libre-caslon-text-700.woff2` | Libre Caslon Text | v5 (font 1.1) | 700, upright |
+| `ibm-plex-sans.woff2`     | IBM Plex Sans  | v23 (font 3.2)   | wght 100–700 (wdth pinned at 100) |
 
-All three families are SIL Open Font License 1.1; the licence text sits beside the
+All five families are SIL Open Font License 1.1; the licence text sits beside the
 files it covers (`OFL-*.txt`), fetched from
 `https://raw.githubusercontent.com/google/fonts/main/ofl/<family>/OFL.txt`.
 
@@ -33,6 +45,10 @@ again if these 404, which means Google has published a newer version):
 - Hanken Grotesk — `https://fonts.gstatic.com/s/hankengrotesk/v12/ieVn2YZDLWuGJpnzaiwFXS9tYupa7dGTCTs5.ttf`
 - IBM Plex Mono Regular — `https://fonts.gstatic.com/s/ibmplexmono/v20/-F63fjptAgt5VM-kVkqdyU8n5igg1l9kn-s.ttf`
 - IBM Plex Mono Medium — `https://fonts.gstatic.com/s/ibmplexmono/v20/-F6qfjptAgt5VM-kVkqdyU8n3twJ8ldPg-IUDNg.ttf`
+- Libre Caslon Text Regular — `https://fonts.gstatic.com/s/librecaslontext/v5/DdT878IGsGw1aF1JU10PUbTvNNaDMcq_3eNrHgO1.ttf`
+- Libre Caslon Text Italic — `https://fonts.gstatic.com/s/librecaslontext/v5/DdT678IGsGw1aF1JU10PUbTvNNaDMfq91-dJGxO1q9o.ttf`
+- Libre Caslon Text Bold — `https://fonts.gstatic.com/s/librecaslontext/v5/DdT578IGsGw1aF1JU10PUbTvNNaDMfID8sdjNR-8ssPt.ttf`
+- IBM Plex Sans (variable, wdth+wght) — `https://fonts.gstatic.com/s/ibmplexsans/v23/zYXgKVElMYYaJe8bpLHnCwDKtdbUFI5NadY.ttf`
 
 ## Rebuilding
 
@@ -58,6 +74,9 @@ LATIN_EXT='U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1D00-1D
 python -m fontTools.varLib.instancer -o roman-opsz16.ttf Newsreader.ttf opsz=16
 python -m fontTools.varLib.instancer -o italic-opsz16.ttf Newsreader-Italic.ttf opsz=16
 
+# IBM Plex Sans only: drop the width axis (normal width), keep weight variable.
+python -m fontTools.varLib.instancer -o plexsans-wdth100.ttf IBMPlexSans-VariableFont_wdth,wght.ttf wdth=100
+
 pyftsubset <input>.ttf --output-file=<output>.woff2 \
   --flavor=woff2 --layout-features='*' --unicodes="$LATIN,$LATIN_EXT"
 ```
@@ -76,3 +95,14 @@ from `fonts.gstatic.com` using next's own Chrome/104 user agent, then compared):
 - outlines match after decomposition except for three control points (`6`, `đ`,
   `₫`) that differ by 1 unit out of 2000 em — instancer rounding, well under a
   pixel at any size the magazine sets.
+
+## The chrome faces (Lantern)
+
+Libre Caslon Text and IBM Plex Sans were added with the Lantern interface and are
+chrome only — nothing in `src/features/blocks` may set them. They went through the
+same subset recipe (latin + latin-ext, `--layout-features='*'`). Caslon has no
+variable cut, so it ships as three static files; Plex Sans is the upstream
+variable font with `wdth` instanced to 100 so one file carries the weight range
+the interface uses (450 for light-on-dark body text, 500–600 for controls).
+Neither face is measured against anything the PDF prints, so upgrading them
+needs no `RENDER_VERSION` bump.

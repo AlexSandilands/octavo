@@ -10,7 +10,7 @@ import { FigureBadge, FigureFrame } from "./guide-ui";
 function MiniPage({ issueNo, badge }: { issueNo: number; badge?: boolean }) {
   return (
     <div className="bg-page w-[126px] rounded-[2px] p-2.5 shadow-[0_2px_8px_rgba(20,32,28,0.18)]">
-      <div className="text-faint2 font-sans text-[8px] tracking-[0.12em] uppercase">
+      <div className="text-faint2 font-ui text-[8px] tracking-[0.12em] uppercase">
         Issue No. {issueNo}
       </div>
       <div className="bg-rule mt-1.5 h-[5px] w-3/4 rounded-xs" />
@@ -20,7 +20,7 @@ function MiniPage({ issueNo, badge }: { issueNo: number; badge?: boolean }) {
       <div className="border-hair-warm mt-2 flex items-center gap-1.5 rounded-[4px] border bg-white p-1.5">
         {badge && <FigureBadge n={2} />}
         <span className="photo-fill h-4 w-4 flex-none rounded-[2px]" />
-        <span className="text-ink font-sans text-[8px] leading-tight font-semibold">
+        <span className="text-ink font-ui text-[8px] leading-tight font-semibold">
           Harbour Bakery
         </span>
       </div>
@@ -37,18 +37,18 @@ export function SponsorsFigure() {
         <div className="border-hair w-[190px] flex-none rounded-lg border bg-white p-4">
           <div className="flex items-center gap-2">
             <FigureBadge n={1} />
-            <span className="text-faint font-sans text-[8.5px] font-semibold tracking-[0.14em] uppercase">
+            <span className="text-faint font-ui text-[8.5px] font-semibold tracking-[0.14em] uppercase">
               Sponsor record
             </span>
           </div>
           <span className="photo-fill mt-2.5 block h-10 w-10 rounded-[4px]" />
-          <div className="text-ink mt-2 font-sans text-[13px] font-semibold">
+          <div className="text-ink mt-2 font-ui text-[13px] font-semibold">
             Harbour Bakery
           </div>
-          <div className="text-accent font-sans text-[11px] underline">
+          <div className="text-accent font-ui text-[11px] underline">
             harbourbakery.nz
           </div>
-          <div className="text-faint2 mt-1.5 font-sans text-[10px]">
+          <div className="text-faint2 mt-1.5 font-ui text-[10px]">
             Active until Jun 2027
           </div>
         </div>

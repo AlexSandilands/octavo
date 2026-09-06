@@ -151,7 +151,7 @@ function Tool({
     ? "border-hair-warm text-ink cursor-default bg-white opacity-45"
     : pressed
       ? "border-accent bg-accent text-paper cursor-pointer motion-safe:active:scale-95"
-      : "border-hair-warm text-ink hover:border-accent hover:bg-accent-wash cursor-pointer bg-white motion-safe:active:scale-95";
+      : "border-hair-warm text-ink hover:border-accent hover:bg-brass-wash cursor-pointer bg-white motion-safe:active:scale-95";
   return (
     <button
       type="button"
@@ -162,7 +162,7 @@ function Tool({
       aria-label={label}
       aria-pressed={pressed}
       aria-keyshortcuts={shortcut}
-      className={`flex h-10 w-10 flex-none items-center justify-center gap-1.5 rounded-[9px] border font-sans text-[13px] font-semibold transition-[transform,background-color,border-color,color] duration-150 ease-out select-none ${showLabel ? "xl:w-auto xl:px-3.5" : ""} ${look}`}
+      className={`flex h-10 w-10 flex-none items-center justify-center gap-1.5 rounded-[9px] border font-ui text-[13px] font-semibold transition-[transform,background-color,border-color,color] duration-150 ease-out select-none ${showLabel ? "xl:w-auto xl:px-3.5" : ""} ${look}`}
     >
       <Icon name={icon} size={16} className={pressed ? "" : iconClass} />
       {showLabel && <span className="hidden xl:inline">{label}</span>}

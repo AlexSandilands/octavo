@@ -4,16 +4,54 @@
    so a deployment with no NEXT_PUBLIC_BRAND set renders exactly this file. */
 @import "./brands.css";
 
-/* Design system from docs/claude-design — editorial, paper + one accent.
-   Tokens drive Tailwind utilities (bg-paper, text-accent, font-serif, ...).
+/* "Lantern": dark, quiet chrome around lit paper pages. Two families of token:
+   the *chrome* (ground / raised / brass / chrome-text — everything that frames
+   the magazine) and the *page* (page / ink / accent / rule … — the authored
+   content itself, which feeds the PDF and is deliberately left exactly as it
+   was). Tokens drive Tailwind utilities (bg-ground, text-brass, font-ui …).
    These @theme tokens ARE the `heritage` brand — the per-deployment default. */
 @theme {
-  --color-paper: #f4f0e8;
-  --color-page: #faf7f0;
-  --color-card: #fbf9f4;
-  --color-stage: #efe9dd;
-  --color-tint: #e8efe9;
+  /* ---- Chrome: the dark reading room ---- */
+  --color-ground: #17181c; /* the wall — every page's backdrop */
+  --color-raised: #1f2126; /* bars, rails, panels on the ground */
+  --color-lifted: #262931; /* a hovered row / a chip on the raised surface */
+  --color-chrome-soft: #33363e; /* pressed / active dark control */
+  --color-hairline: #2a2d34; /* the one rule on dark (decorative, never text) */
 
+  --color-chrome-text: #ece7dc; /* warm off-white on dark (≥ 13:1) */
+  --color-chrome-muted: #b9b3a6; /* de-emphasised on dark (≥ 7.7:1) */
+
+  /* Brass: the accent. `brass` lights up on the dark ground; `brass-ink` is
+     the same metal read on paper, darkened to clear AA as text. */
+  --color-brass: #e0b45c;
+  --color-brass-strong: #ecc06a; /* hover on a brass fill */
+  --color-brass-ink: #6f5212;
+  --color-brass-ink-strong: #5a4210; /* hover on brass-ink text */
+  --color-brass-soft: #f4e8cc; /* a brass chip on a light surface */
+  --color-brass-wash: #f7f0df; /* hover wash on white controls */
+
+  /* Danger is a red that reads on both grounds; caution keeps the old amber
+     for "look here" notices (draft ribbons, overflow, expiry). */
+  --color-danger: #a83a2c;
+  --color-danger-strong: #8c2f23;
+  --color-danger-soft: #f8e6e2;
+  --color-danger-bright: #f29a8e; /* red text on dark */
+  --color-caution: #8a5d1c;
+  --color-caution-soft: #f3ece0;
+  --color-ok: #2f8f6b; /* success / subscribed (dot on light) */
+  --color-ok-bright: #7fcf9f; /* success text on dark */
+  --color-alert: #c8923f; /* caution dot */
+
+  --color-scrim: rgba(10, 10, 12, 0.72); /* modal backdrop */
+
+  /* ---- Light surfaces the chrome floats on the ground ---- */
+  --color-paper: #f6f2ea; /* a sheet: forms, tables, dialogs, articles */
+  --color-card: #fbf9f4; /* a card on a sheet (also the sponsor logo box) */
+  --color-page: #faf7f0; /* the magazine page itself — do not retune */
+  --color-stage: #efe9dd; /* video/montage placeholder fill inside a page */
+  --color-tint: #e8efe9; /* the modern theme's sponsor card */
+
+  /* ---- Page content (the magazine, printed as-is) ---- */
   --color-accent: #1d4d3e;
   --color-accent-strong: #184034;
   --color-accent-ink: #143a2e;
@@ -23,97 +61,128 @@
   --color-ink: #20201c;
   --color-body: #2a2722;
   --color-muted: #56524a;
-  /* Two warm greys for de-emphasised text. Both clear WCAG AA (≥4.5:1) on the
-     paper/page/card/stage backgrounds they render on, so metadata, hints and
-     page numbers stay legible for the older audience — faint2 is the lighter of
-     the pair, faint a step darker for text that carries a little more weight. */
+  /* Two warm greys for de-emphasised text on light surfaces; both clear AA on
+     every paper-family background — metadata and hints stay legible. */
   --color-faint: #615c50;
   --color-faint2: #6d685a;
 
   --color-line: #e6e0d3;
   --color-line-soft: #efe9dc;
   --color-hair: #ddd6c8;
+  --color-hair-warm: #e0d9c9;
+  --color-rule: #cfc6b4;
+  --color-dash: #c9c1b1;
+  --color-placeholder-line: #e2dccf;
+  --color-chip: #efeae0;
+  --color-chip-dot: #b8b1a2;
+  --color-chip-soft: #f0ece2;
 
-  /* Amber warning ink, darkened to clear AA both as text on warn-soft and as a
-     background under paper-coloured text (the draft ribbon). */
-  --color-warn: #8a5d1c;
-  --color-warn-strong: #6f4a14; /* darker warn — hover on destructive buttons */
-  --color-warn-soft: #f3ece0;
+  --color-page-seam: #efe7d8;
+  --color-page-frame: #dcd1b6;
+  --color-page-frame-soft: #e8e0cb;
 
-  /* Status dots. */
-  --color-ok: #2f8f6b; /* success / subscribed */
-  --color-alert: #c8923f; /* caution — bounced / planned */
+  /* ---- Elevation: the glow is what makes a page read as lit ---- */
+  --shadow-glow:
+    0 0 0 1px rgba(255, 255, 255, 0.05), 0 30px 70px -20px rgba(0, 0, 0, 0.85),
+    0 0 90px -10px rgba(224, 180, 92, 0.16);
+  --shadow-glow-sm:
+    0 0 0 1px rgba(255, 255, 255, 0.05), 0 16px 40px -14px rgba(0, 0, 0, 0.8),
+    0 0 40px -8px rgba(224, 180, 92, 0.14);
+  --shadow-sheet: 0 24px 70px -24px rgba(0, 0, 0, 0.8);
+  --shadow-panel: 0 30px 80px -10px rgba(0, 0, 0, 0.7);
+  --shadow-flat: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.22);
 
-  /* Warm chrome neutrals — hairlines, chips and washes on the paper UI. */
-  --color-hair-warm: #e0d9c9; /* border on white chips/buttons/thumbnails */
-  --color-rule: #cfc6b4; /* decorative heading + cover hairline rules */
-  --color-dash: #c9c1b1; /* dashed empty-state borders */
-  --color-placeholder-line: #e2dccf; /* photo placeholder outline */
-  --color-chip: #efeae0; /* neutral pill / badge background */
-  --color-chip-dot: #b8b1a2; /* neutral status dot */
-  --color-chip-soft: #f0ece2; /* lighter neutral control background */
-  --color-accent-wash: #f4f8f5; /* faint accent tint — hover on white controls */
-  --color-canvas: #ece7dc; /* editor canvas backdrop */
+  --radius-ui: 6px;
+  --radius-sheet: 10px;
 
-  /* Page decorations. */
-  --color-page-seam: #efe7d8; /* spine-side divider between spread pages */
-  --color-page-frame: #dcd1b6; /* classic outer decorative frame */
-  --color-page-frame-soft: #e8e0cb; /* classic inner decorative frame */
-
-  /* Reader control dock — dark chrome floating over the paper stage. */
-  --color-reader-chrome: #211f1a;
-  --color-reader-chrome-text: #e7e2d6;
-  --color-reader-chrome-muted: #cfc9bb;
-  --color-reader-chrome-hover: #34312a;
-  --color-reader-chrome-line: #413d35;
-  --color-reader-slider: #9db8ac; /* zoom slider accent */
-
+  /* ---- Type ----
+     The page faces: the families every issue was laid out in and the PDF
+     prints. Their values are frozen — a change here repaginates every issue
+     and needs a RENDER_VERSION bump. Only the page-content pipeline
+     (features/blocks, mobile-block, the print document) sets them. */
   --font-serif: var(--font-newsreader), Georgia, serif;
   --font-sans: var(--font-hanken), system-ui, sans-serif;
   --font-mono: var(--font-plex), ui-monospace, monospace;
+  /* The chrome faces: a sturdy serif for names and headings, Plex Sans for
+     the interface, Plex Mono for every label that reads like a shelf tag.
+     Nothing a member prints is set in them. */
+  --font-display: var(--font-caslon), Georgia, "Times New Roman", serif;
+  --font-ui: var(--font-plex-sans), system-ui, sans-serif;
+  --font-meta: var(--font-plex), ui-monospace, monospace;
 }
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 body {
-  background: var(--color-paper);
+  background: var(--color-ground);
   color: var(--color-ink);
-  font-family: var(--font-sans);
+  font-family: var(--font-ui);
   font-size: 17px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Comfortable, visible focus for an older audience. */
-*:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
+/* The page environment. A magazine page inherits its default type and ink from
+   the document, so everything a page could inherit is pinned here to the page
+   faces — the chrome's own body font never reaches authored content, in the
+   reader, the editor, a thumbnail or the PDF. `.page-env` marks the mobile
+   reader's article, which has no page frame. */
+[data-page-frame],
+.page-env {
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--color-ink);
 }
 
-/* A decorated box wrapping a bare <input> (e.g. the members search): the
-   global ring would land on the inner input and float a rectangle inside the
-   box, so the input opts out and the box itself carries the identical ring. */
+/* Focus rings are brass on dark chrome and dark brass on paper, always 2px and
+   always offset, for an older audience. `.on-paper` marks a light surface. */
+*:focus-visible {
+  outline: 2px solid var(--color-brass);
+  outline-offset: 2px;
+}
+.on-paper *:focus-visible,
+.on-paper:focus-visible {
+  outline-color: var(--color-brass-ink);
+}
+
+/* A decorated box wrapping a bare <input> (e.g. the list search): the ring
+   lands on the box, and the inner input opts out. */
 .boxed-field:focus-within {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-brass-ink);
   outline-offset: 2px;
 }
 .boxed-field input:focus-visible {
   outline: none;
 }
 
+/* Light-on-dark body text sits a little heavier than ink on paper, so thin
+   strokes don't vanish for older eyes. */
+.on-dark {
+  color: var(--color-chrome-text);
+  font-weight: 450;
+}
+
 /* A quieter scrollbar for the app's own scroll regions. The thumb is mixed from
    `--scrollbar-surface`, the surface it sits on (paper unless a region sets it);
    `.scrollbar-soft-quiet` adds to the base, hiding the thumb until hover,
-   focus-within or a recent scroll (`data-scrolling`). */
+   focus-within or a recent scroll (`data-scrolling`). Mixed with chrome-text
+   rather than ink, so a dark region's thumb lightens and a light one's darkens
+   — both clear 3:1 on their surface (checked by the contrast gate). */
 .scrollbar-soft {
   --scrollbar-thumb: color-mix(
     in oklab,
     var(--scrollbar-surface, var(--color-paper)),
-    var(--color-ink) 50%
+    var(--scrollbar-ink, var(--color-ink)) 50%
   );
   --scrollbar-thumb-shown: var(--scrollbar-thumb);
+}
+.scrollbar-dark {
+  --scrollbar-surface: var(--color-raised);
+  --scrollbar-ink: var(--color-chrome-text);
 }
 /* The reveal states set a property on the element rather than styling the
    pseudo-element directly: Chrome only restyles a scrollbar when the element's
@@ -152,6 +221,16 @@ body {
   }
 }
 
+/* The shelf: a scroll-snap row of covers with no visible scrollbar (its own
+   Previous / Next buttons are the affordance; the covers show there is more). */
+.shelf-row {
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.shelf-row::-webkit-scrollbar {
+  display: none;
+}
+
 /* Placeholder "photo" fill used wherever real imagery will go. */
 .photo-fill {
   background-image: repeating-linear-gradient(
@@ -170,6 +249,23 @@ body {
     #1d4a3c 10px,
     #1d4a3c 20px
   );
+}
+
+/* Paper-coloured skeleton blocks on the dark ground. The pulse stands down
+   under reduced motion and the block reads as a plain placeholder. */
+.skeleton {
+  background: color-mix(in oklab, var(--color-raised), var(--color-paper) 14%);
+  border-radius: 4px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton {
+    animation: skeleton-pulse 1.6s ease-in-out infinite;
+  }
+}
+@keyframes skeleton-pulse {
+  50% {
+    opacity: 0.55;
+  }
 }
 
 /* Placeholder for empty in-place editable fields in the admin editor. */

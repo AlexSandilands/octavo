@@ -5,6 +5,16 @@ const ICONS: Record<string, ReactNode> = {
   chevronLeft: <path d="M15 5l-7 7 7 7" />,
   chevronRight: <path d="M9 5l7 7-7 7" />,
   chevronDown: <path d="M6 9l6 6 6-6" />,
+  arrowLeft: <path d="M19 12H6m0 0l5-5m-5 5l5 5" />,
+  // An open book — the library, on the admin rail.
+  book: (
+    <>
+      <path d="M3 5.5h6.5a2.5 2.5 0 012.5 2.5v11a2 2 0 00-2-2H3z" />
+      <path d="M21 5.5h-6.5A2.5 2.5 0 0012 8v11a2 2 0 012-2h7z" />
+    </>
+  ),
+  logout: <path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9" />,
+  textSize: <path d="M4 18l4-11 4 11M5.5 14h5M14 18l2.5-7 2.5 7M15.2 15.5h2.6" />,
   arrowRight: <path d="M5 12h13m0 0l-5-5m5 5l-5 5" />,
   menu: <path d="M4 6h16M4 12h16M4 18h10" />,
   download: <path d="M12 4v11m0 0l-4-4m4 4l4-4M5 20h14" />,

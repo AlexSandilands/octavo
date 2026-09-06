@@ -49,8 +49,8 @@ export function SponsorsManager({
     <div className={ADMIN_LIST_PAGE}>
       <div className="flex flex-none flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-ink font-serif text-3xl">Sponsors</h1>
-          <p className="text-faint mt-1.5 font-sans text-sm">{summary}</p>
+          <h1 className="text-ink font-display text-3xl">Sponsors</h1>
+          <p className="text-faint mt-1.5 font-ui text-sm">{summary}</p>
         </div>
         {list.total > 0 && (
           <Button
@@ -69,10 +69,10 @@ export function SponsorsManager({
             <div className="bg-tint text-accent flex h-[72px] w-[72px] items-center justify-center rounded-full">
               <Icon name="banner" size={32} strokeWidth={1.5} />
             </div>
-            <h2 className="text-ink mt-5 font-serif text-2xl">
+            <h2 className="text-ink mt-5 font-display text-2xl">
               No sponsors yet
             </h2>
-            <p className="text-muted mt-2.5 max-w-sm font-sans text-[15px] leading-relaxed">
+            <p className="text-muted mt-2.5 max-w-sm font-ui text-[15px] leading-relaxed">
               Add the patrons who support the club — a logo and a link. You can
               then drop each one into an issue from the editor.
             </p>

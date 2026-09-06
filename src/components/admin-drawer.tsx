@@ -105,7 +105,7 @@ export function AdminDrawer({ children }: { children: ReactNode }) {
           <Icon name="menu" size={24} />
         </button>
         <Wordmark size={20} />
-        <span className="text-accent font-sans text-[10px] font-semibold tracking-[0.2em] uppercase">
+        <span className="text-accent font-ui text-[10px] font-semibold tracking-[0.2em] uppercase">
           Admin
         </span>
       </div>

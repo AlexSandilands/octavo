@@ -49,7 +49,7 @@ export function ReaderControls({
         <CtrlBtn onClick={onPrev} title="Previous">
           <Icon name="chevronLeft" size={18} strokeWidth={1.7} />
         </CtrlBtn>
-        <span className="text-reader-chrome-muted min-w-[76px] text-center font-sans text-[13px]">
+        <span className="text-reader-chrome-muted min-w-[76px] text-center font-ui text-[13px]">
           {label}
         </span>
         <CtrlBtn onClick={onNext} title="Next">

@@ -11,7 +11,7 @@ export default function ReaderLoading() {
           <div className="bg-line-soft mx-auto mt-14 h-40 w-4/5 rounded" />
           <div className="bg-line-soft mx-auto mt-10 h-3 w-40 rounded" />
         </div>
-        <p className="text-faint mt-6 text-center font-sans text-sm">
+        <p className="text-faint mt-6 text-center font-ui text-sm">
           Opening the issue…
         </p>
       </div>

@@ -55,11 +55,11 @@ export function LogoRow({
           />
         </div>
         <div className="min-w-0">
-          <div className="text-ink truncate font-sans text-[15px] font-semibold">
+          <div className="text-ink truncate font-ui text-[15px] font-semibold">
             {logo.name}
           </div>
           {logo.image.width && logo.image.height && (
-            <div className="text-faint2 font-mono text-[11px]">
+            <div className="text-faint2 font-meta text-[11px]">
               {logo.image.width}×{logo.image.height}
             </div>
           )}
@@ -67,7 +67,7 @@ export function LogoRow({
       </div>
 
       {error && (
-        <p className="text-warn basis-full font-sans text-[13px] font-semibold sm:basis-auto">
+        <p className="text-danger basis-full font-ui text-[13px] font-semibold sm:basis-auto">
           {error}
         </p>
       )}
@@ -79,7 +79,7 @@ export function LogoRow({
           disabled={pending}
           title={`Rename ${logo.name}`}
           aria-label={`Rename ${logo.name}`}
-          className="text-accent cursor-pointer px-1 text-right font-sans text-sm font-semibold hover:underline disabled:opacity-40"
+          className="text-accent cursor-pointer px-1 text-right font-ui text-sm font-semibold hover:underline disabled:opacity-40"
         >
           Rename
         </button>
@@ -89,7 +89,7 @@ export function LogoRow({
           disabled={pending}
           title={`Delete ${logo.name}`}
           aria-label={`Delete ${logo.name}`}
-          className="text-faint2 hover:text-warn hover:border-warn flex h-9 w-9 items-center justify-center rounded-lg border border-transparent disabled:opacity-40"
+          className="text-faint2 hover:text-danger hover:border-danger flex h-9 w-9 items-center justify-center rounded-lg border border-transparent disabled:opacity-40"
         >
           <Icon name="trash" size={17} strokeWidth={1.8} />
         </button>

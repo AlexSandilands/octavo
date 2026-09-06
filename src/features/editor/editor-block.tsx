@@ -175,7 +175,7 @@ export function EditorBlock({
                   />
                   <span className="bg-line h-5 w-px" />
                   <label className="flex items-center gap-1.5">
-                    <span className="text-faint2 font-sans text-[9px] font-semibold tracking-[0.14em] uppercase">
+                    <span className="text-faint2 font-ui text-[9px] font-semibold tracking-[0.14em] uppercase">
                       Alt
                     </span>
                     <input
@@ -185,7 +185,7 @@ export function EditorBlock({
                       onClick={(e) => e.stopPropagation()}
                       aria-label="Describe this photo for screen readers"
                       placeholder="Describe this photo for screen readers"
-                      className="border-hair text-ink w-56 rounded-[6px] border bg-white px-2 py-1 font-sans text-[12px]"
+                      className="border-hair text-ink w-56 rounded-[6px] border bg-white px-2 py-1 font-ui text-[12px]"
                     />
                   </label>
                 </>
@@ -257,7 +257,7 @@ export function EditorBlock({
               />
             </div>
           ) : (
-            <span className="bg-accent text-paper chrome-unscaled absolute bottom-full left-0 z-10 mb-2 rounded-[3px] px-1.5 py-[3px] font-sans text-[9px] font-semibold tracking-[0.1em] uppercase">
+            <span className="bg-accent text-paper chrome-unscaled absolute bottom-full left-0 z-10 mb-2 rounded-[3px] px-1.5 py-[3px] font-ui text-[9px] font-semibold tracking-[0.1em] uppercase">
               {block.type}
             </span>
           )}
@@ -334,7 +334,7 @@ function Ctrl({
       aria-label={title}
       className={`border-hair-warm flex h-6 w-6 items-center justify-center rounded-[5px] border bg-white ${
         danger
-          ? "text-warn hover:border-warn"
+          ? "text-danger hover:border-danger"
           : "text-muted hover:border-accent hover:text-accent"
       }`}
     >

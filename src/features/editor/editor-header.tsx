@@ -61,39 +61,39 @@ export function EditorHeader({
         <input
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
-          className="text-ink min-w-0 border-none bg-transparent font-serif text-[21px] outline-none"
+          className="text-ink min-w-0 border-none bg-transparent font-display text-[21px] outline-none"
           placeholder="Untitled issue"
         />
         <span className="bg-chip flex items-center gap-1.5 rounded-full px-3 py-1">
           <span className="bg-chip-dot h-1.5 w-1.5 rounded-full" />
-          <span className="text-faint font-sans text-[11px] font-semibold">
+          <span className="text-faint font-ui text-[11px] font-semibold">
             Draft · No. {issueNumber}
           </span>
         </span>
         {status === "error" ? (
-          <span className="flex items-center gap-2 font-sans text-[12px]">
-            <span className="text-warn font-semibold">Couldn’t save</span>
+          <span className="flex items-center gap-2 font-ui text-[12px]">
+            <span className="text-danger font-semibold">Couldn’t save</span>
             <button
               onClick={onRetrySave}
-              className="border-warn text-warn hover:bg-warn-soft rounded-md border px-2 py-0.5 font-semibold"
+              className="border-danger text-danger hover:bg-danger-soft rounded-md border px-2 py-0.5 font-semibold"
             >
               Retry
             </button>
           </span>
         ) : status === "conflict" ? (
-          <span className="flex items-center gap-2 font-sans text-[12px]">
-            <span className="text-warn font-semibold">
+          <span className="flex items-center gap-2 font-ui text-[12px]">
+            <span className="text-danger font-semibold">
               Changed somewhere else
             </span>
             <button
               onClick={onReload}
-              className="border-warn text-warn hover:bg-warn-soft rounded-md border px-2 py-0.5 font-semibold"
+              className="border-danger text-danger hover:bg-danger-soft rounded-md border px-2 py-0.5 font-semibold"
             >
               Reload
             </button>
           </span>
         ) : (
-          <span className="text-faint2 font-sans text-[11px]">
+          <span className="text-faint2 font-ui text-[11px]">
             {status === "saving" ? "Saving…" : "Saved"}
           </span>
         )}

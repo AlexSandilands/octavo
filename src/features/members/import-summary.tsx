@@ -24,7 +24,7 @@ export function ImportSummary({ summary }: { summary: ImportSummaryData }) {
 
   return (
     <>
-      <p className="text-muted mt-2.5 font-sans text-[15px] leading-relaxed">
+      <p className="text-muted mt-2.5 font-ui text-[15px] leading-relaxed">
         Done — <strong className="text-ink">{added} added</strong>,{" "}
         {alreadyMembers} already {alreadyMembers === 1 ? "a member" : "members"}
         {updated > 0 && <> ({updated} of them given the name from this file)</>}
@@ -32,7 +32,7 @@ export function ImportSummary({ summary }: { summary: ImportSummaryData }) {
       </p>
 
       {skippedCount > 0 && (
-        <div className="border-line-soft mt-4 rounded-lg border bg-white px-4 py-3 font-sans text-[14px]">
+        <div className="border-line-soft mt-4 rounded-lg border bg-white px-4 py-3 font-ui text-[14px]">
           <p className="text-ink">
             {one ? "One address" : `${skippedCount} addresses`} in the file
             couldn’t be used, so {one ? "it was" : "they were"} left out.

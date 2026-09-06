@@ -1,34 +1,15 @@
 import Link from "next/link";
 import { forwardRef, type ReactNode } from "react";
 import { Icon, type IconName } from "./icons";
-import { MagazineName } from "./branding";
 
-export function Wordmark({ size = 22 }: { size?: number }) {
-  return (
-    <span
-      className="font-serif text-ink"
-      style={{ fontSize: size, fontWeight: 500, letterSpacing: ".02em" }}
-    >
-      <MagazineName />
-    </span>
-  );
-}
+export { Avatar, Cover, Kicker, Label, Pill, Wordmark } from "./ui-marks";
+export type { Status, Tone } from "./ui-marks";
+export { Icon };
 
-export function Kicker({ children }: { children: ReactNode }) {
-  return (
-    <div className="font-sans text-[11px] font-semibold tracking-[0.2em] text-accent uppercase">
-      {children}
-    </div>
-  );
-}
-
-export function Label({ children }: { children: ReactNode }) {
-  return (
-    <div className="font-sans text-[11px] font-semibold tracking-[0.2em] text-faint uppercase">
-      {children}
-    </div>
-  );
-}
+// Every control names the surface it sits on: "paper" (a light sheet, card or
+// dialog) or "dark" (the chrome — bars, rails, the ground). The two differ only
+// in the secondary/ghost colours; a brass primary is brass on both.
+export type ButtonTone = "paper" | "dark";
 
 type ButtonProps = {
   children: ReactNode;
@@ -36,9 +17,10 @@ type ButtonProps = {
   icon?: IconName;
   /** Which side the icon sits on. Defaults to trailing the label. */
   iconPosition?: "left" | "right";
-  variant?: "primary" | "secondary" | "danger";
-  /** "md" is the standalone CTA size; "sm" fits dense bars (editor header). */
-  size?: "md" | "sm";
+  variant?: "primary" | "secondary" | "danger" | "ghost";
+  tone?: ButtonTone;
+  /** "md" is the standalone CTA size; "sm" fits dense bars; "lg" is a hero. */
+  size?: "md" | "sm" | "lg";
   full?: boolean;
   onClick?: () => void;
   type?: "button" | "submit";
@@ -55,15 +37,57 @@ type ButtonProps = {
   busy?: boolean;
   className?: string;
   "aria-label"?: string;
+  "aria-pressed"?: boolean;
   title?: string;
+  target?: "_blank";
+};
+
+const SIZES = {
+  lg: "h-14 px-7 text-[17px]",
+  md: "h-12 px-5 text-[16px]",
+  sm: "h-10 px-4 text-[15px]",
+} as const;
+
+// Fills and hover feedback, per variant and tone. The primary is brass with
+// charcoal text on either ground; the secondary is an outline in the surface's
+// own ink; ghost is text only with a wash on hover.
+const LOOK: Record<
+  NonNullable<ButtonProps["variant"]>,
+  Record<ButtonTone, { rest: string; feedback: string }>
+> = {
+  primary: {
+    paper: { rest: "bg-brass text-ground", feedback: "hover:bg-brass-strong" },
+    dark: { rest: "bg-brass text-ground", feedback: "hover:bg-brass-strong" },
+  },
+  secondary: {
+    paper: {
+      rest: "border-[1.5px] border-hair-warm bg-white text-ink",
+      feedback: "hover:border-brass-ink hover:bg-brass-wash",
+    },
+    dark: {
+      rest: "border-[1.5px] border-chrome-muted text-chrome-text",
+      feedback: "hover:border-chrome-text hover:bg-lifted",
+    },
+  },
+  danger: {
+    paper: { rest: "bg-danger text-paper", feedback: "hover:bg-danger-strong" },
+    dark: { rest: "bg-danger text-paper", feedback: "hover:bg-danger-strong" },
+  },
+  ghost: {
+    paper: {
+      rest: "text-brass-ink",
+      feedback: "hover:bg-brass-wash hover:text-brass-ink-strong",
+    },
+    dark: { rest: "text-chrome-text", feedback: "hover:bg-lifted" },
+  },
 };
 
 // The one button for the app. Every variant shares the same interaction
-// feedback — a hover lift, a tactile press (a slight scale-down, skipped under
-// prefers-reduced-motion) and the global focus-visible ring — so buttons feel
-// consistent and responsive everywhere (issue #64), and every variant drops all
-// of it while disabled or busy (issue #117). forwardRef so callers that manage
-// focus (e.g. the confirm dialog) can target the underlying <button>.
+// feedback — a hover shift, a tactile press (a slight scale-down, skipped under
+// prefers-reduced-motion) and the focus-visible ring — so buttons feel
+// consistent everywhere (issue #64), and every variant drops all of it while
+// disabled or busy (issue #117). forwardRef so callers that manage focus (e.g.
+// the confirm dialog) can target the underlying <button>.
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   function Button(
     {
@@ -72,6 +96,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       icon,
       iconPosition = "right",
       variant = "primary",
+      tone = "paper",
       size = "md",
       full = false,
       onClick,
@@ -81,7 +106,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       busy = false,
       className = "",
       "aria-label": ariaLabel,
+      "aria-pressed": ariaPressed,
       title,
+      target,
     },
     ref,
   ) {
@@ -89,27 +116,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     // Every way of being unpressable, for the styling and the click guard —
     // `unavailable` has no attribute doing either of those for it.
     const inert = isDisabled || unavailable;
-    const base = `${full ? "flex w-full" : "inline-flex"} items-center justify-center gap-2 rounded-lg font-sans font-semibold transition-[transform,background-color,border-color,box-shadow,color] duration-150 ease-out select-none`;
-    const sizes = {
-      md: "h-12 px-5 text-[15px]",
-      sm: "h-10 px-4 text-sm",
-    }[size];
-    const rest = {
-      primary: "bg-accent text-paper shadow-[0_2px_8px_rgba(29,77,62,0.25)]",
-      // The house style for white buttons: a hairline on white.
-      secondary: "border-[1.5px] border-hair-warm bg-white text-ink",
-      danger: "bg-warn text-paper shadow-[0_2px_10px_rgba(0,0,0,0.18)]",
-    }[variant];
-    const feedback = {
-      primary:
-        "hover:bg-accent-strong hover:shadow-[0_4px_14px_rgba(29,77,62,0.3)] active:shadow-[0_1px_4px_rgba(29,77,62,0.25)]",
-      // That hairline lights up to an accent outline over a faint wash (matches
-      // the editor toolbar / sponsor buttons the rest of the app already uses).
-      secondary:
-        "hover:border-accent hover:bg-accent-wash active:bg-accent-wash",
-      danger:
-        "hover:bg-warn-strong hover:shadow-[0_4px_14px_rgba(0,0,0,0.22)] active:shadow-[0_1px_5px_rgba(0,0,0,0.18)]",
-    }[variant];
+    const base = `${full ? "flex w-full" : "inline-flex"} rounded-ui items-center justify-center gap-2 font-ui font-semibold whitespace-nowrap transition-[transform,background-color,border-color,color] duration-150 ease-out select-none`;
+    const look = LOOK[variant][tone];
     // The hover/press feedback is composed in only when the button can actually
     // be pressed, so a disabled or busy one sits completely still. Gated here in
     // JS rather than with Tailwind's `enabled:` variant: `:enabled` never matches
@@ -119,9 +127,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       ? busy
         ? "cursor-default"
         : "cursor-default opacity-50"
-      : `cursor-pointer motion-safe:active:scale-[0.97] ${feedback}`;
-    const cls = `${base} ${sizes} ${rest} ${state} ${className}`;
-    const iconEl = icon && <Icon name={icon} size={17} strokeWidth={1.8} />;
+      : `cursor-pointer motion-safe:active:scale-[0.97] ${look.feedback}`;
+    const cls = `${base} ${SIZES[size]} ${look.rest} ${state} ${className}`;
+    const iconEl = icon && <Icon name={icon} size={18} strokeWidth={1.8} />;
     const inner = (
       <>
         {iconPosition === "left" && iconEl}
@@ -132,7 +140,13 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     // A disabled link is not a real thing; only the button branch can disable.
     if (href)
       return (
-        <Link href={href} className={cls} aria-label={ariaLabel} title={title}>
+        <Link
+          href={href}
+          className={cls}
+          aria-label={ariaLabel}
+          title={title}
+          target={target}
+        >
           {inner}
         </Link>
       );
@@ -146,6 +160,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={isDisabled}
         aria-disabled={unavailable || undefined}
         aria-label={ariaLabel}
+        aria-pressed={ariaPressed}
         title={title}
         className={cls}
       >
@@ -155,30 +170,62 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   },
 );
 
-// The icon-only companion to Button, for the dialogs' close ×. It carries the
-// same interaction contract — pointer cursor, a hover wash, the focus ring —
-// without Button's box: the padding grows the tap target while the matching
-// negative margin cancels it in flow, so the icon sits exactly where it did.
+// The icon button: a 44px square target with an accessible name, and — where
+// there is room — the name printed beside the icon (`showLabel`), because an
+// icon alone says nothing to this audience. It carries the same interaction
+// contract as Button: pointer cursor, a hover wash, the focus ring, and a
+// disabled state that promises nothing. `danger` turns the wash red for
+// destructive row actions.
 export const IconButton = forwardRef<
   HTMLButtonElement,
   {
     icon: IconName;
     /** Accessible name — an icon alone says nothing. */
     label: string;
+    /** Print the label beside the icon. */
+    showLabel?: boolean;
     onClick?: () => void;
     size?: number;
+    tone?: ButtonTone;
+    danger?: boolean;
     disabled?: boolean;
+    title?: string;
     className?: string;
+    "aria-expanded"?: boolean;
+    "aria-controls"?: string;
+    "aria-pressed"?: boolean;
   }
 >(function IconButton(
-  { icon, label, onClick, size = 22, disabled = false, className = "" },
+  {
+    icon,
+    label,
+    showLabel = false,
+    onClick,
+    size = 20,
+    tone = "paper",
+    danger = false,
+    disabled = false,
+    title,
+    className = "",
+    "aria-expanded": ariaExpanded,
+    "aria-controls": ariaControls,
+    "aria-pressed": ariaPressed,
+  },
   ref,
 ) {
+  const colour =
+    tone === "dark"
+      ? danger
+        ? "text-chrome-muted hover:bg-lifted hover:text-danger-bright"
+        : "text-chrome-text hover:bg-lifted"
+      : danger
+        ? "text-muted hover:bg-danger-soft hover:text-danger"
+        : "text-muted hover:bg-brass-wash hover:text-ink";
   // Same disabled treatment as Button: dimmed, no pointer, and the hover wash
   // composed out entirely so it promises nothing it will not do (issue #117).
   const state = disabled
-    ? "cursor-default opacity-50"
-    : "hover:bg-accent-wash hover:text-ink cursor-pointer";
+    ? `cursor-default opacity-50 ${tone === "dark" ? "text-chrome-muted" : "text-muted"}`
+    : `cursor-pointer ${colour}`;
   return (
     <button
       ref={ref}
@@ -186,79 +233,14 @@ export const IconButton = forwardRef<
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className={`text-muted -m-2 inline-flex items-center justify-center rounded-lg p-2 transition-[background-color,color] duration-150 ${state} ${className}`}
+      aria-expanded={ariaExpanded}
+      aria-controls={ariaControls}
+      aria-pressed={ariaPressed}
+      title={title ?? (showLabel ? undefined : label)}
+      className={`rounded-ui inline-flex h-11 min-w-11 items-center justify-center gap-1.5 font-ui text-[15px] font-medium transition-[background-color,color] duration-150 ${showLabel ? "px-3" : ""} ${state} ${className}`}
     >
       <Icon name={icon} size={size} strokeWidth={1.7} />
+      {showLabel && <span>{label}</span>}
     </button>
   );
 });
-
-export type Status =
-  | "Published"
-  | "Draft"
-  | "Subscribed"
-  | "Unsubscribed"
-  | "Bounced"
-  | "Planned";
-
-const PILL: Record<Status, { bg: string; ink: string; dot: string }> = {
-  Published: { bg: "bg-tint", ink: "text-accent", dot: "bg-accent" },
-  Subscribed: { bg: "bg-tint", ink: "text-accent", dot: "bg-ok" },
-  Draft: { bg: "bg-chip", ink: "text-faint", dot: "bg-chip-dot" },
-  Unsubscribed: { bg: "bg-chip", ink: "text-faint", dot: "bg-chip-dot" },
-  Bounced: { bg: "bg-warn-soft", ink: "text-warn", dot: "bg-alert" },
-  Planned: { bg: "bg-warn-soft", ink: "text-warn", dot: "bg-alert" },
-};
-
-export function Pill({ status }: { status: Status }) {
-  const p = PILL[status];
-  return (
-    <span
-      className={`inline-flex items-center gap-2 rounded-full px-3 py-1 ${p.bg}`}
-    >
-      <span className={`h-1.5 w-1.5 rounded-full ${p.dot}`} />
-      <span className={`font-sans text-xs font-semibold ${p.ink}`}>
-        {status}
-      </span>
-    </span>
-  );
-}
-
-export function Avatar({ initials }: { initials: string }) {
-  return (
-    <span className="bg-tint text-accent flex h-9 w-9 flex-none items-center justify-center rounded-full font-sans text-[13px] font-semibold">
-      {initials}
-    </span>
-  );
-}
-
-// The striped magazine cover used for thumbnails and heroes.
-export function Cover({
-  no,
-  title,
-  className = "",
-  size = "md",
-}: {
-  no: number;
-  title: string;
-  className?: string;
-  size?: "sm" | "md" | "lg";
-}) {
-  const pad = size === "lg" ? "p-5" : "p-4";
-  const titleSize =
-    size === "lg" ? "text-4xl" : size === "md" ? "text-3xl" : "text-xl";
-  return (
-    <div
-      className={`photo-fill-green flex flex-col justify-between rounded-[4px] ${pad} ${className}`}
-    >
-      <div className="text-cream font-serif text-xs tracking-[0.1em]">
-        <MagazineName /> · No. {no}
-      </div>
-      <div className={`text-paper font-serif leading-[0.98] ${titleSize}`}>
-        {title}
-      </div>
-    </div>
-  );
-}
-
-export { Icon };

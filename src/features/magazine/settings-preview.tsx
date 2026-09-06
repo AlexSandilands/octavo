@@ -190,7 +190,7 @@ export function SettingsPreview({
 
       {/* Held to a readable measure, and to the stacked layout's own width
           below xl so that layout is untouched by the split. */}
-      <p className="text-faint2 max-w-[340px] font-sans text-[12px] leading-relaxed xl:max-w-[420px]">
+      <p className="text-faint2 max-w-[340px] font-ui text-[12px] leading-relaxed xl:max-w-[420px]">
         {scale >= 1
           ? "A page at its real size, with stand-in words."
           : `A page at ${Math.round(scale * 100)}% of its real size, with stand-in words.`}{" "}

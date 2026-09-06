@@ -3,8 +3,10 @@
 // heritage design tokens out of globals.css's @theme block and each non-default
 // brand's `[data-brand="…"]` override block out of brands.css, merges them, and
 // asserts that for every brand each foreground used for readable text clears
-// 4.5:1 against each paper-family background it renders on, and that the amber
-// warn ink works both as text on warn-soft and as a background under paper ink.
+// 4.5:1 against each background it renders on — the paper family for ink, and
+// (since the Lantern chrome) the dark family for the chrome text, the brass
+// accent and the bright status inks — plus the reversed pairs: paper ink on the
+// danger fill and charcoal on the brass fill.
 // Run: npx tsx scripts/dev-contrast-gate.mts
 import { readFile } from "node:fs/promises";
 import { BRAND_IDS, DEFAULT_BRAND } from "../src/lib/brands.ts";
@@ -75,7 +77,23 @@ const contrast = (a: string, b: string) => {
 
 const AA = 4.5;
 // The paper-family surfaces readable text sits on across the app.
-const backgrounds = ["paper", "page", "card", "stage", "tint", "warn-soft"];
+const backgrounds = ["paper", "page", "card", "stage", "tint"];
+// The soft status washes, and the text that sits on each of them.
+const washes: [string, string[]][] = [
+  ["brass-soft", ["brass-ink", "muted"]],
+  ["danger-soft", ["danger", "muted"]],
+  ["caution-soft", ["caution", "muted"]],
+  ["brass-wash", ["brass-ink", "ink", "muted"]],
+];
+// The dark chrome surfaces, and every light-on-dark foreground.
+const darkBackgrounds = ["ground", "raised", "lifted", "chrome-soft"];
+const darkForegrounds = [
+  "chrome-text",
+  "chrome-muted",
+  "brass",
+  "danger-bright",
+  "ok-bright",
+];
 
 // Check one brand's full token set (the same bar #10 audited for heritage).
 const checkBrand = (id: string, tokens: Map<string, string>) => {
@@ -86,20 +104,49 @@ const checkBrand = (id: string, tokens: Map<string, string>) => {
   };
 
   // Foreground tokens that carry readable text (metadata, hints, page numbers,
-  // status labels) and must all clear AA on every background above.
-  for (const fg of ["muted", "faint", "faint2", "warn"]) {
+  // status labels, the chrome accent) and must all clear AA on every light
+  // background above.
+  for (const fg of ["muted", "faint", "faint2", "brass-ink", "danger", "caution"]) {
     for (const bg of backgrounds) {
       const r = contrast(hex(fg), hex(bg));
       ok(r >= AA, `[${id}] ${fg} on ${bg} is ${r.toFixed(2)}:1 (≥ ${AA})`);
     }
   }
+  for (const [bg, fgs] of washes) {
+    for (const fg of fgs) {
+      const r = contrast(hex(fg), hex(bg));
+      ok(r >= AA, `[${id}] ${fg} on ${bg} is ${r.toFixed(2)}:1 (≥ ${AA})`);
+    }
+  }
 
-  // The draft ribbon paints paper-coloured text on a solid warn background, so
-  // that pairing must clear AA the other way round too.
-  const r = contrast(hex("paper"), hex("warn"));
+  // The dark chrome: every light-on-dark foreground on every dark surface.
+  for (const fg of darkForegrounds) {
+    for (const bg of darkBackgrounds) {
+      const r = contrast(hex(fg), hex(bg));
+      ok(r >= AA, `[${id}] ${fg} on ${bg} is ${r.toFixed(2)}:1 (≥ ${AA})`);
+    }
+  }
+
+  // The reversed fills: the danger button paints paper text on danger, the
+  // primary button paints charcoal on brass, and the brass marker must read as
+  // a UI affordance (3:1) against the ground it sits on.
+  const onDanger = contrast(hex("paper"), hex("danger"));
   ok(
-    r >= AA,
-    `[${id}] paper ink on warn background is ${r.toFixed(2)}:1 (≥ ${AA})`,
+    onDanger >= AA,
+    `[${id}] paper ink on danger fill is ${onDanger.toFixed(2)}:1 (≥ ${AA})`,
+  );
+  const onBrass = contrast(hex("ground"), hex("brass"));
+  ok(
+    onBrass >= AA,
+    `[${id}] ground ink on brass fill is ${onBrass.toFixed(2)}:1 (≥ ${AA})`,
+  );
+  const marker = contrast(hex("brass"), hex("ground"));
+  ok(marker >= 3, `[${id}] brass marker on ground is ${marker.toFixed(2)}:1 (≥ 3)`);
+  // The outlined secondary button on dark draws its border in chrome-muted.
+  const outline = contrast(hex("chrome-muted"), hex("raised"));
+  ok(
+    outline >= 3,
+    `[${id}] chrome-muted outline on raised is ${outline.toFixed(2)}:1 (≥ 3)`,
   );
 };
 
@@ -109,13 +156,19 @@ for (const [id, tokens] of brands) {
 }
 
 // The house scrollbar (issue #207, swept across the app in #210): `.scrollbar-soft`
-// in globals.css draws its thumb as `color-mix(in oklab, <surface>, ink 50%)`,
+// in globals.css draws its thumb as `color-mix(in oklab, <surface>, <ink> 50%)`,
 // where the surface is paper unless the region sets `--scrollbar-surface` (a
-// card-backed panel: card). A scrollbar thumb is a UI affordance, so it needs
-// 3:1 (WCAG 1.4.11) against the surface it sits on, on every brand. This
-// mirrors the browser's oklab mix so the number is checked, not eyeballed.
+// card-backed panel: card; a dark region: raised, mixed with chrome-text via
+// `.scrollbar-dark`). A scrollbar thumb is a UI affordance, so it needs 3:1
+// (WCAG 1.4.11) against the surface it sits on, on every brand. This mirrors
+// the browser's oklab mix so the number is checked, not eyeballed.
 const UI = 3;
-const SCROLLBAR_SURFACES = ["paper", "card"];
+const SCROLLBAR_SURFACES: [string, string][] = [
+  ["paper", "ink"],
+  ["card", "ink"],
+  ["raised", "chrome-text"],
+  ["ground", "chrome-text"],
+];
 const INK_MIX = 0.5;
 
 const srgbToLinear = (v: number) =>
@@ -166,8 +219,8 @@ const mixOklab = (a: string, b: string, pctB: number) => {
 
 for (const [id, tokens] of brands) {
   console.log(`\n— scrollbar thumb, brand: ${id} —`);
-  const ink = tokens.get("ink")!;
-  for (const surface of SCROLLBAR_SURFACES) {
+  for (const [surface, inkName] of SCROLLBAR_SURFACES) {
+    const ink = tokens.get(inkName)!;
     const thumb = mixOklab(tokens.get(surface)!, ink, INK_MIX);
     const r = contrast(thumb, tokens.get(surface)!);
     ok(

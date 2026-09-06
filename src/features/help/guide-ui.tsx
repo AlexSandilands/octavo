@@ -22,12 +22,12 @@ export function GuideSection({
       aria-labelledby={`${id}-heading`}
       className="border-line-soft mt-10 scroll-mt-8 border-t pt-8"
     >
-      <div className="text-accent font-sans text-[11px] font-semibold tracking-[0.2em] uppercase">
+      <div className="text-accent font-ui text-[11px] font-semibold tracking-[0.2em] uppercase">
         {kicker}
       </div>
       <h2
         id={`${id}-heading`}
-        className="text-ink mt-1.5 font-serif text-[26px] leading-tight"
+        className="text-ink mt-1.5 font-display text-[26px] leading-tight"
       >
         {title}
       </h2>
@@ -38,7 +38,7 @@ export function GuideSection({
 
 export function P({ children }: { children: ReactNode }) {
   return (
-    <p className="text-body max-w-[64ch] font-sans text-[15.5px] leading-relaxed">
+    <p className="text-body max-w-[64ch] font-ui text-[15.5px] leading-relaxed">
       {children}
     </p>
   );
@@ -46,7 +46,7 @@ export function P({ children }: { children: ReactNode }) {
 
 export function Bullets({ children }: { children: ReactNode }) {
   return (
-    <ul className="text-body max-w-[64ch] list-disc space-y-2.5 pl-5 font-sans text-[15px] leading-relaxed marker:text-faint2">
+    <ul className="text-body max-w-[64ch] list-disc space-y-2.5 pl-5 font-ui text-[15px] leading-relaxed marker:text-faint2">
       {children}
     </ul>
   );
@@ -70,15 +70,15 @@ export function Step({
       {/* Decorative — the <ol> already conveys the position. */}
       <span
         aria-hidden="true"
-        className="bg-tint text-accent mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-full font-sans text-[13px] font-semibold"
+        className="bg-tint text-accent mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-full font-ui text-[13px] font-semibold"
       >
         {n}
       </span>
       <div className="min-w-0">
-        <h3 className="text-ink font-sans text-[15.5px] font-semibold">
+        <h3 className="text-ink font-ui text-[15.5px] font-semibold">
           {title}
         </h3>
-        <div className="text-body mt-1 font-sans text-[15px] leading-relaxed">
+        <div className="text-body mt-1 font-ui text-[15px] leading-relaxed">
           {children}
         </div>
       </div>
@@ -101,18 +101,18 @@ export function Callout({
   return (
     <div
       className={`max-w-[64ch] rounded-[10px] border-[1.5px] p-4 sm:p-5 ${
-        careful ? "border-warn bg-warn-soft" : "border-line bg-card"
+        careful ? "border-caution bg-caution-soft" : "border-line bg-card"
       }`}
     >
       <h3
-        className={`flex items-center gap-2 font-sans text-[14.5px] font-bold ${
-          careful ? "text-warn" : "text-ink"
+        className={`flex items-center gap-2 font-ui text-[14.5px] font-bold ${
+          careful ? "text-caution" : "text-ink"
         }`}
       >
         {icon && <Icon name={icon} size={17} strokeWidth={1.8} />}
         {title}
       </h3>
-      <div className="text-body mt-1.5 font-sans text-[14.5px] leading-relaxed">
+      <div className="text-body mt-1.5 font-ui text-[14.5px] leading-relaxed">
         {children}
       </div>
     </div>
@@ -140,7 +140,7 @@ export function FigureFrame({
       >
         {children}
       </div>
-      <figcaption className="text-faint mt-2 font-sans text-[13px] leading-relaxed xl:px-24">
+      <figcaption className="text-faint mt-2 font-ui text-[13px] leading-relaxed xl:px-24">
         {caption}
       </figcaption>
     </figure>
@@ -151,7 +151,7 @@ export function FigureFrame({
 // legend list next to the figure.
 export function FigureBadge({ n }: { n: number }) {
   return (
-    <span className="bg-accent text-paper flex h-[19px] w-[19px] flex-none items-center justify-center rounded-full font-sans text-[11px] font-bold">
+    <span className="bg-accent text-paper flex h-[19px] w-[19px] flex-none items-center justify-center rounded-full font-ui text-[11px] font-bold">
       {n}
     </span>
   );

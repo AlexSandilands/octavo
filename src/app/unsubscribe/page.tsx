@@ -48,10 +48,10 @@ export default async function UnsubscribePage({
   if (!token || !member) {
     return (
       <Frame>
-        <h1 className="text-ink mt-10 font-serif text-3xl leading-[1.1]">
+        <h1 className="text-ink mt-10 font-display text-3xl leading-[1.1]">
           This link isn&rsquo;t valid.
         </h1>
-        <p className="text-muted mt-4 font-sans text-[16px] leading-relaxed">
+        <p className="text-muted mt-4 font-ui text-[16px] leading-relaxed">
           The unsubscribe link may be incomplete or out of date. Use the
           Unsubscribe link at the bottom of a recent {magazineName} email.
         </p>
@@ -62,10 +62,10 @@ export default async function UnsubscribePage({
   if (member.subscribed) {
     return (
       <Frame>
-        <h1 className="text-ink mt-10 font-serif text-3xl leading-[1.1]">
+        <h1 className="text-ink mt-10 font-display text-3xl leading-[1.1]">
           Unsubscribe from {magazineName}?
         </h1>
-        <p className="text-muted mt-4 font-sans text-[16px] leading-relaxed">
+        <p className="text-muted mt-4 font-ui text-[16px] leading-relaxed">
           We&rsquo;ll stop emailing new issues to{" "}
           <span className="text-ink font-semibold">{member.email}</span>. You
           can resubscribe here any time.
@@ -83,10 +83,10 @@ export default async function UnsubscribePage({
 
   return (
     <Frame>
-      <h1 className="text-ink mt-10 font-serif text-3xl leading-[1.1]">
+      <h1 className="text-ink mt-10 font-display text-3xl leading-[1.1]">
         You&rsquo;ve been unsubscribed.
       </h1>
-      <p className="text-muted mt-4 font-sans text-[16px] leading-relaxed">
+      <p className="text-muted mt-4 font-ui text-[16px] leading-relaxed">
         We won&rsquo;t email new issues to{" "}
         <span className="text-ink font-semibold">{member.email}</span> any more.
         Changed your mind? You can turn them back on.

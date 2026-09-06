@@ -18,6 +18,30 @@ import { Icon } from "@/components/icons";
 // Callers own what an option *is* — value, key and row content — so an option
 // can be plain text (themes) or a mark thumbnail beside a name (logos). The
 // check column is drawn here so every menu marks its current option alike.
+// `tone` names the surface the trigger sits on: a white outlined pill on paper,
+// a raised dark pill on the chrome; the menu itself follows.
+
+const TRIGGER = {
+  paper:
+    "border-hair-warm text-ink hover:border-brass-ink hover:bg-brass-wash bg-white",
+  dark: "border-chrome-muted text-chrome-text hover:border-chrome-text hover:bg-lifted bg-raised",
+} as const;
+
+const MENU = {
+  paper: "border-hair bg-paper shadow-pop",
+  dark: "border-hairline bg-raised shadow-panel",
+} as const;
+
+const ITEM = {
+  paper: {
+    active: "text-brass-ink font-semibold",
+    rest: "text-ink hover:bg-brass-wash",
+  },
+  dark: {
+    active: "text-brass font-semibold",
+    rest: "text-chrome-text hover:bg-lifted",
+  },
+} as const;
 
 export type MenuSelectItem<T> = {
   /** Stable React key — the value's own id, or a literal for a null value. */
@@ -35,6 +59,7 @@ export function MenuSelect<T>({
   value,
   onSelect,
   size = "sm",
+  tone = "paper",
   className = "",
 }: {
   /** Trigger prefix — the control names itself, e.g. "Theme". */
@@ -49,6 +74,7 @@ export function MenuSelect<T>({
   /** Trigger height: "sm" (40px) suits dense chrome like the editor header;
    * "md" (44px) sits beside full-size fields and meets the tap-target floor. */
   size?: "sm" | "md";
+  tone?: "paper" | "dark";
   /** Extra classes for the trigger — widths and placement only, as on Button. */
   className?: string;
 }) {
@@ -144,19 +170,22 @@ export function MenuSelect<T>({
             setOpen(true);
           }
         }}
-        className={`border-hair-warm text-ink hover:border-accent hover:bg-accent-wash flex cursor-pointer items-center gap-2 rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-sm font-medium transition-[transform,background-color,border-color] duration-150 ease-out select-none motion-safe:active:scale-[0.97] ${
+        className={`rounded-ui flex cursor-pointer items-center gap-2 border-[1.5px] px-3.5 font-ui text-[15px] font-medium whitespace-nowrap transition-[transform,background-color,border-color] duration-150 ease-out select-none motion-safe:active:scale-[0.97] ${TRIGGER[tone]} ${
           size === "md" ? "h-11" : "h-10"
         } ${className}`}
       >
-        {label}: {current}
-        <Icon name="chevronDown" size={14} strokeWidth={1.8} />
+        <span className={tone === "dark" ? "text-chrome-muted" : "text-faint"}>
+          {label}:
+        </span>
+        {current}
+        <Icon name="chevronDown" size={15} strokeWidth={1.8} />
       </button>
 
       {open && (
         <div
           role="menu"
           aria-label={ariaLabel}
-          className="border-hair absolute top-full right-0 z-30 mt-1.5 min-w-[180px] rounded-lg border bg-white p-1 shadow-[0_8px_24px_rgba(40,36,28,0.18)]"
+          className={`rounded-ui absolute top-full right-0 z-30 mt-1.5 min-w-[200px] border p-1 ${MENU[tone]}`}
         >
           {items.map((item, i) => {
             const active = item.value === value;
@@ -171,10 +200,8 @@ export function MenuSelect<T>({
                 aria-checked={active}
                 onClick={() => choose(item.value)}
                 onKeyDown={(e) => onItemKeyDown(e, i)}
-                className={`flex h-11 w-full cursor-pointer items-center gap-2 rounded-md px-2.5 font-sans text-sm transition-[background-color,color] duration-150 ${
-                  active
-                    ? "text-accent font-semibold"
-                    : "text-ink hover:bg-accent-wash"
+                className={`flex h-11 w-full cursor-pointer items-center gap-2 rounded-[4px] px-2.5 font-ui text-[15px] transition-[background-color,color] duration-150 ${
+                  active ? ITEM[tone].active : ITEM[tone].rest
                 }`}
               >
                 <span className="flex w-4 justify-center">

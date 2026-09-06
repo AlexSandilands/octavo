@@ -59,7 +59,7 @@ export function ArchiveShelf({
         aria-live="polite"
         className={
           list.rows.length === 0
-            ? "text-faint py-16 text-center font-sans text-[15px]"
+            ? "text-faint py-16 text-center font-ui text-[15px]"
             : "sr-only"
         }
       >

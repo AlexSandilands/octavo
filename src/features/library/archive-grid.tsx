@@ -160,10 +160,10 @@ function ArchiveCard({
         )}
       </div>
       <div className="mt-2.5">
-        <span className="text-ink font-serif text-[15px] leading-tight group-hover:underline">
+        <span className="text-ink font-display text-[15px] leading-tight group-hover:underline">
           {a.title}
         </span>{" "}
-        <span className="text-faint2 inline-block font-mono text-[11px] whitespace-nowrap">
+        <span className="text-faint2 inline-block font-meta text-[11px] whitespace-nowrap">
           No. {a.number}
         </span>
       </div>
@@ -185,10 +185,10 @@ function PlaceholderCover({ number, tint }: { number: number; tint: string }) {
     >
       {/* Ghosted numeral + label over the tinted stripe field: near-ink browns at
           low opacity, decorative to this placeholder cover only — not tokens. */}
-      <span className="pointer-events-none absolute -right-1 -bottom-6 font-serif text-[110px] leading-none text-[#2f2b22]/15 select-none">
+      <span className="pointer-events-none absolute -right-1 -bottom-6 font-display text-[110px] leading-none text-[#2f2b22]/15 select-none">
         {number}
       </span>
-      <span className="absolute top-3 left-3 font-serif text-xs text-[#3a372f]/80">
+      <span className="absolute top-3 left-3 font-display text-xs text-[#3a372f]/80">
         No. {number}
       </span>
     </div>

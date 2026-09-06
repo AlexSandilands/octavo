@@ -76,10 +76,10 @@ export function SettingsFormCard({
       />
 
       <div className="border-line-soft border-t pt-5">
-        <h3 className="text-ink font-serif text-lg leading-tight">
+        <h3 className="text-ink font-display text-lg leading-tight">
           Page footer
         </h3>
-        <p className="text-muted mt-1.5 font-sans text-[13px] leading-relaxed">
+        <p className="text-muted mt-1.5 font-ui text-[13px] leading-relaxed">
           How the running footer on interior pages is set. Covers and full-page
           photos have no footer. Text size applies whether or not the issue
           carries a mark; the mark&rsquo;s size and where the lockup sits apply
@@ -109,7 +109,7 @@ export function SettingsFormCard({
           onSelect={(footerAlign: FooterAlign) => onChange({ footerAlign })}
         />
       </div>
-      <p className="text-faint2 font-sans text-[12px] leading-relaxed">
+      <p className="text-faint2 font-ui text-[12px] leading-relaxed">
         Small, Medium and Large are the sizes the footer has always offered;
         Custom takes an exact size in pixels. Alignment is the same on both
         pages of a spread and on a phone — the page number always sits at the
@@ -121,10 +121,10 @@ export function SettingsFormCard({
       </p>
 
       <div className="border-line-soft border-t pt-5">
-        <h3 className="text-ink font-serif text-lg leading-tight">
+        <h3 className="text-ink font-display text-lg leading-tight">
           PDF downloads
         </h3>
-        <p className="text-muted mt-1.5 font-sans text-[13px] leading-relaxed">
+        <p className="text-muted mt-1.5 font-ui text-[13px] leading-relaxed">
           Whether members may save an issue to keep. This one is about who gets
           the file, not how a page is set — so it is the one setting here the
           preview beside it never shows.
@@ -163,7 +163,7 @@ function PdfDownloadsToggle({
           aria-describedby="pdf-downloads-hint"
           className="accent-accent mt-0.5 h-5 w-5 flex-none"
         />
-        <span className="font-sans text-[14px] leading-snug">
+        <span className="font-ui text-[14px] leading-snug">
           <span className="text-ink font-semibold">
             Let members download issues as a PDF
           </span>
@@ -175,7 +175,7 @@ function PdfDownloadsToggle({
       </label>
       <p
         id="pdf-downloads-hint"
-        className="text-faint2 mt-1.5 font-sans text-[12px] leading-relaxed"
+        className="text-faint2 mt-1.5 font-ui text-[12px] leading-relaxed"
       >
         Turn it off and the button goes from every one of those places, and the
         download address stops working — including for a member who saved it.
@@ -210,7 +210,7 @@ function TextField({
     <div>
       <label
         htmlFor={id}
-        className="text-faint mb-1.5 block font-sans text-[11px] font-semibold tracking-[0.14em] uppercase"
+        className="text-faint mb-1.5 block font-ui text-[11px] font-semibold tracking-[0.14em] uppercase"
       >
         {label}
       </label>
@@ -221,11 +221,11 @@ function TextField({
         maxLength={maxLength}
         placeholder={fallback}
         aria-describedby={`${id}-hint`}
-        className="border-hair focus:border-accent text-ink h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-[15px] outline-none"
+        className="border-hair focus:border-accent text-ink h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-ui text-[15px] outline-none"
       />
       <p
         id={`${id}-hint`}
-        className="text-faint2 mt-1.5 font-sans text-[12px] leading-relaxed"
+        className="text-faint2 mt-1.5 font-ui text-[12px] leading-relaxed"
       >
         {hint}
         {usingDefault && (

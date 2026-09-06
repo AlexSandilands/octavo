@@ -65,7 +65,7 @@ export function ReaderContents({
           <Icon name="menu" size={20} />
         </button>
         <div className="bg-line h-px w-6" />
-        <span className="text-faint2 font-mono text-[10px] tracking-[0.1em] [writing-mode:vertical-rl]">
+        <span className="text-faint2 font-meta text-[10px] tracking-[0.1em] [writing-mode:vertical-rl]">
           CONTENTS
         </span>
       </aside>
@@ -76,13 +76,13 @@ export function ReaderContents({
     <aside className="bg-card border-line flex w-[248px] flex-none flex-col border-r py-5">
       <Link
         href="/"
-        className="text-muted hover:text-accent mb-4 flex items-center gap-1.5 px-5 font-sans text-[13px] font-medium"
+        className="text-muted hover:text-accent mb-4 flex items-center gap-1.5 px-5 font-ui text-[13px] font-medium"
       >
         <Icon name="chevronLeft" size={16} />
         Library
       </Link>
       <div className="flex items-center justify-between px-5">
-        <span className="text-accent font-sans text-[11px] font-semibold tracking-[0.2em] uppercase">
+        <span className="text-accent font-ui text-[11px] font-semibold tracking-[0.2em] uppercase">
           Contents
         </span>
         <button
@@ -93,13 +93,13 @@ export function ReaderContents({
           <Icon name="chevronLeft" size={18} />
         </button>
       </div>
-      <p className="text-faint px-5 pt-2 font-serif text-[13px] italic">
+      <p className="text-faint px-5 pt-2 font-display text-[13px] italic">
         {magazineName} · No. {issueNo}
       </p>
       <div className="bg-line mx-5 my-4 h-px" />
       <nav className="scrollbar-soft flex-1 overflow-y-auto [--scrollbar-surface:var(--color-card)] [scrollbar-gutter:stable]">
         {toc.length === 0 && (
-          <p className="text-faint2 px-5 font-sans text-[13px]">
+          <p className="text-faint2 px-5 font-ui text-[13px]">
             Headings appear here.
           </p>
         )}
@@ -115,13 +115,13 @@ export function ReaderContents({
               }`}
             >
               <span
-                className={`font-serif text-[15px] leading-snug ${
+                className={`font-display text-[15px] leading-snug ${
                   active ? "text-accent" : "text-body"
                 }`}
               >
                 {t.label}
               </span>
-              <span className="text-faint2 font-mono text-[11px]">
+              <span className="text-faint2 font-meta text-[11px]">
                 {t.page}
               </span>
             </button>

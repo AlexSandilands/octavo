@@ -64,7 +64,7 @@ export function ArchiveSearch({ query }: { query: string }) {
         maxLength={ARCHIVE_QUERY_MAX}
         placeholder="Search issues by title"
         aria-label="Search every issue by title"
-        className="text-ink flex-1 self-stretch border-none bg-transparent font-sans text-[15px]"
+        className="text-ink flex-1 self-stretch border-none bg-transparent font-ui text-[15px]"
       />
     </label>
   );

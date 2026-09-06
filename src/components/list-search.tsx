@@ -16,11 +16,18 @@ export function ListSearch({
   query,
   placeholder,
   ariaLabel,
+  maxLength = ADMIN_LIST_QUERY_MAX,
+  visibleLabel,
 }: {
   query: string;
   placeholder: string;
   /** Names the box for screen readers, e.g. "Search all issues by title". */
   ariaLabel: string;
+  /** The longest query the page's schema keeps — the box never produces more. */
+  maxLength?: number;
+  /** A printed label above the box, for a search that stands on the dark
+   * ground (the archive) and so needs to say what it is before it is focused. */
+  visibleLabel?: string;
 }) {
   const go = useListUrl();
   const [value, setValue] = useState(query);
@@ -61,19 +68,28 @@ export function ListSearch({
     }, 250);
   };
 
+  // A <label>, not a <div>: the input's own box is one text line, so on a
+  // phone the whole 44px field has to be what focuses it.
   return (
-    <div className="boxed-field border-line text-faint2 flex h-11 items-center gap-2.5 rounded-lg border-[1.5px] bg-white px-3.5">
-      <Icon name="search" size={18} />
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        // The page schema truncates ?q= to the same bound, so nothing this
-        // box can produce is ever thrown away server-side.
-        maxLength={ADMIN_LIST_QUERY_MAX}
-        placeholder={placeholder}
-        aria-label={ariaLabel}
-        className="text-ink flex-1 border-none bg-transparent font-sans text-[15px]"
-      />
-    </div>
+    <label className="block">
+      {visibleLabel && (
+        <span className="text-chrome-muted mb-1.5 block font-meta text-[12px] font-medium tracking-[0.14em] uppercase">
+          {visibleLabel}
+        </span>
+      )}
+      <span className="boxed-field border-hair-warm text-faint rounded-ui flex h-11 items-center gap-2.5 border-[1.5px] bg-white px-3.5">
+        <Icon name="search" size={18} />
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          // The page schema truncates ?q= to the same bound, so nothing this
+          // box can produce is ever thrown away server-side.
+          maxLength={maxLength}
+          placeholder={placeholder}
+          aria-label={ariaLabel}
+          className="text-ink flex-1 self-stretch border-none bg-transparent font-ui text-[16px]"
+        />
+      </span>
+    </label>
   );
 }

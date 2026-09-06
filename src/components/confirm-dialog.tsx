@@ -1,7 +1,7 @@
 "use client";
 
 import { type IconName } from "./icons";
-import { DialogShell } from "./dialog-shell";
+import { DIALOG_PANEL, DialogShell } from "./dialog-shell";
 import { Button } from "./ui";
 
 // A shared, accessible confirmation dialog for destructive actions — the in-app
@@ -34,7 +34,7 @@ export function ConfirmDialog({
 }) {
   return (
     <DialogShell
-      panelClassName="bg-card w-[440px] max-w-full overflow-hidden rounded-[10px] shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
+      panelClassName={`${DIALOG_PANEL} w-[460px] overflow-hidden`}
       locked={working}
       onClose={onClose}
     >
@@ -43,11 +43,11 @@ export function ConfirmDialog({
           <div className="px-8 pt-7">
             <h2
               id={titleId}
-              className="text-ink font-serif text-[24px] leading-tight"
+              className="text-ink font-display text-[26px] leading-tight"
             >
               {title}
             </h2>
-            <p className="text-muted mt-2.5 font-sans text-[15px] leading-relaxed">
+            <p className="text-muted mt-3 font-ui text-[16px] leading-relaxed">
               {body}
             </p>
           </div>

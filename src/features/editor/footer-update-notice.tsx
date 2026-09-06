@@ -31,8 +31,8 @@ export function FooterUpdateNotice({
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   return (
-    <div className="border-line bg-warn-soft flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b px-6 py-3">
-      <p className="text-body max-w-[70ch] font-sans text-[13px] leading-relaxed">
+    <div className="border-line bg-caution-soft flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b px-6 py-3">
+      <p className="text-body max-w-[70ch] font-ui text-[13px] leading-relaxed">
         <strong className="font-semibold">
           This issue still has the older, smaller page footer.
         </strong>{" "}

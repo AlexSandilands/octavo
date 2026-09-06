@@ -41,7 +41,7 @@ export function MontageBlockControl({
           e.stopPropagation();
           setOpen(true);
         }}
-        className="border-hair text-ink hover:border-accent flex h-7 items-center gap-1.5 rounded-[6px] border bg-white px-2.5 font-sans text-[12px] font-semibold"
+        className="border-hair text-ink hover:border-accent flex h-7 items-center gap-1.5 rounded-[6px] border bg-white px-2.5 font-ui text-[12px] font-semibold"
       >
         <Icon name="grid" size={15} className="text-accent" />
         {items.length === 0

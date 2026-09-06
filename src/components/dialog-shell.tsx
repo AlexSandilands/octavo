@@ -28,8 +28,15 @@ import { useEffect, useId, useRef } from "react";
 // tree that mounts dialogs only while open, and its user-agent box would have to
 // be unpicked to keep these panels pixel-identical. The modality native would
 // have given for free is done by hand instead, in `inertOutside` below (#154).
+// The panel every light dialog sits in: a paper sheet with the sheet radius
+// and the panel shadow, marked `.on-paper` so its focus rings are dark brass.
+// Callers add only a width (and, for a scrolling body, the overflow classes).
+export const DIALOG_PANEL =
+  "on-paper bg-paper text-ink rounded-sheet shadow-panel max-w-full";
+
 export function DialogShell({
   panelClassName,
+  layout = "center",
   locked = false,
   isolatePointerEvents = false,
   onClose,
@@ -37,6 +44,9 @@ export function DialogShell({
 }: {
   /** Classes for the panel — every dialog keeps the box it already had. */
   panelClassName: string;
+  /** "center" floats the panel over a scrim; "full" hands it the whole
+   * viewport (the site menu). */
+  layout?: "center" | "full";
   /** An action is in flight: Escape and a backdrop press are refused, matching
    * what the dialog's own Cancel / × already do. */
   locked?: boolean;
@@ -124,7 +134,9 @@ export function DialogShell({
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(32,32,28,0.4)] p-4"
+      className={`bg-scrim fixed inset-0 z-50 flex items-center justify-center ${
+        layout === "full" ? "" : "p-4"
+      }`}
       onPointerDown={(e) => {
         if (isolatePointerEvents) e.stopPropagation();
         // Only a press on the backdrop itself — one that started inside the
