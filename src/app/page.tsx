@@ -5,7 +5,6 @@ import { resolveIssueImages } from "@/server/images";
 import { resolveIssueSponsors } from "@/server/sponsors";
 import { requireMemberOrRedirect } from "@/server/session";
 import { getSettings } from "@/server/settings";
-import { settingsForIssue } from "@/lib/branding";
 import { LatestIssue } from "@/features/library/latest-issue";
 import { ArchiveGrid, toArchiveItems } from "@/features/library/archive-grid";
 import { LibraryHeader } from "@/features/library/library-header";
@@ -65,7 +64,7 @@ export default async function LibraryPage() {
             cover={coverPageOf(latest.content)}
             images={coverImages}
             sponsors={coverSponsors}
-            settings={settingsForIssue(settings, latest)}
+            settings={settings}
           />
           {recent.length > 0 && (
             <ArchiveGrid
