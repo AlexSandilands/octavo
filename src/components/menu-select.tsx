@@ -144,8 +144,8 @@ export function MenuSelect<T>({
             setOpen(true);
           }
         }}
-        className={`border-hair-warm text-ink hover:border-accent hover:bg-accent-wash flex cursor-pointer items-center gap-2 rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-sm font-medium transition-[transform,background-color,border-color] duration-150 ease-out select-none motion-safe:active:scale-[0.97] ${
-          size === "md" ? "h-11" : "h-10"
+        className={`border-hair-warm text-ink hover:border-accent hover:bg-accent-wash flex cursor-pointer items-center gap-2 rounded-none border-[1.5px] bg-white px-3.5 font-sans text-sm font-medium transition-[transform,background-color,border-color] duration-150 ease-out select-none motion-safe:active:scale-[0.97] ${
+          size === "md" ? "h-12" : "h-11"
         } ${className}`}
       >
         {label}: {current}
@@ -156,7 +156,7 @@ export function MenuSelect<T>({
         <div
           role="menu"
           aria-label={ariaLabel}
-          className="border-hair absolute top-full right-0 z-30 mt-1.5 min-w-[180px] rounded-lg border bg-white p-1 shadow-[0_8px_24px_rgba(40,36,28,0.18)]"
+          className="border-hair absolute top-full right-0 z-30 mt-1.5 min-w-[180px] rounded-none border bg-white p-1 shadow-[0_8px_24px_rgba(40,36,28,0.18)]"
         >
           {items.map((item, i) => {
             const active = item.value === value;
@@ -171,7 +171,7 @@ export function MenuSelect<T>({
                 aria-checked={active}
                 onClick={() => choose(item.value)}
                 onKeyDown={(e) => onItemKeyDown(e, i)}
-                className={`flex h-11 w-full cursor-pointer items-center gap-2 rounded-md px-2.5 font-sans text-sm transition-[background-color,color] duration-150 ${
+                className={`flex h-11 w-full cursor-pointer items-center gap-2 rounded-none px-2.5 font-sans text-sm transition-[background-color,color] duration-150 ${
                   active
                     ? "text-accent font-semibold"
                     : "text-ink hover:bg-accent-wash"

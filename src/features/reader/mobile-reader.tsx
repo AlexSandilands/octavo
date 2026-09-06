@@ -18,7 +18,7 @@ import { breakHeight, readerSections } from "./mobile-sections";
 import { useIssuePdf } from "./use-issue-pdf";
 
 // Header height, shared with the front cover's min-height below (#235).
-const HEADER_HEIGHT = 52;
+const HEADER_HEIGHT = 60;
 
 // Mobile reader: the whole issue as one flowing column (also the accessibility
 // fallback). Same block data as the flipbook, presented single-column. The
@@ -98,7 +98,7 @@ export function MobileReader({
     <div className="bg-page relative flex min-h-screen flex-col">
       <header
         style={{ height: HEADER_HEIGHT }}
-        className="border-line-soft bg-page flex flex-none items-center justify-between border-b px-4"
+        className="index-mobile-header border-line-soft bg-page flex flex-none items-center justify-between border-b px-4"
       >
         <div className="flex items-center">
           <button
@@ -143,7 +143,7 @@ export function MobileReader({
         <span className="text-ink font-serif text-[17px] tracking-[0.02em]">
           {settings.name}
         </span>
-        <div className="border-line bg-chip-soft flex items-center overflow-hidden rounded-full border">
+        <div className="border-line bg-chip-soft flex items-center overflow-hidden rounded-none border">
           <button
             onClick={() => setM((v) => Math.max(16, v - 2))}
             className="text-ink flex h-10 w-10 items-center justify-center font-sans text-sm font-medium"
@@ -162,7 +162,7 @@ export function MobileReader({
         </div>
       </header>
 
-      <article className="flex-1 pb-10">
+      <article className="index-authored-mobile flex-1 pb-10">
         {sections.map((s, i) => {
           // The front cover fills what's left of the viewport under the header
           // (and grows past it rather than clipping); other covers keep their

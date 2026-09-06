@@ -4,7 +4,7 @@ import { createIssueAction } from "@/app/admin/actions";
 
 function EmptyCard({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-card border-line flex min-h-[360px] flex-col items-center justify-center rounded-md border p-9 text-center shadow-[0_1px_3px_rgba(0,0,0,0.07)]">
+    <div className="index-settings-card bg-card border-line flex min-h-[360px] flex-col items-center justify-center rounded-md border p-9 text-center shadow-[0_1px_3px_rgba(0,0,0,0.07)]">
       {children}
     </div>
   );

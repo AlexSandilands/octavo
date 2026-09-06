@@ -16,7 +16,7 @@ export function LibraryHeader({
   home?: boolean;
 }) {
   return (
-    <header className="border-line flex items-center justify-between gap-3 border-b pb-4">
+    <header className="index-library-header border-line flex items-center justify-between gap-3 border-b pb-4">
       {home ? (
         <Link
           href="/"
@@ -37,7 +37,7 @@ export function LibraryHeader({
             {user.isAdmin && (
               <Link
                 href="/admin"
-                className="border-hair text-ink hover:border-accent hover:text-accent rounded-lg border px-3 py-1.5 font-medium"
+                className="border-hair text-ink hover:border-accent hover:text-accent flex min-h-11 items-center rounded-none border px-3 py-1.5 font-medium"
               >
                 Admin
               </Link>

@@ -61,11 +61,11 @@ export default async function ArchivePage({
   ]);
 
   return (
-    <main className="mx-auto max-w-5xl px-5 py-6 sm:px-8 sm:py-10">
+    <main className="index-library mx-auto px-5 py-6 sm:px-8 sm:py-8">
       <LibraryHeader user={user} home />
 
       <div className="pt-8 pb-2">
-        <h1 className="text-ink font-serif text-3xl sm:text-4xl">
+        <h1 className="text-ink font-sans text-4xl font-bold tracking-tight sm:text-5xl">
           The archive
         </h1>
         <p className="text-muted mt-2 font-sans text-[15px]">

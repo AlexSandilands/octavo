@@ -6,8 +6,8 @@ import { MagazineName } from "./branding";
 export function Wordmark({ size = 22 }: { size?: number }) {
   return (
     <span
-      className="font-serif text-ink"
-      style={{ fontSize: size, fontWeight: 500, letterSpacing: ".02em" }}
+      className="index-wordmark font-sans text-ink"
+      style={{ fontSize: size, fontWeight: 700, letterSpacing: "-.045em" }}
     >
       <MagazineName />
     </span>
@@ -16,7 +16,7 @@ export function Wordmark({ size = 22 }: { size?: number }) {
 
 export function Kicker({ children }: { children: ReactNode }) {
   return (
-    <div className="font-sans text-[11px] font-semibold tracking-[0.2em] text-accent uppercase">
+    <div className="index-kicker font-semibold text-accent uppercase">
       {children}
     </div>
   );
@@ -24,7 +24,7 @@ export function Kicker({ children }: { children: ReactNode }) {
 
 export function Label({ children }: { children: ReactNode }) {
   return (
-    <div className="font-sans text-[11px] font-semibold tracking-[0.2em] text-faint uppercase">
+    <div className="index-kicker font-semibold text-faint uppercase">
       {children}
     </div>
   );
@@ -89,13 +89,13 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     // Every way of being unpressable, for the styling and the click guard —
     // `unavailable` has no attribute doing either of those for it.
     const inert = isDisabled || unavailable;
-    const base = `${full ? "flex w-full" : "inline-flex"} items-center justify-center gap-2 rounded-lg font-sans font-semibold transition-[transform,background-color,border-color,box-shadow,color] duration-150 ease-out select-none`;
+    const base = `${full ? "flex w-full" : "inline-flex"} index-button items-center justify-center gap-2 rounded-none font-sans font-semibold transition-[transform,background-color,border-color,box-shadow,color] duration-150 ease-out select-none`;
     const sizes = {
       md: "h-12 px-5 text-[15px]",
-      sm: "h-10 px-4 text-sm",
+      sm: "h-11 px-4 text-sm",
     }[size];
     const rest = {
-      primary: "bg-accent text-paper shadow-[0_2px_8px_rgba(29,77,62,0.25)]",
+      primary: "bg-accent text-paper",
       // The house style for white buttons: a hairline on white.
       secondary: "border-[1.5px] border-hair-warm bg-white text-ink",
       danger: "bg-warn text-paper shadow-[0_2px_10px_rgba(0,0,0,0.18)]",
@@ -186,7 +186,7 @@ export const IconButton = forwardRef<
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className={`text-muted -m-2 inline-flex items-center justify-center rounded-lg p-2 transition-[background-color,color] duration-150 ${state} ${className}`}
+      className={`text-muted -m-2 inline-flex items-center justify-center rounded-none min-h-11 min-w-11 p-2 transition-[background-color,color] duration-150 ${state} ${className}`}
     >
       <Icon name={icon} size={size} strokeWidth={1.7} />
     </button>
@@ -214,7 +214,7 @@ export function Pill({ status }: { status: Status }) {
   const p = PILL[status];
   return (
     <span
-      className={`inline-flex items-center gap-2 rounded-full px-3 py-1 ${p.bg}`}
+      className={`inline-flex items-center gap-2 rounded-none px-3 py-1 ${p.bg}`}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${p.dot}`} />
       <span className={`font-sans text-xs font-semibold ${p.ink}`}>

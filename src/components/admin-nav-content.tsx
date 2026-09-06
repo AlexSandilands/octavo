@@ -41,41 +41,40 @@ export function AdminNavContent({
 }) {
   return (
     <>
-      <div className="px-6">
-        <Wordmark size={22} />
+      <div className="px-5">
+        <Wordmark size={25} />
         <div className="text-accent mt-1 font-sans text-[10px] font-semibold tracking-[0.2em] uppercase">
-          Admin
+          Publishing desk
         </div>
       </div>
       {/* Back-out link, not a section: it leaves the admin for the member-
           facing library, so it sits above the nav rather than in it. */}
       <Link
         href="/"
-        className="text-muted hover:text-accent mt-5 flex items-center gap-2 px-6 py-1.5 font-sans text-[14px] font-medium hover:underline"
+        className="text-muted hover:text-accent mt-5 flex items-center gap-2 px-5 py-3 font-sans text-[14px] font-medium hover:underline"
       >
         <Icon name="chevronLeft" size={16} />
         View library
       </Link>
-      <nav className="mt-5 flex flex-col">
-        {ADMIN_NAV.map((n) => {
+      <nav aria-label="Administration" className="mt-5 flex flex-col">
+        {ADMIN_NAV.map((n, index) => {
           const on = n.key === active;
           return (
             <Link
               key={n.key}
               href={n.href}
-              className={`flex items-center gap-3 border-l-2 px-6 py-2.5 font-sans text-[15px] transition-colors ${
-                on
-                  ? "bg-tint text-accent border-accent font-semibold"
-                  : "text-muted hover:bg-tint/60 hover:text-accent border-transparent font-medium"
-              }`}
+              aria-current={on ? "page" : undefined}
+              className="index-nav-link"
             >
-              <Icon name={n.icon} size={18} />
+              <span className="index-nav-number">
+                {String(index + 1).padStart(2, "0")}
+              </span>
               {n.label}
             </Link>
           );
         })}
       </nav>
-      <div className="border-line mt-auto border-t px-6 pt-4">
+      <div className="border-line mt-auto border-t px-5 pt-4">
         <div className="flex items-center gap-2.5">
           <span className="bg-accent text-paper flex h-[30px] w-[30px] flex-none items-center justify-center rounded-full font-sans text-xs font-semibold">
             {initials(user.name?.trim() || user.email)}

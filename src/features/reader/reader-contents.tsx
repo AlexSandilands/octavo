@@ -48,18 +48,18 @@ export function ReaderContents({
 }) {
   if (collapsed) {
     return (
-      <aside className="bg-card border-line flex w-[54px] flex-none flex-col items-center gap-4 border-r py-5">
+      <aside className="index-reader-contents bg-card border-line flex w-[54px] flex-none flex-col items-center gap-4 border-r py-5">
         <Link
           href="/"
           title="Back to library"
-          className="text-muted hover:text-accent"
+          className="text-muted hover:text-accent flex h-11 w-11 items-center justify-center hover:bg-tint"
         >
           <Icon name="chevronLeft" size={20} />
         </Link>
         <div className="bg-line h-px w-6" />
         <button
           onClick={() => setCollapsed(false)}
-          className="text-accent"
+          className="text-accent flex h-11 w-11 cursor-pointer items-center justify-center hover:bg-tint"
           title="Expand contents"
         >
           <Icon name="menu" size={20} />
@@ -73,7 +73,7 @@ export function ReaderContents({
   }
 
   return (
-    <aside className="bg-card border-line flex w-[248px] flex-none flex-col border-r py-5">
+    <aside className="index-reader-contents bg-card border-line flex w-[248px] flex-none flex-col border-r py-5">
       <Link
         href="/"
         className="text-muted hover:text-accent mb-4 flex items-center gap-1.5 px-5 font-sans text-[13px] font-medium"
@@ -83,17 +83,17 @@ export function ReaderContents({
       </Link>
       <div className="flex items-center justify-between px-5">
         <span className="text-accent font-sans text-[11px] font-semibold tracking-[0.2em] uppercase">
-          Contents
+          Issue index
         </span>
         <button
           onClick={() => setCollapsed(true)}
-          className="text-muted"
+          className="text-muted flex h-11 w-11 items-center justify-center hover:bg-tint"
           title="Collapse"
         >
           <Icon name="chevronLeft" size={18} />
         </button>
       </div>
-      <p className="text-faint px-5 pt-2 font-serif text-[13px] italic">
+      <p className="text-faint px-5 pt-2 font-mono text-xs">
         {magazineName} · No. {issueNo}
       </p>
       <div className="bg-line mx-5 my-4 h-px" />

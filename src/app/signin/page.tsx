@@ -48,15 +48,13 @@ export default async function SignInPage({
 
   return (
     <SignInCard>
-      <h1 className="text-ink mt-12 font-serif text-4xl leading-[1.05]">
-        Welcome
-        <br />
-        back.
+      <h1 className="text-ink mt-10 font-serif text-4xl leading-[1.05]">
+        Open your library.
       </h1>
       {notice ? (
         <div
           role="alert"
-          className="border-hair bg-paper mt-6 rounded-[10px] border-[1.5px] p-4"
+          className="border-hair bg-paper mt-6 rounded-none border-[1.5px] p-4"
         >
           <p className="text-ink font-sans text-[15px] font-semibold">
             {notice.title}
@@ -89,7 +87,7 @@ export default async function SignInPage({
           required
           autoComplete="email"
           placeholder="you@example.com"
-          className="border-hair text-ink mt-2 h-14 w-full rounded-[10px] border-[1.5px] bg-white px-4 font-sans text-[17px] outline-none focus:border-accent"
+          className="border-hair text-ink mt-2 h-14 w-full rounded-none border-[1.5px] bg-white px-4 font-sans text-[17px] outline-none focus:border-accent"
         />
         <div className="mt-3">
           <Button type="submit" icon="arrowRight" full>

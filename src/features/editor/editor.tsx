@@ -251,6 +251,7 @@ export function Editor({
         title={title}
         onTitleChange={setTitle}
         issueNumber={issue.number}
+        published={published}
         themes={themes}
         themeId={themeId}
         onSelectTheme={setThemeId}
@@ -297,6 +298,10 @@ export function Editor({
         />
 
         <div className="bg-canvas relative flex flex-1 flex-col overflow-hidden">
+          <div className="pointer-events-none absolute left-5 top-3 z-10 font-mono text-xs text-muted">
+            PAGE {String(curPage + 1).padStart(2, "0")} / {pages.length} ·{" "}
+            {page?.cover ? "COVER" : "LAYOUT"}
+          </div>
           {footerBehind && page && !page.cover && !filled && (
             <FooterUpdateNotice issueId={issue.id} flushSave={flushSave} />
           )}
@@ -391,20 +396,20 @@ export function Editor({
               </ScaledPage>
             </div>
           </div>
-
-          <EditorToolbar
-            onAddBlock={addBlock}
-            insertDisabled={filled}
-            onToggleCover={toggleCover}
-            coverDisabled={curPage === 0}
-            coverActive={Boolean(page?.cover)}
-            canUndo={canUndo}
-            canRedo={canRedo}
-            onUndo={undo}
-            onRedo={redo}
-            notice={historyNotice}
-          />
         </div>
+
+        <EditorToolbar
+          onAddBlock={addBlock}
+          insertDisabled={filled}
+          onToggleCover={toggleCover}
+          coverDisabled={curPage === 0}
+          coverActive={Boolean(page?.cover)}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          onUndo={undo}
+          onRedo={redo}
+          notice={historyNotice}
+        />
       </div>
 
       {pub && (

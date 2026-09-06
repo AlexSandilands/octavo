@@ -38,7 +38,7 @@ export default async function LibraryPage() {
   ]);
 
   return (
-    <main className="mx-auto max-w-5xl px-5 py-6 sm:px-8 sm:py-10">
+    <main className="index-library mx-auto px-5 py-6 sm:px-8 sm:py-8">
       <LibraryHeader user={user} />
 
       <Masthead org={settings.org} tagline={settings.tagline} />

@@ -248,16 +248,16 @@ export function DesktopReader({
           to choose. */}
       {themes.length > 1 && (
         <div className="absolute top-3.5 right-4 z-10 flex items-center gap-2">
-          <span className="text-faint2 font-sans text-[9px] font-semibold tracking-[0.18em] uppercase">
+          <span className="text-faint2 font-sans text-[11px] font-semibold tracking-[0.18em] uppercase">
             Theme
           </span>
-          <div className="bg-card border-hair flex rounded-full border p-[3px]">
+          <div className="bg-card border-hair flex rounded-none border p-[3px]">
             {themes.map((t) => (
               <button
                 key={t.id}
                 onClick={() => setThemeId(t.id)}
                 aria-pressed={themeId === t.id}
-                className={`flex min-h-[44px] items-center rounded-full px-4 font-sans text-xs font-semibold ${
+                className={`flex min-h-[44px] items-center rounded-none px-4 font-sans text-xs font-semibold ${
                   themeId === t.id ? "bg-accent text-paper" : "text-muted"
                 }`}
               >

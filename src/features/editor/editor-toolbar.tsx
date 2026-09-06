@@ -14,14 +14,10 @@ const INSERT: { type: BlockType; label: string; icon: IconName }[] = [
 ];
 
 /** Stage padding kept below the fitted page, so the floating bar clears it. */
-export const TOOLBAR_RESERVE = 92;
+export const TOOLBAR_RESERVE = 24;
 
-// The editor's tool bar: undo/redo, the block-insert buttons and the cover-page
-// toggle. It floats over the foot of the canvas rather than sitting in a strip
-// above it (issue #222) — the tools sit beside the end of the page, which is
-// where an inserted block lands and where the overflow marker appears; a panned
-// page shows through around it. Every target is 40px and always visible; labels
-// come in from `xl`, where the pill has room.
+// A permanent tool rail beside the page: insertion first, page setup and
+// undo history below. Every control remains in normal keyboard tab order.
 export function EditorToolbar({
   onAddBlock,
   insertDisabled = false,
@@ -48,33 +44,12 @@ export function EditorToolbar({
   notice: HistoryNotice;
 }) {
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex justify-center px-4 pb-5">
-      {/* A group, not role="toolbar": that role promises arrow-key navigation
-          within one tab stop, and here every button is its own tab stop. */}
-      <div
-        role="group"
-        aria-label="Editor tools"
-        className="border-hair-warm pointer-events-auto flex max-w-full items-center gap-2 rounded-[14px] border bg-white px-2.5 py-2 shadow-[0_8px_28px_rgba(40,36,28,0.22)]"
-      >
-        {/* `unavailable`, not `disabled`: it keeps the button focusable — see
-            `unavailable` in `ui.tsx`. */}
-        <Tool
-          icon="undo"
-          label="Undo"
-          hint="Undo (Ctrl+Z)"
-          shortcut="Control+Z Meta+Z"
-          unavailable={!canUndo}
-          onClick={onUndo}
-        />
-        <Tool
-          icon="redo"
-          label="Redo"
-          hint="Redo (Ctrl+Shift+Z)"
-          shortcut="Control+Shift+Z Meta+Shift+Z Control+Y"
-          unavailable={!canRedo}
-          onClick={onRedo}
-        />
-        <Divider />
+    <aside
+      className="index-editor-tools scrollbar-soft [--scrollbar-surface:var(--color-card)] [scrollbar-gutter:stable]"
+      aria-label="Editor tools"
+    >
+      <div role="group" aria-label="Insert blocks">
+        <span className="index-kicker mb-2 text-accent">02 / Insert</span>
         {INSERT.map((b) => (
           <Tool
             key={b.type}
@@ -91,7 +66,9 @@ export function EditorToolbar({
             onClick={() => onAddBlock(b.type)}
           />
         ))}
-        <Divider />
+      </div>
+      <div role="group" aria-label="Page setup">
+        <span className="index-kicker mb-2 text-accent">03 / Page</span>
         <Tool
           icon="doc"
           label="Cover page"
@@ -105,21 +82,37 @@ export function EditorToolbar({
           disabled={coverDisabled}
           onClick={onToggleCover}
         />
+      </div>
+      <div role="group" aria-label="History" className="mt-auto">
+        <span className="index-kicker mb-2 text-accent">04 / History</span>
+        <Tool
+          icon="undo"
+          label="Undo"
+          hint="Undo (Ctrl+Z)"
+          shortcut="Control+Z Meta+Z"
+          unavailable={!canUndo}
+          onClick={onUndo}
+          showLabel
+        />
+        <Tool
+          icon="redo"
+          label="Redo"
+          hint="Redo (Ctrl+Shift+Z)"
+          shortcut="Control+Shift+Z Meta+Shift+Z Control+Y"
+          unavailable={!canRedo}
+          onClick={onRedo}
+          showLabel
+        />
         <span role="status" aria-live="polite" className="sr-only">
-          {/* Keyed by the counter so the same text twice is still a change. */}
           <span key={notice.n}>{notice.text}</span>
         </span>
       </div>
-    </div>
+    </aside>
   );
 }
 
-function Divider() {
-  return <span className="bg-line mx-0.5 h-6 w-px" />;
-}
-
 // Its own shape rather than the house Button (§6 allows a bordered icon square):
-// a 40px square that grows a label from `xl`, plus the aria-pressed and
+// a labelled 44px control, plus the aria-pressed and
 // aria-keyshortcuts a tool bar owes. The interaction contract is the house one.
 function Tool({
   icon,
@@ -138,7 +131,7 @@ function Tool({
   hint: string;
   shortcut?: string;
   iconClass?: string;
-  /** Show the label beside the icon from `xl` up; below that, icon only. */
+  /** Show the text label beside the icon. */
   showLabel?: boolean;
   pressed?: boolean;
   disabled?: boolean;
@@ -162,10 +155,10 @@ function Tool({
       aria-label={label}
       aria-pressed={pressed}
       aria-keyshortcuts={shortcut}
-      className={`flex h-10 w-10 flex-none items-center justify-center gap-1.5 rounded-[9px] border font-sans text-[13px] font-semibold transition-[transform,background-color,border-color,color] duration-150 ease-out select-none ${showLabel ? "xl:w-auto xl:px-3.5" : ""} ${look}`}
+      className={`flex h-10 w-10 flex-none items-center justify-center gap-1.5 rounded-[9px] border font-sans text-[13px] font-semibold transition-[transform,background-color,border-color,color] duration-150 ease-out select-none ${showLabel ? "w-auto px-2.5" : ""} ${look}`}
     >
       <Icon name={icon} size={16} className={pressed ? "" : iconClass} />
-      {showLabel && <span className="hidden xl:inline">{label}</span>}
+      {showLabel && <span className="index-tool-label">{label}</span>}
     </button>
   );
 }

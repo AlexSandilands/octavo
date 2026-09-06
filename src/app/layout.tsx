@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import "./index.css";
 import { BrandingProvider } from "@/components/branding";
 import { getSettings } from "@/server/settings";
 import { env } from "@/lib/env";
@@ -100,7 +101,7 @@ export default async function RootLayout({
       data-brand={env.NEXT_PUBLIC_BRAND}
       className={`${newsreader.variable} ${hanken.variable} ${plexMono.variable}`}
     >
-      <body>
+      <body className="index-ui">
         {/* The branding text for the two client surfaces that have no server
             boundary to take it as a prop (see components/branding.tsx). */}
         <BrandingProvider value={{ name, org, tagline }}>

@@ -56,6 +56,12 @@ for (const id of BRAND_IDS) {
   brands.set(id, new Map([...heritage, ...override]));
 }
 
+// Index chrome uses the same checks; authored surfaces retain the original brands.
+const indexTokens = parseTokens(await read("../src/app/index.css"));
+for (const [id, tokens] of [...brands]) {
+  brands.set(`${id}/index`, new Map([...tokens, ...indexTokens]));
+}
+
 // Relative luminance + contrast ratio, per WCAG 2.x.
 const luminance = (h: string) => {
   const c = h.replace("#", "");

@@ -12,7 +12,7 @@ import { CoverThumb } from "./cover-thumb";
 // with no real cover page. Local data (indexed by card position), not part of
 // the semantic token palette, so kept as literals here.
 const ARCHIVE_TINTS = ["#cdbfa6", "#9fb0a6", "#c2a99a", "#b3aec0"];
-const THUMB_W = 150;
+const THUMB_W = 92;
 
 function stripes(tint: string) {
   // #00000010 = 6% black, a tint-agnostic diagonal shade over whatever cover
@@ -81,7 +81,7 @@ export function ArchiveGrid({
   images,
   sponsors,
   settings,
-  heading = "The archive",
+  heading = "02 / The archive",
 }: {
   items: ArchiveItem[];
   images: ImageMap;
@@ -99,11 +99,9 @@ export function ArchiveGrid({
       {heading && <Label>{heading}</Label>}
       <div className={`space-y-9 ${heading ? "mt-6" : ""}`}>
         {groups.map((group) => (
-          <div key={group.key}>
-            <div className="border-line-soft border-t pt-3">
-              <Label>{group.label}</Label>
-            </div>
-            <div className="mt-5 flex flex-wrap gap-x-5 gap-y-7">
+          <div key={group.key} className="index-archive-year">
+            <div>{group.label}</div>
+            <div className="index-archive-items">
               {group.items.map((a, idx) => (
                 <ArchiveCard
                   key={a.id}
@@ -139,12 +137,8 @@ function ArchiveCard({
 }) {
   const tint = ARCHIVE_TINTS[index % ARCHIVE_TINTS.length] ?? "#cdbfa6";
   return (
-    <Link
-      href={`/read/${a.number}`}
-      className="group"
-      style={{ width: THUMB_W }}
-    >
-      <div className="overflow-hidden rounded-[5px] shadow-[0_2px_10px_-5px_rgba(20,32,28,0.3)] transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-[0_14px_28px_-10px_rgba(20,32,28,0.4)]">
+    <Link href={`/read/${a.number}`} className="index-archive-card group">
+      <div className="overflow-hidden border border-line">
         {a.cover ? (
           <CoverThumb
             page={a.cover}
@@ -159,12 +153,15 @@ function ArchiveCard({
           <PlaceholderCover number={a.number} tint={tint} />
         )}
       </div>
-      <div className="mt-2.5">
-        <span className="text-ink font-serif text-[15px] leading-tight group-hover:underline">
+      <div className="min-w-0">
+        <span className="text-accent font-mono text-xs">
+          ISSUE {String(a.number).padStart(3, "0")}
+        </span>
+        <div className="index-archive-title group-hover:underline">
           {a.title}
-        </span>{" "}
-        <span className="text-faint2 inline-block font-mono text-[11px] whitespace-nowrap">
-          No. {a.number}
+        </div>
+        <span className="text-muted text-sm">
+          Read issue <span aria-hidden="true">↗</span>
         </span>
       </div>
     </Link>
