@@ -3,7 +3,7 @@ import type { ImageMap } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 import { BlockView } from "./block-view";
 import type { LayoutTheme } from "./themes/registry";
-import { blockFlowStyle } from "./layout";
+import { blockFlowStyle, isFillPage } from "./layout";
 
 // The flowed block content of one page — shared by the desktop reader spread and
 // the print/PDF renderer so a page lays out identically in both (no parallel
@@ -35,9 +35,11 @@ export function PageBlocks({
       {page.blocks.map((b) => (
         // data-reader-block: the reader ignores drags started here (text/images
         // stay selectable) and reverts the grab cursor. Inert in print.
+        // "bleed" is the exception — a photo covering the page has nothing to
+        // select, so the reader's edge-band page turn still fires over it.
         <div
           key={b.id}
-          data-reader-block
+          data-reader-block={!page.cover && isFillPage(b) ? "bleed" : true}
           className="cursor-auto"
           style={blockFlowStyle(b, page.cover)}
         >
