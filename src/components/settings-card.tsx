@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-// The panel every group of settings on /admin/magazine sits in: a serif title,
+// The panel every group of settings on /admin/magazine sits in: a bold title,
 // a plain-language line saying what the group is for, and the controls under
 // it. Lives here rather than beside its first caller because the logo library
 // (a different feature) is one of the groups — the page reads as one thing, so
@@ -20,10 +20,12 @@ export function SettingsCard({
   return (
     <section
       id={id}
-      className="bg-card border-line scroll-mt-6 rounded-[10px] border p-6 shadow-[0_1px_3px_rgba(0,0,0,0.07)]"
+      className="bg-surface border-hairline shadow-card scroll-mt-6 rounded-card border p-5 sm:p-6"
     >
-      <h2 className="text-ink font-serif text-[22px] leading-tight">{title}</h2>
-      <p className="text-muted mt-1.5 font-sans text-[13px] leading-relaxed">
+      <h2 className="text-fg font-ui text-[22px] leading-tight font-bold">
+        {title}
+      </h2>
+      <p className="text-fg-muted mt-1.5 font-ui text-[15px] leading-relaxed">
         {blurb}
       </p>
       <div className="mt-5 flex flex-col gap-5">{children}</div>

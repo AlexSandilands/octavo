@@ -20,12 +20,12 @@ export const DEFAULT_BRAND: BrandId = "heritage";
 // Colours for the generated app icon (src/app/icon.tsx + apple-icon.tsx). The
 // icon is an ImageResponse PNG, which can't read the CSS `--color-*` tokens, so
 // the two the mark needs are mirrored here from each brand's palette (globals.css
-// @theme for heritage, brands.css for the rest): `bg` is the brand accent,
-// `fg` the paper the monogram sits on. Only these two per brand, changed only if
-// the accent/paper identity shifts — keep in step with the tokens above.
+// @theme for heritage, brands.css for the rest): `bg` is the app primary,
+// `fg` the ground the monogram sits on. Only these two per brand, changed only
+// if the primary/ground identity shifts — keep in step with the tokens above.
 export const BRAND_ICON_COLORS: Record<BrandId, { bg: string; fg: string }> = {
-  heritage: { bg: "#1d4d3e", fg: "#f4f0e8" },
-  coastal: { bg: "#1f4e63", fg: "#ecedf1" },
+  heritage: { bg: "#2447c6", fg: "#f5f6f8" },
+  coastal: { bg: "#0f766e", fg: "#f3f6f7" },
 };
 
 // The octavo book mark — two paper pages opened nearly flat, drawn in a

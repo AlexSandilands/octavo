@@ -1,4 +1,4 @@
-import { AdminShell } from "@/components/admin-shell";
+import { AppShell } from "@/components/app-shell";
 import { requireAdminOrRedirect } from "@/server/session";
 import { SectionBasics } from "@/features/help/section-basics";
 import { SectionIssues } from "@/features/help/section-issues";
@@ -28,7 +28,7 @@ export default async function HelpPage() {
   // The layout gates too, but layouts don't re-run on soft navigation.
   const admin = await requireAdminOrRedirect();
   return (
-    <AdminShell active="help" user={admin}>
+    <AppShell area="admin" active="help" user={admin}>
       <div className="mx-auto max-w-[720px] pb-16">
         <h1 className="text-ink font-serif text-3xl">Guide</h1>
         <p className="text-faint mt-1.5 font-sans text-sm">
@@ -71,6 +71,6 @@ export default async function HelpPage() {
         <SectionMagazine />
         <SectionPdf />
       </div>
-    </AdminShell>
+    </AppShell>
   );
 }

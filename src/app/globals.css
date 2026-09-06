@@ -4,10 +4,19 @@
    so a deployment with no NEXT_PUBLIC_BRAND set renders exactly this file. */
 @import "./brands.css";
 
-/* Design system from docs/claude-design — editorial, paper + one accent.
-   Tokens drive Tailwind utilities (bg-paper, text-accent, font-serif, ...).
-   These @theme tokens ARE the `heritage` brand — the per-deployment default. */
+/* Two palettes, one theme block ("Compass" redesign).
+
+   1. THE PAGE PALETTE — paper/page/card/tint, the accent family, ink/body/
+      muted/faint, hairlines and page decorations — belongs to the magazine
+      itself: src/features/blocks/*, the print document and the PDF read these.
+      Their names and values are unchanged so an authored page renders exactly
+      as it always has. Do not restyle a page by editing these.
+
+   2. THE APP PALETTE — ground/surface, primary, fg, hairline/edge, the status
+      inks, scrim, the shadow and radius tokens and --font-ui — is the chrome
+      around the magazine: shell, library, reader controls, admin, editor. */
 @theme {
+  /* ── Page palette (heritage, unchanged) ─────────────────────────────── */
   --color-paper: #f4f0e8;
   --color-page: #faf7f0;
   --color-card: #fbf9f4;
@@ -15,7 +24,6 @@
   --color-tint: #e8efe9;
 
   --color-accent: #1d4d3e;
-  --color-accent-strong: #184034;
   --color-accent-ink: #143a2e;
   --color-accent-soft: #3f6b5b;
   --color-cream: #cfe0d6;
@@ -23,72 +31,100 @@
   --color-ink: #20201c;
   --color-body: #2a2722;
   --color-muted: #56524a;
-  /* Two warm greys for de-emphasised text. Both clear WCAG AA (≥4.5:1) on the
-     paper/page/card/stage backgrounds they render on, so metadata, hints and
-     page numbers stay legible for the older audience — faint2 is the lighter of
-     the pair, faint a step darker for text that carries a little more weight. */
   --color-faint: #615c50;
   --color-faint2: #6d685a;
 
   --color-line: #e6e0d3;
   --color-line-soft: #efe9dc;
   --color-hair: #ddd6c8;
+  --color-hair-warm: #e0d9c9;
+  --color-rule: #cfc6b4;
+  --color-dash: #c9c1b1;
+  --color-placeholder-line: #e2dccf;
+  --color-canvas: #ece7dc; /* the mobile reader's page-break band */
 
-  /* Amber warning ink, darkened to clear AA both as text on warn-soft and as a
-     background under paper-coloured text (the draft ribbon). */
-  --color-warn: #8a5d1c;
-  --color-warn-strong: #6f4a14; /* darker warn — hover on destructive buttons */
-  --color-warn-soft: #f3ece0;
+  --color-page-seam: #efe7d8;
+  --color-page-frame: #dcd1b6;
+  --color-page-frame-soft: #e8e0cb;
 
-  /* Status dots. */
-  --color-ok: #2f8f6b; /* success / subscribed */
-  --color-alert: #c8923f; /* caution — bounced / planned */
+  /* ── App palette (Compass) ──────────────────────────────────────────── */
+  --color-ground: #f5f6f8; /* the cool ivory the whole app sits on */
+  --color-surface: #ffffff; /* cards, sheets, bars */
+  --color-surface-2: #eceef3; /* inset fields, skeletons, neutral chips */
+  --color-stage-ui: #e6e9ef; /* the reader stage and the editor canvas */
 
-  /* Warm chrome neutrals — hairlines, chips and washes on the paper UI. */
-  --color-hair-warm: #e0d9c9; /* border on white chips/buttons/thumbnails */
-  --color-rule: #cfc6b4; /* decorative heading + cover hairline rules */
-  --color-dash: #c9c1b1; /* dashed empty-state borders */
-  --color-placeholder-line: #e2dccf; /* photo placeholder outline */
-  --color-chip: #efeae0; /* neutral pill / badge background */
-  --color-chip-dot: #b8b1a2; /* neutral status dot */
-  --color-chip-soft: #f0ece2; /* lighter neutral control background */
-  --color-accent-wash: #f4f8f5; /* faint accent tint — hover on white controls */
-  --color-canvas: #ece7dc; /* editor canvas backdrop */
+  --color-primary: #2447c6; /* cobalt — AA as text on white and under white */
+  --color-primary-strong: #1a37a8;
+  --color-primary-soft: #e3e9fb; /* selected rows, tabs, chips */
+  --color-primary-wash: #f0f3fd; /* hover on white controls */
 
-  /* Page decorations. */
-  --color-page-seam: #efe7d8; /* spine-side divider between spread pages */
-  --color-page-frame: #dcd1b6; /* classic outer decorative frame */
-  --color-page-frame-soft: #e8e0cb; /* classic inner decorative frame */
+  --color-fg: #16192b;
+  --color-fg-muted: #4d5468;
+  --color-fg-faint: #656b80; /* placeholders, hints — white/ground only */
 
-  /* Reader control dock — dark chrome floating over the paper stage. */
-  --color-reader-chrome: #211f1a;
-  --color-reader-chrome-text: #e7e2d6;
-  --color-reader-chrome-muted: #cfc9bb;
-  --color-reader-chrome-hover: #34312a;
-  --color-reader-chrome-line: #413d35;
-  --color-reader-slider: #9db8ac; /* zoom slider accent */
+  --color-hairline: #dfe2ea; /* card borders, dividers */
+  --color-edge: #808a9e; /* control borders — 3:1 on white and ground */
+
+  --color-ok: #157347;
+  --color-ok-soft: #e1f4e8;
+  --color-warn: #8a5a12;
+  --color-warn-soft: #fbf1dc;
+  --color-danger: #c0262d;
+  --color-danger-strong: #9e1d23;
+  --color-danger-soft: #fce8e9;
+
+  --color-scrim: rgb(22 25 43 / 0.45);
+
+  --shadow-card:
+    0 1px 2px rgb(22 25 43 / 0.04), 0 8px 24px -12px rgb(22 25 43 / 0.14);
+  --shadow-float:
+    0 2px 4px rgb(22 25 43 / 0.06), 0 12px 32px -8px rgb(22 25 43 / 0.22);
+  --shadow-sheet:
+    0 -8px 40px rgb(22 25 43 / 0.18), 0 24px 60px rgb(22 25 43 / 0.3);
+  --shadow-fab:
+    0 4px 10px rgb(22 25 43 / 0.1), 0 10px 28px -6px rgb(36 71 198 / 0.35);
+
+  --radius-card: 16px;
+  --radius-field: 12px;
 
   --font-serif: var(--font-newsreader), Georgia, serif;
   --font-sans: var(--font-hanken), system-ui, sans-serif;
   --font-mono: var(--font-plex), ui-monospace, monospace;
+  --font-ui: var(--font-atkinson), system-ui, sans-serif;
 }
 
 :root {
   color-scheme: light;
+  /* The phone tab bar's height, shared by the shell and anything that floats
+     above it (the bulk bar). */
+  --tabbar-h: 56px;
 }
 
 body {
-  background: var(--color-paper);
-  color: var(--color-ink);
+  background: var(--color-ground);
+  color: var(--color-fg);
+  font-family: var(--font-ui);
+  font-size: 18px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The magazine's own environment. A page inherits its family, size, leading
+   and ink from here rather than from <body>, so the app's Atkinson 18px never
+   reaches an authored page: blocks that set nothing keep Hanken 17px / 1.6 /
+   ink — exactly what <body> used to hand them. `.page-content` is the same
+   environment for the mobile reader's column, which has no PageFrame. */
+[data-page-frame],
+.page-content {
   font-family: var(--font-sans);
   font-size: 17px;
   line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
+  color: var(--color-ink);
 }
 
 /* Comfortable, visible focus for an older audience. */
 *:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 3px solid var(--color-primary);
   outline-offset: 2px;
 }
 
@@ -96,22 +132,94 @@ body {
    global ring would land on the inner input and float a rectangle inside the
    box, so the input opts out and the box itself carries the identical ring. */
 .boxed-field:focus-within {
-  outline: 2px solid var(--color-accent);
+  outline: 3px solid var(--color-primary);
   outline-offset: 2px;
 }
 .boxed-field input:focus-visible {
   outline: none;
 }
 
+/* Phone chrome that respects the home-indicator inset. */
+@utility pb-tabbar {
+  padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px));
+}
+@utility bottom-tabbar {
+  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px));
+}
+@utility h-tabbar {
+  height: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px));
+}
+
+/* Loading skeletons: a soft shimmer that stands still under reduced motion. */
+@keyframes skeleton-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+.skeleton {
+  border-radius: var(--radius-field);
+  background-color: var(--color-surface-2);
+  background-image: linear-gradient(
+    90deg,
+    var(--color-surface-2) 0%,
+    var(--color-surface) 50%,
+    var(--color-surface-2) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+
+/* Sheets and menus arrive with a short slide; none at all under reduced motion. */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.rise-in {
+  animation: rise-in 180ms ease-out;
+}
+.slide-in-left {
+  animation: slide-in-left 200ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rise-in,
+  .slide-in-left {
+    animation: none;
+  }
+}
+
 /* A quieter scrollbar for the app's own scroll regions. The thumb is mixed from
-   `--scrollbar-surface`, the surface it sits on (paper unless a region sets it);
+   `--scrollbar-surface`, the surface it sits on (ground unless a region sets it);
    `.scrollbar-soft-quiet` adds to the base, hiding the thumb until hover,
    focus-within or a recent scroll (`data-scrolling`). */
 .scrollbar-soft {
   --scrollbar-thumb: color-mix(
     in oklab,
-    var(--scrollbar-surface, var(--color-paper)),
-    var(--color-ink) 50%
+    var(--scrollbar-surface, var(--color-ground)),
+    var(--color-fg) 50%
   );
   --scrollbar-thumb-shown: var(--scrollbar-thumb);
 }
@@ -188,7 +296,7 @@ body {
 /* Segmented toolbar groups clip outside rings; use the label's contrast inside. */
 .rich-text-tool:focus-visible {
   outline-color: currentColor;
-  outline-offset: -2px;
+  outline-offset: -3px;
 }
 
 /* Rich body text (bold/italic/underline, links, lists, paragraphs). Shared by

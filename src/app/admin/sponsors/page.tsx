@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AdminShell } from "@/components/admin-shell";
+import { AppShell } from "@/components/app-shell";
 import { SponsorsManager } from "@/features/sponsors/sponsors-manager";
 import { ADMIN_LIST_QUERY_MAX } from "@/lib/list-query";
 import { pageParamSchema } from "@/lib/pagination";
@@ -40,8 +40,8 @@ export default async function SponsorsPage({
     filter: params.filter,
   });
   return (
-    <AdminShell active="sponsors" user={admin}>
+    <AppShell area="admin" active="sponsors" user={admin}>
       <SponsorsManager list={list} query={query} filter={params.filter} />
-    </AdminShell>
+    </AppShell>
   );
 }

@@ -2,21 +2,59 @@ import Link from "next/link";
 import { forwardRef, type ReactNode } from "react";
 import { Icon, type IconName } from "./icons";
 import { MagazineName } from "./branding";
+import { BOOK_MARK_PATHS, BOOK_MARK_VIEWBOX } from "@/lib/brands";
 
-export function Wordmark({ size = 22 }: { size?: number }) {
+// The house set for the Compass chrome: one wordmark, two labels, one button,
+// one icon button, the status pill and the neutral chip, the avatar and the
+// fallback cover. Every interactive control in the app is built from these.
+
+// The magazine's name beside the book mark — the app's identity in every bar.
+export function Wordmark({
+  size = 22,
+  mark = true,
+}: {
+  size?: number;
+  /** The cobalt book tile before the name; off where only the name fits. */
+  mark?: boolean;
+}) {
+  return (
+    <span className="text-fg inline-flex items-center gap-2.5">
+      {mark && <BookMark size={Math.round(size * 1.35)} />}
+      <span
+        className="font-ui font-bold"
+        style={{ fontSize: size, letterSpacing: "-0.01em" }}
+      >
+        <MagazineName />
+      </span>
+    </span>
+  );
+}
+
+// The octavo book mark on a rounded primary tile — the favicon, in the page.
+export function BookMark({ size = 30 }: { size?: number }) {
   return (
     <span
-      className="font-serif text-ink"
-      style={{ fontSize: size, fontWeight: 500, letterSpacing: ".02em" }}
+      aria-hidden="true"
+      className="bg-primary text-surface inline-flex flex-none items-center justify-center"
+      style={{ width: size, height: size, borderRadius: size * 0.28 }}
     >
-      <MagazineName />
+      <svg
+        width={size * 0.78}
+        height={size * 0.78}
+        viewBox={BOOK_MARK_VIEWBOX}
+        fill="currentColor"
+      >
+        {BOOK_MARK_PATHS.map((d) => (
+          <path key={d} d={d} />
+        ))}
+      </svg>
     </span>
   );
 }
 
 export function Kicker({ children }: { children: ReactNode }) {
   return (
-    <div className="font-sans text-[11px] font-semibold tracking-[0.2em] text-accent uppercase">
+    <div className="text-primary font-ui text-[13px] font-bold tracking-[0.12em] uppercase">
       {children}
     </div>
   );
@@ -24,7 +62,7 @@ export function Kicker({ children }: { children: ReactNode }) {
 
 export function Label({ children }: { children: ReactNode }) {
   return (
-    <div className="font-sans text-[11px] font-semibold tracking-[0.2em] text-faint uppercase">
+    <div className="text-fg-muted font-ui text-[13px] font-bold tracking-[0.12em] uppercase">
       {children}
     </div>
   );
@@ -34,11 +72,11 @@ type ButtonProps = {
   children: ReactNode;
   href?: string;
   icon?: IconName;
-  /** Which side the icon sits on. Defaults to trailing the label. */
+  /** Which side the icon sits on. Defaults to leading the label. */
   iconPosition?: "left" | "right";
-  variant?: "primary" | "secondary" | "danger";
-  /** "md" is the standalone CTA size; "sm" fits dense bars (editor header). */
-  size?: "md" | "sm";
+  variant?: "primary" | "secondary" | "danger" | "quiet";
+  /** "md" is the everyday pill; "lg" the hero CTA; "sm" fits dense bars. */
+  size?: "lg" | "md" | "sm";
   full?: boolean;
   onClick?: () => void;
   type?: "button" | "submit";
@@ -58,19 +96,17 @@ type ButtonProps = {
   title?: string;
 };
 
-// The one button for the app. Every variant shares the same interaction
-// feedback — a hover lift, a tactile press (a slight scale-down, skipped under
-// prefers-reduced-motion) and the global focus-visible ring — so buttons feel
-// consistent and responsive everywhere (issue #64), and every variant drops all
-// of it while disabled or busy (issue #117). forwardRef so callers that manage
-// focus (e.g. the confirm dialog) can target the underlying <button>.
+// The one button for the app: a pill. Every variant shares the same feedback —
+// a hover shade, a tactile press (skipped under prefers-reduced-motion) and the
+// global focus ring — and every variant drops all of it while disabled or busy
+// (issue #117). forwardRef so callers that manage focus can target the button.
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   function Button(
     {
       children,
       href,
       icon,
-      iconPosition = "right",
+      iconPosition = "left",
       variant = "primary",
       size = "md",
       full = false,
@@ -86,42 +122,37 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref,
   ) {
     const isDisabled = disabled || busy;
-    // Every way of being unpressable, for the styling and the click guard —
-    // `unavailable` has no attribute doing either of those for it.
     const inert = isDisabled || unavailable;
-    const base = `${full ? "flex w-full" : "inline-flex"} items-center justify-center gap-2 rounded-lg font-sans font-semibold transition-[transform,background-color,border-color,box-shadow,color] duration-150 ease-out select-none`;
+    const base = `${full ? "flex w-full" : "inline-flex"} items-center justify-center gap-2 rounded-full font-ui font-bold whitespace-nowrap transition-[transform,background-color,border-color,box-shadow,color] duration-150 ease-out select-none`;
     const sizes = {
-      md: "h-12 px-5 text-[15px]",
-      sm: "h-10 px-4 text-sm",
+      lg: "h-14 px-7 text-[18px]",
+      md: "h-12 px-5 text-[16px]",
+      sm: "h-10 px-4 text-[15px]",
     }[size];
     const rest = {
-      primary: "bg-accent text-paper shadow-[0_2px_8px_rgba(29,77,62,0.25)]",
-      // The house style for white buttons: a hairline on white.
-      secondary: "border-[1.5px] border-hair-warm bg-white text-ink",
-      danger: "bg-warn text-paper shadow-[0_2px_10px_rgba(0,0,0,0.18)]",
+      primary: "bg-primary text-surface shadow-fab",
+      secondary: "border-edge bg-surface text-fg border-[1.5px]",
+      danger: "bg-danger text-surface",
+      quiet: "text-primary bg-transparent",
     }[variant];
     const feedback = {
-      primary:
-        "hover:bg-accent-strong hover:shadow-[0_4px_14px_rgba(29,77,62,0.3)] active:shadow-[0_1px_4px_rgba(29,77,62,0.25)]",
-      // That hairline lights up to an accent outline over a faint wash (matches
-      // the editor toolbar / sponsor buttons the rest of the app already uses).
+      primary: "hover:bg-primary-strong",
       secondary:
-        "hover:border-accent hover:bg-accent-wash active:bg-accent-wash",
-      danger:
-        "hover:bg-warn-strong hover:shadow-[0_4px_14px_rgba(0,0,0,0.22)] active:shadow-[0_1px_5px_rgba(0,0,0,0.18)]",
+        "hover:border-primary hover:bg-primary-wash hover:text-primary",
+      danger: "hover:bg-danger-strong",
+      quiet: "hover:bg-primary-wash",
     }[variant];
-    // The hover/press feedback is composed in only when the button can actually
-    // be pressed, so a disabled or busy one sits completely still. Gated here in
-    // JS rather than with Tailwind's `enabled:` variant: `:enabled` never matches
-    // an <a>, so that would silently kill hover on the link branch below — nor
-    // would it match an `unavailable` button, which is enabled and shouldn't be.
+    // Gated in JS rather than with Tailwind's `enabled:` variant: `:enabled`
+    // never matches an <a>, nor an `unavailable` button that is enabled.
     const state = inert
       ? busy
         ? "cursor-default"
         : "cursor-default opacity-50"
       : `cursor-pointer motion-safe:active:scale-[0.97] ${feedback}`;
     const cls = `${base} ${sizes} ${rest} ${state} ${className}`;
-    const iconEl = icon && <Icon name={icon} size={17} strokeWidth={1.8} />;
+    const iconEl = icon && (
+      <Icon name={icon} size={size === "sm" ? 17 : 19} strokeWidth={2} />
+    );
     const inner = (
       <>
         {iconPosition === "left" && iconEl}
@@ -129,7 +160,6 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {iconPosition === "right" && iconEl}
       </>
     );
-    // A disabled link is not a real thing; only the button branch can disable.
     if (href)
       return (
         <Link href={href} className={cls} aria-label={ariaLabel} title={title}>
@@ -140,8 +170,6 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         type={type}
-        // Dropping the handler is what makes `unavailable` inert, for the mouse
-        // and for Enter/Space alike; there is no attribute doing it.
         onClick={inert ? undefined : onClick}
         disabled={isDisabled}
         aria-disabled={unavailable || undefined}
@@ -155,30 +183,72 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   },
 );
 
-// The icon-only companion to Button, for the dialogs' close ×. It carries the
-// same interaction contract — pointer cursor, a hover wash, the focus ring —
-// without Button's box: the padding grows the tap target while the matching
-// negative margin cancels it in flow, so the icon sits exactly where it did.
+// The round icon-only companion to Button. Always a 44px (or larger) target,
+// always named — the label is both the accessible name and the tooltip.
 export const IconButton = forwardRef<
   HTMLButtonElement,
   {
     icon: IconName;
-    /** Accessible name — an icon alone says nothing. */
+    /** Accessible name — an icon alone says nothing. Doubles as the tooltip. */
     label: string;
     onClick?: () => void;
+    href?: string;
+    /** Icon size; the target is always at least 44px. */
     size?: number;
+    /** "quiet" sits flat on its surface; "outlined" has a border; "solid" is
+     * primary on a white disc with a lift — the reader's page-turn buttons. */
+    variant?: "quiet" | "outlined" | "solid" | "danger";
+    /** Target diameter in px (min 44). */
+    box?: number;
     disabled?: boolean;
+    pressed?: boolean;
     className?: string;
   }
 >(function IconButton(
-  { icon, label, onClick, size = 22, disabled = false, className = "" },
+  {
+    icon,
+    label,
+    onClick,
+    href,
+    size = 22,
+    variant = "quiet",
+    box = 44,
+    disabled = false,
+    pressed,
+    className = "",
+  },
   ref,
 ) {
-  // Same disabled treatment as Button: dimmed, no pointer, and the hover wash
-  // composed out entirely so it promises nothing it will not do (issue #117).
+  const look = {
+    quiet: "text-fg-muted",
+    outlined: "border-edge bg-surface text-fg border-[1.5px]",
+    solid: "bg-surface text-primary shadow-float",
+    danger: "text-danger",
+  }[variant];
+  const hover = {
+    quiet: "hover:bg-primary-wash hover:text-primary",
+    outlined: "hover:border-primary hover:bg-primary-wash hover:text-primary",
+    solid: "hover:bg-primary-wash",
+    danger: "hover:bg-danger-soft",
+  }[variant];
   const state = disabled
     ? "cursor-default opacity-50"
-    : "hover:bg-accent-wash hover:text-ink cursor-pointer";
+    : `cursor-pointer motion-safe:active:scale-[0.95] ${hover}`;
+  const cls = `inline-flex flex-none items-center justify-center rounded-full transition-[background-color,color,border-color,transform] duration-150 ${look} ${pressed ? "bg-primary-soft text-primary" : ""} ${state} ${className}`;
+  const style = { width: Math.max(44, box), height: Math.max(44, box) };
+  const inner = <Icon name={icon} size={size} strokeWidth={1.9} />;
+  if (href)
+    return (
+      <Link
+        href={href}
+        aria-label={label}
+        title={label}
+        className={cls}
+        style={style}
+      >
+        {inner}
+      </Link>
+    );
   return (
     <button
       ref={ref}
@@ -186,9 +256,12 @@ export const IconButton = forwardRef<
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className={`text-muted -m-2 inline-flex items-center justify-center rounded-lg p-2 transition-[background-color,color] duration-150 ${state} ${className}`}
+      aria-pressed={pressed}
+      title={label}
+      className={cls}
+      style={style}
     >
-      <Icon name={icon} size={size} strokeWidth={1.7} />
+      {inner}
     </button>
   );
 });
@@ -202,37 +275,68 @@ export type Status =
   | "Planned";
 
 const PILL: Record<Status, { bg: string; ink: string; dot: string }> = {
-  Published: { bg: "bg-tint", ink: "text-accent", dot: "bg-accent" },
-  Subscribed: { bg: "bg-tint", ink: "text-accent", dot: "bg-ok" },
-  Draft: { bg: "bg-chip", ink: "text-faint", dot: "bg-chip-dot" },
-  Unsubscribed: { bg: "bg-chip", ink: "text-faint", dot: "bg-chip-dot" },
-  Bounced: { bg: "bg-warn-soft", ink: "text-warn", dot: "bg-alert" },
-  Planned: { bg: "bg-warn-soft", ink: "text-warn", dot: "bg-alert" },
+  Published: { bg: "bg-ok-soft", ink: "text-ok", dot: "bg-ok" },
+  Subscribed: { bg: "bg-ok-soft", ink: "text-ok", dot: "bg-ok" },
+  Draft: { bg: "bg-surface-2", ink: "text-fg-muted", dot: "bg-edge" },
+  Unsubscribed: { bg: "bg-surface-2", ink: "text-fg-muted", dot: "bg-edge" },
+  Bounced: { bg: "bg-warn-soft", ink: "text-warn", dot: "bg-warn" },
+  Planned: { bg: "bg-warn-soft", ink: "text-warn", dot: "bg-warn" },
 };
 
+// A status pill: a dot and a word, tinted by meaning.
 export function Pill({ status }: { status: Status }) {
   const p = PILL[status];
   return (
     <span
-      className={`inline-flex items-center gap-2 rounded-full px-3 py-1 ${p.bg}`}
+      className={`inline-flex h-8 items-center gap-2 rounded-full px-3 ${p.bg}`}
     >
-      <span className={`h-1.5 w-1.5 rounded-full ${p.dot}`} />
-      <span className={`font-sans text-xs font-semibold ${p.ink}`}>
-        {status}
-      </span>
+      <span className={`h-2 w-2 rounded-full ${p.dot}`} />
+      <span className={`font-ui text-[14px] font-bold ${p.ink}`}>{status}</span>
     </span>
   );
 }
 
-export function Avatar({ initials }: { initials: string }) {
+// A neutral chip: a section name on the latest-issue card, a count, a year.
+export function Chip({
+  children,
+  tone = "neutral",
+  className = "",
+}: {
+  children: ReactNode;
+  tone?: "neutral" | "primary";
+  className?: string;
+}) {
+  const look =
+    tone === "primary"
+      ? "bg-primary-soft text-primary"
+      : "bg-surface-2 text-fg-muted";
   return (
-    <span className="bg-tint text-accent flex h-9 w-9 flex-none items-center justify-center rounded-full font-sans text-[13px] font-semibold">
+    <span
+      className={`inline-flex h-8 max-w-full items-center rounded-full px-3 font-ui text-[14px] font-bold ${look} ${className}`}
+    >
+      <span className="truncate">{children}</span>
+    </span>
+  );
+}
+
+export function Avatar({
+  initials,
+  size = 40,
+}: {
+  initials: string;
+  size?: number;
+}) {
+  return (
+    <span
+      className="bg-primary-soft text-primary flex flex-none items-center justify-center rounded-full font-ui font-bold"
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.36) }}
+    >
       {initials}
     </span>
   );
 }
 
-// The striped magazine cover used for thumbnails and heroes.
+// The striped magazine cover used for thumbnails and heroes with no cover page.
 export function Cover({
   no,
   title,

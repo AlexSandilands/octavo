@@ -29,14 +29,21 @@ import { useEffect, useId, useRef } from "react";
 // be unpicked to keep these panels pixel-identical. The modality native would
 // have given for free is done by hand instead, in `inertOutside` below (#154).
 export function DialogShell({
-  panelClassName,
+  panelClassName = "",
+  placement = "center",
   locked = false,
   isolatePointerEvents = false,
   onClose,
   children,
 }: {
-  /** Classes for the panel — every dialog keeps the box it already had. */
-  panelClassName: string;
+  /** Extra classes for the panel — its width from `md` up, or `flex flex-col`
+   * for a dialog that scrolls a middle section. The box itself (surface,
+   * corners, shadow, the phone sheet) is the shell's. */
+  panelClassName?: string;
+  /** "center": a card on desktop, a bottom sheet with a grabber on a phone.
+   * "left": a full-height slide-over from the left edge (the reader's
+   * contents). */
+  placement?: "center" | "left";
   /** An action is in flight: Escape and a backdrop press are refused, matching
    * what the dialog's own Cancel / × already do. */
   locked?: boolean;
@@ -121,10 +128,23 @@ export function DialogShell({
     return () => document.removeEventListener("keydown", onKey, true);
   }, [locked, onClose]);
 
+  // One box for every dialog (Compass): on a phone it is a bottom sheet — full
+  // width, rounded top corners, a grabber line, sliding up — and from `md` a
+  // centred rounded card. Callers add only a width. The sheet caps its height
+  // and scrolls inside, so a long dialog never pushes its buttons off screen.
+  const overlay =
+    placement === "left"
+      ? "items-stretch justify-start"
+      : "items-end justify-center md:items-center md:p-4";
+  const panel =
+    placement === "left"
+      ? "slide-in-left bg-surface shadow-sheet flex h-full w-[320px] max-w-[88vw] flex-col rounded-r-card"
+      : "rise-in bg-surface shadow-sheet scrollbar-soft max-h-[92dvh] w-full overflow-y-auto rounded-t-card [--scrollbar-surface:var(--color-surface)] md:max-h-[90vh] md:w-auto md:rounded-card";
+
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(32,32,28,0.4)] p-4"
+      className={`bg-scrim fixed inset-0 z-50 flex ${overlay}`}
       onPointerDown={(e) => {
         if (isolatePointerEvents) e.stopPropagation();
         // Only a press on the backdrop itself — one that started inside the
@@ -148,8 +168,16 @@ export function DialogShell({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className={panelClassName}
+        className={`${panel} ${panelClassName}`}
       >
+        {placement === "center" && (
+          <div
+            aria-hidden="true"
+            className="flex justify-center pt-3 md:hidden"
+          >
+            <span className="bg-edge/50 h-1.5 w-12 rounded-full" />
+          </div>
+        )}
         {children(titleId)}
       </div>
     </div>

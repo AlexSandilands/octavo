@@ -3,8 +3,9 @@
 // heritage design tokens out of globals.css's @theme block and each non-default
 // brand's `[data-brand="…"]` override block out of brands.css, merges them, and
 // asserts that for every brand each foreground used for readable text clears
-// 4.5:1 against each paper-family background it renders on, and that the amber
-// warn ink works both as text on warn-soft and as a background under paper ink.
+// 4.5:1 against each background it renders on — the page palette's inks on the
+// paper family, and the app palette's inks on ground/surface/tints and the
+// solid fills — and that control borders clear 3:1.
 // Run: npx tsx scripts/dev-contrast-gate.mts
 import { readFile } from "node:fs/promises";
 import { BRAND_IDS, DEFAULT_BRAND } from "../src/lib/brands.ts";
@@ -74,33 +75,71 @@ const contrast = (a: string, b: string) => {
 };
 
 const AA = 4.5;
-// The paper-family surfaces readable text sits on across the app.
-const backgrounds = ["paper", "page", "card", "stage", "tint", "warn-soft"];
+const UI = 3;
 
-// Check one brand's full token set (the same bar #10 audited for heritage).
+// ── The page palette: what an authored magazine page is printed in. ─────────
+// The paper-family surfaces the page's readable inks sit on.
+const PAGE_BACKGROUNDS = ["paper", "page", "card", "stage", "tint"];
+const PAGE_INKS = ["muted", "faint", "faint2"];
+
+// ── The app palette: the chrome around the magazine (Compass). ──────────────
+// Each readable foreground, with every background it is allowed to sit on.
+const APP_TEXT: Record<string, string[]> = {
+  fg: [
+    "ground",
+    "surface",
+    "surface-2",
+    "stage-ui",
+    "primary-soft",
+    "primary-wash",
+    "ok-soft",
+    "warn-soft",
+    "danger-soft",
+  ],
+  "fg-muted": [
+    "ground",
+    "surface",
+    "surface-2",
+    "stage-ui",
+    "primary-soft",
+    "primary-wash",
+    "ok-soft",
+    "warn-soft",
+    "danger-soft",
+  ],
+  // Placeholders and hints: white and ground only, by design.
+  "fg-faint": ["ground", "surface"],
+  primary: ["ground", "surface", "primary-soft", "primary-wash"],
+  ok: ["ground", "surface", "ok-soft"],
+  warn: ["ground", "surface", "warn-soft"],
+  danger: ["ground", "surface", "danger-soft"],
+  // White text on the solid fills (primary buttons, the draft ribbon, danger).
+  surface: ["primary", "primary-strong", "danger", "danger-strong", "warn"],
+};
+// UI component boundaries (WCAG 1.4.11): control borders and icons-as-controls.
+const APP_UI: Record<string, string[]> = {
+  edge: ["ground", "surface"],
+  primary: ["ground", "surface", "surface-2"],
+};
+
+// Check one brand's full token set.
 const checkBrand = (id: string, tokens: Map<string, string>) => {
   const hex = (name: string) => {
     const v = tokens.get(name);
     if (!v) throw new Error(`[${id}] token --color-${name} not found`);
     return v;
   };
+  const pair = (fg: string, bg: string, bar: number) => {
+    const r = contrast(hex(fg), hex(bg));
+    ok(r >= bar, `[${id}] ${fg} on ${bg} is ${r.toFixed(2)}:1 (≥ ${bar})`);
+  };
 
-  // Foreground tokens that carry readable text (metadata, hints, page numbers,
-  // status labels) and must all clear AA on every background above.
-  for (const fg of ["muted", "faint", "faint2", "warn"]) {
-    for (const bg of backgrounds) {
-      const r = contrast(hex(fg), hex(bg));
-      ok(r >= AA, `[${id}] ${fg} on ${bg} is ${r.toFixed(2)}:1 (≥ ${AA})`);
-    }
-  }
-
-  // The draft ribbon paints paper-coloured text on a solid warn background, so
-  // that pairing must clear AA the other way round too.
-  const r = contrast(hex("paper"), hex("warn"));
-  ok(
-    r >= AA,
-    `[${id}] paper ink on warn background is ${r.toFixed(2)}:1 (≥ ${AA})`,
-  );
+  for (const fg of PAGE_INKS)
+    for (const bg of PAGE_BACKGROUNDS) pair(fg, bg, AA);
+  for (const [fg, bgs] of Object.entries(APP_TEXT))
+    for (const bg of bgs) pair(fg, bg, AA);
+  for (const [fg, bgs] of Object.entries(APP_UI))
+    for (const bg of bgs) pair(fg, bg, UI);
 };
 
 for (const [id, tokens] of brands) {
@@ -109,13 +148,12 @@ for (const [id, tokens] of brands) {
 }
 
 // The house scrollbar (issue #207, swept across the app in #210): `.scrollbar-soft`
-// in globals.css draws its thumb as `color-mix(in oklab, <surface>, ink 50%)`,
-// where the surface is paper unless the region sets `--scrollbar-surface` (a
-// card-backed panel: card). A scrollbar thumb is a UI affordance, so it needs
+// in globals.css draws its thumb as `color-mix(in oklab, <surface>, fg 50%)`,
+// where the surface is ground unless the region sets `--scrollbar-surface` (a
+// card-backed panel: surface). A scrollbar thumb is a UI affordance, so it needs
 // 3:1 (WCAG 1.4.11) against the surface it sits on, on every brand. This
 // mirrors the browser's oklab mix so the number is checked, not eyeballed.
-const UI = 3;
-const SCROLLBAR_SURFACES = ["paper", "card"];
+const SCROLLBAR_SURFACES = ["ground", "surface"];
 const INK_MIX = 0.5;
 
 const srgbToLinear = (v: number) =>
@@ -166,7 +204,7 @@ const mixOklab = (a: string, b: string, pctB: number) => {
 
 for (const [id, tokens] of brands) {
   console.log(`\n— scrollbar thumb, brand: ${id} —`);
-  const ink = tokens.get("ink")!;
+  const ink = tokens.get("fg")!;
   for (const surface of SCROLLBAR_SURFACES) {
     const thumb = mixOklab(tokens.get(surface)!, ink, INK_MIX);
     const r = contrast(thumb, tokens.get(surface)!);

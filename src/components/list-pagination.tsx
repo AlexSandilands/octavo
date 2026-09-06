@@ -104,7 +104,6 @@ export function ListPagination({
       <Button
         variant="secondary"
         icon="chevronLeft"
-        iconPosition="left"
         unavailable={target <= 1}
         onClick={() => turnTo(target - 1)}
       >
@@ -115,7 +114,10 @@ export function ListPagination({
           just pressed would take their keyboard focus with it. The pending
           wording is the feedback instead, and a screen reader hears the turn
           start and then land. */}
-      <span aria-live="polite" className="text-faint font-sans text-sm">
+      <span
+        aria-live="polite"
+        className="text-fg-muted text-center font-ui text-[16px] font-bold"
+      >
         {pending
           ? `Turning to page ${target}…`
           : `Page ${page} of ${pageCount}`}
@@ -123,6 +125,7 @@ export function ListPagination({
       <Button
         variant="secondary"
         icon="chevronRight"
+        iconPosition="right"
         unavailable={target >= pageCount}
         onClick={() => turnTo(target + 1)}
       >

@@ -7,7 +7,7 @@ export type ListFilterOption<T extends string> = { value: T; label: string };
 
 // A narrowing choice on an admin list — the house MenuSelect ("Status: All"),
 // which always names the active choice on its trigger, matches the search box's
-// 44px height, and has room to grow when a list learns new options. Like the
+// 48px height, and has room to grow when a list learns new options. Like the
 // search, the choice lives in the URL and the narrowing runs in the database —
 // the list only serves one page, so a client-side filter would go blind past it.
 // The default value is the absence of the param, keeping bare URLs bare.

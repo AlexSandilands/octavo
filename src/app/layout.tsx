@@ -5,7 +5,7 @@ import { BrandingProvider } from "@/components/branding";
 import { getSettings } from "@/server/settings";
 import { env } from "@/lib/env";
 
-// The three families are self-hosted from ./fonts rather than fetched from
+// The four families are self-hosted from ./fonts rather than fetched from
 // Google (issue #167): next/font/google downloads them at *build* time, so every
 // CI run and every production deploy needed fonts.gstatic.com reachable, and one
 // flaked fetch failed an otherwise-green build. The committed woff2 files are the
@@ -63,6 +63,24 @@ const hanken = localFont({
   preload: false,
 });
 
+// The app chrome's face: Atkinson Hyperlegible (Braille Institute), four static
+// cuts. The page pipeline keeps Hanken/Newsreader/Plex, so a redesign of the
+// chrome never repaginates an issue.
+const atkinson = localFont({
+  src: [
+    { path: "./fonts/atkinson-regular.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/atkinson-italic.woff2", weight: "400", style: "italic" },
+    { path: "./fonts/atkinson-bold.woff2", weight: "700", style: "normal" },
+    {
+      path: "./fonts/atkinson-bolditalic.woff2",
+      weight: "700",
+      style: "italic",
+    },
+  ],
+  variable: "--font-atkinson",
+  preload: false,
+});
+
 const plexMono = localFont({
   src: [
     { path: "./fonts/ibm-plex-mono-400.woff2", weight: "400", style: "normal" },
@@ -98,7 +116,7 @@ export default async function RootLayout({
     <html
       lang="en"
       data-brand={env.NEXT_PUBLIC_BRAND}
-      className={`${newsreader.variable} ${hanken.variable} ${plexMono.variable}`}
+      className={`${newsreader.variable} ${hanken.variable} ${plexMono.variable} ${atkinson.variable}`}
     >
       <body>
         {/* The branding text for the two client surfaces that have no server

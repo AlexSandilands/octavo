@@ -149,6 +149,69 @@ const ICONS: Record<string, ReactNode> = {
     <path d="M9 4H5a1 1 0 00-1 1v4M15 4h4a1 1 0 011 1v4M9 20H5a1 1 0 01-1-1v-4M15 20h4a1 1 0 001-1v-4" />
   ),
   fullscreenExit: <path d="M4 9h4V5M20 9h-4V5M4 15h4v4M20 15h-4v4" />,
+  // ── Wayfinding (the Compass shell) ──
+  arrowLeft: <path d="M19 12H6m0 0l5-5m-5 5l5 5" />,
+  chevronUp: <path d="M6 15l6-6 6 6" />,
+  // An open book: the library.
+  library: (
+    <>
+      <path d="M12 6.5c-1.6-1.4-3.8-2-7-2v13c3.2 0 5.4.6 7 2 1.6-1.4 3.8-2 7-2v-13c-3.2 0-5.4.6-7 2z" />
+      <path d="M12 6.5v13" />
+    </>
+  ),
+  // A box with a lid: the archive.
+  archive: (
+    <>
+      <rect x="3" y="4" width="18" height="5" rx="1" />
+      <path d="M5 9v10h14V9M10 13h4" />
+    </>
+  ),
+  // One person: the account.
+  user: (
+    <>
+      <circle cx="12" cy="8" r="3.6" />
+      <path d="M4.5 20a7.5 7.5 0 0115 0" />
+    </>
+  ),
+  // Sliders: settings.
+  sliders: (
+    <>
+      <path d="M4 7h9M17 7h3M4 17h3M11 17h9" />
+      <circle cx="15" cy="7" r="2" />
+      <circle cx="9" cy="17" r="2" />
+    </>
+  ),
+  // Three dots: "more".
+  more: (
+    <>
+      <circle cx="5.5" cy="12" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="18.5" cy="12" r="1.4" fill="currentColor" stroke="none" />
+    </>
+  ),
+  // A shield with a tick: the admin area.
+  shield: (
+    <>
+      <path d="M12 3l7 3v5.5c0 4.2-2.9 7.7-7 9.5-4.1-1.8-7-5.3-7-9.5V6l7-3z" />
+      <path d="M9 12l2 2 4-4.5" />
+    </>
+  ),
+  // The status icons for cards.
+  checkCircle: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M8 12.5l2.5 2.5L16 9.5" />
+    </>
+  ),
+  alertCircle: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7.5v5.5M12 16.5h.01" />
+    </>
+  ),
+  // The letter A, for the text-size stepper.
+  textSize: <path d="M5 18L11 5l6 13M7.3 13h7.4M19 11v7" />,
+  signOut: <path d="M10 5H5v14h5M14 8l4 4-4 4M18 12H9" />,
   // A portrait page fitted inside a landscape screen — "fit to screen" (reset
   // zoom), kept visually distinct from the corner-bracket fullscreen icon.
   fitScreen: (

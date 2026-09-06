@@ -6,7 +6,7 @@
 export function DemoBadge({ className }: { className?: string }) {
   return (
     <span
-      className={`border-hair text-muted bg-card inline-block rounded-full border px-3 py-1 font-sans text-xs font-medium tracking-wide uppercase${className ? ` ${className}` : ""}`}
+      className={`border-edge text-fg-muted bg-surface inline-flex h-8 items-center rounded-full border px-3 font-ui text-[13px] font-bold tracking-[0.08em] uppercase${className ? ` ${className}` : ""}`}
     >
       Demo
       <span className="sr-only">

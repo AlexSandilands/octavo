@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ADMIN_LIST_PAGE } from "@/components/admin-list-layout";
-import { AdminShell } from "@/components/admin-shell";
+import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui";
 import { EmptyIssues } from "@/components/empty-states";
 import { coverPageOf, type Page } from "@/lib/blocks";
@@ -94,7 +94,7 @@ export default async function AdminDashboard({
   });
 
   return (
-    <AdminShell active="issues" user={admin}>
+    <AppShell area="admin" active="issues" user={admin}>
       {/* Pinned header and filters over scrolling rows from md up; see
           admin-list-layout.ts. */}
       <div className={ADMIN_LIST_PAGE}>
@@ -137,6 +137,6 @@ export default async function AdminDashboard({
           />
         )}
       </div>
-    </AdminShell>
+    </AppShell>
   );
 }

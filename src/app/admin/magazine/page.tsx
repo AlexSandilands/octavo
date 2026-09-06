@@ -1,4 +1,4 @@
-import { AdminShell } from "@/components/admin-shell";
+import { AppShell } from "@/components/app-shell";
 import { MagazineSettings } from "@/features/magazine/magazine-settings";
 import { SettingsUnavailable } from "@/features/magazine/settings-unavailable";
 import { listLogos } from "@/server/logos";
@@ -21,7 +21,7 @@ export default async function MagazinePage() {
     listLogos(),
   ]);
   return (
-    <AdminShell active="magazine" user={admin}>
+    <AppShell area="admin" active="magazine" user={admin}>
       <div className="pb-16">
         <h1 className="text-ink font-serif text-3xl">Magazine details</h1>
         <p className="text-faint mt-1.5 font-sans text-sm">
@@ -44,6 +44,6 @@ export default async function MagazinePage() {
           <SettingsUnavailable />
         )}
       </div>
-    </AdminShell>
+    </AppShell>
   );
 }

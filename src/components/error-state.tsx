@@ -1,10 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { Button, Wordmark } from "@/components/ui";
+import { Icon } from "@/components/icons";
 
 // Friendly full-page error state shared by the route error boundaries — a
 // member (or the admin) never sees a raw stack trace (design-principles §10).
+// A card with a red bar down its left edge and a Try again pill.
 export function ErrorState({
   kicker,
   title,
@@ -17,26 +18,26 @@ export function ErrorState({
   onRetry: () => void;
 }) {
   return (
-    <main className="flex min-h-screen items-center justify-center px-5 py-12">
-      <div className="bg-card border-line flex min-h-[420px] w-full max-w-xl flex-col rounded-[5px] border p-10 shadow-[0_1px_3px_rgba(0,0,0,0.07)]">
+    <main className="flex min-h-screen items-center justify-center px-4 py-12">
+      <div className="bg-surface border-hairline shadow-card border-l-danger w-full max-w-xl overflow-hidden rounded-card border border-l-[6px] p-6 sm:p-9">
         <Wordmark size={18} />
-        <div className="my-auto">
-          <p className="text-accent font-serif text-[15px] italic">{kicker}</p>
-          <h1 className="text-ink mt-3 font-serif text-4xl leading-[1.05]">
-            {title}
-          </h1>
-          <p className="text-muted mt-4 max-w-prose font-sans text-[16px] leading-relaxed">
-            {body}
-          </p>
+        <div className="text-danger mt-8 flex items-center gap-2 font-ui text-[15px] font-bold">
+          <Icon name="alertCircle" size={20} strokeWidth={2} />
+          {kicker}
         </div>
-        <div className="flex items-center gap-4">
-          <Button onClick={onRetry}>Try again</Button>
-          <Link
-            href="/"
-            className="text-accent font-sans text-[15px] font-medium underline underline-offset-[3px]"
-          >
+        <h1 className="text-fg mt-3 font-ui text-[30px] leading-[1.1] font-bold sm:text-[34px]">
+          {title}
+        </h1>
+        <p className="text-fg-muted mt-4 max-w-prose font-ui text-[17px] leading-relaxed">
+          {body}
+        </p>
+        <div className="mt-8 flex flex-wrap items-center gap-3">
+          <Button onClick={onRetry} icon="refresh">
+            Try again
+          </Button>
+          <Button href="/" variant="secondary" icon="library">
             Back to the library
-          </Link>
+          </Button>
         </div>
       </div>
     </main>

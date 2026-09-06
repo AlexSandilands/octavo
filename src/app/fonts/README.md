@@ -1,7 +1,10 @@
 # Self-hosted fonts
 
-The three families the magazine sets type in, committed as woff2 so that no build
-needs a network round-trip to Google (issue #167). They are loaded by
+The four families the site sets type in, committed as woff2 so that no build
+needs a network round-trip to Google (issue #167). Three of them — Newsreader,
+Hanken Grotesk and IBM Plex Mono — are the magazine's own: every authored page,
+thumbnail and PDF is set in them. Atkinson Hyperlegible is the app chrome's face
+(the "Compass" redesign): the shell, library, reader controls, admin and editor. They are loaded by
 `src/app/layout.tsx` through `next/font/local`; nothing else references them.
 
 Each file is the same face, at the same version, that `next/font/google` was
@@ -10,15 +13,19 @@ checked. Re-fetching or upgrading one is a deliberate act, not a build step.
 
 ## What is here
 
-| File                      | Family         | Version          | Covers                |
-| ------------------------- | -------------- | ---------------- | --------------------- |
-| `newsreader-roman.woff2`  | Newsreader     | v26 (font 1.003) | wght 200–800, upright |
-| `newsreader-italic.woff2` | Newsreader     | v26 (font 1.003) | wght 200–800, italic  |
-| `hanken-grotesk.woff2`    | Hanken Grotesk | v12 (font 3.013) | wght 100–900          |
-| `ibm-plex-mono-400.woff2` | IBM Plex Mono  | v20 (font 2.3)   | 400 (no variable cut) |
-| `ibm-plex-mono-500.woff2` | IBM Plex Mono  | v20 (font 2.3)   | 500 (no variable cut) |
+| File                        | Family                | Version          | Covers                |
+| --------------------------- | --------------------- | ---------------- | --------------------- |
+| `newsreader-roman.woff2`    | Newsreader            | v26 (font 1.003) | wght 200–800, upright |
+| `newsreader-italic.woff2`   | Newsreader            | v26 (font 1.003) | wght 200–800, italic  |
+| `hanken-grotesk.woff2`      | Hanken Grotesk        | v12 (font 3.013) | wght 100–900          |
+| `ibm-plex-mono-400.woff2`   | IBM Plex Mono         | v20 (font 2.3)   | 400 (no variable cut) |
+| `ibm-plex-mono-500.woff2`   | IBM Plex Mono         | v20 (font 2.3)   | 500 (no variable cut) |
+| `atkinson-regular.woff2`    | Atkinson Hyperlegible | v12 (font 1.006) | 400, upright          |
+| `atkinson-italic.woff2`     | Atkinson Hyperlegible | v12 (font 1.006) | 400, italic           |
+| `atkinson-bold.woff2`       | Atkinson Hyperlegible | v12 (font 1.006) | 700, upright          |
+| `atkinson-bolditalic.woff2` | Atkinson Hyperlegible | v12 (font 1.006) | 700, italic           |
 
-All three families are SIL Open Font License 1.1; the licence text sits beside the
+All four families are SIL Open Font License 1.1; the licence text sits beside the
 files it covers (`OFL-*.txt`), fetched from
 `https://raw.githubusercontent.com/google/fonts/main/ofl/<family>/OFL.txt`.
 
@@ -33,6 +40,15 @@ again if these 404, which means Google has published a newer version):
 - Hanken Grotesk — `https://fonts.gstatic.com/s/hankengrotesk/v12/ieVn2YZDLWuGJpnzaiwFXS9tYupa7dGTCTs5.ttf`
 - IBM Plex Mono Regular — `https://fonts.gstatic.com/s/ibmplexmono/v20/-F63fjptAgt5VM-kVkqdyU8n5igg1l9kn-s.ttf`
 - IBM Plex Mono Medium — `https://fonts.gstatic.com/s/ibmplexmono/v20/-F6qfjptAgt5VM-kVkqdyU8n3twJ8ldPg-IUDNg.ttf`
+- Atkinson Hyperlegible Regular — `https://fonts.gstatic.com/s/atkinsonhyperlegible/v12/9Bt23C1KxNDXMspQ1lPyU89-1h6ONRlW45GE5ZgpewSSbQ.ttf`
+- Atkinson Hyperlegible Italic — `https://fonts.gstatic.com/s/atkinsonhyperlegible/v12/9Bt43C1KxNDXMspQ1lPyU89-1h6ONRlW45G055ItWQGCbUWn.ttf`
+- Atkinson Hyperlegible Bold — `https://fonts.gstatic.com/s/atkinsonhyperlegible/v12/9Bt73C1KxNDXMspQ1lPyU89-1h6ONRlW45G8WbcNcy-OZFy-FA.ttf`
+- Atkinson Hyperlegible Bold Italic — `https://fonts.gstatic.com/s/atkinsonhyperlegible/v12/9Bt93C1KxNDXMspQ1lPyU89-1h6ONRlW45G056qRdiWKRlmuFH24.ttf`
+
+Atkinson is four static cuts (no variable version on Google Fonts), subset with the
+same `pyftsubset` line as the others (latin + latin-ext, all layout features). It is
+chrome-only — no page metric depends on it — so swapping or upgrading it needs no
+`RENDER_VERSION` bump.
 
 ## Rebuilding
 

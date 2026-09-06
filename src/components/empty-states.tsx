@@ -1,33 +1,62 @@
 import { Button } from "./ui";
-import { Icon } from "./icons";
+import { Icon, type IconName } from "./icons";
 import { createIssueAction } from "@/app/admin/actions";
 
-function EmptyCard({ children }: { children: React.ReactNode }) {
+// The one empty state: a card with an icon in a tinted circle, a sentence and
+// a pill CTA. Reused by the lists, the logo library and the sponsors page.
+export function EmptyCard({
+  icon,
+  title,
+  body,
+  children,
+  compact = false,
+}: {
+  icon: IconName;
+  title: string;
+  body: React.ReactNode;
+  /** The call to action(s). */
+  children?: React.ReactNode;
+  /** A shorter card for an empty section inside another card. */
+  compact?: boolean;
+}) {
   return (
-    <div className="bg-card border-line flex min-h-[360px] flex-col items-center justify-center rounded-md border p-9 text-center shadow-[0_1px_3px_rgba(0,0,0,0.07)]">
-      {children}
-    </div>
-  );
-}
-
-function EmptyIcon({ name }: { name: "doc" | "users" }) {
-  return (
-    <div className="bg-tint text-accent flex h-[72px] w-[72px] items-center justify-center rounded-full">
-      <Icon name={name} size={32} strokeWidth={1.5} />
+    <div
+      className={`bg-surface border-hairline flex flex-col items-center justify-center rounded-card border text-center ${
+        compact ? "p-6" : "shadow-card min-h-[340px] p-8"
+      }`}
+    >
+      <div
+        className={`bg-primary-soft text-primary flex items-center justify-center rounded-full ${
+          compact ? "h-14 w-14" : "h-[72px] w-[72px]"
+        }`}
+      >
+        <Icon name={icon} size={compact ? 26 : 32} strokeWidth={1.7} />
+      </div>
+      <h2
+        className={`text-fg mt-4 font-ui font-bold ${compact ? "text-[19px]" : "text-[24px]"}`}
+      >
+        {title}
+      </h2>
+      <p className="text-fg-muted mt-2 max-w-sm font-ui text-[16px] leading-relaxed">
+        {body}
+      </p>
+      {children && (
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          {children}
+        </div>
+      )}
     </div>
   );
 }
 
 export function EmptyIssues() {
   return (
-    <EmptyCard>
-      <EmptyIcon name="doc" />
-      <h2 className="text-ink mt-5 font-serif text-2xl">No issues yet</h2>
-      <p className="text-muted mt-2.5 max-w-sm font-sans text-[15px] leading-relaxed">
-        The first one is the hardest — we&apos;ll guide you, page by page. Start
-        with a cover and a heading.
-      </p>
-      <form action={createIssueAction} className="mt-6">
+    <EmptyCard
+      icon="doc"
+      title="No issues yet"
+      body="The first one is the hardest — we'll guide you, page by page. Start with a cover and a heading."
+    >
+      <form action={createIssueAction}>
         <Button type="submit" icon="plus">
           Create your first issue
         </Button>
@@ -44,21 +73,17 @@ export function EmptyMembers({
   onAdd?: () => void;
 }) {
   return (
-    <EmptyCard>
-      <EmptyIcon name="users" />
-      <h2 className="text-ink mt-5 font-serif text-2xl">No members yet</h2>
-      <p className="text-muted mt-2.5 max-w-sm font-sans text-[15px] leading-relaxed">
-        Bring your club&apos;s list across as a CSV, or add the first few by
-        hand. They&apos;ll get every new issue.
-      </p>
-      <div className="mt-6 flex gap-2.5">
-        <Button icon="upload" onClick={onImport}>
-          Import CSV
-        </Button>
-        <Button variant="secondary" onClick={onAdd}>
-          Add by hand
-        </Button>
-      </div>
+    <EmptyCard
+      icon="users"
+      title="No members yet"
+      body="Bring your club's list across as a CSV, or add the first few by hand. They'll get every new issue."
+    >
+      <Button icon="upload" onClick={onImport}>
+        Import CSV
+      </Button>
+      <Button variant="secondary" icon="plus" onClick={onAdd}>
+        Add by hand
+      </Button>
     </EmptyCard>
   );
 }

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AdminShell } from "@/components/admin-shell";
+import { AppShell } from "@/components/app-shell";
 import { MembersManager } from "@/features/members/members-manager";
 import { ADMIN_LIST_QUERY_MAX } from "@/lib/list-query";
 import { pageParamSchema } from "@/lib/pagination";
@@ -41,13 +41,13 @@ export default async function MembersPage({
   });
 
   return (
-    <AdminShell active="members" user={admin}>
+    <AppShell area="admin" active="members" user={admin}>
       <MembersManager
         list={list}
         query={query}
         filter={params.filter}
         currentUserId={admin.id}
       />
-    </AdminShell>
+    </AppShell>
   );
 }

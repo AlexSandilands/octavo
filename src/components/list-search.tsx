@@ -5,22 +5,26 @@ import { Icon } from "@/components/icons";
 import { ADMIN_LIST_QUERY_MAX } from "@/lib/list-query";
 import { useListUrl } from "@/components/use-list-url";
 
-// The search box for an admin list. The query lives in the URL (?q=) and the
-// filtering happens in the database, so a search sees every row — not just the
-// page the list happens to be serving — and survives the refresh after a
-// mutation. Typing stays local and debounced; each settled value replaces the
-// URL (replace, not push, so keystrokes don't pile up in history) and drops
-// ?page, because a new search starts from its own first page.
-// Shared by the members, issues and sponsors lists.
+// The search box for a list — the admin lists and the members' archive alike.
+// The query lives in the URL (?q=) and the filtering happens in the database,
+// so a search sees every row — not just the page the list happens to be
+// serving — and survives the refresh after a mutation. Typing stays local and
+// debounced; each settled value replaces the URL (replace, not push, so
+// keystrokes don't pile up in history) and drops ?page, because a new search
+// starts from its own first page. A clear × empties it in one press.
 export function ListSearch({
   query,
   placeholder,
   ariaLabel,
+  maxLength = ADMIN_LIST_QUERY_MAX,
 }: {
   query: string;
   placeholder: string;
   /** Names the box for screen readers, e.g. "Search all issues by title". */
   ariaLabel: string;
+  /** The page schema truncates ?q= to the same bound, so nothing this box can
+   * produce is ever thrown away server-side. */
+  maxLength?: number;
 }) {
   const go = useListUrl();
   const [value, setValue] = useState(query);
@@ -29,6 +33,7 @@ export function ListSearch({
   // (back/forward, a shared link) resyncs the box.
   const sent = useRef(query);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (query !== sent.current) {
@@ -49,8 +54,7 @@ export function ListSearch({
     [],
   );
 
-  const onChange = (next: string) => {
-    setValue(next);
+  const settle = (next: string, delay: number) => {
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
       const q = next.trim();
@@ -58,22 +62,45 @@ export function ListSearch({
       sent.current = q;
       // Keep whatever filters are on; a new search starts from its own page 1.
       go({ q: q || null, page: null }, "replace");
-    }, 250);
+    }, delay);
+  };
+
+  const onChange = (next: string) => {
+    setValue(next);
+    settle(next, 250);
+  };
+
+  const clear = () => {
+    setValue("");
+    settle("", 0);
+    inputRef.current?.focus();
   };
 
   return (
-    <div className="boxed-field border-line text-faint2 flex h-11 items-center gap-2.5 rounded-lg border-[1.5px] bg-white px-3.5">
-      <Icon name="search" size={18} />
+    // A <label> rather than a <div>: the input's own box is one text line, so
+    // on a phone the whole 48px field has to be what focuses it.
+    <label className="boxed-field border-edge text-fg-muted bg-surface flex h-12 items-center gap-3 rounded-full border-[1.5px] pr-1.5 pl-4">
+      <Icon name="search" size={20} strokeWidth={2} />
       <input
+        ref={inputRef}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        // The page schema truncates ?q= to the same bound, so nothing this
-        // box can produce is ever thrown away server-side.
-        maxLength={ADMIN_LIST_QUERY_MAX}
+        maxLength={maxLength}
         placeholder={placeholder}
         aria-label={ariaLabel}
-        className="text-ink flex-1 border-none bg-transparent font-sans text-[15px]"
+        className="text-fg placeholder:text-fg-faint min-w-0 flex-1 self-stretch border-none bg-transparent font-ui text-[17px]"
       />
-    </div>
+      {value && (
+        <button
+          type="button"
+          onClick={clear}
+          aria-label="Clear search"
+          title="Clear search"
+          className="text-fg-muted hover:bg-primary-wash hover:text-primary flex h-9 w-9 flex-none cursor-pointer items-center justify-center rounded-full transition-colors"
+        >
+          <Icon name="close" size={18} strokeWidth={2} />
+        </button>
+      )}
+    </label>
   );
 }
