@@ -46,12 +46,17 @@ Issues only a person can do (accounts, DNS, deploys) are labelled **`human`**.
 6. **The user's browser pass** on the PR is a required gate for anything with a
    UI surface (see below), then the user merges.
 
-**The `/orchestrate` variant** (`.claude/skills/orchestrate/`) runs this loop
-for one or more issues at once and deliberately supersedes rules 2, 4 and 5:
-implementors work in parallel in their own git worktrees, and commit, push and
-open their own PRs, with the orchestrator doing the review pass (inline PR
-comments, iterate to sign-off) instead of committing. Everything else here —
-the gates table especially — applies unchanged.
+**The parallel variant** (there is no skill for it — the old `/orchestrate`
+skill was deleted in #209; the orchestrator drives it from a prompt) runs this
+loop for several issues at once and deliberately supersedes rules 2, 4 and 5:
+each implementor works in its own git worktree (`isolation: "worktree"` on the
+Agent tool, one dev-server port each), commits, pushes and opens its own PR.
+The orchestrator does the review pass as **inline PR comments** — adversarial
+on bugs, style and over-commenting — iterates with the same agent via
+`SendMessage` until it is satisfied, then leaves an approval comment for the
+user's browser pass and merge. Everything else here — the gates table
+especially — applies unchanged. The worktree traps are listed under
+"Environment gotchas" below.
 
 ## Why the review pass is load-bearing
 
@@ -135,6 +140,17 @@ Hand each subagent:
   which is how tsx resolves them), which the app config must not carry. (The
   other historical difference, `jsx: react-jsx`, stopped being one when Next 16
   set the app config to the same value.) Run both checks; CI does.
+- **Worktrees** (the parallel variant): copy `.env` in (the file is `.env`, not
+  `.env.local`); `cp -al /home/riv/Projects/octavo/node_modules node_modules`
+  (Turbopack rejects a `node_modules` symlink that points outside the tree);
+  `mkdir -p .data && ln -s <main checkout>/.data/uploads .data/uploads` so
+  local images resolve (remove that symlink before `npm run build` — Next
+  refuses a symlink that points out of the project root, put it back after);
+  run the dev server on its own port. `AUTH_URL` names
+  port 3000, so a magic link signs in on the wrong server — mint a `sessions`
+  row and set the `authjs.session-token` cookie instead (the pattern in
+  `scripts/dev-dialog-a11y-gate.mts`). A branch carrying a migration gets its
+  own database copy (`pg_dump | psql`), never the shared dev DB.
 - Never _install_ Playwright browsers — Chromium is already installed locally,
   and _using_ it for headless verification is fine.
 - The seed **wipes all issues** (it refuses when published issues exist unless
