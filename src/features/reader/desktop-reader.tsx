@@ -241,7 +241,7 @@ export function DesktopReader({
   return (
     <div
       ref={rootRef}
-      className="bg-stage relative flex h-screen overflow-hidden"
+      className="folio-reader bg-stage relative flex h-screen overflow-hidden"
     >
       {/* Only offer the toggle when the deployment enables more than one layout
           theme (NEXT_PUBLIC_ISSUE_THEMES) — with a single theme there's nothing

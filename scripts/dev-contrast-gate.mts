@@ -178,3 +178,29 @@ for (const [id, tokens] of brands) {
 }
 
 console.log(`\nall checks passed (${brands.size} brand(s))`);
+
+// Folio's chrome is independent of authored brand palettes.
+const folioCss = await read("../src/app/folio.css");
+const folioBody = folioCss.match(/body\s*\{([^}]+)\}/)?.[1] ?? "";
+const folioTokens = parseTokens(folioBody);
+for (const [token, alias] of [
+  ["accent", "ruby"],
+  ["accent-strong", "ruby-strong"],
+  ["tint", "rose"],
+]) {
+  const value = folioCss.match(
+    new RegExp(`--folio-${alias}:\\s*(#[0-9a-fA-F]{6})`),
+  )?.[1];
+  if (!value) throw new Error(`Folio ${alias} missing`);
+  folioTokens.set(token!, value);
+}
+for (const [id, tokens] of brands) {
+  const chrome = new Map([...tokens, ...folioTokens]);
+  checkBrand(`Folio/${id}`, chrome);
+  for (const fg of ["accent", "accent-soft", "accent-ink"]) {
+    for (const bg of backgrounds) {
+      const ratio = contrast(chrome.get(fg)!, chrome.get(bg)!);
+      ok(ratio >= AA, `Folio/${id}: ${fg} on ${bg} ${ratio.toFixed(2)}:1`);
+    }
+  }
+}

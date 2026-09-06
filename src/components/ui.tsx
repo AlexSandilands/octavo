@@ -6,7 +6,7 @@ import { MagazineName } from "./branding";
 export function Wordmark({ size = 22 }: { size?: number }) {
   return (
     <span
-      className="font-serif text-ink"
+      className="folio-wordmark font-serif text-ink"
       style={{ fontSize: size, fontWeight: 500, letterSpacing: ".02em" }}
     >
       <MagazineName />
@@ -89,10 +89,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     // Every way of being unpressable, for the styling and the click guard —
     // `unavailable` has no attribute doing either of those for it.
     const inert = isDisabled || unavailable;
-    const base = `${full ? "flex w-full" : "inline-flex"} items-center justify-center gap-2 rounded-lg font-sans font-semibold transition-[transform,background-color,border-color,box-shadow,color] duration-150 ease-out select-none`;
+    const base = `folio-button ${full ? "flex w-full" : "inline-flex"} items-center justify-center gap-2 rounded-lg font-sans font-semibold transition-[transform,background-color,border-color,box-shadow,color] duration-150 ease-out select-none`;
     const sizes = {
       md: "h-12 px-5 text-[15px]",
-      sm: "h-10 px-4 text-sm",
+      sm: "h-11 px-4 text-sm",
     }[size];
     const rest = {
       primary: "bg-accent text-paper shadow-[0_2px_8px_rgba(29,77,62,0.25)]",
@@ -186,7 +186,7 @@ export const IconButton = forwardRef<
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className={`text-muted -m-2 inline-flex items-center justify-center rounded-lg p-2 transition-[background-color,color] duration-150 ${state} ${className}`}
+      className={`text-muted min-h-11 min-w-11 -m-2 inline-flex items-center justify-center rounded-lg p-2 transition-[background-color,color] duration-150 ${state} ${className}`}
     >
       <Icon name={icon} size={size} strokeWidth={1.7} />
     </button>

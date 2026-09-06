@@ -148,7 +148,7 @@ export function DialogShell({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className={panelClassName}
+        className={`folio-dialog ${panelClassName}`}
       >
         {children(titleId)}
       </div>

@@ -1,0 +1,417 @@
+/* Folio styles application furniture; saved pages retain their original tokens. */
+:root {
+  --folio-original-accent: var(--color-accent);
+  --folio-original-strong: var(--color-accent-strong);
+  --folio-original-soft: var(--color-accent-soft);
+  --folio-original-ink: var(--color-accent-ink);
+  --folio-original-tint: var(--color-tint);
+  --folio-original-wash: var(--color-accent-wash);
+  --folio-original-canvas: var(--color-canvas);
+  --folio-ruby: #772e3b;
+  --folio-ruby-strong: #5c1e2b;
+  --folio-rose: #f3e9e7;
+}
+body {
+  --color-accent: var(--folio-ruby);
+  --color-accent-strong: var(--folio-ruby-strong);
+  --color-accent-soft: #7a4851;
+  --color-accent-ink: #52212a;
+  --color-tint: var(--folio-rose);
+  --color-accent-wash: #fbf2f0;
+  --color-canvas: #e7e1d7;
+}
+[data-page-frame],
+.folio-authored,
+.pdf-pages {
+  --color-accent: var(--folio-original-accent);
+  --color-accent-strong: var(--folio-original-strong);
+  --color-accent-soft: var(--folio-original-soft);
+  --color-accent-ink: var(--folio-original-ink);
+  --color-tint: var(--folio-original-tint);
+  --color-accent-wash: var(--folio-original-wash);
+  --color-canvas: var(--folio-original-canvas);
+}
+.folio-button {
+  border-radius: 3px;
+  box-shadow: none;
+}
+.folio-button:hover {
+  box-shadow: none;
+}
+.folio-wordmark {
+  letter-spacing: -0.045em !important;
+}
+.folio-library-header {
+  display: flex;
+  gap: 26px;
+  align-items: center;
+  border-bottom: 1px solid var(--color-ink);
+  padding-bottom: 14px;
+}
+.folio-home-mark {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+.folio-member-nav {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+  flex: 1;
+  font-size: 14px;
+}
+.folio-member-nav a {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+.folio-member-nav a[aria-current] {
+  color: var(--color-accent);
+  border-bottom: 2px solid;
+}
+.folio-account {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 14px;
+}
+.folio-account a {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+.folio-member-nav a:hover,
+.folio-account a:hover {
+  text-decoration: underline;
+}
+.folio-masthead {
+  padding: 22px 0 28px;
+  border-bottom: 4px double var(--color-ink);
+}
+.folio-masthead-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--color-muted);
+}
+.folio-masthead h1 {
+  margin: 4px 0 0;
+  font-family: var(--font-serif);
+  font-size: clamp(80px, 11vw, 150px);
+  letter-spacing: -0.065em;
+  line-height: 1;
+  text-align: center;
+  font-weight: 500;
+}
+.folio-masthead p {
+  text-align: center;
+  font-family: var(--font-serif);
+  font-size: 21px;
+  margin-top: 12px;
+}
+.folio-feature {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) 260px minmax(0, 1fr);
+  gap: 42px;
+  padding: 38px 0;
+  border-bottom: 1px solid var(--color-ink);
+  align-items: start;
+}
+.folio-issue-number {
+  margin-top: 20px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.folio-issue-number span {
+  color: var(--color-muted);
+}
+.folio-feature h2 {
+  font-family: var(--font-serif);
+  font-size: clamp(36px, 3.8vw, 53px);
+  line-height: 1.06;
+  letter-spacing: -0.035em;
+  margin-top: 14px;
+}
+.folio-feature-note {
+  margin-top: 22px;
+  color: var(--color-muted);
+  font-size: 16px;
+}
+.folio-feature-actions {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 26px;
+}
+.folio-feature-cover {
+  width: 260px;
+  box-shadow:
+    6px 7px 0 var(--color-hair),
+    0 16px 30px -20px var(--color-muted);
+  transition: transform 0.2s;
+}
+.folio-feature-cover:hover {
+  transform: translateY(-3px);
+}
+.folio-feature-contents {
+  padding-left: 24px;
+  border-left: 1px solid var(--color-hair);
+}
+.folio-feature-contents li {
+  border-bottom: 1px solid var(--color-hair);
+}
+.folio-feature-contents li a {
+  display: flex;
+  gap: 14px;
+  padding: 16px 0;
+  min-height: 44px;
+}
+.folio-feature-contents li a:hover strong {
+  text-decoration: underline;
+}
+.folio-content-number {
+  color: var(--color-accent);
+  font-size: 12px;
+  font-family: var(--font-mono);
+  padding-top: 4px;
+}
+.folio-feature-contents small {
+  display: block;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 10px;
+  color: var(--color-muted);
+  margin-bottom: 4px;
+}
+.folio-feature-contents strong {
+  display: block;
+  font-family: var(--font-serif);
+  font-size: 21px;
+  line-height: 1.2;
+  font-weight: 400;
+}
+.folio-shelf {
+  justify-content: space-between;
+  gap: 28px;
+}
+.folio-archive-card {
+  padding-top: 16px;
+  border-top: 2px solid var(--color-accent);
+}
+.folio-archive-card > div:first-child {
+  border-radius: 0;
+}
+.folio-archive-card > div:last-child > span:first-child {
+  font-size: 18px;
+}
+.folio-archive {
+  max-width: 1280px;
+}
+.folio-archive h1 {
+  font-size: clamp(38px, 5vw, 64px);
+  letter-spacing: -0.035em;
+}
+.folio-admin-rail {
+  border-right: 1px solid var(--color-ink);
+}
+.folio-admin-nav {
+  padding: 0 20px;
+}
+.folio-admin-nav a {
+  border-left: 0;
+  border-top: 1px solid var(--color-hair);
+  padding: 16px 8px;
+  font-family: var(--font-serif);
+  font-size: 22px;
+}
+.folio-admin-nav a[aria-current] {
+  background: transparent;
+  border-top: 2px solid var(--color-accent);
+}
+.folio-admin-nav a[aria-current]::after {
+  content: "→";
+  margin-left: auto;
+}
+.folio-admin main h1 {
+  font-size: 44px;
+  letter-spacing: -0.035em;
+}
+.folio-admin main {
+  padding-top: 36px;
+}
+.folio-admin main input:not([type="checkbox"]),
+.folio-admin main [aria-haspopup="listbox"] {
+  border-radius: 3px;
+}
+.folio-admin main table {
+  border-top: 1px solid var(--color-ink);
+}
+.folio-dialog {
+  border-radius: 4px;
+  border-top: 5px solid var(--color-accent);
+  box-shadow: 0 24px 80px #20201c33;
+}
+.folio-dialog h2 {
+  font-size: 30px;
+  letter-spacing: -0.02em;
+}
+.folio-dialog input:not([type="checkbox"]),
+.folio-dialog textarea {
+  border-radius: 3px;
+}
+.folio-account-card {
+  border-radius: 3px;
+  border-top: 5px solid var(--color-accent);
+}
+@media (max-width: 1100px) {
+  .folio-feature {
+    gap: 26px;
+    grid-template-columns: minmax(0, 1fr) 260px;
+  }
+  .folio-feature-contents {
+    grid-column: 1 / -1;
+    border-left: 0;
+    padding-left: 0;
+  }
+  .folio-feature-contents ol {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 30px;
+  }
+  .folio-editor-header {
+    flex-wrap: wrap;
+  }
+  .folio-editor-header input {
+    width: 34vw;
+  }
+  .folio-account > span {
+    display: none;
+  }
+  .folio-member-nav {
+    gap: 16px;
+  }
+}
+@media (max-width: 767px) {
+  .folio-library-header {
+    flex-wrap: wrap;
+    gap: 6px 16px;
+  }
+  .folio-account {
+    margin-left: auto;
+  }
+  .folio-member-nav {
+    order: 3;
+    width: 100%;
+    flex: auto;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 13px;
+  }
+  .folio-masthead {
+    padding-top: 18px;
+  }
+  .folio-masthead-meta {
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    gap: 20px;
+  }
+  .folio-masthead h1 {
+    font-size: 88px;
+    margin-top: 14px;
+  }
+  .folio-masthead p {
+    font-size: 18px;
+  }
+  .folio-feature {
+    display: flex;
+    flex-direction: column;
+    padding: 28px 0;
+    gap: 28px;
+  }
+  .folio-feature-intro {
+    display: contents;
+  }
+  .folio-feature-intro > div:first-child {
+    order: 0;
+  }
+  .folio-issue-number {
+    margin-top: -18px;
+    order: 1;
+  }
+  .folio-feature h2 {
+    order: 2;
+    font-size: 40px;
+    margin-top: -12px;
+  }
+  .folio-feature-cover {
+    order: 4;
+    align-self: center;
+  }
+  .folio-feature-note {
+    order: 5;
+    margin-top: -10px;
+  }
+  .folio-feature-actions {
+    order: 3;
+    margin: 4px 0 0;
+    width: 100%;
+  }
+  .folio-feature-actions > * {
+    width: 100%;
+  }
+  .folio-feature-contents {
+    order: 6;
+    width: 100%;
+  }
+  .folio-feature-contents ol {
+    display: block;
+  }
+  .folio-shelf {
+    justify-content: flex-start;
+    gap: 24px;
+  }
+  .folio-admin main h1 {
+    font-size: 36px;
+  }
+  .folio-signin {
+    display: flex;
+    flex-direction: column;
+  }
+  .folio-signin-story {
+    padding: 28px 28px 32px;
+    border-right: 0;
+    border-bottom: 1px solid var(--color-hair);
+  }
+  .folio-signin-title {
+    font-size: 45px;
+    margin: 26px 0 16px;
+  }
+  .folio-signin-story > .folio-wordmark {
+    font-size: 28px !important;
+  }
+  .folio-signin-steps {
+    display: none;
+  }
+  .folio-signin-form {
+    padding: 32px 28px 48px;
+  }
+  .folio-signin-form > .folio-wordmark,
+  .folio-signin-form > div:first-of-type {
+    display: none;
+  }
+  .folio-signin-form h1 {
+    margin-top: 0;
+    font-size: 40px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .folio-feature-cover {
+    transition: none;
+  }
+  .folio-feature-cover:hover {
+    transform: none;
+  }
+}

@@ -95,7 +95,7 @@ export function MobileReader({
   );
 
   return (
-    <div className="bg-page relative flex min-h-screen flex-col">
+    <div className="folio-mobile-reader bg-page relative flex min-h-screen flex-col">
       <header
         style={{ height: HEADER_HEIGHT }}
         className="border-line-soft bg-page flex flex-none items-center justify-between border-b px-4"
@@ -162,7 +162,7 @@ export function MobileReader({
         </div>
       </header>
 
-      <article className="flex-1 pb-10">
+      <article className="folio-authored flex-1 pb-10">
         {sections.map((s, i) => {
           // The front cover fills what's left of the viewport under the header
           // (and grows past it rather than clipping); other covers keep their

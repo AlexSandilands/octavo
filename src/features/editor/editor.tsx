@@ -246,11 +246,12 @@ export function Editor({
   const footerBehind = footerHeldBack(magazineFooter, issue);
 
   return (
-    <div className="bg-card relative flex h-dvh flex-col">
+    <div className="folio-editor bg-card relative flex h-dvh flex-col">
       <EditorHeader
         title={title}
         onTitleChange={setTitle}
         issueNumber={issue.number}
+        published={published}
         themes={themes}
         themeId={themeId}
         onSelectTheme={setThemeId}
@@ -283,7 +284,7 @@ export function Editor({
         onPublish={() => setPub(true)}
       />
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="folio-editor-workspace flex flex-1 overflow-hidden">
         <PageRail
           pages={pages}
           curPage={curPage}

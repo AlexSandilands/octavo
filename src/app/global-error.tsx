@@ -43,11 +43,12 @@ export default function GlobalError({
             width: "100%",
             background: "#fbf9f4",
             border: "1px solid #e6e0d3",
-            borderRadius: "5px",
+            borderRadius: "3px",
+            borderTop: "5px solid #772e3b",
             padding: "40px",
           }}
         >
-          <p style={{ margin: 0, fontStyle: "italic", color: "#1d4d3e" }}>
+          <p style={{ margin: 0, fontStyle: "italic", color: "#772e3b" }}>
             Something went wrong
           </p>
           <h1
@@ -74,13 +75,13 @@ export default function GlobalError({
               appearance: "none",
               border: "none",
               cursor: "pointer",
-              background: "#1d4d3e",
+              background: "#772e3b",
               color: "#f4f0e8",
               fontFamily: "Arial, Helvetica, sans-serif",
               fontSize: "15px",
               fontWeight: 600,
               padding: "14px 22px",
-              borderRadius: "8px",
+              borderRadius: "3px",
             }}
           >
             Try again

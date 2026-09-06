@@ -42,9 +42,9 @@ export function AdminNavContent({
   return (
     <>
       <div className="px-6">
-        <Wordmark size={22} />
+        <Wordmark size={36} />
         <div className="text-accent mt-1 font-sans text-[10px] font-semibold tracking-[0.2em] uppercase">
-          Admin
+          Publishing desk
         </div>
       </div>
       {/* Back-out link, not a section: it leaves the admin for the member-
@@ -56,13 +56,17 @@ export function AdminNavContent({
         <Icon name="chevronLeft" size={16} />
         View library
       </Link>
-      <nav className="mt-5 flex flex-col">
+      <nav
+        aria-label="Publishing navigation"
+        className="folio-admin-nav mt-8 flex flex-col"
+      >
         {ADMIN_NAV.map((n) => {
           const on = n.key === active;
           return (
             <Link
               key={n.key}
               href={n.href}
+              aria-current={on ? "page" : undefined}
               className={`flex items-center gap-3 border-l-2 px-6 py-2.5 font-sans text-[15px] transition-colors ${
                 on
                   ? "bg-tint text-accent border-accent font-semibold"

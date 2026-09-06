@@ -16,10 +16,10 @@ export function AdminShell({
     // Column on mobile (top bar over content), row on desktop (rail beside it).
     // h-screen + overflow-y-auto on <main>: only the content pane scrolls, so
     // the sidebar (and its mt-auto footer) stays pinned to the viewport.
-    <div className="bg-card flex h-screen flex-col md:flex-row">
+    <div className="folio-admin bg-card flex h-dvh flex-col md:flex-row">
       {/* Desktop rail — hidden below md, where the drawer takes over. Unchanged
           from the original fixed 214px sidebar at md+. */}
-      <aside className="bg-paper border-line hidden w-[214px] flex-none flex-col border-r py-6 md:flex">
+      <aside className="folio-admin-rail bg-paper border-line hidden w-[248px] flex-none flex-col border-r py-8 md:flex">
         <AdminNavContent active={active} user={user} />
       </aside>
       {/* Mobile top bar + off-canvas drawer (client island for open/close). */}

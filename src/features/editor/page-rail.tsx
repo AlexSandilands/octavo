@@ -76,7 +76,7 @@ export function PageRail({
   useQuietScrollbar(scrollerRef);
 
   return (
-    <div className="bg-paper border-line flex w-[150px] flex-none flex-col items-center border-r py-4">
+    <div className="folio-page-rail bg-paper border-line flex w-[150px] flex-none flex-col items-center border-r py-4">
       <span className="text-faint w-full pl-[18px] font-sans text-[10px] font-semibold tracking-[0.18em] uppercase">
         Pages
       </span>

@@ -20,7 +20,7 @@ export function SettingsCard({
   return (
     <section
       id={id}
-      className="bg-card border-line scroll-mt-6 rounded-[10px] border p-6 shadow-[0_1px_3px_rgba(0,0,0,0.07)]"
+      className="folio-settings-card bg-card border-line scroll-mt-6 rounded-[10px] border p-6 shadow-[0_1px_3px_rgba(0,0,0,0.07)]"
     >
       <h2 className="text-ink font-serif text-[22px] leading-tight">{title}</h2>
       <p className="text-muted mt-1.5 font-sans text-[13px] leading-relaxed">

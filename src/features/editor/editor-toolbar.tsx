@@ -48,7 +48,7 @@ export function EditorToolbar({
   notice: HistoryNotice;
 }) {
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex justify-center px-4 pb-5">
+    <div className="folio-editor-toolbar pointer-events-none absolute inset-x-0 bottom-0 z-30 flex justify-center px-4 pb-5">
       {/* A group, not role="toolbar": that role promises arrow-key navigation
           within one tab stop, and here every button is its own tab stop. */}
       <div

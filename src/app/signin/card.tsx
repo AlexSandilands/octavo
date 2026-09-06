@@ -2,17 +2,30 @@ import type { ReactNode } from "react";
 import { Wordmark, Label } from "@/components/ui";
 import { getSettings } from "@/server/settings";
 
-// Shared frame for the sign-in flow's screens (form, sent, errors). Resolves
-// the branding itself so the two screens using it don't each have to.
 export async function SignInCard({ children }: { children: ReactNode }) {
-  const { org } = await getSettings();
+  const { org, tagline } = await getSettings();
   return (
-    <main className="flex min-h-screen items-center justify-center px-5 py-12">
-      <div className="bg-card border-line w-full max-w-md rounded-2xl border p-8 shadow-[0_14px_34px_rgba(0,0,0,0.08)] sm:p-10">
-        <Wordmark size={22} />
+    <main className="folio-signin">
+      <section className="folio-signin-story" aria-label="About the magazine">
+        <Wordmark size={42} />
         <Label>{org}</Label>
+        <p className="folio-signin-title">
+          A good read.
+          <br />
+          <em>A familiar place.</em>
+        </p>
+        <p>{tagline}</p>
+        <div className="folio-signin-steps">
+          <span>01 &nbsp; Enter your email</span>
+          <span>02 &nbsp; Open your private link</span>
+          <span>03 &nbsp; Make yourself at home</span>
+        </div>
+      </section>
+      <section className="folio-signin-form">
+        <Wordmark size={24} />
+        <Label>Members’ reading room</Label>
         {children}
-      </div>
+      </section>
     </main>
   );
 }

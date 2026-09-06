@@ -16,7 +16,7 @@ async function Frame({ children }: { children: React.ReactNode }) {
   const { org } = await getSettings();
   return (
     <main className="flex min-h-screen items-center justify-center px-5 py-12">
-      <div className="bg-card border-line w-full max-w-md rounded-2xl border p-8 shadow-[0_14px_34px_rgba(0,0,0,0.08)] sm:p-10">
+      <div className="folio-account-card bg-card border-line w-full max-w-md rounded-2xl border p-8 shadow-[0_14px_34px_rgba(0,0,0,0.08)] sm:p-10">
         <Wordmark size={22} />
         <Label>{org}</Label>
         {children}

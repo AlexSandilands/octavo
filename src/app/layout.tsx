@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import "./folio-workspace.css";
+import "./folio.css";
 import { BrandingProvider } from "@/components/branding";
 import { getSettings } from "@/server/settings";
 import { env } from "@/lib/env";

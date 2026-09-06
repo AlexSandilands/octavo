@@ -95,7 +95,7 @@ export function ArchiveGrid({
 }) {
   const groups = groupByYear(items);
   return (
-    <section className={heading ? "py-9" : "pb-9"}>
+    <section className={`folio-archive-grid ${heading ? "py-9" : "pb-9"}`}>
       {heading && <Label>{heading}</Label>}
       <div className={`space-y-9 ${heading ? "mt-6" : ""}`}>
         {groups.map((group) => (
@@ -103,7 +103,7 @@ export function ArchiveGrid({
             <div className="border-line-soft border-t pt-3">
               <Label>{group.label}</Label>
             </div>
-            <div className="mt-5 flex flex-wrap gap-x-5 gap-y-7">
+            <div className="folio-shelf mt-5 flex flex-wrap gap-x-5 gap-y-7">
               {group.items.map((a, idx) => (
                 <ArchiveCard
                   key={a.id}
@@ -141,7 +141,7 @@ function ArchiveCard({
   return (
     <Link
       href={`/read/${a.number}`}
-      className="group"
+      className="folio-archive-card group"
       style={{ width: THUMB_W }}
     >
       <div className="overflow-hidden rounded-[5px] shadow-[0_2px_10px_-5px_rgba(20,32,28,0.3)] transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-[0_14px_28px_-10px_rgba(20,32,28,0.4)]">

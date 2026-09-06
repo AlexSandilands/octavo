@@ -48,7 +48,7 @@ export function ReaderContents({
 }) {
   if (collapsed) {
     return (
-      <aside className="bg-card border-line flex w-[54px] flex-none flex-col items-center gap-4 border-r py-5">
+      <aside className="folio-reader-contents bg-card border-line flex w-[54px] flex-none flex-col items-center gap-4 border-r py-5">
         <Link
           href="/"
           title="Back to library"
@@ -73,7 +73,7 @@ export function ReaderContents({
   }
 
   return (
-    <aside className="bg-card border-line flex w-[248px] flex-none flex-col border-r py-5">
+    <aside className="folio-reader-contents bg-card border-line flex w-[248px] flex-none flex-col border-r py-5">
       <Link
         href="/"
         className="text-muted hover:text-accent mb-4 flex items-center gap-1.5 px-5 font-sans text-[13px] font-medium"

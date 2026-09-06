@@ -1,0 +1,158 @@
+.folio-signin {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  max-width: 1400px;
+  margin: auto;
+}
+.folio-signin-story {
+  background: var(--color-stage);
+  padding: clamp(36px, 6vw, 90px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-right: 1px solid var(--color-hair);
+}
+.folio-signin-title {
+  margin: 65px 0 28px;
+  font: 500 clamp(48px, 5.5vw, 80px)/1.04 var(--font-serif);
+  letter-spacing: -0.045em;
+}
+.folio-signin-title em {
+  color: var(--color-accent);
+}
+.folio-signin-story > p:not(.folio-signin-title) {
+  max-width: 340px;
+  color: var(--color-muted);
+  font-size: 19px;
+}
+.folio-signin-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 60px;
+  font-size: 14px;
+  border-top: 1px solid var(--color-hair);
+  padding-top: 24px;
+}
+.folio-signin-form {
+  width: min(100%, 480px);
+  padding: 64px 42px;
+  align-self: center;
+  justify-self: center;
+}
+.folio-signin-form h1 {
+  font-size: 52px;
+}
+.folio-signin-form input {
+  border-radius: 3px;
+}
+.folio-editor-header {
+  min-height: 90px;
+  border-bottom: 2px solid var(--color-ink);
+}
+.folio-editor-header > div:first-child {
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.folio-editor-header input {
+  width: min(26vw, 420px);
+  font-size: 27px;
+}
+.folio-editor-workspace {
+  flex-direction: row-reverse;
+}
+.folio-page-rail {
+  border-right: 0;
+  border-left: 1px solid var(--color-hair);
+  width: 170px;
+}
+.folio-editor-toolbar {
+  padding: 0;
+}
+.folio-editor-toolbar > [role="group"] {
+  justify-content: center;
+  width: 100%;
+  border-radius: 0;
+  min-height: 70px;
+  border-width: 1px 0 0;
+  box-shadow: none;
+}
+.folio-editor-toolbar button {
+  min-height: 44px;
+}
+.folio-reader-dock {
+  border-radius: 4px;
+  border: 1px solid var(--color-hair);
+  background: var(--color-card);
+  color: var(--color-ink);
+  box-shadow: 0 6px 24px #20201c1a;
+}
+.folio-reader-dock > span {
+  color: var(--color-muted);
+  min-width: 108px;
+}
+.folio-reader-dock button {
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.folio-reader-dock button:hover {
+  background: var(--color-tint);
+}
+.folio-reader-dock > button:first-child,
+.folio-reader-dock > button:nth-child(3) {
+  background: var(--color-accent);
+  color: var(--color-paper);
+}
+.folio-reader-dock input {
+  accent-color: var(--color-accent);
+}
+.folio-mobile-reader > header {
+  border-bottom: 2px solid var(--color-accent);
+  background: var(--color-paper);
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+.folio-mobile-reader > header button {
+  min-width: 44px;
+  min-height: 44px;
+  cursor: pointer;
+}
+.folio-mobile-reader > header button:hover {
+  background: var(--color-tint);
+}
+.folio-reader-contents {
+  border-right: 1px solid var(--color-ink);
+}
+.folio-reader-contents > p {
+  font-size: 17px;
+}
+.folio-reader-contents button,
+.folio-reader-contents a {
+  min-height: 44px;
+  cursor: pointer;
+}
+.folio-reader-contents nav button {
+  border-bottom: 1px solid var(--color-line);
+  padding-top: 15px;
+  padding-bottom: 15px;
+}
+.folio-reader-contents nav button > span:first-child {
+  font-size: 18px;
+}
+.folio-reader-contents button:hover {
+  background: var(--color-tint);
+}
+.folio-settings-card {
+  border-radius: 3px;
+  border-top: 2px solid var(--color-accent);
+  box-shadow: none;
+}
+.folio-settings-card > h2 {
+  font-size: 28px;
+}
+.folio-settings-card > p {
+  font-size: 15px;
+}
