@@ -3,6 +3,7 @@ import type { SiteSettings } from "@/lib/branding";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 import { resolveTheme } from "@/features/blocks/themes/registry";
+import { pageFillsCanvas } from "@/features/blocks/layout";
 import { PageBlocks } from "@/features/blocks/page-blocks";
 import { PageFrame, PAGE_W, PAGE_H } from "@/features/blocks/page-frame";
 
@@ -71,6 +72,7 @@ export function PrintDocument({
               side={side}
               logo={logo}
               settings={settings}
+              bleed={pageFillsCanvas(page)}
             >
               <PageBlocks
                 page={page}

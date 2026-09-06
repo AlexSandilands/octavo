@@ -56,11 +56,23 @@ export const imageBlockSchema = z.object({
   // bump); the readers fall back to the caption when it is absent.
   alt: z.string().max(SHORT_TEXT_MAX).optional(),
   // Layout: "full" breaks the text (block, full column width); "left"/"right"
-  // float the image so the following text wraps beside it. `width` is a percent
-  // of the text column.
-  align: z.enum(["full", "left", "right"]).default("full"),
+  // float the image so the following text wraps beside it. The two page-owning
+  // placements (content v6) take the whole PAGE_W×PAGE_H canvas: "page-fill"
+  // crops the photo to cover it, "page-fit" grows the photo to the first edge
+  // and leaves page-coloured bars. `width` is a percent of the text column, and
+  // is ignored by both (kept, so unsetting the placement restores the size).
+  align: z
+    .enum(["full", "left", "right", "page-fill", "page-fit"])
+    .default("full"),
   width: z.number().min(20).max(100).default(100),
 });
+
+/** The image block's placement values, so callers derive them rather than restate them. */
+export type ImageAlign = z.infer<typeof imageBlockSchema>["align"];
+
+/** The placements where the photo owns the whole page rather than sitting in the column. */
+export const PAGE_ALIGNS = ["page-fill", "page-fit"] as const;
+export type PageAlign = (typeof PAGE_ALIGNS)[number];
 
 // Montage timing. The stored value is whole seconds; 0 is the sentinel for
 // "manual only" (no autoplay). MONTAGE_INTERVALS is what the editor offers —
@@ -204,7 +216,16 @@ export const pageSchema = z.object({
 // v4 was: a version-1…4 document has no video blocks, so it parses and renders
 // unchanged and no stored row is rewritten. The print/PDF path renders the
 // poster plus the visible link, deterministically — a PDF cannot play video.
-export const CONTENT_VERSION = 5;
+//
+// v6 (issue #227): the image block's `align` gained two page-owning values —
+// "page-fill" (crop the photo to cover the canvas) and "page-fit" (grow it to
+// the first edge, page-coloured bars on the other axis). Either way the photo
+// takes the whole canvas and owns its page (no margins, no running footer).
+// Additive in the same way v4 and v5 were, but by widening an enum rather than
+// adding a block type: no version-1…5 document holds either value, so every one
+// parses and renders unchanged and no stored row is rewritten. Confined to
+// `image`; montage and video keep the three-value union (see docs/database.md).
+export const CONTENT_VERSION = 6;
 
 export const issueContentSchema = z.object({
   version: z.number().int().min(1).default(CONTENT_VERSION),
@@ -225,8 +246,10 @@ export type BlockPatch = {
 }[BlockType];
 
 // Apply a patch to a block, preserving its identity and discriminant.
+// Cast: the distributed patch union is wider than any one block accepts now that
+// only images take the page-owning aligns; each call site holds one concrete block.
 export function mergeBlock(block: Block, patch: BlockPatch): Block {
-  return { ...block, ...patch };
+  return { ...block, ...patch } as Block;
 }
 
 export const BLOCK_TYPES: BlockType[] = [

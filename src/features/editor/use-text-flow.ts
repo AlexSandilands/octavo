@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Page } from "@/lib/blocks";
+import { pageFillsCanvas } from "@/features/blocks/layout";
 import { richDocBlocks } from "@/lib/rich-text-split";
 import {
   measurePageOverflow,
@@ -33,8 +34,9 @@ export function useTextFlow({
   const measured = useRef<BlockOverflow | null>(null);
 
   // Cover pages centre their blocks instead of flowing them from the top, and
-  // have nothing to continue onto — leave them out of this entirely.
-  const measurable = Boolean(page && !page.cover);
+  // have nothing to continue onto — leave them out of this entirely, and a page
+  // a photo fills has no text area to measure (see `pageFillsCanvas`).
+  const measurable = Boolean(page && !page.cover && !pageFillsCanvas(page));
 
   const measure = useCallback(() => {
     const el = canvasRef.current;

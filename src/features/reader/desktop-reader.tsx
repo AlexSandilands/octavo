@@ -18,6 +18,11 @@ import { ReaderContents, buildToc } from "./reader-contents";
 import { ReaderControls } from "./reader-controls";
 import { useIssuePdf } from "./use-issue-pdf";
 
+// The page-turn strip inside each outer edge of the spread, as a fraction of the
+// spread's width: ~40–55px on a fitted spread; scales with zoom since it is read
+// off the live box.
+const EDGE_BAND = 0.05;
+
 export function DesktopReader({
   content,
   issueNo,
@@ -111,13 +116,14 @@ export function DesktopReader({
     onPointerDown,
     onPointerMove,
     onPointerUp,
+    consumeClickSuppression,
   } = useCanvasPanZoom({
     contentWidth: 2 * PAGE_W,
     contentHeight: PAGE_H,
     fitMargin: { x: 48, y: 72 },
     fitClamp: { min: 0.4, max: Infinity },
     initialFitScale: 0.7,
-    blockSelector: "[data-reader-block]",
+    blockSelector: '[data-reader-block]:not([data-reader-block="bleed"])',
     isBlocked: () => Boolean(turn),
   });
 
@@ -213,27 +219,23 @@ export function DesktopReader({
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // A press in the left/right edge band of the spread flips that way (like
-  // grabbing the corner of a real page); presses elsewhere fall through to pan.
-  const onSpreadPointerDown = (e: React.PointerEvent) => {
-    if (turn) return;
+  // The page-turn hitbox: a thin strip inside each outer edge of the spread,
+  // running outwards over the whole stage. On click rather than press, so a drag
+  // that starts in the strip pans instead of turning.
+  const onStageClick = (e: React.MouseEvent) => {
+    if (consumeClickSuppression()) return;
     const target = e.target as HTMLElement;
-    // A link in the edge band must stay clickable — don't hijack it for a turn.
+    // A link stays clickable, and a click on page content must reach that block
+    // so text near a page edge can be selected. A full-bleed photo ("bleed") is
+    // the exception: it *is* the page, and has nothing to select.
     if (target.closest("a")) return;
-    // A press on page content (text/image block) must reach that block so the
-    // reader can select text near a page edge; only the bare page margins arm
-    // the edge-flip. Paging otherwise stays available via the arrows/keyboard.
-    if (target.closest("[data-reader-block]")) return;
+    const block = target.closest("[data-reader-block]");
+    if (block && block.getAttribute("data-reader-block") !== "bleed") return;
     const rect = spreadRef.current?.getBoundingClientRect();
     if (!rect) return;
-    const edge = rect.width * 0.16;
-    if (e.clientX >= rect.right - edge && spread < maxSpread) {
-      e.stopPropagation();
-      startTurn("next");
-    } else if (e.clientX <= rect.left + edge && spread > 0) {
-      e.stopPropagation();
-      startTurn("prev");
-    }
+    const edge = rect.width * EDGE_BAND;
+    if (e.clientX >= rect.right - edge) startTurn("next");
+    else if (e.clientX <= rect.left + edge) startTurn("prev");
   };
 
   return (
@@ -279,6 +281,7 @@ export function DesktopReader({
 
       <div
         ref={stageRef}
+        onClick={onStageClick}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -295,7 +298,6 @@ export function DesktopReader({
           <div ref={panRef} className="relative">
             <div
               ref={spreadRef}
-              onPointerDown={onSpreadPointerDown}
               // `flex`, not `inline-flex`: mid-turn every child is absolutely
               // positioned, and an inline-level box would then synthesise a
               // baseline and jump the spread for the turn's duration (#217).

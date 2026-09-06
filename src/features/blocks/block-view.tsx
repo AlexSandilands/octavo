@@ -4,6 +4,7 @@ import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 import { externalHref } from "@/lib/rich-text";
 import { richTextToPlain } from "@/lib/rich-text-doc";
+import { pageAlignOf } from "./layout";
 import type { LayoutTheme } from "./themes/registry";
 import { RichText } from "./rich-text";
 import { Editable } from "./editable";
@@ -27,12 +28,24 @@ export function BlockImage({
   image,
   alt,
   priority = false,
+  fit = "width",
 }: {
   image: ResolvedImage;
   alt: string;
   /** Eager-load + preload this image (the LCP element). Offscreen images stay lazy. */
   priority?: boolean;
+  /** How the photo meets a page-owning box (#227): "cover" crops it, "contain"
+   *  fits it whole and centres it. Default keeps the natural ratio at column width. */
+  fit?: "width" | "cover" | "contain";
 }) {
+  // Cropped a little above centre: in a portrait photo cropped to the page it is
+  // the top of the frame that holds the subject.
+  const className =
+    fit === "cover"
+      ? "h-full w-full object-cover object-[50%_40%]"
+      : fit === "contain"
+        ? "h-full w-full object-contain"
+        : "h-auto w-full";
   if (image.width && image.height) {
     return (
       <Image
@@ -41,7 +54,7 @@ export function BlockImage({
         width={image.width}
         height={image.height}
         sizes="(max-width: 768px) 100vw, 480px"
-        className="h-auto w-full"
+        className={className}
         priority={priority}
         unoptimized
       />
@@ -52,7 +65,7 @@ export function BlockImage({
     <img
       src={image.url}
       alt={alt}
-      className="h-auto w-full"
+      className={className}
       fetchPriority={priority ? "high" : undefined}
     />
   );
@@ -233,6 +246,10 @@ export function BlockView({
 
     case "image": {
       const resolved = block.imageId ? images?.[block.imageId] : undefined;
+      // Page-owning (v6): fill crops, fit letterboxes; no caption either way,
+      // and a cover never bleeds.
+      const owns = variant === "cover" ? null : pageAlignOf(block);
+      const bleed = owns !== null;
       // Prefer the authored alt text; fall back to the caption so an uncaptioned
       // photo is still described rather than announced decorative.
       const photo = resolved ? (
@@ -240,14 +257,20 @@ export function BlockView({
           image={resolved}
           alt={block.alt || block.caption}
           priority={priority}
+          fit={owns === "page-fill" ? "cover" : owns ? "contain" : "width"}
         />
       ) : (
-        <div className={theme.image.placeholder.box}>
+        <div
+          className={theme.image.placeholder.box}
+          style={bleed ? { height: "100%" } : undefined}
+        >
           <span className={theme.image.placeholder.label}>
             {block.caption || "PHOTO"}
           </span>
         </div>
       );
+      // bg-page so a fitted photo's bars are the page's own colour on every surface.
+      if (bleed) return <figure className="bg-page h-full">{photo}</figure>;
       const showCaption = edit || block.caption;
       return (
         <figure>

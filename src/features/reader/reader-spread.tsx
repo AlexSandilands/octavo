@@ -5,6 +5,7 @@ import type { SiteSettings } from "@/lib/branding";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 import type { LayoutTheme } from "@/features/blocks/themes/registry";
+import { pageFillsCanvas } from "@/features/blocks/layout";
 import { PageBlocks } from "@/features/blocks/page-blocks";
 import {
   PageFrame,
@@ -337,6 +338,7 @@ function PageView({
         settings={settings}
         pageNo={page ? pageNo : undefined}
         side={side}
+        bleed={pageFillsCanvas(page)}
       >
         {page && (
           <PageBlocks

@@ -113,6 +113,14 @@ export const SEED_IMAGES = [
     palette: aperture,
     style: { kind: "wash" },
   },
+  // The full-bleed plate (v6, #227): portrait, near the canvas's proportions so the crop is a trim.
+  {
+    key: "salon",
+    width: 1200,
+    height: 1600,
+    palette: aperture,
+    style: { kind: "duotone", motif: "stripes" },
+  },
   // The montage sequence (content v4, issue #95): three same-shape frames from
   // the same palette, so the cross-fade reads as one darkroom sequence rather
   // than three unrelated pictures.
@@ -173,6 +181,15 @@ export const SEED_IMAGES = [
     height: 1000,
     palette: regatta,
     style: { kind: "field", motif: "rings" },
+  },
+  // The fit-page plate (v6, #227): 16:9, so fitting it to the taller canvas
+  // leaves the page-coloured bars the placement is there to show.
+  {
+    key: "fleet",
+    width: 1600,
+    height: 900,
+    palette: regatta,
+    style: { kind: "duotone", motif: "arcs" },
   },
   // The Marginalia (literary society essay — classic theme)
   {

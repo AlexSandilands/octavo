@@ -7,6 +7,7 @@ import type { SponsorMap } from "@/lib/sponsors";
 import { externalHref } from "@/lib/rich-text";
 import { richTextToPlain } from "@/lib/rich-text-doc";
 import { BlockImage } from "@/features/blocks/block-view";
+import { isFillPage } from "@/features/blocks/layout";
 import { RichText } from "@/features/blocks/rich-text";
 import { resolveMontageSlides } from "@/features/blocks/montage";
 import { MontagePlayer } from "@/features/blocks/montage-player";
@@ -30,9 +31,8 @@ export function headingDomId(blockId: string): string {
   return `heading-${blockId}`;
 }
 
-// The figure box the image, montage and video blocks share. `align` is
-// deliberately unread: nothing wraps on a phone, so any placement — including
-// one the block model gains later — collapses to the column.
+// `align` is deliberately unread here: nothing wraps on a phone, so every
+// placement collapses to the column (the full-bleed one is handled above, wider than it).
 function pictureFigure(
   width: number | undefined,
   cover: boolean | undefined,
@@ -114,6 +114,16 @@ export function MobileBlock({
       );
     case "image": {
       const resolved = block.imageId ? images[block.imageId] : undefined;
+      // Runs the full phone width: -mx-5 cancels the section's px-5
+      // (mobile-reader.tsx), and no vertical margin, since the section it owns
+      // carries none either. No crop — there is no page shape here.
+      if (resolved && isFillPage(block)) {
+        return (
+          <figure className="-mx-5">
+            <BlockImage image={resolved} alt={block.alt || block.caption} />
+          </figure>
+        );
+      }
       return (
         <figure {...pictureFigure(block.width, cover)}>
           {resolved ? (

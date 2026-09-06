@@ -5,9 +5,11 @@
 // review, a text-heavy essay and a maker's annual — split across both layout
 // themes. Between them they exercise every block type, all three heading
 // levels, every text size, cover pages, sponsor blocks with and without links,
-// image wraps at a range of widths, a cross-fading montage (issue-02) and one
-// deliberately legacy-shaped page (see issue-05). The images they reference are generated placeholder art:
-// specs in ./seed/images.ts, renderers in ./seed/art.ts — no repo binaries.
+// image wraps at a range of widths, a cross-fading montage and a fill-page plate
+// (both issue-02), a fit-page plate (issue-04) and one deliberately
+// legacy-shaped page (see issue-05).
+// The images they reference are generated placeholder art: specs in
+// ./seed/images.ts, renderers in ./seed/art.ts — no repo binaries.
 import type { SeedIssue } from "./seed/builders";
 import type { SeedImages } from "./seed/images";
 import { issue01 } from "./seed/issue-01";

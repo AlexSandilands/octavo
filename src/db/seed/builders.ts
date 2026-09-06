@@ -5,6 +5,7 @@ import {
   MONTAGE_DEFAULT_INTERVAL,
   type Block,
   type HeadingLevel,
+  type ImageAlign,
   type IssueContent,
   type Page,
   type TextSize,
@@ -54,7 +55,8 @@ export const Img = (
     caption?: string;
     /** Screen-reader description; the readers fall back to the caption. */
     alt?: string;
-    align?: "full" | "left" | "right";
+    /** "page-fill"/"page-fit" (content v6): the photo owns the whole page. */
+    align?: ImageAlign;
     width?: number;
   } = {},
 ): Block => ({

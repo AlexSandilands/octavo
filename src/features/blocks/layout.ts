@@ -1,5 +1,11 @@
 import type { CSSProperties } from "react";
-import type { Block } from "@/lib/blocks";
+import {
+  PAGE_ALIGNS,
+  type Block,
+  type Page,
+  type PageAlign,
+} from "@/lib/blocks";
+import { PAGE_H, PAGE_PAD, PAGE_W } from "./page-frame";
 
 // Blocks render in normal flow (not flex) so a floated image wraps the text that
 // follows it. This computes the per-block flow style: vertical rhythm for every
@@ -22,6 +28,23 @@ export function isPictureBlock(block: Block): block is PictureBlock {
   );
 }
 
+// A photo set to fill or fit the page (v6) owns the whole canvas — only the
+// crop differs. Covers are excluded: their title sits over the page (see
+// docs/database.md).
+export function pageAlignOf(block: Block): PageAlign | null {
+  if (block.type !== "image") return null;
+  return PAGE_ALIGNS.find((a) => a === block.align) ?? null;
+}
+
+export function isFillPage(block: Block): boolean {
+  return pageAlignOf(block) !== null;
+}
+
+/** Whether this page is filled edge to edge by one photo. */
+export function pageFillsCanvas(page: Page | undefined): boolean {
+  return Boolean(page && !page.cover && page.blocks.some(isFillPage));
+}
+
 // A picture block that floats, so the text after it wraps alongside. The editor
 // needs this too (a floated picture must paint above the wrapping text to stay
 // clickable — see EditorBlock).
@@ -42,6 +65,18 @@ export function blockFlowStyle(block: Block, cover = false): CSSProperties {
       return { ...base, width: `${width}%`, marginInline: "auto" };
     }
     return base;
+  }
+
+  // Out of flow and back over the page's margin, so the photo reaches all four
+  // edges of the canvas whatever container it is rendered in.
+  if (isFillPage(block)) {
+    return {
+      position: "absolute",
+      top: -PAGE_PAD,
+      left: -PAGE_PAD,
+      width: PAGE_W,
+      height: PAGE_H,
+    };
   }
 
   const base: CSSProperties = { marginBottom: GAP };

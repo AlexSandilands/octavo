@@ -103,13 +103,16 @@ const themeSchema = z
 // visible text, since a PDF cannot play anything), so every cached PDF must be
 // rebuilt from the current renderer, exactly as v3's montage bump did. v9:
 // footer sizes are px numbers (issue #216) — the chrome segment now
-// fingerprints "27" where it fingerprinted "medium".
+// fingerprints "27" where it fingerprinted "medium". v10: the full-bleed image
+// placement (issue #227) — a page a photo fills prints edge to edge with no
+// running footer and no themed decoration, so the renderer changed for every
+// issue that adopts it and every cached PDF must be rebuilt from it.
 //
 // Not bumped for the sponsor segment (issue #180): the renderer is untouched —
 // the key merely learned an input it was always missing, and adding the segment
 // re-keys every cached PDF exactly once by itself. A bump would only discard the
 // same objects twice over.
-const RENDER_VERSION = 9;
+const RENDER_VERSION = 10;
 
 // Percent-encode for an RFC 8187 ext-value (the `filename*=UTF-8''…` form).
 // Only attr-char may appear bare there: ALPHA / DIGIT / "!" / "#" / "$" / "&" /
