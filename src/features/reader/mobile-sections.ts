@@ -1,4 +1,5 @@
 import type { Block, Page } from "@/lib/blocks";
+import { pageFillsCanvas } from "@/features/blocks/layout";
 
 // The mobile column, divided (issue #221): one section per authored page, empty
 // pages dropped. `divided` means the page break — a band of canvas between two
@@ -9,6 +10,8 @@ export type ReaderSection = {
   cover: boolean;
   blocks: Block[];
   divided: boolean;
+  /** The page is owned by one photo (#227), so its section carries no padding. */
+  filled: boolean;
 };
 
 export function readerSections(pages: Page[]): ReaderSection[] {
@@ -16,12 +19,18 @@ export function readerSections(pages: Page[]): ReaderSection[] {
   for (const page of pages) {
     if (page.blocks.length === 0) continue;
     const cover = page.cover === true;
+    const filled = pageFillsCanvas(page);
     const prev = sections.at(-1);
     sections.push({
       id: page.id,
       cover,
       blocks: page.blocks,
-      divided: prev !== undefined && (cover || prev.cover || startsRun(page)),
+      // A photo-owned page (#227) is always a page of its own, so it is banded
+      // either side — it has no heading for startsRun to find.
+      divided:
+        prev !== undefined &&
+        (cover || prev.cover || filled || prev.filled || startsRun(page)),
+      filled,
     });
   }
   return sections;

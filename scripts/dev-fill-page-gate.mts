@@ -47,6 +47,7 @@ import { PageFrame } from "../src/features/blocks/page-frame";
 import { PageBlocks } from "../src/features/blocks/page-blocks";
 import { CoverThumb } from "../src/features/library/cover-thumb";
 import { MobileBlock } from "../src/features/reader/mobile-block";
+import { readerSections } from "../src/features/reader/mobile-sections";
 import { resolveTheme } from "../src/features/blocks/themes/registry";
 import { buildIssues } from "../src/db/seed-data";
 import { SEED_IMAGES, type SeedImages } from "../src/db/seed/images";
@@ -338,7 +339,28 @@ for (const align of PAGE_ALIGNS) {
     !mobile.includes("object-cover") && !mobile.includes("object-contain"),
     "mobile: …at its own aspect ratio, neither cropped nor boxed",
   );
+  ok(
+    !/class="[^"]*\bmy?-\d/.test(mobile) && !/class="[^"]*\bmt-\d/.test(mobile),
+    "mobile: …with no vertical margin, so it fills the section it owns",
+  );
 }
+
+// The column's sections carry the flag the padding rule reads, and only on the
+// pages a photo owns.
+const allSections = issues.flatMap((issue) =>
+  readerSections(issue.content.pages).map((s) => ({
+    s,
+    page: issue.content.pages.find((p) => p.id === s.id)!,
+  })),
+);
+ok(
+  allSections.every(({ s, page }) => s.filled === pageFillsCanvas(page)),
+  `mobile: every one of the ${allSections.length} sections agrees with its page on who owns it`,
+);
+ok(
+  allSections.filter(({ s }) => s.filled).length === 2,
+  "mobile: …and exactly the two page-owning sections drop their padding",
+);
 
 // 7. A cover ignores the placement entirely — which is why the editor does not
 //    offer it there, and why the library thumbnail (always a cover) is untouched.
