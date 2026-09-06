@@ -111,6 +111,7 @@ export function DesktopReader({
     onPointerDown,
     onPointerMove,
     onPointerUp,
+    consumeClickSuppression,
   } = useCanvasPanZoom({
     contentWidth: 2 * PAGE_W,
     contentHeight: PAGE_H,
@@ -223,7 +224,10 @@ export function DesktopReader({
     // A press on page content (text/image block) must reach that block so the
     // reader can select text near a page edge; only the bare page margins arm
     // the edge-flip. Paging otherwise stays available via the arrows/keyboard.
-    if (target.closest("[data-reader-block]")) return;
+    // A full-bleed photo ("bleed") is the exception: it *is* the page, and has
+    // no text to select, so the band turns over it.
+    const block = target.closest("[data-reader-block]");
+    if (block && block.getAttribute("data-reader-block") !== "bleed") return;
     const rect = spreadRef.current?.getBoundingClientRect();
     if (!rect) return;
     const edge = rect.width * 0.16;
@@ -234,6 +238,17 @@ export function DesktopReader({
       e.stopPropagation();
       startTurn("prev");
     }
+  };
+
+  // The stage beside the spread turns too, so the margin around the magazine is
+  // as clickable as its edges. `startTurn` applies the mid-turn and bounds
+  // guards; a drag-pan that ends in a click is swallowed rather than turning.
+  const onStageClick = (e: React.MouseEvent) => {
+    if (consumeClickSuppression()) return;
+    const rect = spreadRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    if (e.clientX > rect.right) startTurn("next");
+    else if (e.clientX < rect.left) startTurn("prev");
   };
 
   return (
@@ -279,6 +294,7 @@ export function DesktopReader({
 
       <div
         ref={stageRef}
+        onClick={onStageClick}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
