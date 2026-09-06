@@ -44,12 +44,12 @@ export function ReaderControls({
         ? "PDF failed — tap to retry"
         : "Download PDF";
   return (
-    <div className="group absolute inset-x-0 bottom-0 flex justify-center px-4 pt-12 pb-4">
-      <div className="bg-reader-chrome text-reader-chrome-text flex items-center gap-1.5 rounded-full px-2.5 py-2 opacity-50 shadow-[0_8px_24px_rgba(0,0,0,0.28)] transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
+    <div className="group absolute inset-x-0 bottom-0 flex justify-center px-4 pt-12 pb-5">
+      <div className="bg-[#152620] text-[#f5eedf] border border-[#3b594b] shadow-[0_8px_24px_rgba(0,0,0,0.3)] flex items-center gap-1.5 rounded-[6px] px-3 py-1.5 opacity-80 transition-all duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
         <CtrlBtn onClick={onPrev} title="Previous">
           <Icon name="chevronLeft" size={18} strokeWidth={1.7} />
         </CtrlBtn>
-        <span className="text-reader-chrome-muted min-w-[76px] text-center font-sans text-[13px]">
+        <span className="text-[#d5e3dc] min-w-[76px] text-center font-serif text-[13px] font-semibold">
           {label}
         </span>
         <CtrlBtn onClick={onNext} title="Next">
@@ -72,7 +72,7 @@ export function ReaderControls({
             onChange={(e) => onZoom(parseFloat(e.target.value))}
             aria-label="Zoom page"
             title={`Zoom ${Math.round(zoom * 100)}%`}
-            className="accent-reader-slider h-1 w-20 cursor-pointer"
+            className="accent-[#c49348] h-1 w-20 cursor-pointer"
           />
         </div>
         {/* The divider goes with the button it introduces — left behind it

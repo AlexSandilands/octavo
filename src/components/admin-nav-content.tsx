@@ -42,19 +42,19 @@ export function AdminNavContent({
   return (
     <>
       <div className="px-6">
-        <Wordmark size={22} />
-        <div className="text-accent mt-1 font-sans text-[10px] font-semibold tracking-[0.2em] uppercase">
-          Admin
+        <Wordmark size={22} className="text-[#fcf9f2]" />
+        <div className="text-[#c49348] mt-1 font-sans text-[10px] font-bold tracking-[0.22em] uppercase">
+          Steward&apos;s Office
         </div>
       </div>
       {/* Back-out link, not a section: it leaves the admin for the member-
           facing library, so it sits above the nav rather than in it. */}
       <Link
         href="/"
-        className="text-muted hover:text-accent mt-5 flex items-center gap-2 px-6 py-1.5 font-sans text-[14px] font-medium hover:underline"
+        className="text-[#a4b8af] hover:text-[#e8c374] mt-5 flex items-center gap-2 px-6 py-1.5 font-sans text-[13px] font-medium transition-colors"
       >
         <Icon name="chevronLeft" size={16} />
-        View library
+        Return to Reading Room
       </Link>
       <nav className="mt-5 flex flex-col">
         {ADMIN_NAV.map((n) => {
@@ -63,10 +63,10 @@ export function AdminNavContent({
             <Link
               key={n.key}
               href={n.href}
-              className={`flex items-center gap-3 border-l-2 px-6 py-2.5 font-sans text-[15px] transition-colors ${
+              className={`flex items-center gap-3 border-l-3 px-6 py-2.5 font-sans text-[14px] transition-colors ${
                 on
-                  ? "bg-tint text-accent border-accent font-semibold"
-                  : "text-muted hover:bg-tint/60 hover:text-accent border-transparent font-medium"
+                  ? "bg-white/10 text-[#e8c374] border-[#c49348] font-bold"
+                  : "text-[#a4b8af] hover:bg-white/5 hover:text-[#fcf9f2] border-transparent font-medium"
               }`}
             >
               <Icon name={n.icon} size={18} />
@@ -75,16 +75,19 @@ export function AdminNavContent({
           );
         })}
       </nav>
-      <div className="border-line mt-auto border-t px-6 pt-4">
+      <div className="border-[#1d3f32] mt-auto border-t px-6 pt-4">
         <div className="flex items-center gap-2.5">
-          <span className="bg-accent text-paper flex h-[30px] w-[30px] flex-none items-center justify-center rounded-full font-sans text-xs font-semibold">
+          <span className="bg-[#c49348] text-[#10241c] flex h-[30px] w-[30px] flex-none items-center justify-center rounded-[4px] font-serif text-xs font-bold shadow-xs">
             {initials(user.name?.trim() || user.email)}
           </span>
-          <div className="text-ink min-w-0 truncate font-sans text-[13px] font-semibold">
+          <div className="text-[#fcf9f2] min-w-0 truncate font-sans text-[13px] font-semibold">
             {user.name ?? user.email}
           </div>
         </div>
-        <SignOutButton variant="sidebar" />
+        <SignOutButton
+          variant="sidebar"
+          className="text-[#a4b8af] hover:text-[#e8c374]"
+        />
       </div>
     </>
   );

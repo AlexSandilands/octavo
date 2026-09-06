@@ -6,15 +6,18 @@ import { Icon } from "./icons";
 // they differ only in chrome, so the layout picks a variant.
 export function SignOutButton({
   variant = "inline",
+  className = "",
 }: {
   variant?: "inline" | "sidebar";
+  className?: string;
 }) {
   const sidebar = variant === "sidebar";
+  const colorCls = className || "text-muted hover:text-accent";
   return (
     <form action={signOutAction}>
       <button
         type="submit"
-        className={`text-muted hover:text-accent flex h-11 cursor-pointer items-center font-sans font-medium hover:underline ${
+        className={`${colorCls} flex h-11 cursor-pointer items-center font-sans font-medium hover:underline ${
           sidebar ? "w-full gap-2 text-[14px]" : "text-sm whitespace-nowrap"
         }`}
       >

@@ -8,65 +8,55 @@
    Tokens drive Tailwind utilities (bg-paper, text-accent, font-serif, ...).
    These @theme tokens ARE the `heritage` brand — the per-deployment default. */
 @theme {
-  --color-paper: #f4f0e8;
-  --color-page: #faf7f0;
-  --color-card: #fbf9f4;
-  --color-stage: #efe9dd;
-  --color-tint: #e8efe9;
+  --color-paper: #f5eedf;
+  --color-page: #fcf9f2;
+  --color-card: #fcf8f0;
+  --color-stage: #eee5d3;
+  --color-tint: #e8ede7;
 
-  --color-accent: #1d4d3e;
-  --color-accent-strong: #184034;
-  --color-accent-ink: #143a2e;
-  --color-accent-soft: #3f6b5b;
-  --color-cream: #cfe0d6;
+  --color-accent: #163e2f;
+  --color-accent-strong: #102d22;
+  --color-accent-ink: #0a1e16;
+  --color-accent-soft: #295644;
+  --color-cream: #d5e3dc;
 
-  --color-ink: #20201c;
-  --color-body: #2a2722;
-  --color-muted: #56524a;
-  /* Two warm greys for de-emphasised text. Both clear WCAG AA (≥4.5:1) on the
-     paper/page/card/stage backgrounds they render on, so metadata, hints and
-     page numbers stay legible for the older audience — faint2 is the lighter of
-     the pair, faint a step darker for text that carries a little more weight. */
-  --color-faint: #615c50;
-  --color-faint2: #6d685a;
+  --color-ink: #1d1814;
+  --color-body: #2c251f;
+  --color-muted: #4a3e33;
+  --color-faint: #54463a;
+  --color-faint2: #5e4e41;
 
-  --color-line: #e6e0d3;
-  --color-line-soft: #efe9dc;
-  --color-hair: #ddd6c8;
+  --color-line: #e0d5c1;
+  --color-line-soft: #ebe1cd;
+  --color-hair: #d5c8b0;
 
-  /* Amber warning ink, darkened to clear AA both as text on warn-soft and as a
-     background under paper-coloured text (the draft ribbon). */
-  --color-warn: #8a5d1c;
-  --color-warn-strong: #6f4a14; /* darker warn — hover on destructive buttons */
-  --color-warn-soft: #f3ece0;
+  --color-warn: #7c4a10;
+  --color-warn-strong: #633b0c;
+  --color-warn-soft: #f6ebdc;
 
-  /* Status dots. */
-  --color-ok: #2f8f6b; /* success / subscribed */
-  --color-alert: #c8923f; /* caution — bounced / planned */
+  --color-ok: #1e6848;
+  --color-alert: #b87723;
 
-  /* Warm chrome neutrals — hairlines, chips and washes on the paper UI. */
-  --color-hair-warm: #e0d9c9; /* border on white chips/buttons/thumbnails */
-  --color-rule: #cfc6b4; /* decorative heading + cover hairline rules */
-  --color-dash: #c9c1b1; /* dashed empty-state borders */
-  --color-placeholder-line: #e2dccf; /* photo placeholder outline */
-  --color-chip: #efeae0; /* neutral pill / badge background */
-  --color-chip-dot: #b8b1a2; /* neutral status dot */
-  --color-chip-soft: #f0ece2; /* lighter neutral control background */
-  --color-accent-wash: #f4f8f5; /* faint accent tint — hover on white controls */
-  --color-canvas: #ece7dc; /* editor canvas backdrop */
+  --color-hair-warm: #dfd2bc;
+  --color-rule: #cbbda3;
+  --color-dash: #baa98d;
+  --color-placeholder-line: #ded3be;
+  --color-chip: #ebe1cd;
+  --color-chip-dot: #aa9b82;
+  --color-chip-soft: #f3ebd9;
+  --color-accent-wash: #f0f5f2;
+  --color-canvas: #e9dec9;
 
-  /* Page decorations. */
-  --color-page-seam: #efe7d8; /* spine-side divider between spread pages */
-  --color-page-frame: #dcd1b6; /* classic outer decorative frame */
-  --color-page-frame-soft: #e8e0cb; /* classic inner decorative frame */
+  --color-page-seam: #ebe0cc;
+  --color-page-frame: #d5c7ad;
+  --color-page-frame-soft: #e5d9c2;
 
-  /* Reader control dock — dark chrome floating over the paper stage. */
-  --color-reader-chrome: #211f1a;
-  --color-reader-chrome-text: #e7e2d6;
-  --color-reader-chrome-muted: #cfc9bb;
-  --color-reader-chrome-hover: #34312a;
-  --color-reader-chrome-line: #413d35;
-  --color-reader-slider: #9db8ac; /* zoom slider accent */
+  --color-reader-chrome: #131c18;
+  --color-reader-chrome-text: #fcf9f2;
+  --color-reader-chrome-muted: #b5beb9;
+  --color-reader-chrome-hover: #1e2c26;
+  --color-reader-chrome-line: #2d3e36;
+  --color-reader-slider: #c49348;
 
   --font-serif: var(--font-newsreader), Georgia, serif;
   --font-sans: var(--font-hanken), system-ui, sans-serif;

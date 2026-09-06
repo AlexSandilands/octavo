@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button, Kicker, Label } from "@/components/ui";
+import { Button, Label } from "@/components/ui";
 import type { SiteSettings } from "@/lib/branding";
 import type { IssueContent, Page } from "@/lib/blocks";
 import type { ImageMap } from "@/lib/images";
@@ -80,14 +80,17 @@ export function LatestIssue({
       </Link>
 
       <div className="flex flex-col">
-        <Kicker>The latest issue</Kicker>
+        <div className="text-[#7c4a10] font-sans text-[11px] font-bold tracking-[0.24em] uppercase flex items-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#c49348]" />
+          On The Reading Stand
+        </div>
         {/* h2: the page's single h1 is the masthead standfirst (see page.tsx). */}
-        <h2 className="text-ink mt-3 font-serif text-4xl leading-[1.02] sm:text-5xl">
+        <h2 className="text-ink mt-3 font-serif text-4xl leading-[1.05] sm:text-5xl">
           {title}
         </h2>
-        <div className="text-faint mt-3 font-sans text-[13px] tracking-wide">
-          No. {number} · {pageCount} {pageCount === 1 ? "page" : "pages"}
-          {month ? ` · ${month}` : ""}
+        <div className="text-faint mt-3 font-serif italic text-[14px] tracking-wide">
+          Volume No. {number} · {pageCount} {pageCount === 1 ? "page" : "pages"}
+          {month ? ` · Issued ${month}` : ""}
         </div>
 
         {shown.length > 0 && (
