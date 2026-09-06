@@ -5,22 +5,25 @@ import { Icon } from "@/components/icons";
 import { ADMIN_LIST_QUERY_MAX } from "@/lib/list-query";
 import { useListUrl } from "@/components/use-list-url";
 
-// The search box for an admin list. The query lives in the URL (?q=) and the
-// filtering happens in the database, so a search sees every row — not just the
-// page the list happens to be serving — and survives the refresh after a
-// mutation. Typing stays local and debounced; each settled value replaces the
-// URL (replace, not push, so keystrokes don't pile up in history) and drops
-// ?page, because a new search starts from its own first page.
-// Shared by the members, issues and sponsors lists.
+// The search box for an admin list — a labelled field in a form row. The
+// query lives in the URL (?q=) and the filtering happens in the database, so a
+// search sees every row — not just the page the list happens to be serving —
+// and survives the refresh after a mutation. Typing stays local and debounced;
+// each settled value replaces the URL (replace, not push, so keystrokes don't
+// pile up in history) and drops ?page, because a new search starts from its
+// own first page. Shared by the members, issues and sponsors lists.
 export function ListSearch({
   query,
   placeholder,
   ariaLabel,
+  label = "Search",
 }: {
   query: string;
   placeholder: string;
   /** Names the box for screen readers, e.g. "Search all issues by title". */
   ariaLabel: string;
+  /** The visible small-caps label above the box. */
+  label?: string;
 }) {
   const go = useListUrl();
   const [value, setValue] = useState(query);
@@ -62,18 +65,22 @@ export function ListSearch({
   };
 
   return (
-    <div className="boxed-field border-hairline text-grey-soft flex h-11 items-center gap-2.5 rounded-ui border-[1.5px] bg-white px-3.5">
-      <Icon name="search" size={18} />
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        // The page schema truncates ?q= to the same bound, so nothing this
-        // box can produce is ever thrown away server-side.
-        maxLength={ADMIN_LIST_QUERY_MAX}
-        placeholder={placeholder}
-        aria-label={ariaLabel}
-        className="text-lead flex-1 border-none bg-transparent font-ui text-[15px]"
-      />
-    </div>
+    // A <label> so the whole box, caption included, focuses the input.
+    <label className="flex flex-col gap-1.5">
+      <span className="small-caps text-grey-soft">{label}</span>
+      <span className="boxed-field border-lead text-grey-soft bg-sheet flex h-11 items-center gap-2.5 rounded-ui border px-3">
+        <Icon name="search" size={18} strokeWidth={1.8} />
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          // The page schema truncates ?q= to the same bound, so nothing this
+          // box can produce is ever thrown away server-side.
+          maxLength={ADMIN_LIST_QUERY_MAX}
+          placeholder={placeholder}
+          aria-label={ariaLabel}
+          className="text-lead placeholder:text-grey-soft min-w-0 flex-1 self-stretch border-none bg-transparent font-ui text-[16px]"
+        />
+      </span>
+    </label>
   );
 }

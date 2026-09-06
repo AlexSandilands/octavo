@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { Button } from "@/components/ui";
+import { INPUT_CLASS } from "@/components/dialog-parts";
+import { Button, Notice } from "@/components/ui";
 import { getSettings } from "@/server/settings";
 import { SignInCard } from "./card";
 import { safeNextPath } from "@/lib/next-path";
@@ -48,25 +49,16 @@ export default async function SignInPage({
 
   return (
     <SignInCard>
-      <h1 className="text-lead mt-12 font-display text-4xl leading-[1.05]">
-        Welcome
-        <br />
-        back.
+      <h1 className="text-lead mt-10 font-display text-[44px] leading-[1.02] font-semibold">
+        Welcome back.
       </h1>
       {notice ? (
-        <div
-          role="alert"
-          className="border-hairline bg-sheet mt-6 rounded-[10px] border-[1.5px] p-4"
-        >
-          <p className="text-lead font-ui text-[15px] font-semibold">
-            {notice.title}
-          </p>
-          <p className="text-grey mt-1 font-ui text-[15px] leading-relaxed">
-            {notice.body}
-          </p>
-        </div>
+        <Notice tone="error" role="alert" className="mt-6">
+          <p className="text-lead font-semibold">{notice.title}</p>
+          <p className="text-grey mt-1">{notice.body}</p>
+        </Notice>
       ) : (
-        <p className="text-grey mt-4 font-ui text-[16px] leading-relaxed">
+        <p className="text-grey mt-4 font-ui text-[17px] leading-relaxed">
           Members read {name} with a private link. Enter your email and
           we&apos;ll send one over.
         </p>
@@ -76,11 +68,8 @@ export default async function SignInPage({
         {/* Carries the destination (validated same-origin) into the emailed
             link, so the member lands where they were headed. */}
         <input type="hidden" name="next" value={next} />
-        <label
-          htmlFor="email"
-          className="text-grey-soft font-ui text-xs font-semibold tracking-wide uppercase"
-        >
-          Email
+        <label htmlFor="email" className="small-caps text-grey-soft">
+          Your email address
         </label>
         <input
           id="email"
@@ -89,14 +78,14 @@ export default async function SignInPage({
           required
           autoComplete="email"
           placeholder="you@example.com"
-          className="border-hairline text-lead mt-2 h-14 w-full rounded-[10px] border-[1.5px] bg-white px-4 font-ui text-[17px] outline-none focus:border-red"
+          className={`${INPUT_CLASS} mt-2 h-14 text-[18px]`}
         />
-        <div className="mt-3">
+        <div className="mt-4">
           <Button type="submit" icon="arrowRight" full>
             Email me a link
           </Button>
         </div>
-        <p className="text-grey-soft mt-4 text-center font-ui text-[13px]">
+        <p className="text-grey-soft mt-4 text-center font-ui text-[15px]">
           No password to remember.
         </p>
       </form>

@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
 
-// The panel every group of settings on /admin/magazine sits in: a serif title,
-// a plain-language line saying what the group is for, and the controls under
-// it. Lives here rather than beside its first caller because the logo library
-// (a different feature) is one of the groups — the page reads as one thing, so
-// the panels have to be one thing.
+// One group of settings on /admin/magazine: a heavy rule, a display-serif
+// title, a plain-language line saying what the group is for, and the controls
+// under it. The page is a single long form and the groups are separated by
+// rules, not boxes. Lives here rather than beside its first caller because the
+// logo library (a different feature) is one of the groups — the page reads as
+// one thing, so the groups have to be one thing.
 export function SettingsCard({
   id,
   title,
@@ -18,15 +19,14 @@ export function SettingsCard({
   children: ReactNode;
 }) {
   return (
-    <section
-      id={id}
-      className="bg-sheet border-hairline scroll-mt-6 rounded-[10px] border p-6"
-    >
-      <h2 className="text-lead font-display text-[22px] leading-tight">{title}</h2>
-      <p className="text-grey mt-1.5 font-ui text-[13px] leading-relaxed">
+    <section id={id} className="rule-heavy scroll-mt-6 pt-4">
+      <h2 className="text-lead font-display text-[28px] leading-tight font-semibold">
+        {title}
+      </h2>
+      <p className="text-grey mt-2 max-w-[60ch] font-ui text-[16px] leading-relaxed">
         {blurb}
       </p>
-      <div className="mt-5 flex flex-col gap-5">{children}</div>
+      <div className="mt-6 flex flex-col gap-6">{children}</div>
     </section>
   );
 }

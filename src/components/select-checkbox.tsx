@@ -32,14 +32,12 @@ export function SelectCheckbox({
     if (ref.current) ref.current.indeterminate = mixed;
   }, [mixed]);
 
-  // Both states name their own background: Tailwind resolves a `bg-white`
-  // / `bg-red` collision by stylesheet order, not by which one the template
-  // appends last, so a shared `bg-white` base would win and the filled box
+  // Both states name their own background: Tailwind resolves a `bg-sheet`
+  // / `bg-lead` collision by stylesheet order, not by which one the template
+  // appends last, so a shared `bg-sheet` base would win and the filled box
   // would render empty.
   const box =
-    checked || mixed
-      ? "border-red bg-red text-sheet"
-      : "border-hairline bg-white";
+    checked || mixed ? "border-lead bg-lead text-sheet" : "border-lead bg-sheet";
 
   return (
     <label className="flex cursor-pointer items-center select-none">
@@ -54,16 +52,14 @@ export function SelectCheckbox({
         />
         <span
           aria-hidden
-          className={`flex h-[22px] w-[22px] items-center justify-center rounded-[5px] border-[1.5px] transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--color-red)] ${box}`}
+          className={`flex h-[22px] w-[22px] items-center justify-center rounded-ui border transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--color-red)] ${box}`}
         >
           {checked && <Icon name="check" size={14} strokeWidth={2.6} />}
           {mixed && <Icon name="minus" size={14} strokeWidth={2.6} />}
         </span>
       </span>
       {children && (
-        <span className="text-grey pr-2 font-ui text-[14px]">
-          {children}
-        </span>
+        <span className="text-grey pr-2 font-ui text-[15px]">{children}</span>
       )}
     </label>
   );

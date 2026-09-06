@@ -1,38 +1,47 @@
 import { Button } from "./ui";
-import { Icon } from "./icons";
 import { createIssueAction } from "@/app/admin/actions";
 
-function EmptyCard({ children }: { children: React.ReactNode }) {
+// A first-run screen is a boxed notice: a rule, a headline, a sentence and the
+// one or two things to do next — no illustration to decode.
+export function EmptyNotice({
+  title,
+  children,
+  actions,
+}: {
+  title: string;
+  children: React.ReactNode;
+  actions?: React.ReactNode;
+}) {
   return (
-    <div className="bg-sheet border-hairline flex min-h-[360px] flex-col items-center justify-center rounded-ui border p-9 text-center">
-      {children}
-    </div>
-  );
-}
-
-function EmptyIcon({ name }: { name: "doc" | "users" }) {
-  return (
-    <div className="bg-newsprint text-red flex h-[72px] w-[72px] items-center justify-center rounded-full">
-      <Icon name={name} size={32} strokeWidth={1.5} />
+    <div className="border-lead bg-sheet rule-heavy flex min-h-[320px] flex-col items-center justify-center border p-8 text-center">
+      <h2 className="text-lead font-display text-[30px] leading-tight font-semibold">
+        {title}
+      </h2>
+      <p className="text-grey mt-3 max-w-md font-ui text-[17px] leading-relaxed">
+        {children}
+      </p>
+      {actions && (
+        <div className="mt-7 flex flex-wrap justify-center gap-3">{actions}</div>
+      )}
     </div>
   );
 }
 
 export function EmptyIssues() {
   return (
-    <EmptyCard>
-      <EmptyIcon name="doc" />
-      <h2 className="text-lead mt-5 font-display text-2xl">No issues yet</h2>
-      <p className="text-grey mt-2.5 max-w-sm font-ui text-[15px] leading-relaxed">
-        The first one is the hardest — we&apos;ll guide you, page by page. Start
-        with a cover and a heading.
-      </p>
-      <form action={createIssueAction} className="mt-6">
-        <Button type="submit" icon="plus">
-          Create your first issue
-        </Button>
-      </form>
-    </EmptyCard>
+    <EmptyNotice
+      title="No issues yet"
+      actions={
+        <form action={createIssueAction}>
+          <Button type="submit" icon="plus">
+            Create your first issue
+          </Button>
+        </form>
+      }
+    >
+      The first one is the hardest — we&apos;ll guide you, page by page. Start
+      with a cover and a heading.
+    </EmptyNotice>
   );
 }
 
@@ -44,21 +53,21 @@ export function EmptyMembers({
   onAdd?: () => void;
 }) {
   return (
-    <EmptyCard>
-      <EmptyIcon name="users" />
-      <h2 className="text-lead mt-5 font-display text-2xl">No members yet</h2>
-      <p className="text-grey mt-2.5 max-w-sm font-ui text-[15px] leading-relaxed">
-        Bring your club&apos;s list across as a CSV, or add the first few by
-        hand. They&apos;ll get every new issue.
-      </p>
-      <div className="mt-6 flex gap-2.5">
-        <Button icon="upload" onClick={onImport}>
-          Import CSV
-        </Button>
-        <Button variant="secondary" onClick={onAdd}>
-          Add by hand
-        </Button>
-      </div>
-    </EmptyCard>
+    <EmptyNotice
+      title="No members yet"
+      actions={
+        <>
+          <Button icon="upload" onClick={onImport}>
+            Import CSV
+          </Button>
+          <Button variant="secondary" onClick={onAdd}>
+            Add by hand
+          </Button>
+        </>
+      }
+    >
+      Bring your club&apos;s list across as a CSV, or add the first few by
+      hand. They&apos;ll get every new issue.
+    </EmptyNotice>
   );
 }

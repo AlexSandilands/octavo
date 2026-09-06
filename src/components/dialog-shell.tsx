@@ -124,7 +124,7 @@ export function DialogShell({
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(32,32,28,0.4)] p-4"
+      className="bg-lead/50 fixed inset-0 z-50 flex items-center justify-center p-4"
       onPointerDown={(e) => {
         if (isolatePointerEvents) e.stopPropagation();
         // Only a press on the backdrop itself — one that started inside the
@@ -154,6 +154,13 @@ export function DialogShell({
       </div>
     </div>
   );
+}
+
+// The panel every Broadsheet dialog sits in: a white sheet with a heavy rule
+// along its top edge, square corners, no shadow. Callers pass their width (and
+// anything structural, e.g. a flex column with a max height) and get the rest.
+export function dialogPanel(extra = "w-[480px]"): string {
+  return `bg-sheet rule-heavy max-w-full overflow-hidden ${extra}`;
 }
 
 const DIALOG = "[role=dialog]";

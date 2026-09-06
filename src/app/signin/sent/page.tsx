@@ -14,23 +14,21 @@ export default async function SignInSentPage() {
   const { name, org } = await getSettings();
   return (
     <SignInCard>
-      <h1 className="text-lead mt-12 font-display text-4xl leading-[1.05]">
-        Check your
-        <br />
-        email.
+      <h1 className="text-lead mt-10 font-display text-[44px] leading-[1.02] font-semibold">
+        Check your email.
       </h1>
-      <p className="text-grey mt-4 font-ui text-[16px] leading-relaxed">
+      <p className="text-grey mt-4 font-ui text-[17px] leading-relaxed">
         If that address belongs to a member of {org}, a sign-in link for {name}{" "}
         is on its way. Open the email and click the button — the link works once
         and lasts a day.
       </p>
-      <p className="text-grey mt-4 font-ui text-[16px] leading-relaxed">
+      <p className="text-grey mt-4 font-ui text-[17px] leading-relaxed">
         Nothing arriving? Check your spam folder first.
       </p>
-      <p className="mt-8 font-ui text-[15px]">
+      <p className="mt-8 font-ui text-[16px]">
         <Link
           href="/signin"
-          className="text-red font-semibold underline underline-offset-2"
+          className="text-red inline-flex min-h-11 items-center font-semibold underline underline-offset-4"
         >
           Use a different email address
         </Link>

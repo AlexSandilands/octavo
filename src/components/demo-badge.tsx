@@ -1,12 +1,12 @@
-// The small "Demo" chip an anonymous visitor sees on a demo deployment
+// The small "Demo" label an anonymous visitor sees on a demo deployment
 // (issue #50) — it replaces the signed-in account affordances, so a visitor
 // knows this is a public showcase where sign-in and email features are off.
 // Callers render it only when the member gate returned no user, which can
-// only happen in demo mode; the chip itself stays a dumb presentational span.
+// only happen in demo mode; the label itself stays a dumb presentational span.
 export function DemoBadge({ className }: { className?: string }) {
   return (
     <span
-      className={`border-hairline text-grey bg-sheet inline-block rounded-full border px-3 py-1 font-ui text-xs font-medium tracking-wide uppercase${className ? ` ${className}` : ""}`}
+      className={`small-caps border-lead bg-sheet text-lead inline-flex h-7 items-center border px-2${className ? ` ${className}` : ""}`}
     >
       Demo
       <span className="sr-only">

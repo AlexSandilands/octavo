@@ -1,7 +1,8 @@
 "use client";
 
 import { type IconName } from "./icons";
-import { DialogShell } from "./dialog-shell";
+import { DialogShell, dialogPanel } from "./dialog-shell";
+import { DialogFooter, DialogTitle } from "./dialog-parts";
 import { Button } from "./ui";
 
 // A shared, accessible confirmation dialog for destructive actions — the in-app
@@ -34,25 +35,20 @@ export function ConfirmDialog({
 }) {
   return (
     <DialogShell
-      panelClassName="bg-sheet w-[440px] max-w-full overflow-hidden rounded-[10px]"
+      panelClassName={dialogPanel("w-[460px]")}
       locked={working}
       onClose={onClose}
     >
       {(titleId) => (
         <>
-          <div className="px-8 pt-7">
-            <h2
-              id={titleId}
-              className="text-lead font-display text-[24px] leading-tight"
-            >
-              {title}
-            </h2>
-            <p className="text-grey mt-2.5 font-ui text-[15px] leading-relaxed">
+          <div className="px-7 pt-6">
+            <DialogTitle id={titleId}>{title}</DialogTitle>
+            <p className="text-grey mt-3 font-ui text-[16px] leading-relaxed">
               {body}
             </p>
           </div>
 
-          <div className="flex justify-end gap-3 px-8 pt-6 pb-7">
+          <DialogFooter>
             <Button variant="secondary" onClick={onClose} disabled={working}>
               {cancelLabel}
             </Button>
@@ -65,7 +61,7 @@ export function ConfirmDialog({
             >
               {working ? "Working…" : confirmLabel}
             </Button>
-          </div>
+          </DialogFooter>
         </>
       )}
     </DialogShell>

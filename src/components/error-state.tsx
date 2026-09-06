@@ -5,6 +5,7 @@ import { Button, Wordmark } from "@/components/ui";
 
 // Friendly full-page error state shared by the route error boundaries — a
 // member (or the admin) never sees a raw stack trace (design-principles §10).
+// A boxed notice with a red rule down its left edge and plain words.
 export function ErrorState({
   kicker,
   title,
@@ -18,22 +19,22 @@ export function ErrorState({
 }) {
   return (
     <main className="flex min-h-screen items-center justify-center px-5 py-12">
-      <div className="bg-sheet border-hairline flex min-h-[420px] w-full max-w-xl flex-col rounded-[5px] border p-10">
-        <Wordmark size={18} />
-        <div className="my-auto">
-          <p className="text-red font-display text-[15px] italic">{kicker}</p>
-          <h1 className="text-lead mt-3 font-display text-4xl leading-[1.05]">
+      <div className="border-lead border-l-red bg-sheet flex w-full max-w-xl flex-col gap-8 border border-l-4 p-8 sm:p-10">
+        <Wordmark size={20} />
+        <div>
+          <p className="small-caps text-red">{kicker}</p>
+          <h1 className="text-lead mt-3 font-display text-[36px] leading-[1.05] font-semibold">
             {title}
           </h1>
-          <p className="text-grey mt-4 max-w-prose font-ui text-[16px] leading-relaxed">
+          <p className="text-grey mt-4 max-w-prose font-ui text-[17px] leading-relaxed">
             {body}
           </p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
           <Button onClick={onRetry}>Try again</Button>
           <Link
             href="/"
-            className="text-red font-ui text-[15px] font-medium underline underline-offset-[3px]"
+            className="text-red flex h-11 items-center font-ui text-[16px] font-semibold underline underline-offset-4"
           >
             Back to the library
           </Link>

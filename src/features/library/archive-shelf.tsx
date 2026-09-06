@@ -4,16 +4,16 @@ import type { ImageMap } from "@/lib/images";
 import type { PagedList } from "@/lib/pagination";
 import type { SponsorMap } from "@/lib/sponsors";
 import type { IssueRow } from "@/server/issues";
-import { ArchiveGrid, toArchiveItems } from "./archive-grid";
+import { BackIssues, toArchiveItems } from "./back-issues";
 import { archiveResultMessage } from "./archive-message";
 import { ArchiveSearch } from "./archive-search";
 import { ArchiveYearFilter } from "./archive-year-filter";
 
-// One served page of the full archive: the search and year filter above the
-// shelf, the covers themselves, and the page control below. Everything that
-// narrows or pages the list is server-side and lives in the URL — this
-// component only lays the three out, so a refresh or a shared link rebuilds
-// exactly the view someone was looking at.
+// One served page of the full archive: the search and year filter as a
+// labelled form row above the list, the rows themselves, and the page control
+// below. Everything that narrows or pages the list is server-side and lives in
+// the URL — this component only lays the three out, so a refresh or a shared
+// link rebuilds exactly the view someone was looking at.
 export function ArchiveShelf({
   list,
   query,
@@ -42,8 +42,8 @@ export function ArchiveShelf({
   });
 
   return (
-    <div className="mt-6">
-      <div className="flex flex-col gap-3 sm:flex-row">
+    <div className="mt-4">
+      <div className="rule-heavy flex flex-col gap-3 pt-4 sm:flex-row sm:items-end">
         <div className="min-w-0 flex-1">
           <ArchiveSearch query={query} />
         </div>
@@ -59,7 +59,7 @@ export function ArchiveShelf({
         aria-live="polite"
         className={
           list.rows.length === 0
-            ? "text-grey-soft py-16 text-center font-ui text-[15px]"
+            ? "border-lead text-grey rule-heavy mt-8 border px-6 py-12 text-center font-ui text-[17px]"
             : "sr-only"
         }
       >
@@ -68,7 +68,7 @@ export function ArchiveShelf({
 
       {list.rows.length > 0 && (
         <div className="mt-8">
-          <ArchiveGrid
+          <BackIssues
             items={toArchiveItems(list.rows)}
             images={images}
             sponsors={sponsors}
@@ -82,6 +82,7 @@ export function ArchiveShelf({
         page={list.page}
         pageCount={list.pageCount}
         label="Archive pages"
+        noun="issues"
       />
     </div>
   );

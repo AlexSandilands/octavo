@@ -3,13 +3,12 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Icon } from "@/components/icons";
 
-// The house dropdown: a labelled pill trigger ("Theme: Classic") over a small
-// menu of mutually exclusive options. Extracted from ThemeMenu (issue #40)
-// when the footer-logo picker needed the same control (#97), and promoted out
-// of the editor once the magazine settings and the members filter needed it
-// too — the keyboard contract below is the reason it is shared rather than
-// copied. This is an accessibility-sensitive app; one implementation means
-// one place to fix.
+// The house dropdown: a labelled trigger ("Look: Classic") over a small menu
+// of mutually exclusive options. Extracted from ThemeMenu (issue #40) when the
+// footer-logo picker needed the same control (#97), and promoted out of the
+// editor once the magazine settings and the members filter needed it too — the
+// keyboard contract below is the reason it is shared rather than copied. This
+// is an accessibility-sensitive app; one implementation means one place to fix.
 //
 // Accessible menu: opens on click (or ArrowDown), arrow keys move between
 // options, Enter/Space selects, Escape closes and returns focus to the trigger,
@@ -37,7 +36,7 @@ export function MenuSelect<T>({
   size = "sm",
   className = "",
 }: {
-  /** Trigger prefix — the control names itself, e.g. "Theme". */
+  /** Trigger prefix — the control names itself, e.g. "Look". */
   label: string;
   /** The current value's display text, shown in the trigger after `label`. */
   current: string;
@@ -144,19 +143,20 @@ export function MenuSelect<T>({
             setOpen(true);
           }
         }}
-        className={`border-hairline text-lead hover:border-red hover:bg-newsprint flex cursor-pointer items-center gap-2 rounded-ui border-[1.5px] bg-white px-3.5 font-ui text-sm font-medium transition-[transform,background-color,border-color] duration-150 ease-out select-none motion-safe:active:scale-[0.97] ${
+        className={`border-lead bg-sheet text-lead hover:bg-newsprint flex cursor-pointer items-center gap-2 rounded-ui border px-3 font-ui text-[15px] whitespace-nowrap transition-[background-color,border-color] duration-150 ease-out select-none motion-safe:active:translate-y-px ${
           size === "md" ? "h-11" : "h-10"
         } ${className}`}
       >
-        {label}: {current}
-        <Icon name="chevronDown" size={14} strokeWidth={1.8} />
+        <span className="text-grey">{label}:</span>
+        <span className="font-semibold">{current}</span>
+        <Icon name="chevronDown" size={14} strokeWidth={2} />
       </button>
 
       {open && (
         <div
           role="menu"
           aria-label={ariaLabel}
-          className="border-hairline absolute top-full right-0 z-30 mt-1.5 min-w-[180px] rounded-ui border bg-white p-1"
+          className="border-lead bg-sheet absolute top-full right-0 z-30 mt-1 min-w-[200px] rounded-ui border p-1"
         >
           {items.map((item, i) => {
             const active = item.value === value;
@@ -171,14 +171,12 @@ export function MenuSelect<T>({
                 aria-checked={active}
                 onClick={() => choose(item.value)}
                 onKeyDown={(e) => onItemKeyDown(e, i)}
-                className={`flex h-11 w-full cursor-pointer items-center gap-2 rounded-ui px-2.5 font-ui text-sm transition-[background-color,color] duration-150 ${
-                  active
-                    ? "text-red font-semibold"
-                    : "text-lead hover:bg-newsprint"
+                className={`text-lead hover:bg-newsprint flex h-11 w-full cursor-pointer items-center gap-2 rounded-ui px-2.5 font-ui text-[15px] transition-[background-color] duration-150 ${
+                  active ? "font-semibold" : ""
                 }`}
               >
                 <span className="flex w-4 justify-center">
-                  {active && <Icon name="check" size={15} strokeWidth={2} />}
+                  {active && <Icon name="check" size={15} strokeWidth={2.2} />}
                 </span>
                 {item.content}
               </button>

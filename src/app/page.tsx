@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui";
+import { Masthead, memberTabs } from "@/components/masthead";
 import { coverPageOf, type Page } from "@/lib/blocks";
 import { getLibraryHome } from "@/server/issues";
 import { resolveIssueImages } from "@/server/images";
@@ -6,9 +7,8 @@ import { resolveIssueSponsors } from "@/server/sponsors";
 import { requireMemberOrRedirect } from "@/server/session";
 import { getSettings } from "@/server/settings";
 import { LatestIssue } from "@/features/library/latest-issue";
-import { ArchiveGrid, toArchiveItems } from "@/features/library/archive-grid";
-import { LibraryHeader } from "@/features/library/library-header";
-import { Masthead } from "@/features/library/masthead";
+import { BackIssues, toArchiveItems } from "@/features/library/back-issues";
+import { issueMonth } from "@/features/library/contents";
 import { SiteFooter } from "@/features/library/site-footer";
 
 export const dynamic = "force-dynamic";
@@ -37,61 +37,70 @@ export default async function LibraryPage() {
     resolveIssueSponsors({ pages: covers }),
   ]);
 
+  const month = latest ? issueMonth(latest.publishedAt) : null;
+  const dateline = latest
+    ? `Issue No. ${latest.number}${month ? ` · ${month}` : ""}`
+    : undefined;
+
   return (
-    <main className="mx-auto max-w-5xl px-5 py-6 sm:px-8 sm:py-10">
-      <LibraryHeader user={user} />
-
-      <Masthead org={settings.org} tagline={settings.tagline} />
-
-      {!latest ? (
-        <section className="py-20 text-center">
-          <h2 className="text-lead font-display text-3xl">
-            No issues published yet
-          </h2>
-          <p className="text-grey mt-3 font-ui">
-            The first issue of {settings.name} will appear here once it&apos;s
-            published.
-          </p>
-        </section>
-      ) : (
-        <>
-          <LatestIssue
-            number={latest.number}
-            title={latest.title}
-            content={latest.content}
-            publishedAt={latest.publishedAt}
-            theme={latest.theme}
-            cover={coverPageOf(latest.content)}
-            images={coverImages}
-            sponsors={coverSponsors}
-            settings={settings}
-          />
-          {recent.length > 0 && (
-            <ArchiveGrid
-              items={toArchiveItems(recent)}
+    <>
+      <Masthead
+        dateline={dateline}
+        user={user}
+        tabs={memberTabs(user)}
+        active="latest"
+      />
+      <main className="mx-auto max-w-5xl px-5 pb-6 sm:px-8 sm:pb-10">
+        {!latest ? (
+          <section className="py-20 text-center">
+            <h1 className="text-lead font-display text-[36px] font-semibold">
+              No issues published yet
+            </h1>
+            <p className="text-grey mt-3 font-ui">
+              The first issue of {settings.name} will appear here once it&apos;s
+              published.
+            </p>
+          </section>
+        ) : (
+          <>
+            <LatestIssue
+              number={latest.number}
+              title={latest.title}
+              content={latest.content}
+              publishedAt={latest.publishedAt}
+              theme={latest.theme}
+              cover={coverPageOf(latest.content)}
               images={coverImages}
               sponsors={coverSponsors}
               settings={settings}
             />
-          )}
-          {/* Only once the catalogue outgrows the shelf above: a magazine with
-              a page's worth of issues shows them all and needs no way out. */}
-          {older > 0 && (
-            <div className="border-hairline flex justify-center border-t pt-8 pb-4">
-              <Button href="/archive" variant="secondary" icon="arrowRight">
-                View the full archive
-              </Button>
-            </div>
-          )}
-        </>
-      )}
+            {recent.length > 0 && (
+              <BackIssues
+                items={toArchiveItems(recent)}
+                images={coverImages}
+                sponsors={coverSponsors}
+                settings={settings}
+                heading="Back issues"
+              />
+            )}
+            {/* Only once the catalogue outgrows the shelf above: a magazine with
+                a page's worth of issues shows them all and needs no way out. */}
+            {older > 0 && (
+              <div className="rule-heavy flex justify-center pt-6 pb-4">
+                <Button href="/archive" variant="secondary" icon="arrowRight">
+                  View the full archive
+                </Button>
+              </div>
+            )}
+          </>
+        )}
 
-      <SiteFooter
-        org={settings.org}
-        issueCount={publishedTotal}
-        estYear={estYear}
-        signedIn={Boolean(user)}
-      />
-    </main>
+        <SiteFooter
+          org={settings.org}
+          issueCount={publishedTotal}
+          estYear={estYear}
+        />
+      </main>
+    </>
   );
 }

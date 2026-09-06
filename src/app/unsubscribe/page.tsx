@@ -1,8 +1,9 @@
 import { z } from "zod";
-import { Button, Label, Wordmark } from "@/components/ui";
+import { Button } from "@/components/ui";
 import { getSettings } from "@/server/settings";
 import { getRecipientById } from "@/server/recipients";
 import { verifyUnsubscribeToken } from "@/server/unsubscribe-token";
+import { SignInCard } from "@/app/signin/card";
 import { updateSubscriptionAction } from "./actions";
 
 // One-click unsubscribe, reached from a link in the new-issue email. No session
@@ -18,18 +19,9 @@ export const dynamic = "force-dynamic";
 
 const paramsSchema = z.object({ token: z.string().optional() });
 
-async function Frame({ children }: { children: React.ReactNode }) {
-  const { org } = await getSettings();
-  return (
-    <main className="flex min-h-screen items-center justify-center px-5 py-12">
-      <div className="bg-sheet border-hairline w-full max-w-md rounded-ui border p-8 sm:p-10">
-        <Wordmark size={22} />
-        <Label>{org}</Label>
-        {children}
-      </div>
-    </main>
-  );
-}
+const H1 =
+  "text-lead mt-10 font-display text-[40px] leading-[1.05] font-semibold text-balance";
+const P = "text-grey mt-4 font-ui text-[17px] leading-relaxed";
 
 export default async function UnsubscribePage({
   searchParams,
@@ -47,25 +39,21 @@ export default async function UnsubscribePage({
   // deny an address.
   if (!token || !member) {
     return (
-      <Frame>
-        <h1 className="text-lead mt-10 font-display text-3xl leading-[1.1]">
-          This link isn&rsquo;t valid.
-        </h1>
-        <p className="text-grey mt-4 font-ui text-[16px] leading-relaxed">
+      <SignInCard>
+        <h1 className={H1}>This link isn&rsquo;t valid.</h1>
+        <p className={P}>
           The unsubscribe link may be incomplete or out of date. Use the
           Unsubscribe link at the bottom of a recent {magazineName} email.
         </p>
-      </Frame>
+      </SignInCard>
     );
   }
 
   if (member.subscribed) {
     return (
-      <Frame>
-        <h1 className="text-lead mt-10 font-display text-3xl leading-[1.1]">
-          Unsubscribe from {magazineName}?
-        </h1>
-        <p className="text-grey mt-4 font-ui text-[16px] leading-relaxed">
+      <SignInCard>
+        <h1 className={H1}>Unsubscribe from {magazineName}?</h1>
+        <p className={P}>
           We&rsquo;ll stop emailing new issues to{" "}
           <span className="text-lead font-semibold">{member.email}</span>. You
           can resubscribe here any time.
@@ -77,19 +65,17 @@ export default async function UnsubscribePage({
             Unsubscribe
           </Button>
         </form>
-      </Frame>
+      </SignInCard>
     );
   }
 
   return (
-    <Frame>
-      <h1 className="text-lead mt-10 font-display text-3xl leading-[1.1]">
-        You&rsquo;ve been unsubscribed.
-      </h1>
-      <p className="text-grey mt-4 font-ui text-[16px] leading-relaxed">
+    <SignInCard>
+      <h1 className={H1}>You&rsquo;ve been unsubscribed.</h1>
+      <p className={P}>
         We won&rsquo;t email new issues to{" "}
-        <span className="text-lead font-semibold">{member.email}</span> any more.
-        Changed your mind? You can turn them back on.
+        <span className="text-lead font-semibold">{member.email}</span> any
+        more. Changed your mind? You can turn them back on.
       </p>
       <form className="mt-8" action={updateSubscriptionAction}>
         <input type="hidden" name="token" value={token} />
@@ -98,6 +84,6 @@ export default async function UnsubscribePage({
           Resubscribe
         </Button>
       </form>
-    </Frame>
+    </SignInCard>
   );
 }

@@ -5,11 +5,13 @@ import { adminMain } from "@/components/admin-main";
 import { Button } from "@/components/ui";
 import { useListUrl } from "./use-list-url";
 
-// The foot of a paginated list: previous/next plus where you are. Two big
-// labelled buttons rather than a row of page numbers — the audience is older
-// and phone-heavy, and the house md Button gives the 48px targets and focus
-// treatment for free. The buttons navigate (?page= in the URL) so the position
-// survives a refresh; page 1 keeps a bare URL. Absent on a single page.
+// The foot of a paginated list: newer/older plus where you are. Two labelled
+// text buttons rather than a row of page numbers — the audience is older and
+// phone-heavy. Every list this serves runs newest-first (issues by number,
+// members and sponsors by when they were added), so the two directions are
+// named for what they show rather than for the page arithmetic. The buttons
+// navigate (?page= in the URL) so the position survives a refresh; page 1
+// keeps a bare URL. Absent on a single page.
 // Shared by the members, issues and sponsors lists and the members' archive —
 // the scroll-to-top below falls back to the window off the admin shell.
 // The nearest ancestor that is a scroll container with something to scroll.
@@ -29,11 +31,15 @@ export function ListPagination({
   page,
   pageCount,
   label,
+  noun,
 }: {
   page: number;
   pageCount: number;
   /** Names the nav for screen readers, e.g. "Member list pages". */
   label: string;
+  /** What the rows are, for the buttons' wording: "Newer issues" / "Older
+   * issues". Omitted, they read "Newer" / "Older". */
+  noun?: string;
 }) {
   const go = useListUrl();
 
@@ -59,9 +65,6 @@ export function ListPagination({
   // page and run after render, so the jump lands on the new rows rather than
   // racing ahead of them; back/forward and post-mutation clamps get the same
   // treatment, which is what a page change means regardless of its trigger.
-  // Reset whatever actually scrolls the list: its own region where the
-  // filters are pinned above it (the wide members list), else the admin pane,
-  // else the window (the members' archive).
   const navRef = useRef<HTMLElement>(null);
   const lastPage = useRef(page);
   useEffect(() => {
@@ -87,6 +90,8 @@ export function ListPagination({
     startTransition(() => go({ page: next > 1 ? String(next) : null }));
   };
 
+  const what = noun ? ` ${noun}` : "";
+
   // `unavailable` rather than `disabled` at the ends. A real disabled attribute
   // arriving on the button you are standing on can't hold focus, so the browser
   // hands it to <body> — and with the scroll-to-top above, the next Tab restarts
@@ -99,7 +104,7 @@ export function ListPagination({
       ref={navRef}
       aria-label={label}
       aria-busy={pending}
-      className="mt-6 flex items-center justify-between gap-3"
+      className="rule-heavy mt-6 flex items-center justify-between gap-3 pt-3"
     >
       <Button
         variant="secondary"
@@ -108,14 +113,17 @@ export function ListPagination({
         unavailable={target <= 1}
         onClick={() => turnTo(target - 1)}
       >
-        Previous
+        Newer{what}
       </Button>
       {/* Deliberately not disabled while a turn is in flight: the target above
           already makes a second press count, and disabling the button someone
           just pressed would take their keyboard focus with it. The pending
           wording is the feedback instead, and a screen reader hears the turn
           start and then land. */}
-      <span aria-live="polite" className="text-grey-soft font-ui text-sm">
+      <span
+        aria-live="polite"
+        className="text-grey text-center font-ui text-[15px] tabular-nums"
+      >
         {pending
           ? `Turning to page ${target}…`
           : `Page ${page} of ${pageCount}`}
@@ -126,7 +134,7 @@ export function ListPagination({
         unavailable={target >= pageCount}
         onClick={() => turnTo(target + 1)}
       >
-        Next
+        Older{what}
       </Button>
     </nav>
   );

@@ -1,42 +1,22 @@
-import Link from "next/link";
-import { SignOutButton } from "@/components/sign-out-button";
-
-// A hairline-bordered close to the page: who publishes it, how many issues exist
-// and since when, and a way out. Everyone reaching `/` signed in gets the
-// sign-out affordance; an anonymous demo-mode visitor (issue #50) has no
-// session to end, so the button is simply omitted.
+// The colophon: a rule, then who publishes the magazine, how many issues exist
+// and since when. Everything a member can do from here (preferences, signing
+// out) already sits in the masthead, so the foot of the page only says who
+// made it.
 export function SiteFooter({
   org,
   issueCount,
   estYear,
-  signedIn,
 }: {
   org: string;
   issueCount: number;
   estYear: number | null;
-  signedIn: boolean;
 }) {
   return (
-    <footer className="border-hairline text-grey-soft mt-4 flex flex-col gap-3 border-t py-8 font-ui text-[13px] sm:flex-row sm:items-center sm:justify-between">
-      <div className="text-grey font-display text-[15px]">{org}</div>
-      {/* Baseline-align so "Sign out" sits on the same line as the issue-count
-          text despite the button's taller (44px) tap target. */}
-      <div className="flex items-baseline gap-5">
-        <span>
-          {issueCount} {issueCount === 1 ? "issue" : "issues"}
-          {estYear ? ` · Est. ${estYear}` : ""}
-        </span>
-        {signedIn && (
-          <>
-            <Link
-              href="/preferences"
-              className="text-grey hover:text-red flex h-11 items-center font-ui text-sm font-medium whitespace-nowrap hover:underline"
-            >
-              Email preferences
-            </Link>
-            <SignOutButton />
-          </>
-        )}
+    <footer className="rule-heavy text-grey mt-6 flex flex-col gap-1 py-6 font-ui text-[15px] sm:flex-row sm:items-baseline sm:justify-between">
+      <div className="text-lead font-display text-[17px]">{org}</div>
+      <div className="tabular-nums">
+        {issueCount} {issueCount === 1 ? "issue" : "issues"}
+        {estYear ? ` · Est. ${estYear}` : ""}
       </div>
     </footer>
   );

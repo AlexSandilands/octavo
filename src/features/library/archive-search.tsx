@@ -5,8 +5,9 @@ import { Icon } from "@/components/icons";
 import { useListUrl } from "@/components/use-list-url";
 import { ARCHIVE_QUERY_MAX } from "./archive-limits";
 
-// The archive's title search. Same contract as the members list's box: the
-// query lives in the URL (?q=) and the filtering happens in the database, so a
+// The archive's title search — a labelled field ("Search titles") in the form
+// row under the masthead. Same contract as the members list's box: the query
+// lives in the URL (?q=) and the filtering happens in the database, so a
 // search sees every issue rather than the page being served, and survives a
 // refresh or a shared link. Typing stays local and debounced; each settled
 // value replaces the URL (so keystrokes don't pile up in history) and drops
@@ -52,20 +53,23 @@ export function ArchiveSearch({ query }: { query: string }) {
   };
 
   return (
-    // A <label> rather than a <div>: the input's own box is one text line, so
-    // on a phone the whole 44px field has to be what focuses it.
-    <label className="boxed-field border-hairline text-grey-soft flex h-11 items-center gap-2.5 rounded-ui border-[1.5px] bg-white px-3.5">
-      <Icon name="search" size={18} />
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        // The page schema truncates ?q= to the same bound, so nothing this box
-        // can produce is ever thrown away server-side.
-        maxLength={ARCHIVE_QUERY_MAX}
-        placeholder="Search issues by title"
-        aria-label="Search every issue by title"
-        className="text-lead flex-1 self-stretch border-none bg-transparent font-ui text-[15px]"
-      />
+    // A <label> rather than a <div>: the whole field, caption included, is
+    // what focuses the input — on a phone the 44px box has to be the target.
+    <label className="flex flex-col gap-1.5">
+      <span className="small-caps text-grey-soft">Search titles</span>
+      <span className="boxed-field border-lead text-grey-soft bg-sheet flex h-11 items-center gap-2.5 rounded-ui border px-3">
+        <Icon name="search" size={18} strokeWidth={1.8} />
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          // The page schema truncates ?q= to the same bound, so nothing this box
+          // can produce is ever thrown away server-side.
+          maxLength={ARCHIVE_QUERY_MAX}
+          placeholder="Type part of a title"
+          aria-label="Search every issue by title"
+          className="text-lead placeholder:text-grey-soft min-w-0 flex-1 self-stretch border-none bg-transparent font-ui text-[16px]"
+        />
+      </span>
     </label>
   );
 }

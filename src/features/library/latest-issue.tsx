@@ -23,8 +23,11 @@ type LatestIssueProps = {
   settings: SiteSettings;
 };
 
-// The library hero: the cover as a physical object on the left, and an editorial
-// "in this issue" teaser on the right so the latest issue sells itself.
+const COVER_W = 300;
+
+// The front page: a headline band (kicker, the issue's title set very large,
+// a standfirst with the number, length and month), then the cover beside the
+// "In this issue" index with dotted leaders, closing on two labelled buttons.
 export function LatestIssue({
   number,
   title,
@@ -39,19 +42,27 @@ export function LatestIssue({
   const pageCount = content.pages.length;
   const month = issueMonth(publishedAt);
   const sections = issueSections(content);
-  const shown = sections.slice(0, 4);
+  const shown = sections.slice(0, 6);
 
   return (
-    <section className="border-hairline grid gap-8 border-b py-9 md:grid-cols-[240px_1fr]">
-      <Link
-        href={`/read/${number}`}
-        aria-label={`Read ${title}`}
-        className="group relative block w-[240px] self-start"
-      >
-        {/* Stacked page edges peeking out behind the cover. */}
-        <div className="bg-hairline absolute inset-y-2 -right-[3px] w-[3px] rounded-r-[3px]" />
-        <div className="bg-hairline absolute inset-y-1 -right-[6px] w-[3px] rounded-r-[3px]" />
-        <div className="relative overflow-hidden rounded-[5px] transition-transform duration-300 group-hover:-translate-y-1">
+    <section className="pt-7 pb-10">
+      <Kicker>The latest issue</Kicker>
+      {/* The page's single h1: the masthead names the magazine, this names
+          the issue. */}
+      <h1 className="text-lead mt-3 font-display text-[40px] leading-[1.02] font-semibold text-balance sm:text-[64px]">
+        {title}
+      </h1>
+      <p className="text-grey mt-4 font-ui text-[17px] tabular-nums">
+        No. {number} · {pageCount} {pageCount === 1 ? "page" : "pages"}
+        {month ? ` · ${month}` : ""}
+      </p>
+
+      <div className="rule-heavy mt-6 grid gap-8 pt-6 md:grid-cols-[300px_1fr] md:gap-12">
+        <Link
+          href={`/read/${number}`}
+          aria-label={`Read ${title}`}
+          className="border-lead block w-full max-w-[300px] justify-self-center border md:justify-self-start"
+        >
           {cover ? (
             <CoverThumb
               page={cover}
@@ -60,14 +71,12 @@ export function LatestIssue({
               sponsors={sponsors}
               issueNo={number}
               settings={settings}
-              width={240}
+              width={COVER_W - 2}
               priority
             />
           ) : (
             // Legacy issues without a cover page keep the stylised book panel.
-            <div className="photo-fill-green relative flex h-[330px] flex-col justify-between p-5">
-              <div className="absolute inset-y-0 left-0 w-[7px] bg-black/20" />
-              <div className="absolute inset-y-0 left-[7px] w-px bg-white/10" />
+            <div className="photo-fill-green flex h-[418px] flex-col justify-between p-5">
               <div className="text-sheet font-display text-[13px] tracking-[0.1em]">
                 {settings.name} · No. {number}
               </div>
@@ -76,65 +85,57 @@ export function LatestIssue({
               </div>
             </div>
           )}
-        </div>
-      </Link>
+        </Link>
 
-      <div className="flex flex-col">
-        <Kicker>The latest issue</Kicker>
-        {/* h2: the page's single h1 is the masthead standfirst (see page.tsx). */}
-        <h2 className="text-lead mt-3 font-display text-4xl leading-[1.02] sm:text-5xl">
-          {title}
-        </h2>
-        <div className="text-grey-soft mt-3 font-ui text-[13px] tracking-wide">
-          No. {number} · {pageCount} {pageCount === 1 ? "page" : "pages"}
-          {month ? ` · ${month}` : ""}
-        </div>
-
-        {shown.length > 0 && (
-          <div className="border-hairline mt-6 border-t pt-5">
-            <Label>In this issue</Label>
-            <ol className="mt-3">
-              {shown.map((s, i) => (
-                <li
-                  key={i}
-                  className="border-hairline/70 border-b last:border-0"
-                >
-                  <Link
-                    href={`/read/${number}`}
-                    aria-label={`Read this issue: ${s.title}`}
-                    className="group/entry flex min-h-11 items-baseline gap-3 py-2.5"
-                  >
-                    <span className="text-red/70 w-5 flex-none font-ui tabular-nums text-[11px] tabular-nums">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                    <span className="text-lead font-display text-[17px] leading-snug group-hover/entry:underline">
-                      {s.title}
-                    </span>
-                    {s.kicker && (
-                      <span className="text-grey-soft ml-auto flex-none pl-3 font-ui text-[10px] tracking-[0.18em] uppercase">
-                        {s.kicker}
+        <div className="flex min-w-0 flex-col">
+          {shown.length > 0 && (
+            <div>
+              <Label>In this issue</Label>
+              <ol className="rule-heavy mt-3">
+                {shown.map((s, i) => (
+                  <li key={i} className="rule-hair first:border-t-0">
+                    <Link
+                      href={`/read/${number}`}
+                      aria-label={`Read this issue: ${s.title}`}
+                      className="group/entry flex min-h-12 items-baseline py-2.5"
+                    >
+                      <span className="text-lead w-8 flex-none font-ui text-[15px] font-bold tabular-nums">
+                        {i + 1}.
                       </span>
-                    )}
-                  </Link>
-                </li>
-              ))}
-            </ol>
-            {sections.length > shown.length && (
-              <div className="text-grey-soft mt-2.5 font-display text-sm italic">
-                + {sections.length - shown.length} more
-              </div>
+                      <span className="text-lead min-w-0 font-display text-[20px] leading-snug font-medium group-hover/entry:underline">
+                        {s.title}
+                      </span>
+                      {s.kicker && (
+                        <>
+                          <span aria-hidden className="leader" />
+                          <span className="small-caps text-grey-soft flex-none">
+                            {s.kicker}
+                          </span>
+                        </>
+                      )}
+                    </Link>
+                  </li>
+                ))}
+              </ol>
+              {sections.length > shown.length && (
+                <p className="text-grey-soft mt-3 font-ui text-[15px]">
+                  and {sections.length - shown.length} more inside
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="mt-auto grid gap-3 pt-8 sm:grid-cols-2">
+            <Button href={`/read/${number}`} icon="arrowRight" full>
+              Read this issue
+            </Button>
+            {/* The owner can switch downloads off site-wide (issue #162). This
+                is a Server Component, so "off" means the control is never built
+                — not hidden with CSS, not decided in the browser. */}
+            {settings.pdfDownloads && (
+              <DownloadPdfButton issueNumber={number} full />
             )}
           </div>
-        )}
-
-        <div className="mt-auto flex flex-wrap items-center gap-3 pt-7">
-          <Button href={`/read/${number}`} icon="arrowRight">
-            Read this issue
-          </Button>
-          {/* The owner can switch downloads off site-wide (issue #162). This is
-              a Server Component, so "off" means the control is never built —
-              not hidden with CSS, not decided in the browser. */}
-          {settings.pdfDownloads && <DownloadPdfButton issueNumber={number} />}
         </div>
       </div>
     </section>
