@@ -15,7 +15,7 @@ import { PAGE_W, PAGE_H } from "@/features/blocks/page-frame";
 import { useCanvasPanZoom } from "@/features/blocks/use-canvas-pan-zoom";
 import { ReaderSpread, FLIP_MS, type Turn } from "./reader-spread";
 import { ReaderContents, buildToc } from "./reader-contents";
-import { ReaderControls } from "./reader-controls";
+import { ReaderControls, ReaderTopBar } from "./reader-controls";
 import { useIssuePdf } from "./use-issue-pdf";
 
 // The page-turn strip inside each outer edge of the spread, as a fraction of the
@@ -120,7 +120,7 @@ export function DesktopReader({
   } = useCanvasPanZoom({
     contentWidth: 2 * PAGE_W,
     contentHeight: PAGE_H,
-    fitMargin: { x: 48, y: 72 },
+    fitMargin: { x: 48, y: 48 },
     fitClamp: { min: 0.4, max: Infinity },
     initialFitScale: 0.7,
     blockSelector: '[data-reader-block]:not([data-reader-block="bleed"])',
@@ -241,33 +241,22 @@ export function DesktopReader({
   return (
     <div
       ref={rootRef}
-      className="bg-stage relative flex h-screen overflow-hidden"
+      className="bg-ground relative flex h-screen flex-col overflow-hidden"
     >
-      {/* Only offer the toggle when the deployment enables more than one layout
-          theme (NEXT_PUBLIC_ISSUE_THEMES) — with a single theme there's nothing
-          to choose. */}
-      {themes.length > 1 && (
-        <div className="absolute top-3.5 right-4 z-10 flex items-center gap-2">
-          <span className="text-faint2 font-ui text-[9px] font-semibold tracking-[0.18em] uppercase">
-            Theme
-          </span>
-          <div className="bg-card border-hair flex rounded-full border p-[3px]">
-            {themes.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setThemeId(t.id)}
-                aria-pressed={themeId === t.id}
-                className={`flex min-h-[44px] items-center rounded-full px-4 font-ui text-xs font-semibold ${
-                  themeId === t.id ? "bg-brass-ink text-paper" : "text-muted"
-                }`}
-              >
-                {t.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      <ReaderTopBar
+        magazineName={settings.name}
+        issueNo={issueNo}
+        themes={themes}
+        themeId={themeId}
+        onSelectTheme={setThemeId}
+        pdfEnabled={settings.pdfDownloads}
+        pdfState={pdf.state}
+        onDownloadPdf={pdf.download}
+        isFullscreen={isFullscreen}
+        onToggleFullscreen={toggleFullscreen}
+      />
 
+      <div className="flex min-h-0 flex-1">
       <ReaderContents
         collapsed={collapsed}
         setCollapsed={setCollapsed}
@@ -304,13 +293,14 @@ export function DesktopReader({
               className="relative flex transition-transform duration-700 ease-[cubic-bezier(0.3,0.1,0.2,1)] motion-reduce:transition-none"
               style={{ transform: `translateX(${atCover ? "-25%" : "0%"})` }}
             >
-              {/* Drop-shadow plate behind the pages, sized to the visible sheet:
+              {/* The glow plate behind the pages, sized to the visible sheet:
                   the full spread, or just the cover leaf when centred. A box
                   shadow on the spread wrapper would flatten the flip's 3D, so it
-                  lives on its own element. */}
+                  lives on its own element — and it is the glow that makes the
+                  paper read as lit on the dark ground. */}
               <div
                 aria-hidden
-                className="pointer-events-none absolute top-0 shadow-[0_18px_40px_rgba(40,36,28,0.18)] transition-[left,width] duration-700 ease-[cubic-bezier(0.3,0.1,0.2,1)] motion-reduce:transition-none"
+                className="shadow-glow pointer-events-none absolute top-0 transition-[left,width] duration-700 ease-[cubic-bezier(0.3,0.1,0.2,1)] motion-reduce:transition-none"
                 style={{
                   left: atCover ? "50%" : "0%",
                   width: atCover ? "50%" : "100%",
@@ -336,19 +326,17 @@ export function DesktopReader({
         </div>
       </div>
 
+      </div>
+
       <ReaderControls
         label={label}
         onPrev={() => startTurn("prev")}
         onNext={() => startTurn("next")}
+        contentsOpen={!collapsed}
         onToggleContents={() => setCollapsed((c) => !c)}
         onResetView={resetView}
         zoom={zoom}
         onZoom={applyZoom}
-        isFullscreen={isFullscreen}
-        onToggleFullscreen={toggleFullscreen}
-        pdfEnabled={settings.pdfDownloads}
-        pdfState={pdf.state}
-        onDownloadPdf={pdf.download}
       />
     </div>
   );

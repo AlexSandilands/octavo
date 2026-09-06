@@ -1,8 +1,9 @@
 "use client";
 
-import { Fragment, useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { Fragment, useEffect, useState } from "react";
+import { DialogShell } from "@/components/dialog-shell";
 import { Icon } from "@/components/icons";
+import { Button, IconButton, Label } from "@/components/ui";
 import type { SiteSettings } from "@/lib/branding";
 import type { Block, IssueContent } from "@/lib/blocks";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
@@ -18,12 +19,13 @@ import { breakHeight, readerSections } from "./mobile-sections";
 import { useIssuePdf } from "./use-issue-pdf";
 
 // Header height, shared with the front cover's min-height below (#235).
-const HEADER_HEIGHT = 52;
+const HEADER_HEIGHT = 56;
 
 // Mobile reader: the whole issue as one flowing column (also the accessibility
-// fallback). Same block data as the flipbook, presented single-column. The
-// chrome lives here — header, text-size control, contents drawer, the closing
-// wordmark; the per-block rendering is mobile-block.tsx.
+// fallback). Same block data as the flipbook, presented single-column as a
+// sheet of page on the dark ground. The chrome lives here — the bar, the
+// text-size control, the contents sheet, the closing band; the per-block
+// rendering is mobile-block.tsx.
 export function MobileReader({
   content,
   issueNo,
@@ -45,35 +47,16 @@ export function MobileReader({
   // Unconditional — hooks always are. Whether the button that uses it renders
   // is the owner's call (issue #162); see the header below.
   const pdf = useIssuePdf(issueNo);
-  const [drawer, setDrawer] = useState(false);
-  const menuBtnRef = useRef<HTMLButtonElement>(null);
-  const closeBtnRef = useRef<HTMLButtonElement>(null);
+  const [contents, setContents] = useState(false);
+  // A heading chosen from the contents sheet, jumped to once the sheet has
+  // gone: the shell hands focus back to the button that opened it as it
+  // unmounts, so the heading is focused after that, not before.
+  const [jump, setJump] = useState<string | null>(null);
 
-  // Contents drawer a11y (WCAG 2.1.2 / 2.4.3): on open, move focus into the
-  // drawer; close on Escape; on close, return focus to the trigger button so
-  // keyboard/screen-reader users aren't stranded at the top of the document.
   useEffect(() => {
-    if (!drawer) return;
-    const opener = menuBtnRef.current;
-    closeBtnRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setDrawer(false);
-    };
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      // Only restore focus if it was lost with the drawer (fell back to body) —
-      // a TOC jump has already focused the target heading and must keep it.
-      if (document.activeElement === document.body) opener?.focus();
-    };
-  }, [drawer]);
-
-  // Jump to a heading from the contents drawer. Headings carry ids derived
-  // from their block id (see MobileBlock) and are focused after the scroll so
-  // screen-reader/keyboard users land where the page did.
-  const goToHeading = (blockId: string) => {
-    setDrawer(false);
-    const el = document.getElementById(headingDomId(blockId));
+    if (contents || !jump) return;
+    setJump(null);
+    const el = document.getElementById(headingDomId(jump));
     if (!el) return;
     const reduceMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
@@ -82,7 +65,15 @@ export function MobileReader({
       behavior: reduceMotion ? "auto" : "smooth",
       block: "start",
     });
+    // Headings carry ids derived from their block id (see MobileBlock) and are
+    // focused after the scroll so screen-reader/keyboard users land where the
+    // page did.
     el.focus({ preventScroll: true });
+  }, [contents, jump]);
+
+  const goToHeading = (blockId: string) => {
+    setJump(blockId);
+    setContents(false);
   };
 
   const sections = readerSections(content.pages);
@@ -94,67 +85,64 @@ export function MobileReader({
       (b.level ?? "main") !== "paragraph",
   );
 
+  const pdfLabel =
+    pdf.state === "loading"
+      ? "Preparing PDF…"
+      : pdf.state === "error"
+        ? "PDF failed — tap to retry"
+        : "Download PDF";
+
   return (
-    <div className="bg-page relative flex min-h-screen flex-col">
+    <div className="bg-ground relative flex min-h-screen flex-col">
       <header
         style={{ height: HEADER_HEIGHT }}
-        className="border-line-soft bg-page flex flex-none items-center justify-between border-b px-4"
+        className="border-hairline bg-raised sticky top-0 z-10 flex flex-none items-center justify-between gap-2 border-b px-2"
       >
         <div className="flex items-center">
-          <button
-            ref={menuBtnRef}
-            onClick={() => setDrawer(true)}
-            className="text-ink flex h-10 w-10 items-center justify-center rounded-[9px]"
-            aria-label="Contents"
-          >
-            <Icon name="menu" size={22} />
-          </button>
+          <IconButton
+            icon="menu"
+            label="Contents"
+            tone="dark"
+            size={22}
+            aria-expanded={contents}
+            onClick={() => setContents(true)}
+          />
           {/* Dropped entirely when the owner has switched downloads off (issue
               #162). The menu button is left alone in this div — the header's
               justify-between keeps the title centred either way. */}
           {settings.pdfDownloads && (
-            <button
-              onClick={pdf.download}
+            <IconButton
+              icon="download"
+              label={pdfLabel}
+              tone="dark"
+              size={21}
               disabled={pdf.state === "loading"}
-              className="text-ink flex h-10 w-10 items-center justify-center rounded-[9px] disabled:cursor-default"
-              aria-label={
-                pdf.state === "loading"
-                  ? "Preparing PDF…"
-                  : pdf.state === "error"
-                    ? "PDF failed — tap to retry"
-                    : "Download PDF"
-              }
-            >
-              {pdf.state === "loading" ? (
-                <span
-                  aria-hidden="true"
-                  className="h-[18px] w-[18px] animate-spin rounded-full border-2 border-current border-t-transparent opacity-70"
-                />
-              ) : (
-                <Icon
-                  name="download"
-                  size={20}
-                  className={pdf.state === "error" ? "text-alert" : undefined}
-                />
-              )}
-            </button>
+              onClick={pdf.download}
+              className={pdf.state === "error" ? "text-danger-bright" : ""}
+            />
           )}
         </div>
-        <span className="text-ink font-display text-[17px] tracking-[0.02em]">
+        <span className="text-chrome-text min-w-0 truncate font-display text-[17px]">
           {settings.name}
         </span>
-        <div className="border-line bg-chip-soft flex items-center overflow-hidden rounded-full border">
+        <div
+          role="group"
+          aria-label="Text size"
+          className="border-hairline bg-lifted flex flex-none items-center overflow-hidden rounded-[7px] border"
+        >
           <button
+            type="button"
             onClick={() => setM((v) => Math.max(16, v - 2))}
-            className="text-ink flex h-10 w-10 items-center justify-center font-ui text-sm font-medium"
+            className="text-chrome-text hover:bg-chrome-soft flex h-11 w-11 cursor-pointer items-center justify-center font-ui text-[14px] font-medium"
             aria-label="Smaller text"
           >
             A−
           </button>
-          <div className="bg-hair h-5 w-px" />
+          <div className="bg-hairline h-6 w-px" />
           <button
+            type="button"
             onClick={() => setM((v) => Math.min(26, v + 2))}
-            className="text-ink flex h-10 w-10 items-center justify-center font-ui text-lg font-semibold"
+            className="text-chrome-text hover:bg-chrome-soft flex h-11 w-11 cursor-pointer items-center justify-center font-ui text-[18px] font-semibold"
             aria-label="Larger text"
           >
             A+
@@ -162,7 +150,10 @@ export function MobileReader({
         </div>
       </header>
 
-      <article className="flex-1 pb-10">
+      {/* The sheet: page-coloured, and pinned to the page faces (`page-env`) so
+          the chrome's own type never reaches the authored content. Held to a
+          reading measure, so on a tablet the dark ground shows either side. */}
+      <article className="page-env bg-page mx-auto w-full max-w-2xl flex-1 pb-10">
         {sections.map((s, i) => {
           // The front cover fills what's left of the viewport under the header
           // (and grows past it rather than clipping); other covers keep their
@@ -180,13 +171,14 @@ export function MobileReader({
           ));
           return (
             <Fragment key={s.id}>
-              {/* The page break: a band of canvas between two sheets of page. A
-                  sibling of the section, not its first child, so it sits flush
-                  against the page above whatever padding the page below has. */}
+              {/* The page break: a band of the dark ground between two sheets
+                  of page. A sibling of the section, not its first child, so it
+                  sits flush against the page above whatever padding the page
+                  below has. */}
               {s.divided && (
                 <div
                   aria-hidden
-                  className="bg-ground shadow-[inset_0_2px_3px_rgba(40,36,28,0.08)]"
+                  className="bg-ground"
                   style={{ height: breakHeight(m) }}
                 />
               )}
@@ -237,50 +229,85 @@ export function MobileReader({
         )}
       </article>
 
-      {drawer && (
-        <>
-          <div
-            className="absolute inset-0 bg-[rgba(32,32,28,0.32)]"
-            onClick={() => setDrawer(false)}
-          />
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="In this issue"
-            className="bg-card absolute top-0 bottom-0 left-0 flex w-[250px] flex-col py-6 shadow-[8px_0_30px_rgba(0,0,0,0.2)]"
+      {/* The closing band: the issue is over, and the way back is right here
+          rather than a scroll away at the top. */}
+      <div className="px-5 py-12 text-center">
+        <Label tone="dark">End of issue</Label>
+        <div className="mt-5 flex justify-center">
+          <Button
+            href="/"
+            variant="secondary"
+            tone="dark"
+            icon="arrowLeft"
+            iconPosition="left"
           >
-            <div className="flex items-center justify-between px-5">
-              <span className="text-brass-ink font-ui text-[11px] font-semibold tracking-[0.2em] uppercase">
-                In this issue
-              </span>
-              <button
-                ref={closeBtnRef}
-                onClick={() => setDrawer(false)}
-                className="text-muted"
-                aria-label="Close"
-              >
-                <Icon name="close" size={20} strokeWidth={1.7} />
-              </button>
-            </div>
-            <div className="bg-line mx-5 my-4 h-px" />
-            <Link
-              href="/"
-              className="text-muted flex items-center gap-1.5 px-5 pb-3 font-ui text-[14px] font-medium"
-            >
-              <Icon name="chevronLeft" size={16} />
-              Library
-            </Link>
-            {headings.map((h) => (
-              <button
-                key={h.id}
-                onClick={() => goToHeading(h.id)}
-                className="text-brass-ink px-5 py-2.5 text-left font-display text-[19px]"
-              >
-                {h.title}
-              </button>
-            ))}
-          </div>
-        </>
+            Back to the library
+          </Button>
+        </div>
+      </div>
+
+      {contents && (
+        <DialogShell
+          layout="full"
+          panelClassName="bg-ground text-chrome-text flex h-full w-full flex-col overflow-y-auto px-5 py-2"
+          onClose={() => setContents(false)}
+        >
+          {(titleId) => (
+            <>
+              <div className="flex h-14 flex-none items-center justify-between">
+                <h2
+                  id={titleId}
+                  className="text-brass font-meta text-[12px] font-medium tracking-[0.14em] uppercase"
+                >
+                  In this issue
+                </h2>
+                <IconButton
+                  icon="close"
+                  label="Close"
+                  showLabel
+                  tone="dark"
+                  onClick={() => setContents(false)}
+                />
+              </div>
+              <p className="text-chrome-muted font-meta text-[12px] tracking-[0.1em] uppercase">
+                {settings.name} · No. {issueNo}
+              </p>
+              <nav className="mt-4 flex flex-col">
+                {headings.length === 0 && (
+                  <p className="text-chrome-muted py-4 font-ui text-[16px]">
+                    Headings appear here.
+                  </p>
+                )}
+                {headings.map((h) => (
+                  <button
+                    key={h.id}
+                    type="button"
+                    onClick={() => goToHeading(h.id)}
+                    className="border-hairline text-chrome-text hover:bg-lifted rounded-ui flex min-h-14 w-full cursor-pointer items-center gap-3 border-b px-2 py-3 text-left font-display text-[20px] leading-snug"
+                  >
+                    <Icon
+                      name="chevronRight"
+                      size={18}
+                      className="text-brass flex-none"
+                    />
+                    {h.title}
+                  </button>
+                ))}
+              </nav>
+              <div className="border-hairline mt-auto border-t py-5">
+                <Button
+                  href="/"
+                  variant="ghost"
+                  tone="dark"
+                  icon="arrowLeft"
+                  iconPosition="left"
+                >
+                  Back to the library
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogShell>
       )}
     </div>
   );

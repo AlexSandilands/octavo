@@ -12,7 +12,7 @@ import type { SponsorMap } from "@/lib/sponsors";
 // mounting only the one the viewport needs keeps the other's JS (and its deps)
 // off the wire — a phone never downloads the flipbook, a desktop never the
 // mobile reader. `ssr: false` because the choice is viewport-driven and can't be
-// made on the server; the tradeoff is a brief paper-coloured fallback before the
+// made on the server; the tradeoff is a brief blank-ground fallback before the
 // active reader's chunk resolves (documented in the issue). No inline scripts —
 // dynamic() uses ordinary chunk loading, so the nonce-based CSP is untouched.
 const DesktopReader = dynamic(
@@ -79,12 +79,12 @@ export function ReaderMount({
   );
 }
 
-// Full-height paper wash shown while the active reader's chunk loads. aria-busy
+// Full-height stretch of the ground shown while the active reader's chunk loads. aria-busy
 // so assistive tech announces the pending state rather than an empty page.
 function ReaderFallback() {
   return (
     <div
-      className="bg-page min-h-screen"
+      className="bg-ground min-h-screen"
       role="status"
       aria-busy="true"
       aria-label="Loading issue"
