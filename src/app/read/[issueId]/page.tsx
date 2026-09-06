@@ -40,6 +40,7 @@ export default async function ReadPage({
       <ReaderMount
         content={issue.content}
         issueNo={issue.number}
+        title={issue.title}
         logo={logo}
         // The footer is held to what this issue's pages were laid out against
         // (issue #128), so a later settings change can't overlap their last

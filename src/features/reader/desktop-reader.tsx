@@ -14,8 +14,9 @@ import {
 import { PAGE_W, PAGE_H } from "@/features/blocks/page-frame";
 import { useCanvasPanZoom } from "@/features/blocks/use-canvas-pan-zoom";
 import { ReaderSpread, FLIP_MS, type Turn } from "./reader-spread";
+import { Button } from "@/components/ui";
 import { ReaderContents, buildToc } from "./reader-contents";
-import { ReaderControls } from "./reader-controls";
+import { PdfButton, ReaderControls } from "./reader-controls";
 import { useIssuePdf } from "./use-issue-pdf";
 
 // The page-turn strip inside each outer edge of the spread, as a fraction of the
@@ -26,6 +27,7 @@ const EDGE_BAND = 0.05;
 export function DesktopReader({
   content,
   issueNo,
+  title,
   logo,
   settings,
   images,
@@ -33,6 +35,8 @@ export function DesktopReader({
 }: {
   content: IssueContent;
   issueNo: number;
+  /** The issue's title, for the top bar and the contents sheet. */
+  title: string;
   /** The issue's footer mark (issue #97), or null for the text-only footer. */
   logo: ResolvedImage | null;
   /** The magazine's effective branding + footer appearance (issue #105),
@@ -45,7 +49,7 @@ export function DesktopReader({
   const toc = buildToc(pages);
 
   const [spread, setSpread] = useState(0);
-  const [collapsed, setCollapsed] = useState(false);
+  const [contentsOpen, setContentsOpen] = useState(false);
   // The reader's layout theme is a member-facing per-session preference (not the
   // issue's stored theme): it opens on the deployment default and the toggle
   // offers only the enabled themes. `themeId` is the choice; `theme` the module.
@@ -81,7 +85,7 @@ export function DesktopReader({
   );
 
   // Full-screen reading: requests browser fullscreen on the reader root and, for
-  // a distraction-free view, collapses the contents sidebar too.
+  // a distraction-free view, closes the contents sheet too.
   const rootRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   useEffect(() => {
@@ -94,7 +98,7 @@ export function DesktopReader({
       document.exitFullscreen?.();
     } else {
       rootRef.current?.requestFullscreen?.();
-      setCollapsed(true);
+      setContentsOpen(false);
     }
   };
 
@@ -241,115 +245,137 @@ export function DesktopReader({
   return (
     <div
       ref={rootRef}
-      className="bg-stage relative flex h-screen overflow-hidden"
+      className="bg-stage-ui relative flex h-dvh flex-col overflow-hidden"
     >
-      {/* Only offer the toggle when the deployment enables more than one layout
-          theme (NEXT_PUBLIC_ISSUE_THEMES) — with a single theme there's nothing
-          to choose. */}
-      {themes.length > 1 && (
-        <div className="absolute top-3.5 right-4 z-10 flex items-center gap-2">
-          <span className="text-faint2 font-sans text-[9px] font-semibold tracking-[0.18em] uppercase">
-            Theme
-          </span>
-          <div className="bg-card border-hair flex rounded-full border p-[3px]">
+      <header className="bg-surface border-hairline flex h-16 flex-none items-center gap-3 border-b px-3">
+        <Button href="/" variant="quiet" size="sm" icon="arrowLeft">
+          Library
+        </Button>
+        <h1 className="text-fg min-w-0 flex-1 truncate font-ui text-[18px] font-bold">
+          {title}
+          <span className="text-fg-muted font-normal"> · No. {issueNo}</span>
+        </h1>
+        {/* Only offer the toggle when the deployment enables more than one
+            layout theme (NEXT_PUBLIC_ISSUE_THEMES) — with a single theme
+            there's nothing to choose. */}
+        {themes.length > 1 && (
+          <div
+            role="group"
+            aria-label="Theme"
+            className="bg-surface-2 flex rounded-full p-1"
+          >
             {themes.map((t) => (
               <button
                 key={t.id}
+                type="button"
                 onClick={() => setThemeId(t.id)}
                 aria-pressed={themeId === t.id}
-                className={`flex min-h-[44px] items-center rounded-full px-4 font-sans text-xs font-semibold ${
-                  themeId === t.id ? "bg-accent text-paper" : "text-muted"
+                className={`flex h-10 cursor-pointer items-center rounded-full px-4 font-ui text-[15px] font-bold transition-colors ${
+                  themeId === t.id
+                    ? "bg-surface text-primary shadow-card"
+                    : "text-fg-muted hover:text-primary"
                 }`}
               >
                 {t.name}
               </button>
             ))}
           </div>
-        </div>
-      )}
+        )}
+        {/* Dropped entirely when the owner has switched downloads off (#162). */}
+        {settings.pdfDownloads && (
+          <PdfButton state={pdf.state} onClick={pdf.download} />
+        )}
+      </header>
 
-      <ReaderContents
-        collapsed={collapsed}
-        setCollapsed={setCollapsed}
-        toc={toc}
-        spread={spread}
-        issueNo={issueNo}
-        magazineName={settings.name}
-        viewOf={viewOf}
-        onNavigate={go}
-      />
-
-      <div
-        ref={stageRef}
-        onClick={onStageClick}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
-        className={`relative flex-1 overflow-hidden ${
-          panning ? "cursor-grabbing select-none" : "cursor-grab"
-        }`}
-      >
-        <div className="flex min-h-full min-w-full items-center justify-center p-6">
-          {/* Pan rides on the outer wrapper (instant); the cover-recenter offset
-              rides on the inner one (transitioned) so a drag never lags behind a
-              700ms ease. The offset is a percentage of the box's own width, so a
-              zoom rescales it instantly without a stray transition. */}
-          <div ref={panRef} className="relative">
-            <div
-              ref={spreadRef}
-              // `flex`, not `inline-flex`: mid-turn every child is absolutely
-              // positioned, and an inline-level box would then synthesise a
-              // baseline and jump the spread for the turn's duration (#217).
-              className="relative flex transition-transform duration-700 ease-[cubic-bezier(0.3,0.1,0.2,1)] motion-reduce:transition-none"
-              style={{ transform: `translateX(${atCover ? "-25%" : "0%"})` }}
-            >
-              {/* Drop-shadow plate behind the pages, sized to the visible sheet:
-                  the full spread, or just the cover leaf when centred. A box
-                  shadow on the spread wrapper would flatten the flip's 3D, so it
-                  lives on its own element. */}
+      <div className="relative min-h-0 flex-1">
+        <div
+          ref={stageRef}
+          onClick={onStageClick}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+          className={`absolute inset-0 overflow-hidden ${
+            panning ? "cursor-grabbing select-none" : "cursor-grab"
+          }`}
+        >
+          <div className="flex min-h-full min-w-full items-center justify-center p-6">
+            {/* Pan rides on the outer wrapper (instant); the cover-recenter
+                offset rides on the inner one (transitioned) so a drag never
+                lags behind a 700ms ease. The offset is a percentage of the
+                box's own width, so a zoom rescales it instantly without a
+                stray transition. */}
+            <div ref={panRef} className="relative">
               <div
-                aria-hidden
-                className="pointer-events-none absolute top-0 shadow-[0_18px_40px_rgba(40,36,28,0.18)] transition-[left,width] duration-700 ease-[cubic-bezier(0.3,0.1,0.2,1)] motion-reduce:transition-none"
+                ref={spreadRef}
+                // `flex`, not `inline-flex`: mid-turn every child is absolutely
+                // positioned, and an inline-level box would then synthesise a
+                // baseline and jump the spread for the turn's duration (#217).
+                className="relative flex transition-transform duration-700 ease-[cubic-bezier(0.3,0.1,0.2,1)] motion-reduce:transition-none"
                 style={{
-                  left: atCover ? "50%" : "0%",
-                  width: atCover ? "50%" : "100%",
-                  height: "100%",
+                  transform: `translateX(${atCover ? "-25%" : "0%"})`,
                 }}
-              />
-              <ReaderSpread
-                pages={pages}
-                spread={spread}
-                turn={turn}
-                turnAngle={turnAngle}
-                leftFade={coverTurn ? leftFade : undefined}
-                theme={theme}
-                scale={scale}
-                issueNo={issueNo}
-                logo={logo}
-                settings={settings}
-                images={images}
-                sponsors={sponsors}
-              />
+              >
+                {/* Drop-shadow plate behind the pages, sized to the visible
+                    sheet: the full spread, or just the cover leaf when centred.
+                    A box shadow on the spread wrapper would flatten the flip's
+                    3D, so it lives on its own element. */}
+                <div
+                  aria-hidden
+                  className="shadow-float pointer-events-none absolute top-0 transition-[left,width] duration-700 ease-[cubic-bezier(0.3,0.1,0.2,1)] motion-reduce:transition-none"
+                  style={{
+                    left: atCover ? "50%" : "0%",
+                    width: atCover ? "50%" : "100%",
+                    height: "100%",
+                  }}
+                />
+                <ReaderSpread
+                  pages={pages}
+                  spread={spread}
+                  turn={turn}
+                  turnAngle={turnAngle}
+                  leftFade={coverTurn ? leftFade : undefined}
+                  theme={theme}
+                  scale={scale}
+                  issueNo={issueNo}
+                  logo={logo}
+                  settings={settings}
+                  images={images}
+                  sponsors={sponsors}
+                />
+              </div>
             </div>
           </div>
         </div>
+
+        <ReaderControls
+          label={label}
+          onPrev={() => startTurn("prev")}
+          onNext={() => startTurn("next")}
+          canPrev={spread > 0}
+          canNext={spread < maxSpread}
+          onToggleContents={() => setContentsOpen((c) => !c)}
+          contentsOpen={contentsOpen}
+          onResetView={resetView}
+          zoom={zoom}
+          onZoom={applyZoom}
+          isFullscreen={isFullscreen}
+          onToggleFullscreen={toggleFullscreen}
+        />
       </div>
 
-      <ReaderControls
-        label={label}
-        onPrev={() => startTurn("prev")}
-        onNext={() => startTurn("next")}
-        onToggleContents={() => setCollapsed((c) => !c)}
-        onResetView={resetView}
-        zoom={zoom}
-        onZoom={applyZoom}
-        isFullscreen={isFullscreen}
-        onToggleFullscreen={toggleFullscreen}
-        pdfEnabled={settings.pdfDownloads}
-        pdfState={pdf.state}
-        onDownloadPdf={pdf.download}
-      />
+      {contentsOpen && (
+        <ReaderContents
+          onClose={() => setContentsOpen(false)}
+          toc={toc}
+          spread={spread}
+          issueNo={issueNo}
+          issueTitle={title}
+          magazineName={settings.name}
+          viewOf={viewOf}
+          onNavigate={go}
+        />
+      )}
     </div>
   );
 }

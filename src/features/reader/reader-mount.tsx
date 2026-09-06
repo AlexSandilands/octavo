@@ -30,6 +30,7 @@ const DESKTOP_QUERY = "(min-width: 768px)";
 export function ReaderMount({
   content,
   issueNo,
+  title,
   logo,
   settings,
   images,
@@ -37,6 +38,8 @@ export function ReaderMount({
 }: {
   content: IssueContent;
   issueNo: number;
+  /** The issue's title, for the readers' top bars. */
+  title: string;
   /** The issue's footer mark (issue #97), resolved server-side. */
   logo: ResolvedImage | null;
   /** The magazine's effective branding + footer appearance (issue #105),
@@ -62,6 +65,7 @@ export function ReaderMount({
     <DesktopReader
       content={content}
       issueNo={issueNo}
+      title={title}
       logo={logo}
       settings={settings}
       images={images}
@@ -71,6 +75,7 @@ export function ReaderMount({
     <MobileReader
       content={content}
       issueNo={issueNo}
+      title={title}
       logo={logo}
       settings={settings}
       images={images}
@@ -79,12 +84,12 @@ export function ReaderMount({
   );
 }
 
-// Full-height paper wash shown while the active reader's chunk loads. aria-busy
+// Full-height stage wash shown while the active reader's chunk loads. aria-busy
 // so assistive tech announces the pending state rather than an empty page.
 function ReaderFallback() {
   return (
     <div
-      className="bg-page min-h-screen"
+      className="bg-stage-ui min-h-dvh"
       role="status"
       aria-busy="true"
       aria-label="Loading issue"

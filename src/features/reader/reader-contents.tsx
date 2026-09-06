@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { DialogShell } from "@/components/dialog-shell";
+import { DialogHeader } from "@/components/dialog-parts";
 import { Icon } from "@/components/icons";
 import type { Page } from "@/lib/blocks";
 
@@ -23,111 +25,98 @@ export function buildToc(pages: Page[]): TocEntry[] {
   return toc;
 }
 
-// The reader's left rail. Collapsed it is a thin strip of controls; expanded it
-// shows the masthead standfirst and the live contents list, the current spread's
-// heading highlighted. Navigation is delegated back to the reader.
+// The desktop reader's contents: a slide-over sheet from the left edge, via
+// DialogShell so it is a proper dialog. Rows carry a page-number badge; the
+// current spread's row is tinted. Choosing a row navigates and closes.
 export function ReaderContents({
-  collapsed,
-  setCollapsed,
+  onClose,
   toc,
   spread,
   issueNo,
+  issueTitle,
   magazineName,
   viewOf,
   onNavigate,
 }: {
-  collapsed: boolean;
-  setCollapsed: (v: boolean | ((c: boolean) => boolean)) => void;
+  onClose: () => void;
   toc: TocEntry[];
   spread: number;
   issueNo: number;
+  issueTitle: string;
   /** The magazine's effective name (issue #105). */
   magazineName: string;
   viewOf: (page: number) => number;
   onNavigate: (page: number) => void;
 }) {
-  if (collapsed) {
-    return (
-      <aside className="bg-card border-line flex w-[54px] flex-none flex-col items-center gap-4 border-r py-5">
-        <Link
-          href="/"
-          title="Back to library"
-          className="text-muted hover:text-accent"
-        >
-          <Icon name="chevronLeft" size={20} />
-        </Link>
-        <div className="bg-line h-px w-6" />
-        <button
-          onClick={() => setCollapsed(false)}
-          className="text-accent"
-          title="Expand contents"
-        >
-          <Icon name="menu" size={20} />
-        </button>
-        <div className="bg-line h-px w-6" />
-        <span className="text-faint2 font-mono text-[10px] tracking-[0.1em] [writing-mode:vertical-rl]">
-          CONTENTS
-        </span>
-      </aside>
-    );
-  }
-
   return (
-    <aside className="bg-card border-line flex w-[248px] flex-none flex-col border-r py-5">
-      <Link
-        href="/"
-        className="text-muted hover:text-accent mb-4 flex items-center gap-1.5 px-5 font-sans text-[13px] font-medium"
-      >
-        <Icon name="chevronLeft" size={16} />
-        Library
-      </Link>
-      <div className="flex items-center justify-between px-5">
-        <span className="text-accent font-sans text-[11px] font-semibold tracking-[0.2em] uppercase">
-          Contents
-        </span>
-        <button
-          onClick={() => setCollapsed(true)}
-          className="text-muted"
-          title="Collapse"
-        >
-          <Icon name="chevronLeft" size={18} />
-        </button>
-      </div>
-      <p className="text-faint px-5 pt-2 font-serif text-[13px] italic">
-        {magazineName} · No. {issueNo}
-      </p>
-      <div className="bg-line mx-5 my-4 h-px" />
-      <nav className="scrollbar-soft flex-1 overflow-y-auto [--scrollbar-surface:var(--color-card)] [scrollbar-gutter:stable]">
-        {toc.length === 0 && (
-          <p className="text-faint2 px-5 font-sans text-[13px]">
-            Headings appear here.
+    <DialogShell placement="left" onClose={onClose}>
+      {(titleId) => (
+        <>
+          <DialogHeader
+            titleId={titleId}
+            kicker={`${magazineName} · No. ${issueNo}`}
+            title="Contents"
+            onClose={onClose}
+          />
+          <p className="text-fg-muted mt-1 px-5 font-ui text-[15px] md:px-8">
+            {issueTitle}
           </p>
-        )}
-        {toc.map((t) => {
-          const active = viewOf(t.page) === spread;
-          return (
-            <button
-              key={`${t.page}-${t.label}`}
-              onClick={() => onNavigate(t.page)}
-              aria-current={active ? "true" : undefined}
-              className={`flex w-full items-baseline justify-between gap-2.5 border-l-2 px-5 py-2.5 text-left ${
-                active ? "border-accent" : "border-transparent"
-              }`}
+          <nav
+            aria-label="Contents"
+            className="scrollbar-soft mt-4 flex-1 overflow-y-auto px-3 pb-4 [--scrollbar-surface:var(--color-surface)] [scrollbar-gutter:stable]"
+          >
+            {toc.length === 0 && (
+              <p className="text-fg-muted px-3 font-ui text-[16px]">
+                Headings appear here.
+              </p>
+            )}
+            <ul className="flex flex-col gap-0.5">
+              {toc.map((t) => {
+                const active = viewOf(t.page) === spread;
+                return (
+                  <li key={`${t.page}-${t.label}`}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onNavigate(t.page);
+                        onClose();
+                      }}
+                      aria-current={active ? "true" : undefined}
+                      className={`flex min-h-12 w-full cursor-pointer items-center gap-3 rounded-field px-3 py-2 text-left transition-colors ${
+                        active
+                          ? "bg-primary-soft text-primary"
+                          : "text-fg hover:bg-primary-wash hover:text-primary"
+                      }`}
+                    >
+                      <span
+                        className={`flex h-8 w-8 flex-none items-center justify-center rounded-full font-ui text-[13px] font-bold tabular-nums ${
+                          active
+                            ? "bg-primary text-surface"
+                            : "bg-surface-2 text-fg-muted"
+                        }`}
+                      >
+                        {t.page}
+                      </span>
+                      <span className="font-ui text-[16px] leading-snug font-bold">
+                        {t.label}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+          <div className="border-hairline border-t p-3">
+            <Link
+              href="/"
+              className="text-fg-muted hover:bg-primary-wash hover:text-primary flex h-12 items-center gap-3 rounded-field px-3 font-ui text-[16px] font-bold transition-colors"
             >
-              <span
-                className={`font-serif text-[15px] leading-snug ${
-                  active ? "text-accent" : "text-body"
-                }`}
-              >
-                {t.label}
-              </span>
-              <span className="text-faint2 font-mono text-[11px]">
-                {t.page}
-              </span>
-            </button>
-          );
-        })}
-      </nav>
-    </aside>
+              <Icon name="arrowLeft" size={20} strokeWidth={2} />
+              Back to the library
+            </Link>
+          </div>
+        </>
+      )}
+    </DialogShell>
   );
 }

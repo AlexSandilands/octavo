@@ -74,7 +74,7 @@ export function SidebarNav({
       </div>
       <nav
         aria-label="Main"
-        className="scrollbar-soft flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-3 [--scrollbar-surface:var(--color-surface)]"
+        className="scrollbar-soft flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-3 pb-3 [--scrollbar-surface:var(--color-surface)]"
       >
         {area === "member" ? (
           <>
@@ -99,34 +99,34 @@ export function SidebarNav({
             />
           </>
         )}
-      </nav>
-      <div className="border-hairline border-t px-3 py-4">
-        {user ? (
-          <>
-            <div className="flex items-center gap-3 px-2 pb-3">
-              <Avatar
-                initials={initials(user.name?.trim() || user.email)}
-                size={40}
-              />
-              <div className="min-w-0">
-                <div className="text-fg truncate font-ui text-[16px] font-bold">
-                  {user.name?.trim() || user.email}
-                </div>
-                {user.name?.trim() && (
-                  <div className="text-fg-muted truncate font-ui text-[13px]">
-                    {user.email}
+        <div className="border-hairline mt-auto border-t px-0 pt-4 pb-1">
+          {user ? (
+            <>
+              <div className="flex items-center gap-3 px-2 pb-3">
+                <Avatar
+                  initials={initials(user.name?.trim() || user.email)}
+                  size={40}
+                />
+                <div className="min-w-0">
+                  <div className="text-fg truncate font-ui text-[16px] font-bold">
+                    {user.name?.trim() || user.email}
                   </div>
-                )}
+                  {user.name?.trim() && (
+                    <div className="text-fg-muted truncate font-ui text-[13px]">
+                      {user.email}
+                    </div>
+                  )}
+                </div>
               </div>
+              <SignOutButton variant="row" />
+            </>
+          ) : (
+            <div className="px-2">
+              <DemoBadge />
             </div>
-            <SignOutButton variant="row" />
-          </>
-        ) : (
-          <div className="px-2">
-            <DemoBadge />
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </nav>
     </aside>
   );
 }
