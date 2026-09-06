@@ -2,11 +2,7 @@ import Link from "next/link";
 import { Label } from "@/components/ui";
 import { coverPageOf, type Page } from "@/lib/blocks";
 import type { IssueRow } from "@/server/issues";
-import {
-  settingsForIssue,
-  type FooterReserve,
-  type SiteSettings,
-} from "@/lib/branding";
+import type { SiteSettings } from "@/lib/branding";
 import type { ImageMap } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 import { PAGE_W, PAGE_H } from "@/features/blocks/page-frame";
@@ -24,10 +20,7 @@ function stripes(tint: string) {
   return `repeating-linear-gradient(135deg, ${tint} 0, ${tint} 10px, #00000010 10px, #00000010 20px)`;
 }
 
-// `footerMarkSize`/`footerTextSize` are the issue's footer reserve (issue #128),
-// carried per card so each thumbnail draws the footer its issue actually reads
-// with — the whole point of the shared PageFrame is that every surface agrees.
-type ArchiveItem = FooterReserve & {
+type ArchiveItem = {
   id: string;
   number: number;
   title: string;
@@ -46,10 +39,6 @@ export function toArchiveItems(rows: IssueRow[]): ArchiveItem[] {
     publishedAt: i.publishedAt,
     theme: i.theme,
     cover: coverPageOf(i.content),
-    // The issue's footer reserve (issue #128) — each card clamps the
-    // magazine's footer to its own issue's.
-    footerMarkSize: i.footerMarkSize,
-    footerTextSize: i.footerTextSize,
   }));
 }
 
@@ -99,7 +88,7 @@ export function ArchiveGrid({
   /** Resolved managed sponsors for the cover pages — the thumbnail needs them
    *  to draw a sponsor block the same way the reader does (issue #170). */
   sponsors: SponsorMap;
-  /** The magazine's effective branding + footer appearance (issue #105). */
+  /** Branding for the cover decoration; covers carry no footer. */
   settings: SiteSettings;
   /** null on a page that already names the shelf in its own heading. */
   heading?: string | null;
@@ -163,7 +152,7 @@ function ArchiveCard({
             images={images}
             sponsors={sponsors}
             issueNo={a.number}
-            settings={settingsForIssue(settings, a)}
+            settings={settings}
             width={THUMB_W}
           />
         ) : (
@@ -173,6 +162,9 @@ function ArchiveCard({
       <div className="mt-2.5">
         <span className="text-ink font-serif text-[15px] leading-tight group-hover:underline">
           {a.title}
+        </span>{" "}
+        <span className="text-faint2 inline-block font-mono text-[11px] whitespace-nowrap">
+          No. {a.number}
         </span>
       </div>
     </Link>

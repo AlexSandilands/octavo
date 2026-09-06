@@ -21,7 +21,7 @@ export function SectionMagazine() {
           <strong>Magazine name</strong> is the masthead over the library, and
           the title of every email that goes out.{" "}
           <strong>Club or organisation</strong> is who publishes it — the
-          wording that sits beside your mark at the foot of every page.{" "}
+          wording that sits beside your mark in the running footer.{" "}
           <strong>Tagline</strong> is the single line under the club name on the
           library page. Every box is optional: leave one empty and the magazine
           falls back to the wording it was set up with when the site was
@@ -32,11 +32,12 @@ export function SectionMagazine() {
           Three choices that decide the look of the running footer: how big the
           mark is, how big the wording is, and whether the lockup sits on the
           left, in the middle or on the right — the page number always takes the
-          opposite margin, on both leaves of a spread and on a phone. These are
-          settings for the whole magazine, not for one issue: they apply
-          everywhere a page is drawn — the reader, the editor, the PDF, and
-          issues you have already published. The one exception is an issue whose
-          pages have no room for a taller footer; see the note further down.
+          opposite margin on both leaves of a spread. Covers and full-page
+          photos have no footer. The phone reader closes the issue with the same
+          mark and wording, without a page number. These settings apply to
+          interior page footers in the reader, editor and PDF, including
+          published issues. Issues with no room for a taller footer keep their
+          smaller one; see the note further down.
         </Step>
         <Step n={3} title="PDF downloads — whether members can keep a copy">
           One switch: <strong>Let members download issues as a PDF</strong>.
@@ -88,19 +89,19 @@ export function SectionMagazine() {
         </p>
         <p className="mt-3">
           To bring an older issue up to date, open it in the editor: a bar above
-          the page offers the new footer, and once you take it, any page whose
-          contents no longer fit is marked — with an action to move the overflow
-          onto the next page.
+          an interior page offers the new footer, and once you take it, any page
+          whose contents no longer fit is marked — with an action to move the
+          overflow onto the next page.
         </p>
       </Callout>
       <P>
         A mark only reaches an issue when that issue asks for it. To put one on,
         open the issue in the editor and choose it from the{" "}
         <strong>Logo</strong> box at the top; it then appears at the foot of
-        every page with the club&rsquo;s name beside it, set the way you chose
-        here. Choose <strong>None</strong> to go back to the plain footer. A
-        mark that an issue is using can&rsquo;t be deleted until you change that
-        issue&rsquo;s choice.
+        interior pages with the club&rsquo;s name beside it, set the way you
+        chose here. Choose <strong>None</strong> to go back to the plain footer.
+        A mark that an issue is using can&rsquo;t be deleted until you change
+        that issue&rsquo;s choice.
       </P>
       <Callout title="Use a see-through picture">
         Upload a <strong>PNG</strong> or <strong>WebP</strong> saved with a

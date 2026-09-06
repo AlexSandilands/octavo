@@ -39,8 +39,7 @@ export function CoverThumb({
    *  otherwise to-scale render (issue #170), so every caller must resolve it. */
   sponsors: SponsorMap;
   issueNo: number;
-  /** The magazine's effective branding + footer appearance (issue #105) — the
-   *  thumbnail is a real page render, chrome and all. */
+  /** Branding for the theme decoration; cover thumbnails omit the footer. */
   settings: SiteSettings;
   width: number;
   /** Eager-load the cover image — set only for the hero (LCP), not the archive. */
@@ -59,6 +58,7 @@ export function CoverThumb({
           issueNo={issueNo}
           side="right"
           settings={settings}
+          cover={page.cover}
           bleed={pageFillsCanvas(page)}
         >
           <div

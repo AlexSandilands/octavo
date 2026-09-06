@@ -11,7 +11,6 @@ import { resolveIssueImages } from "@/server/images";
 import { resolveIssueSponsors } from "@/server/sponsors";
 import { requireAdminOrRedirect } from "@/server/session";
 import { getSettings } from "@/server/settings";
-import { settingsForIssue } from "@/lib/branding";
 import { CoverThumb } from "@/features/library/cover-thumb";
 import { THUMB_W } from "@/features/admin/issue-thumb";
 import { IssuesTable } from "@/features/admin/issues-table";
@@ -87,7 +86,7 @@ export default async function AdminDashboard({
           images={coverImages}
           sponsors={coverSponsors}
           issueNo={i.number}
-          settings={settingsForIssue(settings, i)}
+          settings={settings}
           width={THUMB_W}
         />
       ) : null,
