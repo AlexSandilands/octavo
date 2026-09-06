@@ -8,6 +8,7 @@ import {
   type BlockType,
   type IssueContent,
   type Page,
+  type PageAlign,
   type PageTemplate,
 } from "@/lib/blocks";
 import { arrayMove } from "@dnd-kit/sortable";
@@ -168,21 +169,22 @@ export function useEditorPages(content: IssueContent) {
     if (sel === id) setSel(null);
   };
 
-  // "Fill page" (issue #227): a full-bleed photo owns its page, so one that
-  // shares a page moves onto a page of its own on the way — the placement and
-  // the move land together as one document, and undo as one step.
-  const fillPage = (id: string) => {
+  // "Fill page" / "Fit page" (issue #227): a page-owning photo owns its page, so
+  // one that shares a page moves onto a page of its own on the way — the
+  // placement and the move land together as one document, and undo as one step.
+  // Switching between the two while already alone is just the field write.
+  const fillPage = (id: string, align: PageAlign) => {
     const source = pages[curPage];
     const block = source?.blocks.find((b) => b.id === id);
     if (!source || source.cover || block?.type !== "image") return;
-    // Already filled and already alone: nothing to do, and no empty undo step.
-    if (block.align === "page" && source.blocks.length === 1) return;
+    // Already this placement and already alone: no work, and no empty undo step.
+    if (block.align === align && source.blocks.length === 1) return;
     const filled = pages.map((p, i) =>
       i === curPage
         ? {
             ...p,
             blocks: p.blocks.map((b) =>
-              b.id === id ? mergeBlock(b, { align: "page" as const }) : b,
+              b.id === id ? mergeBlock(b, { align }) : b,
             ),
           }
         : p,

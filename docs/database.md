@@ -118,17 +118,22 @@ and re-pasting the link refreshes it. `collectImageIds` resolves `posterImageId`
 montage ids — it is the single traversal feeding the `ImageMap`, so a poster missed there would be
 missing on every surface at once.
 
-**Content v6 (issue #227) — the full-bleed image placement.** The image block's `align` gained a
-fourth value, `"page"`: the photo takes the whole `PAGE_W × PAGE_H` canvas, cropped to fill
-(`object-fit: cover`, focused a little above centre), reaching back over the page's own margin —
-see `blockFlowStyle` and `PAGE_PAD`. A page carrying one is **owned** by it: `PageFrame` drops the
-running footer and the theme's decoration (`bleed`), so no page number or masthead prints over the
-photograph, and the block carries no caption (alt text is unchanged). `width` is kept but ignored,
-so unsetting the placement restores the size the photo had. Deliberately confined to `image`: a
-montage would have to crop several photos to one page shape and a video's frame is always 16:9, so
-both keep the three-value union — and a cover page ignores it, because its title and tagline sit
-over the whole page and type over an arbitrary photograph needs a scrim treatment this doesn't
-build.
+**Content v6 (issue #227) — the page-owning image placements.** The image block's `align` gained two
+values, `"page-fill"` and `"page-fit"`. Both take the whole `PAGE_W × PAGE_H` canvas, reaching back
+over the page's own margin (see `blockFlowStyle` and `PAGE_PAD`); they differ only in how the photo
+meets it. `"page-fill"` crops to cover (`object-fit: cover`, focused a little above centre) — the
+full-bleed plate. `"page-fit"` grows the photo at its natural ratio until the first edge touches
+(`object-fit: contain`, centred on both axes), so a landscape photo spans the width with
+page-coloured bars above and below and a tall one spans the height with bars either side; the figure
+paints `bg-page` so those bars are the page's own colour on every surface.
+
+A page carrying either is **owned** by it: `PageFrame` drops the running footer and the theme's
+decoration (`bleed`), so no page number or masthead prints over the photograph, and the block
+carries no caption (alt text is unchanged). `width` is kept but ignored, so unsetting the placement
+restores the size the photo had. Deliberately confined to `image`: a montage would have to crop
+several photos to one page shape and a video's frame is always 16:9, so both keep the three-value
+union — and a cover page ignores both, because its title and tagline sit over the whole page and
+type over an arbitrary photograph needs a scrim treatment this doesn't build.
 
 Where it plays is again a **render-path** decision: with `interactive`, the block mounts the client
 `VideoPlayer` — a facade showing the poster and one large play button, which injects a
@@ -344,20 +349,21 @@ issue.
 
 ### The v6 bump (issue #227) — a widened enum, opt-in only
 
-Not a new block type this time but a new _value_ on an existing field, which is additive on the
-same terms: no version-1…5 document holds `align: "page"`, so every one parses and renders
-byte-for-byte unchanged, gains nothing, and no stored row is rewritten or migrated.
+Not a new block type this time but new _values_ on an existing field, which is additive on the
+same terms: no version-1…5 document holds `align: "page-fill"` or `"page-fit"`, so every one parses
+and renders byte-for-byte unchanged, gains nothing, and no stored row is rewritten or migrated.
 `CONTENT_VERSION` moves to `6`; new documents and any resave stamp it. There is no one-off
 migration and none is needed.
 
-The seed authors the new shape (issue-02, the camera-club quarterly, carries a full-bleed plate
-alone on its own page, described by alt text and uncaptioned) and issue-05's deliberately
-legacy-shaped page stays exactly as it was.
+The seed authors both shapes — issue-02, the camera-club quarterly, carries a portrait fill-page
+plate and issue-04, the sailing season review, a landscape fit-page one, each alone on its own page,
+described by alt text and uncaptioned — and issue-05's deliberately legacy-shaped page stays exactly
+as it was.
 
-`scripts/dev-fill-page-gate.mts` checks all of it in memory — the seed's shape, the placement being
-refused on montage and video blocks, a v5 document surviving untouched, and the shared renderers
-(reader/print page, library thumbnail, mobile column) agreeing on the geometry, the crop, the
-dropped caption and the dropped footer. Run it with
+`scripts/dev-fill-page-gate.mts` checks all of it in memory — the seed's shape, both placements
+being refused on montage and video blocks, a v5 document surviving untouched, and the shared
+renderers (reader/print page, library thumbnail, mobile column) agreeing on the geometry, the crop
+or the fit, the page-coloured bars, the dropped caption and the dropped footer. Run it with
 `npx tsx --tsconfig scripts/tsconfig.json scripts/dev-fill-page-gate.mts`, **never
 `npm run db:seed`**, which wipes every authored issue.
 

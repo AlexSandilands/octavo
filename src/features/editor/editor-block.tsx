@@ -10,7 +10,7 @@ import {
   isFillPage,
   isFloatedPicture,
 } from "@/features/blocks/layout";
-import type { Block, BlockPatch } from "@/lib/blocks";
+import type { Block, BlockPatch, PageAlign } from "@/lib/blocks";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import { richDocBlocks } from "@/lib/rich-text-split";
 import type { SponsorListItem, SponsorMap } from "@/lib/sponsors";
@@ -64,7 +64,7 @@ export function EditorBlock({
   onRemove: () => void;
   onFlow: () => void;
   /** Set this image to fill the whole page (issue #227). */
-  onFillPage: () => void;
+  onFillPage: (align: PageAlign) => void;
   onRegisterImage: (imageId: string, image: ResolvedImage) => void;
 }) {
   const {

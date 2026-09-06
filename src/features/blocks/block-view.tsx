@@ -4,7 +4,7 @@ import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 import { externalHref } from "@/lib/rich-text";
 import { richTextToPlain } from "@/lib/rich-text-doc";
-import { isFillPage } from "./layout";
+import { pageAlignOf } from "./layout";
 import type { LayoutTheme } from "./themes/registry";
 import { RichText } from "./rich-text";
 import { Editable } from "./editable";
@@ -34,15 +34,18 @@ export function BlockImage({
   alt: string;
   /** Eager-load + preload this image (the LCP element). Offscreen images stay lazy. */
   priority?: boolean;
-  /** "cover" crops to fill the box — the full-bleed page (#227). Default keeps the natural ratio. */
-  fit?: "width" | "cover";
+  /** How the photo meets a page-owning box (#227): "cover" crops it, "contain"
+   *  fits it whole and centres it. Default keeps the natural ratio at column width. */
+  fit?: "width" | "cover" | "contain";
 }) {
   // Cropped a little above centre: in a portrait photo cropped to the page it is
   // the top of the frame that holds the subject.
   const className =
     fit === "cover"
       ? "h-full w-full object-cover object-[50%_40%]"
-      : "h-auto w-full";
+      : fit === "contain"
+        ? "h-full w-full object-contain"
+        : "h-auto w-full";
   if (image.width && image.height) {
     return (
       <Image
@@ -243,8 +246,10 @@ export function BlockView({
 
     case "image": {
       const resolved = block.imageId ? images?.[block.imageId] : undefined;
-      // Full bleed (v6): crop to fill, no caption; a cover never bleeds.
-      const bleed = variant !== "cover" && isFillPage(block);
+      // Page-owning (v6): fill crops, fit letterboxes; no caption either way,
+      // and a cover never bleeds.
+      const owns = variant === "cover" ? null : pageAlignOf(block);
+      const bleed = owns !== null;
       // Prefer the authored alt text; fall back to the caption so an uncaptioned
       // photo is still described rather than announced decorative.
       const photo = resolved ? (
@@ -252,7 +257,7 @@ export function BlockView({
           image={resolved}
           alt={block.alt || block.caption}
           priority={priority}
-          fit={bleed ? "cover" : "width"}
+          fit={owns === "page-fill" ? "cover" : owns ? "contain" : "width"}
         />
       ) : (
         <div
@@ -264,7 +269,8 @@ export function BlockView({
           </span>
         </div>
       );
-      if (bleed) return <figure className="h-full">{photo}</figure>;
+      // bg-page so a fitted photo's bars are the page's own colour on every surface.
+      if (bleed) return <figure className="bg-page h-full">{photo}</figure>;
       const showCaption = edit || block.caption;
       return (
         <figure>

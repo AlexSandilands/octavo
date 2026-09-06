@@ -55,7 +55,7 @@ export const Img = (
     caption?: string;
     /** Screen-reader description; the readers fall back to the caption. */
     alt?: string;
-    /** "page" (content v6) is full bleed: the photo owns the whole page. */
+    /** "page-fill"/"page-fit" (content v6): the photo owns the whole page. */
     align?: ImageAlign;
     width?: number;
   } = {},

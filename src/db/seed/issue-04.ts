@@ -66,6 +66,15 @@ export const issue04 = (img: SeedImages) =>
       ),
     ]),
 
+    // The fit-page plate (v6, #227): a landscape photo grown to the page's width
+    // and centred, page-coloured bars above and below. Alone on its page.
+    page([
+      Img(img.fleet, {
+        alt: "A wide duotone seascape of overlapping arcs in navy and rust, like a fleet under sail.",
+        align: "page-fit",
+      }),
+    ]),
+
     page([
       H("The Wednesday Evenings", "Part Three", "section"),
       T(

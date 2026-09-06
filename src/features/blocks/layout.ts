@@ -1,5 +1,10 @@
 import type { CSSProperties } from "react";
-import type { Block, Page } from "@/lib/blocks";
+import {
+  PAGE_ALIGNS,
+  type Block,
+  type Page,
+  type PageAlign,
+} from "@/lib/blocks";
 import { PAGE_H, PAGE_PAD, PAGE_W } from "./page-frame";
 
 // Blocks render in normal flow (not flex) so a floated image wraps the text that
@@ -23,10 +28,16 @@ export function isPictureBlock(block: Block): block is PictureBlock {
   );
 }
 
-// A photo set to fill the page (v6) owns the whole canvas. Covers are excluded:
-// their title sits over the page (see docs/database.md).
+// A photo set to fill or fit the page (v6) owns the whole canvas — only the
+// crop differs. Covers are excluded: their title sits over the page (see
+// docs/database.md).
+export function pageAlignOf(block: Block): PageAlign | null {
+  if (block.type !== "image") return null;
+  return PAGE_ALIGNS.find((a) => a === block.align) ?? null;
+}
+
 export function isFillPage(block: Block): boolean {
-  return block.type === "image" && block.align === "page";
+  return pageAlignOf(block) !== null;
 }
 
 /** Whether this page is filled edge to edge by one photo. */

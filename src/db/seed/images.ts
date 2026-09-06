@@ -182,6 +182,15 @@ export const SEED_IMAGES = [
     palette: regatta,
     style: { kind: "field", motif: "rings" },
   },
+  // The fit-page plate (v6, #227): 16:9, so fitting it to the taller canvas
+  // leaves the page-coloured bars the placement is there to show.
+  {
+    key: "fleet",
+    width: 1600,
+    height: 900,
+    palette: regatta,
+    style: { kind: "duotone", motif: "arcs" },
+  },
   // The Marginalia (literary society essay — classic theme)
   {
     key: "plate",

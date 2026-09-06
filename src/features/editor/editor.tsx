@@ -379,7 +379,7 @@ export function Editor({
                             onMove={(dir) => moveBlock(b.id, dir)}
                             onRemove={() => removeBlock(b.id)}
                             onFlow={() => flow(b.id)}
-                            onFillPage={() => fillPage(b.id)}
+                            onFillPage={(a) => fillPage(b.id, a)}
                             onRegisterImage={registerImage}
                           />
                         ))}
