@@ -29,7 +29,7 @@ export function EditorFigure() {
               <span className="border-hair text-ink rounded-md border bg-white px-3 py-1.5 font-ui text-[12px] font-semibold">
                 Preview
               </span>
-              <span className="bg-accent text-paper rounded-md px-3 py-1.5 font-ui text-[12px] font-semibold">
+              <span className="bg-brass-ink text-paper rounded-md px-3 py-1.5 font-ui text-[12px] font-semibold">
                 Publish
               </span>
             </div>
@@ -53,7 +53,7 @@ export function EditorFigure() {
             {/* Pages rail: thumbnails + the add tile. */}
             <div className="border-line flex w-[78px] flex-none flex-col items-center gap-2.5 border-r px-2 py-3">
               <FigureBadge n={2} />
-              <span className="border-accent bg-page block h-8 w-11 rounded-[3px] border-[1.5px]" />
+              <span className="border-brass-ink bg-page block h-8 w-11 rounded-[3px] border-[1.5px]" />
               <span className="border-hair-warm bg-page block h-8 w-11 rounded-[3px] border" />
               <span className="border-dash text-faint2 flex h-8 w-11 items-center justify-center rounded-[3px] border border-dashed font-ui text-[13px]">
                 +

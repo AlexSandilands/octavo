@@ -68,7 +68,7 @@ function SettingsColumn() {
 
         <div className="border-line-soft mt-3.5 flex flex-wrap items-center gap-2 border-t pt-3">
           <FigureBadge n={5} />
-          <span className="bg-accent text-paper rounded-md px-2.5 py-1.5 font-ui text-[10.5px] font-semibold">
+          <span className="bg-brass-ink text-paper rounded-md px-2.5 py-1.5 font-ui text-[10.5px] font-semibold">
             Save changes
           </span>
           <span className="text-faint font-ui text-[9.5px]">
@@ -94,7 +94,7 @@ function SettingsColumn() {
             </span>
           ))}
         </div>
-        <span className="bg-tint text-accent mt-2.5 inline-block rounded-full px-2 py-0.5 font-ui text-[9px] font-semibold">
+        <span className="bg-brass-soft text-brass-ink mt-2.5 inline-block rounded-full px-2 py-0.5 font-ui text-[9px] font-semibold">
           Saves straight away
         </span>
       </div>

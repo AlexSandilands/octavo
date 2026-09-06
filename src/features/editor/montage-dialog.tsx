@@ -200,7 +200,7 @@ export function MontageDialog({
               busy={uploading}
               disabled={room <= 0}
             >
-              <Icon name="upload" size={17} className="text-accent" />
+              <Icon name="upload" size={17} className="text-brass-ink" />
               {uploading
                 ? "Uploading…"
                 : room <= 0
@@ -265,7 +265,7 @@ function MontageRow({
           onChange={(e) => onAlt(e.target.value)}
           maxLength={300}
           placeholder="Describe this photo for screen readers"
-          className="border-hair focus:border-accent text-ink h-10 w-full rounded-md border bg-white px-2.5 font-ui text-[13px] outline-none"
+          className="border-hair focus:border-brass-ink text-ink h-10 w-full rounded-md border bg-white px-2.5 font-ui text-[13px] outline-none"
         />
       </label>
       <div className="flex flex-none items-center gap-1">
@@ -319,7 +319,7 @@ function RowBtn({
       className={`border-hair flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border bg-white transition-[background-color,border-color,color] duration-150 disabled:cursor-default disabled:opacity-35 ${
         danger
           ? "text-danger enabled:hover:border-danger enabled:hover:bg-danger-soft"
-          : "text-muted enabled:hover:border-accent enabled:hover:bg-brass-wash enabled:hover:text-accent"
+          : "text-muted enabled:hover:border-brass-ink enabled:hover:bg-brass-wash enabled:hover:text-brass-ink"
       }`}
     >
       <Icon name={icon} size={15} strokeWidth={1.9} />

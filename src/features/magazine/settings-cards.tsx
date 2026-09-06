@@ -161,7 +161,7 @@ function PdfDownloadsToggle({
           checked={value}
           onChange={(e) => onChange(e.target.checked)}
           aria-describedby="pdf-downloads-hint"
-          className="accent-accent mt-0.5 h-5 w-5 flex-none"
+          className="accent-brass-ink mt-0.5 h-5 w-5 flex-none"
         />
         <span className="font-ui text-[14px] leading-snug">
           <span className="text-ink font-semibold">
@@ -221,7 +221,7 @@ function TextField({
         maxLength={maxLength}
         placeholder={fallback}
         aria-describedby={`${id}-hint`}
-        className="border-hair focus:border-accent text-ink h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-ui text-[15px] outline-none"
+        className="border-hair focus:border-brass-ink text-ink h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-ui text-[15px] outline-none"
       />
       <p
         id={`${id}-hint`}

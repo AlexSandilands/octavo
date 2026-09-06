@@ -45,7 +45,7 @@ export function SponsorsFigure() {
           <div className="text-ink mt-2 font-ui text-[13px] font-semibold">
             Harbour Bakery
           </div>
-          <div className="text-accent font-ui text-[11px] underline">
+          <div className="text-brass-ink font-ui text-[11px] underline">
             harbourbakery.nz
           </div>
           <div className="text-faint2 mt-1.5 font-ui text-[10px]">

@@ -199,7 +199,7 @@ export function SettingsPreview({
             No marks in the library yet —{" "}
             <Link
               href="#logos"
-              className="text-accent font-medium underline underline-offset-2"
+              className="text-brass-ink font-medium underline underline-offset-2"
             >
               add one
             </Link>{" "}

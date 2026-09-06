@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { SiteBar } from "@/components/site-bar";
 import { coverPageOf, type Page } from "@/lib/blocks";
 import { pageParamSchema } from "@/lib/pagination";
 import { listArchivePage, listPublishedYears } from "@/server/issues";
@@ -8,7 +9,6 @@ import { requireMemberOrRedirect } from "@/server/session";
 import { getSettings } from "@/server/settings";
 import { ARCHIVE_QUERY_MAX } from "@/features/library/archive-limits";
 import { ArchiveShelf } from "@/features/library/archive-shelf";
-import { LibraryHeader } from "@/features/library/library-header";
 import { SiteFooter } from "@/features/library/site-footer";
 
 export const dynamic = "force-dynamic";
@@ -61,34 +61,35 @@ export default async function ArchivePage({
   ]);
 
   return (
-    <main className="mx-auto max-w-5xl px-5 py-6 sm:px-8 sm:py-10">
-      <LibraryHeader user={user} home />
+    <>
+      <SiteBar user={user} home />
+      <main className="mx-auto max-w-6xl px-5 pb-10 sm:px-8">
+        <div className="pt-10 pb-2 sm:pt-14">
+          <h1 className="text-chrome-text font-display text-[34px] leading-tight sm:text-[42px]">
+            The archive
+          </h1>
+          <p className="text-chrome-muted mt-2 font-ui text-[17px]">
+            Every issue of {settings.name}, newest first.
+          </p>
+        </div>
 
-      <div className="pt-8 pb-2">
-        <h1 className="text-ink font-display text-3xl sm:text-4xl">
-          The archive
-        </h1>
-        <p className="text-muted mt-2 font-ui text-[15px]">
-          Every issue of {settings.name}, newest first.
-        </p>
-      </div>
+        <ArchiveShelf
+          list={list}
+          query={query}
+          year={year}
+          years={years}
+          images={coverImages}
+          sponsors={coverSponsors}
+          settings={settings}
+        />
 
-      <ArchiveShelf
-        list={list}
-        query={query}
-        year={year}
-        years={years}
-        images={coverImages}
-        sponsors={coverSponsors}
-        settings={settings}
-      />
-
-      <SiteFooter
-        org={settings.org}
-        issueCount={list.total}
-        estYear={list.estYear}
-        signedIn={Boolean(user)}
-      />
-    </main>
+        <SiteFooter
+          org={settings.org}
+          issueCount={list.total}
+          estYear={list.estYear}
+          signedIn={Boolean(user)}
+        />
+      </main>
+    </>
   );
 }

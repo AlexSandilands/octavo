@@ -49,7 +49,7 @@ export function IssueRow({
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
             <Link
               href={editHref}
-              className="text-ink hover:text-accent font-display text-[19px] leading-tight hover:underline"
+              className="text-ink hover:text-brass-ink font-display text-[19px] leading-tight hover:underline"
             >
               {issue.title}
             </Link>
@@ -69,7 +69,7 @@ export function IssueRow({
         <div className="flex items-center gap-2 sm:gap-4">
           <Link
             href={editHref}
-            className="text-accent text-right font-ui text-sm font-semibold hover:underline sm:w-14"
+            className="text-brass-ink text-right font-ui text-sm font-semibold hover:underline sm:w-14"
           >
             Edit
           </Link>

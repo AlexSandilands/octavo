@@ -43,7 +43,7 @@ export function AdminNavContent({
     <>
       <div className="px-6">
         <Wordmark size={22} />
-        <div className="text-accent mt-1 font-ui text-[10px] font-semibold tracking-[0.2em] uppercase">
+        <div className="text-brass-ink mt-1 font-ui text-[10px] font-semibold tracking-[0.2em] uppercase">
           Admin
         </div>
       </div>
@@ -51,7 +51,7 @@ export function AdminNavContent({
           facing library, so it sits above the nav rather than in it. */}
       <Link
         href="/"
-        className="text-muted hover:text-accent mt-5 flex items-center gap-2 px-6 py-1.5 font-ui text-[14px] font-medium hover:underline"
+        className="text-muted hover:text-brass-ink mt-5 flex items-center gap-2 px-6 py-1.5 font-ui text-[14px] font-medium hover:underline"
       >
         <Icon name="chevronLeft" size={16} />
         View library
@@ -65,8 +65,8 @@ export function AdminNavContent({
               href={n.href}
               className={`flex items-center gap-3 border-l-2 px-6 py-2.5 font-ui text-[15px] transition-colors ${
                 on
-                  ? "bg-tint text-accent border-accent font-semibold"
-                  : "text-muted hover:bg-tint/60 hover:text-accent border-transparent font-medium"
+                  ? "bg-brass-soft text-brass-ink border-brass-ink font-semibold"
+                  : "text-muted hover:bg-brass-soft/60 hover:text-brass-ink border-transparent font-medium"
               }`}
             >
               <Icon name={n.icon} size={18} />
@@ -77,14 +77,14 @@ export function AdminNavContent({
       </nav>
       <div className="border-line mt-auto border-t px-6 pt-4">
         <div className="flex items-center gap-2.5">
-          <span className="bg-accent text-paper flex h-[30px] w-[30px] flex-none items-center justify-center rounded-full font-ui text-xs font-semibold">
+          <span className="bg-brass-ink text-paper flex h-[30px] w-[30px] flex-none items-center justify-center rounded-full font-ui text-xs font-semibold">
             {initials(user.name?.trim() || user.email)}
           </span>
           <div className="text-ink min-w-0 truncate font-ui text-[13px] font-semibold">
             {user.name ?? user.email}
           </div>
         </div>
-        <SignOutButton variant="sidebar" />
+        <SignOutButton />
       </div>
     </>
   );

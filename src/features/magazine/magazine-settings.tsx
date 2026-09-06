@@ -138,7 +138,7 @@ export function MagazineSettings({
                   className="font-ui text-[13px] font-medium"
                 >
                   {status === "saved" && !dirty && (
-                    <span className="text-accent">
+                    <span className="text-brass-ink">
                       Saved — live on the site now.
                     </span>
                   )}

@@ -23,8 +23,10 @@ type LatestIssueProps = {
   settings: SiteSettings;
 };
 
-// The library hero: the cover as a physical object on the left, and an editorial
-// "in this issue" teaser on the right so the latest issue sells itself.
+const COVER_W = 260;
+
+// The library hero: the cover as a lit object on the dark ground, and an
+// editorial "in this issue" teaser beside it so the latest issue sells itself.
 export function LatestIssue({
   number,
   title,
@@ -42,16 +44,14 @@ export function LatestIssue({
   const shown = sections.slice(0, 4);
 
   return (
-    <section className="border-line-soft grid gap-8 border-b py-9 md:grid-cols-[240px_1fr]">
+    <section className="grid gap-10 py-12 md:grid-cols-[260px_1fr] md:gap-14 md:py-16">
       <Link
         href={`/read/${number}`}
         aria-label={`Read ${title}`}
-        className="group relative block w-[240px] self-start"
+        className="group rounded-ui block self-start justify-self-center md:justify-self-start"
+        style={{ width: COVER_W }}
       >
-        {/* Stacked page edges peeking out behind the cover. */}
-        <div className="bg-hair absolute inset-y-2 -right-[3px] w-[3px] rounded-r-[3px]" />
-        <div className="bg-line-soft absolute inset-y-1 -right-[6px] w-[3px] rounded-r-[3px]" />
-        <div className="relative overflow-hidden rounded-[5px] shadow-[0_18px_38px_-14px_rgba(20,40,33,0.45)] transition-transform duration-300 group-hover:-translate-y-1">
+        <div className="shadow-glow overflow-hidden rounded-[5px] transition-transform duration-300 group-hover:-translate-y-1 motion-reduce:transition-none">
           {cover ? (
             <CoverThumb
               page={cover}
@@ -60,15 +60,15 @@ export function LatestIssue({
               sponsors={sponsors}
               issueNo={number}
               settings={settings}
-              width={240}
+              width={COVER_W}
               priority
             />
           ) : (
             // Legacy issues without a cover page keep the stylised book panel.
-            <div className="photo-fill-green relative flex h-[330px] flex-col justify-between p-5">
+            <div className="photo-fill-green relative flex h-[366px] flex-col justify-between p-5">
               <div className="absolute inset-y-0 left-0 w-[7px] bg-black/20" />
               <div className="absolute inset-y-0 left-[7px] w-px bg-white/10" />
-              <div className="text-cream font-display text-[13px] tracking-[0.1em]">
+              <div className="text-cream font-meta text-[12px] tracking-[0.1em] uppercase">
                 {settings.name} · No. {number}
               </div>
               <div className="text-paper font-display text-4xl leading-[0.96]">
@@ -80,38 +80,35 @@ export function LatestIssue({
       </Link>
 
       <div className="flex flex-col">
-        <Kicker>The latest issue</Kicker>
+        <Kicker tone="dark">The latest issue</Kicker>
         {/* h2: the page's single h1 is the masthead standfirst (see page.tsx). */}
-        <h2 className="text-ink mt-3 font-display text-4xl leading-[1.02] sm:text-5xl">
+        <h2 className="text-chrome-text mt-3 font-display text-[36px] leading-[1.05] sm:text-[48px]">
           {title}
         </h2>
-        <div className="text-faint mt-3 font-ui text-[13px] tracking-wide">
+        <div className="text-chrome-muted mt-3 font-meta text-[13px] tracking-[0.08em] uppercase">
           No. {number} · {pageCount} {pageCount === 1 ? "page" : "pages"}
           {month ? ` · ${month}` : ""}
         </div>
 
         {shown.length > 0 && (
-          <div className="border-line-soft mt-6 border-t pt-5">
-            <Label>In this issue</Label>
-            <ol className="mt-3">
+          <div className="border-hairline mt-7 border-t pt-5">
+            <Label tone="dark">In this issue</Label>
+            <ol className="mt-2">
               {shown.map((s, i) => (
-                <li
-                  key={i}
-                  className="border-line-soft/70 border-b last:border-0"
-                >
+                <li key={i} className="border-hairline border-b last:border-0">
                   <Link
                     href={`/read/${number}`}
                     aria-label={`Read this issue: ${s.title}`}
-                    className="group/entry flex min-h-11 items-baseline gap-3 py-2.5"
+                    className="group/entry rounded-ui flex min-h-12 items-baseline gap-3.5 py-3"
                   >
-                    <span className="text-accent/70 w-5 flex-none font-meta text-[11px] tabular-nums">
+                    <span className="text-brass w-6 flex-none font-meta text-[12px] tabular-nums">
                       {String(i + 1).padStart(2, "0")}
                     </span>
-                    <span className="text-ink font-display text-[17px] leading-snug group-hover/entry:underline">
+                    <span className="text-chrome-text font-display text-[18px] leading-snug group-hover/entry:underline">
                       {s.title}
                     </span>
                     {s.kicker && (
-                      <span className="text-faint ml-auto flex-none pl-3 font-ui text-[10px] tracking-[0.18em] uppercase">
+                      <span className="text-chrome-muted ml-auto hidden flex-none pl-3 font-meta text-[11px] tracking-[0.14em] uppercase sm:inline">
                         {s.kicker}
                       </span>
                     )}
@@ -120,21 +117,23 @@ export function LatestIssue({
               ))}
             </ol>
             {sections.length > shown.length && (
-              <div className="text-faint2 mt-2.5 font-display text-sm italic">
+              <div className="text-chrome-muted mt-3 font-display text-[15px] italic">
                 + {sections.length - shown.length} more
               </div>
             )}
           </div>
         )}
 
-        <div className="mt-auto flex flex-wrap items-center gap-3 pt-7">
-          <Button href={`/read/${number}`} icon="arrowRight">
+        <div className="mt-auto flex flex-wrap items-center gap-3 pt-8">
+          <Button href={`/read/${number}`} icon="arrowRight" size="lg">
             Read this issue
           </Button>
           {/* The owner can switch downloads off site-wide (issue #162). This is
               a Server Component, so "off" means the control is never built —
               not hidden with CSS, not decided in the browser. */}
-          {settings.pdfDownloads && <DownloadPdfButton issueNumber={number} />}
+          {settings.pdfDownloads && (
+            <DownloadPdfButton issueNumber={number} tone="dark" />
+          )}
         </div>
       </div>
     </section>

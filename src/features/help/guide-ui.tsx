@@ -22,7 +22,7 @@ export function GuideSection({
       aria-labelledby={`${id}-heading`}
       className="border-line-soft mt-10 scroll-mt-8 border-t pt-8"
     >
-      <div className="text-accent font-ui text-[11px] font-semibold tracking-[0.2em] uppercase">
+      <div className="text-brass-ink font-ui text-[11px] font-semibold tracking-[0.2em] uppercase">
         {kicker}
       </div>
       <h2
@@ -70,7 +70,7 @@ export function Step({
       {/* Decorative — the <ol> already conveys the position. */}
       <span
         aria-hidden="true"
-        className="bg-tint text-accent mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-full font-ui text-[13px] font-semibold"
+        className="bg-brass-soft text-brass-ink mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-full font-ui text-[13px] font-semibold"
       >
         {n}
       </span>
@@ -151,7 +151,7 @@ export function FigureFrame({
 // legend list next to the figure.
 export function FigureBadge({ n }: { n: number }) {
   return (
-    <span className="bg-accent text-paper flex h-[19px] w-[19px] flex-none items-center justify-center rounded-full font-ui text-[11px] font-bold">
+    <span className="bg-brass-ink text-paper flex h-[19px] w-[19px] flex-none items-center justify-center rounded-full font-ui text-[11px] font-bold">
       {n}
     </span>
   );

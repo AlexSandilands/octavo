@@ -130,7 +130,7 @@ export function LogoDialog({
                 onChange={(e) => setName(e.target.value)}
                 maxLength={200}
                 placeholder="e.g. Club fern"
-                className="border-hair focus:border-accent text-ink h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-ui text-[15px] outline-none"
+                className="border-hair focus:border-brass-ink text-ink h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-ui text-[15px] outline-none"
               />
             </div>
 
@@ -165,7 +165,7 @@ export function LogoDialog({
                     onClick={() => fileRef.current?.click()}
                     busy={uploading}
                   >
-                    <Icon name="upload" size={15} className="text-accent" />
+                    <Icon name="upload" size={15} className="text-brass-ink" />
                     {uploading
                       ? "Uploading…"
                       : imageUrl

@@ -250,7 +250,7 @@ export function MobileReader({
             className="bg-card absolute top-0 bottom-0 left-0 flex w-[250px] flex-col py-6 shadow-[8px_0_30px_rgba(0,0,0,0.2)]"
           >
             <div className="flex items-center justify-between px-5">
-              <span className="text-accent font-ui text-[11px] font-semibold tracking-[0.2em] uppercase">
+              <span className="text-brass-ink font-ui text-[11px] font-semibold tracking-[0.2em] uppercase">
                 In this issue
               </span>
               <button
@@ -274,7 +274,7 @@ export function MobileReader({
               <button
                 key={h.id}
                 onClick={() => goToHeading(h.id)}
-                className="text-accent px-5 py-2.5 text-left font-display text-[19px]"
+                className="text-brass-ink px-5 py-2.5 text-left font-display text-[19px]"
               >
                 {h.title}
               </button>

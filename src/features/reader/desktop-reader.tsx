@@ -258,7 +258,7 @@ export function DesktopReader({
                 onClick={() => setThemeId(t.id)}
                 aria-pressed={themeId === t.id}
                 className={`flex min-h-[44px] items-center rounded-full px-4 font-ui text-xs font-semibold ${
-                  themeId === t.id ? "bg-accent text-paper" : "text-muted"
+                  themeId === t.id ? "bg-brass-ink text-paper" : "text-muted"
                 }`}
               >
                 {t.name}

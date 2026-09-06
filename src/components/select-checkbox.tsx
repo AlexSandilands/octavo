@@ -33,7 +33,7 @@ export function SelectCheckbox({
   }, [mixed]);
 
   // Both states name their own background: Tailwind resolves a `bg-white`
-  // / `bg-accent` collision by stylesheet order, not by which one the template
+  // / `bg-brass-ink` collision by stylesheet order, not by which one the template
   // appends last, so a shared `bg-white` base would win and the filled box
   // would render empty.
   const box =

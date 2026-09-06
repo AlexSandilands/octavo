@@ -125,7 +125,7 @@ export function SponsorDialog({
                 onChange={(e) => setName(e.target.value)}
                 maxLength={200}
                 placeholder="e.g. Kawau Bay Hardware"
-                className="border-hair focus:border-accent text-ink h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-ui text-[15px] outline-none"
+                className="border-hair focus:border-brass-ink text-ink h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-ui text-[15px] outline-none"
               />
             </Field>
 
@@ -136,7 +136,7 @@ export function SponsorDialog({
                 onChange={(e) => setHref(e.target.value)}
                 maxLength={2000}
                 placeholder="example.com or https://example.com"
-                className="border-hair focus:border-accent text-ink h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-ui text-[15px] outline-none"
+                className="border-hair focus:border-brass-ink text-ink h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-ui text-[15px] outline-none"
               />
             </Field>
 
@@ -163,7 +163,7 @@ export function SponsorDialog({
                     onClick={() => fileRef.current?.click()}
                     busy={uploading}
                   >
-                    <Icon name="upload" size={15} className="text-accent" />
+                    <Icon name="upload" size={15} className="text-brass-ink" />
                     {uploading
                       ? "Uploading…"
                       : logoUrl
@@ -201,7 +201,7 @@ export function SponsorDialog({
                 type="date"
                 value={activeUntil}
                 onChange={(e) => setActiveUntil(e.target.value)}
-                className="border-hair focus:border-accent text-ink h-12 rounded-lg border-[1.5px] bg-white px-3.5 font-ui text-[15px] outline-none"
+                className="border-hair focus:border-brass-ink text-ink h-12 rounded-lg border-[1.5px] bg-white px-3.5 font-ui text-[15px] outline-none"
               />
               <p className="text-faint2 mt-1.5 font-ui text-[12px]">
                 After this date the sponsor is flagged expired here. It is not

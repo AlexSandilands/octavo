@@ -1,26 +1,24 @@
 import { signOutAction } from "@/app/signin/actions";
-import { Icon } from "./icons";
+import { Button } from "./ui";
 
-// The sign-out control, shared by the library header and the admin sidebar.
-// Both post to signOutAction (deletes the session row, clears the cookie);
-// they differ only in chrome, so the layout picks a variant.
-export function SignOutButton({
-  variant = "inline",
-}: {
-  variant?: "inline" | "sidebar";
-}) {
-  const sidebar = variant === "sidebar";
+// The sign-out control, shared by the site bar, the site footer and the phone
+// menu. All post to signOutAction (deletes the session row, clears the cookie);
+// they differ only in chrome — a quiet ghost button on the dark ground, or a
+// full-width outlined one at the foot of the phone menu.
+export function SignOutButton({ full = false }: { full?: boolean }) {
   return (
     <form action={signOutAction}>
-      <button
+      <Button
         type="submit"
-        className={`text-muted hover:text-accent flex h-11 cursor-pointer items-center font-ui font-medium hover:underline ${
-          sidebar ? "w-full gap-2 text-[14px]" : "text-sm whitespace-nowrap"
-        }`}
+        variant={full ? "secondary" : "ghost"}
+        tone="dark"
+        size={full ? "md" : "sm"}
+        icon="logout"
+        iconPosition="left"
+        full={full}
       >
-        {sidebar && <Icon name="chevronLeft" size={16} />}
         Sign out
-      </button>
+      </Button>
     </form>
   );
 }

@@ -25,7 +25,7 @@ export function LogoPicker({
       <Link
         href="/admin/magazine"
         target="_blank"
-        className="text-accent font-ui text-[13px] font-medium underline underline-offset-2"
+        className="text-brass-ink font-ui text-[13px] font-medium underline underline-offset-2"
       >
         Add a logo
       </Link>

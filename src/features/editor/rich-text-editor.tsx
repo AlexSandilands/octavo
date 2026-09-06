@@ -246,13 +246,13 @@ function Toolbar({
                 setLinkOpen(false);
               }
             }}
-            className="border-hair text-body h-7 w-52 rounded-[6px] border px-2 font-ui text-[12px] outline-none focus:border-accent"
+            className="border-hair text-body h-7 w-52 rounded-[6px] border px-2 font-ui text-[12px] outline-none focus:border-brass-ink"
           />
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={applyLink}
-            className="bg-accent text-paper h-7 rounded-[6px] px-2.5 font-ui text-[11px] font-semibold"
+            className="bg-brass-ink text-paper h-7 rounded-[6px] px-2.5 font-ui text-[11px] font-semibold"
           >
             Apply
           </button>
@@ -312,8 +312,8 @@ function TbBtn({
       }}
       className={`rich-text-tool flex h-7 min-w-7 cursor-pointer items-center justify-center px-1.5 font-ui text-[12px] font-semibold transition-colors ${
         active
-          ? "bg-accent text-paper"
-          : "text-muted hover:bg-brass-wash hover:text-accent bg-white"
+          ? "bg-brass-ink text-paper"
+          : "text-muted hover:bg-brass-wash hover:text-brass-ink bg-white"
       }`}
     >
       {icon ? (

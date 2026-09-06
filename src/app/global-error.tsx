@@ -7,7 +7,7 @@ import * as Sentry from "@sentry/nextjs";
 // place the ordinary route error.tsx can't catch. It replaces the whole
 // document, so it must render its own <html>/<body> and cannot rely on the
 // app's Tailwind tokens or global CSS being present. Styles are therefore
-// inline with the magazine palette spelled out (same pragmatic exception the
+// inline with the Lantern palette spelled out (same pragmatic exception the
 // email templates make), and there is no <Link>/router dependency — a full
 // reload is the only safe recovery when the layout itself failed.
 export default function GlobalError({
@@ -32,7 +32,7 @@ export default function GlobalError({
           alignItems: "center",
           justifyContent: "center",
           padding: "48px 20px",
-          background: "#f4f0e8",
+          background: "#17181c",
           fontFamily: "Georgia, 'Times New Roman', serif",
           color: "#20201c",
         }}
@@ -41,13 +41,13 @@ export default function GlobalError({
           style={{
             maxWidth: "560px",
             width: "100%",
-            background: "#fbf9f4",
-            border: "1px solid #e6e0d3",
-            borderRadius: "5px",
+            background: "#f6f2ea",
+            borderRadius: "10px",
+            boxShadow: "0 24px 70px -24px rgba(0,0,0,0.8)",
             padding: "40px",
           }}
         >
-          <p style={{ margin: 0, fontStyle: "italic", color: "#1d4d3e" }}>
+          <p style={{ margin: 0, fontStyle: "italic", color: "#6f5212" }}>
             Something went wrong
           </p>
           <h1
@@ -74,13 +74,13 @@ export default function GlobalError({
               appearance: "none",
               border: "none",
               cursor: "pointer",
-              background: "#1d4d3e",
-              color: "#f4f0e8",
+              background: "#e0b45c",
+              color: "#17181c",
               fontFamily: "Arial, Helvetica, sans-serif",
               fontSize: "15px",
               fontWeight: 600,
               padding: "14px 22px",
-              borderRadius: "8px",
+              borderRadius: "6px",
             }}
           >
             Try again

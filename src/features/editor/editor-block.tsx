@@ -130,9 +130,9 @@ export function EditorBlock({
       // breathing room; the outer ring is the visible line.
       className={`group relative cursor-pointer rounded-sm transition-[box-shadow] ${
         isDragging
-          ? "z-30 [box-shadow:0_0_0_2px_var(--color-accent),0_12px_28px_rgba(40,36,28,0.22)]"
+          ? "z-30 [box-shadow:0_0_0_2px_var(--color-brass-ink),0_12px_28px_rgba(40,36,28,0.22)]"
           : selected
-            ? "[box-shadow:0_0_0_6px_var(--color-page),0_0_0_8px_var(--color-accent)]"
+            ? "[box-shadow:0_0_0_6px_var(--color-page),0_0_0_8px_var(--color-brass-ink)]"
             : "hover:[box-shadow:0_0_0_6px_var(--color-page),0_0_0_8px_var(--color-hair)]"
       }`}
     >
@@ -257,7 +257,7 @@ export function EditorBlock({
               />
             </div>
           ) : (
-            <span className="bg-accent text-paper chrome-unscaled absolute bottom-full left-0 z-10 mb-2 rounded-[3px] px-1.5 py-[3px] font-ui text-[9px] font-semibold tracking-[0.1em] uppercase">
+            <span className="bg-brass-ink text-paper chrome-unscaled absolute bottom-full left-0 z-10 mb-2 rounded-[3px] px-1.5 py-[3px] font-ui text-[9px] font-semibold tracking-[0.1em] uppercase">
               {block.type}
             </span>
           )}
@@ -335,7 +335,7 @@ function Ctrl({
       className={`border-hair-warm flex h-6 w-6 items-center justify-center rounded-[5px] border bg-white ${
         danger
           ? "text-danger hover:border-danger"
-          : "text-muted hover:border-accent hover:text-accent"
+          : "text-muted hover:border-brass-ink hover:text-brass-ink"
       }`}
     >
       <Icon name={icon} size={13} strokeWidth={1.9} />

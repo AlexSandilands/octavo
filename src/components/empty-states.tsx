@@ -12,7 +12,7 @@ function EmptyCard({ children }: { children: React.ReactNode }) {
 
 function EmptyIcon({ name }: { name: "doc" | "users" }) {
   return (
-    <div className="bg-tint text-accent flex h-[72px] w-[72px] items-center justify-center rounded-full">
+    <div className="bg-brass-soft text-brass-ink flex h-[72px] w-[72px] items-center justify-center rounded-full">
       <Icon name={name} size={32} strokeWidth={1.5} />
     </div>
   );

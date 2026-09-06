@@ -62,7 +62,7 @@ export function SponsorRow({
             href={link}
             target="_blank"
             rel="noopener noreferrer nofollow"
-            className="text-accent block truncate font-ui text-[13px] font-medium hover:underline"
+            className="text-brass-ink block truncate font-ui text-[13px] font-medium hover:underline"
           >
             {sponsor.href}
           </a>
@@ -95,7 +95,7 @@ export function SponsorRow({
           disabled={pending}
           title={`Edit ${sponsor.name}`}
           aria-label={`Edit ${sponsor.name}`}
-          className="text-accent w-9 cursor-pointer text-right font-ui text-sm font-semibold hover:underline disabled:opacity-40"
+          className="text-brass-ink w-9 cursor-pointer text-right font-ui text-sm font-semibold hover:underline disabled:opacity-40"
         >
           Edit
         </button>

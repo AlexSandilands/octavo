@@ -1,3 +1,4 @@
+import { SiteBar } from "@/components/site-bar";
 import { Button } from "@/components/ui";
 import { coverPageOf, type Page } from "@/lib/blocks";
 import { getLibraryHome } from "@/server/issues";
@@ -6,8 +7,8 @@ import { resolveIssueSponsors } from "@/server/sponsors";
 import { requireMemberOrRedirect } from "@/server/session";
 import { getSettings } from "@/server/settings";
 import { LatestIssue } from "@/features/library/latest-issue";
-import { ArchiveGrid, toArchiveItems } from "@/features/library/archive-grid";
-import { LibraryHeader } from "@/features/library/library-header";
+import { CoverCard, toCoverItems } from "@/features/library/cover-card";
+import { CoverShelf } from "@/features/library/cover-shelf";
 import { Masthead } from "@/features/library/masthead";
 import { SiteFooter } from "@/features/library/site-footer";
 
@@ -38,60 +39,76 @@ export default async function LibraryPage() {
   ]);
 
   return (
-    <main className="mx-auto max-w-5xl px-5 py-6 sm:px-8 sm:py-10">
-      <LibraryHeader user={user} />
+    <>
+      {/* The archive is offered only once the catalogue outgrows the shelf: a
+          magazine with a page's worth of issues shows them all here. */}
+      <SiteBar user={user} archive={older > 0} />
+      <main className="mx-auto max-w-6xl px-5 pb-10 sm:px-8">
+        <Masthead org={settings.org} tagline={settings.tagline} />
 
-      <Masthead org={settings.org} tagline={settings.tagline} />
-
-      {!latest ? (
-        <section className="py-20 text-center">
-          <h2 className="text-ink font-display text-3xl">
-            No issues published yet
-          </h2>
-          <p className="text-muted mt-3 font-ui">
-            The first issue of {settings.name} will appear here once it&apos;s
-            published.
-          </p>
-        </section>
-      ) : (
-        <>
-          <LatestIssue
-            number={latest.number}
-            title={latest.title}
-            content={latest.content}
-            publishedAt={latest.publishedAt}
-            theme={latest.theme}
-            cover={coverPageOf(latest.content)}
-            images={coverImages}
-            sponsors={coverSponsors}
-            settings={settings}
-          />
-          {recent.length > 0 && (
-            <ArchiveGrid
-              items={toArchiveItems(recent)}
+        {!latest ? (
+          <section className="py-24 text-center">
+            <h2 className="text-chrome-text font-display text-3xl">
+              No issues published yet
+            </h2>
+            <p className="text-chrome-muted mt-3 font-ui text-[17px]">
+              The first issue of {settings.name} will appear here once it&apos;s
+              published.
+            </p>
+          </section>
+        ) : (
+          <>
+            <LatestIssue
+              number={latest.number}
+              title={latest.title}
+              content={latest.content}
+              publishedAt={latest.publishedAt}
+              theme={latest.theme}
+              cover={coverPageOf(latest.content)}
               images={coverImages}
               sponsors={coverSponsors}
               settings={settings}
             />
-          )}
-          {/* Only once the catalogue outgrows the shelf above: a magazine with
-              a page's worth of issues shows them all and needs no way out. */}
-          {older > 0 && (
-            <div className="border-line-soft flex justify-center border-t pt-8 pb-4">
-              <Button href="/archive" variant="secondary" icon="arrowRight">
-                View the full archive
-              </Button>
-            </div>
-          )}
-        </>
-      )}
+            {recent.length > 0 && (
+              <CoverShelf
+                label="Recent issues"
+                summary={`${recent.length} ${recent.length === 1 ? "issue" : "issues"}`}
+              >
+                {toCoverItems(recent).map((item, idx) => (
+                  <CoverCard
+                    key={item.id}
+                    item={item}
+                    index={idx}
+                    images={coverImages}
+                    sponsors={coverSponsors}
+                    settings={settings}
+                    year
+                  />
+                ))}
+              </CoverShelf>
+            )}
+            {older > 0 && (
+              <div className="border-hairline mt-2 flex justify-center border-t pt-8 pb-2">
+                <Button
+                  href="/archive"
+                  variant="secondary"
+                  tone="dark"
+                  icon="arrowRight"
+                >
+                  View the full archive
+                </Button>
+              </div>
+            )}
+          </>
+        )}
 
-      <SiteFooter
-        org={settings.org}
-        issueCount={publishedTotal}
-        estYear={estYear}
-        signedIn={Boolean(user)}
-      />
-    </main>
+        <SiteFooter
+          org={settings.org}
+          issueCount={publishedTotal}
+          estYear={estYear}
+          signedIn={Boolean(user)}
+        />
+      </main>
+    </>
   );
 }

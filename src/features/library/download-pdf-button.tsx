@@ -1,13 +1,19 @@
 "use client";
 
 import { Icon } from "@/components/icons";
-import { Button } from "@/components/ui";
+import { Button, type ButtonTone } from "@/components/ui";
 import { useIssuePdf } from "@/features/reader/use-issue-pdf";
 
 // The latest-issue card's "Download PDF" action. A secondary button that mirrors
 // the reader's PDF control: the first hit generates on the server (a spinner
 // covers the wait), a failure surfaces a legible retry rather than a dead click.
-export function DownloadPdfButton({ issueNumber }: { issueNumber: number }) {
+export function DownloadPdfButton({
+  issueNumber,
+  tone = "paper",
+}: {
+  issueNumber: number;
+  tone?: ButtonTone;
+}) {
   const pdf = useIssuePdf(issueNumber);
   const label =
     pdf.state === "loading"
@@ -19,6 +25,7 @@ export function DownloadPdfButton({ issueNumber }: { issueNumber: number }) {
   return (
     <Button
       variant="secondary"
+      tone={tone}
       onClick={pdf.download}
       busy={pdf.state === "loading"}
       aria-label={
@@ -29,7 +36,11 @@ export function DownloadPdfButton({ issueNumber }: { issueNumber: number }) {
           the cascade regardless of the variant's own text colour. */}
       <span
         className={`inline-flex items-center gap-2 ${
-          pdf.state === "error" ? "text-alert" : ""
+          pdf.state === "error"
+            ? tone === "dark"
+              ? "text-danger-bright"
+              : "text-danger"
+            : ""
         }`}
       >
         {label}

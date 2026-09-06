@@ -176,7 +176,7 @@ export function MenuSelect<T>({
       >
         <span className={tone === "dark" ? "text-chrome-muted" : "text-faint"}>
           {label}:
-        </span>
+        </span>{" "}
         {current}
         <Icon name="chevronDown" size={15} strokeWidth={1.8} />
       </button>

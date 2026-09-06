@@ -136,7 +136,7 @@ export function MemberRow({
                   : "Make admin"
             }
             aria-label={`${member.isAdmin ? "Remove admin from" : "Make admin"} ${label}`}
-            className="text-muted hover:text-accent flex cursor-pointer items-center gap-1.5 font-ui text-[13px] font-medium disabled:cursor-default disabled:opacity-40 disabled:hover:text-current"
+            className="text-muted hover:text-brass-ink flex cursor-pointer items-center gap-1.5 font-ui text-[13px] font-medium disabled:cursor-default disabled:opacity-40 disabled:hover:text-current"
           >
             <Icon
               name={member.isAdmin ? "check" : "plus"}
@@ -158,7 +158,7 @@ export function MemberRow({
             disabled={pending}
             title="Edit name and email"
             aria-label={`Edit ${label}`}
-            className="text-faint2 hover:text-accent flex cursor-pointer disabled:cursor-default disabled:opacity-30 disabled:hover:text-current"
+            className="text-faint2 hover:text-brass-ink flex cursor-pointer disabled:cursor-default disabled:opacity-30 disabled:hover:text-current"
           >
             <Icon name="pencil" size={18} strokeWidth={1.7} />
           </button>

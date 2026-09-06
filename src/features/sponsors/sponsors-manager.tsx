@@ -66,7 +66,7 @@ export function SponsorsManager({
       {list.total === 0 ? (
         <div className="mt-8">
           <div className="bg-card border-line flex min-h-[360px] flex-col items-center justify-center rounded-md border p-9 text-center shadow-[0_1px_3px_rgba(0,0,0,0.07)]">
-            <div className="bg-tint text-accent flex h-[72px] w-[72px] items-center justify-center rounded-full">
+            <div className="bg-brass-soft text-brass-ink flex h-[72px] w-[72px] items-center justify-center rounded-full">
               <Icon name="banner" size={32} strokeWidth={1.5} />
             </div>
             <h2 className="text-ink mt-5 font-display text-2xl">

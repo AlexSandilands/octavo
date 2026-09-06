@@ -244,3 +244,28 @@ export const IconButton = forwardRef<
     </button>
   );
 });
+
+// The one text field for the app's forms — a white box on a paper sheet, the
+// brass-ink border on focus. Callers add only width/height overrides.
+export const FIELD =
+  "border-hair-warm text-ink rounded-ui h-12 w-full border-[1.5px] bg-white px-3.5 font-ui text-[16px] outline-none focus:border-brass-ink";
+
+// A field's printed name: the mono shelf-tag label, as a <label>.
+export function FieldLabel({
+  htmlFor,
+  children,
+  className = "",
+}: {
+  htmlFor?: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <label
+      htmlFor={htmlFor}
+      className={`text-faint mb-1.5 block font-meta text-[12px] font-medium tracking-[0.14em] uppercase ${className}`}
+    >
+      {children}
+    </label>
+  );
+}

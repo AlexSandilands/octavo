@@ -146,8 +146,8 @@ function Seg({
       }}
       className={`flex h-7 min-w-7 items-center justify-center px-1.5 ${
         active
-          ? "bg-accent text-paper"
-          : "text-muted hover:bg-brass-wash hover:text-accent bg-white"
+          ? "bg-brass-ink text-paper"
+          : "text-muted hover:bg-brass-wash hover:text-brass-ink bg-white"
       }`}
     >
       {children}

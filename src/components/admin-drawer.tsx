@@ -100,12 +100,12 @@ export function AdminDrawer({ children }: { children: ReactNode }) {
           aria-label="Open admin menu"
           aria-expanded={open}
           aria-controls="admin-drawer"
-          className="text-ink hover:text-accent flex h-11 w-11 flex-none items-center justify-center rounded-lg"
+          className="text-ink hover:text-brass-ink flex h-11 w-11 flex-none items-center justify-center rounded-lg"
         >
           <Icon name="menu" size={24} />
         </button>
         <Wordmark size={20} />
-        <span className="text-accent font-ui text-[10px] font-semibold tracking-[0.2em] uppercase">
+        <span className="text-brass-ink font-ui text-[10px] font-semibold tracking-[0.2em] uppercase">
           Admin
         </span>
       </div>
@@ -137,7 +137,7 @@ export function AdminDrawer({ children }: { children: ReactNode }) {
               type="button"
               onClick={() => setOpen(false)}
               aria-label="Close admin menu"
-              className="text-muted hover:text-accent absolute top-3 right-2 flex h-11 w-11 items-center justify-center rounded-lg"
+              className="text-muted hover:text-brass-ink absolute top-3 right-2 flex h-11 w-11 items-center justify-center rounded-lg"
             >
               <Icon name="close" size={22} />
             </button>

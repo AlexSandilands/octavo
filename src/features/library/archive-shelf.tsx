@@ -1,16 +1,18 @@
 import { ListPagination } from "@/components/list-pagination";
+import { ListSearch } from "@/components/list-search";
 import type { SiteSettings } from "@/lib/branding";
 import type { ImageMap } from "@/lib/images";
 import type { PagedList } from "@/lib/pagination";
 import type { SponsorMap } from "@/lib/sponsors";
 import type { IssueRow } from "@/server/issues";
-import { ArchiveGrid, toArchiveItems } from "./archive-grid";
+import { ArchiveGrid } from "./archive-grid";
+import { ARCHIVE_QUERY_MAX } from "./archive-limits";
 import { archiveResultMessage } from "./archive-message";
-import { ArchiveSearch } from "./archive-search";
 import { ArchiveYearFilter } from "./archive-year-filter";
+import { toCoverItems } from "./cover-card";
 
 // One served page of the full archive: the search and year filter above the
-// shelf, the covers themselves, and the page control below. Everything that
+// shelves, the covers themselves, and the page control below. Everything that
 // narrows or pages the list is server-side and lives in the URL — this
 // component only lays the three out, so a refresh or a shared link rebuilds
 // exactly the view someone was looking at.
@@ -42,10 +44,18 @@ export function ArchiveShelf({
   });
 
   return (
-    <div className="mt-6">
-      <div className="flex flex-col gap-3 sm:flex-row">
+    <div className="mt-8">
+      {/* Both controls print their names on the dark ground: the search as a
+          label over the box, the year filter on its own trigger. */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
         <div className="min-w-0 flex-1">
-          <ArchiveSearch query={query} />
+          <ListSearch
+            query={query}
+            placeholder="Search issues by title"
+            ariaLabel="Search every issue by title"
+            maxLength={ARCHIVE_QUERY_MAX}
+            visibleLabel="Search"
+          />
         </div>
         <ArchiveYearFilter year={year} years={years} />
       </div>
@@ -59,7 +69,7 @@ export function ArchiveShelf({
         aria-live="polite"
         className={
           list.rows.length === 0
-            ? "text-faint py-16 text-center font-ui text-[15px]"
+            ? "text-chrome-muted py-20 text-center font-ui text-[16px]"
             : "sr-only"
         }
       >
@@ -67,13 +77,12 @@ export function ArchiveShelf({
       </p>
 
       {list.rows.length > 0 && (
-        <div className="mt-8">
+        <div className="mt-10">
           <ArchiveGrid
-            items={toArchiveItems(list.rows)}
+            items={toCoverItems(list.rows)}
             images={images}
             sponsors={sponsors}
             settings={settings}
-            heading={null}
           />
         </div>
       )}
@@ -82,6 +91,7 @@ export function ArchiveShelf({
         page={list.page}
         pageCount={list.pageCount}
         label="Archive pages"
+        tone="dark"
       />
     </div>
   );

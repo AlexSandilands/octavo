@@ -22,7 +22,7 @@ function MockRow({
 }) {
   return (
     <div className="border-line-soft flex items-center gap-2.5 border-b px-4 py-2.5 last:border-b-0">
-      <span className="bg-tint text-accent flex h-8 w-8 flex-none items-center justify-center rounded-full font-ui text-[10px] font-semibold">
+      <span className="bg-brass-soft text-brass-ink flex h-8 w-8 flex-none items-center justify-center rounded-full font-ui text-[10px] font-semibold">
         {initials}
       </span>
       <span className="min-w-0 flex-1">
@@ -37,7 +37,7 @@ function MockRow({
         {badges && <FigureBadge n={3} />}
         <span
           className={`flex items-center gap-1.5 rounded-full px-2 py-1 font-ui text-[9.5px] font-semibold ${
-            subscribed ? "bg-tint text-accent" : "bg-chip text-faint"
+            subscribed ? "bg-brass-soft text-brass-ink" : "bg-chip text-faint"
           }`}
         >
           <span
@@ -75,7 +75,7 @@ export function MembersFigure() {
                 Import CSV
               </span>
               <FigureBadge n={1} />
-              <span className="bg-accent text-paper flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-ui text-[11.5px] font-semibold">
+              <span className="bg-brass-ink text-paper flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-ui text-[11.5px] font-semibold">
                 <Icon name="plus" size={12} strokeWidth={2} />
                 Add member
               </span>

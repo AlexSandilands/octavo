@@ -79,7 +79,7 @@ export function LogoRow({
           disabled={pending}
           title={`Rename ${logo.name}`}
           aria-label={`Rename ${logo.name}`}
-          className="text-accent cursor-pointer px-1 text-right font-ui text-sm font-semibold hover:underline disabled:opacity-40"
+          className="text-brass-ink cursor-pointer px-1 text-right font-ui text-sm font-semibold hover:underline disabled:opacity-40"
         >
           Rename
         </button>

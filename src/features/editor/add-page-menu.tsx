@@ -40,7 +40,7 @@ export function AddPageMenu({
       <button
         onClick={onToggle}
         aria-expanded={open}
-        className="text-faint hover:border-accent hover:text-accent border-dash flex h-10 w-[84px] items-center justify-center gap-1.5 rounded-[3px] border-[1.5px] border-dashed font-ui text-[11px] font-semibold"
+        className="text-faint hover:border-brass-ink hover:text-brass-ink border-dash flex h-10 w-[84px] items-center justify-center gap-1.5 rounded-[3px] border-[1.5px] border-dashed font-ui text-[11px] font-semibold"
       >
         <Icon name="plus" size={14} strokeWidth={1.8} />
         Add

@@ -186,14 +186,14 @@ export function ResizableSplit({
               grip at the middle so it reads as something to take hold of. */}
           <span
             aria-hidden="true"
-            className={`bg-line group-hover:bg-accent absolute inset-y-0 w-px transition-colors ${
-              dragging ? "bg-accent" : ""
+            className={`bg-line group-hover:bg-brass-ink absolute inset-y-0 w-px transition-colors ${
+              dragging ? "bg-brass-ink" : ""
             }`}
           />
           <span
             aria-hidden="true"
-            className={`border-hair-warm group-hover:border-accent group-hover:bg-brass-wash relative h-10 w-[7px] rounded-full border-[1.5px] bg-white transition-colors ${
-              dragging ? "border-accent bg-brass-wash" : ""
+            className={`border-hair-warm group-hover:border-brass-ink group-hover:bg-brass-wash relative h-10 w-[7px] rounded-full border-[1.5px] bg-white transition-colors ${
+              dragging ? "border-brass-ink bg-brass-wash" : ""
             }`}
           />
         </div>

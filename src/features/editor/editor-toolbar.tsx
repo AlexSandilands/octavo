@@ -85,7 +85,7 @@ export function EditorToolbar({
                 ? "This page is filled by a photo"
                 : `Insert a ${b.label.toLowerCase()} block`
             }
-            iconClass="text-accent"
+            iconClass="text-brass-ink"
             showLabel
             disabled={insertDisabled}
             onClick={() => onAddBlock(b.type)}
@@ -150,8 +150,8 @@ function Tool({
   const look = inert
     ? "border-hair-warm text-ink cursor-default bg-white opacity-45"
     : pressed
-      ? "border-accent bg-accent text-paper cursor-pointer motion-safe:active:scale-95"
-      : "border-hair-warm text-ink hover:border-accent hover:bg-brass-wash cursor-pointer bg-white motion-safe:active:scale-95";
+      ? "border-brass-ink bg-brass-ink text-paper cursor-pointer motion-safe:active:scale-95"
+      : "border-hair-warm text-ink hover:border-brass-ink hover:bg-brass-wash cursor-pointer bg-white motion-safe:active:scale-95";
   return (
     <button
       type="button"

@@ -1,5 +1,5 @@
-import Link from "next/link";
-import { Button, Label, Pill, Wordmark } from "@/components/ui";
+import { SheetPage } from "@/components/sheet-page";
+import { Button, Pill } from "@/components/ui";
 import { getSettings } from "@/server/settings";
 import { getRecipientById } from "@/server/recipients";
 import { requireMemberOrRedirect } from "@/server/session";
@@ -12,24 +12,23 @@ import { updateEmailPreferenceAction } from "./actions";
 // /unsubscribe page stays the email path. Both share setSubscribed.
 export const dynamic = "force-dynamic";
 
-async function Frame({ children }: { children: React.ReactNode }) {
-  const { org } = await getSettings();
+function Frame({ children }: { children: React.ReactNode }) {
   return (
-    <main className="flex min-h-screen items-center justify-center px-5 py-12">
-      <div className="bg-card border-line w-full max-w-md rounded-2xl border p-8 shadow-[0_14px_34px_rgba(0,0,0,0.08)] sm:p-10">
-        <Wordmark size={22} />
-        <Label>{org}</Label>
-        {children}
-        <div className="border-line mt-8 border-t pt-6">
-          <Link
-            href="/"
-            className="text-muted hover:text-accent flex h-11 items-center font-ui text-sm font-medium hover:underline"
-          >
-            &larr; Back to the library
-          </Link>
-        </div>
-      </div>
-    </main>
+    <SheetPage
+      footer={
+        <Button
+          href="/"
+          variant="ghost"
+          tone="dark"
+          icon="arrowLeft"
+          iconPosition="left"
+        >
+          Back to the library
+        </Button>
+      }
+    >
+      {children}
+    </SheetPage>
   );
 }
 
@@ -43,10 +42,10 @@ export default async function PreferencesPage() {
   if (!user) {
     return (
       <Frame>
-        <h1 className="text-ink mt-10 font-display text-3xl leading-[1.1]">
+        <h1 className="text-ink font-display text-[32px] leading-[1.1]">
           Email preferences
         </h1>
-        <p className="text-muted mt-4 font-ui text-[16px] leading-relaxed">
+        <p className="text-muted mt-4 font-ui text-[17px] leading-relaxed">
           Sign in to {magazineName} to manage when we email you.
         </p>
       </Frame>
@@ -58,16 +57,16 @@ export default async function PreferencesPage() {
 
   return (
     <Frame>
-      <h1 className="text-ink mt-10 font-display text-3xl leading-[1.1]">
+      <h1 className="text-ink font-display text-[32px] leading-[1.1]">
         Email preferences
       </h1>
-      <p className="text-muted mt-4 font-ui text-[16px] leading-relaxed">
+      <p className="text-muted mt-4 font-ui text-[17px] leading-relaxed">
         Email me at <span className="text-ink font-semibold">{user.email}</span>{" "}
         when a new issue of {magazineName} is published.
       </p>
 
       <div className="mt-6 flex items-center gap-3">
-        <span className="text-muted font-ui text-sm">Currently:</span>
+        <span className="text-muted font-ui text-[15px]">Currently:</span>
         <Pill status={subscribed ? "Subscribed" : "Unsubscribed"} />
       </div>
 

@@ -48,7 +48,7 @@ export default async function HelpPage() {
               <li key={s.id}>
                 <a
                   href={`#${s.id}`}
-                  className="text-accent hover:text-accent-strong flex items-baseline gap-2.5 py-1 font-ui text-[15px] font-medium hover:underline"
+                  className="text-brass-ink hover:text-brass-ink-strong flex items-baseline gap-2.5 py-1 font-ui text-[15px] font-medium hover:underline"
                 >
                   <span
                     aria-hidden="true"

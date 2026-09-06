@@ -164,7 +164,7 @@ function SortableThumb({
           isDragging ? "cursor-grabbing" : "cursor-grab"
         } ${
           active
-            ? "border-accent border-2 shadow-[0_2px_6px_rgba(40,36,28,0.12)]"
+            ? "border-brass-ink border-2 shadow-[0_2px_6px_rgba(40,36,28,0.12)]"
             : "border border-hair-warm"
         }`}
       >

@@ -186,7 +186,7 @@ export function IssuesBulkBar({
           type="button"
           onClick={selectAllMatching}
           disabled={pending || selectingAll}
-          className="text-faint hover:text-accent cursor-pointer rounded px-2 py-2 font-ui text-[14px] font-medium underline underline-offset-4 disabled:cursor-default disabled:opacity-50"
+          className="text-faint hover:text-brass-ink cursor-pointer rounded px-2 py-2 font-ui text-[14px] font-medium underline underline-offset-4 disabled:cursor-default disabled:opacity-50"
         >
           {selectingAll
             ? "Selecting…"
@@ -205,7 +205,7 @@ export function IssuesBulkBar({
               onClear();
             }}
             disabled={pending}
-            className="text-faint hover:text-accent cursor-pointer rounded px-2 py-2 font-ui text-[14px] font-medium underline underline-offset-4 disabled:cursor-default disabled:opacity-50"
+            className="text-faint hover:text-brass-ink cursor-pointer rounded px-2 py-2 font-ui text-[14px] font-medium underline underline-offset-4 disabled:cursor-default disabled:opacity-50"
           >
             Clear
           </button>

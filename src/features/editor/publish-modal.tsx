@@ -76,7 +76,7 @@ export function PublishModal({
       {(titleId) => (
         <>
           <div className="px-8 pt-7">
-            <div className="text-accent font-ui text-[10px] font-semibold tracking-[0.2em] uppercase">
+            <div className="text-brass-ink font-ui text-[10px] font-semibold tracking-[0.2em] uppercase">
               Publish &amp; send
             </div>
 
@@ -104,7 +104,7 @@ export function PublishModal({
                     checked={willEmail}
                     disabled={!canEmail || working}
                     onChange={(e) => setSendEmail(e.target.checked)}
-                    className="accent-accent mt-0.5 h-5 w-5 flex-none"
+                    className="accent-brass-ink mt-0.5 h-5 w-5 flex-none"
                   />
                   <span className="font-ui text-[14px] leading-snug">
                     <span className="text-ink font-semibold">

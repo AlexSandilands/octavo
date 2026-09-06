@@ -58,7 +58,7 @@ export function MemberDialog({
       {(titleId) => (
         <form onSubmit={submit}>
           <div className="px-8 pt-7">
-            <div className="text-accent font-ui text-[10px] font-semibold tracking-[0.2em] uppercase">
+            <div className="text-brass-ink font-ui text-[10px] font-semibold tracking-[0.2em] uppercase">
               Members
             </div>
             <h2
@@ -86,7 +86,7 @@ export function MemberDialog({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="name@example.com"
-              className="border-line text-ink mt-2 h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-ui text-[15px] outline-none focus:border-[var(--color-accent)]"
+              className="border-line text-ink mt-2 h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-ui text-[15px] outline-none focus:border-[var(--color-brass-ink)]"
             />
 
             <label
@@ -101,7 +101,7 @@ export function MemberDialog({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Margaret Cole"
-              className="border-line text-ink mt-2 h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-ui text-[15px] outline-none focus:border-[var(--color-accent)]"
+              className="border-line text-ink mt-2 h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-ui text-[15px] outline-none focus:border-[var(--color-brass-ink)]"
             />
 
             {error && (

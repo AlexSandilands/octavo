@@ -98,7 +98,7 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
       {(titleId) => (
         <>
           <div className="px-8 pt-7">
-            <div className="text-accent font-ui text-[10px] font-semibold tracking-[0.2em] uppercase">
+            <div className="text-brass-ink font-ui text-[10px] font-semibold tracking-[0.2em] uppercase">
               Members
             </div>
             <h2
@@ -124,7 +124,7 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
                 <button
                   type="button"
                   onClick={() => inputRef.current?.click()}
-                  className="border-line text-muted hover:border-accent hover:bg-brass-wash hover:text-accent mt-5 flex h-14 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border-[1.5px] border-dashed font-ui text-[15px] font-semibold transition-[background-color,border-color,color] duration-150"
+                  className="border-line text-muted hover:border-brass-ink hover:bg-brass-wash hover:text-brass-ink mt-5 flex h-14 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border-[1.5px] border-dashed font-ui text-[15px] font-semibold transition-[background-color,border-color,color] duration-150"
                 >
                   <Icon name="upload" size={18} strokeWidth={1.8} />
                   {preview ? "Choose a different file" : "Choose CSV file"}
