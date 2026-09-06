@@ -4,10 +4,19 @@
    so a deployment with no NEXT_PUBLIC_BRAND set renders exactly this file. */
 @import "./brands.css";
 
-/* Design system from docs/claude-design — editorial, paper + one accent.
-   Tokens drive Tailwind utilities (bg-paper, text-accent, font-serif, ...).
-   These @theme tokens ARE the `heritage` brand — the per-deployment default. */
+/* Two palettes live here, and the split is load-bearing.
+
+   PAGE PALETTE — the tokens the authored magazine pages consume
+   (src/features/blocks/**, page-footer, page-frame, the mobile block renderer,
+   the print document). Their values are frozen: they print, so a change here is
+   a change to every issue's PDF and needs a RENDER_VERSION bump. Nothing in the
+   chrome may use them.
+
+   UI PALETTE ("Broadsheet") — the chrome: black ink on white paper, one
+   signature red, hairlines and heavy rules, no shadows, 2px corners. Every
+   surface outside the page uses these and only these. */
 @theme {
+  /* ---- Page palette (frozen — the printed magazine) ---- */
   --color-paper: #f4f0e8;
   --color-page: #faf7f0;
   --color-card: #fbf9f4;
@@ -23,54 +32,40 @@
   --color-ink: #20201c;
   --color-body: #2a2722;
   --color-muted: #56524a;
-  /* Two warm greys for de-emphasised text. Both clear WCAG AA (≥4.5:1) on the
-     paper/page/card/stage backgrounds they render on, so metadata, hints and
-     page numbers stay legible for the older audience — faint2 is the lighter of
-     the pair, faint a step darker for text that carries a little more weight. */
   --color-faint: #615c50;
   --color-faint2: #6d685a;
 
-  --color-line: #e6e0d3;
-  --color-line-soft: #efe9dc;
   --color-hair: #ddd6c8;
+  --color-hair-warm: #e0d9c9;
+  --color-rule: #cfc6b4;
+  --color-dash: #c9c1b1;
+  --color-placeholder-line: #e2dccf;
 
-  /* Amber warning ink, darkened to clear AA both as text on warn-soft and as a
-     background under paper-coloured text (the draft ribbon). */
-  --color-warn: #8a5d1c;
-  --color-warn-strong: #6f4a14; /* darker warn — hover on destructive buttons */
-  --color-warn-soft: #f3ece0;
-
-  /* Status dots. */
-  --color-ok: #2f8f6b; /* success / subscribed */
-  --color-alert: #c8923f; /* caution — bounced / planned */
-
-  /* Warm chrome neutrals — hairlines, chips and washes on the paper UI. */
-  --color-hair-warm: #e0d9c9; /* border on white chips/buttons/thumbnails */
-  --color-rule: #cfc6b4; /* decorative heading + cover hairline rules */
-  --color-dash: #c9c1b1; /* dashed empty-state borders */
-  --color-placeholder-line: #e2dccf; /* photo placeholder outline */
-  --color-chip: #efeae0; /* neutral pill / badge background */
-  --color-chip-dot: #b8b1a2; /* neutral status dot */
-  --color-chip-soft: #f0ece2; /* lighter neutral control background */
-  --color-accent-wash: #f4f8f5; /* faint accent tint — hover on white controls */
-  --color-canvas: #ece7dc; /* editor canvas backdrop */
-
-  /* Page decorations. */
-  --color-page-seam: #efe7d8; /* spine-side divider between spread pages */
-  --color-page-frame: #dcd1b6; /* classic outer decorative frame */
-  --color-page-frame-soft: #e8e0cb; /* classic inner decorative frame */
-
-  /* Reader control dock — dark chrome floating over the paper stage. */
-  --color-reader-chrome: #211f1a;
-  --color-reader-chrome-text: #e7e2d6;
-  --color-reader-chrome-muted: #cfc9bb;
-  --color-reader-chrome-hover: #34312a;
-  --color-reader-chrome-line: #413d35;
-  --color-reader-slider: #9db8ac; /* zoom slider accent */
+  --color-page-seam: #efe7d8;
+  --color-page-frame: #dcd1b6;
+  --color-page-frame-soft: #e8e0cb;
 
   --font-serif: var(--font-newsreader), Georgia, serif;
   --font-sans: var(--font-hanken), system-ui, sans-serif;
   --font-mono: var(--font-plex), ui-monospace, monospace;
+
+  /* ---- UI palette (Broadsheet chrome) ---- */
+  --color-sheet: #ffffff; /* the paper every screen is printed on */
+  --color-newsprint: #f3f2ee; /* stages, zebra rows, skeleton bars */
+  --color-newsprint-deep: #e7e5df; /* hover on newsprint, deeper skeleton */
+  --color-lead: #141414; /* ink: text, heavy rules, control borders */
+  --color-grey: #444441; /* secondary text — AA on sheet and newsprint */
+  --color-grey-soft: #5d5d58; /* tertiary text (datelines, hints) — AA too */
+  --color-hairline: #d6d3cc; /* decorative hairline rules */
+  --color-hairline-strong: #85827a; /* a rule that is also a UI boundary (3:1) */
+  --color-red: #8a1c2b; /* the one accent — oxblood, AA as text on sheet */
+  --color-red-deep: #6e1522; /* hover / pressed red */
+
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  --font-ui: var(--font-public-sans), system-ui, Arial, sans-serif;
+
+  /* The corner every chrome box shares. Rules and status boxes are square. */
+  --radius-ui: 2px;
 }
 
 :root {
@@ -78,17 +73,24 @@
 }
 
 body {
-  background: var(--color-paper);
-  color: var(--color-ink);
-  font-family: var(--font-sans);
-  font-size: 17px;
-  line-height: 1.6;
+  background: var(--color-sheet);
+  color: var(--color-lead);
+  font-family: var(--font-ui);
+  font-size: 18px;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Comfortable, visible focus for an older audience. */
+/* Fraunces carries an optical-size axis; letting the browser pick it keeps
+   headlines soft at display sizes and sturdy in small kickers. */
+.font-display {
+  font-optical-sizing: auto;
+}
+
+/* Comfortable, visible focus for an older audience — the signature red, held
+   off the control by a white gap so it shows on black and red boxes alike. */
 *:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-red);
   outline-offset: 2px;
 }
 
@@ -96,7 +98,7 @@ body {
    global ring would land on the inner input and float a rectangle inside the
    box, so the input opts out and the box itself carries the identical ring. */
 .boxed-field:focus-within {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-red);
   outline-offset: 2px;
 }
 .boxed-field input:focus-visible {
@@ -104,14 +106,14 @@ body {
 }
 
 /* A quieter scrollbar for the app's own scroll regions. The thumb is mixed from
-   `--scrollbar-surface`, the surface it sits on (paper unless a region sets it);
+   `--scrollbar-surface`, the surface it sits on (sheet unless a region sets it);
    `.scrollbar-soft-quiet` adds to the base, hiding the thumb until hover,
    focus-within or a recent scroll (`data-scrolling`). */
 .scrollbar-soft {
   --scrollbar-thumb: color-mix(
     in oklab,
-    var(--scrollbar-surface, var(--color-paper)),
-    var(--color-ink) 50%
+    var(--scrollbar-surface, var(--color-sheet)),
+    var(--color-lead) 50%
   );
   --scrollbar-thumb-shown: var(--scrollbar-thumb);
 }
@@ -152,7 +154,8 @@ body {
   }
 }
 
-/* Placeholder "photo" fill used wherever real imagery will go. */
+/* Placeholder "photo" fill used wherever real imagery will go. Part of the
+   printed page (the image placeholder box), so the values stay as they were. */
 .photo-fill {
   background-image: repeating-linear-gradient(
     135deg,
@@ -172,10 +175,11 @@ body {
   );
 }
 
-/* Placeholder for empty in-place editable fields in the admin editor. */
+/* Placeholder for empty in-place editable fields in the admin editor. Chrome,
+   so it takes the chrome's soft grey. */
 .editable:empty::before {
   content: attr(data-placeholder);
-  color: var(--color-faint2);
+  color: var(--color-grey-soft);
   pointer-events: none;
 }
 
@@ -245,4 +249,33 @@ body {
   --chrome-scale: 1.1;
   transform: scale(calc(var(--chrome-scale) / var(--page-scale, 1)));
   transform-origin: bottom left;
+}
+
+/* Broadsheet furniture shared by many screens. Plain classes rather than
+   components because they are one declaration each and land on headings,
+   list items and rules that are otherwise unrelated elements. */
+
+/* The heavy rule — the masthead's, the section head's, a dialog's top edge. */
+.rule-heavy {
+  border-top: 3px solid var(--color-lead);
+}
+/* A hairline, for rows and quiet separations. */
+.rule-hair {
+  border-top: 1px solid var(--color-hairline);
+}
+/* Small caps for kickers, tabs and table heads: 13px tracked, never smaller. */
+.small-caps {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+/* Dotted leaders between a contents entry and its page number. */
+.leader {
+  flex: 1 1 auto;
+  min-width: 1.5rem;
+  margin: 0 0.5rem;
+  border-bottom: 2px dotted var(--color-hairline-strong);
+  transform: translateY(-0.35em);
 }

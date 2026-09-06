@@ -30,17 +30,17 @@ export default async function HelpPage() {
   return (
     <AdminShell active="help" user={admin}>
       <div className="mx-auto max-w-[720px] pb-16">
-        <h1 className="text-ink font-serif text-3xl">Guide</h1>
-        <p className="text-faint mt-1.5 font-sans text-sm">
+        <h1 className="text-lead font-display text-3xl">Guide</h1>
+        <p className="text-grey-soft mt-1.5 font-ui text-sm">
           How to run the magazine, in plain language. Nothing here needs a
           technical bone in your body.
         </p>
 
         <nav
           aria-label="On this page"
-          className="border-line bg-card mt-6 rounded-[10px] border p-5"
+          className="border-hairline bg-sheet mt-6 rounded-[10px] border p-5"
         >
-          <h2 className="text-faint font-sans text-[11px] font-semibold tracking-[0.2em] uppercase">
+          <h2 className="text-grey-soft font-ui text-[11px] font-semibold tracking-[0.2em] uppercase">
             On this page
           </h2>
           <ol className="mt-2.5 grid gap-x-8 gap-y-1.5 sm:grid-cols-2">
@@ -48,11 +48,11 @@ export default async function HelpPage() {
               <li key={s.id}>
                 <a
                   href={`#${s.id}`}
-                  className="text-accent hover:text-accent-strong flex items-baseline gap-2.5 py-1 font-sans text-[15px] font-medium hover:underline"
+                  className="text-red hover:text-red-deep flex items-baseline gap-2.5 py-1 font-ui text-[15px] font-medium hover:underline"
                 >
                   <span
                     aria-hidden="true"
-                    className="text-faint2 font-mono text-[11px]"
+                    className="text-grey-soft font-ui tabular-nums text-[11px]"
                   >
                     {i + 1}
                   </span>

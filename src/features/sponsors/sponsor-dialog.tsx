@@ -96,7 +96,7 @@ export function SponsorDialog({
 
   return (
     <DialogShell
-      panelClassName="scrollbar-soft bg-card max-h-[90vh] w-[520px] overflow-y-auto rounded-[10px] [--scrollbar-surface:var(--color-card)] [scrollbar-gutter:stable] shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
+      panelClassName="scrollbar-soft bg-sheet max-h-[90vh] w-[520px] overflow-y-auto rounded-[10px] [--scrollbar-surface:var(--color-sheet)] [scrollbar-gutter:stable]"
       locked={saving}
       onClose={onClose}
     >
@@ -105,7 +105,7 @@ export function SponsorDialog({
           <div className="flex items-center justify-between px-8 pt-7">
             <h2
               id={titleId}
-              className="text-ink font-serif text-[26px] leading-tight"
+              className="text-lead font-display text-[26px] leading-tight"
             >
               {editing ? "Edit sponsor" : "Add sponsor"}
             </h2>
@@ -125,7 +125,7 @@ export function SponsorDialog({
                 onChange={(e) => setName(e.target.value)}
                 maxLength={200}
                 placeholder="e.g. Kawau Bay Hardware"
-                className="border-hair focus:border-accent text-ink h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-[15px] outline-none"
+                className="border-hairline focus:border-red text-lead h-12 w-full rounded-ui border-[1.5px] bg-white px-3.5 font-ui text-[15px] outline-none"
               />
             </Field>
 
@@ -136,13 +136,13 @@ export function SponsorDialog({
                 onChange={(e) => setHref(e.target.value)}
                 maxLength={2000}
                 placeholder="example.com or https://example.com"
-                className="border-hair focus:border-accent text-ink h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-[15px] outline-none"
+                className="border-hairline focus:border-red text-lead h-12 w-full rounded-ui border-[1.5px] bg-white px-3.5 font-ui text-[15px] outline-none"
               />
             </Field>
 
             <Field label="Logo (optional)" htmlFor="">
               <div className="flex items-center gap-4">
-                <div className="border-line flex h-16 w-28 flex-none items-center justify-center overflow-hidden rounded-lg border bg-white">
+                <div className="border-hairline flex h-16 w-28 flex-none items-center justify-center overflow-hidden rounded-ui border bg-white">
                   {logoUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -151,7 +151,7 @@ export function SponsorDialog({
                       className="h-full w-full object-contain"
                     />
                   ) : (
-                    <span className="text-faint2 font-mono text-[10px]">
+                    <span className="text-grey-soft font-ui tabular-nums text-[10px]">
                       NO LOGO
                     </span>
                   )}
@@ -163,7 +163,7 @@ export function SponsorDialog({
                     onClick={() => fileRef.current?.click()}
                     busy={uploading}
                   >
-                    <Icon name="upload" size={15} className="text-accent" />
+                    <Icon name="upload" size={15} className="text-red" />
                     {uploading
                       ? "Uploading…"
                       : logoUrl
@@ -179,7 +179,7 @@ export function SponsorDialog({
                         setLogoId(null);
                         setLogoUrl(null);
                       }}
-                      className="text-faint2 hover:text-warn cursor-pointer rounded-sm font-sans text-[12px] font-medium transition-[color] duration-150"
+                      className="text-grey-soft hover:text-red cursor-pointer rounded-ui font-ui text-[12px] font-medium transition-[color] duration-150"
                     >
                       Remove logo
                     </button>
@@ -201,9 +201,9 @@ export function SponsorDialog({
                 type="date"
                 value={activeUntil}
                 onChange={(e) => setActiveUntil(e.target.value)}
-                className="border-hair focus:border-accent text-ink h-12 rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-[15px] outline-none"
+                className="border-hairline focus:border-red text-lead h-12 rounded-ui border-[1.5px] bg-white px-3.5 font-ui text-[15px] outline-none"
               />
-              <p className="text-faint2 mt-1.5 font-sans text-[12px]">
+              <p className="text-grey-soft mt-1.5 font-ui text-[12px]">
                 After this date the sponsor is flagged expired here. It is not
                 removed from issues automatically.
               </p>
@@ -211,7 +211,7 @@ export function SponsorDialog({
           </div>
 
           {error && (
-            <p className="text-warn px-8 pt-4 font-sans text-[13px] font-semibold">
+            <p className="text-red px-8 pt-4 font-ui text-[13px] font-semibold">
               {error}
             </p>
           )}
@@ -249,7 +249,7 @@ function Field({
     <div>
       <label
         htmlFor={htmlFor || undefined}
-        className="text-faint mb-1.5 block font-sans text-[11px] font-semibold tracking-[0.14em] uppercase"
+        className="text-grey-soft mb-1.5 block font-ui text-[11px] font-semibold tracking-[0.14em] uppercase"
       >
         {label}
       </label>

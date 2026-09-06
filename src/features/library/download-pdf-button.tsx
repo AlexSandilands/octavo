@@ -29,7 +29,7 @@ export function DownloadPdfButton({ issueNumber }: { issueNumber: number }) {
           the cascade regardless of the variant's own text colour. */}
       <span
         className={`inline-flex items-center gap-2 ${
-          pdf.state === "error" ? "text-alert" : ""
+          pdf.state === "error" ? "text-red" : ""
         }`}
       >
         {label}

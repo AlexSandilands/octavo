@@ -100,10 +100,10 @@ export default async function AdminDashboard({
       <div className={ADMIN_LIST_PAGE}>
         <div className="flex flex-none flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-ink font-serif text-3xl">Issues</h1>
+            <h1 className="text-lead font-display text-3xl">Issues</h1>
             {/* Whole-list numbers, so the summary holds on every page and under
               every search. */}
-            <p className="text-faint mt-1.5 font-sans text-sm">
+            <p className="text-grey-soft mt-1.5 font-ui text-sm">
               {list.total} {list.total === 1 ? "issue" : "issues"} ·{" "}
               {list.draftTotal} in draft
             </p>

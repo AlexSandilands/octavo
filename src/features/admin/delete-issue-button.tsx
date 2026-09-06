@@ -49,7 +49,7 @@ export function DeleteIssueButton({
         onClick={() => setConfirming(true)}
         title="Delete issue"
         aria-label={`Delete ${title}`}
-        className="text-faint2 hover:text-warn hover:border-warn flex h-9 w-9 items-center justify-center rounded-lg border border-transparent disabled:opacity-40"
+        className="text-grey-soft hover:text-red hover:border-red flex h-9 w-9 items-center justify-center rounded-ui border border-transparent disabled:opacity-40"
       >
         <Icon name="trash" size={17} strokeWidth={1.8} />
       </button>
@@ -60,7 +60,7 @@ export function DeleteIssueButton({
             <>
               This permanently removes the issue and cannot be undone.
               {failed && (
-                <span role="alert" className="text-warn mt-2.5 block">
+                <span role="alert" className="text-red mt-2.5 block">
                   That didn’t work — the issue is still here. Please try again.
                 </span>
               )}

@@ -48,24 +48,24 @@ export function ReaderContents({
 }) {
   if (collapsed) {
     return (
-      <aside className="bg-card border-line flex w-[54px] flex-none flex-col items-center gap-4 border-r py-5">
+      <aside className="bg-sheet border-hairline flex w-[54px] flex-none flex-col items-center gap-4 border-r py-5">
         <Link
           href="/"
           title="Back to library"
-          className="text-muted hover:text-accent"
+          className="text-grey hover:text-red"
         >
           <Icon name="chevronLeft" size={20} />
         </Link>
-        <div className="bg-line h-px w-6" />
+        <div className="bg-hairline h-px w-6" />
         <button
           onClick={() => setCollapsed(false)}
-          className="text-accent"
+          className="text-red"
           title="Expand contents"
         >
           <Icon name="menu" size={20} />
         </button>
-        <div className="bg-line h-px w-6" />
-        <span className="text-faint2 font-mono text-[10px] tracking-[0.1em] [writing-mode:vertical-rl]">
+        <div className="bg-hairline h-px w-6" />
+        <span className="text-grey-soft font-ui tabular-nums text-[10px] tracking-[0.1em] [writing-mode:vertical-rl]">
           CONTENTS
         </span>
       </aside>
@@ -73,33 +73,33 @@ export function ReaderContents({
   }
 
   return (
-    <aside className="bg-card border-line flex w-[248px] flex-none flex-col border-r py-5">
+    <aside className="bg-sheet border-hairline flex w-[248px] flex-none flex-col border-r py-5">
       <Link
         href="/"
-        className="text-muted hover:text-accent mb-4 flex items-center gap-1.5 px-5 font-sans text-[13px] font-medium"
+        className="text-grey hover:text-red mb-4 flex items-center gap-1.5 px-5 font-ui text-[13px] font-medium"
       >
         <Icon name="chevronLeft" size={16} />
         Library
       </Link>
       <div className="flex items-center justify-between px-5">
-        <span className="text-accent font-sans text-[11px] font-semibold tracking-[0.2em] uppercase">
+        <span className="text-red font-ui text-[11px] font-semibold tracking-[0.2em] uppercase">
           Contents
         </span>
         <button
           onClick={() => setCollapsed(true)}
-          className="text-muted"
+          className="text-grey"
           title="Collapse"
         >
           <Icon name="chevronLeft" size={18} />
         </button>
       </div>
-      <p className="text-faint px-5 pt-2 font-serif text-[13px] italic">
+      <p className="text-grey-soft px-5 pt-2 font-display text-[13px] italic">
         {magazineName} · No. {issueNo}
       </p>
-      <div className="bg-line mx-5 my-4 h-px" />
-      <nav className="scrollbar-soft flex-1 overflow-y-auto [--scrollbar-surface:var(--color-card)] [scrollbar-gutter:stable]">
+      <div className="bg-hairline mx-5 my-4 h-px" />
+      <nav className="scrollbar-soft flex-1 overflow-y-auto [--scrollbar-surface:var(--color-sheet)] [scrollbar-gutter:stable]">
         {toc.length === 0 && (
-          <p className="text-faint2 px-5 font-sans text-[13px]">
+          <p className="text-grey-soft px-5 font-ui text-[13px]">
             Headings appear here.
           </p>
         )}
@@ -111,17 +111,17 @@ export function ReaderContents({
               onClick={() => onNavigate(t.page)}
               aria-current={active ? "true" : undefined}
               className={`flex w-full items-baseline justify-between gap-2.5 border-l-2 px-5 py-2.5 text-left ${
-                active ? "border-accent" : "border-transparent"
+                active ? "border-red" : "border-transparent"
               }`}
             >
               <span
-                className={`font-serif text-[15px] leading-snug ${
-                  active ? "text-accent" : "text-body"
+                className={`font-display text-[15px] leading-snug ${
+                  active ? "text-red" : "text-lead"
                 }`}
               >
                 {t.label}
               </span>
-              <span className="text-faint2 font-mono text-[11px]">
+              <span className="text-grey-soft font-ui tabular-nums text-[11px]">
                 {t.page}
               </span>
             </button>

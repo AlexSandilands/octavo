@@ -45,11 +45,11 @@ export function ReaderControls({
         : "Download PDF";
   return (
     <div className="group absolute inset-x-0 bottom-0 flex justify-center px-4 pt-12 pb-4">
-      <div className="bg-reader-chrome text-reader-chrome-text flex items-center gap-1.5 rounded-full px-2.5 py-2 opacity-50 shadow-[0_8px_24px_rgba(0,0,0,0.28)] transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
+      <div className="bg-lead text-sheet flex items-center gap-1.5 rounded-full px-2.5 py-2 opacity-50 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
         <CtrlBtn onClick={onPrev} title="Previous">
           <Icon name="chevronLeft" size={18} strokeWidth={1.7} />
         </CtrlBtn>
-        <span className="text-reader-chrome-muted min-w-[76px] text-center font-sans text-[13px]">
+        <span className="text-newsprint min-w-[76px] text-center font-ui text-[13px]">
           {label}
         </span>
         <CtrlBtn onClick={onNext} title="Next">
@@ -72,7 +72,7 @@ export function ReaderControls({
             onChange={(e) => onZoom(parseFloat(e.target.value))}
             aria-label="Zoom page"
             title={`Zoom ${Math.round(zoom * 100)}%`}
-            className="accent-reader-slider h-1 w-20 cursor-pointer"
+            className="accent-red h-1 w-20 cursor-pointer"
           />
         </div>
         {/* The divider goes with the button it introduces — left behind it
@@ -91,7 +91,7 @@ export function ReaderControls({
                 <Icon
                   name="download"
                   size={17}
-                  className={pdfState === "error" ? "text-alert" : undefined}
+                  className={pdfState === "error" ? "text-red" : undefined}
                 />
               )}
             </CtrlBtn>
@@ -128,7 +128,7 @@ function CtrlBtn({
       title={title}
       aria-label={title}
       disabled={disabled}
-      className="hover:bg-reader-chrome-hover flex h-11 w-11 items-center justify-center rounded-full disabled:cursor-default"
+      className="hover:bg-grey flex h-11 w-11 items-center justify-center rounded-full disabled:cursor-default"
     >
       {children}
     </button>
@@ -147,5 +147,5 @@ function Spinner() {
 }
 
 function Divider() {
-  return <div className="bg-reader-chrome-line mx-1 h-[22px] w-px" />;
+  return <div className="bg-grey mx-1 h-[22px] w-px" />;
 }

@@ -100,7 +100,7 @@ export function ArchiveGrid({
       <div className={`space-y-9 ${heading ? "mt-6" : ""}`}>
         {groups.map((group) => (
           <div key={group.key}>
-            <div className="border-line-soft border-t pt-3">
+            <div className="border-hairline border-t pt-3">
               <Label>{group.label}</Label>
             </div>
             <div className="mt-5 flex flex-wrap gap-x-5 gap-y-7">
@@ -144,7 +144,7 @@ function ArchiveCard({
       className="group"
       style={{ width: THUMB_W }}
     >
-      <div className="overflow-hidden rounded-[5px] shadow-[0_2px_10px_-5px_rgba(20,32,28,0.3)] transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-[0_14px_28px_-10px_rgba(20,32,28,0.4)]">
+      <div className="overflow-hidden rounded-[5px] transition-all duration-300 group-hover:-translate-y-1">
         {a.cover ? (
           <CoverThumb
             page={a.cover}
@@ -160,10 +160,10 @@ function ArchiveCard({
         )}
       </div>
       <div className="mt-2.5">
-        <span className="text-ink font-serif text-[15px] leading-tight group-hover:underline">
+        <span className="text-lead font-display text-[15px] leading-tight group-hover:underline">
           {a.title}
         </span>{" "}
-        <span className="text-faint2 inline-block font-mono text-[11px] whitespace-nowrap">
+        <span className="text-grey-soft inline-block font-ui tabular-nums text-[11px] whitespace-nowrap">
           No. {a.number}
         </span>
       </div>
@@ -185,10 +185,10 @@ function PlaceholderCover({ number, tint }: { number: number; tint: string }) {
     >
       {/* Ghosted numeral + label over the tinted stripe field: near-ink browns at
           low opacity, decorative to this placeholder cover only — not tokens. */}
-      <span className="pointer-events-none absolute -right-1 -bottom-6 font-serif text-[110px] leading-none text-[#2f2b22]/15 select-none">
+      <span className="pointer-events-none absolute -right-1 -bottom-6 font-display text-[110px] leading-none text-[#2f2b22]/15 select-none">
         {number}
       </span>
-      <span className="absolute top-3 left-3 font-serif text-xs text-[#3a372f]/80">
+      <span className="absolute top-3 left-3 font-display text-xs text-[#3a372f]/80">
         No. {number}
       </span>
     </div>

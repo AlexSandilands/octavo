@@ -92,7 +92,7 @@ export function FooterSizeField({
         {custom && (
           <label
             htmlFor={id}
-            className="text-ink flex items-center gap-2 font-sans text-sm font-medium"
+            className="text-lead flex items-center gap-2 font-ui text-sm font-medium"
           >
             Pixels
             <input
@@ -108,8 +108,8 @@ export function FooterSizeField({
               aria-label={`${label} in pixels`}
               aria-describedby={hintId}
               aria-invalid={!valid}
-              className={`text-ink h-11 w-24 rounded-lg border-[1.5px] bg-white px-3 font-sans text-[15px] tabular-nums outline-none ${
-                valid ? "border-hair focus:border-accent" : "border-warn"
+              className={`text-lead h-11 w-24 rounded-ui border-[1.5px] bg-white px-3 font-ui text-[15px] tabular-nums outline-none ${
+                valid ? "border-hairline focus:border-red" : "border-red"
               }`}
             />
           </label>
@@ -119,8 +119,8 @@ export function FooterSizeField({
         <p
           id={hintId}
           aria-live="polite"
-          className={`font-sans text-[12px] leading-relaxed ${
-            valid ? "text-faint2" : "text-warn"
+          className={`font-ui text-[12px] leading-relaxed ${
+            valid ? "text-grey-soft" : "text-red"
           }`}
         >
           {valid

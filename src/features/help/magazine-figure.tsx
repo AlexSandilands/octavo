@@ -18,7 +18,7 @@ function CardTitle({ n, title }: { n: number; title: string }) {
   return (
     <div className="flex items-center gap-2">
       <FigureBadge n={n} />
-      <span className="text-ink font-serif text-[13px] leading-none">
+      <span className="text-lead font-display text-[13px] leading-none">
         {title}
       </span>
     </div>
@@ -28,10 +28,10 @@ function CardTitle({ n, title }: { n: number; title: string }) {
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <span className="text-faint block font-sans text-[8px] font-semibold tracking-[0.14em] uppercase">
+      <span className="text-grey-soft block font-ui text-[8px] font-semibold tracking-[0.14em] uppercase">
         {label}
       </span>
-      <span className="border-hair text-ink mt-1 flex h-[22px] items-center truncate rounded-[5px] border bg-white px-2 font-sans text-[10px]">
+      <span className="border-hairline text-lead mt-1 flex h-[22px] items-center truncate rounded-[5px] border bg-white px-2 font-ui text-[10px]">
         {value}
       </span>
     </div>
@@ -43,7 +43,7 @@ function Field({ label, value }: { label: string; value: string }) {
 function SettingsColumn() {
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-3">
-      <div className="border-line bg-paper rounded-lg border p-3.5">
+      <div className="border-hairline bg-sheet rounded-ui border p-3.5">
         <CardTitle n={1} title="Details" />
         <div className="mt-3 space-y-2.5">
           <Field label="Magazine name" value="Seaview Notes" />
@@ -51,13 +51,13 @@ function SettingsColumn() {
           <Field label="Tagline" value="Stories from the harbour" />
         </div>
 
-        <div className="border-line-soft mt-3.5 border-t pt-3">
+        <div className="border-hairline mt-3.5 border-t pt-3">
           <CardTitle n={2} title="Page footer" />
           <div className="mt-2.5 flex flex-wrap gap-1.5">
             {FOOTER_CHOICES.map((c) => (
               <span
                 key={c.label}
-                className="border-hair-warm text-ink flex h-[23px] items-center gap-1 rounded-[5px] border bg-white px-2 font-sans text-[9.5px] font-medium"
+                className="border-hairline text-lead flex h-[23px] items-center gap-1 rounded-[5px] border bg-white px-2 font-ui text-[9.5px] font-medium"
               >
                 {c.label}: {c.value}
                 <Icon name="chevronDown" size={9} strokeWidth={2} />
@@ -66,35 +66,35 @@ function SettingsColumn() {
           </div>
         </div>
 
-        <div className="border-line-soft mt-3.5 flex flex-wrap items-center gap-2 border-t pt-3">
+        <div className="border-hairline mt-3.5 flex flex-wrap items-center gap-2 border-t pt-3">
           <FigureBadge n={5} />
-          <span className="bg-accent text-paper rounded-md px-2.5 py-1.5 font-sans text-[10.5px] font-semibold">
+          <span className="bg-red text-sheet rounded-ui px-2.5 py-1.5 font-ui text-[10.5px] font-semibold">
             Save changes
           </span>
-          <span className="text-faint font-sans text-[9.5px]">
+          <span className="text-grey-soft font-ui text-[9.5px]">
             Unsaved changes.
           </span>
         </div>
       </div>
 
-      <div className="border-line bg-paper rounded-lg border p-3.5">
+      <div className="border-hairline bg-sheet rounded-ui border p-3.5">
         <CardTitle n={4} title="Logos" />
         <div className="mt-2.5 space-y-1.5">
           {["Club crest", "Wordmark"].map((name) => (
             <span
               key={name}
-              className="border-line-soft flex items-center gap-2 border-b pb-1.5 last:border-b-0"
+              className="border-hairline flex items-center gap-2 border-b pb-1.5 last:border-b-0"
             >
               <span className="photo-fill h-5 w-5 flex-none rounded-[3px]" />
-              <span className="text-ink flex-1 truncate font-sans text-[10px] font-semibold">
+              <span className="text-lead flex-1 truncate font-ui text-[10px] font-semibold">
                 {name}
               </span>
-              <Icon name="pencil" size={11} className="text-faint2" />
-              <Icon name="trash" size={11} className="text-faint2" />
+              <Icon name="pencil" size={11} className="text-grey-soft" />
+              <Icon name="trash" size={11} className="text-grey-soft" />
             </span>
           ))}
         </div>
-        <span className="bg-tint text-accent mt-2.5 inline-block rounded-full px-2 py-0.5 font-sans text-[9px] font-semibold">
+        <span className="bg-newsprint text-red mt-2.5 inline-block rounded-full px-2 py-0.5 font-ui text-[9px] font-semibold">
           Saves straight away
         </span>
       </div>
@@ -116,34 +116,34 @@ function PreviewColumn() {
         {["Theme: Classic", "Mark: Club crest"].map((c) => (
           <span
             key={c}
-            className="border-hair-warm text-ink flex h-[21px] items-center gap-1 rounded-[5px] border bg-white px-1.5 font-sans text-[9px] font-medium"
+            className="border-hairline text-lead flex h-[21px] items-center gap-1 rounded-[5px] border bg-white px-1.5 font-ui text-[9px] font-medium"
           >
             {c}
             <Icon name="chevronDown" size={8} strokeWidth={2} />
           </span>
         ))}
       </div>
-      <div className="bg-page flex aspect-[640/900] w-full flex-col rounded-[2px] p-3 shadow-[0_2px_8px_rgba(20,32,28,0.18)]">
-        <div className="text-faint2 font-sans text-[7px] tracking-[0.12em] uppercase">
+      <div className="bg-sheet flex aspect-[640/900] w-full flex-col rounded-[2px] p-3">
+        <div className="text-grey-soft font-ui text-[7px] tracking-[0.12em] uppercase">
           Seaview Notes · No. 12
         </div>
-        <div className="bg-rule mt-2 h-[7px] w-3/4 rounded-xs" />
+        <div className="bg-hairline mt-2 h-[7px] w-3/4 rounded-xs" />
         <div className="mt-2.5 space-y-1">
-          <div className="bg-line h-[4px] w-full rounded-xs" />
-          <div className="bg-line h-[4px] w-11/12 rounded-xs" />
-          <div className="bg-line h-[4px] w-full rounded-xs" />
+          <div className="bg-hairline h-[4px] w-full rounded-xs" />
+          <div className="bg-hairline h-[4px] w-11/12 rounded-xs" />
+          <div className="bg-hairline h-[4px] w-full rounded-xs" />
         </div>
         <div className="photo-fill mt-2.5 aspect-[2/1] w-full rounded-[2px]" />
         <div className="mt-2.5 space-y-1">
-          <div className="bg-line h-[4px] w-full rounded-xs" />
-          <div className="bg-line h-[4px] w-full rounded-xs" />
-          <div className="bg-line h-[4px] w-10/12 rounded-xs" />
-          <div className="bg-line h-[4px] w-full rounded-xs" />
-          <div className="bg-line h-[4px] w-2/3 rounded-xs" />
+          <div className="bg-hairline h-[4px] w-full rounded-xs" />
+          <div className="bg-hairline h-[4px] w-full rounded-xs" />
+          <div className="bg-hairline h-[4px] w-10/12 rounded-xs" />
+          <div className="bg-hairline h-[4px] w-full rounded-xs" />
+          <div className="bg-hairline h-[4px] w-2/3 rounded-xs" />
         </div>
         {/* The running footer: the mark and the club name as one lockup, the
             page number out at the opposite margin. */}
-        <div className="text-faint2 mt-auto flex items-center justify-between font-sans text-[8px] font-medium tracking-[0.1em] uppercase">
+        <div className="text-grey-soft mt-auto flex items-center justify-between font-ui text-[8px] font-medium tracking-[0.1em] uppercase">
           <span className="flex min-w-0 items-center gap-1.5">
             <span className="photo-fill h-[13px] w-[13px] flex-none rounded-[2px]" />
             <span className="truncate">Seaview Sailing Club</span>
@@ -154,15 +154,15 @@ function PreviewColumn() {
       {/* The alignment relationship, drawn: the lockup ranges left or centre or
           right, and the page number always takes the other margin. */}
       <div className="flex w-full items-start justify-between px-3">
-        <span className="text-faint2 flex flex-col items-center gap-0.5">
+        <span className="text-grey-soft flex flex-col items-center gap-0.5">
           <Icon name="arrowUp" size={10} />
-          <span className="font-sans text-[8px] leading-tight">
+          <span className="font-ui text-[8px] leading-tight">
             Lockup — Align: Left
           </span>
         </span>
-        <span className="text-faint2 flex flex-col items-center gap-0.5">
+        <span className="text-grey-soft flex flex-col items-center gap-0.5">
           <Icon name="arrowUp" size={10} />
-          <span className="font-sans text-[8px] leading-tight">
+          <span className="font-ui text-[8px] leading-tight">
             Page number
           </span>
         </span>
@@ -181,8 +181,8 @@ export function MagazineFigure() {
         <SettingsColumn />
         {/* The draggable rail the real screen puts between the two panes. */}
         <div className="hidden w-8 flex-none self-stretch sm:flex sm:justify-center">
-          <span className="bg-line relative w-px">
-            <span className="border-hair-warm absolute top-1/2 left-1/2 h-8 w-[6px] -translate-x-1/2 -translate-y-1/2 rounded-full border-[1.5px] bg-white" />
+          <span className="bg-hairline relative w-px">
+            <span className="border-hairline absolute top-1/2 left-1/2 h-8 w-[6px] -translate-x-1/2 -translate-y-1/2 rounded-full border-[1.5px] bg-white" />
           </span>
         </div>
         <PreviewColumn />

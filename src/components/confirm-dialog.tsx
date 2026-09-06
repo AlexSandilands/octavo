@@ -34,7 +34,7 @@ export function ConfirmDialog({
 }) {
   return (
     <DialogShell
-      panelClassName="bg-card w-[440px] max-w-full overflow-hidden rounded-[10px] shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
+      panelClassName="bg-sheet w-[440px] max-w-full overflow-hidden rounded-[10px]"
       locked={working}
       onClose={onClose}
     >
@@ -43,11 +43,11 @@ export function ConfirmDialog({
           <div className="px-8 pt-7">
             <h2
               id={titleId}
-              className="text-ink font-serif text-[24px] leading-tight"
+              className="text-lead font-display text-[24px] leading-tight"
             >
               {title}
             </h2>
-            <p className="text-muted mt-2.5 font-sans text-[15px] leading-relaxed">
+            <p className="text-grey mt-2.5 font-ui text-[15px] leading-relaxed">
               {body}
             </p>
           </div>

@@ -1,8 +1,15 @@
 # Self-hosted fonts
 
-The three families the magazine sets type in, committed as woff2 so that no build
-needs a network round-trip to Google (issue #167). They are loaded by
-`src/app/layout.tsx` through `next/font/local`; nothing else references them.
+Five families, committed as woff2 so that no build needs a network round-trip to
+Google (issue #167). They are loaded by `src/app/layout.tsx` through
+`next/font/local`; nothing else references them.
+
+Two groups. **Newsreader, Hanken Grotesk and IBM Plex Mono are the page faces** —
+the authored magazine sets its type in them and the PDF prints them, so they are
+frozen (see "Rebuilding": a change to their advance widths repaginates every
+issue). **Fraunces and Public Sans are the chrome faces** of the Broadsheet
+interface (`--font-display` / `--font-ui`): mastheads, headlines, labels, buttons.
+They never reach a printed page, so they can be upgraded freely.
 
 Each file is the same face, at the same version, that `next/font/google` was
 downloading at build time before the swap — see "Verification" for how that was
@@ -17,8 +24,12 @@ checked. Re-fetching or upgrading one is a deliberate act, not a build step.
 | `hanken-grotesk.woff2`    | Hanken Grotesk | v12 (font 3.013) | wght 100–900          |
 | `ibm-plex-mono-400.woff2` | IBM Plex Mono  | v20 (font 2.3)   | 400 (no variable cut) |
 | `ibm-plex-mono-500.woff2` | IBM Plex Mono  | v20 (font 2.3)   | 500 (no variable cut) |
+| `fraunces-roman.woff2`    | Fraunces       | v38 (font 1.000) | wght 100–900 · opsz 9–144, upright |
+| `fraunces-italic.woff2`   | Fraunces       | v38 (font 1.000) | wght 100–900 · opsz 9–144, italic |
+| `public-sans-roman.woff2` | Public Sans    | v21 (font 2.001) | wght 100–900, upright |
+| `public-sans-italic.woff2` | Public Sans   | v21 (font 2.001) | wght 100–900, italic |
 
-All three families are SIL Open Font License 1.1; the licence text sits beside the
+All five families are SIL Open Font License 1.1; the licence text sits beside the
 files it covers (`OFL-*.txt`), fetched from
 `https://raw.githubusercontent.com/google/fonts/main/ofl/<family>/OFL.txt`.
 
@@ -33,6 +44,10 @@ again if these 404, which means Google has published a newer version):
 - Hanken Grotesk — `https://fonts.gstatic.com/s/hankengrotesk/v12/ieVn2YZDLWuGJpnzaiwFXS9tYupa7dGTCTs5.ttf`
 - IBM Plex Mono Regular — `https://fonts.gstatic.com/s/ibmplexmono/v20/-F63fjptAgt5VM-kVkqdyU8n5igg1l9kn-s.ttf`
 - IBM Plex Mono Medium — `https://fonts.gstatic.com/s/ibmplexmono/v20/-F6qfjptAgt5VM-kVkqdyU8n3twJ8ldPg-IUDNg.ttf`
+- Fraunces upright — `https://fonts.gstatic.com/s/fraunces/v38/6NUV8FyLNQOQZAnv9awPnugMyM1A.ttf`
+- Fraunces italic — `https://fonts.gstatic.com/s/fraunces/v38/6NUT8FyLNQOQZAnv9ZwNlOwuzd1AZtw.ttf`
+- Public Sans upright — `https://fonts.gstatic.com/s/publicsans/v21/ijwRs572Xtc6ZYQws9YVwkNBdp_yw_k0.ttf`
+- Public Sans italic — `https://fonts.gstatic.com/s/publicsans/v21/ijwTs572Xtc6ZYQws9YVwnNDfJvQxuk0Nig.ttf`
 
 ## Rebuilding
 
@@ -61,6 +76,13 @@ python -m fontTools.varLib.instancer -o italic-opsz16.ttf Newsreader-Italic.ttf 
 pyftsubset <input>.ttf --output-file=<output>.woff2 \
   --flavor=woff2 --layout-features='*' --unicodes="$LATIN,$LATIN_EXT"
 ```
+
+**Fraunces ships two extra axes in Google's build (`SOFT`, `WONK`).** The
+committed files pin both at their defaults with the instancer before subsetting
+(`python -m fontTools.varLib.instancer … SOFT=0 WONK=0`), keeping `opsz` and
+`wght` variable; the browser picks the optical size from the rendered font-size.
+The chrome faces are not print-visible, so none of the width-preservation care
+above applies to them — upgrade them whenever a newer version is worth having.
 
 ## Verification
 

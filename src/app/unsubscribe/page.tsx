@@ -22,7 +22,7 @@ async function Frame({ children }: { children: React.ReactNode }) {
   const { org } = await getSettings();
   return (
     <main className="flex min-h-screen items-center justify-center px-5 py-12">
-      <div className="bg-card border-line w-full max-w-md rounded-2xl border p-8 shadow-[0_14px_34px_rgba(0,0,0,0.08)] sm:p-10">
+      <div className="bg-sheet border-hairline w-full max-w-md rounded-ui border p-8 sm:p-10">
         <Wordmark size={22} />
         <Label>{org}</Label>
         {children}
@@ -48,10 +48,10 @@ export default async function UnsubscribePage({
   if (!token || !member) {
     return (
       <Frame>
-        <h1 className="text-ink mt-10 font-serif text-3xl leading-[1.1]">
+        <h1 className="text-lead mt-10 font-display text-3xl leading-[1.1]">
           This link isn&rsquo;t valid.
         </h1>
-        <p className="text-muted mt-4 font-sans text-[16px] leading-relaxed">
+        <p className="text-grey mt-4 font-ui text-[16px] leading-relaxed">
           The unsubscribe link may be incomplete or out of date. Use the
           Unsubscribe link at the bottom of a recent {magazineName} email.
         </p>
@@ -62,12 +62,12 @@ export default async function UnsubscribePage({
   if (member.subscribed) {
     return (
       <Frame>
-        <h1 className="text-ink mt-10 font-serif text-3xl leading-[1.1]">
+        <h1 className="text-lead mt-10 font-display text-3xl leading-[1.1]">
           Unsubscribe from {magazineName}?
         </h1>
-        <p className="text-muted mt-4 font-sans text-[16px] leading-relaxed">
+        <p className="text-grey mt-4 font-ui text-[16px] leading-relaxed">
           We&rsquo;ll stop emailing new issues to{" "}
-          <span className="text-ink font-semibold">{member.email}</span>. You
+          <span className="text-lead font-semibold">{member.email}</span>. You
           can resubscribe here any time.
         </p>
         <form className="mt-8" action={updateSubscriptionAction}>
@@ -83,12 +83,12 @@ export default async function UnsubscribePage({
 
   return (
     <Frame>
-      <h1 className="text-ink mt-10 font-serif text-3xl leading-[1.1]">
+      <h1 className="text-lead mt-10 font-display text-3xl leading-[1.1]">
         You&rsquo;ve been unsubscribed.
       </h1>
-      <p className="text-muted mt-4 font-sans text-[16px] leading-relaxed">
+      <p className="text-grey mt-4 font-ui text-[16px] leading-relaxed">
         We won&rsquo;t email new issues to{" "}
-        <span className="text-ink font-semibold">{member.email}</span> any more.
+        <span className="text-lead font-semibold">{member.email}</span> any more.
         Changed your mind? You can turn them back on.
       </p>
       <form className="mt-8" action={updateSubscriptionAction}>

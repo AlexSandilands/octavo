@@ -109,7 +109,7 @@ export function measureTextFlow(
   const block = container.querySelector<HTMLElement>(
     `[data-block-id="${CSS.escape(blockId)}"]`,
   );
-  const body = block?.querySelector<HTMLElement>("[data-text-body]");
+  const body = block?.querySelector<HTMLElement>("[data-text-lead]");
   if (!geo || !block || !body || nodeCount === 0) return null;
 
   const children = Array.from(body.children).filter(

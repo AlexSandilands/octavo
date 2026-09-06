@@ -54,7 +54,7 @@ export function EditorToolbar({
       <div
         role="group"
         aria-label="Editor tools"
-        className="border-hair-warm pointer-events-auto flex max-w-full items-center gap-2 rounded-[14px] border bg-white px-2.5 py-2 shadow-[0_8px_28px_rgba(40,36,28,0.22)]"
+        className="border-hairline pointer-events-auto flex max-w-full items-center gap-2 rounded-[14px] border bg-white px-2.5 py-2"
       >
         {/* `unavailable`, not `disabled`: it keeps the button focusable — see
             `unavailable` in `ui.tsx`. */}
@@ -85,7 +85,7 @@ export function EditorToolbar({
                 ? "This page is filled by a photo"
                 : `Insert a ${b.label.toLowerCase()} block`
             }
-            iconClass="text-accent"
+            iconClass="text-red"
             showLabel
             disabled={insertDisabled}
             onClick={() => onAddBlock(b.type)}
@@ -115,7 +115,7 @@ export function EditorToolbar({
 }
 
 function Divider() {
-  return <span className="bg-line mx-0.5 h-6 w-px" />;
+  return <span className="bg-hairline mx-0.5 h-6 w-px" />;
 }
 
 // Its own shape rather than the house Button (§6 allows a bordered icon square):
@@ -148,10 +148,10 @@ function Tool({
 }) {
   const inert = disabled || unavailable;
   const look = inert
-    ? "border-hair-warm text-ink cursor-default bg-white opacity-45"
+    ? "border-hairline text-lead cursor-default bg-white opacity-45"
     : pressed
-      ? "border-accent bg-accent text-paper cursor-pointer motion-safe:active:scale-95"
-      : "border-hair-warm text-ink hover:border-accent hover:bg-accent-wash cursor-pointer bg-white motion-safe:active:scale-95";
+      ? "border-red bg-red text-sheet cursor-pointer motion-safe:active:scale-95"
+      : "border-hairline text-lead hover:border-red hover:bg-newsprint cursor-pointer bg-white motion-safe:active:scale-95";
   return (
     <button
       type="button"
@@ -162,7 +162,7 @@ function Tool({
       aria-label={label}
       aria-pressed={pressed}
       aria-keyshortcuts={shortcut}
-      className={`flex h-10 w-10 flex-none items-center justify-center gap-1.5 rounded-[9px] border font-sans text-[13px] font-semibold transition-[transform,background-color,border-color,color] duration-150 ease-out select-none ${showLabel ? "xl:w-auto xl:px-3.5" : ""} ${look}`}
+      className={`flex h-10 w-10 flex-none items-center justify-center gap-1.5 rounded-[9px] border font-ui text-[13px] font-semibold transition-[transform,background-color,border-color,color] duration-150 ease-out select-none ${showLabel ? "xl:w-auto xl:px-3.5" : ""} ${look}`}
     >
       <Icon name={icon} size={16} className={pressed ? "" : iconClass} />
       {showLabel && <span className="hidden xl:inline">{label}</span>}

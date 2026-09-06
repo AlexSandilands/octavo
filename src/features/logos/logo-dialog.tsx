@@ -95,7 +95,7 @@ export function LogoDialog({
 
   return (
     <DialogShell
-      panelClassName="scrollbar-soft bg-card max-h-[90vh] w-[520px] overflow-y-auto rounded-[10px] [--scrollbar-surface:var(--color-card)] [scrollbar-gutter:stable] shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
+      panelClassName="scrollbar-soft bg-sheet max-h-[90vh] w-[520px] overflow-y-auto rounded-[10px] [--scrollbar-surface:var(--color-sheet)] [scrollbar-gutter:stable]"
       locked={saving}
       onClose={onClose}
     >
@@ -104,7 +104,7 @@ export function LogoDialog({
           <div className="flex items-center justify-between px-8 pt-7">
             <h2
               id={titleId}
-              className="text-ink font-serif text-[26px] leading-tight"
+              className="text-lead font-display text-[26px] leading-tight"
             >
               {renaming ? "Rename logo" : "Add logo"}
             </h2>
@@ -120,7 +120,7 @@ export function LogoDialog({
             <div>
               <label
                 htmlFor="logo-name"
-                className="text-faint mb-1.5 block font-sans text-[11px] font-semibold tracking-[0.14em] uppercase"
+                className="text-grey-soft mb-1.5 block font-ui text-[11px] font-semibold tracking-[0.14em] uppercase"
               >
                 Name
               </label>
@@ -130,16 +130,16 @@ export function LogoDialog({
                 onChange={(e) => setName(e.target.value)}
                 maxLength={200}
                 placeholder="e.g. Club fern"
-                className="border-hair focus:border-accent text-ink h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-[15px] outline-none"
+                className="border-hairline focus:border-red text-lead h-12 w-full rounded-ui border-[1.5px] bg-white px-3.5 font-ui text-[15px] outline-none"
               />
             </div>
 
             <div>
-              <span className="text-faint mb-1.5 block font-sans text-[11px] font-semibold tracking-[0.14em] uppercase">
+              <span className="text-grey-soft mb-1.5 block font-ui text-[11px] font-semibold tracking-[0.14em] uppercase">
                 Mark
               </span>
               <div className="flex items-center gap-4">
-                <div className="border-line flex h-20 w-20 flex-none items-center justify-center overflow-hidden rounded-lg border bg-white">
+                <div className="border-hairline flex h-20 w-20 flex-none items-center justify-center overflow-hidden rounded-ui border bg-white">
                   {imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -148,13 +148,13 @@ export function LogoDialog({
                       className="h-full w-full object-contain p-1.5"
                     />
                   ) : (
-                    <span className="text-faint2 font-mono text-[10px]">
+                    <span className="text-grey-soft font-ui tabular-nums text-[10px]">
                       NO MARK
                     </span>
                   )}
                 </div>
                 {renaming ? (
-                  <p className="text-faint2 max-w-[280px] font-sans text-[12px] leading-relaxed">
+                  <p className="text-grey-soft max-w-[280px] font-ui text-[12px] leading-relaxed">
                     The image itself can&rsquo;t be swapped — add a new logo and
                     delete this one instead.
                   </p>
@@ -165,7 +165,7 @@ export function LogoDialog({
                     onClick={() => fileRef.current?.click()}
                     busy={uploading}
                   >
-                    <Icon name="upload" size={15} className="text-accent" />
+                    <Icon name="upload" size={15} className="text-red" />
                     {uploading
                       ? "Uploading…"
                       : imageUrl
@@ -182,7 +182,7 @@ export function LogoDialog({
                 />
               </div>
               {!renaming && (
-                <p className="text-faint2 mt-2 font-sans text-[12px] leading-relaxed">
+                <p className="text-grey-soft mt-2 font-ui text-[12px] leading-relaxed">
                   Use a PNG or WebP with a transparent background — see-through
                   areas are kept, so the mark sits cleanly on the page.
                 </p>
@@ -191,7 +191,7 @@ export function LogoDialog({
           </div>
 
           {error && (
-            <p className="text-warn px-8 pt-4 font-sans text-[13px] font-semibold">
+            <p className="text-red px-8 pt-4 font-ui text-[13px] font-semibold">
               {error}
             </p>
           )}

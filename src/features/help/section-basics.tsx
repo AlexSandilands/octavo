@@ -30,7 +30,7 @@ export function SectionBasics() {
       </P>
       <Callout icon="help" title="If someone says they can’t get in">
         Check they&rsquo;re on the members list (see{" "}
-        <a href="#members" className="text-accent underline">
+        <a href="#members" className="text-red underline">
           Members
         </a>{" "}
         below) and that they&rsquo;re typing the same email address you have for

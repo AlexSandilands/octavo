@@ -22,7 +22,7 @@ export const ADMIN_LIST_TABLE =
 // background covers the gap the rows would otherwise scroll through. From md
 // up it sits in the pinned block and needs none of this.
 export const ADMIN_LIST_TOOLBAR =
-  "bg-card sticky -top-7 z-10 -mt-7 flex flex-col gap-3 pt-7 pb-3 sm:-top-8 sm:-mt-8 sm:pt-8 md:static md:mt-0 md:flex-none md:pt-0 md:pb-0 lg:flex-row";
+  "bg-sheet sticky -top-7 z-10 -mt-7 flex flex-col gap-3 pt-7 pb-3 sm:-top-8 sm:-mt-8 sm:pt-8 md:static md:mt-0 md:flex-none md:pt-0 md:pb-0 lg:flex-row";
 
 // The rows (with the live result line and the pagination). From md up this is
 // the scroll region: the negative margins run it out to the pane's own edges
@@ -31,4 +31,4 @@ export const ADMIN_LIST_TOOLBAR =
 // `relative` anchors the sr-only status inside it, not the pane (#189).
 // Pagination resets whichever ancestor actually scrolls (see ListPagination).
 export const ADMIN_LIST_ROWS =
-  "scrollbar-soft relative [--scrollbar-surface:var(--color-card)] md:-mx-8 md:-mb-8 md:min-h-48 md:flex-1 md:overflow-y-auto md:px-8 md:pb-8 md:[scrollbar-gutter:stable]";
+  "scrollbar-soft relative [--scrollbar-surface:var(--color-sheet)] md:-mx-8 md:-mb-8 md:min-h-48 md:flex-1 md:overflow-y-auto md:px-8 md:pb-8 md:[scrollbar-gutter:stable]";

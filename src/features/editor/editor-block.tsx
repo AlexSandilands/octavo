@@ -128,12 +128,12 @@ export function EditorBlock({
       // A box-shadow "ring" (not outline) so the gap to the text is stable and
       // hover/selected states are pure CSS. The inner page-coloured ring is the
       // breathing room; the outer ring is the visible line.
-      className={`group relative cursor-pointer rounded-sm transition-[box-shadow] ${
+      className={`group relative cursor-pointer rounded-ui transition-[box-shadow] ${
         isDragging
-          ? "z-30 [box-shadow:0_0_0_2px_var(--color-accent),0_12px_28px_rgba(40,36,28,0.22)]"
+          ? "z-30 [box-shadow:0_0_0_2px_var(--color-red),0_12px_28px_rgba(40,36,28,0.22)]"
           : selected
-            ? "[box-shadow:0_0_0_6px_var(--color-page),0_0_0_8px_var(--color-accent)]"
-            : "hover:[box-shadow:0_0_0_6px_var(--color-page),0_0_0_8px_var(--color-hair)]"
+            ? "[box-shadow:0_0_0_6px_var(--color-sheet),0_0_0_8px_var(--color-red)]"
+            : "hover:[box-shadow:0_0_0_6px_var(--color-sheet),0_0_0_8px_var(--color-hairline)]"
       }`}
     >
       <button
@@ -143,7 +143,7 @@ export function EditorBlock({
         {...listeners}
         title="Drag to reorder"
         aria-label="Drag to reorder"
-        className={`border-hair-warm absolute z-10 flex h-7 w-6 cursor-grab touch-none items-center justify-center rounded-[5px] border bg-white text-muted transition-opacity active:cursor-grabbing ${
+        className={`border-hairline absolute z-10 flex h-7 w-6 cursor-grab touch-none items-center justify-center rounded-[5px] border bg-white text-grey transition-opacity active:cursor-grabbing ${
           bleed ? "top-2.5 left-2" : "top-1/2 -left-9 -translate-y-1/2"
         } ${selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
       >
@@ -154,7 +154,7 @@ export function EditorBlock({
         <>
           {block.type === "image" ? (
             <div
-              className={`border-hair chrome-unscaled absolute z-20 flex items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap shadow-[0_4px_14px_rgba(40,36,28,0.16)] ${chromeTop} ${bleed ? "left-11" : "left-0"}`}
+              className={`border-hairline chrome-unscaled absolute z-20 flex items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap ${chromeTop} ${bleed ? "left-11" : "left-0"}`}
             >
               <ImageBlockControl
                 issueId={issueId}
@@ -166,16 +166,16 @@ export function EditorBlock({
               />
               {block.imageId && (
                 <>
-                  <span className="bg-line h-5 w-px" />
+                  <span className="bg-hairline h-5 w-px" />
                   <ImageLayoutControls
                     align={block.align ?? "full"}
                     width={block.width ?? 100}
                     onChange={onChange}
                     onFillPage={cover ? undefined : onFillPage}
                   />
-                  <span className="bg-line h-5 w-px" />
+                  <span className="bg-hairline h-5 w-px" />
                   <label className="flex items-center gap-1.5">
-                    <span className="text-faint2 font-sans text-[9px] font-semibold tracking-[0.14em] uppercase">
+                    <span className="text-grey-soft font-ui text-[9px] font-semibold tracking-[0.14em] uppercase">
                       Alt
                     </span>
                     <input
@@ -185,14 +185,14 @@ export function EditorBlock({
                       onClick={(e) => e.stopPropagation()}
                       aria-label="Describe this photo for screen readers"
                       placeholder="Describe this photo for screen readers"
-                      className="border-hair text-ink w-56 rounded-[6px] border bg-white px-2 py-1 font-sans text-[12px]"
+                      className="border-hairline text-lead w-56 rounded-[6px] border bg-white px-2 py-1 font-ui text-[12px]"
                     />
                   </label>
                 </>
               )}
             </div>
           ) : block.type === "montage" ? (
-            <div className="border-hair chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap shadow-[0_4px_14px_rgba(40,36,28,0.16)]">
+            <div className="border-hairline chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap">
               <MontageBlockControl
                 items={block.items}
                 interval={block.interval}
@@ -203,7 +203,7 @@ export function EditorBlock({
               />
               {block.items.length > 0 && (
                 <>
-                  <span className="bg-line h-5 w-px" />
+                  <span className="bg-hairline h-5 w-px" />
                   {/* Placement/size are the image block's controls verbatim —
                       a montage occupies a photo slot, so it sizes like one. */}
                   <ImageLayoutControls
@@ -215,7 +215,7 @@ export function EditorBlock({
               )}
             </div>
           ) : block.type === "video" ? (
-            <div className="border-hair chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap shadow-[0_4px_14px_rgba(40,36,28,0.16)]">
+            <div className="border-hairline chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap">
               <VideoBlockControl
                 videoId={block.videoId}
                 posterImageId={block.posterImageId}
@@ -226,7 +226,7 @@ export function EditorBlock({
               />
               {block.videoId && (
                 <>
-                  <span className="bg-line h-5 w-px" />
+                  <span className="bg-hairline h-5 w-px" />
                   {/* Placement/size are the image block's controls verbatim —
                       a video occupies a photo slot, so it sizes like one. */}
                   <ImageLayoutControls
@@ -249,7 +249,7 @@ export function EditorBlock({
               />
             </div>
           ) : block.type === "sponsor" ? (
-            <div className="border-hair chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 shadow-[0_4px_14px_rgba(40,36,28,0.16)]">
+            <div className="border-hairline chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5">
               <SponsorPicker
                 sponsorId={block.sponsorId}
                 sponsors={sponsors}
@@ -257,7 +257,7 @@ export function EditorBlock({
               />
             </div>
           ) : (
-            <span className="bg-accent text-paper chrome-unscaled absolute bottom-full left-0 z-10 mb-2 rounded-[3px] px-1.5 py-[3px] font-sans text-[9px] font-semibold tracking-[0.1em] uppercase">
+            <span className="bg-red text-sheet chrome-unscaled absolute bottom-full left-0 z-10 mb-2 rounded-[3px] px-1.5 py-[3px] font-ui text-[9px] font-semibold tracking-[0.1em] uppercase">
               {block.type}
             </span>
           )}
@@ -332,10 +332,10 @@ function Ctrl({
       }}
       title={title}
       aria-label={title}
-      className={`border-hair-warm flex h-6 w-6 items-center justify-center rounded-[5px] border bg-white ${
+      className={`border-hairline flex h-6 w-6 items-center justify-center rounded-[5px] border bg-white ${
         danger
-          ? "text-warn hover:border-warn"
-          : "text-muted hover:border-accent hover:text-accent"
+          ? "text-red hover:border-red"
+          : "text-grey hover:border-red hover:text-red"
       }`}
     >
       <Icon name={icon} size={13} strokeWidth={1.9} />

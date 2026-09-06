@@ -45,10 +45,10 @@ export default async function LibraryPage() {
 
       {!latest ? (
         <section className="py-20 text-center">
-          <h2 className="text-ink font-serif text-3xl">
+          <h2 className="text-lead font-display text-3xl">
             No issues published yet
           </h2>
-          <p className="text-muted mt-3 font-sans">
+          <p className="text-grey mt-3 font-ui">
             The first issue of {settings.name} will appear here once it&apos;s
             published.
           </p>
@@ -77,7 +77,7 @@ export default async function LibraryPage() {
           {/* Only once the catalogue outgrows the shelf above: a magazine with
               a page's worth of issues shows them all and needs no way out. */}
           {older > 0 && (
-            <div className="border-line-soft flex justify-center border-t pt-8 pb-4">
+            <div className="border-hairline flex justify-center border-t pt-8 pb-4">
               <Button href="/archive" variant="secondary" icon="arrowRight">
                 View the full archive
               </Button>

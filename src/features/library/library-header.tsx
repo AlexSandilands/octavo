@@ -16,11 +16,11 @@ export function LibraryHeader({
   home?: boolean;
 }) {
   return (
-    <header className="border-line flex items-center justify-between gap-3 border-b pb-4">
+    <header className="border-hairline flex items-center justify-between gap-3 border-b pb-4">
       {home ? (
         <Link
           href="/"
-          className="hover:text-accent flex h-11 items-center"
+          className="hover:text-red flex h-11 items-center"
           aria-label="Back to the library"
         >
           <Wordmark size={24} />
@@ -28,7 +28,7 @@ export function LibraryHeader({
       ) : (
         <Wordmark size={24} />
       )}
-      <nav className="flex flex-none items-center gap-3 font-sans text-sm sm:gap-4">
+      <nav className="flex flex-none items-center gap-3 font-ui text-sm sm:gap-4">
         {/* No user only happens in demo mode (the gate redirects otherwise):
             swap the account affordances for the demo chip. */}
         {user ? (
@@ -37,7 +37,7 @@ export function LibraryHeader({
             {user.isAdmin && (
               <Link
                 href="/admin"
-                className="border-hair text-ink hover:border-accent hover:text-accent rounded-lg border px-3 py-1.5 font-medium"
+                className="border-hairline text-lead hover:border-red hover:text-red rounded-ui border px-3 py-1.5 font-medium"
               >
                 Admin
               </Link>

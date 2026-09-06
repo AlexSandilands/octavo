@@ -54,7 +54,7 @@ export function ArchiveSearch({ query }: { query: string }) {
   return (
     // A <label> rather than a <div>: the input's own box is one text line, so
     // on a phone the whole 44px field has to be what focuses it.
-    <label className="boxed-field border-line text-faint2 flex h-11 items-center gap-2.5 rounded-lg border-[1.5px] bg-white px-3.5">
+    <label className="boxed-field border-hairline text-grey-soft flex h-11 items-center gap-2.5 rounded-ui border-[1.5px] bg-white px-3.5">
       <Icon name="search" size={18} />
       <input
         value={value}
@@ -64,7 +64,7 @@ export function ArchiveSearch({ query }: { query: string }) {
         maxLength={ARCHIVE_QUERY_MAX}
         placeholder="Search issues by title"
         aria-label="Search every issue by title"
-        className="text-ink flex-1 self-stretch border-none bg-transparent font-sans text-[15px]"
+        className="text-lead flex-1 self-stretch border-none bg-transparent font-ui text-[15px]"
       />
     </label>
   );

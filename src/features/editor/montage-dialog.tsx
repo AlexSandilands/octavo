@@ -116,7 +116,7 @@ export function MontageDialog({
     // stray click and pans on a drag — neither should reach it, and nor should
     // the Escape that closes this (the shell stops it).
     <DialogShell
-      panelClassName="bg-card flex max-h-[90vh] w-[560px] flex-col rounded-[10px] shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
+      panelClassName="bg-sheet flex max-h-[90vh] w-[560px] flex-col rounded-[10px]"
       isolatePointerEvents
       onClose={onClose}
     >
@@ -125,7 +125,7 @@ export function MontageDialog({
           <div className="flex flex-none items-center justify-between px-8 pt-7">
             <h2
               id={titleId}
-              className="text-ink font-serif text-[26px] leading-tight"
+              className="text-lead font-display text-[26px] leading-tight"
             >
               Montage
             </h2>
@@ -148,17 +148,17 @@ export function MontageDialog({
               onSelect={onChangeInterval}
             />
           </div>
-          <p className="text-faint2 flex-none px-8 pt-2 font-sans text-[12px]">
+          <p className="text-grey-soft flex-none px-8 pt-2 font-ui text-[12px]">
             Readers can always step through with the arrows. Members who ask
             their device for reduced motion never see it move on its own.
           </p>
 
-          <div className="scrollbar-soft min-h-0 flex-1 overflow-y-auto px-8 pt-6 [--scrollbar-surface:var(--color-card)] [scrollbar-gutter:stable]">
-            <span className="text-faint mb-1.5 block font-sans text-[11px] font-semibold tracking-[0.14em] uppercase">
+          <div className="scrollbar-soft min-h-0 flex-1 overflow-y-auto px-8 pt-6 [--scrollbar-surface:var(--color-sheet)] [scrollbar-gutter:stable]">
+            <span className="text-grey-soft mb-1.5 block font-ui text-[11px] font-semibold tracking-[0.14em] uppercase">
               Images ({items.length})
             </span>
             {items.length === 0 ? (
-              <p className="border-hair text-faint2 rounded-lg border border-dashed px-4 py-8 text-center font-sans text-[13px]">
+              <p className="border-hairline text-grey-soft rounded-ui border border-dashed px-4 py-8 text-center font-ui text-[13px]">
                 No images yet. Add two or more to build a montage.
               </p>
             ) : (
@@ -186,7 +186,7 @@ export function MontageDialog({
           </div>
 
           {error && (
-            <p className="text-warn flex-none px-8 pt-4 font-sans text-[13px] font-semibold">
+            <p className="text-red flex-none px-8 pt-4 font-ui text-[13px] font-semibold">
               {error}
             </p>
           )}
@@ -200,7 +200,7 @@ export function MontageDialog({
               busy={uploading}
               disabled={room <= 0}
             >
-              <Icon name="upload" size={17} className="text-accent" />
+              <Icon name="upload" size={17} className="text-red" />
               {uploading
                 ? "Uploading…"
                 : room <= 0
@@ -249,13 +249,13 @@ function MontageRow({
 }) {
   const position = `image ${index + 1} of ${total}`;
   return (
-    <li className="border-hair flex items-center gap-3 rounded-lg border bg-white p-2.5">
-      <div className="border-line bg-page flex h-14 w-20 flex-none items-center justify-center overflow-hidden rounded">
+    <li className="border-hairline flex items-center gap-3 rounded-ui border bg-white p-2.5">
+      <div className="border-hairline bg-sheet flex h-14 w-20 flex-none items-center justify-center overflow-hidden rounded-ui">
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={image.url} alt="" className="h-full w-full object-cover" />
         ) : (
-          <span className="text-faint2 font-mono text-[9px]">MISSING</span>
+          <span className="text-grey-soft font-ui tabular-nums text-[9px]">MISSING</span>
         )}
       </div>
       <label className="min-w-0 flex-1">
@@ -265,7 +265,7 @@ function MontageRow({
           onChange={(e) => onAlt(e.target.value)}
           maxLength={300}
           placeholder="Describe this photo for screen readers"
-          className="border-hair focus:border-accent text-ink h-10 w-full rounded-md border bg-white px-2.5 font-sans text-[13px] outline-none"
+          className="border-hairline focus:border-red text-lead h-10 w-full rounded-ui border bg-white px-2.5 font-ui text-[13px] outline-none"
         />
       </label>
       <div className="flex flex-none items-center gap-1">
@@ -316,10 +316,10 @@ function RowBtn({
       disabled={disabled}
       title={label}
       aria-label={label}
-      className={`border-hair flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border bg-white transition-[background-color,border-color,color] duration-150 disabled:cursor-default disabled:opacity-35 ${
+      className={`border-hairline flex h-9 w-9 cursor-pointer items-center justify-center rounded-ui border bg-white transition-[background-color,border-color,color] duration-150 disabled:cursor-default disabled:opacity-35 ${
         danger
-          ? "text-warn enabled:hover:border-warn enabled:hover:bg-warn-soft"
-          : "text-muted enabled:hover:border-accent enabled:hover:bg-accent-wash enabled:hover:text-accent"
+          ? "text-red enabled:hover:border-red enabled:hover:bg-newsprint"
+          : "text-grey enabled:hover:border-red enabled:hover:bg-newsprint enabled:hover:text-red"
       }`}
     >
       <Icon name={icon} size={15} strokeWidth={1.9} />

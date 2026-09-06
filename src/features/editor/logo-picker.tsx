@@ -25,7 +25,7 @@ export function LogoPicker({
       <Link
         href="/admin/magazine"
         target="_blank"
-        className="text-accent font-sans text-[13px] font-medium underline underline-offset-2"
+        className="text-red font-ui text-[13px] font-medium underline underline-offset-2"
       >
         Add a logo
       </Link>
@@ -68,7 +68,7 @@ export function LogoPicker({
 function MarkChip({ src, name }: { src?: string; name?: string }) {
   return (
     <>
-      <span className="border-hair-warm flex h-[22px] w-[30px] flex-none items-center justify-center overflow-hidden rounded border bg-white">
+      <span className="border-hairline flex h-[22px] w-[30px] flex-none items-center justify-center overflow-hidden rounded-ui border bg-white">
         {src && (
           // eslint-disable-next-line @next/next/no-img-element
           <img

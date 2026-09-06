@@ -89,7 +89,7 @@ export function MemberRow({
   };
 
   return (
-    <div className="border-line-soft border-b py-3">
+    <div className="border-hairline border-b py-3">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5 px-1.5">
         <div className="flex min-w-0 basis-full items-center gap-3 sm:basis-0 sm:flex-1">
           <SelectCheckbox
@@ -99,10 +99,10 @@ export function MemberRow({
           />
           <Avatar initials={initials(label)} />
           <div className="min-w-0">
-            <div className="text-ink font-sans text-[15px] font-semibold">
+            <div className="text-lead font-ui text-[15px] font-semibold">
               {member.name ?? "—"}
             </div>
-            <div className="text-faint truncate font-sans text-[13px]">
+            <div className="text-grey-soft truncate font-ui text-[13px]">
               {member.email}
             </div>
           </div>
@@ -136,7 +136,7 @@ export function MemberRow({
                   : "Make admin"
             }
             aria-label={`${member.isAdmin ? "Remove admin from" : "Make admin"} ${label}`}
-            className="text-muted hover:text-accent flex cursor-pointer items-center gap-1.5 font-sans text-[13px] font-medium disabled:cursor-default disabled:opacity-40 disabled:hover:text-current"
+            className="text-grey hover:text-red flex cursor-pointer items-center gap-1.5 font-ui text-[13px] font-medium disabled:cursor-default disabled:opacity-40 disabled:hover:text-current"
           >
             <Icon
               name={member.isAdmin ? "check" : "plus"}
@@ -147,7 +147,7 @@ export function MemberRow({
           </button>
         </div>
 
-        <div className="text-faint hidden font-sans text-[13px] sm:block sm:w-[76px]">
+        <div className="text-grey-soft hidden font-ui text-[13px] sm:block sm:w-[76px]">
           {joinedLabel(member.createdAt)}
         </div>
 
@@ -158,7 +158,7 @@ export function MemberRow({
             disabled={pending}
             title="Edit name and email"
             aria-label={`Edit ${label}`}
-            className="text-faint2 hover:text-accent flex cursor-pointer disabled:cursor-default disabled:opacity-30 disabled:hover:text-current"
+            className="text-grey-soft hover:text-red flex cursor-pointer disabled:cursor-default disabled:opacity-30 disabled:hover:text-current"
           >
             <Icon name="pencil" size={18} strokeWidth={1.7} />
           </button>
@@ -169,7 +169,7 @@ export function MemberRow({
             disabled={pending || isSelf}
             title={isSelf ? "You can’t remove yourself" : "Remove member"}
             aria-label={`Remove ${label}`}
-            className="text-faint2 hover:text-warn flex cursor-pointer justify-end disabled:cursor-default disabled:opacity-30 disabled:hover:text-current"
+            className="text-grey-soft hover:text-red flex cursor-pointer justify-end disabled:cursor-default disabled:opacity-30 disabled:hover:text-current"
           >
             <Icon name="close" size={20} strokeWidth={1.7} />
           </button>
@@ -177,7 +177,7 @@ export function MemberRow({
       </div>
 
       {error && (
-        <p className="text-warn mt-1.5 pl-[6.75rem] font-sans text-[13px]">
+        <p className="text-red mt-1.5 pl-[6.75rem] font-ui text-[13px]">
           {error}
         </p>
       )}

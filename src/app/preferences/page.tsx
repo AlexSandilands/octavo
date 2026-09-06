@@ -16,14 +16,14 @@ async function Frame({ children }: { children: React.ReactNode }) {
   const { org } = await getSettings();
   return (
     <main className="flex min-h-screen items-center justify-center px-5 py-12">
-      <div className="bg-card border-line w-full max-w-md rounded-2xl border p-8 shadow-[0_14px_34px_rgba(0,0,0,0.08)] sm:p-10">
+      <div className="bg-sheet border-hairline w-full max-w-md rounded-ui border p-8 sm:p-10">
         <Wordmark size={22} />
         <Label>{org}</Label>
         {children}
-        <div className="border-line mt-8 border-t pt-6">
+        <div className="border-hairline mt-8 border-t pt-6">
           <Link
             href="/"
-            className="text-muted hover:text-accent flex h-11 items-center font-sans text-sm font-medium hover:underline"
+            className="text-grey hover:text-red flex h-11 items-center font-ui text-sm font-medium hover:underline"
           >
             &larr; Back to the library
           </Link>
@@ -43,10 +43,10 @@ export default async function PreferencesPage() {
   if (!user) {
     return (
       <Frame>
-        <h1 className="text-ink mt-10 font-serif text-3xl leading-[1.1]">
+        <h1 className="text-lead mt-10 font-display text-3xl leading-[1.1]">
           Email preferences
         </h1>
-        <p className="text-muted mt-4 font-sans text-[16px] leading-relaxed">
+        <p className="text-grey mt-4 font-ui text-[16px] leading-relaxed">
           Sign in to {magazineName} to manage when we email you.
         </p>
       </Frame>
@@ -58,16 +58,16 @@ export default async function PreferencesPage() {
 
   return (
     <Frame>
-      <h1 className="text-ink mt-10 font-serif text-3xl leading-[1.1]">
+      <h1 className="text-lead mt-10 font-display text-3xl leading-[1.1]">
         Email preferences
       </h1>
-      <p className="text-muted mt-4 font-sans text-[16px] leading-relaxed">
-        Email me at <span className="text-ink font-semibold">{user.email}</span>{" "}
+      <p className="text-grey mt-4 font-ui text-[16px] leading-relaxed">
+        Email me at <span className="text-lead font-semibold">{user.email}</span>{" "}
         when a new issue of {magazineName} is published.
       </p>
 
       <div className="mt-6 flex items-center gap-3">
-        <span className="text-muted font-sans text-sm">Currently:</span>
+        <span className="text-grey font-ui text-sm">Currently:</span>
         <Pill status={subscribed ? "Subscribed" : "Unsubscribed"} />
       </div>
 

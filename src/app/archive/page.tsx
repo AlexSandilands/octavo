@@ -65,10 +65,10 @@ export default async function ArchivePage({
       <LibraryHeader user={user} home />
 
       <div className="pt-8 pb-2">
-        <h1 className="text-ink font-serif text-3xl sm:text-4xl">
+        <h1 className="text-lead font-display text-3xl sm:text-4xl">
           The archive
         </h1>
-        <p className="text-muted mt-2 font-sans text-[15px]">
+        <p className="text-grey mt-2 font-ui text-[15px]">
           Every issue of {settings.name}, newest first.
         </p>
       </div>

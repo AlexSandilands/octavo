@@ -23,13 +23,13 @@ export function OverflowNotice({
       className="pointer-events-none absolute inset-x-0 z-20"
       style={{ top }}
     >
-      <div className="border-warn border-t border-dashed" />
+      <div className="border-red border-t border-dashed" />
       <div className="flex justify-end">
         <div
           role="status"
-          className="bg-warn text-paper pointer-events-auto flex items-center gap-2 rounded-b px-2 py-0.5 shadow-[0_4px_14px_rgba(40,36,28,0.16)]"
+          className="bg-red text-sheet pointer-events-auto flex items-center gap-2 rounded-b px-2 py-0.5"
         >
-          <span className="font-sans text-[9px] font-semibold tracking-[0.1em] uppercase">
+          <span className="font-ui text-[9px] font-semibold tracking-[0.1em] uppercase">
             {note}
           </span>
           {action && (
@@ -39,7 +39,7 @@ export function OverflowNotice({
                 e.stopPropagation();
                 action.onClick();
               }}
-              className="bg-paper text-warn hover:bg-page focus-visible:outline-paper my-0.5 rounded-[4px] px-2 py-1 font-sans text-[10px] font-semibold focus-visible:outline-2 focus-visible:outline-offset-2"
+              className="bg-sheet text-red hover:bg-sheet focus-visible:outline-sheet my-0.5 rounded-[4px] px-2 py-1 font-ui text-[10px] font-semibold focus-visible:outline-2 focus-visible:outline-offset-2"
             >
               {action.label}
             </button>

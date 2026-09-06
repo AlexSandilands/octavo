@@ -1,20 +1,22 @@
 /* Deployment brand skins (issue #40). Each non-default brand overrides the
    Tailwind v4 `--color-*` tokens the @theme block in globals.css defines, keyed
    off the `data-brand` attribute the root layout stamps on <html>. `heritage`
-   (the warm-paper/green look) is the @theme default and needs no block here — a
-   deployment with no NEXT_PUBLIC_BRAND set is pixel-identical to it. Every brand
-   must clear the WCAG AA contrast bar audited in #10; scripts/dev-contrast-gate.mts
-   checks each one. To add a brand: register its id in src/lib/brands.ts and add a
+   is the @theme default and needs no block here — a deployment with no
+   NEXT_PUBLIC_BRAND set is pixel-identical to it. Every brand must clear the
+   WCAG AA contrast bar audited in #10; scripts/dev-contrast-gate.mts checks
+   each one. To add a brand: register its id in src/lib/brands.ts and add a
    block below (see docs/design-principles.md §6 for the token set + rules). The
    `:root` prefix keeps the override winning over the @theme `:root` defaults.
 
-   Semantic status inks (warn / warn-soft / ok / alert) and the placeholder photo
-   fills are intentionally left to the heritage defaults — they read the same
-   across brands. Override --font-* here too if a brand wants its own type. */
+   Two halves per brand, mirroring globals.css: the PAGE palette (the printed
+   magazine — its values are frozen, so a brand overrides them only as it
+   always has) and the UI palette (the Broadsheet chrome, where a brand is a
+   different signature colour and a cooler or warmer grey). */
 
-/* coastal — cool slate paper with a petrol-blue accent (a distinct family from
-   the heritage warm-paper/green), same lightness structure so it holds AA. */
+/* coastal — the printed page keeps its cool slate paper and petrol accent;
+   the chrome swaps oxblood for navy on the same white sheet. */
 :root[data-brand="coastal"] {
+  /* Page palette (frozen values). */
   --color-paper: #ecedf1;
   --color-page: #f6f7fb;
   --color-card: #f8fafc;
@@ -33,28 +35,24 @@
   --color-faint: #585d67;
   --color-faint2: #5f646e;
 
-  --color-line: #dfe2ea;
-  --color-line-soft: #e8ebf2;
   --color-hair: #d3d7e0;
-
   --color-hair-warm: #d9dce4;
   --color-rule: #c3c8d3;
   --color-dash: #c2c7d1;
   --color-placeholder-line: #dde0e8;
-  --color-chip: #e9ebf1;
-  --color-chip-dot: #adb2bd;
-  --color-chip-soft: #eaecf1;
-  --color-accent-wash: #f2f6fa;
-  --color-canvas: #e7e9ef;
 
   --color-page-seam: #e9ebf2;
   --color-page-frame: #cfd4de;
   --color-page-frame-soft: #dfe3eb;
 
-  --color-reader-chrome: #1b2028;
-  --color-reader-chrome-text: #e2e6ee;
-  --color-reader-chrome-muted: #c3c8d2;
-  --color-reader-chrome-hover: #2a3038;
-  --color-reader-chrome-line: #383e48;
-  --color-reader-slider: #93b0c4;
+  /* UI palette — navy signature, cool newsprint. */
+  --color-newsprint: #eff1f4;
+  --color-newsprint-deep: #e2e5ea;
+  --color-lead: #14161a;
+  --color-grey: #3f434a;
+  --color-grey-soft: #585d66;
+  --color-hairline: #cfd3da;
+  --color-hairline-strong: #7e838c;
+  --color-red: #1f3a5f;
+  --color-red-deep: #162b48;
 }

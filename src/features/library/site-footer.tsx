@@ -17,8 +17,8 @@ export function SiteFooter({
   signedIn: boolean;
 }) {
   return (
-    <footer className="border-line text-faint2 mt-4 flex flex-col gap-3 border-t py-8 font-sans text-[13px] sm:flex-row sm:items-center sm:justify-between">
-      <div className="text-muted font-serif text-[15px]">{org}</div>
+    <footer className="border-hairline text-grey-soft mt-4 flex flex-col gap-3 border-t py-8 font-ui text-[13px] sm:flex-row sm:items-center sm:justify-between">
+      <div className="text-grey font-display text-[15px]">{org}</div>
       {/* Baseline-align so "Sign out" sits on the same line as the issue-count
           text despite the button's taller (44px) tap target. */}
       <div className="flex items-baseline gap-5">
@@ -30,7 +30,7 @@ export function SiteFooter({
           <>
             <Link
               href="/preferences"
-              className="text-muted hover:text-accent flex h-11 items-center font-sans text-sm font-medium whitespace-nowrap hover:underline"
+              className="text-grey hover:text-red flex h-11 items-center font-ui text-sm font-medium whitespace-nowrap hover:underline"
             >
               Email preferences
             </Link>

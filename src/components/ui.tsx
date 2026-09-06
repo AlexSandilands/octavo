@@ -6,7 +6,7 @@ import { MagazineName } from "./branding";
 export function Wordmark({ size = 22 }: { size?: number }) {
   return (
     <span
-      className="font-serif text-ink"
+      className="font-display text-lead"
       style={{ fontSize: size, fontWeight: 500, letterSpacing: ".02em" }}
     >
       <MagazineName />
@@ -16,7 +16,7 @@ export function Wordmark({ size = 22 }: { size?: number }) {
 
 export function Kicker({ children }: { children: ReactNode }) {
   return (
-    <div className="font-sans text-[11px] font-semibold tracking-[0.2em] text-accent uppercase">
+    <div className="font-ui text-[11px] font-semibold tracking-[0.2em] text-red uppercase">
       {children}
     </div>
   );
@@ -24,7 +24,7 @@ export function Kicker({ children }: { children: ReactNode }) {
 
 export function Label({ children }: { children: ReactNode }) {
   return (
-    <div className="font-sans text-[11px] font-semibold tracking-[0.2em] text-faint uppercase">
+    <div className="font-ui text-[11px] font-semibold tracking-[0.2em] text-grey-soft uppercase">
       {children}
     </div>
   );
@@ -89,26 +89,26 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     // Every way of being unpressable, for the styling and the click guard —
     // `unavailable` has no attribute doing either of those for it.
     const inert = isDisabled || unavailable;
-    const base = `${full ? "flex w-full" : "inline-flex"} items-center justify-center gap-2 rounded-lg font-sans font-semibold transition-[transform,background-color,border-color,box-shadow,color] duration-150 ease-out select-none`;
+    const base = `${full ? "flex w-full" : "inline-flex"} items-center justify-center gap-2 rounded-ui font-ui font-semibold transition-[transform,background-color,border-color,box-shadow,color] duration-150 ease-out select-none`;
     const sizes = {
       md: "h-12 px-5 text-[15px]",
       sm: "h-10 px-4 text-sm",
     }[size];
     const rest = {
-      primary: "bg-accent text-paper shadow-[0_2px_8px_rgba(29,77,62,0.25)]",
+      primary: "bg-red text-sheet",
       // The house style for white buttons: a hairline on white.
-      secondary: "border-[1.5px] border-hair-warm bg-white text-ink",
-      danger: "bg-warn text-paper shadow-[0_2px_10px_rgba(0,0,0,0.18)]",
+      secondary: "border-[1.5px] border-hairline bg-white text-lead",
+      danger: "bg-red text-sheet",
     }[variant];
     const feedback = {
       primary:
-        "hover:bg-accent-strong hover:shadow-[0_4px_14px_rgba(29,77,62,0.3)] active:shadow-[0_1px_4px_rgba(29,77,62,0.25)]",
+        "hover:bg-red-deep",
       // That hairline lights up to an accent outline over a faint wash (matches
       // the editor toolbar / sponsor buttons the rest of the app already uses).
       secondary:
-        "hover:border-accent hover:bg-accent-wash active:bg-accent-wash",
+        "hover:border-red hover:bg-newsprint active:bg-newsprint",
       danger:
-        "hover:bg-warn-strong hover:shadow-[0_4px_14px_rgba(0,0,0,0.22)] active:shadow-[0_1px_5px_rgba(0,0,0,0.18)]",
+        "hover:bg-red-deep",
     }[variant];
     // The hover/press feedback is composed in only when the button can actually
     // be pressed, so a disabled or busy one sits completely still. Gated here in
@@ -178,7 +178,7 @@ export const IconButton = forwardRef<
   // composed out entirely so it promises nothing it will not do (issue #117).
   const state = disabled
     ? "cursor-default opacity-50"
-    : "hover:bg-accent-wash hover:text-ink cursor-pointer";
+    : "hover:bg-newsprint hover:text-lead cursor-pointer";
   return (
     <button
       ref={ref}
@@ -186,7 +186,7 @@ export const IconButton = forwardRef<
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className={`text-muted -m-2 inline-flex items-center justify-center rounded-lg p-2 transition-[background-color,color] duration-150 ${state} ${className}`}
+      className={`text-grey -m-2 inline-flex items-center justify-center rounded-ui p-2 transition-[background-color,color] duration-150 ${state} ${className}`}
     >
       <Icon name={icon} size={size} strokeWidth={1.7} />
     </button>
@@ -202,12 +202,12 @@ export type Status =
   | "Planned";
 
 const PILL: Record<Status, { bg: string; ink: string; dot: string }> = {
-  Published: { bg: "bg-tint", ink: "text-accent", dot: "bg-accent" },
-  Subscribed: { bg: "bg-tint", ink: "text-accent", dot: "bg-ok" },
-  Draft: { bg: "bg-chip", ink: "text-faint", dot: "bg-chip-dot" },
-  Unsubscribed: { bg: "bg-chip", ink: "text-faint", dot: "bg-chip-dot" },
-  Bounced: { bg: "bg-warn-soft", ink: "text-warn", dot: "bg-alert" },
-  Planned: { bg: "bg-warn-soft", ink: "text-warn", dot: "bg-alert" },
+  Published: { bg: "bg-newsprint", ink: "text-red", dot: "bg-red" },
+  Subscribed: { bg: "bg-newsprint", ink: "text-red", dot: "bg-lead" },
+  Draft: { bg: "bg-newsprint", ink: "text-grey-soft", dot: "bg-hairline-strong" },
+  Unsubscribed: { bg: "bg-newsprint", ink: "text-grey-soft", dot: "bg-hairline-strong" },
+  Bounced: { bg: "bg-newsprint", ink: "text-red", dot: "bg-red" },
+  Planned: { bg: "bg-newsprint", ink: "text-red", dot: "bg-red" },
 };
 
 export function Pill({ status }: { status: Status }) {
@@ -217,7 +217,7 @@ export function Pill({ status }: { status: Status }) {
       className={`inline-flex items-center gap-2 rounded-full px-3 py-1 ${p.bg}`}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${p.dot}`} />
-      <span className={`font-sans text-xs font-semibold ${p.ink}`}>
+      <span className={`font-ui text-xs font-semibold ${p.ink}`}>
         {status}
       </span>
     </span>
@@ -226,7 +226,7 @@ export function Pill({ status }: { status: Status }) {
 
 export function Avatar({ initials }: { initials: string }) {
   return (
-    <span className="bg-tint text-accent flex h-9 w-9 flex-none items-center justify-center rounded-full font-sans text-[13px] font-semibold">
+    <span className="bg-newsprint text-red flex h-9 w-9 flex-none items-center justify-center rounded-full font-ui text-[13px] font-semibold">
       {initials}
     </span>
   );
@@ -251,10 +251,10 @@ export function Cover({
     <div
       className={`photo-fill-green flex flex-col justify-between rounded-[4px] ${pad} ${className}`}
     >
-      <div className="text-cream font-serif text-xs tracking-[0.1em]">
+      <div className="text-sheet font-display text-xs tracking-[0.1em]">
         <MagazineName /> · No. {no}
       </div>
-      <div className={`text-paper font-serif leading-[0.98] ${titleSize}`}>
+      <div className={`text-sheet font-display leading-[0.98] ${titleSize}`}>
         {title}
       </div>
     </div>

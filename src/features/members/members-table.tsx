@@ -178,7 +178,7 @@ export function MembersTable({
         onClear={() => setSelected(new Set())}
       />
 
-      <div className="border-line text-faint2 mt-3 hidden flex-none items-center px-1.5 pb-2.5 font-sans text-[10px] font-semibold tracking-[0.14em] uppercase sm:flex">
+      <div className="border-hairline text-grey-soft mt-3 hidden flex-none items-center px-1.5 pb-2.5 font-ui text-[10px] font-semibold tracking-[0.14em] uppercase sm:flex">
         <span className="w-11 flex-none" />
         <span className="ml-3 flex-1">Member</span>
         <span className="w-[120px]">Subscription</span>
@@ -209,7 +209,7 @@ export function MembersTable({
           aria-live="polite"
           className={
             shown.length === 0
-              ? "text-faint py-10 text-center font-sans text-sm"
+              ? "text-grey-soft py-10 text-center font-ui text-sm"
               : "sr-only"
           }
         >

@@ -20,10 +20,10 @@ export function SettingsCard({
   return (
     <section
       id={id}
-      className="bg-card border-line scroll-mt-6 rounded-[10px] border p-6 shadow-[0_1px_3px_rgba(0,0,0,0.07)]"
+      className="bg-sheet border-hairline scroll-mt-6 rounded-[10px] border p-6"
     >
-      <h2 className="text-ink font-serif text-[22px] leading-tight">{title}</h2>
-      <p className="text-muted mt-1.5 font-sans text-[13px] leading-relaxed">
+      <h2 className="text-lead font-display text-[22px] leading-tight">{title}</h2>
+      <p className="text-grey mt-1.5 font-ui text-[13px] leading-relaxed">
         {blurb}
       </p>
       <div className="mt-5 flex flex-col gap-5">{children}</div>

@@ -135,20 +135,20 @@ export function MagazineSettings({
                 <p
                   role="status"
                   aria-live="polite"
-                  className="font-sans text-[13px] font-medium"
+                  className="font-ui text-[13px] font-medium"
                 >
                   {status === "saved" && !dirty && (
-                    <span className="text-accent">
+                    <span className="text-red">
                       Saved — live on the site now.
                     </span>
                   )}
                   {status === "error" && (
-                    <span className="text-warn">
+                    <span className="text-red">
                       Couldn&rsquo;t save. Please try again.
                     </span>
                   )}
                   {status !== "error" && dirty && (
-                    <span className="text-faint">Unsaved changes.</span>
+                    <span className="text-grey-soft">Unsaved changes.</span>
                   )}
                 </p>
               </div>

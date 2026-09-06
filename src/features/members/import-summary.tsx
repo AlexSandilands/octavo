@@ -24,23 +24,23 @@ export function ImportSummary({ summary }: { summary: ImportSummaryData }) {
 
   return (
     <>
-      <p className="text-muted mt-2.5 font-sans text-[15px] leading-relaxed">
-        Done — <strong className="text-ink">{added} added</strong>,{" "}
+      <p className="text-grey mt-2.5 font-ui text-[15px] leading-relaxed">
+        Done — <strong className="text-lead">{added} added</strong>,{" "}
         {alreadyMembers} already {alreadyMembers === 1 ? "a member" : "members"}
         {updated > 0 && <> ({updated} of them given the name from this file)</>}
         , {invalid} invalid {invalid === 1 ? "row" : "rows"} skipped.
       </p>
 
       {skippedCount > 0 && (
-        <div className="border-line-soft mt-4 rounded-lg border bg-white px-4 py-3 font-sans text-[14px]">
-          <p className="text-ink">
+        <div className="border-hairline mt-4 rounded-ui border bg-white px-4 py-3 font-ui text-[14px]">
+          <p className="text-lead">
             {one ? "One address" : `${skippedCount} addresses`} in the file
             couldn’t be used, so {one ? "it was" : "they were"} left out.
             Everyone else was imported. Correct{" "}
             {one ? "it in your spreadsheet" : "them in your spreadsheet"} and
             import the file again to add {one ? "them" : "the rest"}.
           </p>
-          <ul className="text-muted mt-2 space-y-1">
+          <ul className="text-grey mt-2 space-y-1">
             {skipped.map((row) => (
               <li key={row.row} className="break-words">
                 {row.email || `Row ${row.row}`}
@@ -48,7 +48,7 @@ export function ImportSummary({ summary }: { summary: ImportSummaryData }) {
             ))}
           </ul>
           {rest > 0 && (
-            <p className="text-faint mt-1.5 text-[13px]">…and {rest} more.</p>
+            <p className="text-grey-soft mt-1.5 text-[13px]">…and {rest} more.</p>
           )}
         </div>
       )}

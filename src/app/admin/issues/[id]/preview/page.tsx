@@ -35,13 +35,13 @@ export default async function PreviewIssuePage({
   return (
     <>
       {issue.status === "draft" && (
-        <div className="bg-warn-soft border-line flex items-center justify-center gap-3 border-b px-4 py-2 font-sans text-[13px]">
-          <span className="text-warn font-semibold">
+        <div className="bg-newsprint border-hairline flex items-center justify-center gap-3 border-b px-4 py-2 font-ui text-[13px]">
+          <span className="text-red font-semibold">
             Draft preview — members can’t see this issue yet.
           </span>
           <Link
             href={`/admin/issues/${issue.id}/edit`}
-            className="text-warn font-semibold underline underline-offset-[3px]"
+            className="text-red font-semibold underline underline-offset-[3px]"
           >
             Back to the editor
           </Link>

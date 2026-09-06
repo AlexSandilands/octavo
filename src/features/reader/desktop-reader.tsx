@@ -241,24 +241,24 @@ export function DesktopReader({
   return (
     <div
       ref={rootRef}
-      className="bg-stage relative flex h-screen overflow-hidden"
+      className="bg-newsprint relative flex h-screen overflow-hidden"
     >
       {/* Only offer the toggle when the deployment enables more than one layout
           theme (NEXT_PUBLIC_ISSUE_THEMES) — with a single theme there's nothing
           to choose. */}
       {themes.length > 1 && (
         <div className="absolute top-3.5 right-4 z-10 flex items-center gap-2">
-          <span className="text-faint2 font-sans text-[9px] font-semibold tracking-[0.18em] uppercase">
+          <span className="text-grey-soft font-ui text-[9px] font-semibold tracking-[0.18em] uppercase">
             Theme
           </span>
-          <div className="bg-card border-hair flex rounded-full border p-[3px]">
+          <div className="bg-sheet border-hairline flex rounded-full border p-[3px]">
             {themes.map((t) => (
               <button
                 key={t.id}
                 onClick={() => setThemeId(t.id)}
                 aria-pressed={themeId === t.id}
-                className={`flex min-h-[44px] items-center rounded-full px-4 font-sans text-xs font-semibold ${
-                  themeId === t.id ? "bg-accent text-paper" : "text-muted"
+                className={`flex min-h-[44px] items-center rounded-full px-4 font-ui text-xs font-semibold ${
+                  themeId === t.id ? "bg-red text-sheet" : "text-grey"
                 }`}
               >
                 {t.name}
@@ -310,7 +310,7 @@ export function DesktopReader({
                   lives on its own element. */}
               <div
                 aria-hidden
-                className="pointer-events-none absolute top-0 shadow-[0_18px_40px_rgba(40,36,28,0.18)] transition-[left,width] duration-700 ease-[cubic-bezier(0.3,0.1,0.2,1)] motion-reduce:transition-none"
+                className="pointer-events-none absolute top-0 transition-[left,width] duration-700 ease-[cubic-bezier(0.3,0.1,0.2,1)] motion-reduce:transition-none"
                 style={{
                   left: atCover ? "50%" : "0%",
                   width: atCover ? "50%" : "100%",

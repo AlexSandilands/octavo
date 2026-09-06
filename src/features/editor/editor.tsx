@@ -246,7 +246,7 @@ export function Editor({
   const footerBehind = footerHeldBack(magazineFooter, issue);
 
   return (
-    <div className="bg-card relative flex h-dvh flex-col">
+    <div className="bg-sheet relative flex h-dvh flex-col">
       <EditorHeader
         title={title}
         onTitleChange={setTitle}
@@ -296,7 +296,7 @@ export function Editor({
           onCloseAddMenu={() => setAddMenu(false)}
         />
 
-        <div className="bg-canvas relative flex flex-1 flex-col overflow-hidden">
+        <div className="bg-newsprint relative flex flex-1 flex-col overflow-hidden">
           {footerBehind && page && !page.cover && !filled && (
             <FooterUpdateNotice issueId={issue.id} flushSave={flushSave} />
           )}
@@ -319,7 +319,7 @@ export function Editor({
           >
             <div
               ref={panRef}
-              className="shadow-[0_10px_30px_rgba(40,36,28,0.14)]"
+              className=""
             >
               <ScaledPage scale={scale}>
                 <PageFrame
@@ -352,7 +352,7 @@ export function Editor({
                         }
                       >
                         {page && page.blocks.length === 0 && (
-                          <div className="text-faint2 py-16 text-center font-serif text-sm">
+                          <div className="text-grey-soft py-16 text-center font-display text-sm">
                             This page is empty. Add a block below.
                           </div>
                         )}

@@ -62,7 +62,7 @@ export function ListSearch({
   };
 
   return (
-    <div className="boxed-field border-line text-faint2 flex h-11 items-center gap-2.5 rounded-lg border-[1.5px] bg-white px-3.5">
+    <div className="boxed-field border-hairline text-grey-soft flex h-11 items-center gap-2.5 rounded-ui border-[1.5px] bg-white px-3.5">
       <Icon name="search" size={18} />
       <input
         value={value}
@@ -72,7 +72,7 @@ export function ListSearch({
         maxLength={ADMIN_LIST_QUERY_MAX}
         placeholder={placeholder}
         aria-label={ariaLabel}
-        className="text-ink flex-1 border-none bg-transparent font-sans text-[15px]"
+        className="text-lead flex-1 border-none bg-transparent font-ui text-[15px]"
       />
     </div>
   );

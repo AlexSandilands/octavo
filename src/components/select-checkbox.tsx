@@ -33,13 +33,13 @@ export function SelectCheckbox({
   }, [mixed]);
 
   // Both states name their own background: Tailwind resolves a `bg-white`
-  // / `bg-accent` collision by stylesheet order, not by which one the template
+  // / `bg-red` collision by stylesheet order, not by which one the template
   // appends last, so a shared `bg-white` base would win and the filled box
   // would render empty.
   const box =
     checked || mixed
-      ? "border-accent bg-accent text-paper"
-      : "border-hair-warm bg-white";
+      ? "border-red bg-red text-sheet"
+      : "border-hairline bg-white";
 
   return (
     <label className="flex cursor-pointer items-center select-none">
@@ -54,14 +54,14 @@ export function SelectCheckbox({
         />
         <span
           aria-hidden
-          className={`flex h-[22px] w-[22px] items-center justify-center rounded-[5px] border-[1.5px] transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--color-accent)] ${box}`}
+          className={`flex h-[22px] w-[22px] items-center justify-center rounded-[5px] border-[1.5px] transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--color-red)] ${box}`}
         >
           {checked && <Icon name="check" size={14} strokeWidth={2.6} />}
           {mixed && <Icon name="minus" size={14} strokeWidth={2.6} />}
         </span>
       </span>
       {children && (
-        <span className="text-muted pr-2 font-sans text-[14px]">
+        <span className="text-grey pr-2 font-ui text-[14px]">
           {children}
         </span>
       )}

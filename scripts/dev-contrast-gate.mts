@@ -2,9 +2,15 @@
 // EVERY brand skin (issue #40) — no browser or dev server needed. Parses the
 // heritage design tokens out of globals.css's @theme block and each non-default
 // brand's `[data-brand="…"]` override block out of brands.css, merges them, and
-// asserts that for every brand each foreground used for readable text clears
-// 4.5:1 against each paper-family background it renders on, and that the amber
-// warn ink works both as text on warn-soft and as a background under paper ink.
+// checks both palettes globals.css declares:
+//
+//  - the PAGE palette (the printed magazine): each foreground used for
+//    readable text clears 4.5:1 on every paper-family background it renders on;
+//  - the UI palette (the Broadsheet chrome): every text ink clears 4.5:1 on
+//    the sheet and the newsprint stage, the reversed pairs (sheet on red, sheet
+//    on lead) clear it too, and the boundary tokens — the focus ring, the
+//    strong hairline, the control border — clear the 3:1 UI bar.
+//
 // Run: npx tsx scripts/dev-contrast-gate.mts
 import { readFile } from "node:fs/promises";
 import { BRAND_IDS, DEFAULT_BRAND } from "../src/lib/brands.ts";
@@ -74,33 +80,43 @@ const contrast = (a: string, b: string) => {
 };
 
 const AA = 4.5;
-// The paper-family surfaces readable text sits on across the app.
-const backgrounds = ["paper", "page", "card", "stage", "tint", "warn-soft"];
+const UI = 3;
 
-// Check one brand's full token set (the same bar #10 audited for heritage).
+// The paper-family surfaces the printed page's readable text sits on.
+const PAGE_BACKGROUNDS = ["paper", "page", "card", "stage", "tint"];
+const PAGE_TEXT = ["ink", "body", "muted", "faint", "faint2", "accent"];
+
+// The chrome's surfaces and the inks that carry words on them.
+const UI_BACKGROUNDS = ["sheet", "newsprint", "newsprint-deep"];
+const UI_TEXT = ["lead", "grey", "grey-soft", "red", "red-deep"];
+
+// Check one brand's full token set.
 const checkBrand = (id: string, tokens: Map<string, string>) => {
   const hex = (name: string) => {
     const v = tokens.get(name);
     if (!v) throw new Error(`[${id}] token --color-${name} not found`);
     return v;
   };
+  const pair = (fg: string, bg: string, bar: number) => {
+    const r = contrast(hex(fg), hex(bg));
+    ok(r >= bar, `[${id}] ${fg} on ${bg} is ${r.toFixed(2)}:1 (≥ ${bar})`);
+  };
 
-  // Foreground tokens that carry readable text (metadata, hints, page numbers,
-  // status labels) and must all clear AA on every background above.
-  for (const fg of ["muted", "faint", "faint2", "warn"]) {
-    for (const bg of backgrounds) {
-      const r = contrast(hex(fg), hex(bg));
-      ok(r >= AA, `[${id}] ${fg} on ${bg} is ${r.toFixed(2)}:1 (≥ ${AA})`);
-    }
-  }
+  console.log(`  page palette`);
+  for (const fg of PAGE_TEXT)
+    for (const bg of PAGE_BACKGROUNDS) pair(fg, bg, AA);
 
-  // The draft ribbon paints paper-coloured text on a solid warn background, so
-  // that pairing must clear AA the other way round too.
-  const r = contrast(hex("paper"), hex("warn"));
-  ok(
-    r >= AA,
-    `[${id}] paper ink on warn background is ${r.toFixed(2)}:1 (≥ ${AA})`,
-  );
+  console.log(`  ui palette — text`);
+  for (const fg of UI_TEXT) for (const bg of UI_BACKGROUNDS) pair(fg, bg, AA);
+
+  console.log(`  ui palette — reversed (white words on a filled box)`);
+  for (const bg of ["red", "red-deep", "lead"]) pair("sheet", bg, AA);
+
+  console.log(`  ui palette — boundaries (3:1)`);
+  // The focus ring, the strong hairline (table heads, checkbox borders) and the
+  // ink control border, against both surfaces a control can sit on.
+  for (const fg of ["red", "hairline-strong", "lead"])
+    for (const bg of ["sheet", "newsprint"]) pair(fg, bg, UI);
 };
 
 for (const [id, tokens] of brands) {
@@ -109,13 +125,12 @@ for (const [id, tokens] of brands) {
 }
 
 // The house scrollbar (issue #207, swept across the app in #210): `.scrollbar-soft`
-// in globals.css draws its thumb as `color-mix(in oklab, <surface>, ink 50%)`,
-// where the surface is paper unless the region sets `--scrollbar-surface` (a
-// card-backed panel: card). A scrollbar thumb is a UI affordance, so it needs
-// 3:1 (WCAG 1.4.11) against the surface it sits on, on every brand. This
-// mirrors the browser's oklab mix so the number is checked, not eyeballed.
-const UI = 3;
-const SCROLLBAR_SURFACES = ["paper", "card"];
+// in globals.css draws its thumb as `color-mix(in oklab, <surface>, lead 50%)`,
+// where the surface is the sheet unless the region sets `--scrollbar-surface`
+// (a newsprint-backed region: newsprint). A scrollbar thumb is a UI affordance,
+// so it needs 3:1 (WCAG 1.4.11) against the surface it sits on, on every brand.
+// This mirrors the browser's oklab mix so the number is checked, not eyeballed.
+const SCROLLBAR_SURFACES = ["sheet", "newsprint"];
 const INK_MIX = 0.5;
 
 const srgbToLinear = (v: number) =>
@@ -166,7 +181,7 @@ const mixOklab = (a: string, b: string, pctB: number) => {
 
 for (const [id, tokens] of brands) {
   console.log(`\n— scrollbar thumb, brand: ${id} —`);
-  const ink = tokens.get("ink")!;
+  const ink = tokens.get("lead")!;
   for (const surface of SCROLLBAR_SURFACES) {
     const thumb = mixOklab(tokens.get(surface)!, ink, INK_MIX);
     const r = contrast(thumb, tokens.get(surface)!);

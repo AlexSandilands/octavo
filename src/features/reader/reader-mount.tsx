@@ -84,7 +84,7 @@ export function ReaderMount({
 function ReaderFallback() {
   return (
     <div
-      className="bg-page min-h-screen"
+      className="bg-sheet min-h-screen"
       role="status"
       aria-busy="true"
       aria-label="Loading issue"

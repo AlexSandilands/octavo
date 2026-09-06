@@ -23,9 +23,9 @@ export function ImportPreview({
   const tooMany = parsed.members.length > MEMBERS_IMPORT_MAX;
 
   return (
-    <div className="border-line-soft mt-4 rounded-lg border bg-white px-4 py-3 font-sans text-[14px]">
-      <div className="text-ink font-semibold">{fileName}</div>
-      <ul className="text-muted mt-1.5 space-y-0.5">
+    <div className="border-hairline mt-4 rounded-ui border bg-white px-4 py-3 font-ui text-[14px]">
+      <div className="text-lead font-semibold">{fileName}</div>
+      <ul className="text-grey mt-1.5 space-y-0.5">
         <li>
           {parsed.members.length} valid{" "}
           {parsed.members.length === 1 ? "member" : "members"} to import
@@ -47,7 +47,7 @@ export function ImportPreview({
       {/* Said before the admin commits, not after a failed import: one import
           can only carry so many people, and this file carries more (#124). */}
       {tooMany && (
-        <p className="text-warn mt-2 leading-relaxed">
+        <p className="text-red mt-2 leading-relaxed">
           That&rsquo;s more than one import can take — the most is{" "}
           {MEMBERS_IMPORT_MAX.toLocaleString()}. Split the file into smaller
           ones and import them one after another.
@@ -55,24 +55,24 @@ export function ImportPreview({
       )}
 
       {sample.length > 0 && (
-        <div className="border-line-soft mt-3 border-t pt-2.5">
-          <div className="text-faint text-[11px] font-semibold tracking-[0.14em] uppercase">
+        <div className="border-hairline mt-3 border-t pt-2.5">
+          <div className="text-grey-soft text-[11px] font-semibold tracking-[0.14em] uppercase">
             {rest > 0 ? `First ${sample.length} of them` : "What we read"}
           </div>
           <ul className="mt-1.5 space-y-1">
             {sample.map((member) => (
               <li key={member.email} className="flex flex-wrap gap-x-2">
-                <span className="text-ink">{member.email}</span>
+                <span className="text-lead">{member.email}</span>
                 {member.name ? (
-                  <span className="text-muted">{member.name}</span>
+                  <span className="text-grey">{member.name}</span>
                 ) : (
-                  <span className="text-faint italic">no name</span>
+                  <span className="text-grey-soft italic">no name</span>
                 )}
               </li>
             ))}
           </ul>
           {rest > 0 && (
-            <p className="text-faint mt-1.5 text-[13px]">…and {rest} more.</p>
+            <p className="text-grey-soft mt-1.5 text-[13px]">…and {rest} more.</p>
           )}
         </div>
       )}

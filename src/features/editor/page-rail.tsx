@@ -76,8 +76,8 @@ export function PageRail({
   useQuietScrollbar(scrollerRef);
 
   return (
-    <div className="bg-paper border-line flex w-[150px] flex-none flex-col items-center border-r py-4">
-      <span className="text-faint w-full pl-[18px] font-sans text-[10px] font-semibold tracking-[0.18em] uppercase">
+    <div className="bg-sheet border-hairline flex w-[150px] flex-none flex-col items-center border-r py-4">
+      <span className="text-grey-soft w-full pl-[18px] font-ui text-[10px] font-semibold tracking-[0.18em] uppercase">
         Pages
       </span>
       {/* Padding replaces the old gaps, so a rail that fits lays out unchanged;
@@ -160,16 +160,16 @@ function SortableThumb({
         {...listeners}
         onClick={onSelect}
         aria-current={active ? "page" : undefined}
-        className={`bg-page relative block h-[108px] w-[84px] touch-none scroll-my-3 rounded-[3px] p-2.5 text-left ${
+        className={`bg-sheet relative block h-[108px] w-[84px] touch-none scroll-my-3 rounded-[3px] p-2.5 text-left ${
           isDragging ? "cursor-grabbing" : "cursor-grab"
         } ${
           active
-            ? "border-accent border-2 shadow-[0_2px_6px_rgba(40,36,28,0.12)]"
-            : "border border-hair-warm"
+            ? "border-red border-2"
+            : "border border-hairline"
         }`}
       >
         {/* Decorative skeleton bars standing in for a page's content in the
-            thumbnail — a cover motif (title block) vs a text-page motif. One-off
+            thumbnail — a cover motif (title block) vs a text-sheet motif. One-off
             warm greys, local to this miniature; not part of the token palette. */}
         {page.cover ? (
           <div className="flex h-full flex-col items-center justify-center gap-1">
@@ -183,7 +183,7 @@ function SortableThumb({
             <div className="mt-1.5 h-1 w-[90%] rounded-[2px] bg-[#ece6da]" />
           </>
         )}
-        <span className="text-faint absolute right-2 bottom-1.5 font-sans text-[9px] font-semibold">
+        <span className="text-grey-soft absolute right-2 bottom-1.5 font-ui text-[9px] font-semibold">
           {index + 1}
         </span>
       </button>
@@ -192,7 +192,7 @@ function SortableThumb({
           onClick={onDelete}
           title={`Delete page ${index + 1}`}
           aria-label={`Delete page ${index + 1}`}
-          className="bg-paper text-faint2 hover:text-warn hover:border-warn border-hair-warm absolute -top-2 -right-2 z-10 flex h-6 w-6 items-center justify-center rounded-full border opacity-0 shadow-sm transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+          className="bg-sheet text-grey-soft hover:text-red hover:border-red border-hairline absolute -top-2 -right-2 z-10 flex h-6 w-6 items-center justify-center rounded-full border opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
         >
           <Icon name="trash" size={13} strokeWidth={1.8} />
         </button>

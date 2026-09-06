@@ -90,7 +90,7 @@ export function AdminDrawer({ children }: { children: ReactNode }) {
     <>
       {/* Top bar — only below md; hidden once the desktop rail appears. */}
       <div
-        className="bg-paper border-line flex flex-none items-center gap-2 border-b px-3 py-2 md:hidden"
+        className="bg-sheet border-hairline flex flex-none items-center gap-2 border-b px-3 py-2 md:hidden"
         inert={open}
       >
         <button
@@ -100,12 +100,12 @@ export function AdminDrawer({ children }: { children: ReactNode }) {
           aria-label="Open admin menu"
           aria-expanded={open}
           aria-controls="admin-drawer"
-          className="text-ink hover:text-accent flex h-11 w-11 flex-none items-center justify-center rounded-lg"
+          className="text-lead hover:text-red flex h-11 w-11 flex-none items-center justify-center rounded-ui"
         >
           <Icon name="menu" size={24} />
         </button>
         <Wordmark size={20} />
-        <span className="text-accent font-sans text-[10px] font-semibold tracking-[0.2em] uppercase">
+        <span className="text-red font-ui text-[10px] font-semibold tracking-[0.2em] uppercase">
           Admin
         </span>
       </div>
@@ -130,14 +130,14 @@ export function AdminDrawer({ children }: { children: ReactNode }) {
               // Close when a nav link is chosen; navigation proceeds via Link.
               if ((e.target as HTMLElement).closest("a")) setOpen(false);
             }}
-            className="bg-paper border-line relative flex w-[280px] max-w-[85vw] flex-none flex-col border-r py-6 shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
+            className="bg-sheet border-hairline relative flex w-[280px] max-w-[85vw] flex-none flex-col border-r py-6"
           >
             <button
               ref={closeRef}
               type="button"
               onClick={() => setOpen(false)}
               aria-label="Close admin menu"
-              className="text-muted hover:text-accent absolute top-3 right-2 flex h-11 w-11 items-center justify-center rounded-lg"
+              className="text-grey hover:text-red absolute top-3 right-2 flex h-11 w-11 items-center justify-center rounded-ui"
             >
               <Icon name="close" size={22} />
             </button>

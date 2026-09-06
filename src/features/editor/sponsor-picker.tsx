@@ -76,7 +76,7 @@ export function SponsorPicker({
         <Link
           href="/admin/sponsors"
           target="_blank"
-          className="text-accent font-sans text-[12px] font-medium underline underline-offset-2"
+          className="text-red font-ui text-[12px] font-medium underline underline-offset-2"
         >
           Add sponsors
         </Link>
