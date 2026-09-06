@@ -32,27 +32,31 @@ export function PageBlocks({
           : "relative flow-root"
       }
     >
-      {page.blocks.map((b) => (
+      {page.blocks.map((b) => {
         // data-reader-block: the reader ignores drags started here (text/images
         // stay selectable) and reverts the grab cursor. Inert in print.
         // "bleed" is the exception — a photo covering the page has nothing to
-        // select, so the reader's edge-band page turn still fires over it.
-        <div
-          key={b.id}
-          data-reader-block={!page.cover && isFillPage(b) ? "bleed" : true}
-          className="cursor-auto"
-          style={blockFlowStyle(b, page.cover)}
-        >
-          <BlockView
-            block={b}
-            theme={theme}
-            images={images}
-            sponsors={sponsors}
-            variant={page.cover ? "cover" : undefined}
-            interactive={interactive}
-          />
-        </div>
-      ))}
+        // select, so the reader treats it as the page it covers: it pans and
+        // turns like a bare margin.
+        const bleed = !page.cover && isFillPage(b);
+        return (
+          <div
+            key={b.id}
+            data-reader-block={bleed ? "bleed" : true}
+            className={bleed ? undefined : "cursor-auto"}
+            style={blockFlowStyle(b, page.cover)}
+          >
+            <BlockView
+              block={b}
+              theme={theme}
+              images={images}
+              sponsors={sponsors}
+              variant={page.cover ? "cover" : undefined}
+              interactive={interactive}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 }
