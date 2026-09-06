@@ -23,9 +23,9 @@ export function SettingsUnavailable() {
   return (
     <section
       role="alert"
-      className="bg-card border-line mt-7 max-w-2xl rounded-[10px] border p-6 shadow-[0_1px_3px_rgba(0,0,0,0.07)]"
+      className="bg-card border-line mt-7 max-w-2xl rounded-sheet border p-6 shadow-flat"
     >
-      <div className="text-caution font-ui text-[11px] font-semibold tracking-[0.2em] uppercase">
+      <div className="text-caution font-meta text-[12px] font-medium tracking-[0.14em] uppercase">
         Couldn&rsquo;t load
       </div>
       <h2 className="text-ink mt-2 font-display text-[22px] leading-tight">

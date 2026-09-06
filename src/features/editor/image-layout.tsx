@@ -113,7 +113,7 @@ function Group({
 }) {
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-faint2 font-ui text-[9px] font-semibold tracking-[0.14em] uppercase">
+      <span className="text-faint2 font-meta text-[9px] font-medium tracking-[0.14em] uppercase">
         {label}
       </span>
       <div className="border-hair flex overflow-hidden rounded-[6px] border">

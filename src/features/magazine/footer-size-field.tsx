@@ -108,8 +108,10 @@ export function FooterSizeField({
               aria-label={`${label} in pixels`}
               aria-describedby={hintId}
               aria-invalid={!valid}
-              className={`text-ink h-11 w-24 rounded-lg border-[1.5px] bg-white px-3 font-ui text-[15px] tabular-nums outline-none ${
-                valid ? "border-hair focus:border-brass-ink" : "border-danger"
+              className={`text-ink rounded-ui h-11 w-24 border-[1.5px] bg-white px-3 font-ui text-[16px] tabular-nums outline-none ${
+                valid
+                  ? "border-hair-warm focus:border-brass-ink"
+                  : "border-danger"
               }`}
             />
           </label>

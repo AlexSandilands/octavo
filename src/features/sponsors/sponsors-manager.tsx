@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ADMIN_LIST_PAGE } from "@/components/admin-list-layout";
-import { Icon } from "@/components/icons";
+import { EmptyCard, EmptyIcon } from "@/components/empty-states";
 import { Button } from "@/components/ui";
 import type {
   SponsorFilter,
@@ -49,8 +49,8 @@ export function SponsorsManager({
     <div className={ADMIN_LIST_PAGE}>
       <div className="flex flex-none flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-ink font-display text-3xl">Sponsors</h1>
-          <p className="text-faint mt-1.5 font-ui text-sm">{summary}</p>
+          <h1 className="text-ink font-display text-[32px] leading-tight">Sponsors</h1>
+          <p className="text-faint mt-1.5 font-ui text-[15px]">{summary}</p>
         </div>
         {list.total > 0 && (
           <Button
@@ -65,14 +65,12 @@ export function SponsorsManager({
 
       {list.total === 0 ? (
         <div className="mt-8">
-          <div className="bg-card border-line flex min-h-[360px] flex-col items-center justify-center rounded-md border p-9 text-center shadow-[0_1px_3px_rgba(0,0,0,0.07)]">
-            <div className="bg-brass-soft text-brass-ink flex h-[72px] w-[72px] items-center justify-center rounded-full">
-              <Icon name="banner" size={32} strokeWidth={1.5} />
-            </div>
-            <h2 className="text-ink mt-5 font-display text-2xl">
+          <EmptyCard>
+            <EmptyIcon name="banner" />
+            <h2 className="text-ink mt-5 font-display text-[26px]">
               No sponsors yet
             </h2>
-            <p className="text-muted mt-2.5 max-w-sm font-ui text-[15px] leading-relaxed">
+            <p className="text-muted mt-2.5 max-w-sm font-ui text-[16px] leading-relaxed">
               Add the patrons who support the club — a logo and a link. You can
               then drop each one into an issue from the editor.
             </p>
@@ -81,7 +79,7 @@ export function SponsorsManager({
                 Add your first sponsor
               </Button>
             </div>
-          </div>
+          </EmptyCard>
         </div>
       ) : (
         <SponsorsTable

@@ -32,7 +32,7 @@ export function ImportSummary({ summary }: { summary: ImportSummaryData }) {
       </p>
 
       {skippedCount > 0 && (
-        <div className="border-line-soft mt-4 rounded-lg border bg-white px-4 py-3 font-ui text-[14px]">
+        <div className="border-line-soft mt-4 rounded-ui border bg-white px-4 py-3 font-ui text-[14px]">
           <p className="text-ink">
             {one ? "One address" : `${skippedCount} addresses`} in the file
             couldn’t be used, so {one ? "it was" : "they were"} left out.

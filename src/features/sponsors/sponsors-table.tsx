@@ -81,11 +81,11 @@ export function SponsorsTable({
       </div>
 
       {list.rows.length > 0 && (
-        <div className="border-line text-faint2 mt-4 hidden flex-none items-center border-b px-1.5 pb-2.5 font-ui text-[10px] font-semibold tracking-[0.14em] uppercase sm:flex">
+        <div className="border-line text-faint2 mt-4 hidden flex-none items-center border-b px-1.5 pb-2.5 font-meta text-[11px] font-medium tracking-[0.14em] uppercase sm:flex">
           <span className="flex-1">Sponsor</span>
           <span className="w-[190px]">Link</span>
           <span className="w-[150px]">Active until</span>
-          <span className="w-[80px]" />
+          <span className="w-[190px]" />
         </div>
       )}
 

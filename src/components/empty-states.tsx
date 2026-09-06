@@ -1,16 +1,18 @@
 import { Button } from "./ui";
-import { Icon } from "./icons";
+import { Icon, type IconName } from "./icons";
 import { createIssueAction } from "@/app/admin/actions";
 
-function EmptyCard({ children }: { children: React.ReactNode }) {
+// The first-run panels on the sheet: a dashed frame (nothing is here yet), a
+// brass disc for the section's icon, and the one or two ways to begin.
+export function EmptyCard({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-card border-line flex min-h-[360px] flex-col items-center justify-center rounded-md border p-9 text-center shadow-[0_1px_3px_rgba(0,0,0,0.07)]">
+    <div className="border-dash rounded-sheet flex min-h-[360px] flex-col items-center justify-center border-[1.5px] border-dashed p-9 text-center">
       {children}
     </div>
   );
 }
 
-function EmptyIcon({ name }: { name: "doc" | "users" }) {
+export function EmptyIcon({ name }: { name: IconName }) {
   return (
     <div className="bg-brass-soft text-brass-ink flex h-[72px] w-[72px] items-center justify-center rounded-full">
       <Icon name={name} size={32} strokeWidth={1.5} />
@@ -22,8 +24,8 @@ export function EmptyIssues() {
   return (
     <EmptyCard>
       <EmptyIcon name="doc" />
-      <h2 className="text-ink mt-5 font-display text-2xl">No issues yet</h2>
-      <p className="text-muted mt-2.5 max-w-sm font-ui text-[15px] leading-relaxed">
+      <h2 className="text-ink mt-5 font-display text-[26px]">No issues yet</h2>
+      <p className="text-muted mt-2.5 max-w-sm font-ui text-[16px] leading-relaxed">
         The first one is the hardest — we&apos;ll guide you, page by page. Start
         with a cover and a heading.
       </p>
@@ -46,8 +48,8 @@ export function EmptyMembers({
   return (
     <EmptyCard>
       <EmptyIcon name="users" />
-      <h2 className="text-ink mt-5 font-display text-2xl">No members yet</h2>
-      <p className="text-muted mt-2.5 max-w-sm font-ui text-[15px] leading-relaxed">
+      <h2 className="text-ink mt-5 font-display text-[26px]">No members yet</h2>
+      <p className="text-muted mt-2.5 max-w-sm font-ui text-[16px] leading-relaxed">
         Bring your club&apos;s list across as a CSV, or add the first few by
         hand. They&apos;ll get every new issue.
       </p>

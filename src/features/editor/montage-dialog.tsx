@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { DialogShell } from "@/components/dialog-shell";
+import { DIALOG_PANEL, DialogShell } from "@/components/dialog-shell";
 import { Icon } from "@/components/icons";
 import { Button, IconButton } from "@/components/ui";
 import {
@@ -116,7 +116,7 @@ export function MontageDialog({
     // stray click and pans on a drag — neither should reach it, and nor should
     // the Escape that closes this (the shell stops it).
     <DialogShell
-      panelClassName="bg-card flex max-h-[90vh] w-[560px] flex-col rounded-[10px] shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
+      panelClassName={`${DIALOG_PANEL} flex max-h-[90vh] w-[560px] flex-col`}
       isolatePointerEvents
       onClose={onClose}
     >
@@ -154,11 +154,11 @@ export function MontageDialog({
           </p>
 
           <div className="scrollbar-soft min-h-0 flex-1 overflow-y-auto px-8 pt-6 [--scrollbar-surface:var(--color-card)] [scrollbar-gutter:stable]">
-            <span className="text-faint mb-1.5 block font-ui text-[11px] font-semibold tracking-[0.14em] uppercase">
+            <span className="text-faint mb-1.5 block font-meta text-[12px] font-medium tracking-[0.14em] uppercase">
               Images ({items.length})
             </span>
             {items.length === 0 ? (
-              <p className="border-hair text-faint2 rounded-lg border border-dashed px-4 py-8 text-center font-ui text-[13px]">
+              <p className="border-hair text-faint2 rounded-ui border border-dashed px-4 py-8 text-center font-ui text-[13px]">
                 No images yet. Add two or more to build a montage.
               </p>
             ) : (
@@ -249,7 +249,7 @@ function MontageRow({
 }) {
   const position = `image ${index + 1} of ${total}`;
   return (
-    <li className="border-hair flex items-center gap-3 rounded-lg border bg-white p-2.5">
+    <li className="border-hair flex items-center gap-3 rounded-ui border bg-white p-2.5">
       <div className="border-line bg-page flex h-14 w-20 flex-none items-center justify-center overflow-hidden rounded">
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element

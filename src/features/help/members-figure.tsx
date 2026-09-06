@@ -65,7 +65,7 @@ export function MembersFigure() {
   return (
     <FigureFrame caption="A sketch of the Members screen. The numbers match the list below.">
       <div className="scrollbar-soft overflow-x-auto [--scrollbar-surface:var(--color-card)]">
-        <div className="border-line bg-paper min-w-[460px] overflow-hidden rounded-lg border">
+        <div className="border-line bg-paper min-w-[460px] overflow-hidden rounded-ui border">
           <div className="border-line flex items-center justify-between gap-2 border-b px-4 py-2.5">
             <span className="text-ink font-display text-[16px]">Members</span>
             <div className="flex flex-none items-center gap-2">
@@ -75,7 +75,7 @@ export function MembersFigure() {
                 Import CSV
               </span>
               <FigureBadge n={1} />
-              <span className="bg-brass-ink text-paper flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-ui text-[11.5px] font-semibold">
+              <span className="bg-brass text-ground flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-ui text-[11.5px] font-semibold">
                 <Icon name="plus" size={12} strokeWidth={2} />
                 Add member
               </span>

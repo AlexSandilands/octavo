@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { DialogShell } from "@/components/dialog-shell";
+import { DIALOG_PANEL, DialogShell } from "@/components/dialog-shell";
 import { Icon } from "@/components/icons";
 import { Button, IconButton } from "@/components/ui";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
@@ -100,7 +100,7 @@ export function VideoDialog({
     // Same isolation as the montage dialog: it floats over the editor canvas,
     // which deselects the block on a stray click and pans on a drag.
     <DialogShell
-      panelClassName="bg-card flex max-h-[90vh] w-[560px] flex-col rounded-[10px] shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
+      panelClassName={`${DIALOG_PANEL} flex max-h-[90vh] w-[560px] flex-col`}
       isolatePointerEvents
       locked={busy}
       onClose={onClose}
@@ -119,7 +119,7 @@ export function VideoDialog({
 
           <div className="scrollbar-soft min-h-0 flex-1 overflow-y-auto px-8 pt-6 [--scrollbar-surface:var(--color-card)] [scrollbar-gutter:stable]">
             <label className="block">
-              <span className="text-faint mb-1.5 block font-ui text-[11px] font-semibold tracking-[0.14em] uppercase">
+              <span className="text-faint mb-1.5 block font-meta text-[12px] font-medium tracking-[0.14em] uppercase">
                 YouTube link
               </span>
               {/* The focus ring goes on the decorated box, not the bare input
@@ -173,11 +173,11 @@ export function VideoDialog({
             </p>
 
             <div className="mt-6">
-              <span className="text-faint mb-1.5 block font-ui text-[11px] font-semibold tracking-[0.14em] uppercase">
+              <span className="text-faint mb-1.5 block font-meta text-[12px] font-medium tracking-[0.14em] uppercase">
                 Video image
               </span>
               {poster && videoId ? (
-                <div className="border-hair flex items-center gap-3 rounded-lg border bg-white p-2.5">
+                <div className="border-hair flex items-center gap-3 rounded-ui border bg-white p-2.5">
                   <div className="border-line bg-page relative h-[72px] w-32 flex-none overflow-hidden rounded">
                     {/* A plain <img>: this is chrome, not page content, and the
                         montage dialog's row previews do the same. */}
@@ -200,7 +200,7 @@ export function VideoDialog({
                   </p>
                 </div>
               ) : (
-                <p className="border-hair text-faint2 rounded-lg border border-dashed px-4 py-6 text-center font-ui text-[13px]">
+                <p className="border-hair text-faint2 rounded-ui border border-dashed px-4 py-6 text-center font-ui text-[13px]">
                   The video&rsquo;s own picture is saved here once you add a
                   link.
                 </p>

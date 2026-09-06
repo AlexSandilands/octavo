@@ -23,7 +23,7 @@ export function ImportPreview({
   const tooMany = parsed.members.length > MEMBERS_IMPORT_MAX;
 
   return (
-    <div className="border-line-soft mt-4 rounded-lg border bg-white px-4 py-3 font-ui text-[14px]">
+    <div className="border-line-soft mt-4 rounded-ui border bg-white px-4 py-3 font-ui text-[14px]">
       <div className="text-ink font-semibold">{fileName}</div>
       <ul className="text-muted mt-1.5 space-y-0.5">
         <li>

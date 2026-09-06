@@ -7,7 +7,7 @@ import { FigureBadge, FigureFrame } from "./guide-ui";
 export function PublishModalFigure() {
   return (
     <FigureFrame caption="The confirmation window up close. The numbers match the list below.">
-      <div className="bg-card mx-auto w-full max-w-[440px] rounded-[10px] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.18)] sm:p-6">
+      <div className="bg-paper shadow-panel rounded-sheet mx-auto w-full max-w-[440px] p-5 sm:p-6">
         <div className="text-brass-ink font-ui text-[9.5px] font-semibold tracking-[0.2em] uppercase">
           Publish &amp; send
         </div>
@@ -17,10 +17,10 @@ export function PublishModalFigure() {
         <p className="text-muted mt-1.5 font-ui text-[12.5px] leading-snug">
           This marks the issue published so members can read it.
         </p>
-        <div className="border-hair mt-4 rounded-lg border-[1.5px] bg-white p-3.5">
+        <div className="border-hair mt-4 rounded-ui border-[1.5px] bg-white p-3.5">
           <div className="flex items-start gap-2">
             <FigureBadge n={1} />
-            <span className="border-brass-ink bg-brass-ink text-paper mt-px flex h-4 w-4 flex-none items-center justify-center rounded-[3px] border">
+            <span className="border-brass-ink bg-brass text-ground mt-px flex h-4 w-4 flex-none items-center justify-center rounded-[3px] border">
               <Icon name="check" size={10} strokeWidth={3} />
             </span>
             <span className="text-ink font-ui text-[12.5px] leading-snug font-semibold">
@@ -40,7 +40,7 @@ export function PublishModalFigure() {
           <span className="border-hair text-ink rounded-md border-[1.5px] bg-white px-3 py-1.5 font-ui text-[12px] font-semibold">
             Keep as draft
           </span>
-          <span className="bg-brass-ink text-paper flex items-center gap-1.5 rounded-md px-3 py-1.5 font-ui text-[12px] font-semibold">
+          <span className="bg-brass text-ground flex items-center gap-1.5 rounded-md px-3 py-1.5 font-ui text-[12px] font-semibold">
             <Icon name="check" size={12} strokeWidth={2.5} />
             Publish &amp; send
           </span>

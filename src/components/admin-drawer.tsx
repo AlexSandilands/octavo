@@ -2,13 +2,12 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { adminMain } from "./admin-main";
-import { Wordmark } from "./ui";
-import { Icon } from "./icons";
+import { IconButton, Wordmark } from "./ui";
 
-// Mobile chrome for the admin shell (issue #57). Below `md` the fixed desktop
-// rail is hidden and this renders instead: a slim top bar with a menu button
-// that opens the nav as a left off-canvas drawer. At `md`+ the whole island is
-// hidden (`md:hidden`) and the desktop rail takes over unchanged.
+// Mobile chrome for the admin shell (issue #57). Below `md` the desktop rail
+// is hidden and this renders instead: a dark top bar with a labelled menu
+// button that opens the nav as a left off-canvas drawer. At `md`+ the whole
+// island is hidden (`md:hidden`) and the rail takes over.
 //
 // The nav column is passed in as `children` (the shared <AdminNavContent>), so
 // this file owns only the open/close behaviour: focus trap, Escape to close,
@@ -90,24 +89,25 @@ export function AdminDrawer({ children }: { children: ReactNode }) {
     <>
       {/* Top bar — only below md; hidden once the desktop rail appears. */}
       <div
-        className="bg-paper border-line flex flex-none items-center gap-2 border-b px-3 py-2 md:hidden"
+        className="border-hairline bg-raised flex h-14 flex-none items-center justify-between gap-2 border-b px-2 md:hidden"
         inert={open}
       >
-        <button
+        <div className="flex items-baseline gap-2 pl-2">
+          <Wordmark size={20} tone="dark" />
+          <span className="text-brass font-meta text-[10px] font-medium tracking-[0.2em] uppercase">
+            Admin
+          </span>
+        </div>
+        <IconButton
           ref={triggerRef}
-          type="button"
-          onClick={() => setOpen(true)}
-          aria-label="Open admin menu"
+          icon="menu"
+          label="Menu"
+          showLabel
+          tone="dark"
           aria-expanded={open}
           aria-controls="admin-drawer"
-          className="text-ink hover:text-brass-ink flex h-11 w-11 flex-none items-center justify-center rounded-lg"
-        >
-          <Icon name="menu" size={24} />
-        </button>
-        <Wordmark size={20} />
-        <span className="text-brass-ink font-ui text-[10px] font-semibold tracking-[0.2em] uppercase">
-          Admin
-        </span>
+          onClick={() => setOpen(true)}
+        />
       </div>
 
       {open && (
@@ -118,7 +118,7 @@ export function AdminDrawer({ children }: { children: ReactNode }) {
             aria-label="Close admin menu"
             tabIndex={-1}
             onClick={() => setOpen(false)}
-            className="absolute inset-0 bg-[rgba(32,32,28,0.4)]"
+            className="bg-scrim absolute inset-0"
           />
           <div
             ref={panelRef}
@@ -130,17 +130,17 @@ export function AdminDrawer({ children }: { children: ReactNode }) {
               // Close when a nav link is chosen; navigation proceeds via Link.
               if ((e.target as HTMLElement).closest("a")) setOpen(false);
             }}
-            className="bg-paper border-line relative flex w-[280px] max-w-[85vw] flex-none flex-col border-r py-6 shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
+            className="border-hairline bg-raised shadow-panel relative flex w-[300px] max-w-[85vw] flex-none flex-col border-r py-4"
           >
-            <button
-              ref={closeRef}
-              type="button"
-              onClick={() => setOpen(false)}
-              aria-label="Close admin menu"
-              className="text-muted hover:text-brass-ink absolute top-3 right-2 flex h-11 w-11 items-center justify-center rounded-lg"
-            >
-              <Icon name="close" size={22} />
-            </button>
+            <div className="absolute top-2 right-2">
+              <IconButton
+                ref={closeRef}
+                icon="close"
+                label="Close admin menu"
+                tone="dark"
+                onClick={() => setOpen(false)}
+              />
+            </div>
             {children}
           </div>
         </div>

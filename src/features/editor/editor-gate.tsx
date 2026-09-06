@@ -48,7 +48,7 @@ function MobileNotice() {
       <div className="mt-8">
         <Link
           href="/admin"
-          className="border-hair-warm text-ink hover:border-brass-ink hover:bg-brass-wash flex h-12 items-center gap-2 rounded-lg border-[1.5px] bg-white px-5 font-ui text-[15px] font-semibold transition-colors"
+          className="border-hair-warm text-ink hover:border-brass-ink hover:bg-brass-wash flex h-12 items-center gap-2 rounded-ui border-[1.5px] bg-white px-5 font-ui text-[15px] font-semibold transition-colors"
         >
           <Icon name="chevronLeft" size={17} strokeWidth={1.8} />
           Back to issues

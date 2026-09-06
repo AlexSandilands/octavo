@@ -1,9 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { DialogShell } from "@/components/dialog-shell";
+import { DIALOG_PANEL, DialogShell } from "@/components/dialog-shell";
 import { Icon } from "@/components/icons";
-import { Button, IconButton } from "@/components/ui";
+import { Button, FIELD, IconButton } from "@/components/ui";
 import type { SponsorListItem } from "@/lib/sponsors";
 import {
   createSponsorAction,
@@ -96,7 +96,7 @@ export function SponsorDialog({
 
   return (
     <DialogShell
-      panelClassName="scrollbar-soft bg-card max-h-[90vh] w-[520px] overflow-y-auto rounded-[10px] [--scrollbar-surface:var(--color-card)] [scrollbar-gutter:stable] shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
+      panelClassName={`${DIALOG_PANEL} scrollbar-soft max-h-[90vh] w-[520px] overflow-y-auto [--scrollbar-surface:var(--color-paper)] [scrollbar-gutter:stable]`}
       locked={saving}
       onClose={onClose}
     >
@@ -125,7 +125,7 @@ export function SponsorDialog({
                 onChange={(e) => setName(e.target.value)}
                 maxLength={200}
                 placeholder="e.g. Kawau Bay Hardware"
-                className="border-hair focus:border-brass-ink text-ink h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-ui text-[15px] outline-none"
+                className={FIELD}
               />
             </Field>
 
@@ -136,13 +136,13 @@ export function SponsorDialog({
                 onChange={(e) => setHref(e.target.value)}
                 maxLength={2000}
                 placeholder="example.com or https://example.com"
-                className="border-hair focus:border-brass-ink text-ink h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-ui text-[15px] outline-none"
+                className={FIELD}
               />
             </Field>
 
             <Field label="Logo (optional)" htmlFor="">
               <div className="flex items-center gap-4">
-                <div className="border-line flex h-16 w-28 flex-none items-center justify-center overflow-hidden rounded-lg border bg-white">
+                <div className="border-line flex h-16 w-28 flex-none items-center justify-center overflow-hidden rounded-ui border bg-white">
                   {logoUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -201,7 +201,7 @@ export function SponsorDialog({
                 type="date"
                 value={activeUntil}
                 onChange={(e) => setActiveUntil(e.target.value)}
-                className="border-hair focus:border-brass-ink text-ink h-12 rounded-lg border-[1.5px] bg-white px-3.5 font-ui text-[15px] outline-none"
+                className={`${FIELD} w-auto`}
               />
               <p className="text-faint2 mt-1.5 font-ui text-[12px]">
                 After this date the sponsor is flagged expired here. It is not
@@ -249,7 +249,7 @@ function Field({
     <div>
       <label
         htmlFor={htmlFor || undefined}
-        className="text-faint mb-1.5 block font-ui text-[11px] font-semibold tracking-[0.14em] uppercase"
+        className="text-faint mb-1.5 block font-meta text-[12px] font-medium tracking-[0.14em] uppercase"
       >
         {label}
       </label>

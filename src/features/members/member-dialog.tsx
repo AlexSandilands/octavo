@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { DialogShell } from "@/components/dialog-shell";
-import { Button } from "@/components/ui";
+import { DIALOG_PANEL, DialogShell } from "@/components/dialog-shell";
+import { Button, FIELD, Kicker } from "@/components/ui";
 import {
   addMemberAction,
   updateMemberAction,
@@ -51,23 +51,21 @@ export function MemberDialog({
 
   return (
     <DialogShell
-      panelClassName="bg-card w-[440px] max-w-full overflow-hidden rounded-[10px] shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
+      panelClassName={`${DIALOG_PANEL} w-[440px] overflow-hidden`}
       locked={pending}
       onClose={onClose}
     >
       {(titleId) => (
         <form onSubmit={submit}>
           <div className="px-8 pt-7">
-            <div className="text-brass-ink font-ui text-[10px] font-semibold tracking-[0.2em] uppercase">
-              Members
-            </div>
+            <Kicker>Members</Kicker>
             <h2
               id={titleId}
-              className="text-ink mt-3 font-display text-[27px] leading-tight"
+              className="text-ink mt-3 font-display text-[28px] leading-tight"
             >
               {editing ? "Edit member" : "Add a member"}
             </h2>
-            <p className="text-muted mt-2.5 font-ui text-[15px] leading-relaxed">
+            <p className="text-muted mt-2.5 font-ui text-[16px] leading-relaxed">
               {editing
                 ? "Fix a name or address. A new email becomes their sign-in link from now on; they stay signed in on any current device."
                 : "They’ll be able to sign in and read every issue. Adding an address is all it takes — they don’t register."}
@@ -75,7 +73,7 @@ export function MemberDialog({
 
             <label
               htmlFor="member-email"
-              className="text-faint mt-6 block font-ui text-[11px] font-semibold tracking-[0.2em] uppercase"
+              className="text-faint mt-6 block font-meta text-[12px] font-medium tracking-[0.14em] uppercase"
             >
               Email address
             </label>
@@ -86,12 +84,12 @@ export function MemberDialog({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="name@example.com"
-              className="border-line text-ink mt-2 h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-ui text-[15px] outline-none focus:border-[var(--color-brass-ink)]"
+              className={`${FIELD} mt-2`}
             />
 
             <label
               htmlFor="member-name"
-              className="text-faint mt-4 block font-ui text-[11px] font-semibold tracking-[0.2em] uppercase"
+              className="text-faint mt-4 block font-meta text-[12px] font-medium tracking-[0.14em] uppercase"
             >
               Name (optional)
             </label>
@@ -101,7 +99,7 @@ export function MemberDialog({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Margaret Cole"
-              className="border-line text-ink mt-2 h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-ui text-[15px] outline-none focus:border-[var(--color-brass-ink)]"
+              className={`${FIELD} mt-2`}
             />
 
             {error && (

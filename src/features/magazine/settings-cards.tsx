@@ -10,6 +10,7 @@ import {
   type SiteSettings,
 } from "@/lib/branding";
 import { SettingsCard } from "@/components/settings-card";
+import { FIELD } from "@/components/ui";
 import { MenuSelect, type MenuSelectItem } from "@/components/menu-select";
 import { FooterSizeField } from "./footer-size-field";
 import type { SettingsForm } from "./magazine-settings";
@@ -79,7 +80,7 @@ export function SettingsFormCard({
         <h3 className="text-ink font-display text-lg leading-tight">
           Page footer
         </h3>
-        <p className="text-muted mt-1.5 font-ui text-[13px] leading-relaxed">
+        <p className="text-muted mt-1.5 font-ui text-[14px] leading-relaxed">
           How the running footer on interior pages is set. Covers and full-page
           photos have no footer. Text size applies whether or not the issue
           carries a mark; the mark&rsquo;s size and where the lockup sits apply
@@ -124,7 +125,7 @@ export function SettingsFormCard({
         <h3 className="text-ink font-display text-lg leading-tight">
           PDF downloads
         </h3>
-        <p className="text-muted mt-1.5 font-ui text-[13px] leading-relaxed">
+        <p className="text-muted mt-1.5 font-ui text-[14px] leading-relaxed">
           Whether members may save an issue to keep. This one is about who gets
           the file, not how a page is set — so it is the one setting here the
           preview beside it never shows.
@@ -155,7 +156,7 @@ function PdfDownloadsToggle({
 }) {
   return (
     <div>
-      <label className="boxed-field border-hair flex cursor-pointer items-start gap-3 rounded-lg border-[1.5px] bg-white p-4">
+      <label className="boxed-field border-hair-warm rounded-ui flex cursor-pointer items-start gap-3 border-[1.5px] bg-white p-4">
         <input
           type="checkbox"
           checked={value}
@@ -163,7 +164,7 @@ function PdfDownloadsToggle({
           aria-describedby="pdf-downloads-hint"
           className="accent-brass-ink mt-0.5 h-5 w-5 flex-none"
         />
-        <span className="font-ui text-[14px] leading-snug">
+        <span className="font-ui text-[15px] leading-snug">
           <span className="text-ink font-semibold">
             Let members download issues as a PDF
           </span>
@@ -210,7 +211,7 @@ function TextField({
     <div>
       <label
         htmlFor={id}
-        className="text-faint mb-1.5 block font-ui text-[11px] font-semibold tracking-[0.14em] uppercase"
+        className="text-faint mb-1.5 block font-meta text-[12px] font-medium tracking-[0.14em] uppercase"
       >
         {label}
       </label>
@@ -221,7 +222,7 @@ function TextField({
         maxLength={maxLength}
         placeholder={fallback}
         aria-describedby={`${id}-hint`}
-        className="border-hair focus:border-brass-ink text-ink h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-ui text-[15px] outline-none"
+        className={FIELD}
       />
       <p
         id={`${id}-hint`}

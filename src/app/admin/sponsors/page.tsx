@@ -40,7 +40,7 @@ export default async function SponsorsPage({
     filter: params.filter,
   });
   return (
-    <AdminShell active="sponsors" user={admin}>
+    <AdminShell active="sponsors" user={admin} fit>
       <SponsorsManager list={list} query={query} filter={params.filter} />
     </AdminShell>
   );

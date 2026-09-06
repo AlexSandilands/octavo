@@ -34,7 +34,7 @@ export function LogosManager({ logos }: { logos: LogoListItem[] }) {
       blurb="The club’s own marks — a crest, an emblem, a wordmark. Upload each one once and any issue can use it in its page footer. Changes here happen straight away; they don’t wait for Save."
     >
       {logos.length === 0 ? (
-        <div className="border-hair-warm rounded-lg border border-dashed p-6 text-center">
+        <div className="border-hair-warm rounded-ui border border-dashed p-6 text-center">
           <p className="text-muted font-ui text-[14px] leading-relaxed">
             No marks yet. Add one and it becomes available to every issue.
           </p>

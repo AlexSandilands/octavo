@@ -43,7 +43,7 @@ function Field({ label, value }: { label: string; value: string }) {
 function SettingsColumn() {
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-3">
-      <div className="border-line bg-paper rounded-lg border p-3.5">
+      <div className="border-line bg-paper rounded-ui border p-3.5">
         <CardTitle n={1} title="Details" />
         <div className="mt-3 space-y-2.5">
           <Field label="Magazine name" value="Seaview Notes" />
@@ -68,7 +68,7 @@ function SettingsColumn() {
 
         <div className="border-line-soft mt-3.5 flex flex-wrap items-center gap-2 border-t pt-3">
           <FigureBadge n={5} />
-          <span className="bg-brass-ink text-paper rounded-md px-2.5 py-1.5 font-ui text-[10.5px] font-semibold">
+          <span className="bg-brass text-ground rounded-md px-2.5 py-1.5 font-ui text-[10.5px] font-semibold">
             Save changes
           </span>
           <span className="text-faint font-ui text-[9.5px]">
@@ -77,7 +77,7 @@ function SettingsColumn() {
         </div>
       </div>
 
-      <div className="border-line bg-paper rounded-lg border p-3.5">
+      <div className="border-line bg-paper rounded-ui border p-3.5">
         <CardTitle n={4} title="Logos" />
         <div className="mt-2.5 space-y-1.5">
           {["Club crest", "Wordmark"].map((name) => (
@@ -110,20 +110,20 @@ function PreviewColumn() {
     // Narrower between the breakpoints, where the admin sidebar has taken its
     // room out of the guide column and the form pane would otherwise be the
     // smaller of the two.
-    <div className="flex w-[190px] flex-none flex-col items-center gap-2 sm:w-[200px] lg:w-[240px]">
+    <div className="bg-ground rounded-ui flex w-[190px] flex-none flex-col items-center gap-2 p-3 sm:w-[200px] lg:w-[240px]">
       <div className="flex w-full flex-wrap items-center gap-1.5">
         <FigureBadge n={3} />
         {["Theme: Classic", "Mark: Club crest"].map((c) => (
           <span
             key={c}
-            className="border-hair-warm text-ink flex h-[21px] items-center gap-1 rounded-[5px] border bg-white px-1.5 font-ui text-[9px] font-medium"
+            className="border-chrome-muted bg-raised text-chrome-text flex h-[21px] items-center gap-1 rounded-[5px] border px-1.5 font-ui text-[9px] font-medium"
           >
             {c}
             <Icon name="chevronDown" size={8} strokeWidth={2} />
           </span>
         ))}
       </div>
-      <div className="bg-page flex aspect-[640/900] w-full flex-col rounded-[2px] p-3 shadow-[0_2px_8px_rgba(20,32,28,0.18)]">
+      <div className="bg-page shadow-glow-sm flex aspect-[640/900] w-full flex-col rounded-[2px] p-3">
         <div className="text-faint2 font-ui text-[7px] tracking-[0.12em] uppercase">
           Seaview Notes · No. 12
         </div>
@@ -154,13 +154,13 @@ function PreviewColumn() {
       {/* The alignment relationship, drawn: the lockup ranges left or centre or
           right, and the page number always takes the other margin. */}
       <div className="flex w-full items-start justify-between px-3">
-        <span className="text-faint2 flex flex-col items-center gap-0.5">
+        <span className="text-chrome-muted flex flex-col items-center gap-0.5">
           <Icon name="arrowUp" size={10} />
           <span className="font-ui text-[8px] leading-tight">
             Lockup — Align: Left
           </span>
         </span>
-        <span className="text-faint2 flex flex-col items-center gap-0.5">
+        <span className="text-chrome-muted flex flex-col items-center gap-0.5">
           <Icon name="arrowUp" size={10} />
           <span className="font-ui text-[8px] leading-tight">
             Page number

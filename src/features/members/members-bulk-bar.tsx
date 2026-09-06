@@ -196,11 +196,11 @@ export function MembersBulkBar({
 
   const countText = (
     <>
-      <span className={active ? "text-ink font-semibold" : undefined}>
+      <span className={active ? "text-chrome-text font-semibold" : undefined}>
         {active ? `${count} selected` : `Select all ${shownCount}${scope}`}
       </span>
       {hiddenSelectedCount > 0 && (
-        <span className="text-faint">
+        <span className={active ? "text-chrome-muted" : "text-faint"}>
           {" "}
           ({hiddenSelectedCount} {hiddenNote})
         </span>
@@ -210,8 +210,10 @@ export function MembersBulkBar({
 
   return (
     <div
-      className={`mt-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-lg border-[1.5px] px-2 ${
-        active ? "border-line bg-brass-wash" : "border-transparent"
+      className={`rounded-ui mt-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 border-[1.5px] px-2 transition-colors ${
+        active
+          ? "border-hairline bg-raised text-chrome-text"
+          : "border-transparent"
       }`}
     >
       {/* A search matching nothing has nothing to select all of, so the box
@@ -222,13 +224,14 @@ export function MembersBulkBar({
           checked={allShownSelected}
           indeterminate={someShownSelected}
           onChange={onToggleAllShown}
+          tone={active ? "dark" : "paper"}
           label={`Select all ${shownCount} members${narrowed ? ` matching ${narrower}` : ""}${paged ? " on this page" : ""}`}
         >
           {countText}
         </SelectCheckbox>
       ) : (
         active && (
-          <span className="text-muted py-2.5 pl-2 font-ui text-[14px]">
+          <span className="text-chrome-text py-2.5 pl-2 font-ui text-[15px]">
             {countText}
           </span>
         )
@@ -242,7 +245,11 @@ export function MembersBulkBar({
           type="button"
           onClick={selectAllMatching}
           disabled={pending || selectingAll}
-          className="text-faint hover:text-brass-ink cursor-pointer rounded px-2 py-2 font-ui text-[14px] font-medium underline underline-offset-4 disabled:cursor-default disabled:opacity-50"
+          className={`rounded-ui cursor-pointer px-2 py-2 font-ui text-[15px] font-medium underline underline-offset-4 disabled:cursor-default disabled:opacity-50 ${
+            active
+              ? "text-chrome-muted hover:text-brass"
+              : "text-faint hover:text-brass-ink"
+          }`}
         >
           {selectingAll
             ? "Selecting…"
@@ -261,7 +268,7 @@ export function MembersBulkBar({
               onClear();
             }}
             disabled={pending}
-            className="text-faint hover:text-brass-ink cursor-pointer rounded px-2 py-2 font-ui text-[14px] font-medium underline underline-offset-4 disabled:cursor-default disabled:opacity-50"
+            className="text-chrome-muted hover:text-brass rounded-ui cursor-pointer px-2 py-2 font-ui text-[15px] font-medium underline underline-offset-4 disabled:cursor-default disabled:opacity-50"
           >
             Clear
           </button>
@@ -270,6 +277,7 @@ export function MembersBulkBar({
             <Button
               size="sm"
               variant="secondary"
+              tone="dark"
               icon="check"
               iconPosition="left"
               disabled={pending}
@@ -280,6 +288,7 @@ export function MembersBulkBar({
             <Button
               size="sm"
               variant="secondary"
+              tone="dark"
               icon="minus"
               iconPosition="left"
               disabled={pending}
@@ -308,9 +317,9 @@ export function MembersBulkBar({
           needs to hear this. Empty, it has no height. */}
       <p
         aria-live="polite"
-        className={`text-faint basis-full px-1 font-ui text-[14px] ${
-          atCap ? "pb-2" : ""
-        }`}
+        className={`basis-full px-1 font-ui text-[15px] ${
+          active ? "text-chrome-muted" : "text-faint"
+        } ${atCap ? "pb-2" : ""}`}
       >
         {atCap &&
           `Selections stop at ${MEMBERS_SELECTION_MAX} members. Run this action, then select any that are left.`}
@@ -326,15 +335,22 @@ export function MembersBulkBar({
         className={
           selectionNote
             ? "sr-only"
-            : `basis-full px-1 font-ui text-[14px] ${
-                error ? "text-danger pb-2" : result ? "text-muted pb-2" : ""
+            : `basis-full px-1 font-ui text-[15px] ${
+                error
+                  ? `pb-2 ${active ? "text-danger-bright" : "text-danger"}`
+                  : result
+                    ? `pb-2 ${active ? "text-chrome-muted" : "text-muted"}`
+                    : ""
               }`
         }
       >
         {error}
         {!error && result && (
           <>
-            Done — <strong className="text-ink">{result.head}</strong>
+            Done —{" "}
+            <strong className={active ? "text-chrome-text" : "text-ink"}>
+              {result.head}
+            </strong>
             {result.tail}
           </>
         )}

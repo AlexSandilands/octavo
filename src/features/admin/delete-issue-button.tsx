@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Icon } from "@/components/icons";
+import { IconButton } from "@/components/ui";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { deleteIssueAction } from "@/app/admin/actions";
 
@@ -43,16 +43,16 @@ export function DeleteIssueButton({
 
   return (
     <>
-      <button
-        type="button"
+      <IconButton
+        icon="trash"
+        label={`Delete ${title}`}
+        text="Delete"
+        showLabel
+        danger
         disabled={pending}
-        onClick={() => setConfirming(true)}
         title="Delete issue"
-        aria-label={`Delete ${title}`}
-        className="text-faint2 hover:text-danger hover:border-danger flex h-9 w-9 items-center justify-center rounded-lg border border-transparent disabled:opacity-40"
-      >
-        <Icon name="trash" size={17} strokeWidth={1.8} />
-      </button>
+        onClick={() => setConfirming(true)}
+      />
       {confirming && (
         <ConfirmDialog
           title={`Delete “${title}”?`}

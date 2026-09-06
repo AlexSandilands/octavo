@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Icon } from "@/components/icons";
+import { Button, IconButton } from "@/components/ui";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import type { LogoListItem } from "@/lib/logos";
 import { deleteLogoAction } from "@/app/admin/magazine/logo-actions";
@@ -72,27 +72,29 @@ export function LogoRow({
         </p>
       )}
 
-      <div className="ml-auto flex items-center justify-end gap-1 sm:w-[110px]">
-        <button
-          type="button"
+      <div className="ml-auto flex items-center justify-end gap-1 sm:w-[220px]">
+        <Button
+          variant="ghost"
+          size="sm"
+          icon="pencil"
+          iconPosition="left"
           onClick={onRename}
           disabled={pending}
-          title={`Rename ${logo.name}`}
           aria-label={`Rename ${logo.name}`}
-          className="text-brass-ink cursor-pointer px-1 text-right font-ui text-sm font-semibold hover:underline disabled:opacity-40"
+          title={`Rename ${logo.name}`}
         >
           Rename
-        </button>
-        <button
-          type="button"
-          onClick={() => setConfirming(true)}
+        </Button>
+        <IconButton
+          icon="trash"
+          label={`Delete ${logo.name}`}
+          text="Delete"
+          showLabel
+          danger
           disabled={pending}
           title={`Delete ${logo.name}`}
-          aria-label={`Delete ${logo.name}`}
-          className="text-faint2 hover:text-danger hover:border-danger flex h-9 w-9 items-center justify-center rounded-lg border border-transparent disabled:opacity-40"
-        >
-          <Icon name="trash" size={17} strokeWidth={1.8} />
-        </button>
+          onClick={() => setConfirming(true)}
+        />
       </div>
 
       {confirming && (

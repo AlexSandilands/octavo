@@ -15,6 +15,7 @@ export function SelectCheckbox({
   indeterminate = false,
   onChange,
   label,
+  tone = "paper",
   children,
 }: {
   checked: boolean;
@@ -23,6 +24,8 @@ export function SelectCheckbox({
   onChange: (next: boolean) => void;
   /** The accessible name; `children` is the optional visible text beside it. */
   label: string;
+  /** The surface the row sits on — the dark bulk band, or the paper sheet. */
+  tone?: "paper" | "dark";
   children?: React.ReactNode;
 }) {
   const ref = useRef<HTMLInputElement>(null);
@@ -36,10 +39,15 @@ export function SelectCheckbox({
   // / `bg-brass-ink` collision by stylesheet order, not by which one the template
   // appends last, so a shared `bg-white` base would win and the filled box
   // would render empty.
+  const dark = tone === "dark";
   const box =
     checked || mixed
-      ? "border-brass-ink bg-brass-ink text-paper"
-      : "border-hair-warm bg-white";
+      ? dark
+        ? "border-brass bg-brass text-ground"
+        : "border-brass-ink bg-brass-ink text-paper"
+      : dark
+        ? "border-chrome-muted bg-lifted"
+        : "border-hair-warm bg-white";
 
   return (
     <label className="flex cursor-pointer items-center select-none">
@@ -54,14 +62,20 @@ export function SelectCheckbox({
         />
         <span
           aria-hidden
-          className={`flex h-[22px] w-[22px] items-center justify-center rounded-[4px] border-[1.5px] transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--color-brass-ink)] ${box}`}
+          className={`flex h-[22px] w-[22px] items-center justify-center rounded-[4px] border-[1.5px] transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 ${
+            dark
+              ? "peer-focus-visible:outline-[var(--color-brass)]"
+              : "peer-focus-visible:outline-[var(--color-brass-ink)]"
+          } ${box}`}
         >
           {checked && <Icon name="check" size={14} strokeWidth={2.6} />}
           {mixed && <Icon name="minus" size={14} strokeWidth={2.6} />}
         </span>
       </span>
       {children && (
-        <span className="text-muted pr-2 font-ui text-[15px]">
+        <span
+          className={`pr-2 font-ui text-[15px] ${dark ? "text-chrome-text" : "text-muted"}`}
+        >
           {children}
         </span>
       )}

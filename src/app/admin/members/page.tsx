@@ -41,7 +41,7 @@ export default async function MembersPage({
   });
 
   return (
-    <AdminShell active="members" user={admin}>
+    <AdminShell active="members" user={admin} fit>
       <MembersManager
         list={list}
         query={query}

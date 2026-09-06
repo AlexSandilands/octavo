@@ -34,7 +34,7 @@ export function SponsorsFigure() {
     <FigureFrame caption="One sponsor record, reused everywhere it appears. The numbers match the steps below.">
       <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center sm:gap-4">
         {/* The record, as kept on the Sponsors screen. */}
-        <div className="border-hair w-[190px] flex-none rounded-lg border bg-white p-4">
+        <div className="border-hair w-[190px] flex-none rounded-ui border bg-white p-4">
           <div className="flex items-center gap-2">
             <FigureBadge n={1} />
             <span className="text-faint font-ui text-[8.5px] font-semibold tracking-[0.14em] uppercase">

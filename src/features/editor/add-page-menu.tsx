@@ -51,7 +51,7 @@ export function AddPageMenu({
           <div className="fixed inset-0 z-20" onClick={onClose} />
           <div
             ref={menuRef}
-            className={`bg-card border-hair-warm absolute left-[92px] z-30 w-56 overflow-hidden rounded-lg border shadow-[0_12px_32px_rgba(40,36,28,0.18)] ${
+            className={`bg-card border-hair-warm absolute left-[92px] z-30 w-56 overflow-hidden rounded-ui border shadow-[0_12px_32px_rgba(40,36,28,0.18)] ${
               up ? "bottom-0" : "top-0"
             }`}
           >

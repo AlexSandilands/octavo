@@ -182,8 +182,11 @@ export const IconButton = forwardRef<
     icon: IconName;
     /** Accessible name — an icon alone says nothing. */
     label: string;
-    /** Print the label beside the icon. */
+    /** Print a word beside the icon. */
     showLabel?: boolean;
+    /** The word printed, when it should differ from the accessible name
+     * ("Delete" beside the icon; "Delete Spring Notes" for the reader). */
+    text?: string;
     onClick?: () => void;
     size?: number;
     tone?: ButtonTone;
@@ -200,6 +203,7 @@ export const IconButton = forwardRef<
     icon,
     label,
     showLabel = false,
+    text,
     onClick,
     size = 20,
     tone = "paper",
@@ -240,7 +244,7 @@ export const IconButton = forwardRef<
       className={`rounded-ui inline-flex h-11 min-w-11 items-center justify-center gap-1.5 font-ui text-[15px] font-medium transition-[background-color,color] duration-150 ${showLabel ? "px-3" : ""} ${state} ${className}`}
     >
       <Icon name={icon} size={size} strokeWidth={1.7} />
-      {showLabel && <span>{label}</span>}
+      {showLabel && <span>{text ?? label}</span>}
     </button>
   );
 });

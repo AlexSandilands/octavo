@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Icon, type IconName } from "@/components/icons";
+import { Kicker } from "@/components/ui";
 
 // Building blocks for the admin guide (/admin/help): section scaffolding,
 // numbered steps, plain lists, callouts, and figure frames for the token-built
@@ -22,12 +23,10 @@ export function GuideSection({
       aria-labelledby={`${id}-heading`}
       className="border-line-soft mt-10 scroll-mt-8 border-t pt-8"
     >
-      <div className="text-brass-ink font-ui text-[11px] font-semibold tracking-[0.2em] uppercase">
-        {kicker}
-      </div>
+      <Kicker>{kicker}</Kicker>
       <h2
         id={`${id}-heading`}
-        className="text-ink mt-1.5 font-display text-[26px] leading-tight"
+        className="text-ink mt-2 font-display text-[28px] leading-tight"
       >
         {title}
       </h2>
@@ -38,7 +37,7 @@ export function GuideSection({
 
 export function P({ children }: { children: ReactNode }) {
   return (
-    <p className="text-body max-w-[64ch] font-ui text-[15.5px] leading-relaxed">
+    <p className="text-body max-w-[64ch] font-ui text-[16px] leading-relaxed">
       {children}
     </p>
   );
@@ -70,7 +69,7 @@ export function Step({
       {/* Decorative — the <ol> already conveys the position. */}
       <span
         aria-hidden="true"
-        className="bg-brass-soft text-brass-ink mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-full font-ui text-[13px] font-semibold"
+        className="bg-brass-soft text-brass-ink mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-full font-meta text-[13px] font-medium"
       >
         {n}
       </span>
@@ -100,7 +99,7 @@ export function Callout({
   const careful = tone === "careful";
   return (
     <div
-      className={`max-w-[64ch] rounded-[10px] border-[1.5px] p-4 sm:p-5 ${
+      className={`max-w-[64ch] rounded-sheet border-[1.5px] p-4 sm:p-5 ${
         careful ? "border-caution bg-caution-soft" : "border-line bg-card"
       }`}
     >
@@ -136,7 +135,7 @@ export function FigureFrame({
     <figure className="xl:-mx-24">
       <div
         aria-hidden="true"
-        className="border-line bg-card overflow-hidden rounded-[10px] border p-4 sm:p-6"
+        className="border-hair-warm bg-card rounded-sheet overflow-hidden border p-4 sm:p-6"
       >
         {children}
       </div>
@@ -151,7 +150,7 @@ export function FigureFrame({
 // legend list next to the figure.
 export function FigureBadge({ n }: { n: number }) {
   return (
-    <span className="bg-brass-ink text-paper flex h-[19px] w-[19px] flex-none items-center justify-center rounded-full font-ui text-[11px] font-bold">
+    <span className="bg-brass text-ground flex h-[19px] w-[19px] flex-none items-center justify-center rounded-full font-meta text-[11px] font-medium">
       {n}
     </span>
   );

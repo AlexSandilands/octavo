@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Icon } from "@/components/icons";
+import { Button, IconButton } from "@/components/ui";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { externalHref } from "@/lib/rich-text";
 import type { SponsorListItem } from "@/lib/sponsors";
@@ -51,7 +51,7 @@ export function SponsorRow({
             <span className="text-faint2 font-meta text-[9px]">NO LOGO</span>
           )}
         </div>
-        <div className="text-ink truncate font-ui text-[15px] font-semibold">
+        <div className="text-ink truncate font-ui text-[16px] font-semibold">
           {sponsor.name}
         </div>
       </div>
@@ -74,11 +74,11 @@ export function SponsorRow({
       <div className="flex items-center gap-2 sm:w-[150px]">
         {sponsor.activeUntil ? (
           <>
-            <span className="text-faint font-ui text-[13px]">
+            <span className="text-faint font-meta text-[12px]">
               {sponsor.activeUntil}
             </span>
             {sponsor.expired && (
-              <span className="bg-caution-soft text-caution rounded-full px-2 py-0.5 font-ui text-[10px] font-semibold">
+              <span className="bg-caution-soft text-caution rounded-full px-2 py-0.5 font-meta text-[10px] font-medium tracking-[0.1em] uppercase">
                 Expired
               </span>
             )}
@@ -88,27 +88,29 @@ export function SponsorRow({
         )}
       </div>
 
-      <div className="ml-auto flex items-center justify-end gap-1 sm:ml-0 sm:w-[80px]">
-        <button
-          type="button"
+      <div className="ml-auto flex items-center justify-end gap-1 sm:ml-0 sm:w-[190px]">
+        <Button
+          variant="ghost"
+          size="sm"
+          icon="pencil"
+          iconPosition="left"
           onClick={onEdit}
           disabled={pending}
-          title={`Edit ${sponsor.name}`}
           aria-label={`Edit ${sponsor.name}`}
-          className="text-brass-ink w-9 cursor-pointer text-right font-ui text-sm font-semibold hover:underline disabled:opacity-40"
+          title={`Edit ${sponsor.name}`}
         >
           Edit
-        </button>
-        <button
-          type="button"
-          onClick={() => setConfirming(true)}
+        </Button>
+        <IconButton
+          icon="trash"
+          label={`Delete ${sponsor.name}`}
+          text="Delete"
+          showLabel
+          danger
           disabled={pending}
           title={`Delete ${sponsor.name}`}
-          aria-label={`Delete ${sponsor.name}`}
-          className="text-faint2 hover:text-danger hover:border-danger flex h-9 w-9 items-center justify-center rounded-lg border border-transparent disabled:opacity-40"
-        >
-          <Icon name="trash" size={17} strokeWidth={1.8} />
-        </button>
+          onClick={() => setConfirming(true)}
+        />
       </div>
 
       {confirming && (

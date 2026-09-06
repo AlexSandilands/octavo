@@ -30,17 +30,17 @@ export default async function HelpPage() {
   return (
     <AdminShell active="help" user={admin}>
       <div className="mx-auto max-w-[720px] pb-16">
-        <h1 className="text-ink font-display text-3xl">Guide</h1>
-        <p className="text-faint mt-1.5 font-ui text-sm">
+        <h1 className="text-ink font-display text-[32px] leading-tight">Guide</h1>
+        <p className="text-faint mt-1.5 font-ui text-[15px]">
           How to run the magazine, in plain language. Nothing here needs a
           technical bone in your body.
         </p>
 
         <nav
           aria-label="On this page"
-          className="border-line bg-card mt-6 rounded-[10px] border p-5"
+          className="border-hair-warm bg-card rounded-sheet mt-6 border p-5"
         >
-          <h2 className="text-faint font-ui text-[11px] font-semibold tracking-[0.2em] uppercase">
+          <h2 className="text-faint font-meta text-[12px] font-medium tracking-[0.14em] uppercase">
             On this page
           </h2>
           <ol className="mt-2.5 grid gap-x-8 gap-y-1.5 sm:grid-cols-2">
