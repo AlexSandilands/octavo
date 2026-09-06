@@ -270,12 +270,19 @@ export type TextSize = "s" | "m" | "l" | "xl";
 export type TextAlign = NonNullable<z.infer<typeof textBlockSchema>["align"]>;
 
 /** Shared by the editor, fixed page/print/thumbnail and mobile body text. */
-export function textAlignClass(align: TextAlign = "left"): string {
+export function textAlignClass(
+  align: TextAlign = "left",
+  { hyphenate = false }: { hyphenate?: boolean } = {},
+): string {
+  // Only reflowing mobile text may depend on browser hyphenation dictionaries.
+  // Fixed pages must keep the editor's measured line breaks when printed.
   return {
     left: "text-left",
     center: "text-center",
     right: "text-right",
-    justify: "text-justify hyphens-auto",
+    justify: hyphenate
+      ? "text-justify hyphens-auto"
+      : "text-justify hyphens-none",
   }[align];
 }
 

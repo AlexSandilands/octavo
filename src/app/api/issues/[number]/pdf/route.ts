@@ -107,13 +107,14 @@ const themeSchema = z
 // placement (issue #227) — a page a photo fills prints edge to edge with no
 // running footer and no themed decoration, so the renderer changed for every
 // issue that adopts it and every cached PDF must be rebuilt from it.
+// v11: reserved for cover pages omitting the running footer (issue #237 / PR #239).
+// v12: per-block body-text alignment (issue #238), without fixed-page hyphenation.
 //
 // Not bumped for the sponsor segment (issue #180): the renderer is untouched —
 // the key merely learned an input it was always missing, and adding the segment
 // re-keys every cached PDF exactly once by itself. A bump would only discard the
 // same objects twice over.
-// v11: per-block body-text alignment and justified hyphenation (issue #238).
-const RENDER_VERSION = 11;
+const RENDER_VERSION = 12;
 
 // Percent-encode for an RFC 8187 ext-value (the `filename*=UTF-8''…` form).
 // Only attr-char may appear bare there: ALPHA / DIGIT / "!" / "#" / "$" / "&" /

@@ -127,9 +127,17 @@ for (const align of aligns) {
         },
       }),
     ].map((element) => renderToStaticMarkup(element));
-    for (const html of rendered) {
+    for (const [surface, html] of rendered.entries()) {
       assert(html.includes(`text-${align}`));
-      assert.equal(html.includes("hyphens-auto"), align === "justify");
+      const mobile = surface === 1;
+      assert.equal(
+        html.includes("hyphens-auto"),
+        mobile && align === "justify",
+      );
+      assert.equal(
+        html.includes("hyphens-none"),
+        !mobile && align === "justify",
+      );
     }
     for (const edit of [undefined, { onChange: () => {} }]) {
       const cover = renderToStaticMarkup(
@@ -288,6 +296,12 @@ async function browserPass(base: string) {
         return el && getComputedStyle(el).textAlign === value;
       }, align);
       assert.equal(await button.getAttribute("aria-pressed"), "true");
+      if (align === "justify") {
+        assert.equal(
+          await body.evaluate((el) => getComputedStyle(el).hyphens),
+          "none",
+        );
+      }
       assert.equal(
         await page
           .getByRole("group", { name: "Text alignment" })
@@ -323,6 +337,10 @@ async function browserPass(base: string) {
     assert.equal(
       await body.evaluate((el) => getComputedStyle(el).textAlign),
       "justify",
+    );
+    await page.evaluate(() => document.fonts.ready);
+    const editorBodyHeight = await body.evaluate(
+      (el) => (el as HTMLElement).offsetHeight,
     );
     await page.screenshot({ path: "/tmp/octavo-238-editor.png" });
     await page.setViewportSize({ width: 1024, height: 900 });
@@ -382,7 +400,7 @@ async function browserPass(base: string) {
           align: getComputedStyle(el).textAlign,
           hyphens: getComputedStyle(el).hyphens,
         })),
-        { align: "justify", hyphens: "auto" },
+        { align: "justify", hyphens: width === 390 ? "auto" : "none" },
       );
       if (width === 390)
         await page.screenshot({
@@ -393,13 +411,39 @@ async function browserPass(base: string) {
     const printToken = createHash("sha256")
       .update(`${process.env.AUTH_SECRET}:pdf-print`)
       .digest("hex");
-    await page.goto(`${base}/read/${issue.number}/print?token=${printToken}`);
+    await page.goto(`${base}/read/${issue.number}/print?token=${printToken}`, {
+      waitUntil: "networkidle",
+    });
     await page.emulateMedia({ media: "print" });
+    await page.locator(".pdf-pages").waitFor({ state: "visible" });
     await page.evaluate(() => document.fonts.ready);
-    for (const body of await page.locator(".rich-text").all()) {
-      assert.equal(
-        await body.evaluate((el) => getComputedStyle(el).textAlign),
-        "justify",
+    const printBodies = await page.locator(".rich-text").all();
+    assert.equal(printBodies.length, flowed.pages.length - 1);
+    assert.equal(
+      await printBodies[0]!.evaluate((el) => (el as HTMLElement).offsetHeight),
+      editorBodyHeight,
+      "the printed paragraph has the editor's measured height",
+    );
+    for (const body of printBodies) {
+      assert.deepEqual(
+        await body.evaluate((el) => ({
+          align: getComputedStyle(el).textAlign,
+          hyphens: getComputedStyle(el).hyphens,
+        })),
+        { align: "justify", hyphens: "none" },
+      );
+      assert(
+        await body.evaluate((el) => {
+          const footer = el
+            .closest(".pdf-page")
+            ?.querySelector("[data-page-footer]");
+          return (
+            footer &&
+            el.getBoundingClientRect().bottom <=
+              footer.getBoundingClientRect().top - 5
+          );
+        }),
+        "flowed print text stays above the footer gutter",
       );
     }
     const pdf = await page.pdf({
@@ -410,7 +454,7 @@ async function browserPass(base: string) {
     assert(pdf.subarray(0, 5).toString() === "%PDF-");
     assert.deepEqual(errors, []);
     console.log(
-      "PASS: desktop/mobile reader, centred cover and actual print route → PDF; no browser exceptions",
+      "PASS: desktop/mobile hyphenation, centred cover, editor/print height and footer clearance, actual PDF; no browser exceptions",
     );
   } finally {
     await browser.close();

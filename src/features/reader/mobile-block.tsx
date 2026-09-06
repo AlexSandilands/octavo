@@ -106,7 +106,7 @@ export function MobileBlock({
         </p>
       ) : (
         <div
-          className={`text-body rich-text mb-4 font-serif ${textAlignClass(block.align)}`}
+          className={`text-body rich-text mb-4 font-serif ${textAlignClass(block.align, { hyphenate: true })}`}
           style={{ fontSize: m * textSizeScale(block.size), lineHeight: 1.62 }}
         >
           <RichText value={block.text} />
