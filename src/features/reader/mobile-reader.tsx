@@ -17,8 +17,7 @@ import { headingDomId, MobileBlock } from "./mobile-block";
 import { breakHeight, readerSections } from "./mobile-sections";
 import { useIssuePdf } from "./use-issue-pdf";
 
-// The header's height, shared with the front cover below so the cover can fill
-// the rest of the viewport without a second copy of the number (issue #235).
+// Header height, shared with the front cover's min-height below (#235).
 const HEADER_HEIGHT = 52;
 
 // Mobile reader: the whole issue as one flowing column (also the accessibility
@@ -165,9 +164,9 @@ export function MobileReader({
 
       <article className="flex-1 pb-10">
         {sections.map((s, i) => {
-          // The issue should open the way a magazine does: the front cover fills
-          // what's left of the viewport under the header, and grows past it
-          // rather than clipping. Other cover pages keep their content height.
+          // The front cover fills what's left of the viewport under the header
+          // (and grows past it rather than clipping); other covers keep their
+          // content height.
           const front = i === 0 && s.cover;
           const body = s.blocks.map((b) => (
             <MobileBlock
