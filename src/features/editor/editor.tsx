@@ -182,8 +182,8 @@ export function Editor({
   // the ref it carries, which the render can't do.
   const {
     containerRef: stageRef,
+    panRef,
     scale,
-    pan,
     panning,
     resetView,
     onPointerDown,
@@ -313,10 +313,8 @@ export function Editor({
             }`}
           >
             <div
+              ref={panRef}
               className="shadow-[0_10px_30px_rgba(40,36,28,0.14)]"
-              style={{
-                transform: `translate(${pan.x}px, ${pan.y}px)`,
-              }}
             >
               <ScaledPage scale={scale}>
                 <PageFrame

@@ -36,21 +36,44 @@ export type PanZoomOptions = {
   isBlocked?: () => boolean;
 };
 
-// The shared pan/zoom engine. Owns zoom/pan state, clamps the pan so a sliver
-// of the content always stays on screen, and exposes pointer handlers plus a
-// slider `applyZoom` and a `resetView`. The once-bound native (non-passive)
-// wheel handler and the ResizeObserver callback are effect events, so they see
-// current state without re-binding. Behaviour is identical across the editor
-// and reader; the differences (spread vs single page, fit margins, the mid-turn
-// block) are the options above.
+// The shared pan/zoom engine. Owns the zoom and the pan, clamps the pan so a
+// sliver of the content always stays on screen, and exposes pointer handlers, a
+// slider `applyZoom`, a `resetView` and the ref for the node the pan translates.
+// The once-bound native (non-passive) wheel handler and the ResizeObserver
+// callback are effect events, so they see current state without re-binding.
+// Behaviour is identical across the editor and reader; the differences (spread
+// vs single page, fit margins, the mid-turn block) are the options above.
 export function useCanvasPanZoom(opts: PanZoomOptions) {
   const { blockSelector, initialFitScale } = opts;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [fitScale, setFitScale] = useState(initialFitScale);
   const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState<Pan>({ x: 0, y: 0 });
   const [panning, setPanning] = useState(false);
+
+  // Pan is written straight to the transformed node, coalesced to a frame:
+  // through React it would re-render the whole canvas on every pointermove.
+  const panRef = useRef<HTMLDivElement>(null);
+  const pan = useRef<Pan>({ x: 0, y: 0 });
+  const frame = useRef<number | null>(null);
+  const setPan = (next: Pan) => {
+    pan.current = next;
+    frame.current ??= requestAnimationFrame(() => {
+      frame.current = null;
+      const node = panRef.current;
+      if (node) {
+        node.style.transform = `translate(${pan.current.x}px, ${pan.current.y}px)`;
+      }
+    });
+  };
+  useEffect(
+    () => () => {
+      if (frame.current === null) return;
+      cancelAnimationFrame(frame.current);
+      frame.current = null;
+    },
+    [],
+  );
 
   const isBlocked = () => Boolean(opts.isBlocked?.());
 
@@ -97,7 +120,10 @@ export function useCanvasPanZoom(opts: PanZoomOptions) {
     setZoom(next);
     setPan(
       clampPan(
-        { x: f * pan.x + (1 - f) * focalX, y: f * pan.y + (1 - f) * focalY },
+        {
+          x: f * pan.current.x + (1 - f) * focalX,
+          y: f * pan.current.y + (1 - f) * focalY,
+        },
         next,
       ),
     );
@@ -149,8 +175,8 @@ export function useCanvasPanZoom(opts: PanZoomOptions) {
     drag.current = {
       x: e.clientX,
       y: e.clientY,
-      px: pan.x,
-      py: pan.y,
+      px: pan.current.x,
+      py: pan.current.y,
       moved: false,
     };
     el.setPointerCapture(e.pointerId);
@@ -191,9 +217,10 @@ export function useCanvasPanZoom(opts: PanZoomOptions) {
 
   return {
     containerRef,
+    /** Attach to the node the pan translates; the hook writes its transform. */
+    panRef,
     scale: fitScale * zoom,
     zoom,
-    pan,
     panning,
     applyZoom,
     resetView,
