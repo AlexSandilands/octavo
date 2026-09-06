@@ -13,14 +13,15 @@ const INSERT: { type: BlockType; label: string; icon: IconName }[] = [
   { type: "sponsor", label: "Sponsor", icon: "banner" },
 ];
 
-/** Height of the canvas row the tool bar sits in, below the stage. */
-export const TOOLBAR_RESERVE = 84;
+/** Stage padding kept below the fitted page, so the floating bar clears it. */
+export const TOOLBAR_RESERVE = 92;
 
 // The editor's tool bar: undo/redo, the block-insert buttons and the cover-page
-// toggle. It has its own row at the foot of the canvas rather than a strip above
-// it (issue #222) — the tools sit beside the end of the page, which is where an
-// inserted block lands and where the overflow marker appears. Every target is
-// 40px and always visible; labels come in from `xl`, where the pill has room.
+// toggle. It floats over the foot of the canvas rather than sitting in a strip
+// above it (issue #222) — the tools sit beside the end of the page, which is
+// where an inserted block lands and where the overflow marker appears; a panned
+// page shows through around it. Every target is 40px and always visible; labels
+// come in from `xl`, where the pill has room.
 export function EditorToolbar({
   onAddBlock,
   onToggleCover,
@@ -44,16 +45,13 @@ export function EditorToolbar({
   notice: HistoryNotice;
 }) {
   return (
-    <div
-      style={{ height: TOOLBAR_RESERVE }}
-      className="flex flex-none items-end justify-center px-4 pb-5"
-    >
+    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex justify-center px-4 pb-5">
       {/* A group, not role="toolbar": that role promises arrow-key navigation
           within one tab stop, and here every button is its own tab stop. */}
       <div
         role="group"
         aria-label="Editor tools"
-        className="border-hair-warm flex max-w-full items-center gap-2 rounded-[14px] border bg-white px-2.5 py-2 shadow-[0_8px_28px_rgba(40,36,28,0.22)]"
+        className="border-hair-warm pointer-events-auto flex max-w-full items-center gap-2 rounded-[14px] border bg-white px-2.5 py-2 shadow-[0_8px_28px_rgba(40,36,28,0.22)]"
       >
         {/* `unavailable`, not `disabled`: it keeps the button focusable — see
             `unavailable` in `ui.tsx`. */}
