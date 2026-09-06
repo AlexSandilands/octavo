@@ -40,6 +40,7 @@ fires the `Deploy to production` Action. See `docs/infrastructure.md#release-wor
 - `npm run db:admin -- you@example.com` — create/promote an admin user (first-run bootstrap; idempotent)
 - `npm run lint` / `npm run format` — lint / format
 - `npm run invoice -- invoices/<name>.yml` — client invoice PDF from a YAML config (local-only tool, data in git-ignored `invoices/`; see `docs/invoicing.md`)
+- `npm run icon` — re-render the reference app-icon PNGs in `docs/assets/` from the live renderer (`src/lib/site-icon.tsx`), one per brand
 
 ## Status
 
