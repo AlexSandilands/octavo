@@ -1,5 +1,10 @@
 import { Icon, type IconName } from "@/components/icons";
-import type { BlockPatch, ImageAlign } from "@/lib/blocks";
+import {
+  PAGE_ALIGNS,
+  type BlockPatch,
+  type ImageAlign,
+  type PageAlign,
+} from "@/lib/blocks";
 
 // Placement + size controls for a selected image block. Lives in the block's
 // floating toolbar (see editor-block.tsx). Writes back through the same onChange
@@ -9,6 +14,20 @@ const PLACEMENTS: { value: ImageAlign; icon: IconName; title: string }[] = [
   { value: "left", icon: "wrapLeft", title: "Image left, text wraps right" },
   { value: "full", icon: "breakText", title: "Break text (full width)" },
   { value: "right", icon: "wrapRight", title: "Image right, text wraps left" },
+];
+
+// The two page-owning placements (#227), offered alongside the three above.
+const PAGE_PLACEMENTS: { value: PageAlign; icon: IconName; title: string }[] = [
+  {
+    value: "page-fill",
+    icon: "fillPage",
+    title: "Fill page (edge to edge, trims the photo)",
+  },
+  {
+    value: "page-fit",
+    icon: "fitPage",
+    title: "Fit page (all of the photo, bars at the sides)",
+  },
 ];
 
 const SIZES: { value: number; label: string }[] = [
@@ -28,15 +47,16 @@ export function ImageLayoutControls({
   width: number;
   onChange: (patch: BlockPatch) => void;
   /** Offered on image blocks only (issue #227), and not on a cover page. Its own
-   *  handler rather than a patch: filling the page may have to move the photo
+   *  handler rather than a patch: taking the page may have to move the photo
    *  onto a page of its own first, which is one edit, not a field write. */
-  onFillPage?: () => void;
+  onFillPage?: (align: PageAlign) => void;
 }) {
-  // Only "filled" where the control is offered. A cover page renders a stored
-  // "page" image as an ordinary centred photo, so it reads — and is edited — as
-  // the "full" it actually is, size control and all.
-  const filled = align === "page" && onFillPage !== undefined;
-  const shown = align === "page" && !filled ? "full" : align;
+  // Only page-owning where the control is offered. A cover page renders a stored
+  // page-owning image as an ordinary centred photo, so it reads — and is edited
+  // — as the "full" it actually is, size control and all.
+  const owned = PAGE_ALIGNS.some((a) => a === align);
+  const filled = owned && onFillPage !== undefined;
+  const shown = owned && !filled ? "full" : align;
   return (
     <div className="flex items-center gap-2.5">
       <Group label="Placement">
@@ -50,18 +70,20 @@ export function ImageLayoutControls({
             <Icon name={p.icon} size={16} />
           </Seg>
         ))}
-        {onFillPage && (
-          <Seg
-            active={filled}
-            title="Fill the whole page (edge to edge)"
-            onClick={onFillPage}
-          >
-            <Icon name="fillPage" size={16} />
-          </Seg>
-        )}
+        {onFillPage &&
+          PAGE_PLACEMENTS.map((p) => (
+            <Seg
+              key={p.value}
+              active={filled && align === p.value}
+              title={p.title}
+              onClick={() => onFillPage(p.value)}
+            >
+              <Icon name={p.icon} size={16} />
+            </Seg>
+          ))}
       </Group>
-      {/* A filled page has no text column to be a percentage of; the stored
-          width is left alone so unsetting the placement restores it. */}
+      {/* A page-owning photo has no text column to be a percentage of; the
+          stored width is left alone so unsetting the placement restores it. */}
       {!filled && (
         <Group label="Size">
           {SIZES.map((s) => (

@@ -105,6 +105,13 @@ const ICONS: Record<string, ReactNode> = {
       <path d="M3 15.5l5-4 3.5 2.8L15 11l6 5" />
     </>
   ),
+  // The whole photo inside the page, bars above and below.
+  fitPage: (
+    <>
+      <rect x="3" y="3.5" width="18" height="17" rx="1" />
+      <rect x="3" y="8.5" width="18" height="7" />
+    </>
+  ),
   doc: (
     <>
       <path d="M6 3h9l3 3v15H6z" />

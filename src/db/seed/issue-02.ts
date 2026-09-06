@@ -42,11 +42,12 @@ export const issue02 = (img: SeedImages) =>
       ),
     ]),
 
-    // The full-bleed plate (v6, #227): alone on its page, alt text only.
+    // The fill-page plate (v6, #227): portrait, cropped to the canvas, alone on
+    // its page with alt text only. Issue 4 carries the fit-page counterpart.
     page([
       Img(img.salon, {
         alt: "A tall duotone study in charcoal and slate, cut by a single amber seam.",
-        align: "page",
+        align: "page-fill",
       }),
     ]),
 

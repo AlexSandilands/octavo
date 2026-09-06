@@ -7,6 +7,7 @@ import type { SponsorMap } from "@/lib/sponsors";
 import { externalHref } from "@/lib/rich-text";
 import { richTextToPlain } from "@/lib/rich-text-doc";
 import { BlockImage } from "@/features/blocks/block-view";
+import { isFillPage } from "@/features/blocks/layout";
 import { RichText } from "@/features/blocks/rich-text";
 import { resolveMontageSlides } from "@/features/blocks/montage";
 import { MontagePlayer } from "@/features/blocks/montage-player";
@@ -115,7 +116,7 @@ export function MobileBlock({
       const resolved = block.imageId ? images[block.imageId] : undefined;
       // Runs the full phone width: -mx-5 cancels the section's px-5
       // (mobile-reader.tsx); no crop, since there is no page shape here.
-      if (resolved && (block.align ?? "full") === "page") {
+      if (resolved && isFillPage(block)) {
         return (
           <figure className="-mx-5 my-3">
             <BlockImage image={resolved} alt={block.alt || block.caption} />
