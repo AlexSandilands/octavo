@@ -23,10 +23,8 @@ export function isPictureBlock(block: Block): block is PictureBlock {
   );
 }
 
-// A photo set to fill the page (content v6): it takes the whole canvas rather
-// than a share of the text column, so it owns the page it sits on. Cover pages
-// are excluded — their title and tagline sit over the whole page, and type over
-// an arbitrary photograph needs a scrim treatment this doesn't build.
+// A photo set to fill the page (v6) owns the whole canvas. Covers are excluded:
+// their title sits over the page (see docs/database.md).
 export function isFillPage(block: Block): boolean {
   return block.type === "image" && block.align === "page";
 }

@@ -113,9 +113,7 @@ export const SEED_IMAGES = [
     palette: aperture,
     style: { kind: "wash" },
   },
-  // The full-bleed plate (content v6, issue #227). Portrait, because a photo
-  // authored to fill a portrait page is one — and near enough the canvas's own
-  // proportions that the crop is a trim rather than a rescue.
+  // The full-bleed plate (v6, #227): portrait, near the canvas's proportions so the crop is a trim.
   {
     key: "salon",
     width: 1200,

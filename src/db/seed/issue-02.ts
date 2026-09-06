@@ -42,9 +42,7 @@ export const issue02 = (img: SeedImages) =>
       ),
     ]),
 
-    // The full-bleed plate (content v6, issue #227): one image set to fill the
-    // page, alone on it. No caption and no running footer — the photo owns the
-    // whole canvas — so the alt text is the only description it carries.
+    // The full-bleed plate (v6, #227): alone on its page, alt text only.
     page([
       Img(img.salon, {
         alt: "A tall duotone study in charcoal and slate, cut by a single amber seam.",

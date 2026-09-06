@@ -30,9 +30,8 @@ export function headingDomId(blockId: string): string {
   return `heading-${blockId}`;
 }
 
-// The figure box the image, montage and video blocks share. `align` is
-// deliberately unread: nothing wraps on a phone, so any placement — including
-// one the block model gains later — collapses to the column.
+// `align` is deliberately unread here: nothing wraps on a phone, so every
+// placement collapses to the column (the full-bleed one is handled above, wider than it).
 function pictureFigure(
   width: number | undefined,
   cover: boolean | undefined,
