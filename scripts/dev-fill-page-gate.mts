@@ -361,6 +361,22 @@ ok(
   allSections.filter(({ s }) => s.filled).length === 2,
   "mobile: …and exactly the two page-owning sections drop their padding",
 );
+// The photo's page is banded either side, so the band the column draws between
+// two pages is what the photo runs between (it has no heading to be banded on).
+const bandCheck = readerSections([
+  {
+    id: "p0",
+    cover: true,
+    blocks: [{ id: "b0", type: "text", text: "cover" }],
+  },
+  { id: "p1", blocks: [{ id: "b1", type: "text", text: "body" }] },
+  { ...ownedPage("page-fit"), id: "p2" },
+  { id: "p3", blocks: [{ id: "b3", type: "text", text: "after" }] },
+]).map((s) => s.divided);
+ok(
+  JSON.stringify(bandCheck) === "[false,true,true,true]",
+  `mobile: a photo-owned page is banded either side (${JSON.stringify(bandCheck)})`,
+);
 
 // 7. A cover ignores the placement entirely — which is why the editor does not
 //    offer it there, and why the library thumbnail (always a cover) is untouched.

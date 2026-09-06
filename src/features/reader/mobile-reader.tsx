@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
 import type { SiteSettings } from "@/lib/branding";
@@ -179,39 +179,43 @@ export function MobileReader({
             />
           ));
           return (
-            <section
-              key={s.id}
-              style={
-                front
-                  ? { minHeight: `calc(100dvh - ${HEADER_HEIGHT}px)` }
-                  : undefined
-              }
-              // A photo-owned page keeps no vertical padding, so the photo runs
-              // from the break above it to the one below.
-              className={[
-                "px-5",
-                !s.filled && i === 0 && "pt-6",
-                !s.filled &&
-                  (i === sections.length - 1 || sections[i + 1]?.divided) &&
-                  "pb-8",
-                s.cover && "py-8 text-center",
-                front && "flex flex-col justify-center",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-            >
-              {/* The page break: a band of canvas between two sheets of page. */}
+            <Fragment key={s.id}>
+              {/* The page break: a band of canvas between two sheets of page. A
+                  sibling of the section, not its first child, so it sits flush
+                  against the page above whatever padding the page below has. */}
               {s.divided && (
                 <div
                   aria-hidden
-                  className={`bg-canvas -mx-5 shadow-[inset_0_2px_3px_rgba(40,36,28,0.08)] ${s.filled ? "" : "mb-6"}`}
+                  className="bg-canvas shadow-[inset_0_2px_3px_rgba(40,36,28,0.08)]"
                   style={{ height: breakHeight(m) }}
                 />
               )}
-              {/* One flex child, so centring the cover leaves the blocks' own
-                  collapsed margins alone. */}
-              {front ? <div>{body}</div> : body}
-            </section>
+              <section
+                style={
+                  front
+                    ? { minHeight: `calc(100dvh - ${HEADER_HEIGHT}px)` }
+                    : undefined
+                }
+                // The space under the break is the next page's own top padding;
+                // a page owned by a photo has none, so the photo runs from the
+                // break above it to the one below.
+                className={[
+                  "px-5",
+                  !s.filled && !s.cover && (i === 0 || s.divided) && "pt-6",
+                  !s.filled &&
+                    (i === sections.length - 1 || sections[i + 1]?.divided) &&
+                    "pb-8",
+                  s.cover && "py-8 text-center",
+                  front && "flex flex-col justify-center",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                {/* One flex child, so centring the cover leaves the blocks' own
+                    collapsed margins alone. */}
+                {front ? <div>{body}</div> : body}
+              </section>
+            </Fragment>
           );
         })}
 
