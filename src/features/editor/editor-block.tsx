@@ -34,7 +34,6 @@ export function EditorBlock({
   sponsorMap,
   overflowAt,
   fitsAlone = false,
-  reseed = 0,
   onSelect,
   onChange,
   onMove,
@@ -54,8 +53,6 @@ export function EditorBlock({
   overflowAt?: number;
   /** Whether this block would fit on a page of its own — i.e. moving it helps. */
   fitsAlone?: boolean;
-  /** Bumped when the body was rewritten behind Tiptap's back — remounts it. */
-  reseed?: number;
   onSelect: () => void;
   onChange: (patch: BlockPatch) => void;
   onMove: (dir: -1 | 1) => void;
@@ -261,9 +258,6 @@ export function EditorBlock({
 
       {block.type === "text" && !cover ? (
         <RichTextEditor
-          // Remounting is how a flow split reaches the uncontrolled Tiptap
-          // instance: the shortened body is re-seeded from the stored value.
-          key={reseed}
           value={block.text}
           size={block.size ?? "m"}
           selected={selected}
