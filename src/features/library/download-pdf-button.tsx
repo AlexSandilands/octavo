@@ -29,17 +29,17 @@ export function DownloadPdfButton({ issueNumber }: { issueNumber: number }) {
           the cascade regardless of the variant's own text colour. */}
       <span
         className={`inline-flex items-center gap-2 ${
-          pdf.state === "error" ? "text-alert" : ""
+          pdf.state === "error" ? "text-danger" : ""
         }`}
       >
         {label}
         {pdf.state === "loading" ? (
           <span
             aria-hidden="true"
-            className="h-[17px] w-[17px] animate-spin rounded-full border-2 border-current border-t-transparent opacity-70"
+            className="h-[19px] w-[19px] animate-spin rounded-full border-2 border-current border-t-transparent opacity-70"
           />
         ) : (
-          <Icon name="download" size={17} strokeWidth={1.8} />
+          <Icon name="download" size={19} strokeWidth={2} />
         )}
       </span>
     </Button>

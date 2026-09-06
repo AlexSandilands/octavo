@@ -1,8 +1,10 @@
 import { z } from "zod";
-import { Button, Label, Wordmark } from "@/components/ui";
+import { Icon } from "@/components/icons";
+import { Button } from "@/components/ui";
 import { getSettings } from "@/server/settings";
 import { getRecipientById } from "@/server/recipients";
 import { verifyUnsubscribeToken } from "@/server/unsubscribe-token";
+import { SignInCard } from "@/app/signin/card";
 import { updateSubscriptionAction } from "./actions";
 
 // One-click unsubscribe, reached from a link in the new-issue email. No session
@@ -18,16 +20,19 @@ export const dynamic = "force-dynamic";
 
 const paramsSchema = z.object({ token: z.string().optional() });
 
-async function Frame({ children }: { children: React.ReactNode }) {
-  const { org } = await getSettings();
+function Title({ children }: { children: React.ReactNode }) {
   return (
-    <main className="flex min-h-screen items-center justify-center px-5 py-12">
-      <div className="bg-card border-line w-full max-w-md rounded-2xl border p-8 shadow-[0_14px_34px_rgba(0,0,0,0.08)] sm:p-10">
-        <Wordmark size={22} />
-        <Label>{org}</Label>
-        {children}
-      </div>
-    </main>
+    <h1 className="text-fg mt-8 font-ui text-[30px] leading-[1.15] font-bold">
+      {children}
+    </h1>
+  );
+}
+
+function Body({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-fg-muted mt-3 font-ui text-[17px] leading-relaxed">
+      {children}
+    </p>
   );
 }
 
@@ -47,57 +52,56 @@ export default async function UnsubscribePage({
   // deny an address.
   if (!token || !member) {
     return (
-      <Frame>
-        <h1 className="text-ink mt-10 font-serif text-3xl leading-[1.1]">
-          This link isn&rsquo;t valid.
-        </h1>
-        <p className="text-muted mt-4 font-sans text-[16px] leading-relaxed">
+      <SignInCard>
+        <Title>This link isn&rsquo;t valid.</Title>
+        <Body>
           The unsubscribe link may be incomplete or out of date. Use the
           Unsubscribe link at the bottom of a recent {magazineName} email.
-        </p>
-      </Frame>
+        </Body>
+      </SignInCard>
     );
   }
 
   if (member.subscribed) {
     return (
-      <Frame>
-        <h1 className="text-ink mt-10 font-serif text-3xl leading-[1.1]">
-          Unsubscribe from {magazineName}?
-        </h1>
-        <p className="text-muted mt-4 font-sans text-[16px] leading-relaxed">
+      <SignInCard>
+        <Title>Unsubscribe from {magazineName}?</Title>
+        <Body>
           We&rsquo;ll stop emailing new issues to{" "}
-          <span className="text-ink font-semibold">{member.email}</span>. You
-          can resubscribe here any time.
-        </p>
-        <form className="mt-8" action={updateSubscriptionAction}>
+          <span className="text-fg font-bold">{member.email}</span>. You can
+          resubscribe here any time.
+        </Body>
+        <form className="mt-7" action={updateSubscriptionAction}>
           <input type="hidden" name="token" value={token} />
           <input type="hidden" name="subscribe" value="false" />
-          <Button type="submit" full>
+          <Button type="submit" size="lg" full>
             Unsubscribe
           </Button>
         </form>
-      </Frame>
+      </SignInCard>
     );
   }
 
   return (
-    <Frame>
-      <h1 className="text-ink mt-10 font-serif text-3xl leading-[1.1]">
+    <SignInCard>
+      <div className="bg-ok-soft text-ok mt-8 flex h-14 w-14 items-center justify-center rounded-full">
+        <Icon name="checkCircle" size={28} strokeWidth={1.9} />
+      </div>
+      <h1 className="text-fg mt-4 font-ui text-[30px] leading-[1.15] font-bold">
         You&rsquo;ve been unsubscribed.
       </h1>
-      <p className="text-muted mt-4 font-sans text-[16px] leading-relaxed">
+      <Body>
         We won&rsquo;t email new issues to{" "}
-        <span className="text-ink font-semibold">{member.email}</span> any more.
+        <span className="text-fg font-bold">{member.email}</span> any more.
         Changed your mind? You can turn them back on.
-      </p>
-      <form className="mt-8" action={updateSubscriptionAction}>
+      </Body>
+      <form className="mt-7" action={updateSubscriptionAction}>
         <input type="hidden" name="token" value={token} />
         <input type="hidden" name="subscribe" value="true" />
-        <Button type="submit" variant="secondary" full>
+        <Button type="submit" variant="secondary" size="lg" full>
           Resubscribe
         </Button>
       </form>
-    </Frame>
+    </SignInCard>
   );
 }

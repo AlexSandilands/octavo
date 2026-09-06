@@ -29,11 +29,14 @@ export function ListPagination({
   page,
   pageCount,
   label,
+  labels = { previous: "Previous", next: "Next" },
 }: {
   page: number;
   pageCount: number;
   /** Names the nav for screen readers, e.g. "Member list pages". */
   label: string;
+  /** The two buttons' words — "Newer" / "Older" on the archive. */
+  labels?: { previous: string; next: string };
 }) {
   const go = useListUrl();
 
@@ -107,7 +110,7 @@ export function ListPagination({
         unavailable={target <= 1}
         onClick={() => turnTo(target - 1)}
       >
-        Previous
+        {labels.previous}
       </Button>
       {/* Deliberately not disabled while a turn is in flight: the target above
           already makes a second press count, and disabling the button someone
@@ -129,7 +132,7 @@ export function ListPagination({
         unavailable={target >= pageCount}
         onClick={() => turnTo(target + 1)}
       >
-        Next
+        {labels.next}
       </Button>
     </nav>
   );

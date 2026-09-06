@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Label } from "@/components/ui";
 import { coverPageOf, type Page } from "@/lib/blocks";
 import type { IssueRow } from "@/server/issues";
 import type { SiteSettings } from "@/lib/branding";
@@ -7,12 +6,15 @@ import type { ImageMap } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 import { PAGE_W, PAGE_H } from "@/features/blocks/page-frame";
 import { CoverThumb } from "./cover-thumb";
+import { issueMonth } from "./contents";
 
 // A curated set of muted cover tints — decorative variety for legacy issues
 // with no real cover page. Local data (indexed by card position), not part of
 // the semantic token palette, so kept as literals here.
-const ARCHIVE_TINTS = ["#cdbfa6", "#9fb0a6", "#c2a99a", "#b3aec0"];
-const THUMB_W = 150;
+const ARCHIVE_TINTS = ["#c9d0e3", "#b8cdd9", "#d3c9d9", "#c3d6cc"];
+// The cover inside a card. The card is the thumb plus its padding, so two fit
+// beside each other on a 390px phone and four across the desktop column.
+const THUMB_W = 144;
 
 function stripes(tint: string) {
   // #00000010 = 6% black, a tint-agnostic diagonal shade over whatever cover
@@ -72,16 +74,15 @@ function groupByYear(items: ArchiveItem[]): YearGroup[] {
   return groups;
 }
 
-// The back catalogue as a shelf of magazine covers, grouped by year so the
-// archive reads as a run of volumes rather than an undifferentiated pile. Each
-// card renders the issue's real cover page (falling back to a tinted, numbered
-// spine for legacy issues with no cover), lifting on hover.
+// The back catalogue as a grid of issue cards, grouped by year. Each card is
+// one link — cover, title, number and month, and a Read pill that says what a
+// press does — so the whole card is the target.
 export function ArchiveGrid({
   items,
   images,
   sponsors,
   settings,
-  heading = "The archive",
+  heading = "Recent issues",
 }: {
   items: ArchiveItem[];
   images: ImageMap;
@@ -95,26 +96,29 @@ export function ArchiveGrid({
 }) {
   const groups = groupByYear(items);
   return (
-    <section className={heading ? "py-9" : "pb-9"}>
-      {heading && <Label>{heading}</Label>}
-      <div className={`space-y-9 ${heading ? "mt-6" : ""}`}>
+    <section aria-label={heading ?? "Issues"}>
+      {heading && (
+        <h2 className="text-fg font-ui text-[22px] font-bold">{heading}</h2>
+      )}
+      <div className={`flex flex-col gap-8 ${heading ? "mt-4" : ""}`}>
         {groups.map((group) => (
           <div key={group.key}>
-            <div className="border-line-soft border-t pt-3">
-              <Label>{group.label}</Label>
-            </div>
-            <div className="mt-5 flex flex-wrap gap-x-5 gap-y-7">
+            <h3 className="text-fg-muted font-ui text-[15px] font-bold tracking-[0.08em] uppercase">
+              {group.label}
+            </h3>
+            <ul className="mt-3 flex flex-wrap gap-3 sm:gap-4">
               {group.items.map((a, idx) => (
-                <ArchiveCard
-                  key={a.id}
-                  item={a}
-                  index={idx}
-                  images={images}
-                  sponsors={sponsors}
-                  settings={settings}
-                />
+                <li key={a.id}>
+                  <ArchiveCard
+                    item={a}
+                    index={idx}
+                    images={images}
+                    sponsors={sponsors}
+                    settings={settings}
+                  />
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
         ))}
       </div>
@@ -122,8 +126,8 @@ export function ArchiveGrid({
   );
 }
 
-// One cover in the shelf. The tint only shows for legacy issues without a cover
-// page; it cycles the palette by the card's position within its year.
+// One issue card. The tint only shows for legacy issues without a cover page;
+// it cycles the palette by the card's position within its year.
 function ArchiveCard({
   item: a,
   index,
@@ -137,14 +141,15 @@ function ArchiveCard({
   sponsors: SponsorMap;
   settings: SiteSettings;
 }) {
-  const tint = ARCHIVE_TINTS[index % ARCHIVE_TINTS.length] ?? "#cdbfa6";
+  const tint = ARCHIVE_TINTS[index % ARCHIVE_TINTS.length] ?? "#c9d0e3";
+  const month = issueMonth(a.publishedAt);
   return (
     <Link
       href={`/read/${a.number}`}
-      className="group"
-      style={{ width: THUMB_W }}
+      aria-label={`Read ${a.title}`}
+      className="group bg-surface border-hairline shadow-card hover:border-primary flex w-[164px] flex-col rounded-card border p-2.5 transition-[border-color,transform] duration-200 motion-safe:hover:-translate-y-0.5"
     >
-      <div className="overflow-hidden rounded-[5px] shadow-[0_2px_10px_-5px_rgba(20,32,28,0.3)] transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-[0_14px_28px_-10px_rgba(20,32,28,0.4)]">
+      <div className="overflow-hidden rounded-[8px]">
         {a.cover ? (
           <CoverThumb
             page={a.cover}
@@ -159,12 +164,19 @@ function ArchiveCard({
           <PlaceholderCover number={a.number} tint={tint} />
         )}
       </div>
-      <div className="mt-2.5">
-        <span className="text-ink font-serif text-[15px] leading-tight group-hover:underline">
+      <div className="flex flex-1 flex-col px-1 pt-3 pb-1">
+        <span className="text-fg line-clamp-2 font-ui text-[16px] leading-snug font-bold">
           {a.title}
-        </span>{" "}
-        <span className="text-faint2 inline-block font-mono text-[11px] whitespace-nowrap">
+        </span>
+        <span className="text-fg-muted mt-1 font-ui text-[14px]">
           No. {a.number}
+          {month ? ` · ${month}` : ""}
+        </span>
+        <span
+          aria-hidden="true"
+          className="bg-primary-soft text-primary group-hover:bg-primary group-hover:text-surface mt-3 flex h-10 items-center justify-center rounded-full font-ui text-[15px] font-bold transition-colors"
+        >
+          Read
         </span>
       </div>
     </Link>
@@ -183,12 +195,12 @@ function PlaceholderCover({ number, tint }: { number: number; tint: string }) {
         backgroundImage: stripes(tint),
       }}
     >
-      {/* Ghosted numeral + label over the tinted stripe field: near-ink browns at
-          low opacity, decorative to this placeholder cover only — not tokens. */}
-      <span className="pointer-events-none absolute -right-1 -bottom-6 font-serif text-[110px] leading-none text-[#2f2b22]/15 select-none">
+      {/* Ghosted numeral + label over the tinted stripe field: near-ink at low
+          opacity, decorative to this placeholder cover only — not tokens. */}
+      <span className="text-fg/15 pointer-events-none absolute -right-1 -bottom-6 font-ui text-[110px] leading-none font-bold select-none">
         {number}
       </span>
-      <span className="absolute top-3 left-3 font-serif text-xs text-[#3a372f]/80">
+      <span className="text-fg/80 absolute top-3 left-3 font-ui text-xs font-bold">
         No. {number}
       </span>
     </div>

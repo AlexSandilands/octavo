@@ -1,16 +1,20 @@
 import type { ReactNode } from "react";
-import { Wordmark, Label } from "@/components/ui";
+import { Chip, Wordmark } from "@/components/ui";
 import { getSettings } from "@/server/settings";
 
-// Shared frame for the sign-in flow's screens (form, sent, errors). Resolves
-// the branding itself so the two screens using it don't each have to.
+// Shared frame for the screens that stand outside the shell — sign-in, its
+// "sent" screen and the session-less unsubscribe page: one centred card on
+// the ground with the wordmark and the club's name. Resolves the branding
+// itself so the screens using it don't each have to.
 export async function SignInCard({ children }: { children: ReactNode }) {
   const { org } = await getSettings();
   return (
-    <main className="flex min-h-screen items-center justify-center px-5 py-12">
-      <div className="bg-card border-line w-full max-w-md rounded-2xl border p-8 shadow-[0_14px_34px_rgba(0,0,0,0.08)] sm:p-10">
-        <Wordmark size={22} />
-        <Label>{org}</Label>
+    <main className="bg-ground flex min-h-dvh items-center justify-center px-4 py-10">
+      <div className="bg-surface border-hairline shadow-float w-full max-w-md rounded-card border p-6 sm:p-9">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Wordmark size={22} />
+          <Chip tone="primary">{org}</Chip>
+        </div>
         {children}
       </div>
     </main>

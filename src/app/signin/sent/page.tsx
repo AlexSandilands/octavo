@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { Icon } from "@/components/icons";
+import { Button } from "@/components/ui";
 import { getSettings } from "@/server/settings";
 import { SignInCard } from "../card";
 
@@ -14,27 +15,25 @@ export default async function SignInSentPage() {
   const { name, org } = await getSettings();
   return (
     <SignInCard>
-      <h1 className="text-ink mt-12 font-serif text-4xl leading-[1.05]">
-        Check your
-        <br />
-        email.
+      <div className="bg-ok-soft text-ok mt-8 flex h-14 w-14 items-center justify-center rounded-full">
+        <Icon name="mail" size={28} strokeWidth={1.9} />
+      </div>
+      <h1 className="text-fg mt-4 font-ui text-[32px] leading-[1.1] font-bold">
+        Check your email
       </h1>
-      <p className="text-muted mt-4 font-sans text-[16px] leading-relaxed">
+      <p className="text-fg-muted mt-3 font-ui text-[17px] leading-relaxed">
         If that address belongs to a member of {org}, a sign-in link for {name}{" "}
-        is on its way. Open the email and click the button — the link works once
+        is on its way. Open the email and press the button — the link works once
         and lasts a day.
       </p>
-      <p className="text-muted mt-4 font-sans text-[16px] leading-relaxed">
+      <p className="text-fg-muted mt-4 font-ui text-[17px] leading-relaxed">
         Nothing arriving? Check your spam folder first.
       </p>
-      <p className="mt-8 font-sans text-[15px]">
-        <Link
-          href="/signin"
-          className="text-accent font-semibold underline underline-offset-2"
-        >
+      <div className="mt-7">
+        <Button href="/signin" variant="secondary" icon="arrowLeft" full>
           Use a different email address
-        </Link>
-      </p>
+        </Button>
+      </div>
     </SignInCard>
   );
 }

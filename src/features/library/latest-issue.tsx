@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button, Kicker, Label } from "@/components/ui";
+import { Button, Chip, Kicker } from "@/components/ui";
 import type { SiteSettings } from "@/lib/branding";
 import type { IssueContent, Page } from "@/lib/blocks";
 import type { ImageMap } from "@/lib/images";
@@ -23,8 +23,10 @@ type LatestIssueProps = {
   settings: SiteSettings;
 };
 
-// The library hero: the cover as a physical object on the left, and an editorial
-// "in this issue" teaser on the right so the latest issue sells itself.
+const COVER_W = 200;
+
+// The latest-issue card: the cover at left, the title, the issue's facts, the
+// first sections as chips, and one big Read button.
 export function LatestIssue({
   number,
   title,
@@ -42,16 +44,16 @@ export function LatestIssue({
   const shown = sections.slice(0, 4);
 
   return (
-    <section className="border-line-soft grid gap-8 border-b py-9 md:grid-cols-[240px_1fr]">
+    <section
+      aria-labelledby="latest-issue-title"
+      className="bg-surface border-hairline shadow-card grid gap-6 rounded-card border p-5 sm:grid-cols-[200px_1fr] sm:gap-8 sm:p-7"
+    >
       <Link
         href={`/read/${number}`}
         aria-label={`Read ${title}`}
-        className="group relative block w-[240px] self-start"
+        className="group block w-[200px] justify-self-center rounded-[10px] sm:justify-self-start"
       >
-        {/* Stacked page edges peeking out behind the cover. */}
-        <div className="bg-hair absolute inset-y-2 -right-[3px] w-[3px] rounded-r-[3px]" />
-        <div className="bg-line-soft absolute inset-y-1 -right-[6px] w-[3px] rounded-r-[3px]" />
-        <div className="relative overflow-hidden rounded-[5px] shadow-[0_18px_38px_-14px_rgba(20,40,33,0.45)] transition-transform duration-300 group-hover:-translate-y-1">
+        <div className="shadow-float overflow-hidden rounded-[10px] transition-transform duration-300 motion-safe:group-hover:-translate-y-1">
           {cover ? (
             <CoverThumb
               page={cover}
@@ -60,18 +62,17 @@ export function LatestIssue({
               sponsors={sponsors}
               issueNo={number}
               settings={settings}
-              width={240}
+              width={COVER_W}
               priority
             />
           ) : (
             // Legacy issues without a cover page keep the stylised book panel.
-            <div className="photo-fill-green relative flex h-[330px] flex-col justify-between p-5">
+            <div className="photo-fill-green relative flex h-[280px] flex-col justify-between p-5">
               <div className="absolute inset-y-0 left-0 w-[7px] bg-black/20" />
-              <div className="absolute inset-y-0 left-[7px] w-px bg-white/10" />
               <div className="text-cream font-serif text-[13px] tracking-[0.1em]">
                 {settings.name} · No. {number}
               </div>
-              <div className="text-paper font-serif text-4xl leading-[0.96]">
+              <div className="text-paper font-serif text-3xl leading-[0.96]">
                 {title}
               </div>
             </div>
@@ -79,57 +80,37 @@ export function LatestIssue({
         </div>
       </Link>
 
-      <div className="flex flex-col">
-        <Kicker>The latest issue</Kicker>
-        {/* h2: the page's single h1 is the masthead standfirst (see page.tsx). */}
-        <h2 className="text-ink mt-3 font-serif text-4xl leading-[1.02] sm:text-5xl">
+      <div className="flex min-w-0 flex-col">
+        <Kicker>Latest issue</Kicker>
+        <h2
+          id="latest-issue-title"
+          className="text-fg mt-2 font-ui text-[28px] leading-[1.1] font-bold sm:text-[34px]"
+        >
           {title}
         </h2>
-        <div className="text-faint mt-3 font-sans text-[13px] tracking-wide">
+        <p className="text-fg-muted mt-2 font-ui text-[16px]">
           No. {number} · {pageCount} {pageCount === 1 ? "page" : "pages"}
           {month ? ` · ${month}` : ""}
-        </div>
+        </p>
 
         {shown.length > 0 && (
-          <div className="border-line-soft mt-6 border-t pt-5">
-            <Label>In this issue</Label>
-            <ol className="mt-3">
-              {shown.map((s, i) => (
-                <li
-                  key={i}
-                  className="border-line-soft/70 border-b last:border-0"
-                >
-                  <Link
-                    href={`/read/${number}`}
-                    aria-label={`Read this issue: ${s.title}`}
-                    className="group/entry flex min-h-11 items-baseline gap-3 py-2.5"
-                  >
-                    <span className="text-accent/70 w-5 flex-none font-mono text-[11px] tabular-nums">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                    <span className="text-ink font-serif text-[17px] leading-snug group-hover/entry:underline">
-                      {s.title}
-                    </span>
-                    {s.kicker && (
-                      <span className="text-faint ml-auto flex-none pl-3 font-sans text-[10px] tracking-[0.18em] uppercase">
-                        {s.kicker}
-                      </span>
-                    )}
-                  </Link>
-                </li>
-              ))}
-            </ol>
+          <ul aria-label="In this issue" className="mt-4 flex flex-wrap gap-2">
+            {shown.map((s, i) => (
+              <li key={i} className="max-w-full">
+                <Chip>{s.title}</Chip>
+              </li>
+            ))}
             {sections.length > shown.length && (
-              <div className="text-faint2 mt-2.5 font-serif text-sm italic">
-                + {sections.length - shown.length} more
-              </div>
+              <li>
+                <Chip>+ {sections.length - shown.length} more</Chip>
+              </li>
             )}
-          </div>
+          </ul>
         )}
 
-        <div className="mt-auto flex flex-wrap items-center gap-3 pt-7">
-          <Button href={`/read/${number}`} icon="arrowRight">
-            Read this issue
+        <div className="mt-auto flex flex-col gap-3 pt-6 sm:flex-row sm:flex-wrap sm:items-center">
+          <Button href={`/read/${number}`} icon="reader" size="lg">
+            Read issue
           </Button>
           {/* The owner can switch downloads off site-wide (issue #162). This is
               a Server Component, so "off" means the control is never built —

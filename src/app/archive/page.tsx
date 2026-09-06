@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { AppShell } from "@/components/app-shell";
 import { coverPageOf, type Page } from "@/lib/blocks";
 import { pageParamSchema } from "@/lib/pagination";
 import { listArchivePage, listPublishedYears } from "@/server/issues";
@@ -8,7 +9,6 @@ import { requireMemberOrRedirect } from "@/server/session";
 import { getSettings } from "@/server/settings";
 import { ARCHIVE_QUERY_MAX } from "@/features/library/archive-limits";
 import { ArchiveShelf } from "@/features/library/archive-shelf";
-import { LibraryHeader } from "@/features/library/library-header";
 import { SiteFooter } from "@/features/library/site-footer";
 
 export const dynamic = "force-dynamic";
@@ -44,7 +44,7 @@ export default async function ArchivePage({
     getSettings(),
   ]);
   // Only a year the catalogue actually has; anything else reads as "all", so
-  // the filter's trigger always names one of its own options.
+  // the filter's chips always mark one of their own.
   const year = years.includes(params.year) ? params.year : null;
 
   const list = await listArchivePage({ query, year, page: params.page });
@@ -61,34 +61,31 @@ export default async function ArchivePage({
   ]);
 
   return (
-    <main className="mx-auto max-w-5xl px-5 py-6 sm:px-8 sm:py-10">
-      <LibraryHeader user={user} home />
-
-      <div className="pt-8 pb-2">
-        <h1 className="text-ink font-serif text-3xl sm:text-4xl">
+    <AppShell area="member" active="archive" user={user}>
+      <div className="mx-auto max-w-4xl">
+        <h1 className="text-fg font-ui text-[28px] font-bold sm:text-[34px]">
           The archive
         </h1>
-        <p className="text-muted mt-2 font-sans text-[15px]">
+        <p className="text-fg-muted mt-1 font-ui text-[17px]">
           Every issue of {settings.name}, newest first.
         </p>
+
+        <ArchiveShelf
+          list={list}
+          query={query}
+          year={year}
+          years={years}
+          images={coverImages}
+          sponsors={coverSponsors}
+          settings={settings}
+        />
+
+        <SiteFooter
+          org={settings.org}
+          issueCount={list.total}
+          estYear={list.estYear}
+        />
       </div>
-
-      <ArchiveShelf
-        list={list}
-        query={query}
-        year={year}
-        years={years}
-        images={coverImages}
-        sponsors={coverSponsors}
-        settings={settings}
-      />
-
-      <SiteFooter
-        org={settings.org}
-        issueCount={list.total}
-        estYear={list.estYear}
-        signedIn={Boolean(user)}
-      />
-    </main>
+    </AppShell>
   );
 }

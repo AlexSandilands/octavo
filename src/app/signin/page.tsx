@@ -1,5 +1,7 @@
 import { z } from "zod";
+import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui";
+import { FIELD_CLASS } from "@/components/dialog-parts";
 import { getSettings } from "@/server/settings";
 import { SignInCard } from "./card";
 import { safeNextPath } from "@/lib/next-path";
@@ -48,37 +50,43 @@ export default async function SignInPage({
 
   return (
     <SignInCard>
-      <h1 className="text-ink mt-12 font-serif text-4xl leading-[1.05]">
-        Welcome
-        <br />
-        back.
+      <h1 className="text-fg mt-8 font-ui text-[32px] leading-[1.1] font-bold">
+        Welcome back
       </h1>
       {notice ? (
         <div
           role="alert"
-          className="border-hair bg-paper mt-6 rounded-[10px] border-[1.5px] p-4"
+          className="bg-warn-soft border-l-warn mt-5 flex gap-3 rounded-field border-l-[5px] p-4"
         >
-          <p className="text-ink font-sans text-[15px] font-semibold">
-            {notice.title}
-          </p>
-          <p className="text-muted mt-1 font-sans text-[15px] leading-relaxed">
-            {notice.body}
-          </p>
+          <Icon
+            name="alertCircle"
+            size={22}
+            strokeWidth={2}
+            className="text-warn mt-0.5 flex-none"
+          />
+          <div>
+            <p className="text-fg font-ui text-[17px] font-bold">
+              {notice.title}
+            </p>
+            <p className="text-fg-muted mt-1 font-ui text-[16px] leading-relaxed">
+              {notice.body}
+            </p>
+          </div>
         </div>
       ) : (
-        <p className="text-muted mt-4 font-sans text-[16px] leading-relaxed">
+        <p className="text-fg-muted mt-3 font-ui text-[17px] leading-relaxed">
           Members read {name} with a private link. Enter your email and
           we&apos;ll send one over.
         </p>
       )}
 
-      <form className="mt-8" action={requestMagicLink}>
+      <form className="mt-7" action={requestMagicLink}>
         {/* Carries the destination (validated same-origin) into the emailed
             link, so the member lands where they were headed. */}
         <input type="hidden" name="next" value={next} />
         <label
           htmlFor="email"
-          className="text-faint font-sans text-xs font-semibold tracking-wide uppercase"
+          className="text-fg-muted mb-2 block font-ui text-[14px] font-bold tracking-[0.06em] uppercase"
         >
           Email
         </label>
@@ -89,14 +97,14 @@ export default async function SignInPage({
           required
           autoComplete="email"
           placeholder="you@example.com"
-          className="border-hair text-ink mt-2 h-14 w-full rounded-[10px] border-[1.5px] bg-white px-4 font-sans text-[17px] outline-none focus:border-accent"
+          className={`${FIELD_CLASS} h-14`}
         />
-        <div className="mt-3">
-          <Button type="submit" icon="arrowRight" full>
+        <div className="mt-4">
+          <Button type="submit" icon="mail" size="lg" full>
             Email me a link
           </Button>
         </div>
-        <p className="text-faint mt-4 text-center font-sans text-[13px]">
+        <p className="text-fg-muted mt-4 text-center font-ui text-[15px]">
           No password to remember.
         </p>
       </form>

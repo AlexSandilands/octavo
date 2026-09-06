@@ -1,14 +1,16 @@
-import { Button } from "@/components/ui";
+import Link from "next/link";
+import { AppShell } from "@/components/app-shell";
+import { EmptyCard } from "@/components/empty-states";
+import { Icon } from "@/components/icons";
 import { coverPageOf, type Page } from "@/lib/blocks";
 import { getLibraryHome } from "@/server/issues";
 import { resolveIssueImages } from "@/server/images";
 import { resolveIssueSponsors } from "@/server/sponsors";
 import { requireMemberOrRedirect } from "@/server/session";
 import { getSettings } from "@/server/settings";
+import { GreetingCard } from "@/features/library/greeting-card";
 import { LatestIssue } from "@/features/library/latest-issue";
 import { ArchiveGrid, toArchiveItems } from "@/features/library/archive-grid";
-import { LibraryHeader } from "@/features/library/library-header";
-import { Masthead } from "@/features/library/masthead";
 import { SiteFooter } from "@/features/library/site-footer";
 
 export const dynamic = "force-dynamic";
@@ -38,60 +40,77 @@ export default async function LibraryPage() {
   ]);
 
   return (
-    <main className="mx-auto max-w-5xl px-5 py-6 sm:px-8 sm:py-10">
-      <LibraryHeader user={user} />
+    <AppShell area="member" active="library" user={user}>
+      <div className="mx-auto flex max-w-4xl flex-col gap-6">
+        <GreetingCard
+          name={user?.name ?? null}
+          org={settings.org}
+          tagline={settings.tagline}
+        />
 
-      <Masthead org={settings.org} tagline={settings.tagline} />
-
-      {!latest ? (
-        <section className="py-20 text-center">
-          <h2 className="text-ink font-serif text-3xl">
-            No issues published yet
-          </h2>
-          <p className="text-muted mt-3 font-sans">
-            The first issue of {settings.name} will appear here once it&apos;s
-            published.
-          </p>
-        </section>
-      ) : (
-        <>
-          <LatestIssue
-            number={latest.number}
-            title={latest.title}
-            content={latest.content}
-            publishedAt={latest.publishedAt}
-            theme={latest.theme}
-            cover={coverPageOf(latest.content)}
-            images={coverImages}
-            sponsors={coverSponsors}
-            settings={settings}
+        {!latest ? (
+          <EmptyCard
+            icon="library"
+            title="No issues published yet"
+            body={`The first issue of ${settings.name} will appear here once it's published.`}
           />
-          {recent.length > 0 && (
-            <ArchiveGrid
-              items={toArchiveItems(recent)}
+        ) : (
+          <>
+            <LatestIssue
+              number={latest.number}
+              title={latest.title}
+              content={latest.content}
+              publishedAt={latest.publishedAt}
+              theme={latest.theme}
+              cover={coverPageOf(latest.content)}
               images={coverImages}
               sponsors={coverSponsors}
               settings={settings}
             />
-          )}
-          {/* Only once the catalogue outgrows the shelf above: a magazine with
-              a page's worth of issues shows them all and needs no way out. */}
-          {older > 0 && (
-            <div className="border-line-soft flex justify-center border-t pt-8 pb-4">
-              <Button href="/archive" variant="secondary" icon="arrowRight">
-                View the full archive
-              </Button>
-            </div>
-          )}
-        </>
-      )}
+            {recent.length > 0 && (
+              <ArchiveGrid
+                items={toArchiveItems(recent)}
+                images={coverImages}
+                sponsors={coverSponsors}
+                settings={settings}
+              />
+            )}
+            {/* Only once the catalogue outgrows the shelf above: a magazine with
+                a page's worth of issues shows them all and needs no way out. */}
+            {older > 0 && (
+              <Link
+                href="/archive"
+                className="bg-surface border-hairline shadow-card hover:border-primary flex items-center gap-4 rounded-card border p-5 transition-colors"
+              >
+                <span className="bg-primary-soft text-primary flex h-12 w-12 flex-none items-center justify-center rounded-full">
+                  <Icon name="archive" size={24} strokeWidth={1.9} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="text-fg block font-ui text-[18px] font-bold">
+                    View the full archive
+                  </span>
+                  <span className="text-fg-muted block font-ui text-[15px]">
+                    {older} more {older === 1 ? "issue" : "issues"}, searchable
+                    by title and year
+                  </span>
+                </span>
+                <Icon
+                  name="chevronRight"
+                  size={24}
+                  strokeWidth={2}
+                  className="text-primary flex-none"
+                />
+              </Link>
+            )}
+          </>
+        )}
 
-      <SiteFooter
-        org={settings.org}
-        issueCount={publishedTotal}
-        estYear={estYear}
-        signedIn={Boolean(user)}
-      />
-    </main>
+        <SiteFooter
+          org={settings.org}
+          issueCount={publishedTotal}
+          estYear={estYear}
+        />
+      </div>
+    </AppShell>
   );
 }

@@ -118,8 +118,13 @@ try {
 
   const cards = page.locator('main a[href^="/read/"]');
   const nav = page.locator('nav[aria-label="Archive pages"]');
-  // The house MenuSelect names itself on its trigger ("Year: All years").
-  const yearTrigger = page.getByRole("button", { name: /^Year:/ });
+  // The year filter is a row of chip links; the active one carries
+  // aria-current="page".
+  const yearChips = page.locator('nav[aria-label="Filter by year"]');
+  const yearChip = (y: number) =>
+    yearChips.getByRole("link", { name: String(y), exact: true });
+  const activeYear = () =>
+    yearChips.locator('a[aria-current="page"]').textContent();
 
   // The two lines that say what the shelf is showing. Polled by textContent
   // rather than read once: a soft navigation changes the URL before the server
@@ -221,7 +226,7 @@ try {
   ok(await shows(total), `the live region counts the whole archive (${total})`);
 
   const firstOnPage1 = await cards.first().getAttribute("href");
-  await nav.getByText("Next").click();
+  await nav.getByText("Older").click();
   await page.waitForURL((u) => u.searchParams.get("page") === "2");
   ok(
     (await says(STATUS, `Page 2 of ${archivePages}`)) &&
@@ -304,10 +309,7 @@ try {
   );
   ok(both === 1, `the busiest year (${year}) holds one of the two matches`);
 
-  await yearTrigger.click();
-  await page
-    .getByRole("menuitemradio", { name: String(year), exact: true })
-    .click();
+  await yearChip(year).click();
   await page.waitForURL((u) => u.searchParams.get("year") === String(year));
   ok(
     new URL(page.url()).searchParams.get("q") === term,
@@ -331,14 +333,13 @@ try {
     `?year=${year} alone shows that year's ${inYear} issues`,
   );
   ok(
-    (await yearTrigger.textContent())!.includes(String(year)),
-    "the filter's trigger names the active year",
+    (await activeYear()) === String(year),
+    "the filter marks the active year's chip",
   );
   await page.goto(`${base}/archive?year=1066`);
   await page.waitForSelector("h1:has-text('The archive')");
   ok(
-    (await shows(total)) &&
-      (await yearTrigger.textContent())!.includes("All years"),
+    (await shows(total)) && (await activeYear()) === "All years",
     "a year nothing was published in degrades to all years",
   );
   await page.goto(`${base}/archive?year=abc&q=${"z".repeat(400)}`);
@@ -358,7 +359,7 @@ try {
     );
     ok(overflow <= 0, `${path} at 390px does not scroll horizontally`);
   }
-  const trigger = (await yearTrigger.boundingBox())!;
+  const trigger = (await yearChip(year).boundingBox())!;
   // The field is a <label>, so the whole box focuses the input — measure that,
   // not the input's own text line.
   const search = (await page
@@ -371,7 +372,7 @@ try {
       search.height >= 44,
     `at 390px the search and the year filter are ${Math.round(search.height)}px and ${Math.round(trigger.height)}px targets inside the viewport`,
   );
-  const nextBox = (await nav.getByText("Next").boundingBox())!;
+  const nextBox = (await nav.getByText("Older").boundingBox())!;
   ok(
     nextBox.height >= 44 && nextBox.x + nextBox.width <= 390,
     `the page control keeps a ${Math.round(nextBox.height)}px target at 390px`,
@@ -404,16 +405,20 @@ try {
     (await page.getByText(boundaryTitle).count()) === 1,
     "the filtered shelf shows that issue",
   );
-  // exact, so the filter's own "Year: <n>" trigger is not what matches.
+  // exact, and inside the shelf, so the filter's own chip is not what matches.
   const heads = (heading: number) =>
-    page.locator("main").getByText(String(heading), { exact: true }).count();
+    page
+      .locator('main section[aria-label="Issues"]')
+      .getByText(String(heading), { exact: true })
+      .count();
   ok(
     (await heads(jsYear)) > 0 && (await heads(jsYear - 1)) === 0,
     `the shelf heads it "${jsYear}" — the same year the filter matched on`,
   );
   ok(
-    (await page.getByRole("button", { name: `Year: ${jsYear}` }).count()) === 1,
-    `the year menu offers ${jsYear} and names it on the trigger`,
+    (await yearChip(jsYear).count()) === 1 &&
+      (await activeYear()) === String(jsYear),
+    `the year chips offer ${jsYear} and mark it as active`,
   );
   await page.goto(`${base}/archive?year=${jsYear - 1}`);
   await page.waitForSelector("h1:has-text('The archive')");
