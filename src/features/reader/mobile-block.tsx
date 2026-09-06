@@ -22,18 +22,17 @@ import { VideoPlayer } from "@/features/blocks/video-player";
 // size (`m`), so every size here is relative to it, and it never floats a
 // picture — phones are too narrow to wrap text around one for this audience. A
 // picture in the body therefore fills the column whatever `width`/`align` the
-// author chose for the printed page (#230); only a cover, which stacks its
-// blocks centred, keeps the width it was given.
+// author chose for the printed page (#230); only a cover keeps the width it was
+// given, centred the way `blockFlowStyle` centres a cover on the page.
 
 // DOM id for a heading block, shared by the renderer and the contents drawer.
 export function headingDomId(blockId: string): string {
   return `heading-${blockId}`;
 }
 
-// The figure box the image, montage and video blocks share. `align` is never
-// read: with nothing wrapping beside it, a side-aligned picture only left a
-// hole, so every placement — including any the block model gains later —
-// collapses to the full column.
+// The figure box the image, montage and video blocks share. `align` is
+// deliberately unread: nothing wraps on a phone, so any placement — including
+// one the block model gains later — collapses to the column.
 function pictureFigure(
   width: number | undefined,
   cover: boolean | undefined,
