@@ -4,6 +4,7 @@ import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 import { externalHref } from "@/lib/rich-text";
 import { richTextToPlain } from "@/lib/rich-text-doc";
+import { isFillPage } from "./layout";
 import type { LayoutTheme } from "./themes/registry";
 import { RichText } from "./rich-text";
 import { Editable } from "./editable";
@@ -27,12 +28,24 @@ export function BlockImage({
   image,
   alt,
   priority = false,
+  fit = "width",
 }: {
   image: ResolvedImage;
   alt: string;
   /** Eager-load + preload this image (the LCP element). Offscreen images stay lazy. */
   priority?: boolean;
+  /** "width": the natural aspect ratio across the container (every ordinary
+   *  placement). "cover": fill the container and crop, for the full-bleed page
+   *  (issue #227) — almost no photograph is the page's shape, and letterboxing
+   *  a full-bleed plate would defeat the point of it. */
+  fit?: "width" | "cover";
 }) {
+  // Cropped a little above centre: in a portrait photo cropped to the page it is
+  // the top of the frame that holds the subject.
+  const className =
+    fit === "cover"
+      ? "h-full w-full object-cover object-[50%_40%]"
+      : "h-auto w-full";
   if (image.width && image.height) {
     return (
       <Image
@@ -41,7 +54,7 @@ export function BlockImage({
         width={image.width}
         height={image.height}
         sizes="(max-width: 768px) 100vw, 480px"
-        className="h-auto w-full"
+        className={className}
         priority={priority}
         unoptimized
       />
@@ -52,7 +65,7 @@ export function BlockImage({
     <img
       src={image.url}
       alt={alt}
-      className="h-auto w-full"
+      className={className}
       fetchPriority={priority ? "high" : undefined}
     />
   );
@@ -233,6 +246,11 @@ export function BlockView({
 
     case "image": {
       const resolved = block.imageId ? images?.[block.imageId] : undefined;
+      // Content v6: a full-bleed photo owns the page, so it crops to fill it and
+      // carries no caption — there is no margin left to set one in, and type
+      // laid over the photograph would need a scrim. Alt text is unaffected.
+      // The cover variant never bleeds (see `isFillPage`) and falls through.
+      const bleed = variant !== "cover" && isFillPage(block);
       // Prefer the authored alt text; fall back to the caption so an uncaptioned
       // photo is still described rather than announced decorative.
       const photo = resolved ? (
@@ -240,14 +258,19 @@ export function BlockView({
           image={resolved}
           alt={block.alt || block.caption}
           priority={priority}
+          fit={bleed ? "cover" : "width"}
         />
       ) : (
-        <div className={theme.image.placeholder.box}>
+        <div
+          className={theme.image.placeholder.box}
+          style={bleed ? { height: "100%" } : undefined}
+        >
           <span className={theme.image.placeholder.label}>
             {block.caption || "PHOTO"}
           </span>
         </div>
       );
+      if (bleed) return <figure className="h-full">{photo}</figure>;
       const showCaption = edit || block.caption;
       return (
         <figure>

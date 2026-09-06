@@ -1,13 +1,11 @@
 import { Icon, type IconName } from "@/components/icons";
-import type { BlockPatch } from "@/lib/blocks";
+import type { BlockPatch, ImageAlign } from "@/lib/blocks";
 
 // Placement + size controls for a selected image block. Lives in the block's
 // floating toolbar (see editor-block.tsx). Writes back through the same onChange
 // the text fields use, so changes ride the normal autosave.
 
-type Align = "full" | "left" | "right";
-
-const PLACEMENTS: { value: Align; icon: IconName; title: string }[] = [
+const PLACEMENTS: { value: ImageAlign; icon: IconName; title: string }[] = [
   { value: "left", icon: "wrapLeft", title: "Image left, text wraps right" },
   { value: "full", icon: "breakText", title: "Break text (full width)" },
   { value: "right", icon: "wrapRight", title: "Image right, text wraps left" },
@@ -24,11 +22,17 @@ export function ImageLayoutControls({
   align,
   width,
   onChange,
+  onFillPage,
 }: {
-  align: Align;
+  align: ImageAlign;
   width: number;
   onChange: (patch: BlockPatch) => void;
+  /** Offered on image blocks only (issue #227), and not on a cover page. Its own
+   *  handler rather than a patch: filling the page may have to move the photo
+   *  onto a page of its own first, which is one edit, not a field write. */
+  onFillPage?: () => void;
 }) {
+  const filled = align === "page";
   return (
     <div className="flex items-center gap-2.5">
       <Group label="Placement">
@@ -42,21 +46,34 @@ export function ImageLayoutControls({
             <Icon name={p.icon} size={16} />
           </Seg>
         ))}
-      </Group>
-      <Group label="Size">
-        {SIZES.map((s) => (
+        {onFillPage && (
           <Seg
-            key={s.value}
-            active={width === s.value}
-            title={`${s.value}%`}
-            onClick={() => onChange({ width: s.value })}
+            active={filled}
+            title="Fill the whole page (edge to edge)"
+            onClick={onFillPage}
           >
-            <span className="px-0.5 font-sans text-[12px] font-semibold">
-              {s.label}
-            </span>
+            <Icon name="fillPage" size={16} />
           </Seg>
-        ))}
+        )}
       </Group>
+      {/* A filled page has no text column to be a percentage of; the stored
+          width is left alone so unsetting the placement restores it. */}
+      {!filled && (
+        <Group label="Size">
+          {SIZES.map((s) => (
+            <Seg
+              key={s.value}
+              active={width === s.value}
+              title={`${s.value}%`}
+              onClick={() => onChange({ width: s.value })}
+            >
+              <span className="px-0.5 font-sans text-[12px] font-semibold">
+                {s.label}
+              </span>
+            </Seg>
+          ))}
+        </Group>
+      )}
     </div>
   );
 }

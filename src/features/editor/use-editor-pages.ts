@@ -12,6 +12,7 @@ import {
 } from "@/lib/blocks";
 import { arrayMove } from "@dnd-kit/sortable";
 import type { DragEndEvent } from "@dnd-kit/core";
+import { pageFillsCanvas } from "@/features/blocks/layout";
 import { flowTextBlock, moveBlockToNextPage } from "./text-flow";
 import {
   changedBlockIds,
@@ -92,6 +93,9 @@ export function useEditorPages(content: IssueContent) {
   };
 
   const addBlock = (type: BlockType) => {
+    // A filled page belongs to its photo; the tool bar disables the insert
+    // buttons, and this is the guard behind them.
+    if (pageFillsCanvas(page)) return;
     const blk = makeBlock(type);
     commit();
     editPage((p) => ({ ...p, blocks: [...p.blocks, blk] }));
@@ -164,6 +168,38 @@ export function useEditorPages(content: IssueContent) {
     if (sel === id) setSel(null);
   };
 
+  // "Fill page" (issue #227): a full-bleed photo owns its page, so one that
+  // shares a page moves onto a page of its own on the way — the placement and
+  // the move land together as one document, and undo as one step.
+  const fillPage = (id: string) => {
+    const source = pages[curPage];
+    const block = source?.blocks.find((b) => b.id === id);
+    if (!source || source.cover || block?.type !== "image") return;
+    const filled = pages.map((p, i) =>
+      i === curPage
+        ? {
+            ...p,
+            blocks: p.blocks.map((b) =>
+              b.id === id ? mergeBlock(b, { align: "page" as const }) : b,
+            ),
+          }
+        : p,
+    );
+    if (source.blocks.length === 1) {
+      commit();
+      setPages(filled);
+      return;
+    }
+    // No room for the page it needs: leave the document exactly as it was
+    // rather than bleed a photo over content that has nowhere to go.
+    const moved = moveBlockToNextPage(filled, curPage, id);
+    if (!moved) return;
+    commit();
+    setPages(moved);
+    setCurPage(curPage + 1);
+    setSel(id);
+  };
+
   const addPage = (template: PageTemplate = "blank") => {
     commit();
     setPages((ps) => [...ps, makePage(template)]);
@@ -226,6 +262,7 @@ export function useEditorPages(content: IssueContent) {
     removeBlock,
     flowText,
     moveToNextPage,
+    fillPage,
     addPage,
     reorderPages,
     deletePage,

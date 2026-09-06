@@ -56,11 +56,16 @@ export const imageBlockSchema = z.object({
   // bump); the readers fall back to the caption when it is absent.
   alt: z.string().max(SHORT_TEXT_MAX).optional(),
   // Layout: "full" breaks the text (block, full column width); "left"/"right"
-  // float the image so the following text wraps beside it. `width` is a percent
-  // of the text column.
-  align: z.enum(["full", "left", "right"]).default("full"),
+  // float the image so the following text wraps beside it; "page" (content v6)
+  // is full bleed — the photo takes the whole PAGE_W×PAGE_H canvas and owns the
+  // page. `width` is a percent of the text column, and is ignored by "page"
+  // (kept, so unsetting the placement restores the size it had).
+  align: z.enum(["full", "left", "right", "page"]).default("full"),
   width: z.number().min(20).max(100).default(100),
 });
+
+/** The image block's placement values, so callers derive them rather than restate them. */
+export type ImageAlign = z.infer<typeof imageBlockSchema>["align"];
 
 // Montage timing. The stored value is whole seconds; 0 is the sentinel for
 // "manual only" (no autoplay). MONTAGE_INTERVALS is what the editor offers —
@@ -204,7 +209,16 @@ export const pageSchema = z.object({
 // v4 was: a version-1…4 document has no video blocks, so it parses and renders
 // unchanged and no stored row is rewritten. The print/PDF path renders the
 // poster plus the visible link, deterministically — a PDF cannot play video.
-export const CONTENT_VERSION = 5;
+//
+// v6 (issue #227): the image block's `align` gained a fourth value, "page" — a
+// full-bleed photo that takes the whole canvas and owns its page (no margins, no
+// running footer). Additive in the same way v4 and v5 were, but by widening an
+// enum rather than adding a block type: no version-1…5 document holds the new
+// value, so every one parses and renders unchanged and no stored row is
+// rewritten. Deliberately confined to `image` — a montage would have to crop
+// several photos to one page shape and a video's frame is always 16:9, so both
+// keep the three-value union.
+export const CONTENT_VERSION = 6;
 
 export const issueContentSchema = z.object({
   version: z.number().int().min(1).default(CONTENT_VERSION),
@@ -224,9 +238,13 @@ export type BlockPatch = {
   [T in Block as T["type"]]: Partial<Omit<T, "id" | "type">>;
 }[BlockType];
 
-// Apply a patch to a block, preserving its identity and discriminant.
+// Apply a patch to a block, preserving its identity and discriminant. The cast
+// is the price of the distributed patch type: since `align` gained a value only
+// images accept (v6), the compiler can no longer see that spreading *some*
+// member of the patch union over *some* member of the block union lands in the
+// union — the call sites, which hold one concrete block, can.
 export function mergeBlock(block: Block, patch: BlockPatch): Block {
-  return { ...block, ...patch };
+  return { ...block, ...patch } as Block;
 }
 
 export const BLOCK_TYPES: BlockType[] = [

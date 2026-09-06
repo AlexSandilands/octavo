@@ -113,6 +113,16 @@ export const SEED_IMAGES = [
     palette: aperture,
     style: { kind: "wash" },
   },
+  // The full-bleed plate (content v6, issue #227). Portrait, because a photo
+  // authored to fill a portrait page is one — and near enough the canvas's own
+  // proportions that the crop is a trim rather than a rescue.
+  {
+    key: "salon",
+    width: 1200,
+    height: 1600,
+    palette: aperture,
+    style: { kind: "duotone", motif: "stripes" },
+  },
   // The montage sequence (content v4, issue #95): three same-shape frames from
   // the same palette, so the cross-fade reads as one darkroom sequence rather
   // than three unrelated pictures.

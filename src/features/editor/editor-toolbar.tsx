@@ -24,6 +24,7 @@ export const TOOLBAR_RESERVE = 92;
 // come in from `xl`, where the pill has room.
 export function EditorToolbar({
   onAddBlock,
+  insertDisabled = false,
   onToggleCover,
   coverDisabled,
   coverActive,
@@ -34,6 +35,8 @@ export function EditorToolbar({
   notice,
 }: {
   onAddBlock: (type: BlockType) => void;
+  /** This page is filled edge to edge by one photo, which owns it (issue #227). */
+  insertDisabled?: boolean;
   onToggleCover: () => void;
   coverDisabled: boolean;
   coverActive: boolean;
@@ -77,9 +80,14 @@ export function EditorToolbar({
             key={b.type}
             icon={b.icon}
             label={b.label}
-            hint={`Insert a ${b.label.toLowerCase()} block`}
+            hint={
+              insertDisabled
+                ? "This page is filled by a photo"
+                : `Insert a ${b.label.toLowerCase()} block`
+            }
             iconClass="text-accent"
             showLabel
+            disabled={insertDisabled}
             onClick={() => onAddBlock(b.type)}
           />
         ))}

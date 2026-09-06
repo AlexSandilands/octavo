@@ -33,6 +33,7 @@ import {
   PAGE_W,
   PAGE_H,
 } from "@/features/blocks/page-frame";
+import { pageFillsCanvas } from "@/features/blocks/layout";
 import { useCanvasPanZoom } from "@/features/blocks/use-canvas-pan-zoom";
 import { useEditorPages } from "./use-editor-pages";
 import { useTextFlow } from "./use-text-flow";
@@ -118,6 +119,7 @@ export function Editor({
     removeBlock,
     flowText,
     moveToNextPage,
+    fillPage,
     addPage,
     reorderPages,
     deletePage,
@@ -235,6 +237,9 @@ export function Editor({
   }, []);
 
   const theme = getTheme(themeId);
+  // This page is owned by a full-bleed photo (issue #227): no page furniture,
+  // and nothing else may be added to it.
+  const filled = pageFillsCanvas(page);
   // The magazine's footer is taller than this issue's pages have room for, so
   // the canvas (and the reader) draw the smaller one it was made with until the
   // author says otherwise — see FooterUpdateNotice.
@@ -328,6 +333,7 @@ export function Editor({
                   logo={logo}
                   settings={settings}
                   clip={false}
+                  bleed={filled}
                 >
                   <DndContext
                     sensors={sensors}
@@ -375,6 +381,7 @@ export function Editor({
                             onMove={(dir) => moveBlock(b.id, dir)}
                             onRemove={() => removeBlock(b.id)}
                             onFlow={() => flow(b.id)}
+                            onFillPage={() => fillPage(b.id)}
                             onRegisterImage={registerImage}
                           />
                         ))}
@@ -388,6 +395,7 @@ export function Editor({
 
           <EditorToolbar
             onAddBlock={addBlock}
+            insertDisabled={filled}
             onToggleCover={toggleCover}
             coverDisabled={curPage === 0}
             coverActive={Boolean(page?.cover)}

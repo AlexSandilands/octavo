@@ -14,6 +14,10 @@ import { PageFooter } from "./page-footer";
 export const PAGE_W = 640;
 export const PAGE_H = 900;
 
+// The page's own margin. Exported because a full-bleed image has to reach back
+// over it to cover the canvas (see `blockFlowStyle`), so the two must agree.
+export const PAGE_PAD = 40;
+
 // Renders a fixed PAGE_W×PAGE_H page scaled to `scale`, reserving the scaled box
 // in layout so neighbours flow correctly. transform-origin top-left keeps the
 // scaled page pinned to the reserved box's corner.
@@ -62,6 +66,7 @@ export function PageFrame({
   logo = null,
   settings,
   clip = true,
+  bleed = false,
   children,
 }: {
   theme: LayoutTheme;
@@ -78,31 +83,43 @@ export function PageFrame({
   settings: SiteSettings;
   /** Reader clips overflow to the page box; the editor leaves it visible. */
   clip?: boolean;
+  /** This page is filled edge to edge by one photo (issue #227), so the page
+   *  furniture is dropped — a running footer in dark type over a photograph is
+   *  unreadable, and a scrim would be a second design nobody asked for. */
+  bleed?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <div
-      style={{ width: w, height: h }}
+      style={{
+        width: w,
+        height: h,
+        paddingInline: PAGE_PAD,
+        paddingTop: PAGE_PAD,
+      }}
       // The editor measures overflow against this box and the footer below it
       // (see features/editor/page-metrics.ts), so the page's real padding and
       // footer position stay the single source of truth for where a page ends.
       data-page-frame
-      className={`bg-page relative px-10 pt-10 ${
+      className={`bg-page relative ${
         clip ? "overflow-hidden" : "overflow-visible"
       } ${side === "left" ? "border-page-seam border-r" : ""}`}
     >
-      {theme.page.decoration({ issueNo, side, magazineName: settings.name })}
+      {!bleed &&
+        theme.page.decoration({ issueNo, side, magazineName: settings.name })}
 
       {children}
 
-      <PageFooter
-        logo={logo}
-        issueNo={issueNo}
-        pageNo={pageNo}
-        side={side}
-        logoBottom={theme.page.logoFooterBottom}
-        settings={settings}
-      />
+      {!bleed && (
+        <PageFooter
+          logo={logo}
+          issueNo={issueNo}
+          pageNo={pageNo}
+          side={side}
+          logoBottom={theme.page.logoFooterBottom}
+          settings={settings}
+        />
+      )}
     </div>
   );
 }

@@ -4,7 +4,7 @@ import type { ImageMap } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 import { BlockView } from "@/features/blocks/block-view";
 import { resolveTheme } from "@/features/blocks/themes/registry";
-import { blockFlowStyle } from "@/features/blocks/layout";
+import { blockFlowStyle, pageFillsCanvas } from "@/features/blocks/layout";
 import {
   PageFrame,
   ScaledPage,
@@ -59,6 +59,7 @@ export function CoverThumb({
           issueNo={issueNo}
           side="right"
           settings={settings}
+          bleed={pageFillsCanvas(page)}
         >
           <div
             className={

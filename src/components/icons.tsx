@@ -97,6 +97,14 @@ const ICONS: Record<string, ReactNode> = {
       <path d="M3 15h18M3 19h18" />
     </>
   ),
+  // The placement family above shows a picture against text lines; this one has
+  // no lines left — the picture is the page.
+  fillPage: (
+    <>
+      <rect x="3" y="3.5" width="18" height="17" rx="1" />
+      <path d="M3 15.5l5-4 3.5 2.8L15 11l6 5" />
+    </>
+  ),
   doc: (
     <>
       <path d="M6 3h9l3 3v15H6z" />

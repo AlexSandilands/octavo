@@ -98,6 +98,16 @@ export function MobileBlock({
       );
     case "image": {
       const resolved = block.imageId ? images[block.imageId] : undefined;
+      // A photo that fills the page on the fixed canvas (content v6) runs the
+      // full width of the phone too — at its own aspect ratio, since this reader
+      // has no page shape to crop to and cropping a crop only loses more of it.
+      if (resolved && (block.align ?? "full") === "page") {
+        return (
+          <figure className="-mx-5 my-3">
+            <BlockImage image={resolved} alt={block.alt || block.caption} />
+          </figure>
+        );
+      }
       // Phones don't wrap text around floats (too cramped for the audience):
       // honour the chosen size and align the (smaller) image left/right/centre.
       const width = block.width ?? 100;

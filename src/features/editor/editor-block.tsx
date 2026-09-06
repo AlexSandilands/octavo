@@ -5,7 +5,11 @@ import { CSS } from "@dnd-kit/utilities";
 import { Icon, type IconName } from "@/components/icons";
 import { BlockView } from "@/features/blocks/block-view";
 import type { LayoutTheme } from "@/features/blocks/themes/registry";
-import { blockFlowStyle, isFloatedPicture } from "@/features/blocks/layout";
+import {
+  blockFlowStyle,
+  isFillPage,
+  isFloatedPicture,
+} from "@/features/blocks/layout";
 import type { Block, BlockPatch } from "@/lib/blocks";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import { richDocBlocks } from "@/lib/rich-text-split";
@@ -39,6 +43,7 @@ export function EditorBlock({
   onMove,
   onRemove,
   onFlow,
+  onFillPage,
   onRegisterImage,
 }: {
   block: Block;
@@ -58,6 +63,8 @@ export function EditorBlock({
   onMove: (dir: -1 | 1) => void;
   onRemove: () => void;
   onFlow: () => void;
+  /** Set this image to fill the whole page (issue #227). */
+  onFillPage: () => void;
   onRegisterImage: (imageId: string, image: ResolvedImage) => void;
 }) {
   const {
@@ -75,6 +82,13 @@ export function EditorBlock({
   // the picture. Lift the floated picture above the wrapping text so it stays
   // selectable (and its hover ring isn't hidden behind the text box).
   const floated = isFloatedPicture(block);
+
+  // A full-bleed photo covers the page, so its chrome moves inside the page and
+  // scales from its own top edge rather than hanging off the top-left corner.
+  const bleed = !cover && isFillPage(block);
+  const chromeTop = bleed
+    ? "top-2 [transform-origin:top_left]"
+    : "bottom-full mb-2";
 
   // What the marker offers once this block is flagged (#93). Body text with more
   // than one top-level node is split at a node boundary; anything else moves
@@ -129,9 +143,9 @@ export function EditorBlock({
         {...listeners}
         title="Drag to reorder"
         aria-label="Drag to reorder"
-        className={`border-hair-warm absolute top-1/2 -left-9 z-10 flex h-7 w-6 -translate-y-1/2 cursor-grab touch-none items-center justify-center rounded-[5px] border bg-white text-muted transition-opacity active:cursor-grabbing ${
-          selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-        }`}
+        className={`border-hair-warm absolute z-10 flex h-7 w-6 cursor-grab touch-none items-center justify-center rounded-[5px] border bg-white text-muted transition-opacity active:cursor-grabbing ${
+          bleed ? "top-2.5 left-2" : "top-1/2 -left-9 -translate-y-1/2"
+        } ${selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
       >
         <Icon name="grip" size={15} />
       </button>
@@ -139,7 +153,9 @@ export function EditorBlock({
       {selected && (
         <>
           {block.type === "image" ? (
-            <div className="border-hair chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap shadow-[0_4px_14px_rgba(40,36,28,0.16)]">
+            <div
+              className={`border-hair chrome-unscaled absolute z-20 flex items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap shadow-[0_4px_14px_rgba(40,36,28,0.16)] ${chromeTop} ${bleed ? "left-11" : "left-0"}`}
+            >
               <ImageBlockControl
                 issueId={issueId}
                 hasImage={Boolean(block.imageId)}
@@ -151,10 +167,13 @@ export function EditorBlock({
               {block.imageId && (
                 <>
                   <span className="bg-line h-5 w-px" />
+                  {/* No fill-page on a cover: its blocks centre and stack
+                      around a title, so there is nothing for a photo to own. */}
                   <ImageLayoutControls
                     align={block.align ?? "full"}
                     width={block.width ?? 100}
                     onChange={onChange}
+                    onFillPage={cover ? undefined : onFillPage}
                   />
                   <span className="bg-line h-5 w-px" />
                   <label className="flex items-center gap-1.5">
@@ -244,7 +263,13 @@ export function EditorBlock({
               {block.type}
             </span>
           )}
-          <div className="absolute top-1/2 -right-9 z-10 flex -translate-y-1/2 flex-col gap-1">
+          <div
+            className={`absolute z-10 flex flex-col gap-1 ${
+              // Bottom corner on a filled page: the top one is where the
+              // block's own tool bar lands, at whatever zoom.
+              bleed ? "right-2 bottom-2.5" : "top-1/2 -right-9 -translate-y-1/2"
+            }`}
+          >
             <Ctrl icon="arrowUp" title="Move up" onClick={() => onMove(-1)} />
             <Ctrl
               icon="arrowDown"
