@@ -185,6 +185,12 @@ body {
   outline: none;
 }
 
+/* Segmented toolbar groups clip outside rings; use the label's contrast inside. */
+.rich-text-tool:focus-visible {
+  outline-color: currentColor;
+  outline-offset: -2px;
+}
+
 /* Rich body text (bold/italic/underline, links, lists, paragraphs). Shared by
    the read-only renderers and the editor's Tiptap surface so they look
    identical. Tailwind's preflight strips list markers, so set them here. */

@@ -112,7 +112,8 @@ const themeSchema = z
 // the key merely learned an input it was always missing, and adding the segment
 // re-keys every cached PDF exactly once by itself. A bump would only discard the
 // same objects twice over.
-const RENDER_VERSION = 10;
+// v11: per-block body-text alignment and justified hyphenation (issue #238).
+const RENDER_VERSION = 11;
 
 // Percent-encode for an RFC 8187 ext-value (the `filename*=UTF-8''…` form).
 // Only attr-char may appear bare there: ALPHA / DIGIT / "!" / "#" / "$" / "&" /

@@ -44,6 +44,8 @@ export const textBlockSchema = z.object({
   // an absolute size on desktop/print; the reflowing mobile reader treats it as
   // a multiplier on its adjustable base size.
   size: z.enum(["s", "m", "l", "xl"]).optional(),
+  // Optional, per block: legacy text stays left-aligned. Covers ignore this.
+  align: z.enum(["left", "center", "right", "justify"]).optional(),
 });
 
 export const imageBlockSchema = z.object({
@@ -264,6 +266,18 @@ export const BLOCK_TYPES: BlockType[] = [
 export type MontageItem = z.infer<typeof montageItemSchema>;
 
 export type TextSize = "s" | "m" | "l" | "xl";
+
+export type TextAlign = NonNullable<z.infer<typeof textBlockSchema>["align"]>;
+
+/** Shared by the editor, fixed page/print/thumbnail and mobile body text. */
+export function textAlignClass(align: TextAlign = "left"): string {
+  return {
+    left: "text-left",
+    center: "text-center",
+    right: "text-right",
+    justify: "text-justify hyphens-auto",
+  }[align];
+}
 
 // The per-text-block size choices offered in the editor, and the two ways a
 // size resolves: absolute px on the fixed-canvas desktop/print page, and a

@@ -156,6 +156,19 @@ editor, rather than the normal flow. A `Text` block carries an optional `size`
 in the reflowing mobile reader. Both fields are optional, so older content
 parses unchanged.
 
+Body text also carries optional `align: left|center|right|justify` (issue #238),
+authored per block alongside size. Missing alignment means left; this is an additive
+field with **no content-version bump or migration**. The editor, fixed page, thumbnail,
+PDF and mobile reader share the alignment classes, with automatic hyphenation for
+justified text (the document's language is English). Cover taglines stay centred and
+offer no alignment controls; headings and captions are unchanged. Text flow copies
+alignment onto every continuation. Issue-01's opening editorial authors justified
+text, while issue-05's deliberate legacy page stays unchanged.
+
+Verify with `npx tsx --tsconfig scripts/tsconfig.json scripts/dev-text-alignment-gate.mts`;
+append a local dev server URL to also check keyboard controls, autosave/reload, measured
+overflow, the readers and PDF rendering using a temporary issue.
+
 **Pages are a fixed canvas (`PAGE_W`×`PAGE_H` in `page-frame.tsx`).** The desktop
 reader and editor never resize the page or its type independently — they render
 at the canvas size and apply a single `transform: scale()` (via `ScaledPage`) so
