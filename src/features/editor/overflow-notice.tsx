@@ -27,9 +27,9 @@ export function OverflowNotice({
       <div className="flex justify-end">
         <div
           role="status"
-          className="bg-warn text-paper pointer-events-auto flex items-center gap-2 rounded-b px-2 py-0.5 shadow-[0_4px_14px_rgba(40,36,28,0.16)]"
+          className="bg-warn text-surface shadow-card pointer-events-auto flex items-center gap-2 rounded-b-[8px] px-2.5 py-1"
         >
-          <span className="font-sans text-[9px] font-semibold tracking-[0.1em] uppercase">
+          <span className="font-ui text-[10px] font-bold tracking-[0.1em] uppercase">
             {note}
           </span>
           {action && (
@@ -39,7 +39,7 @@ export function OverflowNotice({
                 e.stopPropagation();
                 action.onClick();
               }}
-              className="bg-paper text-warn hover:bg-page focus-visible:outline-paper my-0.5 rounded-[4px] px-2 py-1 font-sans text-[10px] font-semibold focus-visible:outline-2 focus-visible:outline-offset-2"
+              className="bg-surface text-warn hover:bg-warn-soft focus-visible:outline-surface my-0.5 cursor-pointer rounded-full px-2.5 py-1 font-ui text-[11px] font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
             >
               {action.label}
             </button>

@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { DialogShell } from "@/components/dialog-shell";
+import { DialogActions, DialogHeader } from "@/components/dialog-parts";
 import { Icon } from "@/components/icons";
-import { Button, IconButton } from "@/components/ui";
+import { Button } from "@/components/ui";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import { parseYouTubeId, youtubeWatchLabel } from "@/lib/youtube";
 
@@ -100,33 +101,30 @@ export function VideoDialog({
     // Same isolation as the montage dialog: it floats over the editor canvas,
     // which deselects the block on a stray click and pans on a drag.
     <DialogShell
-      panelClassName="bg-card flex max-h-[90vh] w-[560px] flex-col rounded-[10px] shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
+      panelClassName="flex flex-col md:w-[580px]"
       isolatePointerEvents
       locked={busy}
       onClose={onClose}
     >
       {(titleId) => (
         <>
-          <div className="flex flex-none items-center justify-between px-8 pt-7">
-            <h2
-              id={titleId}
-              className="text-ink font-serif text-[26px] leading-tight"
-            >
-              Video
-            </h2>
-            <IconButton icon="close" label="Close" onClick={onClose} />
-          </div>
+          <DialogHeader
+            titleId={titleId}
+            title="Video"
+            onClose={onClose}
+            closeDisabled={busy}
+          />
 
-          <div className="scrollbar-soft min-h-0 flex-1 overflow-y-auto px-8 pt-6 [--scrollbar-surface:var(--color-card)] [scrollbar-gutter:stable]">
+          <div className="scrollbar-soft min-h-0 flex-1 overflow-y-auto px-5 pt-6 [--scrollbar-surface:var(--color-surface)] [scrollbar-gutter:stable] md:px-8">
             <label className="block">
-              <span className="text-faint mb-1.5 block font-sans text-[11px] font-semibold tracking-[0.14em] uppercase">
+              <span className="text-fg-muted mb-2 block font-ui text-[14px] font-bold tracking-[0.06em] uppercase">
                 YouTube link
               </span>
               {/* The focus ring goes on the decorated box, not the bare input
                   inside it (the .boxed-field pattern in globals.css). */}
               <span
-                className={`boxed-field flex h-11 items-center rounded-md border bg-white px-3 ${
-                  unusable ? "border-warn" : "border-hair"
+                className={`boxed-field bg-surface flex h-12 items-center rounded-field border-[1.5px] px-4 ${
+                  unusable ? "border-danger" : "border-edge"
                 }`}
               >
                 <input
@@ -148,7 +146,7 @@ export function VideoDialog({
                   aria-invalid={unusable || undefined}
                   aria-describedby={`${titleId}-hint`}
                   placeholder="https://www.youtube.com/watch?v=…"
-                  className="text-ink min-w-0 flex-1 bg-transparent font-sans text-[14px] outline-none"
+                  className="text-fg placeholder:text-fg-faint min-w-0 flex-1 bg-transparent font-ui text-[16px] outline-none"
                 />
               </span>
             </label>
@@ -159,8 +157,8 @@ export function VideoDialog({
                 them — so it names the forms that do work. */}
             <p
               id={`${titleId}-hint`}
-              className={`mt-2 font-sans text-[12.5px] ${
-                unusable ? "text-warn font-semibold" : "text-faint2"
+              className={`mt-2 font-ui text-[15px] leading-relaxed ${
+                unusable ? "text-danger font-bold" : "text-fg-muted"
               }`}
             >
               {unusable
@@ -173,12 +171,12 @@ export function VideoDialog({
             </p>
 
             <div className="mt-6">
-              <span className="text-faint mb-1.5 block font-sans text-[11px] font-semibold tracking-[0.14em] uppercase">
+              <span className="text-fg-muted mb-2 block font-ui text-[14px] font-bold tracking-[0.06em] uppercase">
                 Video image
               </span>
               {poster && videoId ? (
-                <div className="border-hair flex items-center gap-3 rounded-lg border bg-white p-2.5">
-                  <div className="border-line bg-page relative h-[72px] w-32 flex-none overflow-hidden rounded">
+                <div className="bg-surface-2 flex items-center gap-3 rounded-field p-2.5">
+                  <div className="border-hairline bg-surface relative h-[72px] w-32 flex-none overflow-hidden rounded-[8px] border">
                     {/* A plain <img>: this is chrome, not page content, and the
                         montage dialog's row previews do the same. */}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -187,20 +185,20 @@ export function VideoDialog({
                       alt=""
                       className="h-full w-full object-cover"
                     />
-                    <span className="text-paper absolute inset-0 flex items-center justify-center">
-                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[rgba(32,32,28,0.62)]">
+                    <span className="text-surface absolute inset-0 flex items-center justify-center">
+                      <span className="bg-scrim flex h-8 w-8 items-center justify-center rounded-full">
                         <Icon name="play" size={16} />
                       </span>
                     </span>
                   </div>
-                  <p className="text-faint2 min-w-0 font-sans text-[12.5px]">
+                  <p className="text-fg-muted min-w-0 font-ui text-[14px] leading-relaxed">
                     Kept as our own copy, so readers load nothing from YouTube
                     until they press play — and so it prints. If it changes on
                     YouTube, press Refresh image to take it again.
                   </p>
                 </div>
               ) : (
-                <p className="border-hair text-faint2 rounded-lg border border-dashed px-4 py-6 text-center font-sans text-[13px]">
+                <p className="border-edge text-fg-muted rounded-field border-2 border-dashed px-4 py-6 text-center font-ui text-[15px]">
                   The video&rsquo;s own picture is saved here once you add a
                   link.
                 </p>
@@ -209,14 +207,18 @@ export function VideoDialog({
           </div>
 
           {error && (
-            <p className="text-warn flex-none px-8 pt-4 font-sans text-[13px] font-semibold">
+            <p
+              role="alert"
+              className="text-danger flex-none px-5 pt-4 font-ui text-[15px] font-bold md:px-8"
+            >
               {error}
             </p>
           )}
 
-          <div className="flex flex-none items-center justify-between px-8 pt-6 pb-7">
+          <DialogActions between>
             <Button
               variant="secondary"
+              icon="trash"
               onClick={() => {
                 setUrl("");
                 setError(null);
@@ -224,10 +226,9 @@ export function VideoDialog({
               }}
               disabled={busy || !videoId}
             >
-              <Icon name="trash" size={17} className="text-warn" />
               Remove video
             </Button>
-            <div className="flex items-center gap-2.5">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center">
               <Button
                 variant="secondary"
                 onClick={() => void apply()}
@@ -242,16 +243,11 @@ export function VideoDialog({
                     ? "Refresh image"
                     : "Use this link"}
               </Button>
-              <Button
-                onClick={onClose}
-                disabled={busy}
-                icon="check"
-                iconPosition="left"
-              >
+              <Button onClick={onClose} disabled={busy} icon="check">
                 Done
               </Button>
             </div>
-          </div>
+          </DialogActions>
         </>
       )}
     </DialogShell>

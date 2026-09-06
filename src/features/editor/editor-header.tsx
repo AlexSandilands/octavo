@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { Icon } from "@/components/icons";
-import { Button } from "@/components/ui";
+import { Button, Chip } from "@/components/ui";
 import type {
   LayoutTheme,
   LayoutThemeId,
@@ -13,10 +12,10 @@ import { ThemeMenu } from "./theme-menu";
 
 export type SaveStatus = "saved" | "saving" | "error" | "conflict";
 
-// The editor's top bar: back link, editable title, draft badge, the autosave
-// status pill (with retry/reload affordances), and the theme / Preview / Publish
-// actions. All state and side effects live in the editor; this renders and
-// delegates via callbacks.
+// The editor's top bar: the way back, the editable title, the draft chip, the
+// autosave status (with retry/reload affordances), and the logo / theme /
+// Preview / Publish actions. All state and side effects live in the editor;
+// this renders and delegates via callbacks.
 export function EditorHeader({
   title,
   onTitleChange,
@@ -53,52 +52,69 @@ export function EditorHeader({
   onPublish: () => void;
 }) {
   return (
-    <header className="border-line flex h-[60px] flex-none items-center justify-between border-b px-6">
-      <div className="flex items-center gap-3.5">
-        <Link href="/admin" className="text-muted" aria-label="Back to issues">
-          <Icon name="chevronLeft" size={20} />
-        </Link>
+    <header className="bg-surface border-hairline flex h-16 flex-none items-center justify-between gap-3 border-b px-3">
+      <div className="flex min-w-0 items-center gap-2">
+        <Button
+          href="/admin"
+          variant="quiet"
+          size="sm"
+          icon="arrowLeft"
+          aria-label="Back to issues"
+        >
+          Issues
+        </Button>
         <input
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
-          className="text-ink min-w-0 border-none bg-transparent font-serif text-[21px] outline-none"
+          aria-label="Issue title"
+          className="text-fg hover:bg-primary-wash focus:bg-primary-wash h-10 w-[min(36vw,440px)] min-w-0 rounded-full border-none bg-transparent px-3 font-ui text-[18px] font-bold outline-none"
           placeholder="Untitled issue"
         />
-        <span className="bg-chip flex items-center gap-1.5 rounded-full px-3 py-1">
-          <span className="bg-chip-dot h-1.5 w-1.5 rounded-full" />
-          <span className="text-faint font-sans text-[11px] font-semibold">
-            Draft · No. {issueNumber}
-          </span>
-        </span>
+        <Chip>Draft · No. {issueNumber}</Chip>
         {status === "error" ? (
-          <span className="flex items-center gap-2 font-sans text-[12px]">
-            <span className="text-warn font-semibold">Couldn’t save</span>
-            <button
+          <span className="flex items-center gap-2 font-ui text-[14px]">
+            <span className="text-danger font-bold">Couldn’t save</span>
+            <Button
+              variant="secondary"
+              size="sm"
+              icon="refresh"
               onClick={onRetrySave}
-              className="border-warn text-warn hover:bg-warn-soft rounded-md border px-2 py-0.5 font-semibold"
             >
               Retry
-            </button>
+            </Button>
           </span>
         ) : status === "conflict" ? (
-          <span className="flex items-center gap-2 font-sans text-[12px]">
-            <span className="text-warn font-semibold">
+          <span className="flex items-center gap-2 font-ui text-[14px]">
+            <span className="text-danger font-bold">
               Changed somewhere else
             </span>
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
+              icon="refresh"
               onClick={onReload}
-              className="border-warn text-warn hover:bg-warn-soft rounded-md border px-2 py-0.5 font-semibold"
             >
               Reload
-            </button>
+            </Button>
           </span>
         ) : (
-          <span className="text-faint2 font-sans text-[11px]">
-            {status === "saving" ? "Saving…" : "Saved"}
+          <span
+            className={`flex flex-none items-center gap-1 font-ui text-[14px] font-bold whitespace-nowrap ${
+              status === "saving" ? "text-fg-muted" : "text-ok"
+            }`}
+          >
+            {status === "saving" ? (
+              "Saving…"
+            ) : (
+              <>
+                <Icon name="check" size={16} strokeWidth={2.4} />
+                Saved
+              </>
+            )}
           </span>
         )}
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex flex-none items-center gap-2">
         <LogoPicker logos={logos} logoId={logoId} onChange={onSelectLogo} />
         {themes.length > 1 && (
           <ThemeMenu
@@ -107,10 +123,10 @@ export function EditorHeader({
             onSelect={onSelectTheme}
           />
         )}
-        <Button variant="secondary" size="sm" onClick={onPreview}>
+        <Button variant="secondary" size="sm" icon="reader" onClick={onPreview}>
           Preview
         </Button>
-        <Button size="sm" onClick={onPublish}>
+        <Button size="sm" icon="check" onClick={onPublish}>
           Publish
         </Button>
       </div>

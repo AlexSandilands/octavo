@@ -93,7 +93,7 @@ export function ImageLayoutControls({
               title={`${s.value}%`}
               onClick={() => onChange({ width: s.value })}
             >
-              <span className="px-0.5 font-sans text-[12px] font-semibold">
+              <span className="px-0.5 font-ui text-[12px] font-bold">
                 {s.label}
               </span>
             </Seg>
@@ -113,10 +113,10 @@ function Group({
 }) {
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-faint2 font-sans text-[9px] font-semibold tracking-[0.14em] uppercase">
+      <span className="text-fg-muted font-ui text-[10px] font-bold tracking-[0.1em] uppercase">
         {label}
       </span>
-      <div className="border-hair flex overflow-hidden rounded-[6px] border">
+      <div className="border-edge flex overflow-hidden rounded-full border">
         {children}
       </div>
     </div>
@@ -144,10 +144,10 @@ function Seg({
         e.stopPropagation();
         onClick();
       }}
-      className={`flex h-7 min-w-7 items-center justify-center px-1.5 ${
+      className={`flex h-8 min-w-8 cursor-pointer items-center justify-center px-2 transition-colors ${
         active
-          ? "bg-accent text-paper"
-          : "text-muted hover:bg-accent-wash hover:text-accent bg-white"
+          ? "bg-primary text-surface"
+          : "text-fg-muted hover:bg-primary-wash hover:text-primary bg-surface"
       }`}
     >
       {children}

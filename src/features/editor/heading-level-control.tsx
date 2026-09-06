@@ -15,11 +15,11 @@ export function HeadingLevelControl({
   onChange: (patch: BlockPatch) => void;
 }) {
   return (
-    <div className="border-hair flex items-center gap-2 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap shadow-[0_4px_14px_rgba(40,36,28,0.16)]">
-      <span className="text-faint2 font-sans text-[9px] font-semibold tracking-[0.14em] uppercase">
+    <div className="border-hairline bg-surface shadow-float flex items-center gap-2 rounded-full border px-3 py-1.5 whitespace-nowrap">
+      <span className="text-fg-muted font-ui text-[10px] font-bold tracking-[0.1em] uppercase">
         Heading
       </span>
-      <div className="border-hair flex overflow-hidden rounded-[6px] border">
+      <div className="border-edge flex overflow-hidden rounded-full border">
         {HEADING_LEVELS.map((l) => (
           <button
             key={l.value}
@@ -29,10 +29,10 @@ export function HeadingLevelControl({
               e.stopPropagation();
               onChange({ level: l.value });
             }}
-            className={`flex h-7 items-center justify-center px-2.5 font-sans text-[12px] font-semibold ${
+            className={`flex h-8 cursor-pointer items-center justify-center px-3 font-ui text-[12px] font-bold transition-colors ${
               level === l.value
-                ? "bg-accent text-paper"
-                : "text-muted hover:bg-accent-wash hover:text-accent bg-white"
+                ? "bg-primary text-surface"
+                : "text-fg-muted hover:bg-primary-wash hover:text-primary bg-surface"
             }`}
           >
             {l.label}

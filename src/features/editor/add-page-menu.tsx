@@ -40,9 +40,9 @@ export function AddPageMenu({
       <button
         onClick={onToggle}
         aria-expanded={open}
-        className="text-faint hover:border-accent hover:text-accent border-dash flex h-10 w-[84px] items-center justify-center gap-1.5 rounded-[3px] border-[1.5px] border-dashed font-sans text-[11px] font-semibold"
+        className="text-fg-muted hover:border-primary hover:bg-primary-wash hover:text-primary border-edge flex h-11 w-[84px] cursor-pointer items-center justify-center gap-1.5 rounded-full border-[1.5px] border-dashed font-ui text-[13px] font-bold transition-colors"
       >
-        <Icon name="plus" size={14} strokeWidth={1.8} />
+        <Icon name="plus" size={16} strokeWidth={2} />
         Add
       </button>
       {open && (
@@ -51,7 +51,7 @@ export function AddPageMenu({
           <div className="fixed inset-0 z-20" onClick={onClose} />
           <div
             ref={menuRef}
-            className={`bg-card border-hair-warm absolute left-[92px] z-30 w-56 overflow-hidden rounded-lg border shadow-[0_12px_32px_rgba(40,36,28,0.18)] ${
+            className={`bg-surface border-hairline shadow-float rise-in absolute left-[92px] z-30 w-64 overflow-hidden rounded-card border p-1.5 ${
               up ? "bottom-0" : "top-0"
             }`}
           >
@@ -59,12 +59,12 @@ export function AddPageMenu({
               <button
                 key={t.id}
                 onClick={() => onAdd(t.id)}
-                className="hover:bg-accent-wash block w-full px-3.5 py-2.5 text-left"
+                className="hover:bg-primary-wash block w-full cursor-pointer rounded-field px-3 py-2.5 text-left transition-colors"
               >
-                <div className="text-ink font-sans text-[13px] font-semibold">
+                <div className="text-fg font-ui text-[15px] font-bold">
                   {t.label}
                 </div>
-                <div className="text-faint2 mt-0.5 font-sans text-[11px] leading-snug">
+                <div className="text-fg-muted mt-0.5 font-ui text-[13px] leading-snug">
                   {t.description}
                 </div>
               </button>

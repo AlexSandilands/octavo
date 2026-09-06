@@ -57,16 +57,18 @@ export function ImageBlockControl({
           inputRef.current?.click();
         }}
         disabled={busy}
-        className="border-hair text-ink hover:border-accent flex h-7 items-center gap-1.5 rounded-[6px] border bg-white px-2.5 font-sans text-[12px] font-semibold disabled:opacity-60"
+        className="border-edge text-fg hover:border-primary hover:bg-primary-wash hover:text-primary flex h-8 cursor-pointer items-center gap-1.5 rounded-full border bg-surface px-3 font-ui text-[13px] font-bold transition-colors disabled:opacity-60"
       >
-        <Icon name="upload" size={15} className="text-accent" />
+        <Icon name="upload" size={15} className="text-primary" />
         {busy ? "Uploading…" : hasImage ? "Replace image" : "Upload image"}
       </button>
       {error && (
-        <span className="text-warn font-sans text-[12px]">{error}</span>
+        <span className="text-danger font-ui text-[13px] font-bold">
+          {error}
+        </span>
       )}
       {local && !error && (
-        <span className="text-faint2 font-sans text-[12px]">
+        <span className="text-fg-muted font-ui text-[13px]">
           Saved to local dev storage
         </span>
       )}

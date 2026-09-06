@@ -157,9 +157,9 @@ function Toolbar({
   };
 
   return (
-    <div className="border-hair chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex flex-col gap-1.5 rounded-[8px] border bg-white p-1.5 shadow-[0_4px_14px_rgba(40,36,28,0.16)]">
+    <div className="border-hairline bg-surface shadow-float chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex flex-col gap-1.5 rounded-[20px] border p-1.5">
       <div className="flex items-center gap-1.5 whitespace-nowrap">
-        <div className="border-hair flex overflow-hidden rounded-[6px] border">
+        <div className="border-edge flex overflow-hidden rounded-full border">
           {TEXT_SIZES.map((s) => (
             <TbBtn
               key={s.value}
@@ -173,7 +173,7 @@ function Toolbar({
         <div
           role="group"
           aria-label="Text alignment"
-          className="border-hair flex overflow-hidden rounded-[6px] border"
+          className="border-edge flex overflow-hidden rounded-full border"
         >
           {TEXT_ALIGNS.map((a) => (
             <TbBtn
@@ -185,7 +185,7 @@ function Toolbar({
             />
           ))}
         </div>
-        <span className="bg-line h-5 w-px" />
+        <span className="bg-hairline h-5 w-px" />
         <TbBtn
           label="B"
           labelClass="font-bold"
@@ -208,7 +208,7 @@ function Toolbar({
           active={editor.isActive("underline")}
           onClick={() => editor.chain().focus().toggleMark("underline").run()}
         />
-        <span className="bg-line h-5 w-px" />
+        <span className="bg-hairline h-5 w-px" />
         <TbBtn
           icon="listBullet"
           title="Bullet list"
@@ -221,7 +221,7 @@ function Toolbar({
           active={editor.isActive("orderedList")}
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
         />
-        <span className="bg-line h-5 w-px" />
+        <span className="bg-hairline h-5 w-px" />
         <TbBtn
           icon="link"
           title="Link"
@@ -246,13 +246,13 @@ function Toolbar({
                 setLinkOpen(false);
               }
             }}
-            className="border-hair text-body h-7 w-52 rounded-[6px] border px-2 font-sans text-[12px] outline-none focus:border-accent"
+            className="border-edge text-fg bg-surface focus:border-primary h-8 w-52 rounded-full border px-3 font-ui text-[13px] outline-none"
           />
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={applyLink}
-            className="bg-accent text-paper h-7 rounded-[6px] px-2.5 font-sans text-[11px] font-semibold"
+            className="bg-primary text-surface hover:bg-primary-strong h-8 cursor-pointer rounded-full px-3 font-ui text-[12px] font-bold transition-colors"
           >
             Apply
           </button>
@@ -310,10 +310,10 @@ function TbBtn({
         e.stopPropagation();
         onClick();
       }}
-      className={`rich-text-tool flex h-7 min-w-7 cursor-pointer items-center justify-center px-1.5 font-sans text-[12px] font-semibold transition-colors ${
+      className={`rich-text-tool flex h-8 min-w-8 cursor-pointer items-center justify-center rounded-full px-2 font-ui text-[12px] font-bold transition-colors ${
         active
-          ? "bg-accent text-paper"
-          : "text-muted hover:bg-accent-wash hover:text-accent bg-white"
+          ? "bg-primary text-surface"
+          : "text-fg-muted hover:bg-primary-wash hover:text-primary bg-surface"
       }`}
     >
       {icon ? (

@@ -20,7 +20,7 @@ export const TOOLBAR_RESERVE = 92;
 // toggle. It floats over the foot of the canvas rather than sitting in a strip
 // above it (issue #222) — the tools sit beside the end of the page, which is
 // where an inserted block lands and where the overflow marker appears; a panned
-// page shows through around it. Every target is 40px and always visible; labels
+// page shows through around it. Every target is 44px and always visible; labels
 // come in from `xl`, where the pill has room.
 export function EditorToolbar({
   onAddBlock,
@@ -54,7 +54,7 @@ export function EditorToolbar({
       <div
         role="group"
         aria-label="Editor tools"
-        className="border-hair-warm pointer-events-auto flex max-w-full items-center gap-2 rounded-[14px] border bg-white px-2.5 py-2 shadow-[0_8px_28px_rgba(40,36,28,0.22)]"
+        className="bg-surface border-hairline shadow-float pointer-events-auto flex max-w-full items-center gap-1.5 rounded-full border p-1.5"
       >
         {/* `unavailable`, not `disabled`: it keeps the button focusable — see
             `unavailable` in `ui.tsx`. */}
@@ -85,7 +85,7 @@ export function EditorToolbar({
                 ? "This page is filled by a photo"
                 : `Insert a ${b.label.toLowerCase()} block`
             }
-            iconClass="text-accent"
+            iconClass="text-primary"
             showLabel
             disabled={insertDisabled}
             onClick={() => onAddBlock(b.type)}
@@ -115,11 +115,11 @@ export function EditorToolbar({
 }
 
 function Divider() {
-  return <span className="bg-line mx-0.5 h-6 w-px" />;
+  return <span className="bg-hairline mx-0.5 h-6 w-px" />;
 }
 
 // Its own shape rather than the house Button (§6 allows a bordered icon square):
-// a 40px square that grows a label from `xl`, plus the aria-pressed and
+// a 44px round target that grows a label from `xl`, plus the aria-pressed and
 // aria-keyshortcuts a tool bar owes. The interaction contract is the house one.
 function Tool({
   icon,
@@ -148,10 +148,10 @@ function Tool({
 }) {
   const inert = disabled || unavailable;
   const look = inert
-    ? "border-hair-warm text-ink cursor-default bg-white opacity-45"
+    ? "text-fg cursor-default opacity-40"
     : pressed
-      ? "border-accent bg-accent text-paper cursor-pointer motion-safe:active:scale-95"
-      : "border-hair-warm text-ink hover:border-accent hover:bg-accent-wash cursor-pointer bg-white motion-safe:active:scale-95";
+      ? "bg-primary text-surface cursor-pointer motion-safe:active:scale-95"
+      : "text-fg hover:bg-primary-wash hover:text-primary cursor-pointer motion-safe:active:scale-95";
   return (
     <button
       type="button"
@@ -162,9 +162,14 @@ function Tool({
       aria-label={label}
       aria-pressed={pressed}
       aria-keyshortcuts={shortcut}
-      className={`flex h-10 w-10 flex-none items-center justify-center gap-1.5 rounded-[9px] border font-sans text-[13px] font-semibold transition-[transform,background-color,border-color,color] duration-150 ease-out select-none ${showLabel ? "xl:w-auto xl:px-3.5" : ""} ${look}`}
+      className={`flex h-11 w-11 flex-none items-center justify-center gap-1.5 rounded-full font-ui text-[14px] font-bold transition-[transform,background-color,color] duration-150 ease-out select-none ${showLabel ? "xl:w-auto xl:px-3.5" : ""} ${look}`}
     >
-      <Icon name={icon} size={16} className={pressed ? "" : iconClass} />
+      <Icon
+        name={icon}
+        size={18}
+        strokeWidth={1.9}
+        className={pressed ? "" : iconClass}
+      />
       {showLabel && <span className="hidden xl:inline">{label}</span>}
     </button>
   );

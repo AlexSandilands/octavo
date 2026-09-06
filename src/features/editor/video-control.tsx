@@ -41,9 +41,9 @@ export function VideoBlockControl({
           e.stopPropagation();
           setOpen(true);
         }}
-        className="border-hair text-ink hover:border-accent flex h-7 items-center gap-1.5 rounded-[6px] border bg-white px-2.5 font-sans text-[12px] font-semibold"
+        className="border-edge text-fg hover:border-primary hover:bg-primary-wash hover:text-primary flex h-8 cursor-pointer items-center gap-1.5 rounded-full border bg-surface px-3 font-ui text-[13px] font-bold transition-colors"
       >
-        <Icon name="play" size={13} className="text-accent" />
+        <Icon name="play" size={13} className="text-primary" />
         {videoId ? youtubeWatchLabel(videoId) : "Add a video link"}
       </button>
 

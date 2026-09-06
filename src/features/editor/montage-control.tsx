@@ -41,9 +41,9 @@ export function MontageBlockControl({
           e.stopPropagation();
           setOpen(true);
         }}
-        className="border-hair text-ink hover:border-accent flex h-7 items-center gap-1.5 rounded-[6px] border bg-white px-2.5 font-sans text-[12px] font-semibold"
+        className="border-edge text-fg hover:border-primary hover:bg-primary-wash hover:text-primary flex h-8 cursor-pointer items-center gap-1.5 rounded-full border bg-surface px-3 font-ui text-[13px] font-bold transition-colors"
       >
-        <Icon name="grid" size={15} className="text-accent" />
+        <Icon name="grid" size={15} className="text-primary" />
         {items.length === 0
           ? "Add images"
           : `Edit montage (${items.length} image${items.length === 1 ? "" : "s"})`}
