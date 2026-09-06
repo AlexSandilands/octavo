@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ROW_CLASS, RowAction } from "@/components/list-rows";
 import { SelectCheckbox } from "@/components/select-checkbox";
 import { Pill } from "@/components/ui";
 import { DeleteIssueButton } from "./delete-issue-button";
@@ -17,6 +18,8 @@ export type IssueRowData = {
   thumb: React.ReactNode;
 };
 
+// One issue: a card on a phone, a table line from md. The cover, the title
+// (a link to the editor), the facts, a status chip, Edit and Delete.
 export function IssueRow({
   issue,
   selected,
@@ -29,8 +32,12 @@ export function IssueRow({
   const editHref = `/admin/issues/${issue.id}/edit`;
 
   return (
-    <div className="border-line-soft flex flex-col gap-3 border-b py-4 sm:flex-row sm:items-center sm:gap-5">
-      <div className="flex min-w-0 items-center gap-3 sm:flex-1 sm:gap-4">
+    <div
+      className={`${ROW_CLASS} flex flex-col gap-3 md:flex-row md:items-center md:gap-4 ${
+        selected ? "bg-primary-wash md:bg-primary-wash" : ""
+      }`}
+    >
+      <div className="flex min-w-0 items-center gap-3 md:flex-1 md:gap-4">
         <SelectCheckbox
           checked={selected}
           onChange={(next) => onSelect(issue.id, next)}
@@ -40,39 +47,35 @@ export function IssueRow({
           href={editHref}
           aria-label={`Edit ${issue.title}`}
           tabIndex={-1}
-          className="flex-none overflow-hidden rounded-[3px] shadow-[0_1px_4px_-1px_rgba(20,32,28,0.35)]"
+          className="shadow-card flex-none overflow-hidden rounded-[4px]"
           style={{ width: THUMB_W, height: THUMB_H }}
         >
           {issue.thumb ?? <div className="photo-fill h-full w-full" />}
         </Link>
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-            <Link
-              href={editHref}
-              className="text-ink hover:text-accent font-serif text-[19px] leading-tight hover:underline"
-            >
-              {issue.title}
-            </Link>
-            <span className="text-faint2 font-mono text-[11px]">
-              No. {issue.number}
-            </span>
-          </div>
-          <div className="text-faint mt-1 font-sans text-[13px]">
-            {issue.pages} {issue.pages === 1 ? "page" : "pages"}
+          <Link
+            href={editHref}
+            className="text-fg hover:text-primary line-clamp-2 font-ui text-[17px] leading-snug font-bold hover:underline"
+          >
+            {issue.title}
+          </Link>
+          <div className="text-fg-muted mt-0.5 font-ui text-[14px]">
+            No. {issue.number} · {issue.pages}{" "}
+            {issue.pages === 1 ? "page" : "pages"}
           </div>
         </div>
       </div>
-      {/* On a phone the row wraps and this strip sits under the title, indented
-          past the checkbox and thumbnail so it lines up with it. */}
-      <div className="flex flex-none items-center justify-between gap-3 pl-[114px] sm:justify-end sm:gap-4 sm:pl-0">
+      {/* On a phone this strip sits under the title; from md it is the row's
+          right-hand columns. */}
+      <div className="flex flex-none items-center justify-between gap-2 md:justify-end md:gap-3">
         <Pill status={issue.status === "published" ? "Published" : "Draft"} />
-        <div className="flex items-center gap-2 sm:gap-4">
-          <Link
+        <div className="flex items-center gap-1">
+          <RowAction
+            icon="pencil"
+            label="Edit"
+            ariaLabel={`Edit ${issue.title}`}
             href={editHref}
-            className="text-accent text-right font-sans text-sm font-semibold hover:underline sm:w-14"
-          >
-            Edit
-          </Link>
+          />
           <DeleteIssueButton id={issue.id} title={issue.title} />
         </div>
       </div>

@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ADMIN_LIST_PAGE } from "@/components/admin-list-layout";
-import { Icon } from "@/components/icons";
+import { AdminPageHeader } from "@/components/admin-page-header";
+import { EmptyCard } from "@/components/empty-states";
 import { Button } from "@/components/ui";
 import type {
   SponsorFilter,
@@ -47,41 +48,33 @@ export function SponsorsManager({
     // Pinned header and filters over scrolling rows from md up; see
     // admin-list-layout.ts.
     <div className={ADMIN_LIST_PAGE}>
-      <div className="flex flex-none flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-ink font-serif text-3xl">Sponsors</h1>
-          <p className="text-faint mt-1.5 font-sans text-sm">{summary}</p>
-        </div>
-        {list.total > 0 && (
-          <Button
-            icon="plus"
-            onClick={() => setEditing("new")}
-            className="w-full whitespace-nowrap sm:w-auto"
-          >
-            Add sponsor
-          </Button>
-        )}
-      </div>
+      <AdminPageHeader
+        title="Sponsors"
+        summary={summary}
+        stats={[
+          { label: "Sponsors", value: list.total, icon: "banner" },
+          { label: "Expired", value: list.expiredTotal, icon: "alertCircle" },
+        ]}
+        actions={
+          list.total > 0 ? (
+            <Button icon="plus" onClick={() => setEditing("new")}>
+              Add sponsor
+            </Button>
+          ) : undefined
+        }
+      />
 
       {list.total === 0 ? (
-        <div className="mt-8">
-          <div className="bg-card border-line flex min-h-[360px] flex-col items-center justify-center rounded-md border p-9 text-center shadow-[0_1px_3px_rgba(0,0,0,0.07)]">
-            <div className="bg-tint text-accent flex h-[72px] w-[72px] items-center justify-center rounded-full">
-              <Icon name="banner" size={32} strokeWidth={1.5} />
-            </div>
-            <h2 className="text-ink mt-5 font-serif text-2xl">
-              No sponsors yet
-            </h2>
-            <p className="text-muted mt-2.5 max-w-sm font-sans text-[15px] leading-relaxed">
-              Add the patrons who support the club — a logo and a link. You can
-              then drop each one into an issue from the editor.
-            </p>
-            <div className="mt-6">
-              <Button icon="plus" onClick={() => setEditing("new")}>
-                Add your first sponsor
-              </Button>
-            </div>
-          </div>
+        <div className="mt-6">
+          <EmptyCard
+            icon="banner"
+            title="No sponsors yet"
+            body="Add the patrons who support the club — a logo and a link. You can then drop each one into an issue from the editor."
+          >
+            <Button icon="plus" onClick={() => setEditing("new")}>
+              Add your first sponsor
+            </Button>
+          </EmptyCard>
         </div>
       ) : (
         <SponsorsTable

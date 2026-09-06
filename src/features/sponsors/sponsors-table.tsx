@@ -6,6 +6,11 @@ import {
   ADMIN_LIST_TOOLBAR,
 } from "@/components/admin-list-layout";
 import { ListFilter, type ListFilterOption } from "@/components/list-filter";
+import {
+  ColumnHeader,
+  EMPTY_RESULT_CLASS,
+  ListRows,
+} from "@/components/list-rows";
 import { ListPagination } from "@/components/list-pagination";
 import { ListSearch } from "@/components/list-search";
 import { SponsorRow } from "./sponsor-row";
@@ -81,23 +86,27 @@ export function SponsorsTable({
       </div>
 
       {list.rows.length > 0 && (
-        <div className="border-line text-faint2 mt-4 hidden flex-none items-center border-b px-1.5 pb-2.5 font-sans text-[10px] font-semibold tracking-[0.14em] uppercase sm:flex">
+        <ColumnHeader>
           <span className="flex-1">Sponsor</span>
-          <span className="w-[190px]">Link</span>
-          <span className="w-[150px]">Active until</span>
-          <span className="w-[80px]" />
-        </div>
+          <span className="w-[220px]">Link</span>
+          <span className="w-[170px]">Active until</span>
+          <span className="w-[176px]" />
+        </ColumnHeader>
       )}
 
       <div className={ADMIN_LIST_ROWS}>
-        {list.rows.map((s) => (
-          <SponsorRow
-            key={s.id}
-            sponsor={s}
-            onEdit={() => onEdit(s)}
-            onChanged={onChanged}
-          />
-        ))}
+        {list.rows.length > 0 && (
+          <ListRows>
+            {list.rows.map((s) => (
+              <SponsorRow
+                key={s.id}
+                sponsor={s}
+                onEdit={() => onEdit(s)}
+                onChanged={onChanged}
+              />
+            ))}
+          </ListRows>
+        )}
 
         {/* The result of the search / filter, live. Mounted whatever the outcome
           — a region that arrives together with its text is announced
@@ -106,11 +115,7 @@ export function SponsorsTable({
         <p
           role="status"
           aria-live="polite"
-          className={
-            list.rows.length === 0
-              ? "text-faint py-10 text-center font-sans text-sm"
-              : "sr-only"
-          }
+          className={list.rows.length === 0 ? EMPTY_RESULT_CLASS : "sr-only"}
         >
           {resultMessage}
         </p>

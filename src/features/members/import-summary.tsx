@@ -1,5 +1,6 @@
 "use client";
 
+import { Icon } from "@/components/icons";
 import type { SkippedImportRow } from "@/app/admin/members/actions";
 
 export type ImportSummaryData = {
@@ -24,23 +25,34 @@ export function ImportSummary({ summary }: { summary: ImportSummaryData }) {
 
   return (
     <>
-      <p className="text-muted mt-2.5 font-sans text-[15px] leading-relaxed">
-        Done — <strong className="text-ink">{added} added</strong>,{" "}
-        {alreadyMembers} already {alreadyMembers === 1 ? "a member" : "members"}
-        {updated > 0 && <> ({updated} of them given the name from this file)</>}
-        , {invalid} invalid {invalid === 1 ? "row" : "rows"} skipped.
+      <p className="bg-ok-soft text-fg mt-3 flex gap-3 rounded-field p-4 font-ui text-[16px] leading-relaxed">
+        <Icon
+          name="checkCircle"
+          size={22}
+          strokeWidth={2}
+          className="text-ok mt-0.5 flex-none"
+        />
+        <span>
+          Done — <strong className="text-fg">{added} added</strong>,{" "}
+          {alreadyMembers} already{" "}
+          {alreadyMembers === 1 ? "a member" : "members"}
+          {updated > 0 && (
+            <> ({updated} of them given the name from this file)</>
+          )}
+          , {invalid} invalid {invalid === 1 ? "row" : "rows"} skipped.
+        </span>
       </p>
 
       {skippedCount > 0 && (
-        <div className="border-line-soft mt-4 rounded-lg border bg-white px-4 py-3 font-sans text-[14px]">
-          <p className="text-ink">
+        <div className="bg-warn-soft mt-4 rounded-field px-4 py-3 font-ui text-[15px]">
+          <p className="text-fg">
             {one ? "One address" : `${skippedCount} addresses`} in the file
             couldn’t be used, so {one ? "it was" : "they were"} left out.
             Everyone else was imported. Correct{" "}
             {one ? "it in your spreadsheet" : "them in your spreadsheet"} and
             import the file again to add {one ? "them" : "the rest"}.
           </p>
-          <ul className="text-muted mt-2 space-y-1">
+          <ul className="text-fg-muted mt-2 space-y-1">
             {skipped.map((row) => (
               <li key={row.row} className="break-words">
                 {row.email || `Row ${row.row}`}
@@ -48,7 +60,9 @@ export function ImportSummary({ summary }: { summary: ImportSummaryData }) {
             ))}
           </ul>
           {rest > 0 && (
-            <p className="text-faint mt-1.5 text-[13px]">…and {rest} more.</p>
+            <p className="text-fg-muted mt-1.5 text-[14px]">
+              …and {rest} more.
+            </p>
           )}
         </div>
       )}

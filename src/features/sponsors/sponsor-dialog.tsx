@@ -2,8 +2,14 @@
 
 import { useRef, useState } from "react";
 import { DialogShell } from "@/components/dialog-shell";
-import { Icon } from "@/components/icons";
-import { Button, IconButton } from "@/components/ui";
+import {
+  DialogActions,
+  DialogBody,
+  DialogHeader,
+  Field,
+  FIELD_CLASS,
+} from "@/components/dialog-parts";
+import { Button } from "@/components/ui";
 import type { SponsorListItem } from "@/lib/sponsors";
 import {
   createSponsorAction,
@@ -96,28 +102,21 @@ export function SponsorDialog({
 
   return (
     <DialogShell
-      panelClassName="scrollbar-soft bg-card max-h-[90vh] w-[520px] overflow-y-auto rounded-[10px] [--scrollbar-surface:var(--color-card)] [scrollbar-gutter:stable] shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
+      panelClassName="md:w-[540px]"
       locked={saving}
       onClose={onClose}
     >
       {(titleId) => (
         <>
-          <div className="flex items-center justify-between px-8 pt-7">
-            <h2
-              id={titleId}
-              className="text-ink font-serif text-[26px] leading-tight"
-            >
-              {editing ? "Edit sponsor" : "Add sponsor"}
-            </h2>
-            <IconButton
-              icon="close"
-              label="Close"
-              onClick={onClose}
-              disabled={saving}
-            />
-          </div>
+          <DialogHeader
+            titleId={titleId}
+            kicker="Sponsors"
+            title={editing ? "Edit sponsor" : "Add sponsor"}
+            onClose={onClose}
+            closeDisabled={saving}
+          />
 
-          <div className="space-y-5 px-8 pt-6">
+          <DialogBody className="mt-5 flex flex-col gap-5">
             <Field label="Name" htmlFor="sponsor-name">
               <input
                 id="sponsor-name"
@@ -125,7 +124,7 @@ export function SponsorDialog({
                 onChange={(e) => setName(e.target.value)}
                 maxLength={200}
                 placeholder="e.g. Kawau Bay Hardware"
-                className="border-hair focus:border-accent text-ink h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-[15px] outline-none"
+                className={FIELD_CLASS}
               />
             </Field>
 
@@ -136,13 +135,13 @@ export function SponsorDialog({
                 onChange={(e) => setHref(e.target.value)}
                 maxLength={2000}
                 placeholder="example.com or https://example.com"
-                className="border-hair focus:border-accent text-ink h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-[15px] outline-none"
+                className={FIELD_CLASS}
               />
             </Field>
 
-            <Field label="Logo (optional)" htmlFor="">
-              <div className="flex items-center gap-4">
-                <div className="border-line flex h-16 w-28 flex-none items-center justify-center overflow-hidden rounded-lg border bg-white">
+            <Field label="Logo (optional)">
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="border-hairline bg-surface-2 flex h-16 w-28 flex-none items-center justify-center overflow-hidden rounded-field border">
                   {logoUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -151,19 +150,19 @@ export function SponsorDialog({
                       className="h-full w-full object-contain"
                     />
                   ) : (
-                    <span className="text-faint2 font-mono text-[10px]">
+                    <span className="text-fg-muted font-ui text-[11px] font-bold tracking-[0.08em]">
                       NO LOGO
                     </span>
                   )}
                 </div>
-                <div className="flex flex-col items-start gap-1.5">
+                <div className="flex flex-wrap items-center gap-2">
                   <Button
                     variant="secondary"
                     size="sm"
+                    icon="upload"
                     onClick={() => fileRef.current?.click()}
                     busy={uploading}
                   >
-                    <Icon name="upload" size={15} className="text-accent" />
                     {uploading
                       ? "Uploading…"
                       : logoUrl
@@ -171,18 +170,17 @@ export function SponsorDialog({
                         : "Upload logo"}
                   </Button>
                   {logoUrl && (
-                    // A quiet text action, not a house Button — it only needed the
-                    // cursor and a transition to match the rest.
-                    <button
-                      type="button"
+                    <Button
+                      variant="quiet"
+                      size="sm"
+                      icon="close"
                       onClick={() => {
                         setLogoId(null);
                         setLogoUrl(null);
                       }}
-                      className="text-faint2 hover:text-warn cursor-pointer rounded-sm font-sans text-[12px] font-medium transition-[color] duration-150"
                     >
                       Remove logo
-                    </button>
+                    </Button>
                   )}
                 </div>
                 <input
@@ -195,28 +193,31 @@ export function SponsorDialog({
               </div>
             </Field>
 
-            <Field label="Active until (optional)" htmlFor="sponsor-active">
+            <Field
+              label="Active until (optional)"
+              htmlFor="sponsor-active"
+              hint="After this date the sponsor is flagged expired here. It is not removed from issues automatically."
+            >
               <input
                 id="sponsor-active"
                 type="date"
                 value={activeUntil}
                 onChange={(e) => setActiveUntil(e.target.value)}
-                className="border-hair focus:border-accent text-ink h-12 rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-[15px] outline-none"
+                className={`${FIELD_CLASS} md:w-auto`}
               />
-              <p className="text-faint2 mt-1.5 font-sans text-[12px]">
-                After this date the sponsor is flagged expired here. It is not
-                removed from issues automatically.
-              </p>
             </Field>
-          </div>
 
-          {error && (
-            <p className="text-warn px-8 pt-4 font-sans text-[13px] font-semibold">
-              {error}
-            </p>
-          )}
+            {error && (
+              <p
+                role="alert"
+                className="text-danger font-ui text-[15px] font-bold"
+              >
+                {error}
+              </p>
+            )}
+          </DialogBody>
 
-          <div className="flex justify-end gap-3 px-8 pt-6 pb-7">
+          <DialogActions>
             <Button variant="secondary" onClick={onClose} disabled={saving}>
               Cancel
             </Button>
@@ -225,35 +226,12 @@ export function SponsorDialog({
               busy={saving}
               disabled={uploading}
               icon="check"
-              iconPosition="left"
             >
               {saving ? "Saving…" : editing ? "Save changes" : "Save sponsor"}
             </Button>
-          </div>
+          </DialogActions>
         </>
       )}
     </DialogShell>
-  );
-}
-
-function Field({
-  label,
-  htmlFor,
-  children,
-}: {
-  label: string;
-  htmlFor: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label
-        htmlFor={htmlFor || undefined}
-        className="text-faint mb-1.5 block font-sans text-[11px] font-semibold tracking-[0.14em] uppercase"
-      >
-        {label}
-      </label>
-      {children}
-    </div>
   );
 }

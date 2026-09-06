@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Icon } from "@/components/icons";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { ROW_CLASS, RowAction } from "@/components/list-rows";
+import { Chip } from "@/components/ui";
 import { externalHref } from "@/lib/rich-text";
 import type { SponsorListItem } from "@/lib/sponsors";
 import { deleteSponsorAction } from "@/app/admin/sponsors/actions";
@@ -34,12 +35,12 @@ export function SponsorRow({
 
   return (
     <div
-      className={`border-line-soft flex flex-wrap items-center gap-x-3 gap-y-2 border-b px-1.5 py-3.5 sm:gap-0 ${
+      className={`${ROW_CLASS} flex flex-wrap items-center gap-x-3 gap-y-3 ${
         pending ? "opacity-40" : ""
       }`}
     >
-      <div className="flex min-w-0 basis-full items-center gap-3 sm:basis-0 sm:flex-1">
-        <div className="border-line flex h-9 w-[54px] flex-none items-center justify-center overflow-hidden rounded border bg-white">
+      <div className="flex min-w-0 basis-full items-center gap-3 md:basis-0 md:flex-1">
+        <div className="border-hairline bg-surface flex h-11 w-16 flex-none items-center justify-center overflow-hidden rounded-[8px] border">
           {sponsor.logo ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -48,67 +49,59 @@ export function SponsorRow({
               className="h-full w-full object-contain"
             />
           ) : (
-            <span className="text-faint2 font-mono text-[9px]">NO LOGO</span>
+            <span className="text-fg-muted font-ui text-[10px] font-bold tracking-[0.08em]">
+              NO LOGO
+            </span>
           )}
         </div>
-        <div className="text-ink truncate font-sans text-[15px] font-semibold">
-          {sponsor.name}
+        <div className="min-w-0">
+          <div className="text-fg truncate font-ui text-[16px] font-bold">
+            {sponsor.name}
+          </div>
+          {/* The link sits under the name on a phone; from md it has a column. */}
+          <div className="min-w-0 md:hidden">
+            <LinkCell href={sponsor.href} link={link} />
+          </div>
         </div>
       </div>
 
-      <div className="min-w-0 basis-full pr-3 sm:w-[190px] sm:flex-none">
-        {link ? (
-          <a
-            href={link}
-            target="_blank"
-            rel="noopener noreferrer nofollow"
-            className="text-accent block truncate font-sans text-[13px] font-medium hover:underline"
-          >
-            {sponsor.href}
-          </a>
-        ) : (
-          <span className="text-faint2 font-sans text-[13px]">—</span>
-        )}
+      <div className="hidden min-w-0 pr-3 md:block md:w-[220px] md:flex-none">
+        <LinkCell href={sponsor.href} link={link} />
       </div>
 
-      <div className="flex items-center gap-2 sm:w-[150px]">
+      <div className="flex items-center gap-2 md:w-[170px]">
         {sponsor.activeUntil ? (
           <>
-            <span className="text-faint font-sans text-[13px]">
+            <span className="text-fg-muted font-ui text-[14px]">
               {sponsor.activeUntil}
             </span>
             {sponsor.expired && (
-              <span className="bg-warn-soft text-warn rounded-full px-2 py-0.5 font-sans text-[10px] font-semibold">
+              <span className="bg-warn-soft text-warn inline-flex h-7 items-center rounded-full px-2.5 font-ui text-[13px] font-bold">
                 Expired
               </span>
             )}
           </>
         ) : (
-          <span className="text-faint2 font-sans text-[13px]">No end date</span>
+          <Chip>No end date</Chip>
         )}
       </div>
 
-      <div className="ml-auto flex items-center justify-end gap-1 sm:ml-0 sm:w-[80px]">
-        <button
-          type="button"
+      <div className="ml-auto flex items-center justify-end gap-1 md:ml-0 md:w-[176px]">
+        <RowAction
+          icon="pencil"
+          label="Edit"
+          ariaLabel={`Edit ${sponsor.name}`}
+          disabled={pending}
           onClick={onEdit}
+        />
+        <RowAction
+          icon="trash"
+          label="Delete"
+          tone="danger"
+          ariaLabel={`Delete ${sponsor.name}`}
           disabled={pending}
-          title={`Edit ${sponsor.name}`}
-          aria-label={`Edit ${sponsor.name}`}
-          className="text-accent w-9 cursor-pointer text-right font-sans text-sm font-semibold hover:underline disabled:opacity-40"
-        >
-          Edit
-        </button>
-        <button
-          type="button"
           onClick={() => setConfirming(true)}
-          disabled={pending}
-          title={`Delete ${sponsor.name}`}
-          aria-label={`Delete ${sponsor.name}`}
-          className="text-faint2 hover:text-warn hover:border-warn flex h-9 w-9 items-center justify-center rounded-lg border border-transparent disabled:opacity-40"
-        >
-          <Icon name="trash" size={17} strokeWidth={1.8} />
-        </button>
+        />
       </div>
 
       {confirming && (
@@ -122,5 +115,26 @@ export function SponsorRow({
         />
       )}
     </div>
+  );
+}
+
+function LinkCell({
+  href,
+  link,
+}: {
+  href: string | null;
+  link: string | null;
+}) {
+  if (!link)
+    return <span className="text-fg-muted font-ui text-[14px]">No link</span>;
+  return (
+    <a
+      href={link}
+      target="_blank"
+      rel="noopener noreferrer nofollow"
+      className="text-primary block truncate font-ui text-[14px] font-bold hover:underline"
+    >
+      {href}
+    </a>
   );
 }

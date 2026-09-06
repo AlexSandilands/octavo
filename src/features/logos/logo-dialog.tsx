@@ -2,8 +2,14 @@
 
 import { useRef, useState } from "react";
 import { DialogShell } from "@/components/dialog-shell";
-import { Icon } from "@/components/icons";
-import { Button, IconButton } from "@/components/ui";
+import {
+  DialogActions,
+  DialogBody,
+  DialogHeader,
+  Field,
+  FIELD_CLASS,
+} from "@/components/dialog-parts";
+import { Button } from "@/components/ui";
 import type { LogoListItem } from "@/lib/logos";
 import {
   createLogoAction,
@@ -95,51 +101,42 @@ export function LogoDialog({
 
   return (
     <DialogShell
-      panelClassName="scrollbar-soft bg-card max-h-[90vh] w-[520px] overflow-y-auto rounded-[10px] [--scrollbar-surface:var(--color-card)] [scrollbar-gutter:stable] shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
+      panelClassName="md:w-[540px]"
       locked={saving}
       onClose={onClose}
     >
       {(titleId) => (
         <>
-          <div className="flex items-center justify-between px-8 pt-7">
-            <h2
-              id={titleId}
-              className="text-ink font-serif text-[26px] leading-tight"
-            >
-              {renaming ? "Rename logo" : "Add logo"}
-            </h2>
-            <IconButton
-              icon="close"
-              label="Close"
-              onClick={onClose}
-              disabled={saving}
-            />
-          </div>
+          <DialogHeader
+            titleId={titleId}
+            kicker="Logos"
+            title={renaming ? "Rename logo" : "Add logo"}
+            onClose={onClose}
+            closeDisabled={saving}
+          />
 
-          <div className="space-y-5 px-8 pt-6">
-            <div>
-              <label
-                htmlFor="logo-name"
-                className="text-faint mb-1.5 block font-sans text-[11px] font-semibold tracking-[0.14em] uppercase"
-              >
-                Name
-              </label>
+          <DialogBody className="mt-5 flex flex-col gap-5">
+            <Field label="Name" htmlFor="logo-name">
               <input
                 id="logo-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 maxLength={200}
                 placeholder="e.g. Club fern"
-                className="border-hair focus:border-accent text-ink h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-[15px] outline-none"
+                className={FIELD_CLASS}
               />
-            </div>
+            </Field>
 
-            <div>
-              <span className="text-faint mb-1.5 block font-sans text-[11px] font-semibold tracking-[0.14em] uppercase">
-                Mark
-              </span>
-              <div className="flex items-center gap-4">
-                <div className="border-line flex h-20 w-20 flex-none items-center justify-center overflow-hidden rounded-lg border bg-white">
+            <Field
+              label="Mark"
+              hint={
+                renaming
+                  ? undefined
+                  : "Use a PNG or WebP with a transparent background — see-through areas are kept, so the mark sits cleanly on the page."
+              }
+            >
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="border-hairline bg-surface-2 flex h-20 w-20 flex-none items-center justify-center overflow-hidden rounded-field border">
                   {imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -148,13 +145,13 @@ export function LogoDialog({
                       className="h-full w-full object-contain p-1.5"
                     />
                   ) : (
-                    <span className="text-faint2 font-mono text-[10px]">
+                    <span className="text-fg-muted font-ui text-[11px] font-bold tracking-[0.08em]">
                       NO MARK
                     </span>
                   )}
                 </div>
                 {renaming ? (
-                  <p className="text-faint2 max-w-[280px] font-sans text-[12px] leading-relaxed">
+                  <p className="text-fg-muted max-w-[300px] font-ui text-[15px] leading-relaxed">
                     The image itself can&rsquo;t be swapped — add a new logo and
                     delete this one instead.
                   </p>
@@ -162,10 +159,10 @@ export function LogoDialog({
                   <Button
                     variant="secondary"
                     size="sm"
+                    icon="upload"
                     onClick={() => fileRef.current?.click()}
                     busy={uploading}
                   >
-                    <Icon name="upload" size={15} className="text-accent" />
                     {uploading
                       ? "Uploading…"
                       : imageUrl
@@ -181,22 +178,19 @@ export function LogoDialog({
                   className="hidden"
                 />
               </div>
-              {!renaming && (
-                <p className="text-faint2 mt-2 font-sans text-[12px] leading-relaxed">
-                  Use a PNG or WebP with a transparent background — see-through
-                  areas are kept, so the mark sits cleanly on the page.
-                </p>
-              )}
-            </div>
-          </div>
+            </Field>
 
-          {error && (
-            <p className="text-warn px-8 pt-4 font-sans text-[13px] font-semibold">
-              {error}
-            </p>
-          )}
+            {error && (
+              <p
+                role="alert"
+                className="text-danger font-ui text-[15px] font-bold"
+              >
+                {error}
+              </p>
+            )}
+          </DialogBody>
 
-          <div className="flex justify-end gap-3 px-8 pt-6 pb-7">
+          <DialogActions>
             <Button variant="secondary" onClick={onClose} disabled={saving}>
               Cancel
             </Button>
@@ -205,11 +199,10 @@ export function LogoDialog({
               busy={saving}
               disabled={uploading}
               icon="check"
-              iconPosition="left"
             >
               {saving ? "Saving…" : renaming ? "Save name" : "Save logo"}
             </Button>
-          </div>
+          </DialogActions>
         </>
       )}
     </DialogShell>

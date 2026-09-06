@@ -152,7 +152,7 @@ export function ResizableSplit({
       // inside its own grid area, so `items-start` (which shrink-wraps the area
       // to the content) would leave the preview nothing to stick within and it
       // would scroll away with the form.
-      className={`mt-7 flex flex-col gap-8 xl:grid xl:grid-cols-[var(--split)_2rem_minmax(0,1fr)] xl:gap-0 ${
+      className={`mt-6 flex flex-col gap-6 xl:grid xl:grid-cols-[var(--split)_2rem_minmax(0,1fr)] xl:gap-0 ${
         // While dragging, the pointer is captured by the rail but travels over
         // the panes: hold the resize cursor and stop the drag from selecting
         // the form's labels on the way past.
@@ -186,14 +186,14 @@ export function ResizableSplit({
               grip at the middle so it reads as something to take hold of. */}
           <span
             aria-hidden="true"
-            className={`bg-line group-hover:bg-accent absolute inset-y-0 w-px transition-colors ${
-              dragging ? "bg-accent" : ""
+            className={`bg-hairline group-hover:bg-primary absolute inset-y-0 w-px transition-colors ${
+              dragging ? "bg-primary" : ""
             }`}
           />
           <span
             aria-hidden="true"
-            className={`border-hair-warm group-hover:border-accent group-hover:bg-accent-wash relative h-10 w-[7px] rounded-full border-[1.5px] bg-white transition-colors ${
-              dragging ? "border-accent bg-accent-wash" : ""
+            className={`border-edge bg-surface group-hover:border-primary group-hover:bg-primary-wash relative h-12 w-[9px] rounded-full border-[1.5px] transition-colors ${
+              dragging ? "border-primary bg-primary-wash" : ""
             }`}
           />
         </div>

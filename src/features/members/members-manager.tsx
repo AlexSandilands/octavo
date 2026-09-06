@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ADMIN_LIST_PAGE } from "@/components/admin-list-layout";
+import { AdminPageHeader } from "@/components/admin-page-header";
 import { EmptyMembers } from "@/components/empty-states";
 import { MemberDialog } from "./member-dialog";
 import { ImportDialog } from "./import-dialog";
@@ -42,13 +43,15 @@ export function MembersManager({
 
   return (
     <div className={ADMIN_LIST_PAGE}>
-      <div className="flex flex-none flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-ink font-serif text-3xl">Members</h1>
-          <p className="text-faint mt-1.5 font-sans text-sm">{summary}</p>
-        </div>
-        <MembersToolbar onImport={openImport} onAdd={openAdd} />
-      </div>
+      <AdminPageHeader
+        title="Members"
+        summary={summary}
+        stats={[
+          { label: "Members", value: list.total, icon: "users" },
+          { label: "Subscribed", value: list.subscribedTotal, icon: "mail" },
+        ]}
+        actions={<MembersToolbar onImport={openImport} onAdd={openAdd} />}
+      />
 
       {list.total === 0 ? (
         <div className="mt-8">

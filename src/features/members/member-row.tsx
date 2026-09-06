@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Icon } from "@/components/icons";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { ROW_CLASS, RowAction } from "@/components/list-rows";
 import { MemberDialog } from "./member-dialog";
 import { SelectCheckbox } from "@/components/select-checkbox";
 import { Avatar, Pill } from "@/components/ui";
@@ -26,6 +27,9 @@ const REASONS: Record<string, string> = {
 const joinedLabel = (d: Date) =>
   new Date(d).toLocaleDateString("en-NZ", { month: "short", year: "numeric" });
 
+// One member: a card on a phone, a table line from md (the column widths
+// match members-table's header). The subscription chip and the role are
+// buttons that toggle; Edit and Remove sit at the end.
 export function MemberRow({
   member,
   currentUserId,
@@ -89,9 +93,11 @@ export function MemberRow({
   };
 
   return (
-    <div className="border-line-soft border-b py-3">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5 px-1.5">
-        <div className="flex min-w-0 basis-full items-center gap-3 sm:basis-0 sm:flex-1">
+    <div
+      className={`${ROW_CLASS} ${selected ? "bg-primary-wash md:bg-primary-wash" : ""}`}
+    >
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-3">
+        <div className="flex min-w-0 basis-full items-center gap-3 md:basis-0 md:flex-1">
           <SelectCheckbox
             checked={selected}
             onChange={(next) => onSelect(member.id, next)}
@@ -99,16 +105,16 @@ export function MemberRow({
           />
           <Avatar initials={initials(label)} />
           <div className="min-w-0">
-            <div className="text-ink font-sans text-[15px] font-semibold">
+            <div className="text-fg truncate font-ui text-[16px] font-bold">
               {member.name ?? "—"}
             </div>
-            <div className="text-faint truncate font-sans text-[13px]">
+            <div className="text-fg-muted truncate font-ui text-[14px]">
               {member.email}
             </div>
           </div>
         </div>
 
-        <div className="sm:w-[120px]">
+        <div className="md:w-[140px]">
           <button
             type="button"
             onClick={toggleSubscribed}
@@ -117,13 +123,13 @@ export function MemberRow({
               member.subscribed ? "Mark as unsubscribed" : "Mark as subscribed"
             }
             aria-label={`${member.subscribed ? "Unsubscribe" : "Subscribe"} ${label}`}
-            className="cursor-pointer rounded-full transition-opacity hover:opacity-75 focus-visible:outline-2 disabled:cursor-default disabled:opacity-40"
+            className="flex h-11 cursor-pointer items-center rounded-full transition-opacity hover:opacity-75 disabled:cursor-default disabled:opacity-40"
           >
             <Pill status={member.subscribed ? "Subscribed" : "Unsubscribed"} />
           </button>
         </div>
 
-        <div className="sm:w-[112px]">
+        <div className="md:w-[130px]">
           <button
             type="button"
             onClick={toggleAdmin}
@@ -136,48 +142,48 @@ export function MemberRow({
                   : "Make admin"
             }
             aria-label={`${member.isAdmin ? "Remove admin from" : "Make admin"} ${label}`}
-            className="text-muted hover:text-accent flex cursor-pointer items-center gap-1.5 font-sans text-[13px] font-medium disabled:cursor-default disabled:opacity-40 disabled:hover:text-current"
+            className={`flex h-11 cursor-pointer items-center gap-1.5 rounded-full px-3 font-ui text-[14px] font-bold transition-colors disabled:cursor-default disabled:opacity-50 ${
+              member.isAdmin
+                ? "bg-primary-soft text-primary"
+                : "text-fg-muted hover:bg-primary-wash hover:text-primary -ml-3"
+            }`}
           >
             <Icon
-              name={member.isAdmin ? "check" : "plus"}
-              size={15}
-              strokeWidth={1.8}
+              name={member.isAdmin ? "shield" : "plus"}
+              size={16}
+              strokeWidth={2}
             />
             {member.isAdmin ? "Admin" : "Make admin"}
           </button>
         </div>
 
-        <div className="text-faint hidden font-sans text-[13px] sm:block sm:w-[76px]">
+        <div className="text-fg-muted hidden font-ui text-[14px] md:block md:w-[80px]">
           {joinedLabel(member.createdAt)}
         </div>
 
-        <div className="ml-auto flex items-center justify-end gap-2 sm:ml-0 sm:w-[58px]">
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            disabled={pending}
+        <div className="ml-auto flex items-center justify-end gap-1 md:ml-0 md:w-[176px]">
+          <RowAction
+            icon="pencil"
+            label="Edit"
+            ariaLabel={`Edit ${label}`}
             title="Edit name and email"
-            aria-label={`Edit ${label}`}
-            className="text-faint2 hover:text-accent flex cursor-pointer disabled:cursor-default disabled:opacity-30 disabled:hover:text-current"
-          >
-            <Icon name="pencil" size={18} strokeWidth={1.7} />
-          </button>
-
-          <button
-            type="button"
-            onClick={remove}
-            disabled={pending || isSelf}
+            disabled={pending}
+            onClick={() => setEditing(true)}
+          />
+          <RowAction
+            icon="trash"
+            label="Remove"
+            tone="danger"
+            ariaLabel={`Remove ${label}`}
             title={isSelf ? "You can’t remove yourself" : "Remove member"}
-            aria-label={`Remove ${label}`}
-            className="text-faint2 hover:text-warn flex cursor-pointer justify-end disabled:cursor-default disabled:opacity-30 disabled:hover:text-current"
-          >
-            <Icon name="close" size={20} strokeWidth={1.7} />
-          </button>
+            disabled={pending || isSelf}
+            onClick={remove}
+          />
         </div>
       </div>
 
       {error && (
-        <p className="text-warn mt-1.5 pl-[6.75rem] font-sans text-[13px]">
+        <p className="text-danger mt-2 font-ui text-[15px] font-bold">
           {error}
         </p>
       )}

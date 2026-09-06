@@ -1,3 +1,4 @@
+import { AdminPageHeader } from "@/components/admin-page-header";
 import { AppShell } from "@/components/app-shell";
 import { requireAdminOrRedirect } from "@/server/session";
 import { SectionBasics } from "@/features/help/section-basics";
@@ -29,30 +30,27 @@ export default async function HelpPage() {
   const admin = await requireAdminOrRedirect();
   return (
     <AppShell area="admin" active="help" user={admin}>
-      <div className="mx-auto max-w-[720px] pb-16">
-        <h1 className="text-ink font-serif text-3xl">Guide</h1>
-        <p className="text-faint mt-1.5 font-sans text-sm">
-          How to run the magazine, in plain language. Nothing here needs a
-          technical bone in your body.
-        </p>
+      <div className="mx-auto max-w-[760px] pb-16">
+        <AdminPageHeader
+          title="Guide"
+          summary="How to run the magazine, in plain language. Nothing here needs a technical bone in your body."
+        />
 
-        <nav
-          aria-label="On this page"
-          className="border-line bg-card mt-6 rounded-[10px] border p-5"
-        >
-          <h2 className="text-faint font-sans text-[11px] font-semibold tracking-[0.2em] uppercase">
+        {/* A chip per section: press one and the page scrolls to it. */}
+        <nav aria-label="On this page" className="mt-5">
+          <h2 className="text-fg-muted font-ui text-[13px] font-bold tracking-[0.12em] uppercase">
             On this page
           </h2>
-          <ol className="mt-2.5 grid gap-x-8 gap-y-1.5 sm:grid-cols-2">
+          <ol className="mt-2.5 flex flex-wrap gap-2">
             {CONTENTS.map((s, i) => (
               <li key={s.id}>
                 <a
                   href={`#${s.id}`}
-                  className="text-accent hover:text-accent-strong flex items-baseline gap-2.5 py-1 font-sans text-[15px] font-medium hover:underline"
+                  className="border-edge bg-surface text-fg hover:border-primary hover:bg-primary-wash hover:text-primary flex h-11 items-center gap-2 rounded-full border-[1.5px] px-4 font-ui text-[15px] font-bold transition-colors"
                 >
                   <span
                     aria-hidden="true"
-                    className="text-faint2 font-mono text-[11px]"
+                    className="bg-primary-soft text-primary flex h-6 w-6 items-center justify-center rounded-full text-[12px] tabular-nums"
                   >
                     {i + 1}
                   </span>

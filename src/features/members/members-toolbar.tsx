@@ -13,22 +13,13 @@ export function MembersToolbar({
   onAdd: () => void;
 }) {
   return (
-    <div className="flex flex-none gap-3">
-      <Button
-        variant="secondary"
-        icon="upload"
-        onClick={onImport}
-        className="flex-1 whitespace-nowrap sm:flex-none"
-      >
+    <>
+      <Button variant="secondary" icon="upload" onClick={onImport}>
         Import CSV
       </Button>
-      <Button
-        icon="plus"
-        onClick={onAdd}
-        className="flex-1 whitespace-nowrap sm:flex-none"
-      >
+      <Button icon="plus" onClick={onAdd}>
         Add member
       </Button>
-    </div>
+    </>
   );
 }

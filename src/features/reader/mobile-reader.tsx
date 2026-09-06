@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { Button, IconButton } from "@/components/ui";
 import type { SiteSettings } from "@/lib/branding";
@@ -59,11 +59,11 @@ export function MobileReader({
   // A heading chosen from the contents sheet. The jump waits for the sheet to
   // unmount: DialogShell hands focus back to its trigger as it closes, and the
   // heading has to take it after that, not before.
-  const [jump, setJump] = useState<string | null>(null);
+  const jump = useRef<string | null>(null);
   useEffect(() => {
-    if (contents || !jump) return;
-    setJump(null);
-    const el = document.getElementById(headingDomId(jump));
+    if (contents || !jump.current) return;
+    const el = document.getElementById(headingDomId(jump.current));
+    jump.current = null;
     if (!el) return;
     const reduceMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
@@ -73,7 +73,7 @@ export function MobileReader({
       block: "start",
     });
     el.focus({ preventScroll: true });
-  }, [contents, jump]);
+  }, [contents]);
 
   const sections = readerSections(content.pages);
   const blocks: Block[] = sections.flatMap((s) => s.blocks);
@@ -265,7 +265,7 @@ export function MobileReader({
           issueNo={issueNo}
           onClose={() => setContents(false)}
           onPick={(id) => {
-            setJump(id);
+            jump.current = id;
             setContents(false);
           }}
         />

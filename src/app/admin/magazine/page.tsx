@@ -1,3 +1,4 @@
+import { AdminPageHeader } from "@/components/admin-page-header";
 import { AppShell } from "@/components/app-shell";
 import { MagazineSettings } from "@/features/magazine/magazine-settings";
 import { SettingsUnavailable } from "@/features/magazine/settings-unavailable";
@@ -23,12 +24,10 @@ export default async function MagazinePage() {
   return (
     <AppShell area="admin" active="magazine" user={admin}>
       <div className="pb-16">
-        <h1 className="text-ink font-serif text-3xl">Magazine details</h1>
-        <p className="text-faint mt-1.5 font-sans text-sm">
-          What the magazine calls itself, how the foot of every page is set, and
-          whether members can download an issue. Changes go live as soon as you
-          save — nothing needs rebuilding.
-        </p>
+        <AdminPageHeader
+          title="Magazine details"
+          summary="What the magazine calls itself, how the foot of every page is set, and whether members can download an issue. Changes go live as soon as you save — nothing needs rebuilding."
+        />
 
         {/* The form is only ever mounted with a row we actually read. That is
             the whole guarantee behind issue #126: the save sends every field,

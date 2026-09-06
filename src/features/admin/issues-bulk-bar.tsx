@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { FloatingBar } from "@/components/floating-bar";
+import { TextAction } from "@/components/list-rows";
 import { SelectCheckbox } from "@/components/select-checkbox";
 import { ISSUES_SELECTION_MAX } from "./selection-limit";
 import { deleteIssuesAction } from "@/app/admin/actions";
@@ -140,11 +142,11 @@ export function IssuesBulkBar({
 
   const countText = (
     <>
-      <span className={active ? "text-ink font-semibold" : undefined}>
+      <span className={active ? "text-fg font-bold" : undefined}>
         {active ? `${count} selected` : `Select all ${shownCount}${scope}`}
       </span>
       {hiddenSelectedCount > 0 && (
-        <span className="text-faint">
+        <span className="text-fg-muted">
           {" "}
           ({hiddenSelectedCount} {hiddenNote})
         </span>
@@ -153,11 +155,7 @@ export function IssuesBulkBar({
   );
 
   return (
-    <div
-      className={`mt-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-lg border-[1.5px] px-2 ${
-        active ? "border-line bg-accent-wash" : "border-transparent"
-      }`}
-    >
+    <div className="mt-3 flex flex-wrap items-center gap-x-1 gap-y-1 px-1">
       {/* A search matching nothing has nothing to select all of, so the box
           goes; the count stays, because the selection it describes is still
           live and the action still applies to it. */}
@@ -172,7 +170,7 @@ export function IssuesBulkBar({
         </SelectCheckbox>
       ) : (
         active && (
-          <span className="text-muted py-2.5 pl-2 font-sans text-[14px]">
+          <span className="text-fg-muted py-2.5 pl-2 font-ui text-[16px]">
             {countText}
           </span>
         )
@@ -182,47 +180,44 @@ export function IssuesBulkBar({
           fit on the served page. It also puts the total match count on screen,
           which nothing else does. */}
       {shownCount > 0 && matching > shownCount && (
-        <button
-          type="button"
+        <TextAction
           onClick={selectAllMatching}
           disabled={pending || selectingAll}
-          className="text-faint hover:text-accent cursor-pointer rounded px-2 py-2 font-sans text-[14px] font-medium underline underline-offset-4 disabled:cursor-default disabled:opacity-50"
         >
           {selectingAll
             ? "Selecting…"
             : overCap
               ? `Select first ${ISSUES_SELECTION_MAX} of ${matching}${narrowed ? " matching" : ""}`
               : `Select all ${matching}${narrowed ? " matching" : " issues"}`}
-        </button>
+        </TextAction>
       )}
 
+      {/* The action bar floats over the foot of the pane while something is
+          selected, so it is in reach however long the list is. */}
       {active && (
-        <>
-          <button
-            type="button"
+        <FloatingBar label="Selected issues">
+          <span className="text-fg px-1 font-ui text-[16px] font-bold">
+            {count} selected
+          </span>
+          <TextAction
             onClick={() => {
               setSelectionNote(null);
               onClear();
             }}
             disabled={pending}
-            className="text-faint hover:text-accent cursor-pointer rounded px-2 py-2 font-sans text-[14px] font-medium underline underline-offset-4 disabled:cursor-default disabled:opacity-50"
           >
             Clear
-          </button>
-
-          <div className="ml-auto flex flex-wrap gap-2 py-1.5">
-            <Button
-              size="sm"
-              variant="danger"
-              icon="trash"
-              iconPosition="left"
-              disabled={pending}
-              onClick={() => setConfirming(true)}
-            >
-              Delete selected
-            </Button>
-          </div>
-        </>
+          </TextAction>
+          <Button
+            size="sm"
+            variant="danger"
+            icon="trash"
+            disabled={pending}
+            onClick={() => setConfirming(true)}
+          >
+            Delete selected
+          </Button>
+        </FloatingBar>
       )}
 
       {/* Why the selection stopped where it did. Mounted whatever the count,
@@ -231,7 +226,7 @@ export function IssuesBulkBar({
           has no height. */}
       <p
         aria-live="polite"
-        className={`text-faint basis-full px-1 font-sans text-[14px] ${
+        className={`text-fg-muted basis-full px-1 font-ui text-[15px] ${
           atCap ? "pb-2" : ""
         }`}
       >
@@ -248,15 +243,19 @@ export function IssuesBulkBar({
         className={
           selectionNote
             ? "sr-only"
-            : `basis-full px-1 font-sans text-[14px] ${
-                error ? "text-warn pb-2" : result ? "text-muted pb-2" : ""
+            : `basis-full px-1 font-ui text-[15px] ${
+                error
+                  ? "text-danger pb-2 font-bold"
+                  : result
+                    ? "text-fg-muted pb-2"
+                    : ""
               }`
         }
       >
         {error}
         {!error && result && (
           <>
-            Done — <strong className="text-ink">{result}</strong>
+            Done — <strong className="text-fg">{result}</strong>
           </>
         )}
         {selectionNote}
@@ -271,7 +270,7 @@ export function IssuesBulkBar({
               {count === 1 ? "the issue and its pages" : "them and their pages"}
               , and can’t be undone.
               {publishedCount > 0 && (
-                <span className="text-warn mt-2.5 block font-semibold">
+                <span className="text-danger mt-2.5 block font-bold">
                   {publishedCount === count
                     ? count === 1
                       ? "This issue is published"

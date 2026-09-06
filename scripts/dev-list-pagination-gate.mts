@@ -114,7 +114,7 @@ try {
 
   const nav = (label: string) => page.locator(`nav[aria-label="${label}"]`);
   const status = (label: string) => nav(label).locator("span[aria-live]");
-  const summary = () => page.locator("main p.text-faint").first();
+  const summary = () => page.locator("main [data-list-summary]").first();
 
   // ── Issues dashboard ──────────────────────────────────────────────────────
   const issueRows = page.locator('a[aria-label^="Edit "]');

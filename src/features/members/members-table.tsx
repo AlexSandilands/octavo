@@ -10,6 +10,11 @@ import {
   ADMIN_LIST_TOOLBAR,
 } from "@/components/admin-list-layout";
 import { ListFilter, type ListFilterOption } from "@/components/list-filter";
+import {
+  ColumnHeader,
+  EMPTY_RESULT_CLASS,
+  ListRows,
+} from "@/components/list-rows";
 import { ListPagination } from "@/components/list-pagination";
 import { ListSearch } from "@/components/list-search";
 import { MEMBERS_SELECTION_MAX } from "./selection-limit";
@@ -178,25 +183,31 @@ export function MembersTable({
         onClear={() => setSelected(new Set())}
       />
 
-      <div className="border-line text-faint2 mt-3 hidden flex-none items-center px-1.5 pb-2.5 font-sans text-[10px] font-semibold tracking-[0.14em] uppercase sm:flex">
-        <span className="w-11 flex-none" />
-        <span className="ml-3 flex-1">Member</span>
-        <span className="w-[120px]">Subscription</span>
-        <span className="w-[112px]">Role</span>
-        <span className="w-[76px]">Joined</span>
-        <span className="w-[58px]" />
-      </div>
+      {shown.length > 0 && (
+        <ColumnHeader>
+          <span className="w-11 flex-none" />
+          <span className="ml-3 flex-1">Member</span>
+          <span className="w-[140px]">Subscription</span>
+          <span className="w-[130px]">Role</span>
+          <span className="w-[80px]">Joined</span>
+          <span className="w-[176px]" />
+        </ColumnHeader>
+      )}
 
       <div className={ADMIN_LIST_ROWS}>
-        {shown.map((m) => (
-          <MemberRow
-            key={m.id}
-            member={m}
-            currentUserId={currentUserId}
-            selected={selected.has(m.id)}
-            onSelect={select}
-          />
-        ))}
+        {shown.length > 0 && (
+          <ListRows>
+            {shown.map((m) => (
+              <MemberRow
+                key={m.id}
+                member={m}
+                currentUserId={currentUserId}
+                selected={selected.has(m.id)}
+                onSelect={select}
+              />
+            ))}
+          </ListRows>
+        )}
 
         {/* The result of the search / filter, live. Mounted whatever the
           outcome — a region that arrives together with its text is announced
@@ -207,11 +218,7 @@ export function MembersTable({
         <p
           role="status"
           aria-live="polite"
-          className={
-            shown.length === 0
-              ? "text-faint py-10 text-center font-sans text-sm"
-              : "sr-only"
-          }
+          className={shown.length === 0 ? EMPTY_RESULT_CLASS : "sr-only"}
         >
           {resultMessage}
         </p>

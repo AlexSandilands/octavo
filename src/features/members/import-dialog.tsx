@@ -2,6 +2,11 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { DialogShell } from "@/components/dialog-shell";
+import {
+  DialogActions,
+  DialogBody,
+  DialogHeader,
+} from "@/components/dialog-parts";
 import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui";
 import { importMembersAction } from "@/app/admin/members/actions";
@@ -91,28 +96,23 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <DialogShell
-      panelClassName="scrollbar-soft bg-card max-h-[90vh] w-[480px] max-w-full overflow-y-auto rounded-[10px] [--scrollbar-surface:var(--color-card)] [scrollbar-gutter:stable] shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
+      panelClassName="md:w-[520px]"
       locked={pending}
       onClose={onClose}
     >
       {(titleId) => (
         <>
-          <div className="px-8 pt-7">
-            <div className="text-accent font-sans text-[10px] font-semibold tracking-[0.2em] uppercase">
-              Members
-            </div>
-            <h2
-              id={titleId}
-              className="text-ink mt-3 font-serif text-[27px] leading-tight"
-            >
-              Import from CSV
-            </h2>
-
+          <DialogHeader
+            titleId={titleId}
+            kicker="Members"
+            title="Import from CSV"
+          />
+          <DialogBody>
             {summary ? (
               <ImportSummary summary={summary} />
             ) : (
               <>
-                <p className="text-muted mt-2.5 font-sans text-[15px] leading-relaxed">
+                <p className="text-fg-muted mt-2 font-ui text-[16px] leading-relaxed">
                   A file with an <strong>email</strong> column (and an optional{" "}
                   <strong>name</strong>, or <strong>first</strong> and{" "}
                   <strong>last name</strong> columns). We’ll skip anything that
@@ -124,9 +124,9 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
                 <button
                   type="button"
                   onClick={() => inputRef.current?.click()}
-                  className="border-line text-muted hover:border-accent hover:bg-accent-wash hover:text-accent mt-5 flex h-14 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border-[1.5px] border-dashed font-sans text-[15px] font-semibold transition-[background-color,border-color,color] duration-150"
+                  className="border-edge text-fg hover:border-primary hover:bg-primary-wash hover:text-primary mt-5 flex h-16 w-full cursor-pointer items-center justify-center gap-2 rounded-field border-2 border-dashed font-ui text-[16px] font-bold transition-[background-color,border-color,color] duration-150"
                 >
-                  <Icon name="upload" size={18} strokeWidth={1.8} />
+                  <Icon name="upload" size={20} strokeWidth={2} />
                   {preview ? "Choose a different file" : "Choose CSV file"}
                 </button>
                 <input
@@ -158,14 +158,16 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
               role="status"
               aria-live="polite"
               className={
-                error ? "text-warn mt-3 font-sans text-[14px]" : "sr-only"
+                error
+                  ? "text-danger mt-3 font-ui text-[15px] font-bold"
+                  : "sr-only"
               }
             >
               {error ?? (summary ? importSummaryAnnouncement(summary) : "")}
             </p>
-          </div>
+          </DialogBody>
 
-          <div className="flex justify-end gap-3 px-8 pt-6 pb-6">
+          <DialogActions>
             <Button
               ref={doneRef}
               variant="secondary"
@@ -180,7 +182,6 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
                 busy={pending}
                 disabled={!parsed || parsed.members.length === 0 || tooMany}
                 icon="check"
-                iconPosition="left"
               >
                 {pending
                   ? "Importing…"
@@ -189,7 +190,7 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
                     : "Import"}
               </Button>
             )}
-          </div>
+          </DialogActions>
         </>
       )}
     </DialogShell>

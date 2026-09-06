@@ -144,7 +144,7 @@ export function MenuSelect<T>({
             setOpen(true);
           }
         }}
-        className={`border-edge text-fg hover:border-primary hover:bg-primary-wash bg-surface flex cursor-pointer items-center gap-2 rounded-full border-[1.5px] px-4 font-ui text-[15px] font-bold transition-[transform,background-color,border-color] duration-150 ease-out select-none motion-safe:active:scale-[0.97] ${
+        className={`border-edge text-fg hover:border-primary hover:bg-primary-wash bg-surface flex cursor-pointer items-center gap-2 rounded-full border-[1.5px] px-4 font-ui text-[15px] font-bold whitespace-nowrap transition-[transform,background-color,border-color] duration-150 ease-out select-none motion-safe:active:scale-[0.97] ${
           size === "md" ? "h-12 text-[16px]" : "h-10"
         } ${className}`}
       >

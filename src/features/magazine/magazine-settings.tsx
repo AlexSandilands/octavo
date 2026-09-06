@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui";
 import {
   resolveSettings,
@@ -129,26 +130,28 @@ export function MagazineSettings({
                   onClick={save}
                   disabled={!dirty && status !== "error"}
                   busy={status === "saving"}
+                  icon="check"
                 >
                   {status === "saving" ? "Saving…" : "Save changes"}
                 </Button>
                 <p
                   role="status"
                   aria-live="polite"
-                  className="font-sans text-[13px] font-medium"
+                  className="font-ui text-[15px] font-bold"
                 >
                   {status === "saved" && !dirty && (
-                    <span className="text-accent">
+                    <span className="text-ok inline-flex items-center gap-1.5">
+                      <Icon name="checkCircle" size={18} strokeWidth={2} />
                       Saved — live on the site now.
                     </span>
                   )}
                   {status === "error" && (
-                    <span className="text-warn">
+                    <span className="text-danger">
                       Couldn&rsquo;t save. Please try again.
                     </span>
                   )}
                   {status !== "error" && dirty && (
-                    <span className="text-faint">Unsaved changes.</span>
+                    <span className="text-fg-muted">Unsaved changes.</span>
                   )}
                 </p>
               </div>

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Icon } from "@/components/icons";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { RowAction } from "@/components/list-rows";
 import { deleteIssueAction } from "@/app/admin/actions";
 
 // Delete one issue from the dashboard list. A client component so it can confirm
@@ -43,16 +43,15 @@ export function DeleteIssueButton({
 
   return (
     <>
-      <button
-        type="button"
+      <RowAction
+        icon="trash"
+        label="Delete"
+        tone="danger"
+        ariaLabel={`Delete ${title}`}
+        title="Delete issue"
         disabled={pending}
         onClick={() => setConfirming(true)}
-        title="Delete issue"
-        aria-label={`Delete ${title}`}
-        className="text-faint2 hover:text-warn hover:border-warn flex h-9 w-9 items-center justify-center rounded-lg border border-transparent disabled:opacity-40"
-      >
-        <Icon name="trash" size={17} strokeWidth={1.8} />
-      </button>
+      />
       {confirming && (
         <ConfirmDialog
           title={`Delete “${title}”?`}
@@ -60,7 +59,10 @@ export function DeleteIssueButton({
             <>
               This permanently removes the issue and cannot be undone.
               {failed && (
-                <span role="alert" className="text-warn mt-2.5 block">
+                <span
+                  role="alert"
+                  className="text-danger mt-2.5 block font-bold"
+                >
                   That didn’t work — the issue is still here. Please try again.
                 </span>
               )}

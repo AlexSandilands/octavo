@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { Icon, type IconName } from "@/components/icons";
 
-// Building blocks for the admin guide (/admin/help): section scaffolding,
-// numbered steps, plain lists, callouts, and figure frames for the token-built
+// Building blocks for the admin guide (/admin/help): section cards, numbered
+// steps, plain lists, callouts, and figure frames for the token-built
 // illustrations. Everything here is server-rendered and static.
 
 export function GuideSection({
@@ -20,14 +20,14 @@ export function GuideSection({
     <section
       id={id}
       aria-labelledby={`${id}-heading`}
-      className="border-line-soft mt-10 scroll-mt-8 border-t pt-8"
+      className="bg-surface border-hairline shadow-card mt-5 scroll-mt-6 rounded-card border p-5 sm:p-7"
     >
-      <div className="text-accent font-sans text-[11px] font-semibold tracking-[0.2em] uppercase">
+      <div className="text-primary font-ui text-[13px] font-bold tracking-[0.12em] uppercase">
         {kicker}
       </div>
       <h2
         id={`${id}-heading`}
-        className="text-ink mt-1.5 font-serif text-[26px] leading-tight"
+        className="text-fg mt-1.5 font-ui text-[26px] leading-tight font-bold"
       >
         {title}
       </h2>
@@ -38,7 +38,7 @@ export function GuideSection({
 
 export function P({ children }: { children: ReactNode }) {
   return (
-    <p className="text-body max-w-[64ch] font-sans text-[15.5px] leading-relaxed">
+    <p className="text-fg max-w-[64ch] font-ui text-[17px] leading-relaxed">
       {children}
     </p>
   );
@@ -46,7 +46,7 @@ export function P({ children }: { children: ReactNode }) {
 
 export function Bullets({ children }: { children: ReactNode }) {
   return (
-    <ul className="text-body max-w-[64ch] list-disc space-y-2.5 pl-5 font-sans text-[15px] leading-relaxed marker:text-faint2">
+    <ul className="text-fg marker:text-primary max-w-[64ch] list-disc space-y-2.5 pl-5 font-ui text-[17px] leading-relaxed">
       {children}
     </ul>
   );
@@ -70,15 +70,13 @@ export function Step({
       {/* Decorative — the <ol> already conveys the position. */}
       <span
         aria-hidden="true"
-        className="bg-tint text-accent mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-full font-sans text-[13px] font-semibold"
+        className="bg-primary-soft text-primary mt-0.5 flex h-8 w-8 flex-none items-center justify-center rounded-full font-ui text-[14px] font-bold"
       >
         {n}
       </span>
       <div className="min-w-0">
-        <h3 className="text-ink font-sans text-[15.5px] font-semibold">
-          {title}
-        </h3>
-        <div className="text-body mt-1 font-sans text-[15px] leading-relaxed">
+        <h3 className="text-fg font-ui text-[17px] font-bold">{title}</h3>
+        <div className="text-fg-muted mt-1 font-ui text-[16px] leading-relaxed">
           {children}
         </div>
       </div>
@@ -100,19 +98,21 @@ export function Callout({
   const careful = tone === "careful";
   return (
     <div
-      className={`max-w-[64ch] rounded-[10px] border-[1.5px] p-4 sm:p-5 ${
-        careful ? "border-warn bg-warn-soft" : "border-line bg-card"
+      className={`max-w-[64ch] rounded-field border-l-[5px] p-4 sm:p-5 ${
+        careful
+          ? "border-l-warn bg-warn-soft"
+          : "border-l-primary bg-primary-wash"
       }`}
     >
       <h3
-        className={`flex items-center gap-2 font-sans text-[14.5px] font-bold ${
-          careful ? "text-warn" : "text-ink"
+        className={`flex items-center gap-2 font-ui text-[16px] font-bold ${
+          careful ? "text-warn" : "text-primary"
         }`}
       >
-        {icon && <Icon name={icon} size={17} strokeWidth={1.8} />}
+        {icon && <Icon name={icon} size={18} strokeWidth={2} />}
         {title}
       </h3>
-      <div className="text-body mt-1.5 font-sans text-[14.5px] leading-relaxed">
+      <div className="text-fg mt-1.5 font-ui text-[16px] leading-relaxed">
         {children}
       </div>
     </div>
@@ -130,17 +130,14 @@ export function FigureFrame({
   children: ReactNode;
 }) {
   return (
-    // On large screens the drawing bleeds wider than the text column (the
-    // prose keeps its readable measure; the visual gets the room). The
-    // caption keeps the column's alignment via matching padding.
-    <figure className="xl:-mx-24">
+    <figure>
       <div
         aria-hidden="true"
-        className="border-line bg-card overflow-hidden rounded-[10px] border p-4 sm:p-6"
+        className="bg-ground border-hairline overflow-hidden rounded-field border p-4 sm:p-6"
       >
         {children}
       </div>
-      <figcaption className="text-faint mt-2 font-sans text-[13px] leading-relaxed xl:px-24">
+      <figcaption className="text-fg-muted mt-2 font-ui text-[15px] leading-relaxed">
         {caption}
       </figcaption>
     </figure>
@@ -151,7 +148,7 @@ export function FigureFrame({
 // legend list next to the figure.
 export function FigureBadge({ n }: { n: number }) {
   return (
-    <span className="bg-accent text-paper flex h-[19px] w-[19px] flex-none items-center justify-center rounded-full font-sans text-[11px] font-bold">
+    <span className="bg-primary text-surface flex h-5 w-5 flex-none items-center justify-center rounded-full font-ui text-[11px] font-bold">
       {n}
     </span>
   );

@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui";
 
 // What /admin/magazine shows instead of the settings form when the stored row
@@ -23,23 +24,24 @@ export function SettingsUnavailable() {
   return (
     <section
       role="alert"
-      className="bg-card border-line mt-7 max-w-2xl rounded-[10px] border p-6 shadow-[0_1px_3px_rgba(0,0,0,0.07)]"
+      className="bg-surface border-hairline shadow-card border-l-danger mt-6 max-w-2xl rounded-card border border-l-[6px] p-6"
     >
-      <div className="text-warn font-sans text-[11px] font-semibold tracking-[0.2em] uppercase">
+      <div className="text-danger flex items-center gap-2 font-ui text-[15px] font-bold">
+        <Icon name="alertCircle" size={20} strokeWidth={2} />
         Couldn&rsquo;t load
       </div>
-      <h2 className="text-ink mt-2 font-serif text-[22px] leading-tight">
+      <h2 className="text-fg mt-2 font-ui text-[24px] leading-tight font-bold">
         We can&rsquo;t show your magazine details right now.
       </h2>
-      <p className="text-muted mt-3 max-w-prose font-sans text-[15px] leading-relaxed">
+      <p className="text-fg-muted mt-3 max-w-prose font-ui text-[16px] leading-relaxed">
         The database didn&rsquo;t answer, so we don&rsquo;t know what your
         current settings are.{" "}
-        <strong className="text-ink">Nothing has been changed</strong> — your
+        <strong className="text-fg">Nothing has been changed</strong> — your
         saved details are still there. We&rsquo;ve left the form out rather than
         show you empty boxes, because saving those would wipe the details you
         can&rsquo;t see.
       </p>
-      <p className="text-muted mt-3 max-w-prose font-sans text-[15px] leading-relaxed">
+      <p className="text-fg-muted mt-3 max-w-prose font-ui text-[16px] leading-relaxed">
         Your logo library is on this page too, and comes back with it. Try again
         in a moment; if it keeps happening, note the time and let your developer
         know.
@@ -47,7 +49,6 @@ export function SettingsUnavailable() {
       <div className="mt-5">
         <Button
           icon="refresh"
-          iconPosition="left"
           variant="secondary"
           busy={retrying}
           onClick={() => startRetry(() => router.refresh())}
