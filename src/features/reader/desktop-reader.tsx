@@ -102,9 +102,9 @@ export function DesktopReader({
   // the ref it carries, which the render can't do.
   const {
     containerRef: stageRef,
+    panRef,
     scale,
     zoom,
-    pan,
     panning,
     applyZoom,
     resetView,
@@ -292,12 +292,7 @@ export function DesktopReader({
               rides on the inner one (transitioned) so a drag never lags behind a
               700ms ease. The offset is a percentage of the box's own width, so a
               zoom rescales it instantly without a stray transition. */}
-          <div
-            className="relative"
-            style={{
-              transform: `translate(${pan.x}px, ${pan.y}px)`,
-            }}
-          >
+          <div ref={panRef} className="relative">
             <div
               ref={spreadRef}
               onPointerDown={onSpreadPointerDown}
