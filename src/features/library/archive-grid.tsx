@@ -162,6 +162,9 @@ function ArchiveCard({
       <div className="mt-2.5">
         <span className="text-ink font-serif text-[15px] leading-tight group-hover:underline">
           {a.title}
+        </span>{" "}
+        <span className="text-faint2 ml-2 inline-block font-mono text-[11px] whitespace-nowrap">
+          No. {a.number}
         </span>
       </div>
     </Link>
