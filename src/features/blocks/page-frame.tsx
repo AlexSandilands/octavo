@@ -83,9 +83,7 @@ export function PageFrame({
   settings: SiteSettings;
   /** Reader clips overflow to the page box; the editor leaves it visible. */
   clip?: boolean;
-  /** This page is filled edge to edge by one photo (issue #227), so the page
-   *  furniture is dropped — a running footer in dark type over a photograph is
-   *  unreadable, and a scrim would be a second design nobody asked for. */
+  /** A full-bleed page (#227): no footer, no theme decoration — dark type over a photo is unreadable. */
   bleed?: boolean;
   children: React.ReactNode;
 }) {

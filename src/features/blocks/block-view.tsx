@@ -34,10 +34,7 @@ export function BlockImage({
   alt: string;
   /** Eager-load + preload this image (the LCP element). Offscreen images stay lazy. */
   priority?: boolean;
-  /** "width": the natural aspect ratio across the container (every ordinary
-   *  placement). "cover": fill the container and crop, for the full-bleed page
-   *  (issue #227) — almost no photograph is the page's shape, and letterboxing
-   *  a full-bleed plate would defeat the point of it. */
+  /** "cover" crops to fill the box — the full-bleed page (#227). Default keeps the natural ratio. */
   fit?: "width" | "cover";
 }) {
   // Cropped a little above centre: in a portrait photo cropped to the page it is
@@ -246,10 +243,7 @@ export function BlockView({
 
     case "image": {
       const resolved = block.imageId ? images?.[block.imageId] : undefined;
-      // Content v6: a full-bleed photo owns the page, so it crops to fill it and
-      // carries no caption — there is no margin left to set one in, and type
-      // laid over the photograph would need a scrim. Alt text is unaffected.
-      // The cover variant never bleeds (see `isFillPage`) and falls through.
+      // Full bleed (v6): crop to fill, no caption; a cover never bleeds.
       const bleed = variant !== "cover" && isFillPage(block);
       // Prefer the authored alt text; fall back to the caption so an uncaptioned
       // photo is still described rather than announced decorative.

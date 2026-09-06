@@ -32,14 +32,18 @@ export function ImageLayoutControls({
    *  onto a page of its own first, which is one edit, not a field write. */
   onFillPage?: () => void;
 }) {
-  const filled = align === "page";
+  // Only "filled" where the control is offered. A cover page renders a stored
+  // "page" image as an ordinary centred photo, so it reads — and is edited — as
+  // the "full" it actually is, size control and all.
+  const filled = align === "page" && onFillPage !== undefined;
+  const shown = align === "page" && !filled ? "full" : align;
   return (
     <div className="flex items-center gap-2.5">
       <Group label="Placement">
         {PLACEMENTS.map((p) => (
           <Seg
             key={p.value}
-            active={align === p.value}
+            active={shown === p.value}
             title={p.title}
             onClick={() => onChange({ align: p.value })}
           >

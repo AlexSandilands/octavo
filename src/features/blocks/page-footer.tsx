@@ -19,10 +19,9 @@ import type { FooterAlign, SiteSettings } from "@/lib/branding";
 // editor's overflow detection (issue #93) measures that element's top edge as
 // the page's text limit. Keep it a single box — splitting it, or dropping the
 // attribute from either branch, silently blinds that check on the pages it
-// misses (and the no-logo branch is the common one). The one page with no
-// footer at all is the full-bleed one (issue #227), where PageFrame doesn't
-// render this component — and `useTextFlow` leaves those pages unmeasured by
-// name rather than by noticing the absence.
+// misses (and the no-logo branch is the common one). (A full-bleed page renders
+// no footer at all; `useTextFlow` skips those pages by name, so the check isn't
+// blinded.)
 //
 // An earlier draft spread the organisation's name letter by letter across the
 // full page width. The club read the word gaps as holes and stopped reading the

@@ -215,9 +215,8 @@ export const pageSchema = z.object({
 // running footer). Additive in the same way v4 and v5 were, but by widening an
 // enum rather than adding a block type: no version-1…5 document holds the new
 // value, so every one parses and renders unchanged and no stored row is
-// rewritten. Deliberately confined to `image` — a montage would have to crop
-// several photos to one page shape and a video's frame is always 16:9, so both
-// keep the three-value union.
+// rewritten. Confined to `image`; montage and video keep the three-value union
+// (see docs/database.md).
 export const CONTENT_VERSION = 6;
 
 export const issueContentSchema = z.object({
@@ -238,11 +237,9 @@ export type BlockPatch = {
   [T in Block as T["type"]]: Partial<Omit<T, "id" | "type">>;
 }[BlockType];
 
-// Apply a patch to a block, preserving its identity and discriminant. The cast
-// is the price of the distributed patch type: since `align` gained a value only
-// images accept (v6), the compiler can no longer see that spreading *some*
-// member of the patch union over *some* member of the block union lands in the
-// union — the call sites, which hold one concrete block, can.
+// Apply a patch to a block, preserving its identity and discriminant.
+// Cast: the distributed patch union is wider than any one block accepts now that
+// only images take `align: "page"`; each call site holds one concrete block.
 export function mergeBlock(block: Block, patch: BlockPatch): Block {
   return { ...block, ...patch } as Block;
 }

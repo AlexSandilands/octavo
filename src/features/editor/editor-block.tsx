@@ -167,8 +167,6 @@ export function EditorBlock({
               {block.imageId && (
                 <>
                   <span className="bg-line h-5 w-px" />
-                  {/* No fill-page on a cover: its blocks centre and stack
-                      around a title, so there is nothing for a photo to own. */}
                   <ImageLayoutControls
                     align={block.align ?? "full"}
                     width={block.width ?? 100}

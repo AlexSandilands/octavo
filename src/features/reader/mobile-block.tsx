@@ -98,9 +98,8 @@ export function MobileBlock({
       );
     case "image": {
       const resolved = block.imageId ? images[block.imageId] : undefined;
-      // A photo that fills the page on the fixed canvas (content v6) runs the
-      // full width of the phone too — at its own aspect ratio, since this reader
-      // has no page shape to crop to and cropping a crop only loses more of it.
+      // Runs the full phone width: -mx-5 cancels the section's px-5
+      // (mobile-reader.tsx); no crop, since there is no page shape here.
       if (resolved && (block.align ?? "full") === "page") {
         return (
           <figure className="-mx-5 my-3">

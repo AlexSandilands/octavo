@@ -175,6 +175,8 @@ export function useEditorPages(content: IssueContent) {
     const source = pages[curPage];
     const block = source?.blocks.find((b) => b.id === id);
     if (!source || source.cover || block?.type !== "image") return;
+    // Already filled and already alone: nothing to do, and no empty undo step.
+    if (block.align === "page" && source.blocks.length === 1) return;
     const filled = pages.map((p, i) =>
       i === curPage
         ? {
