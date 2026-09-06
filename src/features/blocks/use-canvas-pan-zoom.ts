@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+import {
+  useEffect,
+  useEffectEvent,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 // Zoom bounds shared by the editor canvas and the desktop reader (and the
 // reader's zoom slider). The page is a fixed-size canvas scaled to fit, then
@@ -56,24 +62,32 @@ export function useCanvasPanZoom(opts: PanZoomOptions) {
   const panRef = useRef<HTMLDivElement>(null);
   const pan = useRef<Pan>({ x: 0, y: 0 });
   const frame = useRef<number | null>(null);
+  const writePan = () => {
+    const node = panRef.current;
+    if (node) {
+      node.style.transform = `translate(${pan.current.x}px, ${pan.current.y}px)`;
+    }
+  };
+  const cancelWrite = () => {
+    if (frame.current === null) return;
+    cancelAnimationFrame(frame.current);
+    frame.current = null;
+  };
   const setPan = (next: Pan) => {
     pan.current = next;
     frame.current ??= requestAnimationFrame(() => {
       frame.current = null;
-      const node = panRef.current;
-      if (node) {
-        node.style.transform = `translate(${pan.current.x}px, ${pan.current.y}px)`;
-      }
+      writePan();
     });
   };
-  useEffect(
-    () => () => {
-      if (frame.current === null) return;
-      cancelAnimationFrame(frame.current);
-      frame.current = null;
-    },
-    [],
-  );
+  // The scale is still React state, so a zoom has to write the pan in the same
+  // commit: the focal point only holds if the new translate and the new scale
+  // paint together. Dragging (scale unchanged) keeps the frame.
+  useLayoutEffect(() => {
+    cancelWrite();
+    writePan();
+    return cancelWrite;
+  }, [zoom, fitScale]);
 
   const isBlocked = () => Boolean(opts.isBlocked?.());
 
