@@ -1,8 +1,8 @@
 import type { Block, Page } from "@/lib/blocks";
 
 // The mobile column, divided (issue #221): one section per authored page, empty
-// pages dropped. `divided` means the page break — extra space and the soft
-// hairline — is drawn above that section.
+// pages dropped. `divided` means the page break — a band of canvas between two
+// sheets of page — is drawn above that section.
 
 export type ReaderSection = {
   id: string;
@@ -41,7 +41,7 @@ function startsRun(page: Page): boolean {
   );
 }
 
-/** Break spacing, scaled with the reader's text size. */
-export function breakSpacing(m: number) {
-  return { marginTop: m * 1.75, paddingTop: m * 1.5 };
+/** Height of the break's band, scaled with the reader's text size. */
+export function breakHeight(m: number) {
+  return m * 0.9;
 }

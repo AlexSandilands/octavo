@@ -14,7 +14,7 @@ import {
   footerTextStyle,
 } from "@/features/blocks/page-footer";
 import { headingDomId, MobileBlock } from "./mobile-block";
-import { breakSpacing, readerSections } from "./mobile-sections";
+import { breakHeight, readerSections } from "./mobile-sections";
 import { useIssuePdf } from "./use-issue-pdf";
 
 // Mobile reader: the whole issue as one flowing column (also the accessibility
@@ -156,18 +156,27 @@ export function MobileReader({
         </div>
       </header>
 
-      <article className="flex-1 px-5 pt-6 pb-10">
-        {sections.map((s) => (
+      <article className="flex-1 pb-10">
+        {sections.map((s, i) => (
           <section
             key={s.id}
             className={[
-              s.divided && "border-line-soft border-t",
+              "px-5",
+              i === 0 && "pt-6",
+              (i === sections.length - 1 || sections[i + 1]?.divided) && "pb-8",
               s.cover && "py-8 text-center",
             ]
               .filter(Boolean)
               .join(" ")}
-            style={s.divided ? breakSpacing(m) : undefined}
           >
+            {/* The page break: a band of canvas between two sheets of page. */}
+            {s.divided && (
+              <div
+                aria-hidden
+                className="bg-canvas -mx-5 mb-6 shadow-[inset_0_2px_3px_rgba(40,36,28,0.08)]"
+                style={{ height: breakHeight(m) }}
+              />
+            )}
             {s.blocks.map((b) => (
               <MobileBlock
                 key={b.id}
@@ -188,7 +197,7 @@ export function MobileReader({
         {logo && (
           <div
             style={footerTextStyle(settings.footer.textSize)}
-            className={`border-line-soft mt-10 border-t pt-5 ${FOOTER_ROW_CLASS} ${LOCKUP_ALIGN[settings.footer.align]}`}
+            className={`mt-8 px-5 ${FOOTER_ROW_CLASS} ${LOCKUP_ALIGN[settings.footer.align]}`}
           >
             <FooterWordmark
               logo={logo}
