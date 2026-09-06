@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { textSizeScale, type Block } from "@/lib/blocks";
+import { textAlignClass, textSizeScale, type Block } from "@/lib/blocks";
 import type { ImageMap } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 import { externalHref } from "@/lib/rich-text";
@@ -106,7 +106,7 @@ export function MobileBlock({
         </p>
       ) : (
         <div
-          className="text-body rich-text mb-4 font-serif"
+          className={`text-body rich-text mb-4 font-serif ${textAlignClass(block.align, { hyphenate: true })}`}
           style={{ fontSize: m * textSizeScale(block.size), lineHeight: 1.62 }}
         >
           <RichText value={block.text} />

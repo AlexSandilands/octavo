@@ -29,6 +29,8 @@ export const issue01 = (img: SeedImages) =>
       H("Opening the Season", "Editorial", "main"),
       T(
         "The gates came off the rink at dawn and, for the first time since autumn, the gravel was warm by noon. There is no ceremony for this — no ribbon, no speeches, no committee member clearing their throat. There is only the sound of the first boule of the year finding its line down the terrain, and then a second answering it, and by ten o'clock the particular music of a club that has remembered, all at once, what it is for.",
+        "m",
+        "justify",
       ),
       T(
         "We have been a club for forty-six years and a club in print for exactly none of them. That changes with the page you are holding. The committee resolved over winter that a club which measures a point to the millimetre ought to keep some record of itself, and so here we are: a magazine, written by whoever will write and read by, we hope, all of you.",

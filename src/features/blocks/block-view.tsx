@@ -1,5 +1,10 @@
 import Image from "next/image";
-import { textSizePx, type Block, type BlockPatch } from "@/lib/blocks";
+import {
+  textAlignClass,
+  textSizePx,
+  type Block,
+  type BlockPatch,
+} from "@/lib/blocks";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 import { externalHref } from "@/lib/rich-text";
@@ -237,7 +242,7 @@ export function BlockView({
       // through RichTextEditor in editor-block.tsx, not `f()`.
       return (
         <div
-          className="text-body font-serif rich-text"
+          className={`text-body font-serif rich-text ${textAlignClass(block.align)}`}
           style={{ fontSize: textSizePx(block.size), lineHeight: 1.62 }}
         >
           <RichText value={block.text} />

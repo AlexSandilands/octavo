@@ -9,6 +9,7 @@ import {
   type IssueContent,
   type Page,
   type TextSize,
+  type TextAlign,
 } from "../../lib/blocks";
 import { stringToDoc } from "../../lib/rich-text-doc";
 
@@ -27,11 +28,12 @@ export const H = (title: string, kicker = "", level?: HeadingLevel): Block => ({
 // the legacy string fallback (issue #36). The deliberately legacy-shaped blocks
 // below (Traw/Thtml) keep the permanent v1/v2 fallback + migration script under
 // ambient coverage.
-export const T = (text: string, size?: TextSize): Block => ({
+export const T = (text: string, size?: TextSize, align?: TextAlign): Block => ({
   id: id(),
   type: "text",
   text: stringToDoc(text),
   size,
+  align,
 });
 // Legacy v1 body text: a stored *plain string* (pre-v3 shape). Kept for the one
 // deliberate legacy page so the string→doc render fallback stays exercised.

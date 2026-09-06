@@ -6,8 +6,10 @@ import StarterKit from "@tiptap/starter-kit";
 import { Icon } from "@/components/icons";
 import {
   TEXT_SIZES,
+  textAlignClass,
   textSizePx,
   type BlockPatch,
+  type TextAlign,
   type TextSize,
 } from "@/lib/blocks";
 import { externalHref } from "@/lib/rich-text";
@@ -15,7 +17,7 @@ import { stringToDoc, type RichTextValue } from "@/lib/rich-text-doc";
 import { Underline, Link } from "./rich-text-marks";
 
 // The editing surface for a body-text block. A Tiptap editor styled to match the
-// reader's themed paragraph exactly, with a floating toolbar (text size, bold,
+// reader's themed paragraph exactly, with a floating toolbar (size, alignment, bold,
 // italic, underline, lists, link) shown while the block is selected. Output is
 // the structured rich-text JSON the reader renders through React (content v3 —
 // see src/lib/rich-text-doc.ts). Editor-only (client), so Tiptap never reaches
@@ -23,11 +25,13 @@ import { Underline, Link } from "./rich-text-marks";
 export function RichTextEditor({
   value,
   size,
+  align = "left",
   selected,
   onChange,
 }: {
   value: RichTextValue;
   size: TextSize;
+  align?: TextAlign;
   selected: boolean;
   onChange: (patch: BlockPatch) => void;
 }) {
@@ -89,12 +93,17 @@ export function RichTextEditor({
   return (
     <div className="relative">
       {selected && editor && (
-        <Toolbar editor={editor} size={size} onChange={onChange} />
+        <Toolbar
+          editor={editor}
+          size={size}
+          align={align}
+          onChange={onChange}
+        />
       )}
       <div
         // While selected, show the normal text caret instead of the block's
         // pointer cursor; unselected blocks keep the pointer (click to select).
-        className={`text-body font-serif ${selected ? "cursor-text" : ""}`}
+        className={`text-body font-serif ${textAlignClass(align)} ${selected ? "cursor-text" : ""}`}
         style={{ fontSize: textSizePx(size), lineHeight: 1.62 }}
       >
         <EditorContent editor={editor} />
@@ -106,10 +115,12 @@ export function RichTextEditor({
 function Toolbar({
   editor,
   size,
+  align,
   onChange,
 }: {
   editor: Editor;
   size: TextSize;
+  align: TextAlign;
   onChange: (patch: BlockPatch) => void;
 }) {
   const [linkOpen, setLinkOpen] = useState(false);
@@ -156,6 +167,21 @@ function Toolbar({
               title={`Text size ${s.label}`}
               active={size === s.value}
               onClick={() => onChange({ size: s.value })}
+            />
+          ))}
+        </div>
+        <div
+          role="group"
+          aria-label="Text alignment"
+          className="border-hair flex overflow-hidden rounded-[6px] border"
+        >
+          {TEXT_ALIGNS.map((a) => (
+            <TbBtn
+              key={a.value}
+              icon={a.icon}
+              title={a.title}
+              active={align === a.value}
+              onClick={() => onChange({ align: a.value })}
             />
           ))}
         </div>
@@ -243,6 +269,17 @@ const CAP_NUDGE = {
   serif: "translate-y-[2.55px]",
 } as const;
 
+const TEXT_ALIGNS = [
+  { value: "left", icon: "alignLeft", title: "Align left" },
+  { value: "center", icon: "alignCenter", title: "Align centre" },
+  { value: "right", icon: "alignRight", title: "Align right" },
+  { value: "justify", icon: "alignJustify", title: "Justify text" },
+] as const satisfies readonly {
+  value: TextAlign;
+  icon: string;
+  title: string;
+}[];
+
 function TbBtn({
   label,
   labelClass = "",
@@ -256,7 +293,7 @@ function TbBtn({
   labelClass?: string;
   /** Which family the label is set in — picks its cap-height nudge. */
   labelFont?: keyof typeof CAP_NUDGE;
-  icon?: "listBullet" | "link";
+  icon?: "listBullet" | "link" | (typeof TEXT_ALIGNS)[number]["icon"];
   title: string;
   active: boolean;
   onClick: () => void;
@@ -273,7 +310,7 @@ function TbBtn({
         e.stopPropagation();
         onClick();
       }}
-      className={`flex h-7 min-w-7 items-center justify-center px-1.5 font-sans text-[12px] font-semibold ${
+      className={`rich-text-tool flex h-7 min-w-7 cursor-pointer items-center justify-center px-1.5 font-sans text-[12px] font-semibold transition-colors ${
         active
           ? "bg-accent text-paper"
           : "text-muted hover:bg-accent-wash hover:text-accent bg-white"

@@ -283,6 +283,7 @@ export function EditorBlock({
         <RichTextEditor
           value={block.text}
           size={block.size ?? "m"}
+          align={block.align}
           selected={selected}
           onChange={onChange}
         />

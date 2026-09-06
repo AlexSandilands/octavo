@@ -76,19 +76,26 @@ The durable lessons:
 
 ## Required gates, by change type
 
-| If the change touches…                | Then…                                                                                                                                                               |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Anything with a UI surface            | The user's browser pass on the PR is required (and do a headless Chromium pass first)                                                                               |
-| Palette tokens / brand CSS            | `npx tsx scripts/dev-contrast-gate.mts` — WCAG AA must hold for **every** brand (`docs/design-principles.md` §6)                                                    |
-| Print-visible rendering (PDF path)    | Bump `RENDER_VERSION` in `src/app/api/issues/[number]/pdf/route.ts` **in the same commit** (it cache-busts stored PDFs)                                             |
-| The content model (`CONTENT_VERSION`) | Update the seed to author the new shape, keep one deliberate legacy page (see `docs/database.md`)                                                                   |
-| The members CSV parser                | `npx tsx scripts/check-parse-members-csv.mts` — the header/delimiter cases an admin's export throws at it (#94)                                                     |
-| Any modal dialog                      | `npx tsx scripts/dev-dialog-a11y-gate.mts <base-url>` — role/name, Escape, the focus trap and focus restore, per dialog (#130)                                      |
-| A block that can render a link        | `npx tsx --tsconfig scripts/tsconfig.json scripts/dev-thumb-anchor-gate.mts` — the thumbnail must emit no `<a>` (#166)                                              |
-| The library shelf or `/archive`       | `npx tsx --tsconfig scripts/tsconfig.json scripts/dev-archive-gate.mts <base-url> <dev-log>` — the home cap, the archive's URL state, the sign-in round trip (#192) |
-| An admin mutation flow / list refresh | `npx tsx --tsconfig scripts/tsconfig.json scripts/prod-action-refresh-gate.mts <base-url>` against a **production build** (`npm run build` + `next start`) (#198)   |
-| New pages / inline scripts            | CSP is nonce-based in `src/proxy.ts` — pages must render dynamically; no new inline styles/scripts                                                                  |
-| Every change                          | `npm run lint`, `npx tsc --noEmit`, `npm run typecheck:scripts`, prettier on touched files, and a production build (plain `npm run build`; see below)               |
+| If the change touches…                | Then…                                                                                                                                                                                                          |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Anything with a UI surface            | The user's browser pass on the PR is required (and do a headless Chromium pass first)                                                                                                                          |
+| Palette tokens / brand CSS            | `npx tsx scripts/dev-contrast-gate.mts` — WCAG AA must hold for **every** brand (`docs/design-principles.md` §6)                                                                                               |
+| Print-visible rendering (PDF path)    | Bump `RENDER_VERSION` in `src/app/api/issues/[number]/pdf/route.ts` **in the same commit** (it cache-busts stored PDFs)                                                                                        |
+| The content model (`CONTENT_VERSION`) | Update the seed to author the new shape, keep one deliberate legacy page (see `docs/database.md`)                                                                                                              |
+| Body-text alignment / hyphenation     | `npx tsx --tsconfig scripts/tsconfig.json scripts/dev-text-alignment-gate.mts <base-url>` against a local dev server — compatibility, seed, flow, keyboard controls, autosave, readers and PDF geometry (#238) |
+| The members CSV parser                | `npx tsx scripts/check-parse-members-csv.mts` — the header/delimiter cases an admin's export throws at it (#94)                                                                                                |
+| Any modal dialog                      | `npx tsx scripts/dev-dialog-a11y-gate.mts <base-url>` — role/name, Escape, the focus trap and focus restore, per dialog (#130)                                                                                 |
+| A block that can render a link        | `npx tsx --tsconfig scripts/tsconfig.json scripts/dev-thumb-anchor-gate.mts` — the thumbnail must emit no `<a>` (#166)                                                                                         |
+| The library shelf or `/archive`       | `npx tsx --tsconfig scripts/tsconfig.json scripts/dev-archive-gate.mts <base-url> <dev-log>` — the home cap, the archive's URL state, the sign-in round trip (#192)                                            |
+| An admin mutation flow / list refresh | `npx tsx --tsconfig scripts/tsconfig.json scripts/prod-action-refresh-gate.mts <base-url>` against a **production build** (`npm run build` + `next start`) (#198)                                              |
+| New pages / inline scripts            | CSP is nonce-based in `src/proxy.ts` — pages must render dynamically; no new inline styles/scripts                                                                                                             |
+| Every change                          | `npm run lint`, `npx tsc --noEmit`, `npm run typecheck:scripts`, prettier on touched files, and a production build (plain `npm run build`; see below)                                                          |
+
+The alignment gate also runs in memory when its URL argument is omitted. Its browser
+pass needs `DATABASE_URL` and `AUTH_SECRET` (or `.env.local`); it creates and removes
+its own temporary issue and admin. The seed's issue-01 opening editorial is justified,
+and issue-05 keeps the deliberate legacy fixture. Validate them through the gate,
+never by running the destructive seed.
 
 ## Briefing an agent
 

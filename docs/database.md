@@ -159,6 +159,13 @@ footers and keeps its closing lockup. A `Text` block carries an optional `size`
 in the reflowing mobile reader. Both fields are optional, so older content
 parses unchanged.
 
+Body text also carries optional `align: left|center|right|justify` (issue #238),
+authored per block alongside size and copied onto text-flow continuations. Missing
+alignment means left; the field requires **no content-version bump or migration**.
+Cover taglines ignore it and stay centred. Only the reflowing mobile reader enables
+automatic hyphenation for justified text; fixed pages disable it so their measured
+line breaks do not depend on browser hyphenation dictionaries.
+
 **Pages are a fixed canvas (`PAGE_W`×`PAGE_H` in `page-frame.tsx`).** The desktop
 reader and editor never resize the page or its type independently — they render
 at the canvas size and apply a single `transform: scale()` (via `ScaledPage`) so
