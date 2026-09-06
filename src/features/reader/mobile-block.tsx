@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { textSizeScale, type Block } from "@/lib/blocks";
 import type { ImageMap } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
@@ -19,12 +20,28 @@ import { VideoPlayer } from "@/features/blocks/video-player";
 // It is a separate renderer rather than a reuse of BlockView because the shapes
 // genuinely differ: this reader reflows in one column at a reader-chosen base
 // size (`m`), so every size here is relative to it, and it never floats a
-// picture — phones are too narrow to wrap text around one for this audience, so
-// a sized picture is aligned (mx-auto / mr-auto / ml-auto) instead.
+// picture — phones are too narrow to wrap text around one for this audience. A
+// picture in the body therefore fills the column whatever `width`/`align` the
+// author chose for the printed page (#230); only a cover, which stacks its
+// blocks centred, keeps the width it was given.
 
 // DOM id for a heading block, shared by the renderer and the contents drawer.
 export function headingDomId(blockId: string): string {
   return `heading-${blockId}`;
+}
+
+// The figure box the image, montage and video blocks share. `align` is never
+// read: with nothing wrapping beside it, a side-aligned picture only left a
+// hole, so every placement — including any the block model gains later —
+// collapses to the full column.
+function pictureFigure(
+  width: number | undefined,
+  cover: boolean | undefined,
+): { className: string; style?: CSSProperties } {
+  const w = width ?? 100;
+  return cover && w < 100
+    ? { className: "my-3 mx-auto", style: { width: `${w}%` } }
+    : { className: "my-3" };
 }
 
 export function MobileBlock({
@@ -98,23 +115,8 @@ export function MobileBlock({
       );
     case "image": {
       const resolved = block.imageId ? images[block.imageId] : undefined;
-      // Phones don't wrap text around floats (too cramped for the audience):
-      // honour the chosen size and align the (smaller) image left/right/centre.
-      const width = block.width ?? 100;
-      const align = block.align ?? "full";
-      const sized = width < 100;
-      const alignClass = sized
-        ? align === "left"
-          ? "mr-auto"
-          : align === "right"
-            ? "ml-auto"
-            : "mx-auto"
-        : "";
       return (
-        <figure
-          className={`my-3 ${alignClass}`}
-          style={sized ? { width: `${width}%` } : undefined}
-        >
+        <figure {...pictureFigure(block.width, cover)}>
           {resolved ? (
             <BlockImage image={resolved} alt={block.alt || block.caption} />
           ) : (
@@ -136,26 +138,12 @@ export function MobileBlock({
       );
     }
     case "montage": {
-      // Content v4. Sized and aligned exactly like the image block above (the
-      // phone doesn't wrap text around floats), with the same cross-fade widget
-      // the flipbook uses. Its timer only runs while the block is scrolled into
-      // view — the whole issue is one mounted column here.
+      // Content v4. Placed exactly like the image block above, with the same
+      // cross-fade widget the flipbook uses. Its timer only runs while the block
+      // is scrolled into view — the whole issue is one mounted column here.
       const slides = resolveMontageSlides(block.items, images);
-      const width = block.width ?? 100;
-      const align = block.align ?? "full";
-      const sized = width < 100;
-      const alignClass = sized
-        ? align === "left"
-          ? "mr-auto"
-          : align === "right"
-            ? "ml-auto"
-            : "mx-auto"
-        : "";
       return (
-        <figure
-          className={`my-3 ${alignClass}`}
-          style={sized ? { width: `${width}%` } : undefined}
-        >
+        <figure {...pictureFigure(block.width, cover)}>
           {slides.length > 0 ? (
             <MontagePlayer
               slides={slides}
@@ -181,28 +169,15 @@ export function MobileBlock({
       );
     }
     case "video": {
-      // Content v5. Sized and aligned exactly like the image block above, with
-      // the same facade the flipbook uses: the poster and a play button, and the
-      // YouTube frame only once the member presses it — this is the reader where
-      // that restraint matters most, since it is the phone one.
+      // Content v5. Placed exactly like the image block above, with the same
+      // facade the flipbook uses: the poster and a play button, and the YouTube
+      // frame only once the member presses it — this is the reader where that
+      // restraint matters most, since it is the phone one.
       const poster = block.posterImageId
         ? images[block.posterImageId]
         : undefined;
-      const width = block.width ?? 100;
-      const align = block.align ?? "full";
-      const sized = width < 100;
-      const alignClass = sized
-        ? align === "left"
-          ? "mr-auto"
-          : align === "right"
-            ? "ml-auto"
-            : "mx-auto"
-        : "";
       return (
-        <figure
-          className={`my-3 ${alignClass}`}
-          style={sized ? { width: `${width}%` } : undefined}
-        >
+        <figure {...pictureFigure(block.width, cover)}>
           {block.videoId ? (
             <VideoPlayer
               videoId={block.videoId}
