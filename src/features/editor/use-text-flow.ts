@@ -30,6 +30,7 @@ export function useTextFlow({
   const canvasRef = useRef<HTMLDivElement>(null);
   // The one block this page overflows at, and where the page ends within it.
   const [overflow, setOverflow] = useState<BlockOverflow | null>(null);
+  const measured = useRef<BlockOverflow | null>(null);
 
   // Cover pages centre their blocks instead of flowing them from the top, and
   // have nothing to continue onto — leave them out of this entirely.
@@ -38,19 +39,22 @@ export function useTextFlow({
   const measure = useCallback(() => {
     const el = canvasRef.current;
     const next = el && measurable ? measurePageOverflow(el) : null;
-    // Keeping the previous value when nothing changed is what lets the
-    // every-render measure below settle instead of looping.
-    setOverflow((now) =>
-      next?.id !== now?.id ||
-      next?.markerTop !== now?.markerTop ||
-      next?.fitsAlone !== now?.fitsAlone
-        ? next
-        : now,
-    );
+    const now = measured.current;
+    // Only dispatch on a real change: a no-op setState still schedules a render
+    // while anything else on this fiber is mid-update (a canvas pan), and the
+    // every-render effect below would loop on it.
+    if (
+      next?.id === now?.id &&
+      next?.markerTop === now?.markerTop &&
+      next?.fitsAlone === now?.fitsAlone
+    )
+      return;
+    measured.current = next;
+    setOverflow(next);
   }, [measurable]);
 
-  // Re-measure after every render, then once more only if that changed
-  // something — the second pass finds nothing new, so this settles immediately.
+  // Re-measure after every render — typing and structural edits both change the
+  // layout; the measure above settles it when nothing moved.
   useEffect(measure);
 
   useEffect(() => {
