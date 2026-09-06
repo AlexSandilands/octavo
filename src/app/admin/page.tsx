@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { ADMIN_LIST_PAGE } from "@/components/admin-list-layout";
 import { AdminShell } from "@/components/admin-shell";
+import { AdminPageHeader } from "@/components/admin-table";
 import { Button } from "@/components/ui";
 import { EmptyIssues } from "@/components/empty-states";
 import { coverPageOf, type Page } from "@/lib/blocks";
@@ -98,27 +99,24 @@ export default async function AdminDashboard({
       {/* Pinned header and filters over scrolling rows from md up; see
           admin-list-layout.ts. */}
       <div className={ADMIN_LIST_PAGE}>
-        <div className="flex flex-none flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-lead font-display text-3xl">Issues</h1>
-            {/* Whole-list numbers, so the summary holds on every page and under
-              every search. */}
-            <p className="text-grey-soft mt-1.5 font-ui text-sm">
-              {list.total} {list.total === 1 ? "issue" : "issues"} ·{" "}
-              {list.draftTotal} in draft
-            </p>
-          </div>
-          <form action={createIssueAction} className="flex-none">
-            <Button
-              type="submit"
-              icon="plus"
-              iconPosition="left"
-              className="w-full whitespace-nowrap sm:w-auto"
-            >
-              Create new issue
-            </Button>
-          </form>
-        </div>
+        <AdminPageHeader
+          title="Issues"
+          // Whole-list numbers, so the summary holds on every page and under
+          // every search.
+          summary={`${list.total} ${list.total === 1 ? "issue" : "issues"} · ${list.draftTotal} in draft`}
+          actions={
+            <form action={createIssueAction} className="flex-none">
+              <Button
+                type="submit"
+                icon="plus"
+                iconPosition="left"
+                className="w-full whitespace-nowrap sm:w-auto"
+              >
+                Create new issue
+              </Button>
+            </form>
+          }
+        />
 
         {list.total === 0 ? (
           <div className="mt-8">

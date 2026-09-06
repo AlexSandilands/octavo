@@ -114,7 +114,7 @@ try {
 
   const nav = (label: string) => page.locator(`nav[aria-label="${label}"]`);
   const status = (label: string) => nav(label).locator("span[aria-live]");
-  const summary = () => page.locator("main p.text-faint").first();
+  const summary = () => page.locator("main p[data-list-summary]").first();
 
   // ── Issues dashboard ──────────────────────────────────────────────────────
   const issueRows = page.locator('a[aria-label^="Edit "]');
@@ -140,13 +140,13 @@ try {
 
   ok(
     (await nav("Issue list pages")
-      .getByText("Previous")
+      .getByText("Newer")
       .getAttribute("aria-disabled")) === "true",
-    "Previous is unavailable on page 1 (still in the tab order, not disabled)",
+    "Newer is unavailable on page 1 (still in the tab order, not disabled)",
   );
 
   const firstOnPage1 = await issueRows.first().getAttribute("aria-label");
-  await nav("Issue list pages").getByText("Next").click();
+  await nav("Issue list pages").getByText("Older").click();
   await page.waitForURL((u) => u.searchParams.get("page") === "2");
   await page.waitForSelector("h1:has-text('Issues')");
   ok(
@@ -190,7 +190,7 @@ try {
   await page.waitForSelector("h1:has-text('Issues')");
   ok(
     (await nav("Issue list pages")
-      .getByText("Next")
+      .getByText("Older")
       .getAttribute("aria-disabled")) === "true",
     "Next is unavailable on the last page",
   );
@@ -331,7 +331,7 @@ try {
     await page.goto(`${base}${path}`);
     await page.waitForSelector(`nav[aria-label="${label}"]`);
     const box = (await nav(label).boundingBox())!;
-    const next = (await nav(label).getByText("Next").boundingBox())!;
+    const next = (await nav(label).getByText("Older").boundingBox())!;
     ok(
       box.x >= 0 && box.x + box.width <= 390 && next.height >= 44,
       `${path} at 390px: the control fits the viewport with a ${Math.round(next.height)}px tap target`,

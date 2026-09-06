@@ -9,24 +9,25 @@ import {
   type FooterAlign,
   type SiteSettings,
 } from "@/lib/branding";
+import { Field, INPUT_CLASS } from "@/components/dialog-parts";
 import { SettingsCard } from "@/components/settings-card";
 import { MenuSelect, type MenuSelectItem } from "@/components/menu-select";
 import { FooterSizeField } from "./footer-size-field";
 import type { SettingsForm } from "./magazine-settings";
 
-// The settings form card on /admin/magazine. One card, because it is one form
-// with one Save: the naming fields, then the page-footer controls as a titled
-// section, then the PDF download switch as another, then the save row (passed
-// in as `footer`) closing the card — so the button visibly belongs to
-// everything above it and nothing floats between cards. Presentation only —
-// every value and setter comes from MagazineSettings, which owns the form state
-// so the preview beside it can render the same unsaved edits.
+// The settings form on /admin/magazine. One group, because it is one form
+// with one Save: the naming fields, then the page-footer controls under a
+// ruled sub-heading, then the PDF download switch under another, then the
+// save row (passed in as `footer`) closing the form — so the button visibly
+// belongs to everything above it. Presentation only — every value and setter
+// comes from MagazineSettings, which owns the form state so the preview beside
+// it can render the same unsaved edits.
 //
 // The download switch is the one control here the preview can't show, since it
-// changes nothing on a page. It is still in this card rather than one of its
-// own: on a phone the split collapses to a stack, and a switch in a card below
-// the Save button would be a setting you toggle and then have to scroll back up
-// to keep. Its own titled section is the separation it needs.
+// changes nothing on a page. It is still in this group rather than one of its
+// own: on a phone the split collapses to a stack, and a switch below the Save
+// button would be a setting you toggle and then have to scroll back up to
+// keep. Its own sub-heading is the separation it needs.
 
 export function SettingsFormCard({
   form,
@@ -71,21 +72,16 @@ export function SettingsFormCard({
         value={form.tagline}
         fallback={defaults.tagline}
         maxLength={200}
-        hint="One line under the club name on the library page. Never printed."
+        hint="One line under the magazine's name on the library page. Never printed."
         onChange={(tagline) => onChange({ tagline })}
       />
 
-      <div className="border-hairline border-t pt-5">
-        <h3 className="text-lead font-display text-lg leading-tight">
-          Page footer
-        </h3>
-        <p className="text-grey mt-1.5 font-ui text-[13px] leading-relaxed">
-          How the running footer on interior pages is set. Covers and full-page
-          photos have no footer. Text size applies whether or not the issue
-          carries a mark; the mark&rsquo;s size and where the lockup sits apply
-          to issues that have one.
-        </p>
-      </div>
+      <SubHeading title="Page footer">
+        How the running footer on interior pages is set. Covers and full-page
+        photos have no footer. Text size applies whether or not the issue
+        carries a mark; the mark&rsquo;s size and where the lockup sits apply
+        to issues that have one.
+      </SubHeading>
       {/* One control per row so Custom's number field stays beside its own
           dropdown. */}
       <div className="flex flex-col items-start gap-3">
@@ -109,7 +105,7 @@ export function SettingsFormCard({
           onSelect={(footerAlign: FooterAlign) => onChange({ footerAlign })}
         />
       </div>
-      <p className="text-grey-soft font-ui text-[12px] leading-relaxed">
+      <p className="text-grey-soft max-w-[60ch] font-ui text-[14px] leading-relaxed">
         Small, Medium and Large are the sizes the footer has always offered;
         Custom takes an exact size in pixels. Alignment is the same on both
         pages of a spread and on a phone — the page number always sits at the
@@ -120,29 +116,44 @@ export function SettingsFormCard({
         that then no longer fits.
       </p>
 
-      <div className="border-hairline border-t pt-5">
-        <h3 className="text-lead font-display text-lg leading-tight">
-          PDF downloads
-        </h3>
-        <p className="text-grey mt-1.5 font-ui text-[13px] leading-relaxed">
-          Whether members may save an issue to keep. This one is about who gets
-          the file, not how a page is set — so it is the one setting here the
-          preview beside it never shows.
-        </p>
-      </div>
+      <SubHeading title="PDF downloads">
+        Whether members may save an issue to keep. This one is about who gets
+        the file, not how a page is set — so it is the one setting here the
+        preview beside it never shows.
+      </SubHeading>
       <PdfDownloadsToggle
         value={form.pdfDownloads}
         onChange={(pdfDownloads) => onChange({ pdfDownloads })}
       />
 
-      <div className="border-hairline border-t pt-5">{footer}</div>
+      <div className="rule-heavy pt-5">{footer}</div>
     </SettingsCard>
   );
 }
 
+// A ruled sub-heading within the form, with its explanation.
+function SubHeading({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="rule-hair pt-5">
+      <h3 className="text-lead font-display text-[22px] leading-tight font-semibold">
+        {title}
+      </h3>
+      <p className="text-grey mt-1.5 max-w-[60ch] font-ui text-[15px] leading-relaxed">
+        {children}
+      </p>
+    </div>
+  );
+}
+
 // The one switch on the page (issue #162). No house switch component exists, so
-// this follows the publish modal's opt-in: a bordered card that *is* the label,
-// so the whole box toggles rather than a 20px square — the p-4 box stands 50-odd
+// this follows the publish modal's opt-in: a ruled box that *is* the label, so
+// the whole box toggles rather than a 20px square — the p-4 box stands 50-odd
 // pixels tall, comfortably past the 44px minimum, and reads as something you
 // press. The ring lands on the box (.boxed-field) instead of floating a
 // rectangle around the inner checkbox.
@@ -155,19 +166,19 @@ function PdfDownloadsToggle({
 }) {
   return (
     <div>
-      <label className="boxed-field border-hairline flex cursor-pointer items-start gap-3 rounded-ui border-[1.5px] bg-white p-4">
+      <label className="boxed-field border-lead bg-sheet flex cursor-pointer items-start gap-3 rounded-ui border p-4">
         <input
           type="checkbox"
           checked={value}
           onChange={(e) => onChange(e.target.checked)}
           aria-describedby="pdf-downloads-hint"
-          className="accent-red mt-0.5 h-5 w-5 flex-none"
+          className="accent-red mt-1 h-5 w-5 flex-none"
         />
-        <span className="font-ui text-[14px] leading-snug">
+        <span className="font-ui text-[16px] leading-snug">
           <span className="text-lead font-semibold">
             Let members download issues as a PDF
           </span>
-          <span className="text-grey mt-0.5 block">
+          <span className="text-grey mt-0.5 block text-[15px]">
             Puts a Download PDF button beside the latest issue in the library
             and in the reader.
           </span>
@@ -175,7 +186,7 @@ function PdfDownloadsToggle({
       </label>
       <p
         id="pdf-downloads-hint"
-        className="text-grey-soft mt-1.5 font-ui text-[12px] leading-relaxed"
+        className="text-grey-soft mt-2 max-w-[60ch] font-ui text-[14px] leading-relaxed"
       >
         Turn it off and the button goes from every one of those places, and the
         download address stops working — including for a member who saved it.
@@ -207,13 +218,24 @@ function TextField({
   // deployment was set up with", and the note below says so in as many words.
   const usingDefault = value.trim() === "";
   return (
-    <div>
-      <label
-        htmlFor={id}
-        className="text-grey-soft mb-1.5 block font-ui text-[11px] font-semibold tracking-[0.14em] uppercase"
-      >
-        {label}
-      </label>
+    <Field
+      label={label}
+      htmlFor={id}
+      hint={
+        <span id={`${id}-hint`}>
+          {hint}
+          {usingDefault && (
+            <>
+              {" "}
+              <span className="font-semibold">
+                Empty — using this deployment&rsquo;s default, &ldquo;
+                {fallback}&rdquo;.
+              </span>
+            </>
+          )}
+        </span>
+      }
+    >
       <input
         id={id}
         value={value}
@@ -221,29 +243,14 @@ function TextField({
         maxLength={maxLength}
         placeholder={fallback}
         aria-describedby={`${id}-hint`}
-        className="border-hairline focus:border-red text-lead h-12 w-full rounded-ui border-[1.5px] bg-white px-3.5 font-ui text-[15px] outline-none"
+        className={INPUT_CLASS}
       />
-      <p
-        id={`${id}-hint`}
-        className="text-grey-soft mt-1.5 font-ui text-[12px] leading-relaxed"
-      >
-        {hint}
-        {usingDefault && (
-          <>
-            {" "}
-            <span className="text-grey-soft font-semibold">
-              Empty — using this deployment&rsquo;s default, &ldquo;{fallback}
-              &rdquo;.
-            </span>
-          </>
-        )}
-      </p>
-    </div>
+    </Field>
   );
 }
 
 // A labelled dropdown in the house style — the same MenuSelect the editor's
-// theme and logo pickers use, so the admin has one kind of dropdown, not two.
+// look and logo pickers use, so the admin has one kind of dropdown, not two.
 function Choice<T extends string>({
   label,
   options,

@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Icon } from "@/components/icons";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { Button } from "@/components/ui";
 import type { LogoListItem } from "@/lib/logos";
 import { deleteLogoAction } from "@/app/admin/magazine/logo-actions";
 
-// One logo in the admin list: the mark, its name, and rename/delete. Delete
-// confirms first, and the action refuses outright while anything still uses the
-// logo — that refusal surfaces here rather than silently doing nothing.
+// One logo in the library: the mark, its name, and Rename / Delete as text
+// buttons. Delete confirms first, and the action refuses outright while
+// anything still uses the logo — that refusal surfaces here rather than
+// silently doing nothing.
 export function LogoRow({
   logo,
   onRename,
@@ -41,12 +42,12 @@ export function LogoRow({
 
   return (
     <div
-      className={`border-hairline flex flex-wrap items-center gap-x-3 gap-y-2 border-b px-1.5 py-3.5 last:border-b-0 ${
+      className={`rule-hair flex flex-wrap items-center gap-x-3 gap-y-2 py-3 ${
         pending ? "opacity-40" : ""
       }`}
     >
       <div className="flex min-w-0 flex-1 items-center gap-3.5">
-        <div className="border-hairline flex h-14 w-14 flex-none items-center justify-center overflow-hidden rounded-ui border bg-white">
+        <div className="border-lead bg-sheet flex h-14 w-14 flex-none items-center justify-center overflow-hidden border">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={logo.image.url}
@@ -55,11 +56,11 @@ export function LogoRow({
           />
         </div>
         <div className="min-w-0">
-          <div className="text-lead truncate font-ui text-[15px] font-semibold">
+          <div className="text-lead truncate font-ui text-[16px] font-semibold">
             {logo.name}
           </div>
           {logo.image.width && logo.image.height && (
-            <div className="text-grey-soft font-ui tabular-nums text-[11px]">
+            <div className="text-grey-soft font-ui text-[14px] tabular-nums">
               {logo.image.width}×{logo.image.height}
             </div>
           )}
@@ -67,32 +68,35 @@ export function LogoRow({
       </div>
 
       {error && (
-        <p className="text-red basis-full font-ui text-[13px] font-semibold sm:basis-auto">
+        <p
+          role="alert"
+          className="text-red basis-full font-ui text-[14px] font-semibold sm:basis-auto"
+        >
           {error}
         </p>
       )}
 
-      <div className="ml-auto flex items-center justify-end gap-1 sm:w-[110px]">
-        <button
-          type="button"
+      <div className="ml-auto flex items-center justify-end gap-3">
+        <Button
+          variant="link"
+          size="sm"
           onClick={onRename}
           disabled={pending}
           title={`Rename ${logo.name}`}
           aria-label={`Rename ${logo.name}`}
-          className="text-red cursor-pointer px-1 text-right font-ui text-sm font-semibold hover:underline disabled:opacity-40"
         >
           Rename
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant="link"
+          size="sm"
           onClick={() => setConfirming(true)}
           disabled={pending}
           title={`Delete ${logo.name}`}
           aria-label={`Delete ${logo.name}`}
-          className="text-grey-soft hover:text-red hover:border-red flex h-9 w-9 items-center justify-center rounded-ui border border-transparent disabled:opacity-40"
         >
-          <Icon name="trash" size={17} strokeWidth={1.8} />
-        </button>
+          Delete
+        </Button>
       </div>
 
       {confirming && (

@@ -108,8 +108,8 @@ export function FooterSizeField({
               aria-label={`${label} in pixels`}
               aria-describedby={hintId}
               aria-invalid={!valid}
-              className={`text-lead h-11 w-24 rounded-ui border-[1.5px] bg-white px-3 font-ui text-[15px] tabular-nums outline-none ${
-                valid ? "border-hairline focus:border-red" : "border-red"
+              className={`text-lead bg-sheet h-11 w-24 rounded-ui border px-3 font-ui text-[16px] tabular-nums ${
+                valid ? "border-lead" : "border-red border-2"
               }`}
             />
           </label>
@@ -119,7 +119,7 @@ export function FooterSizeField({
         <p
           id={hintId}
           aria-live="polite"
-          className={`font-ui text-[12px] leading-relaxed ${
+          className={`font-ui text-[14px] leading-relaxed ${
             valid ? "text-grey-soft" : "text-red"
           }`}
         >

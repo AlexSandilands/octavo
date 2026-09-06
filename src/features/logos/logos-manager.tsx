@@ -8,16 +8,16 @@ import type { LogoListItem } from "@/lib/logos";
 import { LogoRow } from "./logo-row";
 import { LogoDialog } from "./logo-dialog";
 
-// The logo library, as one of the cards on /admin/magazine: the list, the add
-// button (a quiet one under the list — adding is routine, not the card's
+// The logo library, as one of the groups on /admin/magazine: the list, the add
+// button (a quiet one under the list — adding is routine, not the group's
 // headline), the empty state, and the add/rename dialog. Mutations run through
 // the colocated server actions (which revalidate /admin/magazine); after each
 // we router.refresh() so the server-rendered list this component receives
 // reflects the change.
 //
 // Those mutations are immediate — they are not part of the settings form and
-// never were, so nothing here waits for its Save button. The card says so in as
-// many words, because sitting near that button is otherwise a fair reason to
+// never were, so nothing here waits for its Save button. The group says so in
+// as many words, because sitting near that button is otherwise a fair reason to
 // assume the opposite.
 
 // null = closed; "new" = add; a logo = rename that record.
@@ -34,8 +34,8 @@ export function LogosManager({ logos }: { logos: LogoListItem[] }) {
       blurb="The club’s own marks — a crest, an emblem, a wordmark. Upload each one once and any issue can use it in its page footer. Changes here happen straight away; they don’t wait for Save."
     >
       {logos.length === 0 ? (
-        <div className="border-hairline rounded-ui border border-dashed p-6 text-center">
-          <p className="text-grey font-ui text-[14px] leading-relaxed">
+        <div className="border-lead border border-dashed p-6 text-center">
+          <p className="text-grey font-ui text-[16px] leading-relaxed">
             No marks yet. Add one and it becomes available to every issue.
           </p>
           <div className="mt-4 flex justify-center">
@@ -46,19 +46,22 @@ export function LogosManager({ logos }: { logos: LogoListItem[] }) {
         </div>
       ) : (
         <div>
-          {logos.map((logo) => (
-            <LogoRow
-              key={logo.id}
-              logo={logo}
-              onRename={() => setEditing(logo)}
-              onChanged={() => router.refresh()}
-            />
-          ))}
-          <div className="border-hairline border-t pt-4">
+          <div className="rule-heavy">
+            {logos.map((logo) => (
+              <LogoRow
+                key={logo.id}
+                logo={logo}
+                onRename={() => setEditing(logo)}
+                onChanged={() => router.refresh()}
+              />
+            ))}
+          </div>
+          <div className="rule-hair pt-4">
             <Button
               size="sm"
               variant="secondary"
               icon="plus"
+              iconPosition="left"
               onClick={() => setEditing("new")}
             >
               Add logo

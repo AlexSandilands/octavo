@@ -15,13 +15,16 @@ import { PAGE_W, PAGE_H } from "@/features/blocks/page-frame";
 import { useCanvasPanZoom } from "@/features/blocks/use-canvas-pan-zoom";
 import { ReaderSpread, FLIP_MS, type Turn } from "./reader-spread";
 import { ReaderContents, buildToc } from "./reader-contents";
-import { ReaderControls } from "./reader-controls";
+import { ReaderToolbar } from "./reader-controls";
 import { useIssuePdf } from "./use-issue-pdf";
 
 // The page-turn strip inside each outer edge of the spread, as a fraction of the
 // spread's width: ~40–55px on a fitted spread; scales with zoom since it is read
 // off the live box.
 const EDGE_BAND = 0.05;
+
+// Remembered once the first-visit keyboard hint has been read (or used).
+const HINT_KEY = "octavo.reader.hint";
 
 export function DesktopReader({
   content,
@@ -45,9 +48,9 @@ export function DesktopReader({
   const toc = buildToc(pages);
 
   const [spread, setSpread] = useState(0);
-  const [collapsed, setCollapsed] = useState(false);
+  const [contentsOpen, setContentsOpen] = useState(true);
   // The reader's layout theme is a member-facing per-session preference (not the
-  // issue's stored theme): it opens on the deployment default and the toggle
+  // issue's stored theme): it opens on the deployment default and the select
   // offers only the enabled themes. `themeId` is the choice; `theme` the module.
   const themes = enabledThemes();
   const [themeId, setThemeId] = useState<LayoutThemeId>(
@@ -59,6 +62,27 @@ export function DesktopReader({
   // conditional, and it costs nothing until something calls `download`; only
   // the control below is conditional.
   const pdf = useIssuePdf(issueNo, themeId);
+
+  // The keyboard hint under the toolbar, on the first visit only. Read in the
+  // initializer: this reader is a client-only chunk (reader-mount.tsx loads it
+  // with ssr:false), so there is no server render to disagree with. Wrapped: a
+  // private window or a browser refusing site data must not take the reader
+  // down with it — it just shows nothing rather than nag every visit.
+  const [hint, setHint] = useState(() => {
+    try {
+      return !window.localStorage.getItem(HINT_KEY);
+    } catch {
+      return false;
+    }
+  });
+  const dismissHint = () => {
+    setHint(false);
+    try {
+      window.localStorage.setItem(HINT_KEY, "1");
+    } catch {
+      /* fine — it just shows again next time */
+    }
+  };
 
   // Page-turn animation. `turn` holds the in-flight flip (direction + target
   // spread); `turnAngle` is the leaf's live rotation that CSS transitions from 0
@@ -81,7 +105,7 @@ export function DesktopReader({
   );
 
   // Full-screen reading: requests browser fullscreen on the reader root and, for
-  // a distraction-free view, collapses the contents sidebar too.
+  // a distraction-free view, closes the contents panel too.
   const rootRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   useEffect(() => {
@@ -94,7 +118,7 @@ export function DesktopReader({
       document.exitFullscreen?.();
     } else {
       rootRef.current?.requestFullscreen?.();
-      setCollapsed(true);
+      setContentsOpen(false);
     }
   };
 
@@ -120,7 +144,7 @@ export function DesktopReader({
   } = useCanvasPanZoom({
     contentWidth: 2 * PAGE_W,
     contentHeight: PAGE_H,
-    fitMargin: { x: 48, y: 72 },
+    fitMargin: { x: 48, y: 48 },
     fitClamp: { min: 0.4, max: Infinity },
     initialFitScale: 0.7,
     blockSelector: '[data-reader-block]:not([data-reader-block="bleed"])',
@@ -134,11 +158,11 @@ export function DesktopReader({
   const leftIdx = isCover ? 0 : 2 * spread - 1;
   const leftNo = leftIdx + 1;
   const maxSpread = n <= 1 ? 0 : Math.ceil((n - 1) / 2);
-  const label = isCover
-    ? `1 / ${n}`
+  const pageLabel = isCover
+    ? `Page 1 of ${n}`
     : leftNo + 1 <= n
-      ? `${leftNo}–${leftNo + 1} / ${n}`
-      : `${leftNo} / ${n}`;
+      ? `Pages ${leftNo}–${leftNo + 1} of ${n}`
+      : `Page ${leftNo} of ${n}`;
   const viewOf = (page: number) => (page <= 1 ? 0 : Math.ceil((page - 1) / 2));
   const go = (page: number) => setSpread(viewOf(page));
 
@@ -193,12 +217,16 @@ export function DesktopReader({
 
   // Keyboard paging (WCAG 2.1.1): arrow keys turn the spread. An effect event
   // so the once-bound window listener always calls the latest closure without
-  // re-binding on every state change.
-  const turnByKey = useEffectEvent((dir: "next" | "prev") => startTurn(dir));
+  // re-binding on every state change. Using the keys is as good as reading the
+  // hint, so the first arrow press retires it.
+  const turnByKey = useEffectEvent((dir: "next" | "prev") => {
+    if (hint) dismissHint();
+    startTurn(dir);
+  });
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
-      // Leave arrows aimed at a form control alone (e.g. the zoom slider).
+      // Leave arrows aimed at a form control alone.
       if (
         t &&
         (t.tagName === "INPUT" ||
@@ -241,106 +269,15 @@ export function DesktopReader({
   return (
     <div
       ref={rootRef}
-      className="bg-newsprint relative flex h-screen overflow-hidden"
+      className="bg-newsprint flex h-screen flex-col overflow-hidden"
     >
-      {/* Only offer the toggle when the deployment enables more than one layout
-          theme (NEXT_PUBLIC_ISSUE_THEMES) — with a single theme there's nothing
-          to choose. */}
-      {themes.length > 1 && (
-        <div className="absolute top-3.5 right-4 z-10 flex items-center gap-2">
-          <span className="text-grey-soft font-ui text-[9px] font-semibold tracking-[0.18em] uppercase">
-            Theme
-          </span>
-          <div className="bg-sheet border-hairline flex rounded-full border p-[3px]">
-            {themes.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setThemeId(t.id)}
-                aria-pressed={themeId === t.id}
-                className={`flex min-h-[44px] items-center rounded-full px-4 font-ui text-xs font-semibold ${
-                  themeId === t.id ? "bg-red text-sheet" : "text-grey"
-                }`}
-              >
-                {t.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <ReaderContents
-        collapsed={collapsed}
-        setCollapsed={setCollapsed}
-        toc={toc}
-        spread={spread}
+      <ReaderToolbar
         issueNo={issueNo}
-        magazineName={settings.name}
-        viewOf={viewOf}
-        onNavigate={go}
-      />
-
-      <div
-        ref={stageRef}
-        onClick={onStageClick}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
-        className={`relative flex-1 overflow-hidden ${
-          panning ? "cursor-grabbing select-none" : "cursor-grab"
-        }`}
-      >
-        <div className="flex min-h-full min-w-full items-center justify-center p-6">
-          {/* Pan rides on the outer wrapper (instant); the cover-recenter offset
-              rides on the inner one (transitioned) so a drag never lags behind a
-              700ms ease. The offset is a percentage of the box's own width, so a
-              zoom rescales it instantly without a stray transition. */}
-          <div ref={panRef} className="relative">
-            <div
-              ref={spreadRef}
-              // `flex`, not `inline-flex`: mid-turn every child is absolutely
-              // positioned, and an inline-level box would then synthesise a
-              // baseline and jump the spread for the turn's duration (#217).
-              className="relative flex transition-transform duration-700 ease-[cubic-bezier(0.3,0.1,0.2,1)] motion-reduce:transition-none"
-              style={{ transform: `translateX(${atCover ? "-25%" : "0%"})` }}
-            >
-              {/* Drop-shadow plate behind the pages, sized to the visible sheet:
-                  the full spread, or just the cover leaf when centred. A box
-                  shadow on the spread wrapper would flatten the flip's 3D, so it
-                  lives on its own element. */}
-              <div
-                aria-hidden
-                className="pointer-events-none absolute top-0 transition-[left,width] duration-700 ease-[cubic-bezier(0.3,0.1,0.2,1)] motion-reduce:transition-none"
-                style={{
-                  left: atCover ? "50%" : "0%",
-                  width: atCover ? "50%" : "100%",
-                  height: "100%",
-                }}
-              />
-              <ReaderSpread
-                pages={pages}
-                spread={spread}
-                turn={turn}
-                turnAngle={turnAngle}
-                leftFade={coverTurn ? leftFade : undefined}
-                theme={theme}
-                scale={scale}
-                issueNo={issueNo}
-                logo={logo}
-                settings={settings}
-                images={images}
-                sponsors={sponsors}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <ReaderControls
-        label={label}
+        pageLabel={pageLabel}
         onPrev={() => startTurn("prev")}
         onNext={() => startTurn("next")}
-        onToggleContents={() => setCollapsed((c) => !c)}
+        contentsOpen={contentsOpen}
+        onToggleContents={() => setContentsOpen((c) => !c)}
         onResetView={resetView}
         zoom={zoom}
         onZoom={applyZoom}
@@ -349,7 +286,71 @@ export function DesktopReader({
         pdfEnabled={settings.pdfDownloads}
         pdfState={pdf.state}
         onDownloadPdf={pdf.download}
+        themes={themes.map((t) => ({ id: t.id, name: t.name }))}
+        themeId={themeId}
+        onTheme={setThemeId}
+        hint={hint}
+        onDismissHint={dismissHint}
       />
+
+      <div className="flex min-h-0 flex-1">
+        {contentsOpen && (
+          <ReaderContents
+            toc={toc}
+            spread={spread}
+            issueNo={issueNo}
+            magazineName={settings.name}
+            viewOf={viewOf}
+            onNavigate={go}
+            onClose={() => setContentsOpen(false)}
+          />
+        )}
+
+        <div
+          ref={stageRef}
+          onClick={onStageClick}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+          className={`relative flex-1 overflow-hidden ${
+            panning ? "cursor-grabbing select-none" : "cursor-grab"
+          }`}
+        >
+          <div className="flex min-h-full min-w-full items-center justify-center p-6">
+            {/* Pan rides on the outer wrapper (instant); the cover-recenter
+                offset rides on the inner one (transitioned) so a drag never
+                lags behind a 700ms ease. The offset is a percentage of the
+                box's own width, so a zoom rescales it instantly without a
+                stray transition. */}
+            <div ref={panRef} className="relative">
+              <div
+                ref={spreadRef}
+                // `flex`, not `inline-flex`: mid-turn every child is absolutely
+                // positioned, and an inline-level box would then synthesise a
+                // baseline and jump the spread for the turn's duration (#217).
+                className="relative flex transition-transform duration-700 ease-[cubic-bezier(0.3,0.1,0.2,1)] motion-reduce:transition-none"
+                style={{ transform: `translateX(${atCover ? "-25%" : "0%"})` }}
+              >
+                <ReaderSpread
+                  pages={pages}
+                  spread={spread}
+                  turn={turn}
+                  turnAngle={turnAngle}
+                  leftFade={coverTurn ? leftFade : undefined}
+                  theme={theme}
+                  scale={scale}
+                  issueNo={issueNo}
+                  logo={logo}
+                  settings={settings}
+                  images={images}
+                  sponsors={sponsors}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

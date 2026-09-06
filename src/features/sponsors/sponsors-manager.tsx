@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ADMIN_LIST_PAGE } from "@/components/admin-list-layout";
-import { Icon } from "@/components/icons";
+import { AdminPageHeader } from "@/components/admin-table";
+import { EmptyNotice } from "@/components/empty-states";
 import { Button } from "@/components/ui";
 import type {
   SponsorFilter,
@@ -47,41 +48,36 @@ export function SponsorsManager({
     // Pinned header and filters over scrolling rows from md up; see
     // admin-list-layout.ts.
     <div className={ADMIN_LIST_PAGE}>
-      <div className="flex flex-none flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-lead font-display text-3xl">Sponsors</h1>
-          <p className="text-grey-soft mt-1.5 font-ui text-sm">{summary}</p>
-        </div>
-        {list.total > 0 && (
-          <Button
-            icon="plus"
-            onClick={() => setEditing("new")}
-            className="w-full whitespace-nowrap sm:w-auto"
-          >
-            Add sponsor
-          </Button>
-        )}
-      </div>
+      <AdminPageHeader
+        title="Sponsors"
+        summary={summary}
+        actions={
+          list.total > 0 && (
+            <Button
+              icon="plus"
+              iconPosition="left"
+              onClick={() => setEditing("new")}
+              className="w-full whitespace-nowrap sm:w-auto"
+            >
+              Add sponsor
+            </Button>
+          )
+        }
+      />
 
       {list.total === 0 ? (
         <div className="mt-8">
-          <div className="bg-sheet border-hairline flex min-h-[360px] flex-col items-center justify-center rounded-ui border p-9 text-center">
-            <div className="bg-newsprint text-red flex h-[72px] w-[72px] items-center justify-center rounded-full">
-              <Icon name="banner" size={32} strokeWidth={1.5} />
-            </div>
-            <h2 className="text-lead mt-5 font-display text-2xl">
-              No sponsors yet
-            </h2>
-            <p className="text-grey mt-2.5 max-w-sm font-ui text-[15px] leading-relaxed">
-              Add the patrons who support the club — a logo and a link. You can
-              then drop each one into an issue from the editor.
-            </p>
-            <div className="mt-6">
+          <EmptyNotice
+            title="No sponsors yet"
+            actions={
               <Button icon="plus" onClick={() => setEditing("new")}>
                 Add your first sponsor
               </Button>
-            </div>
-          </div>
+            }
+          >
+            Add the patrons who support the club — a logo and a link. You can
+            then drop each one into an issue from the editor.
+          </EmptyNotice>
         </div>
       ) : (
         <SponsorsTable

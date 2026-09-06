@@ -2,13 +2,14 @@
 
 import { useMemo, useState } from "react";
 import { matchingMemberIdsAction } from "@/app/admin/members/actions";
-import { MemberRow } from "./member-row";
+import { MEMBER_COLS, MemberRow } from "./member-row";
 import { MembersBulkBar } from "./members-bulk-bar";
 import {
   ADMIN_LIST_ROWS,
   ADMIN_LIST_TABLE,
   ADMIN_LIST_TOOLBAR,
 } from "@/components/admin-list-layout";
+import { TableHead, ZEBRA } from "@/components/admin-table";
 import { ListFilter, type ListFilterOption } from "@/components/list-filter";
 import { ListPagination } from "@/components/list-pagination";
 import { ListSearch } from "@/components/list-search";
@@ -146,12 +147,13 @@ export function MembersTable({
     // Pinned filters over scrolling rows from md up, a sticky search row on a
     // phone — see admin-list-layout.ts for the layers.
     <div className={ADMIN_LIST_TABLE}>
-      <div className={ADMIN_LIST_TOOLBAR}>
+      <div className={`${ADMIN_LIST_TOOLBAR} lg:items-end`}>
         <div className="min-w-0 flex-1">
           <ListSearch
             query={query}
             placeholder="Search by name or email"
             ariaLabel="Search all members by name or email"
+            label="Search members"
           />
         </div>
         <ListFilter
@@ -178,25 +180,29 @@ export function MembersTable({
         onClear={() => setSelected(new Set())}
       />
 
-      <div className="border-hairline text-grey-soft mt-3 hidden flex-none items-center px-1.5 pb-2.5 font-ui text-[10px] font-semibold tracking-[0.14em] uppercase sm:flex">
-        <span className="w-11 flex-none" />
-        <span className="ml-3 flex-1">Member</span>
-        <span className="w-[120px]">Subscription</span>
-        <span className="w-[112px]">Role</span>
-        <span className="w-[76px]">Joined</span>
-        <span className="w-[58px]" />
-      </div>
+      {shown.length > 0 && (
+        <TableHead>
+          <span className="w-11 flex-none" />
+          <span className="flex-1">Member</span>
+          <span className={MEMBER_COLS.subscription}>Subscription</span>
+          <span className={MEMBER_COLS.role}>Role</span>
+          <span className={MEMBER_COLS.joined}>Joined</span>
+          <span className={`text-right ${MEMBER_COLS.actions}`}>Actions</span>
+        </TableHead>
+      )}
 
       <div className={ADMIN_LIST_ROWS}>
-        {shown.map((m) => (
-          <MemberRow
-            key={m.id}
-            member={m}
-            currentUserId={currentUserId}
-            selected={selected.has(m.id)}
-            onSelect={select}
-          />
-        ))}
+        <div className={ZEBRA}>
+          {shown.map((m) => (
+            <MemberRow
+              key={m.id}
+              member={m}
+              currentUserId={currentUserId}
+              selected={selected.has(m.id)}
+              onSelect={select}
+            />
+          ))}
+        </div>
 
         {/* The result of the search / filter, live. Mounted whatever the
           outcome — a region that arrives together with its text is announced
@@ -209,7 +215,7 @@ export function MembersTable({
           aria-live="polite"
           className={
             shown.length === 0
-              ? "text-grey-soft py-10 text-center font-ui text-sm"
+              ? "border-lead rule-heavy text-grey mt-4 border px-6 py-10 text-center font-ui text-[17px]"
               : "sr-only"
           }
         >
@@ -220,6 +226,7 @@ export function MembersTable({
           page={list.page}
           pageCount={list.pageCount}
           label="Member list pages"
+          noun="members"
         />
       </div>
     </div>

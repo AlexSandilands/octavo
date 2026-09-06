@@ -192,7 +192,7 @@ export function ResizableSplit({
           />
           <span
             aria-hidden="true"
-            className={`border-hairline group-hover:border-red group-hover:bg-newsprint relative h-10 w-[7px] rounded-full border-[1.5px] bg-white transition-colors ${
+            className={`border-lead group-hover:border-red group-hover:bg-newsprint bg-sheet relative h-10 w-[7px] rounded-ui border transition-colors ${
               dragging ? "border-red bg-newsprint" : ""
             }`}
           />

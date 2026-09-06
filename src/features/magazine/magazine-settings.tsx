@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui";
+import { Button, Icon } from "@/components/ui";
 import {
   resolveSettings,
   type FooterAlign,
@@ -135,10 +135,11 @@ export function MagazineSettings({
                 <p
                   role="status"
                   aria-live="polite"
-                  className="font-ui text-[13px] font-medium"
+                  className="font-ui text-[15px] font-medium"
                 >
                   {status === "saved" && !dirty && (
-                    <span className="text-red">
+                    <span className="text-lead inline-flex items-center gap-1.5">
+                      <Icon name="check" size={16} strokeWidth={2.2} />
                       Saved — live on the site now.
                     </span>
                   )}

@@ -105,10 +105,12 @@ export function LatestIssue({
                       <span className="text-lead min-w-0 font-display text-[20px] leading-snug font-medium group-hover/entry:underline">
                         {s.title}
                       </span>
+                      {/* The section name after a dotted leader — from sm up,
+                          where a line has room for both. */}
                       {s.kicker && (
                         <>
-                          <span aria-hidden className="leader" />
-                          <span className="small-caps text-grey-soft flex-none">
+                          <span aria-hidden className="leader hidden sm:block" />
+                          <span className="small-caps text-grey-soft hidden flex-none sm:inline">
                             {s.kicker}
                           </span>
                         </>

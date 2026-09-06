@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Icon } from "@/components/icons";
+import { Button } from "@/components/ui";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { deleteIssueAction } from "@/app/admin/actions";
 
-// Delete one issue from the dashboard list. A client component so it can confirm
-// before firing the (irreversible) server action.
+// Delete one issue from the dashboard list — a text button in the row's
+// actions. A client component so it can confirm before firing the
+// (irreversible) server action.
 //
 // The transition awaits the action, so `pending` spans the revalidated
 // re-render too: the dialog holds its working state until the row is really
@@ -43,16 +44,16 @@ export function DeleteIssueButton({
 
   return (
     <>
-      <button
-        type="button"
+      <Button
+        variant="link"
+        size="sm"
         disabled={pending}
         onClick={() => setConfirming(true)}
         title="Delete issue"
         aria-label={`Delete ${title}`}
-        className="text-grey-soft hover:text-red hover:border-red flex h-9 w-9 items-center justify-center rounded-ui border border-transparent disabled:opacity-40"
       >
-        <Icon name="trash" size={17} strokeWidth={1.8} />
-      </button>
+        Delete
+      </Button>
       {confirming && (
         <ConfirmDialog
           title={`Delete “${title}”?`}

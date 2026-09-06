@@ -7,10 +7,11 @@ import {
   ADMIN_LIST_TABLE,
   ADMIN_LIST_TOOLBAR,
 } from "@/components/admin-list-layout";
+import { TableHead, ZEBRA } from "@/components/admin-table";
 import { ListFilter, type ListFilterOption } from "@/components/list-filter";
 import { ListPagination } from "@/components/list-pagination";
 import { ListSearch } from "@/components/list-search";
-import { IssueRow, type IssueRowData } from "./issue-row";
+import { ISSUE_COLS, IssueRow, type IssueRowData } from "./issue-row";
 import { IssuesBulkBar } from "./issues-bulk-bar";
 import { ISSUES_SELECTION_MAX } from "./selection-limit";
 import type { IssueFilter, IssueStatus } from "@/server/issues";
@@ -148,12 +149,13 @@ export function IssuesTable({
     // Pinned filters over scrolling rows from md up, a sticky search row on a
     // phone — see admin-list-layout.ts for the layers.
     <div className={ADMIN_LIST_TABLE}>
-      <div className={ADMIN_LIST_TOOLBAR}>
+      <div className={`${ADMIN_LIST_TOOLBAR} lg:items-end`}>
         <div className="min-w-0 flex-1">
           <ListSearch
             query={query}
             placeholder="Search by title"
             ariaLabel="Search all issues by title"
+            label="Search titles"
           />
         </div>
         {/* Two filters on one line at phone width — stacking all three controls
@@ -197,15 +199,26 @@ export function IssuesTable({
         onClear={() => setSelected(new Map())}
       />
 
-      <div className={`${ADMIN_LIST_ROWS} mt-2`}>
-        {rows.map((issue) => (
-          <IssueRow
-            key={issue.id}
-            issue={issue}
-            selected={selected.has(issue.id)}
-            onSelect={select}
-          />
-        ))}
+      {rows.length > 0 && (
+        <TableHead>
+          <span className="w-11 flex-none" />
+          <span className="flex-1">Issue</span>
+          <span className={ISSUE_COLS.status}>Status</span>
+          <span className={`text-right ${ISSUE_COLS.actions}`}>Actions</span>
+        </TableHead>
+      )}
+
+      <div className={ADMIN_LIST_ROWS}>
+        <div className={ZEBRA}>
+          {rows.map((issue) => (
+            <IssueRow
+              key={issue.id}
+              issue={issue}
+              selected={selected.has(issue.id)}
+              onSelect={select}
+            />
+          ))}
+        </div>
 
         {/* The result of the search / filters, live. Mounted whatever the
           outcome — a region that arrives together with its text is announced
@@ -218,7 +231,7 @@ export function IssuesTable({
           aria-live="polite"
           className={
             rows.length === 0
-              ? "text-grey-soft py-10 text-center font-ui text-sm"
+              ? "border-lead rule-heavy text-grey mt-4 border px-6 py-10 text-center font-ui text-[17px]"
               : "sr-only"
           }
         >
@@ -229,6 +242,7 @@ export function IssuesTable({
           page={page}
           pageCount={pageCount}
           label="Issue list pages"
+          noun="issues"
         />
       </div>
     </div>

@@ -92,11 +92,11 @@ try {
 
   // ── 1. Editor header: the theme menu survives an autosave ────────────────
   await page.goto(`${base}/admin/issues/${issueId}/edit`);
-  await page.waitForSelector("button:has-text('Theme:')");
+  await page.waitForSelector("button:has-text('Look:')");
   ok(true, "editor loaded with the theme menu present");
 
   // Opening still lands on the checked option.
-  await page.click("button:has-text('Theme:')");
+  await page.click("button:has-text('Look:')");
   await page.waitForSelector('[role=menu][aria-label="Layout theme"]');
   ok(
     (await active(page)) === "menuitem:Classic",
@@ -151,11 +151,11 @@ try {
 
   // The consequence the issue reports: Enter must select what focus is on.
   await page.keyboard.press("Enter");
-  await page.waitForSelector("button:has-text('Theme: Modern')");
-  ok(true, "Enter selected the arrowed-to option (Theme: Modern)");
+  await page.waitForSelector("button:has-text('Look: Modern')");
+  ok(true, "Enter selected the arrowed-to option (Look: Modern)");
 
   // Escape still closes and returns focus to the trigger.
-  await page.click("button:has-text('Theme:')");
+  await page.click("button:has-text('Look:')");
   await page.waitForSelector('[role=menu][aria-label="Layout theme"]');
   await page.keyboard.press("Escape");
   ok(!(await menuOpen(page, "Layout theme")), "Escape closes the menu");

@@ -1,16 +1,24 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Icon } from "@/components/icons";
+import { ROW } from "@/components/admin-table";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { Button } from "@/components/ui";
 import { externalHref } from "@/lib/rich-text";
 import type { SponsorListItem } from "@/lib/sponsors";
 import { deleteSponsorAction } from "@/app/admin/sponsors/actions";
 
+// The column widths the header row (sponsors-table.tsx) mirrors.
+export const SPONSOR_COLS = {
+  link: "sm:w-[200px]",
+  until: "sm:w-[170px]",
+  actions: "sm:w-[130px]",
+};
+
 // One sponsor in the admin list: logo, name, (validated) link, active-until
-// with an expired flag, and edit/delete. Delete confirms first — it's
-// irreversible and can affect issues that reference the sponsor (those slots
-// then render nothing).
+// with an expired flag, and edit/delete as text buttons. Delete confirms first
+// — it's irreversible and can affect issues that reference the sponsor (those
+// slots then render nothing).
 export function SponsorRow({
   sponsor,
   onEdit,
@@ -34,12 +42,12 @@ export function SponsorRow({
 
   return (
     <div
-      className={`border-hairline flex flex-wrap items-center gap-x-3 gap-y-2 border-b px-1.5 py-3.5 sm:gap-0 ${
+      className={`${ROW} flex flex-wrap items-center gap-x-3 gap-y-2 py-3 ${
         pending ? "opacity-40" : ""
       }`}
     >
       <div className="flex min-w-0 basis-full items-center gap-3 sm:basis-0 sm:flex-1">
-        <div className="border-hairline flex h-9 w-[54px] flex-none items-center justify-center overflow-hidden rounded-ui border bg-white">
+        <div className="border-lead bg-sheet flex h-10 w-[60px] flex-none items-center justify-center overflow-hidden border">
           {sponsor.logo ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -48,67 +56,78 @@ export function SponsorRow({
               className="h-full w-full object-contain"
             />
           ) : (
-            <span className="text-grey-soft font-ui tabular-nums text-[9px]">NO LOGO</span>
+            <span className="text-grey-soft font-ui text-[10px] font-semibold tracking-[0.08em]">
+              NO LOGO
+            </span>
           )}
         </div>
-        <div className="text-lead truncate font-ui text-[15px] font-semibold">
+        <div className="text-lead truncate font-ui text-[16px] font-semibold">
           {sponsor.name}
         </div>
       </div>
 
-      <div className="min-w-0 basis-full pr-3 sm:w-[190px] sm:flex-none">
+      <div
+        className={`min-w-0 basis-full pl-[72px] sm:flex-none sm:pl-0 ${SPONSOR_COLS.link}`}
+      >
         {link ? (
           <a
             href={link}
             target="_blank"
             rel="noopener noreferrer nofollow"
-            className="text-red block truncate font-ui text-[13px] font-medium hover:underline"
+            className="text-red block truncate font-ui text-[14px] font-semibold underline decoration-1 underline-offset-4 hover:decoration-2"
           >
             {sponsor.href}
           </a>
         ) : (
-          <span className="text-grey-soft font-ui text-[13px]">—</span>
+          <span className="text-grey-soft font-ui text-[14px]">No link</span>
         )}
       </div>
 
-      <div className="flex items-center gap-2 sm:w-[150px]">
+      <div
+        className={`flex items-center gap-2 pl-[72px] sm:pl-0 ${SPONSOR_COLS.until}`}
+      >
         {sponsor.activeUntil ? (
           <>
-            <span className="text-grey-soft font-ui text-[13px]">
+            <span className="text-grey font-ui text-[14px] tabular-nums">
               {sponsor.activeUntil}
             </span>
             {sponsor.expired && (
-              <span className="bg-newsprint text-red rounded-full px-2 py-0.5 font-ui text-[10px] font-semibold">
+              <span className="small-caps border-lead text-lead inline-flex h-6 items-center gap-1.5 border px-1.5">
+                <span aria-hidden className="bg-red h-2 w-2 rounded-full" />
                 Expired
               </span>
             )}
           </>
         ) : (
-          <span className="text-grey-soft font-ui text-[13px]">No end date</span>
+          <span className="text-grey-soft font-ui text-[14px]">
+            No end date
+          </span>
         )}
       </div>
 
-      <div className="ml-auto flex items-center justify-end gap-1 sm:ml-0 sm:w-[80px]">
-        <button
-          type="button"
+      <div
+        className={`ml-auto flex items-center justify-end gap-3 sm:ml-0 ${SPONSOR_COLS.actions}`}
+      >
+        <Button
+          variant="link"
+          size="sm"
           onClick={onEdit}
           disabled={pending}
           title={`Edit ${sponsor.name}`}
           aria-label={`Edit ${sponsor.name}`}
-          className="text-red w-9 cursor-pointer text-right font-ui text-sm font-semibold hover:underline disabled:opacity-40"
         >
           Edit
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant="link"
+          size="sm"
           onClick={() => setConfirming(true)}
           disabled={pending}
           title={`Delete ${sponsor.name}`}
           aria-label={`Delete ${sponsor.name}`}
-          className="text-grey-soft hover:text-red hover:border-red flex h-9 w-9 items-center justify-center rounded-ui border border-transparent disabled:opacity-40"
         >
-          <Icon name="trash" size={17} strokeWidth={1.8} />
-        </button>
+          Delete
+        </Button>
       </div>
 
       {confirming && (

@@ -23,15 +23,13 @@ export function SettingsUnavailable() {
   return (
     <section
       role="alert"
-      className="bg-sheet border-hairline mt-7 max-w-2xl rounded-[10px] border p-6"
+      className="border-lead border-l-red bg-sheet mt-7 max-w-2xl border border-l-4 p-6"
     >
-      <div className="text-red font-ui text-[11px] font-semibold tracking-[0.2em] uppercase">
-        Couldn&rsquo;t load
-      </div>
-      <h2 className="text-lead mt-2 font-display text-[22px] leading-tight">
+      <div className="small-caps text-red">Couldn&rsquo;t load</div>
+      <h2 className="text-lead mt-2 font-display text-[26px] leading-tight font-semibold">
         We can&rsquo;t show your magazine details right now.
       </h2>
-      <p className="text-grey mt-3 max-w-prose font-ui text-[15px] leading-relaxed">
+      <p className="text-grey mt-3 max-w-prose font-ui text-[16px] leading-relaxed">
         The database didn&rsquo;t answer, so we don&rsquo;t know what your
         current settings are.{" "}
         <strong className="text-lead">Nothing has been changed</strong> — your
@@ -39,7 +37,7 @@ export function SettingsUnavailable() {
         show you empty boxes, because saving those would wipe the details you
         can&rsquo;t see.
       </p>
-      <p className="text-grey mt-3 max-w-prose font-ui text-[15px] leading-relaxed">
+      <p className="text-grey mt-3 max-w-prose font-ui text-[16px] leading-relaxed">
         Your logo library is on this page too, and comes back with it. Try again
         in a moment; if it keeps happening, note the time and let your developer
         know.

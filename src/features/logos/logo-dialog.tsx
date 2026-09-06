@@ -1,9 +1,14 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { DialogShell } from "@/components/dialog-shell";
-import { Icon } from "@/components/icons";
-import { Button, IconButton } from "@/components/ui";
+import { DialogShell, dialogPanel } from "@/components/dialog-shell";
+import {
+  DialogFooter,
+  DialogTitle,
+  Field,
+  INPUT_CLASS,
+} from "@/components/dialog-parts";
+import { Button } from "@/components/ui";
 import type { LogoListItem } from "@/lib/logos";
 import {
   createLogoAction,
@@ -95,51 +100,47 @@ export function LogoDialog({
 
   return (
     <DialogShell
-      panelClassName="scrollbar-soft bg-sheet max-h-[90vh] w-[520px] overflow-y-auto rounded-[10px] [--scrollbar-surface:var(--color-sheet)] [scrollbar-gutter:stable]"
+      panelClassName={dialogPanel(
+        "scrollbar-soft max-h-[90vh] w-[540px] overflow-y-auto [scrollbar-gutter:stable]",
+      )}
       locked={saving}
       onClose={onClose}
     >
       {(titleId) => (
         <>
-          <div className="flex items-center justify-between px-8 pt-7">
-            <h2
+          <div className="px-7 pt-6">
+            <DialogTitle
               id={titleId}
-              className="text-lead font-display text-[26px] leading-tight"
+              kicker="Logos"
+              onClose={onClose}
+              closeDisabled={saving}
             >
               {renaming ? "Rename logo" : "Add logo"}
-            </h2>
-            <IconButton
-              icon="close"
-              label="Close"
-              onClick={onClose}
-              disabled={saving}
-            />
+            </DialogTitle>
           </div>
 
-          <div className="space-y-5 px-8 pt-6">
-            <div>
-              <label
-                htmlFor="logo-name"
-                className="text-grey-soft mb-1.5 block font-ui text-[11px] font-semibold tracking-[0.14em] uppercase"
-              >
-                Name
-              </label>
+          <div className="flex flex-col gap-5 px-7 pt-6">
+            <Field label="Name" htmlFor="logo-name">
               <input
                 id="logo-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 maxLength={200}
                 placeholder="e.g. Club fern"
-                className="border-hairline focus:border-red text-lead h-12 w-full rounded-ui border-[1.5px] bg-white px-3.5 font-ui text-[15px] outline-none"
+                className={INPUT_CLASS}
               />
-            </div>
+            </Field>
 
-            <div>
-              <span className="text-grey-soft mb-1.5 block font-ui text-[11px] font-semibold tracking-[0.14em] uppercase">
-                Mark
-              </span>
-              <div className="flex items-center gap-4">
-                <div className="border-hairline flex h-20 w-20 flex-none items-center justify-center overflow-hidden rounded-ui border bg-white">
+            <Field
+              label="Mark"
+              hint={
+                renaming
+                  ? undefined
+                  : "Use a PNG or WebP with a transparent background — see-through areas are kept, so the mark sits cleanly on the page."
+              }
+            >
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="border-lead bg-sheet flex h-20 w-20 flex-none items-center justify-center overflow-hidden border">
                   {imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -148,13 +149,13 @@ export function LogoDialog({
                       className="h-full w-full object-contain p-1.5"
                     />
                   ) : (
-                    <span className="text-grey-soft font-ui tabular-nums text-[10px]">
+                    <span className="text-grey-soft font-ui text-[11px] font-semibold tracking-[0.08em]">
                       NO MARK
                     </span>
                   )}
                 </div>
                 {renaming ? (
-                  <p className="text-grey-soft max-w-[280px] font-ui text-[12px] leading-relaxed">
+                  <p className="text-grey-soft max-w-[300px] font-ui text-[14px] leading-relaxed">
                     The image itself can&rsquo;t be swapped — add a new logo and
                     delete this one instead.
                   </p>
@@ -162,10 +163,11 @@ export function LogoDialog({
                   <Button
                     variant="secondary"
                     size="sm"
+                    icon="upload"
+                    iconPosition="left"
                     onClick={() => fileRef.current?.click()}
                     busy={uploading}
                   >
-                    <Icon name="upload" size={15} className="text-red" />
                     {uploading
                       ? "Uploading…"
                       : imageUrl
@@ -181,22 +183,19 @@ export function LogoDialog({
                   className="hidden"
                 />
               </div>
-              {!renaming && (
-                <p className="text-grey-soft mt-2 font-ui text-[12px] leading-relaxed">
-                  Use a PNG or WebP with a transparent background — see-through
-                  areas are kept, so the mark sits cleanly on the page.
-                </p>
-              )}
-            </div>
+            </Field>
           </div>
 
           {error && (
-            <p className="text-red px-8 pt-4 font-ui text-[13px] font-semibold">
+            <p
+              role="alert"
+              className="text-red px-7 pt-4 font-ui text-[15px] font-semibold"
+            >
               {error}
             </p>
           )}
 
-          <div className="flex justify-end gap-3 px-8 pt-6 pb-7">
+          <DialogFooter>
             <Button variant="secondary" onClick={onClose} disabled={saving}>
               Cancel
             </Button>
@@ -209,7 +208,7 @@ export function LogoDialog({
             >
               {saving ? "Saving…" : renaming ? "Save name" : "Save logo"}
             </Button>
-          </div>
+          </DialogFooter>
         </>
       )}
     </DialogShell>

@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Icon } from "@/components/icons";
+import { ROW } from "@/components/admin-table";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { MemberDialog } from "./member-dialog";
 import { SelectCheckbox } from "@/components/select-checkbox";
-import { Avatar, Pill } from "@/components/ui";
+import { Avatar, Button, Pill } from "@/components/ui";
 import { initials } from "@/lib/initials";
 import {
   removeMemberAction,
@@ -26,6 +26,17 @@ const REASONS: Record<string, string> = {
 const joinedLabel = (d: Date) =>
   new Date(d).toLocaleDateString("en-NZ", { month: "short", year: "numeric" });
 
+// The column widths the header row (members-table.tsx) mirrors.
+export const MEMBER_COLS = {
+  subscription: "sm:w-[130px]",
+  role: "sm:w-[90px]",
+  joined: "sm:w-[80px]",
+  actions: "sm:w-[300px]",
+};
+
+// One member: who they are, their subscription and role as boxed words, when
+// they joined, and every action as a labelled text button — nothing to hover
+// to discover.
 export function MemberRow({
   member,
   currentUserId,
@@ -89,8 +100,8 @@ export function MemberRow({
   };
 
   return (
-    <div className="border-hairline border-b py-3">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5 px-1.5">
+    <div className={`${ROW} py-3`}>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <div className="flex min-w-0 basis-full items-center gap-3 sm:basis-0 sm:flex-1">
           <SelectCheckbox
             checked={selected}
@@ -99,33 +110,49 @@ export function MemberRow({
           />
           <Avatar initials={initials(label)} />
           <div className="min-w-0">
-            <div className="text-lead font-ui text-[15px] font-semibold">
+            <div className="text-lead font-ui text-[16px] font-semibold">
               {member.name ?? "—"}
             </div>
-            <div className="text-grey-soft truncate font-ui text-[13px]">
+            <div className="text-grey truncate font-ui text-[14px]">
               {member.email}
             </div>
           </div>
         </div>
 
-        <div className="sm:w-[120px]">
-          <button
-            type="button"
+        <div className={`pl-[92px] sm:pl-0 ${MEMBER_COLS.subscription}`}>
+          <Pill status={member.subscribed ? "Subscribed" : "Unsubscribed"} />
+        </div>
+
+        <div
+          className={`text-grey font-ui text-[15px] ${MEMBER_COLS.role}`}
+        >
+          {member.isAdmin ? "Admin" : "Member"}
+        </div>
+
+        <div
+          className={`text-grey hidden font-ui text-[15px] tabular-nums sm:block ${MEMBER_COLS.joined}`}
+        >
+          {joinedLabel(member.createdAt)}
+        </div>
+
+        <div
+          className={`flex basis-full flex-wrap items-center gap-x-3 pl-[92px] sm:basis-auto sm:justify-end sm:pl-0 ${MEMBER_COLS.actions}`}
+        >
+          <Button
+            variant="link"
+            size="sm"
             onClick={toggleSubscribed}
             disabled={pending}
             title={
               member.subscribed ? "Mark as unsubscribed" : "Mark as subscribed"
             }
             aria-label={`${member.subscribed ? "Unsubscribe" : "Subscribe"} ${label}`}
-            className="cursor-pointer rounded-full transition-opacity hover:opacity-75 focus-visible:outline-2 disabled:cursor-default disabled:opacity-40"
           >
-            <Pill status={member.subscribed ? "Subscribed" : "Unsubscribed"} />
-          </button>
-        </div>
-
-        <div className="sm:w-[112px]">
-          <button
-            type="button"
+            {member.subscribed ? "Unsubscribe" : "Subscribe"}
+          </Button>
+          <Button
+            variant="link"
+            size="sm"
             onClick={toggleAdmin}
             disabled={pending || isSelf}
             title={
@@ -136,48 +163,37 @@ export function MemberRow({
                   : "Make admin"
             }
             aria-label={`${member.isAdmin ? "Remove admin from" : "Make admin"} ${label}`}
-            className="text-grey hover:text-red flex cursor-pointer items-center gap-1.5 font-ui text-[13px] font-medium disabled:cursor-default disabled:opacity-40 disabled:hover:text-current"
           >
-            <Icon
-              name={member.isAdmin ? "check" : "plus"}
-              size={15}
-              strokeWidth={1.8}
-            />
-            {member.isAdmin ? "Admin" : "Make admin"}
-          </button>
-        </div>
-
-        <div className="text-grey-soft hidden font-ui text-[13px] sm:block sm:w-[76px]">
-          {joinedLabel(member.createdAt)}
-        </div>
-
-        <div className="ml-auto flex items-center justify-end gap-2 sm:ml-0 sm:w-[58px]">
-          <button
-            type="button"
+            {member.isAdmin ? "Remove admin" : "Make admin"}
+          </Button>
+          <Button
+            variant="link"
+            size="sm"
             onClick={() => setEditing(true)}
             disabled={pending}
             title="Edit name and email"
             aria-label={`Edit ${label}`}
-            className="text-grey-soft hover:text-red flex cursor-pointer disabled:cursor-default disabled:opacity-30 disabled:hover:text-current"
           >
-            <Icon name="pencil" size={18} strokeWidth={1.7} />
-          </button>
-
-          <button
-            type="button"
+            Edit
+          </Button>
+          <Button
+            variant="link"
+            size="sm"
             onClick={remove}
             disabled={pending || isSelf}
             title={isSelf ? "You can’t remove yourself" : "Remove member"}
             aria-label={`Remove ${label}`}
-            className="text-grey-soft hover:text-red flex cursor-pointer justify-end disabled:cursor-default disabled:opacity-30 disabled:hover:text-current"
           >
-            <Icon name="close" size={20} strokeWidth={1.7} />
-          </button>
+            Remove
+          </Button>
         </div>
       </div>
 
       {error && (
-        <p className="text-red mt-1.5 pl-[6.75rem] font-ui text-[13px]">
+        <p
+          role="alert"
+          className="text-red mt-1.5 pl-[92px] font-ui text-[14px]"
+        >
           {error}
         </p>
       )}

@@ -241,7 +241,7 @@ try {
   // ── Shell identity + sign-out ──────────────────────────────────────────────
   await adminPage.goto(`${base}/admin`);
   ok(
-    (await adminPage.textContent("aside"))?.includes(adminUser.email),
+    (await adminPage.textContent("header"))?.includes(adminUser.email),
     "sidebar shows the signed-in admin identity",
   );
   const adminSessions = async () =>
@@ -252,7 +252,7 @@ try {
       )[0]!.n,
     );
   const sessionsBefore = await adminSessions();
-  await adminPage.click("aside button:has-text('Sign out')");
+  await adminPage.click("header button:has-text('Sign out')");
   await adminPage.waitForURL("**/signin**");
   ok(true, "sign out lands on /signin");
   ok(

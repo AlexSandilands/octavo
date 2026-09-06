@@ -144,7 +144,7 @@ export function SettingsPreview({
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2.5">
         <MenuSelect
-          label="Theme"
+          label="Look"
           current={getTheme(themeId).name}
           ariaLabel="Preview layout theme"
           items={themeItems}
@@ -169,7 +169,7 @@ export function SettingsPreview({
       <div ref={boxRef} className="max-w-[340px] xl:max-w-none">
         <div
           aria-hidden="true"
-          className="pointer-events-none w-fit overflow-hidden rounded-[3px] shadow-[0_10px_30px_rgba(40,36,28,0.14)] select-none"
+          className="border-lead pointer-events-none w-fit overflow-hidden border select-none"
         >
           <ScaledPage scale={scale}>
             <PageFrame
@@ -190,7 +190,7 @@ export function SettingsPreview({
 
       {/* Held to a readable measure, and to the stacked layout's own width
           below xl so that layout is untouched by the split. */}
-      <p className="text-faint2 max-w-[340px] font-sans text-[12px] leading-relaxed xl:max-w-[420px]">
+      <p className="text-grey max-w-[340px] font-ui text-[14px] leading-relaxed xl:max-w-[420px]">
         {scale >= 1
           ? "A page at its real size, with stand-in words."
           : `A page at ${Math.round(scale * 100)}% of its real size, with stand-in words.`}{" "}
@@ -199,7 +199,7 @@ export function SettingsPreview({
             No marks in the library yet —{" "}
             <Link
               href="#logos"
-              className="text-accent font-medium underline underline-offset-2"
+              className="text-red font-semibold underline underline-offset-4"
             >
               add one
             </Link>{" "}

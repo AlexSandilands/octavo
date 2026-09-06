@@ -221,7 +221,7 @@ try {
   ok(await shows(total), `the live region counts the whole archive (${total})`);
 
   const firstOnPage1 = await cards.first().getAttribute("href");
-  await nav.getByText("Next").click();
+  await nav.getByText("Older").click();
   await page.waitForURL((u) => u.searchParams.get("page") === "2");
   ok(
     (await says(STATUS, `Page 2 of ${archivePages}`)) &&
@@ -371,7 +371,7 @@ try {
       search.height >= 44,
     `at 390px the search and the year filter are ${Math.round(search.height)}px and ${Math.round(trigger.height)}px targets inside the viewport`,
   );
-  const nextBox = (await nav.getByText("Next").boundingBox())!;
+  const nextBox = (await nav.getByText("Older").boundingBox())!;
   ok(
     nextBox.height >= 44 && nextBox.x + nextBox.width <= 390,
     `the page control keeps a ${Math.round(nextBox.height)}px target at 390px`,

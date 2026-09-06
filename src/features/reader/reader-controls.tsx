@@ -1,16 +1,24 @@
 "use client";
 
-import { Icon } from "@/components/icons";
+import Link from "next/link";
+import { MenuSelect } from "@/components/menu-select";
+import { Button, Wordmark } from "@/components/ui";
 import { MIN_ZOOM, MAX_ZOOM } from "@/features/blocks/use-canvas-pan-zoom";
+import type { LayoutThemeId } from "@/features/blocks/themes/registry";
 import type { PdfState } from "./use-issue-pdf";
 
-// The floating control dock at the bottom of the reader: paging, the spread
-// label, contents toggle, fit + zoom slider, PDF and full screen. Fades back to
-// 50% until hovered/focused so it sits behind the page while reading.
-export function ReaderControls({
-  label,
+const ZOOM_STEP = 0.15;
+
+// The reader's fixed toolbar: a slim masthead bar (a way back, the nameplate,
+// the Look select and Full screen) over a row of labelled buttons — Contents,
+// Previous / Next with the page position as text between them, Zoom − / + with
+// the percentage, Fit, Download PDF. All words; nothing floats over the page.
+export function ReaderToolbar({
+  issueNo,
+  pageLabel,
   onPrev,
   onNext,
+  contentsOpen,
   onToggleContents,
   onResetView,
   zoom,
@@ -20,10 +28,18 @@ export function ReaderControls({
   pdfEnabled,
   pdfState,
   onDownloadPdf,
+  themes,
+  themeId,
+  onTheme,
+  hint,
+  onDismissHint,
 }: {
-  label: string;
+  issueNo: number;
+  /** "Pages 2–3 of 12". */
+  pageLabel: string;
   onPrev: () => void;
   onNext: () => void;
+  contentsOpen: boolean;
   onToggleContents: () => void;
   onResetView: () => void;
   zoom: number;
@@ -31,121 +47,191 @@ export function ReaderControls({
   isFullscreen: boolean;
   onToggleFullscreen: () => void;
   /** Whether the owner offers PDF downloads at all (issue #162) — resolved from
-   *  the magazine settings on the server. False drops the control and its
-   *  divider from the dock entirely; there is no disabled state to find. */
+   *  the magazine settings on the server. False drops the control entirely;
+   *  there is no disabled state to find. */
   pdfEnabled: boolean;
   pdfState: PdfState;
   onDownloadPdf: () => void;
+  /** The layout themes this deployment offers; the select shows only for 2+. */
+  themes: { id: LayoutThemeId; name: string }[];
+  themeId: LayoutThemeId;
+  onTheme: (id: LayoutThemeId) => void;
+  /** The first-visit keyboard hint under the toolbar. */
+  hint: boolean;
+  onDismissHint: () => void;
 }) {
-  const pdfTitle =
+  const pdfLabel =
     pdfState === "loading"
       ? "Preparing PDF…"
       : pdfState === "error"
-        ? "PDF failed — tap to retry"
+        ? "Retry PDF"
         : "Download PDF";
+  const current = themes.find((t) => t.id === themeId)?.name ?? themeId;
+  const pct = `${Math.round(zoom * 100)}%`;
+
   return (
-    <div className="group absolute inset-x-0 bottom-0 flex justify-center px-4 pt-12 pb-4">
-      <div className="bg-lead text-sheet flex items-center gap-1.5 rounded-full px-2.5 py-2 opacity-50 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
-        <CtrlBtn onClick={onPrev} title="Previous">
-          <Icon name="chevronLeft" size={18} strokeWidth={1.7} />
-        </CtrlBtn>
-        <span className="text-newsprint min-w-[76px] text-center font-ui text-[13px]">
-          {label}
-        </span>
-        <CtrlBtn onClick={onNext} title="Next">
-          <Icon name="chevronRight" size={18} strokeWidth={1.7} />
-        </CtrlBtn>
-        <Divider />
-        <CtrlBtn onClick={onToggleContents} title="Contents">
-          <Icon name="menu" size={18} />
-        </CtrlBtn>
-        <div className="flex items-center gap-2 pr-1 pl-1">
-          <CtrlBtn onClick={onResetView} title="Fit to screen">
-            <Icon name="fitScreen" size={18} />
-          </CtrlBtn>
-          <input
-            type="range"
-            min={MIN_ZOOM}
-            max={MAX_ZOOM}
-            step={0.05}
-            value={zoom}
-            onChange={(e) => onZoom(parseFloat(e.target.value))}
-            aria-label="Zoom page"
-            title={`Zoom ${Math.round(zoom * 100)}%`}
-            className="accent-red h-1 w-20 cursor-pointer"
-          />
+    <header className="bg-sheet flex-none">
+      <div className="flex h-12 items-center justify-between gap-4 px-4">
+        <Link
+          href="/"
+          className="text-lead hover:text-red flex h-11 items-center font-ui text-[15px] font-semibold underline decoration-1 underline-offset-4"
+        >
+          ← Library
+        </Link>
+        <div className="flex min-w-0 items-baseline gap-3">
+          <Wordmark size={22} />
+          <span className="small-caps text-grey-soft">No. {issueNo}</span>
         </div>
-        {/* The divider goes with the button it introduces — left behind it
-            would open a group of one. */}
-        {pdfEnabled && (
-          <>
-            <Divider />
-            <CtrlBtn
-              title={pdfTitle}
-              onClick={onDownloadPdf}
-              disabled={pdfState === "loading"}
+        <div className="flex items-center gap-2">
+          {/* Only offer the choice when the deployment enables more than one
+              layout theme (NEXT_PUBLIC_ISSUE_THEMES). */}
+          {themes.length > 1 && (
+            <MenuSelect
+              label="Look"
+              current={current}
+              ariaLabel="Layout look"
+              items={themes.map((t) => ({
+                key: t.id,
+                value: t.id,
+                content: t.name,
+              }))}
+              value={themeId}
+              onSelect={onTheme}
+            />
+          )}
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={onToggleFullscreen}
+            icon={isFullscreen ? "fullscreenExit" : "fullscreen"}
+          >
+            {isFullscreen ? "Exit full screen" : "Full screen"}
+          </Button>
+        </div>
+      </div>
+
+      <div
+        role="toolbar"
+        aria-label="Reading controls"
+        className="rule-heavy rule-hair flex min-h-14 flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2"
+      >
+        <Button
+          variant="secondary"
+          size="sm"
+          icon="menu"
+          iconPosition="left"
+          onClick={onToggleContents}
+          aria-pressed={contentsOpen}
+          aria-expanded={contentsOpen}
+        >
+          Contents
+        </Button>
+
+        <div className="flex items-center gap-3">
+          <Button
+            variant="secondary"
+            size="sm"
+            icon="chevronLeft"
+            iconPosition="left"
+            onClick={onPrev}
+            title="Previous"
+          >
+            <span>
+              Previous<span className="hidden lg:inline"> page</span>
+            </span>
+          </Button>
+          <span
+            aria-live="polite"
+            className="text-lead min-w-[9ch] text-center font-ui text-[15px] font-semibold tabular-nums"
+          >
+            {pageLabel}
+          </span>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon="chevronRight"
+            onClick={onNext}
+            title="Next"
+          >
+            <span>
+              Next<span className="hidden lg:inline"> page</span>
+            </span>
+          </Button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div
+            role="group"
+            aria-label="Zoom"
+            className="flex items-center gap-2"
+          >
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => onZoom(Math.max(MIN_ZOOM, zoom - ZOOM_STEP))}
+              unavailable={zoom <= MIN_ZOOM + 0.001}
+              aria-label="Zoom out"
             >
-              {pdfState === "loading" ? (
-                <Spinner />
-              ) : (
-                <Icon
-                  name="download"
-                  size={17}
-                  className={pdfState === "error" ? "text-red" : undefined}
+              Zoom −
+            </Button>
+            <span
+              aria-live="polite"
+              className="text-lead min-w-[4.5ch] text-center font-ui text-[15px] tabular-nums"
+            >
+              {pct}
+            </span>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => onZoom(Math.min(MAX_ZOOM, zoom + ZOOM_STEP))}
+              unavailable={zoom >= MAX_ZOOM - 0.001}
+              aria-label="Zoom in"
+            >
+              Zoom +
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onResetView}
+              title="Fit to screen"
+            >
+              Fit
+            </Button>
+          </div>
+          {pdfEnabled && (
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={pdfState === "loading" ? undefined : "download"}
+              onClick={onDownloadPdf}
+              busy={pdfState === "loading"}
+              aria-label={
+                pdfState === "error" ? "PDF failed — tap to retry" : undefined
+              }
+            >
+              {pdfLabel}
+              {pdfState === "loading" && (
+                <span
+                  aria-hidden="true"
+                  className="h-[16px] w-[16px] animate-spin rounded-full border-2 border-current border-t-transparent opacity-70"
                 />
               )}
-            </CtrlBtn>
-          </>
-        )}
-        <CtrlBtn
-          onClick={onToggleFullscreen}
-          title={isFullscreen ? "Exit full screen" : "Full screen"}
-        >
-          <Icon
-            name={isFullscreen ? "fullscreenExit" : "fullscreen"}
-            size={17}
-          />
-        </CtrlBtn>
+            </Button>
+          )}
+        </div>
       </div>
-    </div>
-  );
-}
 
-function CtrlBtn({
-  children,
-  onClick,
-  title,
-  disabled = false,
-}: {
-  children: React.ReactNode;
-  onClick?: () => void;
-  title: string;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      title={title}
-      aria-label={title}
-      disabled={disabled}
-      className="hover:bg-grey flex h-11 w-11 items-center justify-center rounded-full disabled:cursor-default"
-    >
-      {children}
-    </button>
+      {hint && (
+        <p className="text-grey rule-hair flex items-center gap-3 px-4 py-1.5 font-ui text-[14px]">
+          <span>
+            Tip: the ← and → keys turn the pages, and you can drag the page to
+            move it when zoomed in.
+          </span>
+          <Button variant="link" size="sm" onClick={onDismissHint}>
+            Got it
+          </Button>
+        </p>
+      )}
+    </header>
   );
-}
-
-// A small spinning ring in the current (chrome) text colour, shown while the PDF
-// generates. aria is carried by the button's title/label, so this is decorative.
-function Spinner() {
-  return (
-    <span
-      aria-hidden="true"
-      className="h-[17px] w-[17px] animate-spin rounded-full border-2 border-current border-t-transparent opacity-80"
-    />
-  );
-}
-
-function Divider() {
-  return <div className="bg-grey mx-1 h-[22px] w-px" />;
 }

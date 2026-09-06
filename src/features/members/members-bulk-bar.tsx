@@ -209,9 +209,10 @@ export function MembersBulkBar({
   );
 
   return (
+    // A rule-bounded band once something is selected; a quiet row until then.
     <div
-      className={`mt-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-ui border-[1.5px] px-2 ${
-        active ? "border-hairline bg-newsprint" : "border-transparent"
+      className={`mt-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 border-y-[3px] px-2 ${
+        active ? "border-lead bg-newsprint" : "border-transparent"
       }`}
     >
       {/* A search matching nothing has nothing to select all of, so the box
@@ -238,33 +239,33 @@ export function MembersBulkBar({
           all fit on the served page. It also puts the total match count on
           screen, which nothing else does. */}
       {shownCount > 0 && matching > shownCount && (
-        <button
-          type="button"
+        <Button
+          variant="link"
+          size="sm"
           onClick={selectAllMatching}
           disabled={pending || selectingAll}
-          className="text-grey-soft hover:text-red cursor-pointer rounded-ui px-2 py-2 font-ui text-[14px] font-medium underline underline-offset-4 disabled:cursor-default disabled:opacity-50"
         >
           {selectingAll
             ? "Selecting…"
             : overCap
               ? `Select first ${MEMBERS_SELECTION_MAX} of ${matching}${narrowed ? " matching" : ""}`
               : `Select all ${matching}${narrowed ? " matching" : " members"}`}
-        </button>
+        </Button>
       )}
 
       {active && (
         <>
-          <button
-            type="button"
+          <Button
+            variant="link"
+            size="sm"
             onClick={() => {
               setSelectionNote(null);
               onClear();
             }}
             disabled={pending}
-            className="text-grey-soft hover:text-red cursor-pointer rounded-ui px-2 py-2 font-ui text-[14px] font-medium underline underline-offset-4 disabled:cursor-default disabled:opacity-50"
           >
             Clear
-          </button>
+          </Button>
 
           <div className="ml-auto flex flex-wrap gap-2 py-1.5">
             <Button

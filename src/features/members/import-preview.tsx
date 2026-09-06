@@ -23,9 +23,9 @@ export function ImportPreview({
   const tooMany = parsed.members.length > MEMBERS_IMPORT_MAX;
 
   return (
-    <div className="border-hairline mt-4 rounded-ui border bg-white px-4 py-3 font-ui text-[14px]">
+    <div className="border-hairline-strong border-l-lead mt-4 border border-l-4 px-4 py-3 font-ui text-[15px]">
       <div className="text-lead font-semibold">{fileName}</div>
-      <ul className="text-grey mt-1.5 space-y-0.5">
+      <ul className="text-grey mt-1.5 space-y-0.5 tabular-nums">
         <li>
           {parsed.members.length} valid{" "}
           {parsed.members.length === 1 ? "member" : "members"} to import
@@ -55,8 +55,8 @@ export function ImportPreview({
       )}
 
       {sample.length > 0 && (
-        <div className="border-hairline mt-3 border-t pt-2.5">
-          <div className="text-grey-soft text-[11px] font-semibold tracking-[0.14em] uppercase">
+        <div className="rule-hair mt-3 pt-2.5">
+          <div className="small-caps text-grey-soft">
             {rest > 0 ? `First ${sample.length} of them` : "What we read"}
           </div>
           <ul className="mt-1.5 space-y-1">
@@ -72,7 +72,7 @@ export function ImportPreview({
             ))}
           </ul>
           {rest > 0 && (
-            <p className="text-grey-soft mt-1.5 text-[13px]">…and {rest} more.</p>
+            <p className="text-grey-soft mt-1.5 text-[14px]">…and {rest} more.</p>
           )}
         </div>
       )}

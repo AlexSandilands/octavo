@@ -5,10 +5,11 @@ import {
   ADMIN_LIST_TABLE,
   ADMIN_LIST_TOOLBAR,
 } from "@/components/admin-list-layout";
+import { TableHead, ZEBRA } from "@/components/admin-table";
 import { ListFilter, type ListFilterOption } from "@/components/list-filter";
 import { ListPagination } from "@/components/list-pagination";
 import { ListSearch } from "@/components/list-search";
-import { SponsorRow } from "./sponsor-row";
+import { SPONSOR_COLS, SponsorRow } from "./sponsor-row";
 import type {
   SponsorFilter,
   SponsorList,
@@ -63,12 +64,13 @@ export function SponsorsTable({
     // Pinned filters over scrolling rows from md up, a sticky search row on a
     // phone — see admin-list-layout.ts for the layers.
     <div className={ADMIN_LIST_TABLE}>
-      <div className={ADMIN_LIST_TOOLBAR}>
+      <div className={`${ADMIN_LIST_TOOLBAR} lg:items-end`}>
         <div className="min-w-0 flex-1">
           <ListSearch
             query={query}
             placeholder="Search by name"
             ariaLabel="Search all sponsors by name"
+            label="Search sponsors"
           />
         </div>
         <ListFilter
@@ -81,23 +83,25 @@ export function SponsorsTable({
       </div>
 
       {list.rows.length > 0 && (
-        <div className="border-hairline text-grey-soft mt-4 hidden flex-none items-center border-b px-1.5 pb-2.5 font-ui text-[10px] font-semibold tracking-[0.14em] uppercase sm:flex">
+        <TableHead>
           <span className="flex-1">Sponsor</span>
-          <span className="w-[190px]">Link</span>
-          <span className="w-[150px]">Active until</span>
-          <span className="w-[80px]" />
-        </div>
+          <span className={SPONSOR_COLS.link}>Link</span>
+          <span className={SPONSOR_COLS.until}>Active until</span>
+          <span className={`text-right ${SPONSOR_COLS.actions}`}>Actions</span>
+        </TableHead>
       )}
 
       <div className={ADMIN_LIST_ROWS}>
-        {list.rows.map((s) => (
-          <SponsorRow
-            key={s.id}
-            sponsor={s}
-            onEdit={() => onEdit(s)}
-            onChanged={onChanged}
-          />
-        ))}
+        <div className={ZEBRA}>
+          {list.rows.map((s) => (
+            <SponsorRow
+              key={s.id}
+              sponsor={s}
+              onEdit={() => onEdit(s)}
+              onChanged={onChanged}
+            />
+          ))}
+        </div>
 
         {/* The result of the search / filter, live. Mounted whatever the outcome
           — a region that arrives together with its text is announced
@@ -108,7 +112,7 @@ export function SponsorsTable({
           aria-live="polite"
           className={
             list.rows.length === 0
-              ? "text-grey-soft py-10 text-center font-ui text-sm"
+              ? "border-lead rule-heavy text-grey mt-4 border px-6 py-10 text-center font-ui text-[17px]"
               : "sr-only"
           }
         >
@@ -119,6 +123,7 @@ export function SponsorsTable({
           page={list.page}
           pageCount={list.pageCount}
           label="Sponsor list pages"
+          noun="sponsors"
         />
       </div>
     </div>

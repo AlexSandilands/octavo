@@ -27,7 +27,7 @@ export function ThemeMenu({
   }));
   return (
     <MenuSelect
-      label="Theme"
+      label="Look"
       current={themes.find((t) => t.id === themeId)?.name ?? ""}
       ariaLabel="Layout theme"
       items={items}

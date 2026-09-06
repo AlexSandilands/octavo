@@ -1,5 +1,6 @@
 "use client";
 
+import { Icon } from "@/components/icons";
 import type { SkippedImportRow } from "@/app/admin/members/actions";
 
 export type ImportSummaryData = {
@@ -13,9 +14,10 @@ export type ImportSummaryData = {
   skippedCount: number;
 };
 
-// What the import actually did, in plain language. The refused rows get their
-// own block and their addresses in full: the import no longer fails because of
-// them, so the admin's only job is to see which ones didn't make it (#124).
+// What the import actually did, in plain language: a boxed notice with a
+// check, the headline number in ink. The refused rows get their own block and
+// their addresses in full: the import no longer fails because of them, so the
+// admin's only job is to see which ones didn't make it (#124).
 export function ImportSummary({ summary }: { summary: ImportSummaryData }) {
   const { added, alreadyMembers, updated, invalid, skipped, skippedCount } =
     summary;
@@ -24,15 +26,21 @@ export function ImportSummary({ summary }: { summary: ImportSummaryData }) {
 
   return (
     <>
-      <p className="text-grey mt-2.5 font-ui text-[15px] leading-relaxed">
-        Done — <strong className="text-lead">{added} added</strong>,{" "}
-        {alreadyMembers} already {alreadyMembers === 1 ? "a member" : "members"}
-        {updated > 0 && <> ({updated} of them given the name from this file)</>}
-        , {invalid} invalid {invalid === 1 ? "row" : "rows"} skipped.
-      </p>
+      <div className="border-hairline-strong border-l-lead mt-4 flex items-start gap-3 border border-l-4 px-4 py-3">
+        <Icon name="check" size={20} strokeWidth={2.2} className="mt-1 flex-none" />
+        <p className="text-grey font-ui text-[16px] leading-relaxed tabular-nums">
+          Done — <strong className="text-lead">{added} added</strong>,{" "}
+          {alreadyMembers} already{" "}
+          {alreadyMembers === 1 ? "a member" : "members"}
+          {updated > 0 && (
+            <> ({updated} of them given the name from this file)</>
+          )}
+          , {invalid} invalid {invalid === 1 ? "row" : "rows"} skipped.
+        </p>
+      </div>
 
       {skippedCount > 0 && (
-        <div className="border-hairline mt-4 rounded-ui border bg-white px-4 py-3 font-ui text-[14px]">
+        <div className="border-hairline-strong border-l-red mt-4 border border-l-4 px-4 py-3 font-ui text-[15px]">
           <p className="text-lead">
             {one ? "One address" : `${skippedCount} addresses`} in the file
             couldn’t be used, so {one ? "it was" : "they were"} left out.
@@ -48,7 +56,7 @@ export function ImportSummary({ summary }: { summary: ImportSummaryData }) {
             ))}
           </ul>
           {rest > 0 && (
-            <p className="text-grey-soft mt-1.5 text-[13px]">…and {rest} more.</p>
+            <p className="text-grey-soft mt-1.5 text-[14px]">…and {rest} more.</p>
           )}
         </div>
       )}

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { DialogShell } from "@/components/dialog-shell";
+import { DialogShell, dialogPanel } from "@/components/dialog-shell";
+import { DialogFooter, DialogTitle } from "@/components/dialog-parts";
 import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui";
 import { importMembersAction } from "@/app/admin/members/actions";
@@ -91,40 +92,37 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <DialogShell
-      panelClassName="scrollbar-soft bg-sheet max-h-[90vh] w-[480px] max-w-full overflow-y-auto rounded-[10px] [--scrollbar-surface:var(--color-sheet)] [scrollbar-gutter:stable]"
+      panelClassName={dialogPanel(
+        "scrollbar-soft max-h-[90vh] w-[500px] overflow-y-auto [scrollbar-gutter:stable]",
+      )}
       locked={pending}
       onClose={onClose}
     >
       {(titleId) => (
         <>
-          <div className="px-8 pt-7">
-            <div className="text-red font-ui text-[10px] font-semibold tracking-[0.2em] uppercase">
-              Members
-            </div>
-            <h2
-              id={titleId}
-              className="text-lead mt-3 font-display text-[27px] leading-tight"
-            >
+          <div className="px-7 pt-6">
+            <DialogTitle id={titleId} kicker="Members">
               Import from CSV
-            </h2>
+            </DialogTitle>
 
             {summary ? (
               <ImportSummary summary={summary} />
             ) : (
               <>
-                <p className="text-grey mt-2.5 font-ui text-[15px] leading-relaxed">
+                <p className="text-grey mt-3 font-ui text-[16px] leading-relaxed">
                   A file with an <strong>email</strong> column (and an optional{" "}
                   <strong>name</strong>, or <strong>first</strong> and{" "}
                   <strong>last name</strong> columns). We’ll skip anything that
                   isn’t a valid address, and anyone already on the list.
                 </p>
 
-                {/* A full-width dashed drop target, not a house Button — it keeps
-                  its own shape and gains the wash the accent hover implied. */}
+                {/* A full-width dashed drop target, not a house Button — it
+                    keeps its own shape and owes the same contract: cursor,
+                    hover, transition. */}
                 <button
                   type="button"
                   onClick={() => inputRef.current?.click()}
-                  className="border-hairline text-grey hover:border-red hover:bg-newsprint hover:text-red mt-5 flex h-14 w-full cursor-pointer items-center justify-center gap-2 rounded-ui border-[1.5px] border-dashed font-ui text-[15px] font-semibold transition-[background-color,border-color,color] duration-150"
+                  className="border-lead text-lead hover:bg-newsprint mt-5 flex h-14 w-full cursor-pointer items-center justify-center gap-2 rounded-ui border border-dashed font-ui text-[16px] font-semibold transition-[background-color] duration-150"
                 >
                   <Icon name="upload" size={18} strokeWidth={1.8} />
                   {preview ? "Choose a different file" : "Choose CSV file"}
@@ -158,14 +156,14 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
               role="status"
               aria-live="polite"
               className={
-                error ? "text-red mt-3 font-ui text-[14px]" : "sr-only"
+                error ? "text-red mt-3 font-ui text-[15px]" : "sr-only"
               }
             >
               {error ?? (summary ? importSummaryAnnouncement(summary) : "")}
             </p>
           </div>
 
-          <div className="flex justify-end gap-3 px-8 pt-6 pb-6">
+          <DialogFooter>
             <Button
               ref={doneRef}
               variant="secondary"
@@ -189,7 +187,7 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
                     : "Import"}
               </Button>
             )}
-          </div>
+          </DialogFooter>
         </>
       )}
     </DialogShell>

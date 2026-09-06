@@ -550,7 +550,7 @@ try {
   // ── 7. MontageDialog (editor) ────────────────────────────────────────────
   heading("MontageDialog");
   await page.goto(`${base}/admin/issues/${issueId}/edit`);
-  await page.waitForSelector("button:has-text('Theme:')");
+  await page.waitForSelector("button:has-text('Look:')");
   // The editor shows one page at a time and the block toolbar only appears for
   // the selected block, so walk the rail to the montage's page, then select it.
   // The rail's thumbnails are unlabelled (they are pictures of the page), so
@@ -610,7 +610,7 @@ try {
   // seed: an empty video block is exactly the state the dialog opens in first.
   heading("VideoDialog");
   await page.goto(`${base}/admin/issues/${issueId}/edit`);
-  await page.waitForSelector("button:has-text('Theme:')");
+  await page.waitForSelector("button:has-text('Look:')");
   await page.click("button:has-text('Video')");
   const videoTrigger = page.locator("button", {
     hasText: /^Add a video link$/,
