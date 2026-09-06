@@ -14,6 +14,7 @@ import {
   footerTextStyle,
 } from "@/features/blocks/page-footer";
 import { headingDomId, MobileBlock } from "./mobile-block";
+import { breakHeight, readerSections } from "./mobile-sections";
 import { useIssuePdf } from "./use-issue-pdf";
 
 // Mobile reader: the whole issue as one flowing column (also the accessibility
@@ -81,7 +82,8 @@ export function MobileReader({
     el.focus({ preventScroll: true });
   };
 
-  const blocks: Block[] = content.pages.flatMap((p) => p.blocks);
+  const sections = readerSections(content.pages);
+  const blocks: Block[] = sections.flatMap((s) => s.blocks);
   const headings = blocks.filter(
     (b): b is Extract<Block, { type: "heading" }> =>
       b.type === "heading" &&
@@ -154,36 +156,39 @@ export function MobileReader({
         </div>
       </header>
 
-      <article className="flex-1 px-5 pt-6 pb-10">
-        {content.pages.map((p) =>
-          p.cover ? (
-            <section
-              key={p.id}
-              className="border-line-soft mb-8 border-b py-8 text-center"
-            >
-              {p.blocks.map((b) => (
-                <MobileBlock
-                  key={b.id}
-                  block={b}
-                  m={m}
-                  images={images}
-                  sponsors={sponsors}
-                  cover
-                />
-              ))}
-            </section>
-          ) : (
-            p.blocks.map((b) => (
+      <article className="flex-1 pb-10">
+        {sections.map((s, i) => (
+          <section
+            key={s.id}
+            className={[
+              "px-5",
+              i === 0 && "pt-6",
+              (i === sections.length - 1 || sections[i + 1]?.divided) && "pb-8",
+              s.cover && "py-8 text-center",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+          >
+            {/* The page break: a band of canvas between two sheets of page. */}
+            {s.divided && (
+              <div
+                aria-hidden
+                className="bg-canvas -mx-5 mb-6 shadow-[inset_0_2px_3px_rgba(40,36,28,0.08)]"
+                style={{ height: breakHeight(m) }}
+              />
+            )}
+            {s.blocks.map((b) => (
               <MobileBlock
                 key={b.id}
                 block={b}
                 m={m}
                 images={images}
                 sponsors={sponsors}
+                cover={s.cover}
               />
-            ))
-          ),
-        )}
+            ))}
+          </section>
+        ))}
 
         {/* This reader has no pages, so it has no running footer to carry the
             mark. It closes with it once instead — the same lockup the printed
@@ -192,7 +197,7 @@ export function MobileReader({
         {logo && (
           <div
             style={footerTextStyle(settings.footer.textSize)}
-            className={`border-line-soft mt-10 border-t pt-5 ${FOOTER_ROW_CLASS} ${LOCKUP_ALIGN[settings.footer.align]}`}
+            className={`mt-8 px-5 ${FOOTER_ROW_CLASS} ${LOCKUP_ALIGN[settings.footer.align]}`}
           >
             <FooterWordmark
               logo={logo}
