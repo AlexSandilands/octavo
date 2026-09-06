@@ -107,7 +107,7 @@ const themeSchema = z
 // placement (issue #227) — a page a photo fills prints edge to edge with no
 // running footer and no themed decoration, so the renderer changed for every
 // issue that adopts it and every cached PDF must be rebuilt from it.
-// v11: reserved for cover pages omitting the running footer (issue #237 / PR #239).
+// v11: cover pages omit the running footer (issue #237).
 // v12: per-block body-text alignment (issue #238), without fixed-page hyphenation.
 //
 // Not bumped for the sponsor segment (issue #180): the renderer is untouched —

@@ -278,11 +278,12 @@ page's text limit is fixed when the page is authored (the editor measures agains
 edge; content never reflows at read time), so a footer the owner later makes _taller_ would print
 over the last lines of pages already filled to the old limit. Each issue therefore records the
 footer sizes its pages were laid out against — `issues.footerMarkSize` / `footerTextSize`, its
-**reserve** — and every surface that draws a page resolves
+**reserve** — and every surface that draws a footer resolves
 `settingsForIssue(settings, issue)` ([`src/lib/branding.ts`](../src/lib/branding.ts)) instead of
-using the global footer directly: reader, mobile closer, editor canvas, cover thumbnails, the print
-document, and the PDF cache key's chrome fingerprint. A _smaller_ footer always applies at once (it
-can only free space); a larger one applies to the issues with room for it and waits on the rest
+using the global footer directly: reader, mobile closer, editor canvas, the print document,
+and the PDF cache key's chrome fingerprint. Covers omit the running footer in every page
+renderer, including thumbnails, while retaining theme decoration. Full-bleed pages omit both.
+A _smaller_ footer always applies at once (it can only free space); a larger one applies to the issues with room for it and waits on the rest
 until the author adopts it in the editor, where the overflow marker catches what no longer fits
 (`adoptFooterAction`). There is no room to solve this by growing the footer downward instead — the
 page's bottom margin is 22px (classic) / 16px (modern) against a 12–48px mark range. Both sizes are

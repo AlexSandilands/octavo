@@ -338,6 +338,7 @@ function PageView({
         settings={settings}
         pageNo={page ? pageNo : undefined}
         side={side}
+        cover={page?.cover}
         bleed={pageFillsCanvas(page)}
       >
         {page && (

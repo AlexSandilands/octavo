@@ -24,7 +24,7 @@
 //
 // Run: npx tsx --tsconfig scripts/tsconfig.json scripts/dev-fill-page-gate.mts
 // (the --tsconfig is not optional — see the note in dev-thumb-anchor-gate.mts.)
-import { createElement } from "react";
+import { createElement, Fragment } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   CONTENT_VERSION,
@@ -244,6 +244,7 @@ const framed = (page: Page, theme: string) =>
       issueNo: 1,
       pageNo: 4,
       settings,
+      cover: page.cover,
       bleed: pageFillsCanvas(page),
       children: createElement(PageBlocks, {
         page,
@@ -378,25 +379,52 @@ ok(
   `mobile: a photo-owned page is banded either side (${JSON.stringify(bandCheck)})`,
 );
 
-// 7. A cover ignores the placement entirely — which is why the editor does not
-//    offer it there, and why the library thumbnail (always a cover) is untouched.
-for (const align of PAGE_ALIGNS) {
-  const coverPage: Page = { ...ownedPage(align), id: "p-cover", cover: true };
-  ok(
-    !pageFillsCanvas(coverPage),
-    `a cover page is never treated as "${align}" (its title owns the page)`,
-  );
-  const coverHtml = thumbed(coverPage, "classic");
-  ok(
-    !coverHtml.includes(GEOMETRY) &&
-      !coverHtml.includes("object-cover") &&
-      !coverHtml.includes("object-contain"),
-    "…so the same block renders as an ordinary centred cover photo",
-  );
-  ok(
-    coverHtml.includes("data-page-footer"),
-    "…and the cover keeps its running footer",
-  );
+// 7. Covers ignore page-owning image placement and omit the running footer
+//    in both render paths and themes, while retaining their theme decoration.
+for (const theme of ["classic", "modern"]) {
+  for (const [surface, render] of [
+    ["page", framed],
+    ["thumbnail", thumbed],
+  ] as const) {
+    for (const align of PAGE_ALIGNS) {
+      const coverPage: Page = {
+        ...ownedPage(align),
+        id: "p-cover",
+        cover: true,
+      };
+      const label = `[${theme}/${surface}/${align}]`;
+      ok(
+        !pageFillsCanvas(coverPage),
+        `${label} a cover never treats the image as owning the page`,
+      );
+      const coverHtml = render(coverPage, theme);
+      ok(
+        !coverHtml.includes(GEOMETRY) &&
+          !coverHtml.includes("object-cover") &&
+          !coverHtml.includes("object-contain"),
+        `${label} the image keeps its ordinary centred cover treatment`,
+      );
+      ok(
+        !coverHtml.includes("data-page-footer"),
+        `${label} the cover omits its running footer`,
+      );
+      const decoration = renderToStaticMarkup(
+        createElement(
+          Fragment,
+          null,
+          resolveTheme(theme).page.decoration({
+            issueNo: 1,
+            side: surface === "page" ? "left" : "right",
+            magazineName: settings.name,
+          }),
+        ),
+      );
+      ok(
+        decoration.length > 0 && coverHtml.includes(decoration),
+        `${label} the cover keeps its theme decoration`,
+      );
+    }
+  }
 }
 
 console.log("\nall checks passed");

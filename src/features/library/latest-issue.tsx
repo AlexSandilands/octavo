@@ -19,7 +19,7 @@ type LatestIssueProps = {
   /** Resolved managed sponsors for the cover pages — the thumbnail needs them
    *  to draw a sponsor block the same way the reader does (issue #170). */
   sponsors: SponsorMap;
-  /** The magazine's effective branding + footer appearance (issue #105). */
+  /** The magazine's branding and PDF-download setting. */
   settings: SiteSettings;
 };
 

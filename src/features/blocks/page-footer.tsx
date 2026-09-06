@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import type { ResolvedImage } from "@/lib/images";
 import type { FooterAlign, SiteSettings } from "@/lib/branding";
 
-// The running footer at the foot of every magazine page. Two forms:
+// The running footer on interior pages, except full-bleed pages. Two forms:
 //
 //  - with a logo (issue #97): the club's mark and the organisation's name as one
 //    lockup, with the page number out at the opposite margin. The mark comes
@@ -12,16 +12,15 @@ import type { FooterAlign, SiteSettings } from "@/lib/branding";
 //    Most issues have no logo, and an issue that never picks one must keep the
 //    footer it was authored against.
 //
-// Shared by every surface that draws a page (reader spread, editor canvas,
-// library thumbnails, the print document), so all four agree by construction.
+// Shared by the reader spread, editor canvas and print document. PageFrame
+// omits it on covers, including cover thumbnails, and full-bleed pages.
 //
 // Both forms render as exactly ONE element carrying `data-page-footer`: the
 // editor's overflow detection (issue #93) measures that element's top edge as
 // the page's text limit. Keep it a single box — splitting it, or dropping the
 // attribute from either branch, silently blinds that check on the pages it
-// misses (and the no-logo branch is the common one). (A full-bleed page renders
-// no footer at all; `useTextFlow` skips those pages by name, so the check isn't
-// blinded.)
+// misses (and the no-logo branch is the common one). Covers and full-bleed pages
+// render no footer; `useTextFlow` explicitly skips both.
 //
 // An earlier draft spread the organisation's name letter by letter across the
 // full page width. The club read the word gaps as holes and stopped reading the

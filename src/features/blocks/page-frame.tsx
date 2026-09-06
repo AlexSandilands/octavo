@@ -66,6 +66,7 @@ export function PageFrame({
   logo = null,
   settings,
   clip = true,
+  cover = false,
   bleed = false,
   children,
 }: {
@@ -83,6 +84,8 @@ export function PageFrame({
   settings: SiteSettings;
   /** Reader clips overflow to the page box; the editor leaves it visible. */
   clip?: boolean;
+  /** Covers keep the theme decoration but carry no running footer. */
+  cover?: boolean;
   /** A full-bleed page (#227): no footer, no theme decoration — dark type over a photo is unreadable. */
   bleed?: boolean;
   children: React.ReactNode;
@@ -108,7 +111,7 @@ export function PageFrame({
 
       {children}
 
-      {!bleed && (
+      {!cover && !bleed && (
         <PageFooter
           logo={logo}
           issueNo={issueNo}
