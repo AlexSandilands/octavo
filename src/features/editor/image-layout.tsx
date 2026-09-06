@@ -26,7 +26,7 @@ const PAGE_PLACEMENTS: { value: PageAlign; icon: IconName; title: string }[] = [
   {
     value: "page-fit",
     icon: "fitPage",
-    title: "Fit page (all of the photo, bars at the sides)",
+    title: "Fit page (the whole photo, with bars)",
   },
 ];
 

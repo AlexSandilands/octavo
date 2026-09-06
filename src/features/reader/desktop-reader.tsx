@@ -19,8 +19,8 @@ import { ReaderControls } from "./reader-controls";
 import { useIssuePdf } from "./use-issue-pdf";
 
 // The page-turn strip inside each outer edge of the spread, as a fraction of the
-// spread's width — a tenth of a page, ~40–55px on a fitted spread, and it scales
-// with zoom because it is measured off the live box.
+// spread's width: ~40–55px on a fitted spread; scales with zoom since it is read
+// off the live box.
 const EDGE_BAND = 0.05;
 
 export function DesktopReader({
@@ -219,12 +219,9 @@ export function DesktopReader({
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // The page-turn hitbox: a thin strip inside each outer edge of the spread —
-  // like grabbing the corner of a real page — running outwards over the whole
-  // stage beside it. On click rather than press, so a drag that starts in the
-  // strip pans the magazine instead of turning it (`consumeClickSuppression`
-  // swallows the click a pan ends on). `startTurn` applies the mid-turn and
-  // first/last-spread guards.
+  // The page-turn hitbox: a thin strip inside each outer edge of the spread,
+  // running outwards over the whole stage. On click rather than press, so a drag
+  // that starts in the strip pans instead of turning.
   const onStageClick = (e: React.MouseEvent) => {
     if (consumeClickSuppression()) return;
     const target = e.target as HTMLElement;
