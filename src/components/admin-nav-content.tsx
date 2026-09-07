@@ -108,9 +108,20 @@ export function AdminNavContent({
             size={rail ? 34 : 36}
             initials={initials(user.name?.trim() || user.email)}
           />
-          {!rail && (
-            <div className="text-chrome-text min-w-0 truncate font-ui text-[14px] font-medium">
-              {user.name ?? user.email}
+          {/* Who is signed in. The rail has no room for the address, so it
+              says so for a screen reader only; the drawer shows both lines. */}
+          {rail ? (
+            <span className="sr-only">Signed in as {user.email}</span>
+          ) : (
+            <div className="min-w-0">
+              {user.name && (
+                <div className="text-chrome-text truncate font-ui text-[14px] font-medium">
+                  {user.name}
+                </div>
+              )}
+              <div className="text-chrome-muted truncate font-ui text-[13px]">
+                {user.email}
+              </div>
             </div>
           )}
         </div>
