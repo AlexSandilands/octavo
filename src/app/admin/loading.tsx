@@ -5,7 +5,7 @@ import { AppShell } from "@/components/app-shell";
 // data loads.
 export default function AdminLoading() {
   return (
-    <AppShell area="admin" active={null} user={null}>
+    <AppShell area="admin" active={null} user={null} loading>
       <div role="status" aria-label="Loading">
         <div className="flex items-start justify-between gap-4">
           <div>

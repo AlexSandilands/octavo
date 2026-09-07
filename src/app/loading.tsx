@@ -4,7 +4,7 @@ import { AppShell } from "@/components/app-shell";
 // cards, so a slow database shows the page taking shape instead of a blank.
 export default function LibraryLoading() {
   return (
-    <AppShell area="member" active="library" user={null}>
+    <AppShell area="member" active={null} user={null} loading>
       <div
         role="status"
         aria-label="Loading the library"

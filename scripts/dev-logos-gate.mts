@@ -90,7 +90,7 @@ const page: Page = await admin.newPage();
 // (and the exact-name lookups) can't match a stale row.
 await sql`delete from logos where name like 'Gate Fern%'`;
 await page.goto(`${base}/admin/logos`);
-await page.waitForSelector("h1:has-text('Logos')");
+await page.waitForSelector("h2:has-text('Logos')");
 const empty = await page
   .locator("button:has-text('Add your first logo')")
   .count();

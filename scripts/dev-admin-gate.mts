@@ -240,6 +240,9 @@ try {
 
   // ── Shell identity + sign-out ──────────────────────────────────────────────
   await adminPage.goto(`${base}/admin`);
+  // The shell streams: its skeleton carries an identity-less sidebar until
+  // the page data lands, so let the stream settle before reading it.
+  await adminPage.waitForLoadState("networkidle");
   ok(
     (await adminPage.textContent("aside"))?.includes(adminUser.email),
     "sidebar shows the signed-in admin identity",

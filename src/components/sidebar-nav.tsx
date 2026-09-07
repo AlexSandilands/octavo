@@ -56,10 +56,12 @@ export function SidebarNav({
   area,
   active,
   user,
+  loading = false,
 }: {
   area: "member" | "admin";
   active: string | null;
   user: ShellUser | null;
+  loading?: boolean;
 }) {
   return (
     <aside className="bg-surface border-hairline hidden w-[240px] flex-none flex-col border-r md:flex">
@@ -120,6 +122,14 @@ export function SidebarNav({
               </div>
               <SignOutButton variant="row" />
             </>
+          ) : loading ? (
+            <div aria-hidden className="flex items-center gap-3 px-2 pb-3">
+              <span className="skeleton h-10 w-10 flex-none rounded-full" />
+              <div className="min-w-0 flex-1">
+                <div className="skeleton h-4 w-24" />
+                <div className="skeleton mt-2 h-3 w-32" />
+              </div>
+            </div>
           ) : (
             <div className="px-2">
               <DemoBadge />

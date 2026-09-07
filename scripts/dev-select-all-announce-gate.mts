@@ -182,7 +182,10 @@ try {
     await heard(page, `${total} members selected.`);
     ok(true, "select-all announces again after a bulk action");
 
-    await page.getByRole("button", { name: "Clear" }).first().click();
+    await page
+      .getByRole("button", { name: "Clear", exact: true })
+      .first()
+      .click();
     await page.waitForFunction(
       (el) => (el as HTMLElement).textContent?.trim() === "",
       await result.elementHandle(),

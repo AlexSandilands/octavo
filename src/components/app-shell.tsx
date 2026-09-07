@@ -16,6 +16,7 @@ export function AppShell({
   area,
   active,
   user,
+  loading = false,
   title,
   children,
 }: {
@@ -24,6 +25,9 @@ export function AppShell({
   active: string | null;
   /** Null only in demo mode and in loading skeletons. */
   user: ShellUser | null;
+  /** A loading skeleton: who is signed in isn't known yet, so the user card
+   * is a placeholder and the Demo badge stays off. */
+  loading?: boolean;
   /** The phone top bar's title; defaults to the active item's label. */
   title?: string;
   children: ReactNode;
@@ -32,7 +36,7 @@ export function AppShell({
   const heading = title ?? items.find((i) => i.key === active)?.label ?? "";
   return (
     <div className="bg-ground flex h-dvh">
-      <SidebarNav area={area} active={active} user={user} />
+      <SidebarNav area={area} active={active} user={user} loading={loading} />
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="bg-surface border-hairline flex h-14 flex-none items-center justify-between gap-3 border-b px-4 md:hidden">
           <Link
@@ -49,7 +53,7 @@ export function AppShell({
                 {heading}
               </span>
             )}
-            {!user && <DemoBadge />}
+            {!user && !loading && <DemoBadge />}
           </div>
         </header>
         {/* `relative` keeps absolute descendants (sr-only live regions) in

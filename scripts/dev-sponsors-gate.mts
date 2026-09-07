@@ -12,7 +12,9 @@ import postgres from "postgres";
 process.loadEnvFile?.(".env.local");
 const [base, logPath, logoPath] = process.argv.slice(2);
 if (!base || !logPath || !logoPath)
-  throw new Error("usage: dev-sponsors-gate.mts <base-url> <dev-log> <logo-png>");
+  throw new Error(
+    "usage: dev-sponsors-gate.mts <base-url> <dev-log> <logo-png>",
+  );
 
 const sql = postgres(process.env.DATABASE_URL!, { max: 1 });
 const ok = (cond: unknown, msg: string) => {
@@ -65,7 +67,8 @@ await page.fill("#sponsor-active", "2027-01-01");
 await page.click("button:has-text('Save sponsor')");
 await page.waitForSelector("text=Aperture Boules Co");
 ok(true, "created sponsor 'Aperture Boules Co' via the admin UI");
-const [logoRow] = await sql`select id, logo_id, href from sponsors where name = 'Aperture Boules Co'`;
+const [logoRow] =
+  await sql`select id, logo_id, href from sponsors where name = 'Aperture Boules Co'`;
 ok(logoRow?.logo_id, "sponsor persisted with a logo image id");
 const sponsorId = logoRow!.id as string;
 
@@ -90,8 +93,9 @@ const [issueRow] = await sql`select number from issues where id = ${issueId}`;
 const issueNo = Number(issueRow!.number);
 
 await page.click("button:has-text('Sponsor')"); // Insert → Sponsor block
-await page.waitForSelector("select");
-await page.selectOption("select", { label: "Aperture Boules Co" });
+// The picker is a MenuSelect ("Sponsor: Manual entry"), not a native select.
+await page.click("button:has-text('Sponsor:')");
+await page.click("[role='menuitemradio']:has-text('Aperture Boules Co')");
 await page.waitForSelector("text=Saved");
 ok(true, `placed the sponsor in draft issue No. ${issueNo} via the picker`);
 
@@ -102,9 +106,11 @@ await page
   .locator("[data-editor-block]", { hasText: "Aperture Boules Co" })
   .first()
   .click();
-await page.waitForSelector("select");
+await page.waitForSelector("button:has-text('Sponsor:')");
 ok(
-  (await page.locator("select").first().inputValue()) === sponsorId,
+  (
+    await page.locator("button:has-text('Sponsor:')").first().textContent()
+  )?.includes("Aperture Boules Co"),
   "editor autosave round-trips the v2 sponsorId (survives reload)",
 );
 
@@ -124,7 +130,10 @@ for (let i = 0; i < 40; i++) {
   await new Promise((r) => setTimeout(r, 250));
 }
 const [pub] = await sql`select status from issues where id = ${issueId}`;
-ok(pub!.status === "published", "publishing via the editor modal published the issue");
+ok(
+  pub!.status === "published",
+  "publishing via the editor modal published the issue",
+);
 
 await page.goto(`${base}/read/${issueNo}`);
 await page.waitForLoadState("networkidle");
@@ -154,7 +163,8 @@ const [inline] = await sql`
   from issues where number = 2`;
 const inlineName = inline!.sponsor_name as string;
 await sql`update issues set content = jsonb_set(content, '{version}', '1'::jsonb) where number = 2`;
-const [check] = await sql`select content->>'version' as v from issues where number = 2`;
+const [check] =
+  await sql`select content->>'version' as v from issues where number = 2`;
 ok(check!.v === "1", "issue #2 is now a version-1 document (legacy fixture)");
 // The mobile reader flows every page into one column, so the sponsor block —
 // which sits on a later page — is in the DOM (the desktop flipbook only mounts
@@ -176,7 +186,8 @@ await page.click("button[aria-label='Delete Aperture Boules Co']");
 await page.waitForSelector("button[aria-label='Delete Aperture Boules Co']", {
   state: "detached",
 });
-const [gone] = await sql`select count(*)::int n from sponsors where id = ${sponsorId}`;
+const [gone] =
+  await sql`select count(*)::int n from sponsors where id = ${sponsorId}`;
 ok(gone!.n === 0, "sponsor deleted");
 // Mobile viewport so the whole issue flows into the DOM (the sponsor slot sits
 // on the cover); the slot should now be gone while the rest still renders.

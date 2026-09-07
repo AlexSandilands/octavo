@@ -4,7 +4,7 @@ import { AppShell } from "@/components/app-shell";
 // because the root skeleton leads with a hero this page never has.
 export default function ArchiveLoading() {
   return (
-    <AppShell area="member" active="archive" user={null}>
+    <AppShell area="member" active="archive" user={null} loading>
       <div
         role="status"
         aria-label="Loading the archive"
