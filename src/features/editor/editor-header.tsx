@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Icon } from "@/components/icons";
-import { Button } from "@/components/ui";
+import { Button, Pill } from "@/components/ui";
 import type {
   LayoutTheme,
   LayoutThemeId,
@@ -13,10 +12,10 @@ import { ThemeMenu } from "./theme-menu";
 
 export type SaveStatus = "saved" | "saving" | "error" | "conflict";
 
-// The editor's top bar: back link, editable title, draft badge, the autosave
-// status pill (with retry/reload affordances), and the theme / Preview / Publish
-// actions. All state and side effects live in the editor; this renders and
-// delegates via callbacks.
+// The editor's top bar: a way back, the editable title, the DRAFT box and the
+// number, the autosave status in words (with Retry / Reload when a save did
+// not land), and the mark / Look / Preview / Publish actions. All state and
+// side effects live in the editor; this renders and delegates via callbacks.
 export function EditorHeader({
   title,
   onTitleChange,
@@ -53,52 +52,57 @@ export function EditorHeader({
   onPublish: () => void;
 }) {
   return (
-    <header className="border-hairline flex h-[60px] flex-none items-center justify-between border-b px-6">
-      <div className="flex items-center gap-3.5">
-        <Link href="/admin" className="text-grey" aria-label="Back to issues">
-          <Icon name="chevronLeft" size={20} />
+    <header className="border-lead flex min-h-[60px] flex-none flex-wrap items-center justify-between gap-x-5 gap-y-2 border-b-[3px] px-5 py-2">
+      <div className="flex min-w-0 flex-1 items-center gap-4">
+        <Link
+          href="/admin"
+          className="text-lead hover:text-red flex h-11 flex-none items-center font-ui text-[15px] font-semibold underline decoration-1 underline-offset-4"
+        >
+          ← Issues
         </Link>
         <input
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
-          className="text-lead min-w-0 border-none bg-transparent font-display text-[21px] outline-none"
+          aria-label="Issue title"
+          className="text-lead focus:border-lead min-w-0 flex-1 border-b border-transparent bg-transparent font-display text-[22px] font-semibold outline-none"
           placeholder="Untitled issue"
         />
-        <span className="bg-newsprint flex items-center gap-1.5 rounded-full px-3 py-1">
-          <span className="bg-hairline-strong h-1.5 w-1.5 rounded-full" />
-          <span className="text-grey-soft font-ui text-[11px] font-semibold">
-            Draft · No. {issueNumber}
-          </span>
+        <span className="flex flex-none items-center gap-2">
+          <Pill status="Draft" />
+          <span className="small-caps text-grey-soft">No. {issueNumber}</span>
         </span>
         {status === "error" ? (
-          <span className="flex items-center gap-2 font-ui text-[12px]">
+          <span
+            role="alert"
+            className="flex flex-none items-center gap-2 font-ui text-[14px]"
+          >
             <span className="text-red font-semibold">Couldn’t save</span>
-            <button
-              onClick={onRetrySave}
-              className="border-red text-red hover:bg-newsprint rounded-ui border px-2 py-0.5 font-semibold"
-            >
+            <Button variant="link" size="sm" onClick={onRetrySave}>
               Retry
-            </button>
+            </Button>
           </span>
         ) : status === "conflict" ? (
-          <span className="flex items-center gap-2 font-ui text-[12px]">
+          <span
+            role="alert"
+            className="flex flex-none items-center gap-2 font-ui text-[14px]"
+          >
             <span className="text-red font-semibold">
               Changed somewhere else
             </span>
-            <button
-              onClick={onReload}
-              className="border-red text-red hover:bg-newsprint rounded-ui border px-2 py-0.5 font-semibold"
-            >
+            <Button variant="link" size="sm" onClick={onReload}>
               Reload
-            </button>
+            </Button>
           </span>
         ) : (
-          <span className="text-grey-soft font-ui text-[11px]">
+          <span
+            aria-live="polite"
+            className="text-grey-soft flex-none font-ui text-[14px]"
+          >
             {status === "saving" ? "Saving…" : "Saved"}
           </span>
         )}
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex flex-none items-center gap-2">
         <LogoPicker logos={logos} logoId={logoId} onChange={onSelectLogo} />
         {themes.length > 1 && (
           <ThemeMenu

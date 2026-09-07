@@ -1,5 +1,5 @@
 import { Icon } from "@/components/icons";
-import { FigureFrame } from "./guide-ui";
+import { FigureFrame, MiniButton } from "./guide-ui";
 
 // The publish → email flow as a three-stage strip, built from the site's own
 // tokens. Decorative (FigureFrame hides it from screen readers); the copy in
@@ -13,7 +13,7 @@ function Stage({
   children: React.ReactNode;
 }) {
   return (
-    <div className="border-hairline flex min-w-0 flex-1 flex-col items-center gap-2.5 rounded-ui border bg-white px-4 py-4">
+    <div className="border-lead bg-sheet flex min-w-0 flex-1 flex-col items-center gap-2.5 border px-4 py-4">
       <span className="text-grey-soft text-center font-ui text-[10px] font-semibold tracking-[0.14em] uppercase">
         {label}
       </span>
@@ -27,21 +27,19 @@ export function PublishFigure() {
     <FigureFrame caption="Publishing, step by step: pressing Publish opens a confirmation window. Only if the email box is ticked there does the site email subscribed members — each message carrying that member's own reading link.">
       <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
         <Stage label="You press">
-          <span className="bg-red text-sheet rounded-ui px-4 py-2 font-ui text-[13px] font-semibold">
-            Publish
-          </span>
+          <MiniButton primary>Publish</MiniButton>
         </Stage>
-        <span className="text-grey-soft flex flex-none justify-center">
+        <span className="text-grey flex flex-none justify-center">
           <Icon name="arrowDown" size={16} className="sm:hidden" />
           <Icon name="arrowRight" size={16} className="hidden sm:block" />
         </span>
         <Stage label="The site asks">
-          <span className="border-hairline w-full rounded-ui border p-2.5">
-            <span className="text-lead block font-display text-[13px] leading-tight">
+          <span className="border-lead w-full border-t-[3px] pt-2">
+            <span className="text-lead block font-display text-[13px] leading-tight font-semibold">
               Publish issue No. 4?
             </span>
             <span className="mt-2 flex items-start gap-2">
-              <span className="border-red bg-red text-sheet flex h-3.5 w-3.5 flex-none items-center justify-center rounded-[3px] border">
+              <span className="border-lead bg-lead text-sheet flex h-3.5 w-3.5 flex-none items-center justify-center border">
                 <Icon name="check" size={9} strokeWidth={3} />
               </span>
               <span className="text-lead font-ui text-[10.5px] leading-snug font-semibold">
@@ -50,7 +48,7 @@ export function PublishFigure() {
             </span>
           </span>
         </Stage>
-        <span className="text-grey-soft flex flex-none justify-center">
+        <span className="text-grey flex flex-none justify-center">
           <Icon name="arrowDown" size={16} className="sm:hidden" />
           <Icon name="arrowRight" size={16} className="hidden sm:block" />
         </span>

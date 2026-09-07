@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
-import { Icon } from "@/components/icons";
+import { Button } from "@/components/ui";
 
-// Tailwind's `md` breakpoint — the same threshold the admin rail/drawer use.
+// Tailwind's `md` breakpoint — the same threshold the reader mount uses.
 const DESKTOP_QUERY = "(min-width: 768px)";
 
 // The page-based editor is a fixed-canvas authoring surface: pan/zoom, a pages
@@ -25,7 +24,7 @@ export function EditorGate({ children }: { children: ReactNode }) {
     return () => mq.removeEventListener("change", sync);
   }, []);
 
-  // Paper-coloured hold while we work out the viewport, so neither branch flashes.
+  // A blank sheet while we work out the viewport, so neither branch flashes.
   if (isDesktop === null) return <div className="bg-sheet min-h-screen" />;
   if (isDesktop) return <>{children}</>;
   return <MobileNotice />;
@@ -33,26 +32,27 @@ export function EditorGate({ children }: { children: ReactNode }) {
 
 function MobileNotice() {
   return (
-    <div className="bg-sheet flex min-h-screen flex-col items-center justify-center px-7 py-12 text-center">
-      <div className="bg-newsprint text-red flex h-16 w-16 items-center justify-center rounded-full">
-        <Icon name="fitScreen" size={30} strokeWidth={1.5} />
-      </div>
-      <h1 className="text-lead mt-6 font-display text-2xl">
-        Editing needs a larger screen
-      </h1>
-      <p className="text-grey mt-3 max-w-sm font-ui text-[15px] leading-relaxed">
-        The issue editor is a page-layout tool built for a desktop or laptop.
-        Open this issue on a computer to edit it. You can still read and manage
-        everything else from your phone.
-      </p>
-      <div className="mt-8">
-        <Link
-          href="/admin"
-          className="border-hairline text-lead hover:border-red hover:bg-newsprint flex h-12 items-center gap-2 rounded-ui border-[1.5px] bg-white px-5 font-ui text-[15px] font-semibold transition-colors"
-        >
-          <Icon name="chevronLeft" size={17} strokeWidth={1.8} />
-          Back to issues
-        </Link>
+    <div className="bg-sheet flex min-h-screen items-center justify-center px-5 py-12">
+      <div className="border-lead rule-heavy w-full max-w-md border p-7 text-center">
+        <h1 className="text-lead font-display text-[30px] leading-tight font-semibold">
+          Editing needs a larger screen
+        </h1>
+        <p className="text-grey mx-auto mt-3 max-w-sm font-ui text-[17px] leading-relaxed">
+          The issue editor is a page-layout tool built for a desktop or laptop.
+          Open this issue on a computer to edit it. You can still read and
+          manage everything else from your phone.
+        </p>
+        <div className="mt-7">
+          <Button
+            href="/admin"
+            variant="secondary"
+            icon="chevronLeft"
+            iconPosition="left"
+            full
+          >
+            Back to issues
+          </Button>
+        </div>
       </div>
     </div>
   );

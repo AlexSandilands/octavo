@@ -16,12 +16,12 @@ export default function AdminLoading() {
             key={i}
             className="border-hairline flex items-center gap-5 border-b py-4"
           >
-            <div className="bg-hairline h-[60px] w-[46px] flex-none animate-pulse rounded-[3px]" />
+            <div className="bg-hairline h-[60px] w-[46px] flex-none animate-pulse rounded-ui" />
             <div className="min-w-0 flex-1">
               <div className="bg-hairline h-5 w-1/3 animate-pulse rounded-ui" />
               <div className="bg-hairline mt-2 h-4 w-20 animate-pulse rounded-ui" />
             </div>
-            <div className="bg-hairline h-7 w-24 animate-pulse rounded-full" />
+            <div className="bg-hairline h-7 w-24 animate-pulse" />
           </div>
         ))}
       </div>

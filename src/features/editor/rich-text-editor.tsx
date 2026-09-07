@@ -27,12 +27,16 @@ export function RichTextEditor({
   size,
   align = "left",
   selected,
+  toolbarBelow = false,
   onChange,
 }: {
   value: RichTextValue;
   size: TextSize;
   align?: TextAlign;
   selected: boolean;
+  /** Hang the tool bar under the text instead of above it (the page's first
+   *  block, whose top edge is the page's). */
+  toolbarBelow?: boolean;
   onChange: (patch: BlockPatch) => void;
 }) {
   const editor = useEditor({
@@ -95,6 +99,7 @@ export function RichTextEditor({
       {selected && editor && (
         <Toolbar
           editor={editor}
+          below={toolbarBelow}
           size={size}
           align={align}
           onChange={onChange}
@@ -114,11 +119,13 @@ export function RichTextEditor({
 
 function Toolbar({
   editor,
+  below,
   size,
   align,
   onChange,
 }: {
   editor: Editor;
+  below: boolean;
   size: TextSize;
   align: TextAlign;
   onChange: (patch: BlockPatch) => void;
@@ -157,9 +164,17 @@ function Toolbar({
   };
 
   return (
-    <div className="border-hairline chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex flex-col gap-1.5 rounded-[8px] border bg-white p-1.5">
-      <div className="flex items-center gap-1.5 whitespace-nowrap">
-        <div className="border-hairline flex overflow-hidden rounded-[6px] border">
+    <div
+      className={`border-hairline-strong chrome-unscaled absolute left-0 z-20 flex w-max max-w-[600px] flex-col gap-1.5 rounded-ui border bg-sheet p-1.5 ${
+        below ? "top-full mt-2 [--chrome-origin:top_left]" : "bottom-full mb-2"
+      }`}
+    >
+      <div className="flex flex-wrap items-center gap-1.5 whitespace-nowrap">
+        <div
+          role="group"
+          aria-label="Text size"
+          className="border-hairline-strong divide-hairline-strong flex divide-x overflow-hidden rounded-ui border"
+        >
           {TEXT_SIZES.map((s) => (
             <TbBtn
               key={s.value}
@@ -173,19 +188,20 @@ function Toolbar({
         <div
           role="group"
           aria-label="Text alignment"
-          className="border-hairline flex overflow-hidden rounded-[6px] border"
+          className="border-hairline-strong divide-hairline-strong flex divide-x overflow-hidden rounded-ui border"
         >
           {TEXT_ALIGNS.map((a) => (
             <TbBtn
               key={a.value}
               icon={a.icon}
+              label={a.word}
               title={a.title}
               active={align === a.value}
               onClick={() => onChange({ align: a.value })}
             />
           ))}
         </div>
-        <span className="bg-hairline h-5 w-px" />
+        <span className="bg-hairline-strong h-5 w-px" />
         <TbBtn
           label="B"
           labelClass="font-bold"
@@ -208,22 +224,24 @@ function Toolbar({
           active={editor.isActive("underline")}
           onClick={() => editor.chain().focus().toggleMark("underline").run()}
         />
-        <span className="bg-hairline h-5 w-px" />
+        <span className="bg-hairline-strong h-5 w-px" />
         <TbBtn
           icon="listBullet"
+          label="List"
           title="Bullet list"
           active={editor.isActive("bulletList")}
           onClick={() => editor.chain().focus().toggleBulletList().run()}
         />
         <TbBtn
-          label="1."
+          label="1. List"
           title="Numbered list"
           active={editor.isActive("orderedList")}
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
         />
-        <span className="bg-hairline h-5 w-px" />
+        <span className="bg-hairline-strong h-5 w-px" />
         <TbBtn
           icon="link"
+          label="Link"
           title="Link"
           active={editor.isActive("link") || linkOpen}
           onClick={openLink}
@@ -246,13 +264,13 @@ function Toolbar({
                 setLinkOpen(false);
               }
             }}
-            className="border-hairline text-lead h-7 w-52 rounded-[6px] border px-2 font-ui text-[12px] outline-none focus:border-red"
+            className="border-hairline-strong text-lead focus:border-lead h-8 w-52 rounded-ui border px-2 font-ui text-[13px] outline-none"
           />
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={applyLink}
-            className="bg-red text-sheet h-7 rounded-[6px] px-2.5 font-ui text-[11px] font-semibold"
+            className="bg-red text-sheet hover:bg-red-deep h-8 cursor-pointer rounded-ui px-2.5 font-ui text-[12px] font-semibold"
           >
             Apply
           </button>
@@ -270,13 +288,24 @@ const CAP_NUDGE = {
 } as const;
 
 const TEXT_ALIGNS = [
-  { value: "left", icon: "alignLeft", title: "Align left" },
-  { value: "center", icon: "alignCenter", title: "Align centre" },
-  { value: "right", icon: "alignRight", title: "Align right" },
-  { value: "justify", icon: "alignJustify", title: "Justify text" },
+  { value: "left", icon: "alignLeft", word: "Left", title: "Align left" },
+  {
+    value: "center",
+    icon: "alignCenter",
+    word: "Centre",
+    title: "Align centre",
+  },
+  { value: "right", icon: "alignRight", word: "Right", title: "Align right" },
+  {
+    value: "justify",
+    icon: "alignJustify",
+    word: "Justify",
+    title: "Justify text",
+  },
 ] as const satisfies readonly {
   value: TextAlign;
   icon: string;
+  word: string;
   title: string;
 }[];
 
@@ -310,15 +339,12 @@ function TbBtn({
         e.stopPropagation();
         onClick();
       }}
-      className={`rich-text-tool flex h-7 min-w-7 cursor-pointer items-center justify-center px-1.5 font-ui text-[12px] font-semibold transition-colors ${
-        active
-          ? "bg-red text-sheet"
-          : "text-grey hover:bg-newsprint hover:text-red bg-white"
+      className={`rich-text-tool flex h-8 min-w-8 cursor-pointer items-center justify-center gap-1 rounded-ui px-2 font-ui text-[12px] font-semibold whitespace-nowrap transition-colors ${
+        active ? "bg-lead text-sheet" : "text-lead hover:bg-newsprint bg-sheet"
       }`}
     >
-      {icon ? (
-        <Icon name={icon} size={15} />
-      ) : (
+      {icon && <Icon name={icon} size={14} />}
+      {label && (
         <span className={`${CAP_NUDGE[labelFont]} ${labelClass}`}>{label}</span>
       )}
     </button>

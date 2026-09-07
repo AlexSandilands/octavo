@@ -1,4 +1,5 @@
 import { Icon, type IconName } from "@/components/icons";
+import { SegmentGroup as Group, Segment as Seg } from "./segment";
 import {
   PAGE_ALIGNS,
   type BlockPatch,
@@ -10,22 +11,51 @@ import {
 // floating toolbar (see editor-block.tsx). Writes back through the same onChange
 // the text fields use, so changes ride the normal autosave.
 
-const PLACEMENTS: { value: ImageAlign; icon: IconName; title: string }[] = [
-  { value: "left", icon: "wrapLeft", title: "Image left, text wraps right" },
-  { value: "full", icon: "breakText", title: "Break text (full width)" },
-  { value: "right", icon: "wrapRight", title: "Image right, text wraps left" },
+// Each placement shows a short word beside its icon; the title carries the
+// full description as the tooltip and the accessible name.
+const PLACEMENTS: {
+  value: ImageAlign;
+  icon: IconName;
+  word: string;
+  title: string;
+}[] = [
+  {
+    value: "left",
+    icon: "wrapLeft",
+    word: "Left",
+    title: "Image left, text wraps right",
+  },
+  {
+    value: "full",
+    icon: "breakText",
+    word: "Wide",
+    title: "Break text (full width)",
+  },
+  {
+    value: "right",
+    icon: "wrapRight",
+    word: "Right",
+    title: "Image right, text wraps left",
+  },
 ];
 
 // The two page-owning placements (#227), offered alongside the three above.
-const PAGE_PLACEMENTS: { value: PageAlign; icon: IconName; title: string }[] = [
+const PAGE_PLACEMENTS: {
+  value: PageAlign;
+  icon: IconName;
+  word: string;
+  title: string;
+}[] = [
   {
     value: "page-fill",
     icon: "fillPage",
+    word: "Fill page",
     title: "Fill page (edge to edge, trims the photo)",
   },
   {
     value: "page-fit",
     icon: "fitPage",
+    word: "Fit page",
     title: "Fit page (the whole photo, with bars)",
   },
 ];
@@ -67,7 +97,8 @@ export function ImageLayoutControls({
             title={p.title}
             onClick={() => onChange({ align: p.value })}
           >
-            <Icon name={p.icon} size={16} />
+            <Icon name={p.icon} size={15} />
+            {p.word}
           </Seg>
         ))}
         {onFillPage &&
@@ -78,7 +109,8 @@ export function ImageLayoutControls({
               title={p.title}
               onClick={() => onFillPage(p.value)}
             >
-              <Icon name={p.icon} size={16} />
+              <Icon name={p.icon} size={15} />
+              {p.word}
             </Seg>
           ))}
       </Group>
@@ -93,64 +125,11 @@ export function ImageLayoutControls({
               title={`${s.value}%`}
               onClick={() => onChange({ width: s.value })}
             >
-              <span className="px-0.5 font-ui text-[12px] font-semibold">
-                {s.label}
-              </span>
+              {s.label}
             </Seg>
           ))}
         </Group>
       )}
     </div>
-  );
-}
-
-function Group({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <span className="text-grey-soft font-ui text-[9px] font-semibold tracking-[0.14em] uppercase">
-        {label}
-      </span>
-      <div className="border-hairline flex overflow-hidden rounded-[6px] border">
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function Seg({
-  active,
-  title,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  title: string;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      title={title}
-      aria-label={title}
-      aria-pressed={active}
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick();
-      }}
-      className={`flex h-7 min-w-7 items-center justify-center px-1.5 ${
-        active
-          ? "bg-red text-sheet"
-          : "text-grey hover:bg-newsprint hover:text-red bg-white"
-      }`}
-    >
-      {children}
-    </button>
   );
 }

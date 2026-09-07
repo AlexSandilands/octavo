@@ -1,9 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { DialogShell } from "@/components/dialog-shell";
+import { DialogShell, dialogPanel } from "@/components/dialog-shell";
+import { DialogTitle } from "@/components/dialog-parts";
 import { Icon } from "@/components/icons";
-import { Button, IconButton } from "@/components/ui";
+import { Button } from "@/components/ui";
 import {
   MAX_MONTAGE_IMAGES,
   MONTAGE_INTERVALS,
@@ -116,20 +117,16 @@ export function MontageDialog({
     // stray click and pans on a drag — neither should reach it, and nor should
     // the Escape that closes this (the shell stops it).
     <DialogShell
-      panelClassName="bg-sheet flex max-h-[90vh] w-[560px] flex-col rounded-[10px]"
+      panelClassName={dialogPanel("flex max-h-[90vh] w-[560px] flex-col")}
       isolatePointerEvents
       onClose={onClose}
     >
       {(titleId) => (
         <>
-          <div className="flex flex-none items-center justify-between px-8 pt-7">
-            <h2
-              id={titleId}
-              className="text-lead font-display text-[26px] leading-tight"
-            >
+          <div className="flex-none px-8 pt-7">
+            <DialogTitle id={titleId} onClose={onClose}>
               Montage
-            </h2>
-            <IconButton icon="close" label="Close" onClick={onClose} />
+            </DialogTitle>
           </div>
 
           {/* The house dropdown, not a native <select>: a styled select still
@@ -154,7 +151,7 @@ export function MontageDialog({
           </p>
 
           <div className="scrollbar-soft min-h-0 flex-1 overflow-y-auto px-8 pt-6 [--scrollbar-surface:var(--color-sheet)] [scrollbar-gutter:stable]">
-            <span className="text-grey-soft mb-1.5 block font-ui text-[11px] font-semibold tracking-[0.14em] uppercase">
+            <span className="small-caps text-grey-soft mb-2 block">
               Images ({items.length})
             </span>
             {items.length === 0 ? (
@@ -191,7 +188,7 @@ export function MontageDialog({
             </p>
           )}
 
-          <div className="flex flex-none items-center justify-between px-8 pt-6 pb-7">
+          <div className="rule-heavy mt-6 flex flex-none flex-wrap items-center justify-between gap-3 px-8 pt-4 pb-6">
             {/* Two different states, so two different props: uploading is `busy`
               (undimmed — work in progress), a full montage is `disabled`. */}
             <Button
@@ -255,7 +252,7 @@ function MontageRow({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={image.url} alt="" className="h-full w-full object-cover" />
         ) : (
-          <span className="text-grey-soft font-ui tabular-nums text-[9px]">MISSING</span>
+          <span className="small-caps text-grey-soft">Missing</span>
         )}
       </div>
       <label className="min-w-0 flex-1">
@@ -271,18 +268,21 @@ function MontageRow({
       <div className="flex flex-none items-center gap-1">
         <RowBtn
           icon="arrowUp"
+          word="Up"
           label={`Move ${position} earlier`}
           disabled={index === 0}
           onClick={() => onMove(-1)}
         />
         <RowBtn
           icon="arrowDown"
+          word="Down"
           label={`Move ${position} later`}
           disabled={index === total - 1}
           onClick={() => onMove(1)}
         />
         <RowBtn
           icon="trash"
+          word="Remove"
           label={`Remove ${position}`}
           danger
           onClick={onRemove}
@@ -294,21 +294,23 @@ function MontageRow({
 
 function RowBtn({
   icon,
+  word,
   label,
   onClick,
   disabled,
   danger,
 }: {
   icon: "arrowUp" | "arrowDown" | "trash";
+  /** The short word shown beside the icon; `label` is the full accessible name. */
+  word: string;
   label: string;
   onClick: () => void;
   disabled?: boolean;
   danger?: boolean;
 }) {
-  // A bordered square, not a house Button and not the quiet inline IconButton —
-  // it keeps its own shape and takes only the interaction contract: the pointer,
-  // the wash its accent hover already implied, and a transition. The hovers are
-  // gated on `enabled:` so a disabled end-of-list arrow promises nothing.
+  // A ruled chip with its word, not a house Button — it keeps its own compact
+  // shape and takes only the interaction contract. The hovers are gated on
+  // `enabled:` so a disabled end-of-list arrow promises nothing.
   return (
     <button
       type="button"
@@ -316,13 +318,12 @@ function RowBtn({
       disabled={disabled}
       title={label}
       aria-label={label}
-      className={`border-hairline flex h-9 w-9 cursor-pointer items-center justify-center rounded-ui border bg-white transition-[background-color,border-color,color] duration-150 disabled:cursor-default disabled:opacity-35 ${
-        danger
-          ? "text-red enabled:hover:border-red enabled:hover:bg-newsprint"
-          : "text-grey enabled:hover:border-red enabled:hover:bg-newsprint enabled:hover:text-red"
-      }`}
+      className={`border-lead flex h-9 cursor-pointer items-center gap-1 rounded-ui border bg-white px-2 font-ui text-[13px] font-semibold transition-[background-color,border-color,color] duration-150 disabled:cursor-default disabled:opacity-35 ${
+        danger ? "text-red" : "text-lead"
+      } enabled:hover:bg-newsprint`}
     >
-      <Icon name={icon} size={15} strokeWidth={1.9} />
+      <Icon name={icon} size={14} strokeWidth={1.9} />
+      {word}
     </button>
   );
 }

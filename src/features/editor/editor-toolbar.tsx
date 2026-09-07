@@ -13,15 +13,9 @@ const INSERT: { type: BlockType; label: string; icon: IconName }[] = [
   { type: "sponsor", label: "Sponsor", icon: "banner" },
 ];
 
-/** Stage padding kept below the fitted page, so the floating bar clears it. */
-export const TOOLBAR_RESERVE = 92;
-
-// The editor's tool bar: undo/redo, the block-insert buttons and the cover-page
-// toggle. It floats over the foot of the canvas rather than sitting in a strip
-// above it (issue #222) — the tools sit beside the end of the page, which is
-// where an inserted block lands and where the overflow marker appears; a panned
-// page shows through around it. Every target is 40px and always visible; labels
-// come in from `xl`, where the pill has room.
+// The editor's tool row, under the header: the block-insert buttons and the
+// cover-page toggle at the left, Undo / Redo at the right — every one a word
+// with its icon, on a ruled strip rather than a floating pill.
 export function EditorToolbar({
   onAddBlock,
   insertDisabled = false,
@@ -48,14 +42,42 @@ export function EditorToolbar({
   notice: HistoryNotice;
 }) {
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex justify-center px-4 pb-5">
-      {/* A group, not role="toolbar": that role promises arrow-key navigation
-          within one tab stop, and here every button is its own tab stop. */}
-      <div
-        role="group"
-        aria-label="Editor tools"
-        className="border-hairline pointer-events-auto flex max-w-full items-center gap-2 rounded-[14px] border bg-white px-2.5 py-2"
-      >
+    // A group, not role="toolbar": that role promises arrow-key navigation
+    // within one tab stop, and here every button is its own tab stop.
+    <div
+      role="group"
+      aria-label="Editor tools"
+      className="border-hairline bg-sheet flex flex-none flex-wrap items-center gap-2 border-b px-5 py-2"
+    >
+      <span className="small-caps text-grey-soft mr-1">Insert</span>
+      {INSERT.map((b) => (
+        <Tool
+          key={b.type}
+          icon={b.icon}
+          label={b.label}
+          hint={
+            insertDisabled
+              ? "This page is filled by a photo"
+              : `Insert a ${b.label.toLowerCase()} block`
+          }
+          disabled={insertDisabled}
+          onClick={() => onAddBlock(b.type)}
+        />
+      ))}
+      <Divider />
+      <Tool
+        icon="doc"
+        label="Cover page"
+        hint={
+          coverDisabled
+            ? "The first page is always the cover"
+            : "Lay this page out as a cover"
+        }
+        pressed={coverActive}
+        disabled={coverDisabled}
+        onClick={onToggleCover}
+      />
+      <span className="ml-auto flex items-center gap-2">
         {/* `unavailable`, not `disabled`: it keeps the button focusable — see
             `unavailable` in `ui.tsx`. */}
         <Tool
@@ -74,60 +96,27 @@ export function EditorToolbar({
           unavailable={!canRedo}
           onClick={onRedo}
         />
-        <Divider />
-        {INSERT.map((b) => (
-          <Tool
-            key={b.type}
-            icon={b.icon}
-            label={b.label}
-            hint={
-              insertDisabled
-                ? "This page is filled by a photo"
-                : `Insert a ${b.label.toLowerCase()} block`
-            }
-            iconClass="text-red"
-            showLabel
-            disabled={insertDisabled}
-            onClick={() => onAddBlock(b.type)}
-          />
-        ))}
-        <Divider />
-        <Tool
-          icon="doc"
-          label="Cover page"
-          hint={
-            coverDisabled
-              ? "The first page is always the cover"
-              : "Lay this page out as a cover"
-          }
-          showLabel
-          pressed={coverActive}
-          disabled={coverDisabled}
-          onClick={onToggleCover}
-        />
-        <span role="status" aria-live="polite" className="sr-only">
-          {/* Keyed by the counter so the same text twice is still a change. */}
-          <span key={notice.n}>{notice.text}</span>
-        </span>
-      </div>
+      </span>
+      <span role="status" aria-live="polite" className="sr-only">
+        {/* Keyed by the counter so the same text twice is still a change. */}
+        <span key={notice.n}>{notice.text}</span>
+      </span>
     </div>
   );
 }
 
 function Divider() {
-  return <span className="bg-hairline mx-0.5 h-6 w-px" />;
+  return <span className="bg-hairline-strong mx-1 h-6 w-px" />;
 }
 
-// Its own shape rather than the house Button (§6 allows a bordered icon square):
-// a 40px square that grows a label from `xl`, plus the aria-pressed and
-// aria-keyshortcuts a tool bar owes. The interaction contract is the house one.
+// Its own shape rather than the house Button (§6 allows it): a 40px labelled
+// chip that also carries the aria-pressed and aria-keyshortcuts a tool row
+// owes. The interaction contract is the house one.
 function Tool({
   icon,
   label,
   hint,
   shortcut,
-  iconClass = "",
-  showLabel = false,
   pressed,
   disabled = false,
   unavailable = false,
@@ -137,9 +126,6 @@ function Tool({
   label: string;
   hint: string;
   shortcut?: string;
-  iconClass?: string;
-  /** Show the label beside the icon from `xl` up; below that, icon only. */
-  showLabel?: boolean;
   pressed?: boolean;
   disabled?: boolean;
   /** Off, but still focusable — see the note at the undo button. */
@@ -148,10 +134,10 @@ function Tool({
 }) {
   const inert = disabled || unavailable;
   const look = inert
-    ? "border-hairline text-lead cursor-default bg-white opacity-45"
+    ? "border-lead text-lead bg-sheet cursor-default opacity-45"
     : pressed
-      ? "border-red bg-red text-sheet cursor-pointer motion-safe:active:scale-95"
-      : "border-hairline text-lead hover:border-red hover:bg-newsprint cursor-pointer bg-white motion-safe:active:scale-95";
+      ? "border-lead bg-lead text-sheet cursor-pointer"
+      : "border-lead text-lead bg-sheet hover:bg-newsprint cursor-pointer";
   return (
     <button
       type="button"
@@ -159,13 +145,12 @@ function Tool({
       disabled={disabled}
       aria-disabled={unavailable || undefined}
       title={hint}
-      aria-label={label}
       aria-pressed={pressed}
       aria-keyshortcuts={shortcut}
-      className={`flex h-10 w-10 flex-none items-center justify-center gap-1.5 rounded-[9px] border font-ui text-[13px] font-semibold transition-[transform,background-color,border-color,color] duration-150 ease-out select-none ${showLabel ? "xl:w-auto xl:px-3.5" : ""} ${look}`}
+      className={`flex h-10 flex-none items-center gap-1.5 rounded-ui border px-3 font-ui text-[14px] font-semibold whitespace-nowrap transition-[background-color,border-color,color] duration-150 ease-out select-none motion-safe:active:translate-y-px ${look}`}
     >
-      <Icon name={icon} size={16} className={pressed ? "" : iconClass} />
-      {showLabel && <span className="hidden xl:inline">{label}</span>}
+      <Icon name={icon} size={16} />
+      {label}
     </button>
   );
 }

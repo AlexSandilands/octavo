@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { DialogShell } from "@/components/dialog-shell";
+import { DialogShell, dialogPanel } from "@/components/dialog-shell";
+import { DialogFooter, DialogTitle } from "@/components/dialog-parts";
 import { Button } from "@/components/ui";
 import type { PublishResult } from "@/app/admin/actions";
 
@@ -69,33 +70,26 @@ export function PublishModal({
 
   return (
     <DialogShell
-      panelClassName="bg-sheet w-[480px] overflow-hidden rounded-[10px]"
+      panelClassName={dialogPanel("w-[500px]")}
       locked={working}
       onClose={onClose}
     >
       {(titleId) => (
         <>
-          <div className="px-8 pt-7">
-            <div className="text-red font-ui text-[10px] font-semibold tracking-[0.2em] uppercase">
-              Publish &amp; send
-            </div>
-
+          <div className="px-7 pt-6">
             {phase === "done" ? (
               <ResultBody titleId={titleId} number={number} result={result} />
             ) : (
               <>
-                <h2
-                  id={titleId}
-                  className="text-lead mt-3 font-display text-[27px] leading-tight"
-                >
+                <DialogTitle id={titleId} kicker="Publish & send">
                   Publish issue No. {number}?
-                </h2>
-                <p className="text-grey mt-2.5 font-ui text-[15px] leading-relaxed">
+                </DialogTitle>
+                <p className="text-grey mt-3 font-ui text-[16px] leading-relaxed">
                   This marks the issue published so members can read it.
                 </p>
 
                 <label
-                  className={`border-hairline mt-5 flex items-start gap-3 rounded-ui border-[1.5px] bg-white p-4 ${
+                  className={`boxed-field border-lead bg-sheet mt-5 flex items-start gap-3 rounded-ui border p-4 ${
                     canEmail ? "cursor-pointer" : "opacity-60"
                   }`}
                 >
@@ -104,13 +98,13 @@ export function PublishModal({
                     checked={willEmail}
                     disabled={!canEmail || working}
                     onChange={(e) => setSendEmail(e.target.checked)}
-                    className="accent-red mt-0.5 h-5 w-5 flex-none"
+                    className="accent-red mt-1 h-5 w-5 flex-none"
                   />
-                  <span className="font-ui text-[14px] leading-snug">
+                  <span className="font-ui text-[16px] leading-snug">
                     <span className="text-lead font-semibold">
                       Email the new issue
                     </span>
-                    <span className="text-grey mt-0.5 block">
+                    <span className="text-grey mt-0.5 block text-[15px]">
                       {canEmail
                         ? `Sends a personal “Read issue” link to ${subscriberCount} subscribed ${
                             subscriberCount === 1 ? "member" : "members"
@@ -123,7 +117,7 @@ export function PublishModal({
             )}
           </div>
 
-          <div className="flex justify-end gap-3 px-8 pt-6 pb-6">
+          <DialogFooter>
             {phase === "done" ? (
               <Button ref={doneRef} onClick={onClose}>
                 Done
@@ -154,7 +148,7 @@ export function PublishModal({
                 </Button>
               </>
             )}
-          </div>
+          </DialogFooter>
         </>
       )}
     </DialogShell>
@@ -173,13 +167,13 @@ function ResultBody({
   if (!result || !result.ok) {
     return (
       <>
-        <h2
-          id={titleId}
-          className="text-red mt-3 font-display text-[27px] leading-tight"
-        >
+        <DialogTitle id={titleId} kicker="Publish & send">
           Publish failed.
-        </h2>
-        <p className="text-grey mt-2.5 font-ui text-[15px] leading-relaxed">
+        </DialogTitle>
+        <p
+          role="alert"
+          className="border-l-red text-grey mt-4 border-l-4 pl-4 font-ui text-[16px] leading-relaxed"
+        >
           Issue No. {number} couldn&rsquo;t be published. Nothing was sent — try
           again.
         </p>
@@ -190,13 +184,10 @@ function ResultBody({
   const emailed = result.emailed;
   return (
     <>
-      <h2
-        id={titleId}
-        className="text-lead mt-3 font-display text-[27px] leading-tight"
-      >
+      <DialogTitle id={titleId} kicker="Publish & send">
         Issue No. {number} is live.
-      </h2>
-      <p className="text-grey mt-2.5 font-ui text-[15px] leading-relaxed">
+      </DialogTitle>
+      <p className="text-grey mt-3 font-ui text-[16px] leading-relaxed">
         {emailed === null
           ? "Published without emailing members."
           : emailed.failed === 0

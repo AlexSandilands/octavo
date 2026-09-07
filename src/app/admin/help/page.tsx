@@ -1,4 +1,5 @@
 import { AdminShell } from "@/components/admin-shell";
+import { AdminPageHeader } from "@/components/admin-table";
 import { requireAdminOrRedirect } from "@/server/session";
 import { SectionBasics } from "@/features/help/section-basics";
 import { SectionIssues } from "@/features/help/section-issues";
@@ -11,9 +12,10 @@ import { SectionPdf } from "@/features/help/section-pdf";
 export const dynamic = "force-dynamic";
 
 // The in-app guide (issue #49): a plain-language walkthrough of running the
-// magazine, written for a non-technical owner. The content lives in
-// src/features/help/, one section per file; ids here must match the section
-// ids there (they're the anchor targets).
+// magazine, written for a non-technical owner and set like a long article —
+// numbered sections under heavy rules. The content lives in src/features/help/,
+// one section per file; ids here must match the section ids there (they're the
+// anchor targets).
 const CONTENTS = [
   { id: "basics", label: "How the site works" },
   { id: "issues", label: "Create and edit an issue" },
@@ -29,34 +31,30 @@ export default async function HelpPage() {
   const admin = await requireAdminOrRedirect();
   return (
     <AdminShell active="help" user={admin}>
-      <div className="mx-auto max-w-[720px] pb-16">
-        <h1 className="text-lead font-display text-3xl">Guide</h1>
-        <p className="text-grey-soft mt-1.5 font-ui text-sm">
-          How to run the magazine, in plain language. Nothing here needs a
-          technical bone in your body.
-        </p>
+      <div className="mx-auto max-w-[760px] pb-16">
+        <AdminPageHeader
+          title="Guide"
+          summary="How to run the magazine, in plain language. Nothing here needs a technical bone in your body."
+        />
 
-        <nav
-          aria-label="On this page"
-          className="border-hairline bg-sheet mt-6 rounded-[10px] border p-5"
-        >
-          <h2 className="text-grey-soft font-ui text-[11px] font-semibold tracking-[0.2em] uppercase">
-            On this page
-          </h2>
-          <ol className="mt-2.5 grid gap-x-8 gap-y-1.5 sm:grid-cols-2">
+        <nav aria-label="On this page" className="rule-heavy mt-8 pt-3">
+          <h2 className="small-caps text-grey-soft">On this page</h2>
+          <ol className="mt-2 grid gap-x-8 sm:grid-cols-2">
             {CONTENTS.map((s, i) => (
-              <li key={s.id}>
+              <li key={s.id} className="rule-hair">
                 <a
                   href={`#${s.id}`}
-                  className="text-red hover:text-red-deep flex items-baseline gap-2.5 py-1 font-ui text-[15px] font-medium hover:underline"
+                  className="text-lead hover:text-red flex min-h-11 items-baseline gap-3 py-2 font-ui text-[16px] font-semibold"
                 >
                   <span
                     aria-hidden="true"
-                    className="text-grey-soft font-ui tabular-nums text-[11px]"
+                    className="w-6 flex-none font-ui text-[14px] font-bold tabular-nums"
                   >
-                    {i + 1}
+                    {i + 1}.
                   </span>
-                  {s.label}
+                  <span className="underline decoration-1 underline-offset-4">
+                    {s.label}
+                  </span>
                 </a>
               </li>
             ))}

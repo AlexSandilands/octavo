@@ -3,6 +3,7 @@ import {
   type BlockPatch,
   type HeadingLevel,
 } from "@/lib/blocks";
+import { SegmentGroup, Segment } from "./segment";
 
 // Rank picker for a selected heading block, shown in its floating toolbar (see
 // editor-block.tsx). Switches a heading between the big page/feature title, an
@@ -15,30 +16,18 @@ export function HeadingLevelControl({
   onChange: (patch: BlockPatch) => void;
 }) {
   return (
-    <div className="border-hairline flex items-center gap-2 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap">
-      <span className="text-grey-soft font-ui text-[9px] font-semibold tracking-[0.14em] uppercase">
-        Heading
-      </span>
-      <div className="border-hairline flex overflow-hidden rounded-[6px] border">
+    <div className="border-hairline-strong bg-sheet flex items-center gap-2 rounded-ui border px-2.5 py-1.5 whitespace-nowrap">
+      <SegmentGroup label="Heading">
         {HEADING_LEVELS.map((l) => (
-          <button
+          <Segment
             key={l.value}
-            type="button"
-            aria-pressed={level === l.value}
-            onClick={(e) => {
-              e.stopPropagation();
-              onChange({ level: l.value });
-            }}
-            className={`flex h-7 items-center justify-center px-2.5 font-ui text-[12px] font-semibold ${
-              level === l.value
-                ? "bg-red text-sheet"
-                : "text-grey hover:bg-newsprint hover:text-red bg-white"
-            }`}
+            active={level === l.value}
+            onClick={() => onChange({ level: l.value })}
           >
             {l.label}
-          </button>
+          </Segment>
         ))}
-      </div>
+      </SegmentGroup>
     </div>
   );
 }

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { DialogShell } from "@/components/dialog-shell";
+import { DialogShell, dialogPanel } from "@/components/dialog-shell";
+import { DialogTitle } from "@/components/dialog-parts";
 import { Icon } from "@/components/icons";
-import { Button, IconButton } from "@/components/ui";
+import { Button } from "@/components/ui";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import { parseYouTubeId, youtubeWatchLabel } from "@/lib/youtube";
 
@@ -100,26 +101,22 @@ export function VideoDialog({
     // Same isolation as the montage dialog: it floats over the editor canvas,
     // which deselects the block on a stray click and pans on a drag.
     <DialogShell
-      panelClassName="bg-sheet flex max-h-[90vh] w-[560px] flex-col rounded-[10px]"
+      panelClassName={dialogPanel("flex max-h-[90vh] w-[560px] flex-col")}
       isolatePointerEvents
       locked={busy}
       onClose={onClose}
     >
       {(titleId) => (
         <>
-          <div className="flex flex-none items-center justify-between px-8 pt-7">
-            <h2
-              id={titleId}
-              className="text-lead font-display text-[26px] leading-tight"
-            >
+          <div className="flex-none px-8 pt-7">
+            <DialogTitle id={titleId} onClose={onClose}>
               Video
-            </h2>
-            <IconButton icon="close" label="Close" onClick={onClose} />
+            </DialogTitle>
           </div>
 
           <div className="scrollbar-soft min-h-0 flex-1 overflow-y-auto px-8 pt-6 [--scrollbar-surface:var(--color-sheet)] [scrollbar-gutter:stable]">
             <label className="block">
-              <span className="text-grey-soft mb-1.5 block font-ui text-[11px] font-semibold tracking-[0.14em] uppercase">
+              <span className="small-caps text-grey-soft mb-2 block">
                 YouTube link
               </span>
               {/* The focus ring goes on the decorated box, not the bare input
@@ -173,7 +170,7 @@ export function VideoDialog({
             </p>
 
             <div className="mt-6">
-              <span className="text-grey-soft mb-1.5 block font-ui text-[11px] font-semibold tracking-[0.14em] uppercase">
+              <span className="small-caps text-grey-soft mb-2 block">
                 Video image
               </span>
               {poster && videoId ? (
@@ -214,7 +211,7 @@ export function VideoDialog({
             </p>
           )}
 
-          <div className="flex flex-none items-center justify-between px-8 pt-6 pb-7">
+          <div className="rule-heavy mt-6 flex flex-none flex-wrap items-center justify-between gap-3 px-8 pt-4 pb-6">
             <Button
               variant="secondary"
               onClick={() => {

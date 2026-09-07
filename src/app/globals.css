@@ -248,7 +248,9 @@ body {
 .chrome-unscaled {
   --chrome-scale: 1.1;
   transform: scale(calc(var(--chrome-scale) / var(--page-scale, 1)));
-  transform-origin: bottom left;
+  /* The anchor corner, settable per element (`[--chrome-origin:right_center]`):
+     this rule is unlayered, so a transform-origin utility could not win. */
+  transform-origin: var(--chrome-origin, bottom left);
 }
 
 /* Broadsheet furniture shared by many screens. Plain classes rather than

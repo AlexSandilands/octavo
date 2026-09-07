@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Icon } from "@/components/icons";
 import { useQuietScrollbar } from "@/components/use-quiet-scrollbar";
 import { type Page, type PageTemplate } from "@/lib/blocks";
 import {
@@ -22,11 +21,12 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { AddPageMenu } from "./add-page-menu";
 
-// The editor's left "Pages" rail: a vertical, drag-to-reorder list of page
-// thumbnails plus the "Add page" template menu. Reordering uses dnd-kit (same
-// library the block canvas uses); a small drag threshold means a plain click on
-// a thumbnail still just selects the page. The thumbnails scroll within the
-// rail on a long issue; the label and the Add control stay put either side.
+// The editor's left "Pages" rail: a vertical, drag-to-reorder list of numbered
+// page thumbnails separated by rules, plus the "Add page" template menu.
+// Reordering uses dnd-kit (same library the block canvas uses); a small drag
+// threshold means a plain click on a thumbnail still just selects the page.
+// The thumbnails scroll within the rail on a long issue; the label and the Add
+// control stay put either side.
 export function PageRail({
   pages,
   curPage,
@@ -76,15 +76,13 @@ export function PageRail({
   useQuietScrollbar(scrollerRef);
 
   return (
-    <div className="bg-sheet border-hairline flex w-[150px] flex-none flex-col items-center border-r py-4">
-      <span className="text-grey-soft w-full pl-[18px] font-ui text-[10px] font-semibold tracking-[0.18em] uppercase">
-        Pages
-      </span>
-      {/* Padding replaces the old gaps, so a rail that fits lays out unchanged;
-          the gutter is reserved on both edges so a scrollbar never shifts the thumbs. */}
+    <div className="bg-sheet border-hairline flex w-[150px] flex-none flex-col border-r pt-3">
+      <span className="small-caps text-grey-soft px-4">Pages</span>
+      {/* The gutter is reserved on both edges so a scrollbar never shifts the
+          thumbs. */}
       <div
         ref={scrollerRef}
-        className="scrollbar-soft scrollbar-soft-quiet flex min-h-0 w-full flex-col items-center gap-3 overflow-y-auto py-3 [scrollbar-gutter:stable_both-edges]"
+        className="scrollbar-soft scrollbar-soft-quiet mt-2 flex min-h-0 w-full flex-col overflow-y-auto px-3 [scrollbar-gutter:stable_both-edges]"
       >
         <DndContext
           sensors={sensors}
@@ -110,12 +108,14 @@ export function PageRail({
         </DndContext>
       </div>
 
-      <AddPageMenu
-        open={addMenu}
-        onToggle={onToggleAddMenu}
-        onClose={onCloseAddMenu}
-        onAdd={onAddPage}
-      />
+      <div className="rule-heavy flex justify-center px-3 py-3">
+        <AddPageMenu
+          open={addMenu}
+          onToggle={onToggleAddMenu}
+          onClose={onCloseAddMenu}
+          onAdd={onAddPage}
+        />
+      </div>
     </div>
   );
 }
@@ -153,48 +153,49 @@ function SortableThumb({
         zIndex: isDragging ? 40 : undefined,
         opacity: isDragging ? 0.85 : undefined,
       }}
-      className="group relative"
+      className="rule-hair flex flex-col items-center py-3 first:border-t-0"
     >
       <button
         {...attributes}
         {...listeners}
         onClick={onSelect}
         aria-current={active ? "page" : undefined}
-        className={`bg-sheet relative block h-[108px] w-[84px] touch-none scroll-my-3 rounded-[3px] p-2.5 text-left ${
+        aria-label={`${index + 1}`}
+        className={`bg-sheet relative block h-[108px] w-[84px] touch-none scroll-my-3 p-2.5 text-left ${
           isDragging ? "cursor-grabbing" : "cursor-grab"
-        } ${
-          active
-            ? "border-red border-2"
-            : "border border-hairline"
-        }`}
+        } ${active ? "border-lead border-2" : "border-hairline-strong border"}`}
       >
-        {/* Decorative skeleton bars standing in for a page's content in the
-            thumbnail — a cover motif (title block) vs a text-sheet motif. One-off
-            warm greys, local to this miniature; not part of the token palette. */}
+        {/* Decorative bars standing in for a page's content in the thumbnail
+            — a cover motif (title block) vs a text-sheet motif. */}
         {page.cover ? (
           <div className="flex h-full flex-col items-center justify-center gap-1">
-            <div className="h-1.5 w-[60%] rounded-[2px] bg-[#cdbfa0]" />
-            <div className="h-3 w-[80%] rounded-[2px] bg-[#c2b596]" />
-            <div className="mt-1 h-1 w-[45%] rounded-[2px] bg-[#ddd4c2]" />
+            <div className="bg-hairline-strong h-1.5 w-[60%]" />
+            <div className="bg-hairline-strong h-3 w-[80%]" />
+            <div className="bg-hairline mt-1 h-1 w-[45%]" />
           </div>
         ) : (
           <>
-            <div className="h-2 w-[80%] rounded-[2px] bg-[#e0d9c9]" />
-            <div className="mt-1.5 h-1 w-[90%] rounded-[2px] bg-[#ece6da]" />
+            <div className="bg-hairline-strong h-2 w-[80%]" />
+            <div className="bg-hairline mt-1.5 h-1 w-[90%]" />
+            <div className="bg-hairline mt-1 h-1 w-[70%]" />
           </>
         )}
-        <span className="text-grey-soft absolute right-2 bottom-1.5 font-ui text-[9px] font-semibold">
+        <span
+          aria-hidden
+          className="text-lead absolute top-1 left-1.5 font-ui text-[12px] font-bold tabular-nums"
+        >
           {index + 1}
         </span>
       </button>
       {canDelete && (
         <button
+          type="button"
           onClick={onDelete}
           title={`Delete page ${index + 1}`}
           aria-label={`Delete page ${index + 1}`}
-          className="bg-sheet text-grey-soft hover:text-red hover:border-red border-hairline absolute -top-2 -right-2 z-10 flex h-6 w-6 items-center justify-center rounded-full border opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+          className="text-grey-soft hover:text-red mt-1 flex h-8 cursor-pointer items-center rounded-ui px-2 font-ui text-[13px] font-semibold underline decoration-1 underline-offset-4 transition-colors"
         >
-          <Icon name="trash" size={13} strokeWidth={1.8} />
+          Delete
         </button>
       )}
     </div>

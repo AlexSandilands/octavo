@@ -1,5 +1,11 @@
 import { Icon } from "@/components/icons";
-import { FigureBadge, FigureFrame } from "./guide-ui";
+import {
+  FigureBadge,
+  FigureFrame,
+  MiniButton,
+  MiniLink,
+  MiniStatus,
+} from "./guide-ui";
 
 // A sketch of the Members screen (members-manager.tsx and friends), built from
 // the site's tokens. Decorative (FigureFrame hides it from screen readers);
@@ -12,6 +18,7 @@ function MockRow({
   subscribed,
   admin,
   badges,
+  zebra = false,
 }: {
   initials: string;
   name: string;
@@ -19,10 +26,15 @@ function MockRow({
   subscribed: boolean;
   admin: boolean;
   badges?: boolean;
+  zebra?: boolean;
 }) {
   return (
-    <div className="border-hairline flex items-center gap-2.5 border-b px-4 py-2.5 last:border-b-0">
-      <span className="bg-newsprint text-red flex h-8 w-8 flex-none items-center justify-center rounded-full font-ui text-[10px] font-semibold">
+    <div
+      className={`border-hairline flex items-center gap-2.5 border-b px-4 py-2.5 ${
+        zebra ? "bg-newsprint" : ""
+      }`}
+    >
+      <span className="border-lead text-lead flex h-8 w-8 flex-none items-center justify-center border font-ui text-[10px] font-bold">
         {initials}
       </span>
       <span className="min-w-0 flex-1">
@@ -35,27 +47,17 @@ function MockRow({
       </span>
       <span className="flex w-[112px] flex-none items-center gap-1.5">
         {badges && <FigureBadge n={3} />}
-        <span
-          className={`flex items-center gap-1.5 rounded-full px-2 py-1 font-ui text-[9.5px] font-semibold ${
-            subscribed ? "bg-newsprint text-red" : "bg-newsprint text-grey-soft"
-          }`}
-        >
-          <span
-            className={`h-1.5 w-1.5 rounded-full ${subscribed ? "bg-lead" : "bg-hairline-strong"}`}
-          />
-          {subscribed ? "Subscribed" : "Unsubscribed"}
-        </span>
+        <MiniStatus>{subscribed ? "Subscribed" : "Unsubscribed"}</MiniStatus>
       </span>
-      <span className="flex w-[96px] flex-none items-center gap-1.5">
+      <span className="text-grey w-[60px] flex-none font-ui text-[11px]">
+        {admin ? "Admin" : "Member"}
+      </span>
+      <span className="flex flex-none items-center gap-2">
         {badges && <FigureBadge n={4} />}
-        <span className="text-grey flex items-center gap-1 font-ui text-[11px] font-medium">
-          <Icon name={admin ? "check" : "plus"} size={11} strokeWidth={2} />
-          {admin ? "Admin" : "Make admin"}
-        </span>
-      </span>
-      <span className="flex flex-none items-center gap-1.5">
+        <MiniLink>{admin ? "Remove admin" : "Make admin"}</MiniLink>
+        <MiniLink>Edit</MiniLink>
         {badges && <FigureBadge n={5} />}
-        <Icon name="close" size={15} className="text-grey-soft" />
+        <MiniLink>Remove</MiniLink>
       </span>
     </div>
   );
@@ -64,22 +66,31 @@ function MockRow({
 export function MembersFigure() {
   return (
     <FigureFrame caption="A sketch of the Members screen. The numbers match the list below.">
-      <div className="scrollbar-soft overflow-x-auto [--scrollbar-surface:var(--color-sheet)]">
-        <div className="border-hairline bg-sheet min-w-[460px] overflow-hidden rounded-ui border">
-          <div className="border-hairline flex items-center justify-between gap-2 border-b px-4 py-2.5">
-            <span className="text-lead font-display text-[16px]">Members</span>
+      <div className="scrollbar-soft overflow-x-auto">
+        <div className="border-lead bg-sheet min-w-[540px] overflow-hidden border">
+          <div className="border-lead flex items-center justify-between gap-2 border-b-[3px] px-4 py-2.5">
+            <span className="text-lead font-display text-[18px] font-semibold">
+              Members
+            </span>
             <div className="flex flex-none items-center gap-2">
               <FigureBadge n={2} />
-              <span className="border-hairline text-lead flex items-center gap-1.5 rounded-ui border bg-white px-2.5 py-1.5 font-ui text-[11.5px] font-semibold">
+              <MiniButton>
                 <Icon name="upload" size={12} strokeWidth={2} />
                 Import CSV
-              </span>
+              </MiniButton>
               <FigureBadge n={1} />
-              <span className="bg-red text-sheet flex items-center gap-1.5 rounded-ui px-2.5 py-1.5 font-ui text-[11.5px] font-semibold">
+              <MiniButton primary>
                 <Icon name="plus" size={12} strokeWidth={2} />
                 Add member
-              </span>
+              </MiniButton>
             </div>
+          </div>
+          <div className="border-hairline text-grey-soft flex items-center gap-2.5 border-b px-4 py-1.5 font-ui text-[8px] font-semibold tracking-[0.14em] uppercase">
+            <span className="w-8 flex-none" />
+            <span className="flex-1">Member</span>
+            <span className="w-[112px] flex-none">Subscription</span>
+            <span className="w-[60px] flex-none">Role</span>
+            <span className="flex-none">Actions</span>
           </div>
           <MockRow
             initials="MH"
@@ -95,6 +106,7 @@ export function MembersFigure() {
             email="june@example.com"
             subscribed={false}
             admin={false}
+            zebra
           />
         </div>
       </div>

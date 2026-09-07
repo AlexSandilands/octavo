@@ -42,7 +42,7 @@ import { reportEditorError } from "./report-error";
 import { PageRail } from "./page-rail";
 import { PublishModal } from "./publish-modal";
 import { EditorHeader } from "./editor-header";
-import { EditorToolbar, TOOLBAR_RESERVE } from "./editor-toolbar";
+import { EditorToolbar } from "./editor-toolbar";
 import { FooterUpdateNotice } from "./footer-update-notice";
 import { useEditorAutosave } from "./use-editor-autosave";
 import { publishIssueAction } from "@/app/admin/actions";
@@ -195,8 +195,8 @@ export function Editor({
   } = useCanvasPanZoom({
     contentWidth: PAGE_W,
     contentHeight: PAGE_H,
-    // The stage's own padding: 40px above the page, the tool bar's reserve below.
-    fitMargin: { x: 80, y: 40 + TOOLBAR_RESERVE },
+    // The stage's own padding: 40px above and below the page.
+    fitMargin: { x: 80, y: 80 },
     fitClamp: { min: 0.5, max: 1.4 },
     initialFitScale: 0.75,
     blockSelector: "[data-editor-block]",
@@ -283,6 +283,19 @@ export function Editor({
         onPublish={() => setPub(true)}
       />
 
+      <EditorToolbar
+        onAddBlock={addBlock}
+        insertDisabled={filled}
+        onToggleCover={toggleCover}
+        coverDisabled={curPage === 0}
+        coverActive={Boolean(page?.cover)}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onUndo={undo}
+        onRedo={redo}
+        notice={historyNotice}
+      />
+
       <div className="flex flex-1 overflow-hidden">
         <PageRail
           pages={pages}
@@ -312,15 +325,11 @@ export function Editor({
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerUp}
-            style={{ paddingBottom: TOOLBAR_RESERVE }}
-            className={`flex flex-1 items-center justify-center overflow-hidden px-10 pt-10 ${
+            className={`flex flex-1 items-center justify-center overflow-hidden px-10 py-10 ${
               panning ? "cursor-grabbing select-none" : "cursor-grab"
             }`}
           >
-            <div
-              ref={panRef}
-              className=""
-            >
+            <div ref={panRef}>
               <ScaledPage scale={scale}>
                 <PageFrame
                   theme={theme}
@@ -353,10 +362,11 @@ export function Editor({
                       >
                         {page && page.blocks.length === 0 && (
                           <div className="text-grey-soft py-16 text-center font-display text-sm">
-                            This page is empty. Add a block below.
+                            This page is empty. Add a block from the Insert row
+                            above.
                           </div>
                         )}
-                        {page?.blocks.map((b) => (
+                        {page?.blocks.map((b, i) => (
                           <EditorBlock
                             // Remounting is how a rewrite behind an
                             // uncontrolled editor's back (a split, an undo) lands.
@@ -375,6 +385,7 @@ export function Editor({
                                 : undefined
                             }
                             fitsAlone={overflow?.fitsAlone}
+                            first={i === 0}
                             onSelect={() => setSel(b.id)}
                             onChange={(patch) => updateBlock(b.id, patch)}
                             onMove={(dir) => moveBlock(b.id, dir)}
@@ -391,19 +402,6 @@ export function Editor({
               </ScaledPage>
             </div>
           </div>
-
-          <EditorToolbar
-            onAddBlock={addBlock}
-            insertDisabled={filled}
-            onToggleCover={toggleCover}
-            coverDisabled={curPage === 0}
-            coverActive={Boolean(page?.cover)}
-            canUndo={canUndo}
-            canRedo={canRedo}
-            onUndo={undo}
-            onRedo={redo}
-            notice={historyNotice}
-          />
         </div>
       </div>
 

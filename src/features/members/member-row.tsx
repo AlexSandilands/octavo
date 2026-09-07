@@ -130,7 +130,7 @@ export function MemberRow({
         </div>
 
         <div
-          className={`text-grey hidden font-ui text-[15px] tabular-nums sm:block ${MEMBER_COLS.joined}`}
+          className={`text-grey hidden font-ui text-[15px] whitespace-nowrap tabular-nums sm:block ${MEMBER_COLS.joined}`}
         >
           {joinedLabel(member.createdAt)}
         </div>

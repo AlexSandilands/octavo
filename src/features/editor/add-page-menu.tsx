@@ -4,10 +4,10 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { PAGE_TEMPLATES, type PageTemplate } from "@/lib/blocks";
 
-// The page rail's "Add" control and its template menu. The menu pops out to
-// the right of the button, top-aligned; when that would run off the bottom of
-// the viewport (the control sits low on a long issue) it hangs upward from the
-// button instead, so no part of it is ever clipped.
+// The page rail's "Add page" control and its template menu. The menu pops out
+// to the right of the button, bottom-aligned with it; when that would run off
+// the bottom of the viewport it hangs upward from the button instead, so no
+// part of it is ever clipped.
 export function AddPageMenu({
   open,
   onToggle,
@@ -38,12 +38,14 @@ export function AddPageMenu({
   return (
     <div ref={anchorRef} className="relative flex-none">
       <button
+        type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="text-grey-soft hover:border-red hover:text-red border-hairline-strong flex h-10 w-[84px] items-center justify-center gap-1.5 rounded-[3px] border-[1.5px] border-dashed font-ui text-[11px] font-semibold"
+        aria-haspopup="menu"
+        className="text-lead border-lead hover:bg-newsprint flex h-11 w-[120px] cursor-pointer items-center justify-center gap-1.5 rounded-ui border border-dashed font-ui text-[14px] font-semibold transition-colors"
       >
-        <Icon name="plus" size={14} strokeWidth={1.8} />
-        Add
+        <Icon name="plus" size={15} strokeWidth={2} />
+        Add page
       </button>
       {open && (
         <>
@@ -51,20 +53,24 @@ export function AddPageMenu({
           <div className="fixed inset-0 z-20" onClick={onClose} />
           <div
             ref={menuRef}
-            className={`bg-sheet border-hairline absolute left-[92px] z-30 w-56 overflow-hidden rounded-ui border ${
+            role="menu"
+            aria-label="Page templates"
+            className={`bg-sheet border-lead absolute left-[128px] z-30 w-60 overflow-hidden border ${
               up ? "bottom-0" : "top-0"
             }`}
           >
             {PAGE_TEMPLATES.map((t) => (
               <button
                 key={t.id}
+                type="button"
+                role="menuitem"
                 onClick={() => onAdd(t.id)}
-                className="hover:bg-newsprint block w-full px-3.5 py-2.5 text-left"
+                className="rule-hair hover:bg-newsprint block w-full cursor-pointer px-3.5 py-2.5 text-left first:border-t-0"
               >
-                <div className="text-lead font-ui text-[13px] font-semibold">
+                <div className="text-lead font-ui text-[15px] font-semibold">
                   {t.label}
                 </div>
-                <div className="text-grey-soft mt-0.5 font-ui text-[11px] leading-snug">
+                <div className="text-grey mt-0.5 font-ui text-[13px] leading-snug">
                   {t.description}
                 </div>
               </button>
