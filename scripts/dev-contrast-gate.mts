@@ -106,7 +106,14 @@ const checkBrand = (id: string, tokens: Map<string, string>) => {
   // Foreground tokens that carry readable text (metadata, hints, page numbers,
   // status labels, the chrome accent) and must all clear AA on every light
   // background above.
-  for (const fg of ["muted", "faint", "faint2", "brass-ink", "danger", "caution"]) {
+  for (const fg of [
+    "muted",
+    "faint",
+    "faint2",
+    "brass-ink",
+    "danger",
+    "caution",
+  ]) {
     for (const bg of backgrounds) {
       const r = contrast(hex(fg), hex(bg));
       ok(r >= AA, `[${id}] ${fg} on ${bg} is ${r.toFixed(2)}:1 (≥ ${AA})`);
@@ -141,7 +148,10 @@ const checkBrand = (id: string, tokens: Map<string, string>) => {
     `[${id}] ground ink on brass fill is ${onBrass.toFixed(2)}:1 (≥ ${AA})`,
   );
   const marker = contrast(hex("brass"), hex("ground"));
-  ok(marker >= 3, `[${id}] brass marker on ground is ${marker.toFixed(2)}:1 (≥ 3)`);
+  ok(
+    marker >= 3,
+    `[${id}] brass marker on ground is ${marker.toFixed(2)}:1 (≥ 3)`,
+  );
   // The outlined secondary button on dark draws its border in chrome-muted.
   const outline = contrast(hex("chrome-muted"), hex("raised"));
   ok(

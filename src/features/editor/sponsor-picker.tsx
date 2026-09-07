@@ -71,12 +71,13 @@ export function SponsorPicker({
         items={items}
         value={sponsorId ?? null}
         onSelect={pick}
+        tone="dark"
       />
       {sponsors.length === 0 && !selected && (
         <Link
           href="/admin/sponsors"
           target="_blank"
-          className="text-brass-ink font-ui text-[12px] font-medium underline underline-offset-2"
+          className="text-brass font-ui text-[12px] font-medium underline underline-offset-2"
         >
           Add sponsors
         </Link>

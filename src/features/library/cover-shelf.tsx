@@ -45,7 +45,9 @@ export function CoverShelf({
   const scroll = (dir: -1 | 1) => {
     const row = rowRef.current;
     if (!row) return;
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduce = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
     row.scrollBy({
       left: dir * Math.max(row.clientWidth * 0.8, 200),
       behavior: reduce ? "auto" : "smooth",

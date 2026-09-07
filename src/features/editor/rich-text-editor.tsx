@@ -15,6 +15,13 @@ import {
 import { externalHref } from "@/lib/rich-text";
 import { stringToDoc, type RichTextValue } from "@/lib/rich-text-doc";
 import { Underline, Link } from "./rich-text-marks";
+import {
+  CHIP_DIVIDER,
+  CHIP_GROUP,
+  CHIP_INPUT,
+  CHIP_SEG_OFF,
+  CHIP_SEG_ON,
+} from "./chip";
 
 // The editing surface for a body-text block. A Tiptap editor styled to match the
 // reader's themed paragraph exactly, with a floating toolbar (size, alignment, bold,
@@ -157,9 +164,9 @@ function Toolbar({
   };
 
   return (
-    <div className="border-hair chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex flex-col gap-1.5 rounded-[8px] border bg-white p-1.5 shadow-[0_4px_14px_rgba(40,36,28,0.16)]">
+    <div className="border-hairline bg-raised text-chrome-text shadow-panel chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex flex-col gap-1.5 rounded-[8px] border p-1.5">
       <div className="flex items-center gap-1.5 whitespace-nowrap">
-        <div className="border-hair flex overflow-hidden rounded-[6px] border">
+        <div className={CHIP_GROUP}>
           {TEXT_SIZES.map((s) => (
             <TbBtn
               key={s.value}
@@ -170,11 +177,7 @@ function Toolbar({
             />
           ))}
         </div>
-        <div
-          role="group"
-          aria-label="Text alignment"
-          className="border-hair flex overflow-hidden rounded-[6px] border"
-        >
+        <div role="group" aria-label="Text alignment" className={CHIP_GROUP}>
           {TEXT_ALIGNS.map((a) => (
             <TbBtn
               key={a.value}
@@ -185,7 +188,7 @@ function Toolbar({
             />
           ))}
         </div>
-        <span className="bg-line h-5 w-px" />
+        <span className={CHIP_DIVIDER} />
         <TbBtn
           label="B"
           labelClass="font-bold"
@@ -208,7 +211,7 @@ function Toolbar({
           active={editor.isActive("underline")}
           onClick={() => editor.chain().focus().toggleMark("underline").run()}
         />
-        <span className="bg-line h-5 w-px" />
+        <span className={CHIP_DIVIDER} />
         <TbBtn
           icon="listBullet"
           title="Bullet list"
@@ -221,7 +224,7 @@ function Toolbar({
           active={editor.isActive("orderedList")}
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
         />
-        <span className="bg-line h-5 w-px" />
+        <span className={CHIP_DIVIDER} />
         <TbBtn
           icon="link"
           title="Link"
@@ -246,13 +249,13 @@ function Toolbar({
                 setLinkOpen(false);
               }
             }}
-            className="border-hair text-body h-7 w-52 rounded-[6px] border px-2 font-ui text-[12px] outline-none focus:border-brass-ink"
+            className={`${CHIP_INPUT} h-7 w-52`}
           />
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={applyLink}
-            className="bg-brass-ink text-paper h-7 rounded-[6px] px-2.5 font-ui text-[11px] font-semibold"
+            className="bg-brass text-ground hover:bg-brass-strong h-7 cursor-pointer rounded-[6px] px-2.5 font-ui text-[11px] font-semibold"
           >
             Apply
           </button>
@@ -311,9 +314,7 @@ function TbBtn({
         onClick();
       }}
       className={`rich-text-tool flex h-7 min-w-7 cursor-pointer items-center justify-center px-1.5 font-ui text-[12px] font-semibold transition-colors ${
-        active
-          ? "bg-brass-ink text-paper"
-          : "text-muted hover:bg-brass-wash hover:text-brass-ink bg-white"
+        active ? CHIP_SEG_ON : CHIP_SEG_OFF
       }`}
     >
       {icon ? (

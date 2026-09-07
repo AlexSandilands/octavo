@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import type { ResolvedImage } from "@/lib/images";
+import { CHIP_BUTTON } from "./chip";
 
 // The editor-only affordance for an image block: pick a file, POST it to the
 // upload route, surface progress/errors, and report the stored image back so the
@@ -57,16 +58,16 @@ export function ImageBlockControl({
           inputRef.current?.click();
         }}
         disabled={busy}
-        className="border-hair text-ink hover:border-brass-ink flex h-7 items-center gap-1.5 rounded-[6px] border bg-white px-2.5 font-ui text-[12px] font-semibold disabled:opacity-60"
+        className={CHIP_BUTTON}
       >
-        <Icon name="upload" size={15} className="text-brass-ink" />
+        <Icon name="upload" size={15} className="text-brass" />
         {busy ? "Uploading…" : hasImage ? "Replace image" : "Upload image"}
       </button>
       {error && (
-        <span className="text-danger font-ui text-[12px]">{error}</span>
+        <span className="text-danger-bright font-ui text-[12px]">{error}</span>
       )}
       {local && !error && (
-        <span className="text-faint2 font-ui text-[12px]">
+        <span className="text-chrome-muted font-ui text-[12px]">
           Saved to local dev storage
         </span>
       )}

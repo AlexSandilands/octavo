@@ -40,7 +40,7 @@ export function AddPageMenu({
       <button
         onClick={onToggle}
         aria-expanded={open}
-        className="text-faint hover:border-brass-ink hover:text-brass-ink border-dash flex h-10 w-[84px] items-center justify-center gap-1.5 rounded-[3px] border-[1.5px] border-dashed font-ui text-[11px] font-semibold"
+        className="border-chrome-muted text-chrome-muted hover:border-brass hover:text-brass flex h-10 w-[84px] cursor-pointer items-center justify-center gap-1.5 rounded-[3px] border-[1.5px] border-dashed font-ui text-[12px] font-semibold transition-colors"
       >
         <Icon name="plus" size={14} strokeWidth={1.8} />
         Add
@@ -51,7 +51,7 @@ export function AddPageMenu({
           <div className="fixed inset-0 z-20" onClick={onClose} />
           <div
             ref={menuRef}
-            className={`bg-card border-hair-warm absolute left-[92px] z-30 w-56 overflow-hidden rounded-ui border shadow-[0_12px_32px_rgba(40,36,28,0.18)] ${
+            className={`border-hairline bg-raised shadow-panel rounded-ui absolute left-[92px] z-30 w-60 overflow-hidden border ${
               up ? "bottom-0" : "top-0"
             }`}
           >
@@ -59,12 +59,12 @@ export function AddPageMenu({
               <button
                 key={t.id}
                 onClick={() => onAdd(t.id)}
-                className="hover:bg-brass-wash block w-full px-3.5 py-2.5 text-left"
+                className="hover:bg-lifted block w-full cursor-pointer px-3.5 py-2.5 text-left"
               >
-                <div className="text-ink font-ui text-[13px] font-semibold">
+                <div className="text-chrome-text font-ui text-[14px] font-semibold">
                   {t.label}
                 </div>
-                <div className="text-faint2 mt-0.5 font-ui text-[11px] leading-snug">
+                <div className="text-chrome-muted mt-0.5 font-ui text-[12px] leading-snug">
                   {t.description}
                 </div>
               </button>

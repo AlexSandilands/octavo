@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { LogoListItem } from "@/lib/logos";
 import { MenuSelect, type MenuSelectItem } from "@/components/menu-select";
+import type { Tone } from "@/components/ui";
 
 // The editor header's footer-mark control: choose one of the marks from the
 // logo library (/admin/magazine) for this issue's running page footer, or none.
@@ -13,10 +14,12 @@ export function LogoPicker({
   logos,
   logoId,
   onChange,
+  tone = "paper",
 }: {
   logos: LogoListItem[];
   logoId: string | null;
   onChange: (logoId: string | null) => void;
+  tone?: Tone;
 }) {
   // Nothing to choose from and nothing chosen: point at the library instead of
   // opening a menu whose only option is "None".
@@ -25,7 +28,7 @@ export function LogoPicker({
       <Link
         href="/admin/magazine"
         target="_blank"
-        className="text-brass-ink font-ui text-[13px] font-medium underline underline-offset-2"
+        className={`rounded-ui font-ui text-[14px] font-medium underline underline-offset-2 ${tone === "dark" ? "text-brass" : "text-brass-ink"}`}
       >
         Add a logo
       </Link>
@@ -58,6 +61,7 @@ export function LogoPicker({
       items={items}
       value={logoId}
       onSelect={onChange}
+      tone={tone}
     />
   );
 }

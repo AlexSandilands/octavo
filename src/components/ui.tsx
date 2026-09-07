@@ -2,7 +2,7 @@ import Link from "next/link";
 import { forwardRef, type ReactNode } from "react";
 import { Icon, type IconName } from "./icons";
 
-export { Avatar, Cover, Kicker, Label, Pill, Wordmark } from "./ui-marks";
+export { Avatar, Kicker, Label, Pill, Wordmark } from "./ui-marks";
 export type { Status, Tone } from "./ui-marks";
 export { Icon };
 

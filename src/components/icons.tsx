@@ -14,7 +14,9 @@ const ICONS: Record<string, ReactNode> = {
     </>
   ),
   logout: <path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9" />,
-  textSize: <path d="M4 18l4-11 4 11M5.5 14h5M14 18l2.5-7 2.5 7M15.2 15.5h2.6" />,
+  textSize: (
+    <path d="M4 18l4-11 4 11M5.5 14h5M14 18l2.5-7 2.5 7M15.2 15.5h2.6" />
+  ),
   arrowRight: <path d="M5 12h13m0 0l-5-5m5 5l-5 5" />,
   menu: <path d="M4 6h16M4 12h16M4 18h10" />,
   download: <path d="M12 4v11m0 0l-4-4m4 4l4-4M5 20h14" />,

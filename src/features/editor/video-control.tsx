@@ -7,6 +7,7 @@ import type { BlockPatch } from "@/lib/blocks";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import { youtubeWatchLabel } from "@/lib/youtube";
 import { VideoDialog } from "./video-dialog";
+import { CHIP_BUTTON } from "./chip";
 
 // The video block's entry in the selected-block toolbar: what it is showing, and
 // a button to change it. The link field and its refusals need more room than a
@@ -41,9 +42,9 @@ export function VideoBlockControl({
           e.stopPropagation();
           setOpen(true);
         }}
-        className="border-hair text-ink hover:border-brass-ink flex h-7 items-center gap-1.5 rounded-[6px] border bg-white px-2.5 font-ui text-[12px] font-semibold"
+        className={CHIP_BUTTON}
       >
-        <Icon name="play" size={13} className="text-brass-ink" />
+        <Icon name="play" size={13} className="text-brass" />
         {videoId ? youtubeWatchLabel(videoId) : "Add a video link"}
       </button>
 

@@ -49,7 +49,9 @@ export function SponsorsManager({
     <div className={ADMIN_LIST_PAGE}>
       <div className="flex flex-none flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-ink font-display text-[32px] leading-tight">Sponsors</h1>
+          <h1 className="text-ink font-display text-[32px] leading-tight">
+            Sponsors
+          </h1>
           <p className="text-faint mt-1.5 font-ui text-[15px]">{summary}</p>
         </div>
         {list.total > 0 && (

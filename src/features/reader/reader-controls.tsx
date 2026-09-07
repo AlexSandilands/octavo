@@ -151,9 +151,7 @@ export function ReaderControls({
   onZoom: (next: number) => void;
 }) {
   const step = (dir: -1 | 1) =>
-    onZoom(
-      Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom + dir * ZOOM_STEP)),
-    );
+    onZoom(Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom + dir * ZOOM_STEP)));
   return (
     <div className="border-hairline bg-raised flex h-16 flex-none items-center justify-between gap-3 border-t px-3">
       <div className="flex items-center gap-2">

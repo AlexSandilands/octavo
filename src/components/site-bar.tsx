@@ -97,9 +97,15 @@ export function SiteBar({
               signOut={<SignOutButton full />}
             >
               {[
-                ...(home ? [] : [{ href: "/", label: "Library", icon: "book" }]),
+                ...(home
+                  ? []
+                  : [{ href: "/", label: "Library", icon: "book" }]),
                 ...links,
-                { href: "/preferences", label: "Email preferences", icon: "mail" },
+                {
+                  href: "/preferences",
+                  label: "Email preferences",
+                  icon: "mail",
+                },
               ].map((l) => (
                 <Link
                   key={l.href}

@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui";
 import type {
   LayoutTheme,
@@ -53,61 +51,75 @@ export function EditorHeader({
   onPublish: () => void;
 }) {
   return (
-    <header className="border-line flex h-[60px] flex-none items-center justify-between border-b px-6">
-      <div className="flex items-center gap-3.5">
-        <Link href="/admin" className="text-muted" aria-label="Back to issues">
-          <Icon name="chevronLeft" size={20} />
-        </Link>
+    <header className="border-hairline bg-raised text-chrome-text flex h-[60px] flex-none items-center justify-between gap-4 border-b px-3">
+      <div className="flex min-w-0 flex-1 items-center gap-3.5">
+        <Button
+          href="/admin"
+          variant="ghost"
+          tone="dark"
+          size="sm"
+          icon="arrowLeft"
+          iconPosition="left"
+          aria-label="Back to issues"
+        >
+          Issues
+        </Button>
         <input
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
-          className="text-ink min-w-0 border-none bg-transparent font-display text-[21px] outline-none"
+          className="text-chrome-text placeholder:text-chrome-muted rounded-ui min-w-0 max-w-[520px] flex-1 border-none bg-transparent font-display text-[21px] outline-none"
           placeholder="Untitled issue"
         />
-        <span className="bg-chip flex items-center gap-1.5 rounded-full px-3 py-1">
-          <span className="bg-chip-dot h-1.5 w-1.5 rounded-full" />
-          <span className="text-faint font-ui text-[11px] font-semibold">
-            Draft · No. {issueNumber}
-          </span>
+        <span className="bg-lifted text-chrome-muted flex flex-none items-center gap-1.5 rounded-full px-3 py-1 font-meta text-[11px] font-medium tracking-[0.1em] uppercase">
+          <span className="bg-chrome-muted h-1.5 w-1.5 rounded-full" />
+          Draft · No. {issueNumber}
         </span>
         {status === "error" ? (
-          <span className="flex items-center gap-2 font-ui text-[12px]">
-            <span className="text-danger font-semibold">Couldn’t save</span>
+          <span className="flex flex-none items-center gap-2 font-ui text-[13px]">
+            <span className="text-danger-bright font-semibold">
+              Couldn’t save
+            </span>
             <button
               onClick={onRetrySave}
-              className="border-danger text-danger hover:bg-danger-soft rounded-md border px-2 py-0.5 font-semibold"
+              className="border-danger-bright text-danger-bright hover:bg-lifted rounded-ui cursor-pointer border px-2.5 py-1 font-semibold"
             >
               Retry
             </button>
           </span>
         ) : status === "conflict" ? (
-          <span className="flex items-center gap-2 font-ui text-[12px]">
-            <span className="text-danger font-semibold">
+          <span className="flex flex-none items-center gap-2 font-ui text-[13px]">
+            <span className="text-danger-bright font-semibold">
               Changed somewhere else
             </span>
             <button
               onClick={onReload}
-              className="border-danger text-danger hover:bg-danger-soft rounded-md border px-2 py-0.5 font-semibold"
+              className="border-danger-bright text-danger-bright hover:bg-lifted rounded-ui cursor-pointer border px-2.5 py-1 font-semibold"
             >
               Reload
             </button>
           </span>
         ) : (
-          <span className="text-faint2 font-ui text-[11px]">
+          <span className="text-chrome-muted flex-none font-meta text-[11px] tracking-[0.1em] uppercase">
             {status === "saving" ? "Saving…" : "Saved"}
           </span>
         )}
       </div>
-      <div className="flex items-center gap-3">
-        <LogoPicker logos={logos} logoId={logoId} onChange={onSelectLogo} />
+      <div className="flex flex-none items-center gap-3">
+        <LogoPicker
+          logos={logos}
+          logoId={logoId}
+          onChange={onSelectLogo}
+          tone="dark"
+        />
         {themes.length > 1 && (
           <ThemeMenu
             themes={themes}
             themeId={themeId}
             onSelect={onSelectTheme}
+            tone="dark"
           />
         )}
-        <Button variant="secondary" size="sm" onClick={onPreview}>
+        <Button variant="secondary" tone="dark" size="sm" onClick={onPreview}>
           Preview
         </Button>
         <Button size="sm" onClick={onPublish}>

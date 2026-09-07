@@ -32,7 +32,7 @@ export function SiteMenu({
       {open && (
         <DialogShell
           layout="full"
-          panelClassName="bg-ground text-chrome-text flex h-full w-full flex-col overflow-y-auto px-5 py-3"
+          panelClassName="on-dark bg-ground flex h-full w-full flex-col overflow-y-auto px-5 py-3"
           onClose={() => setOpen(false)}
         >
           {(titleId) => (

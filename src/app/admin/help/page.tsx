@@ -30,7 +30,9 @@ export default async function HelpPage() {
   return (
     <AdminShell active="help" user={admin}>
       <div className="mx-auto max-w-[720px] pb-16">
-        <h1 className="text-ink font-display text-[32px] leading-tight">Guide</h1>
+        <h1 className="text-ink font-display text-[32px] leading-tight">
+          Guide
+        </h1>
         <p className="text-faint mt-1.5 font-ui text-[15px]">
           How to run the magazine, in plain language. Nothing here needs a
           technical bone in your body.

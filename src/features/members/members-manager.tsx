@@ -44,7 +44,9 @@ export function MembersManager({
     <div className={ADMIN_LIST_PAGE}>
       <div className="flex flex-none flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-ink font-display text-[32px] leading-tight">Members</h1>
+          <h1 className="text-ink font-display text-[32px] leading-tight">
+            Members
+          </h1>
           <p className="text-faint mt-1.5 font-ui text-[15px]">{summary}</p>
         </div>
         <MembersToolbar onImport={openImport} onAdd={openAdd} />

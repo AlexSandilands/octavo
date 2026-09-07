@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { MagazineName } from "./branding";
 
 // The small typographic marks the chrome is built from: the wordmark, the two
-// mono labels, the status pill, the avatar disc and the fallback cover. Each
+// mono labels, the status pill and the avatar disc. Each
 // names the surface it sits on ("paper" or "dark") — see Button in ui.tsx.
 export type Tone = "paper" | "dark";
 
@@ -26,7 +26,8 @@ export function Wordmark({
 // A typed shelf label: mono, tracked, small caps. Kicker is the brass one,
 // Label the quiet one. Both are 12px — the floor for a label this audience
 // has to read — and never carry more than a few words.
-const MONO_LABEL = "font-meta text-[12px] font-medium tracking-[0.14em] uppercase";
+const MONO_LABEL =
+  "font-meta text-[12px] font-medium tracking-[0.14em] uppercase";
 
 export function Kicker({
   children,
@@ -72,7 +73,11 @@ export type Status =
 // live ones (published, subscribed) are brass; the resting ones are muted; the
 // cautionary ones amber.
 const PILL: Record<Status, { bg: string; ink: string; dot: string }> = {
-  Published: { bg: "bg-brass-soft", ink: "text-brass-ink", dot: "bg-brass-ink" },
+  Published: {
+    bg: "bg-brass-soft",
+    ink: "text-brass-ink",
+    dot: "bg-brass-ink",
+  },
   Subscribed: { bg: "bg-brass-soft", ink: "text-brass-ink", dot: "bg-ok" },
   Draft: { bg: "bg-chip", ink: "text-faint", dot: "bg-chip-dot" },
   Unsubscribed: { bg: "bg-chip", ink: "text-faint", dot: "bg-chip-dot" },
@@ -116,34 +121,5 @@ export function Avatar({
     >
       {initials}
     </span>
-  );
-}
-
-// The striped magazine cover used for thumbnails and heroes.
-export function Cover({
-  no,
-  title,
-  className = "",
-  size = "md",
-}: {
-  no: number;
-  title: string;
-  className?: string;
-  size?: "sm" | "md" | "lg";
-}) {
-  const pad = size === "lg" ? "p-5" : "p-4";
-  const titleSize =
-    size === "lg" ? "text-4xl" : size === "md" ? "text-3xl" : "text-xl";
-  return (
-    <div
-      className={`photo-fill-green flex flex-col justify-between rounded-[4px] ${pad} ${className}`}
-    >
-      <div className="text-cream font-meta text-xs tracking-[0.1em] uppercase">
-        <MagazineName /> · No. {no}
-      </div>
-      <div className={`text-paper font-display leading-[0.98] ${titleSize}`}>
-        {title}
-      </div>
-    </div>
   );
 }

@@ -63,7 +63,7 @@ export default async function ArchivePage({
   return (
     <>
       <SiteBar user={user} home />
-      <main className="mx-auto max-w-6xl px-5 pb-10 sm:px-8">
+      <main className="on-dark mx-auto max-w-6xl px-5 pb-10 sm:px-8">
         <div className="pt-10 pb-2 sm:pt-14">
           <h1 className="text-chrome-text font-display text-[34px] leading-tight sm:text-[42px]">
             The archive

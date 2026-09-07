@@ -64,7 +64,7 @@ export function ReaderContents({
   }
 
   return (
-    <aside className="border-hairline bg-raised flex w-[272px] flex-none flex-col border-r">
+    <aside className="on-dark border-hairline bg-raised flex w-[272px] flex-none flex-col border-r">
       <div className="flex h-14 flex-none items-center justify-between pr-2 pl-5">
         <Label tone="dark">Contents</Label>
         <IconButton

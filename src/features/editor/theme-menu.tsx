@@ -5,6 +5,7 @@ import type {
   LayoutThemeId,
 } from "@/features/blocks/themes/registry";
 import { MenuSelect, type MenuSelectItem } from "@/components/menu-select";
+import type { Tone } from "@/components/ui";
 
 // The editor header's layout-theme picker. It replaced a click-to-cycle control
 // that read as a dropdown but stepped through themes — misleading, and awkward
@@ -15,10 +16,12 @@ export function ThemeMenu({
   themes,
   themeId,
   onSelect,
+  tone = "paper",
 }: {
   themes: LayoutTheme[];
   themeId: LayoutThemeId;
   onSelect: (id: LayoutThemeId) => void;
+  tone?: Tone;
 }) {
   const items: MenuSelectItem<LayoutThemeId>[] = themes.map((t) => ({
     key: t.id,
@@ -33,6 +36,7 @@ export function ThemeMenu({
       items={items}
       value={themeId}
       onSelect={onSelect}
+      tone={tone}
     />
   );
 }

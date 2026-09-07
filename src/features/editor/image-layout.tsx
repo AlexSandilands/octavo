@@ -1,4 +1,5 @@
 import { Icon, type IconName } from "@/components/icons";
+import { CHIP_GROUP, CHIP_LABEL, CHIP_SEG_OFF, CHIP_SEG_ON } from "./chip";
 import {
   PAGE_ALIGNS,
   type BlockPatch,
@@ -113,12 +114,8 @@ function Group({
 }) {
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-faint2 font-meta text-[9px] font-medium tracking-[0.14em] uppercase">
-        {label}
-      </span>
-      <div className="border-hair flex overflow-hidden rounded-[6px] border">
-        {children}
-      </div>
+      <span className={CHIP_LABEL}>{label}</span>
+      <div className={CHIP_GROUP}>{children}</div>
     </div>
   );
 }
@@ -144,10 +141,8 @@ function Seg({
         e.stopPropagation();
         onClick();
       }}
-      className={`flex h-7 min-w-7 items-center justify-center px-1.5 ${
-        active
-          ? "bg-brass-ink text-paper"
-          : "text-muted hover:bg-brass-wash hover:text-brass-ink bg-white"
+      className={`flex h-7 min-w-7 cursor-pointer items-center justify-center px-1.5 transition-colors ${
+        active ? CHIP_SEG_ON : CHIP_SEG_OFF
       }`}
     >
       {children}

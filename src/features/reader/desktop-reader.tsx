@@ -257,75 +257,74 @@ export function DesktopReader({
       />
 
       <div className="flex min-h-0 flex-1">
-      <ReaderContents
-        collapsed={collapsed}
-        setCollapsed={setCollapsed}
-        toc={toc}
-        spread={spread}
-        issueNo={issueNo}
-        magazineName={settings.name}
-        viewOf={viewOf}
-        onNavigate={go}
-      />
+        <ReaderContents
+          collapsed={collapsed}
+          setCollapsed={setCollapsed}
+          toc={toc}
+          spread={spread}
+          issueNo={issueNo}
+          magazineName={settings.name}
+          viewOf={viewOf}
+          onNavigate={go}
+        />
 
-      <div
-        ref={stageRef}
-        onClick={onStageClick}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
-        className={`relative flex-1 overflow-hidden ${
-          panning ? "cursor-grabbing select-none" : "cursor-grab"
-        }`}
-      >
-        <div className="flex min-h-full min-w-full items-center justify-center p-6">
-          {/* Pan rides on the outer wrapper (instant); the cover-recenter offset
+        <div
+          ref={stageRef}
+          onClick={onStageClick}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+          className={`relative flex-1 overflow-hidden ${
+            panning ? "cursor-grabbing select-none" : "cursor-grab"
+          }`}
+        >
+          <div className="flex min-h-full min-w-full items-center justify-center p-6">
+            {/* Pan rides on the outer wrapper (instant); the cover-recenter offset
               rides on the inner one (transitioned) so a drag never lags behind a
               700ms ease. The offset is a percentage of the box's own width, so a
               zoom rescales it instantly without a stray transition. */}
-          <div ref={panRef} className="relative">
-            <div
-              ref={spreadRef}
-              // `flex`, not `inline-flex`: mid-turn every child is absolutely
-              // positioned, and an inline-level box would then synthesise a
-              // baseline and jump the spread for the turn's duration (#217).
-              className="relative flex transition-transform duration-700 ease-[cubic-bezier(0.3,0.1,0.2,1)] motion-reduce:transition-none"
-              style={{ transform: `translateX(${atCover ? "-25%" : "0%"})` }}
-            >
-              {/* The glow plate behind the pages, sized to the visible sheet:
+            <div ref={panRef} className="relative">
+              <div
+                ref={spreadRef}
+                // `flex`, not `inline-flex`: mid-turn every child is absolutely
+                // positioned, and an inline-level box would then synthesise a
+                // baseline and jump the spread for the turn's duration (#217).
+                className="relative flex transition-transform duration-700 ease-[cubic-bezier(0.3,0.1,0.2,1)] motion-reduce:transition-none"
+                style={{ transform: `translateX(${atCover ? "-25%" : "0%"})` }}
+              >
+                {/* The glow plate behind the pages, sized to the visible sheet:
                   the full spread, or just the cover leaf when centred. A box
                   shadow on the spread wrapper would flatten the flip's 3D, so it
                   lives on its own element — and it is the glow that makes the
                   paper read as lit on the dark ground. */}
-              <div
-                aria-hidden
-                className="shadow-glow pointer-events-none absolute top-0 transition-[left,width] duration-700 ease-[cubic-bezier(0.3,0.1,0.2,1)] motion-reduce:transition-none"
-                style={{
-                  left: atCover ? "50%" : "0%",
-                  width: atCover ? "50%" : "100%",
-                  height: "100%",
-                }}
-              />
-              <ReaderSpread
-                pages={pages}
-                spread={spread}
-                turn={turn}
-                turnAngle={turnAngle}
-                leftFade={coverTurn ? leftFade : undefined}
-                theme={theme}
-                scale={scale}
-                issueNo={issueNo}
-                logo={logo}
-                settings={settings}
-                images={images}
-                sponsors={sponsors}
-              />
+                <div
+                  aria-hidden
+                  className="shadow-glow pointer-events-none absolute top-0 transition-[left,width] duration-700 ease-[cubic-bezier(0.3,0.1,0.2,1)] motion-reduce:transition-none"
+                  style={{
+                    left: atCover ? "50%" : "0%",
+                    width: atCover ? "50%" : "100%",
+                    height: "100%",
+                  }}
+                />
+                <ReaderSpread
+                  pages={pages}
+                  spread={spread}
+                  turn={turn}
+                  turnAngle={turnAngle}
+                  leftFade={coverTurn ? leftFade : undefined}
+                  theme={theme}
+                  scale={scale}
+                  issueNo={issueNo}
+                  logo={logo}
+                  settings={settings}
+                  images={images}
+                  sponsors={sponsors}
+                />
+              </div>
             </div>
           </div>
         </div>
-      </div>
-
       </div>
 
       <ReaderControls

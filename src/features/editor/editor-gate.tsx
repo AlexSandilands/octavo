@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 import { Icon } from "@/components/icons";
+import { Button } from "@/components/ui";
 
 // Tailwind's `md` breakpoint — the same threshold the admin rail/drawer use.
 const DESKTOP_QUERY = "(min-width: 768px)";
@@ -25,34 +25,36 @@ export function EditorGate({ children }: { children: ReactNode }) {
     return () => mq.removeEventListener("change", sync);
   }, []);
 
-  // Paper-coloured hold while we work out the viewport, so neither branch flashes.
-  if (isDesktop === null) return <div className="bg-card min-h-screen" />;
+  // A stretch of the ground while we work out the viewport, so neither branch flashes.
+  if (isDesktop === null) return <div className="bg-ground min-h-screen" />;
   if (isDesktop) return <>{children}</>;
   return <MobileNotice />;
 }
 
 function MobileNotice() {
   return (
-    <div className="bg-card flex min-h-screen flex-col items-center justify-center px-7 py-12 text-center">
-      <div className="bg-brass-soft text-brass-ink flex h-16 w-16 items-center justify-center rounded-full">
+    <div className="bg-ground flex min-h-screen flex-col items-center justify-center px-7 py-12 text-center">
+      <div className="bg-lifted text-brass flex h-16 w-16 items-center justify-center rounded-full">
         <Icon name="fitScreen" size={30} strokeWidth={1.5} />
       </div>
-      <h1 className="text-ink mt-6 font-display text-2xl">
+      <h1 className="text-chrome-text mt-6 font-display text-[26px]">
         Editing needs a larger screen
       </h1>
-      <p className="text-muted mt-3 max-w-sm font-ui text-[15px] leading-relaxed">
+      <p className="text-chrome-muted mt-3 max-w-sm font-ui text-[16px] leading-relaxed">
         The issue editor is a page-layout tool built for a desktop or laptop.
         Open this issue on a computer to edit it. You can still read and manage
         everything else from your phone.
       </p>
       <div className="mt-8">
-        <Link
+        <Button
           href="/admin"
-          className="border-hair-warm text-ink hover:border-brass-ink hover:bg-brass-wash flex h-12 items-center gap-2 rounded-ui border-[1.5px] bg-white px-5 font-ui text-[15px] font-semibold transition-colors"
+          variant="secondary"
+          tone="dark"
+          icon="arrowLeft"
+          iconPosition="left"
         >
-          <Icon name="chevronLeft" size={17} strokeWidth={1.8} />
           Back to issues
-        </Link>
+        </Button>
       </div>
     </div>
   );

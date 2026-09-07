@@ -6,6 +6,7 @@ import { Icon } from "@/components/icons";
 import type { BlockPatch, MontageItem } from "@/lib/blocks";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import { MontageDialog } from "./montage-dialog";
+import { CHIP_BUTTON } from "./chip";
 
 // The montage block's entry in the selected-block toolbar: a count + a button
 // that opens the settings panel. The slide list is too big to live in a
@@ -41,9 +42,9 @@ export function MontageBlockControl({
           e.stopPropagation();
           setOpen(true);
         }}
-        className="border-hair text-ink hover:border-brass-ink flex h-7 items-center gap-1.5 rounded-[6px] border bg-white px-2.5 font-ui text-[12px] font-semibold"
+        className={CHIP_BUTTON}
       >
-        <Icon name="grid" size={15} className="text-brass-ink" />
+        <Icon name="grid" size={15} className="text-brass" />
         {items.length === 0
           ? "Add images"
           : `Edit montage (${items.length} image${items.length === 1 ? "" : "s"})`}

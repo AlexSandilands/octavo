@@ -162,9 +162,7 @@ function PreviewColumn() {
         </span>
         <span className="text-chrome-muted flex flex-col items-center gap-0.5">
           <Icon name="arrowUp" size={10} />
-          <span className="font-ui text-[8px] leading-tight">
-            Page number
-          </span>
+          <span className="font-ui text-[8px] leading-tight">Page number</span>
         </span>
       </div>
     </div>

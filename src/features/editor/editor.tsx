@@ -246,7 +246,7 @@ export function Editor({
   const footerBehind = footerHeldBack(magazineFooter, issue);
 
   return (
-    <div className="bg-card relative flex h-dvh flex-col">
+    <div className="bg-ground relative flex h-dvh flex-col">
       <EditorHeader
         title={title}
         onTitleChange={setTitle}
@@ -317,10 +317,7 @@ export function Editor({
               panning ? "cursor-grabbing select-none" : "cursor-grab"
             }`}
           >
-            <div
-              ref={panRef}
-              className="shadow-[0_10px_30px_rgba(40,36,28,0.14)]"
-            >
+            <div ref={panRef} className="shadow-glow">
               <ScaledPage scale={scale}>
                 <PageFrame
                   theme={theme}

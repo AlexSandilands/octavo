@@ -76,15 +76,15 @@ export function PageRail({
   useQuietScrollbar(scrollerRef);
 
   return (
-    <div className="bg-paper border-line flex w-[150px] flex-none flex-col items-center border-r py-4">
-      <span className="text-faint w-full pl-[18px] font-ui text-[10px] font-semibold tracking-[0.18em] uppercase">
+    <div className="border-hairline bg-raised flex w-[150px] flex-none flex-col items-center border-r py-4">
+      <span className="text-chrome-muted w-full pl-[18px] font-meta text-[11px] font-medium tracking-[0.14em] uppercase">
         Pages
       </span>
       {/* Padding replaces the old gaps, so a rail that fits lays out unchanged;
           the gutter is reserved on both edges so a scrollbar never shifts the thumbs. */}
       <div
         ref={scrollerRef}
-        className="scrollbar-soft scrollbar-soft-quiet flex min-h-0 w-full flex-col items-center gap-3 overflow-y-auto py-3 [scrollbar-gutter:stable_both-edges]"
+        className="scrollbar-soft scrollbar-soft-quiet scrollbar-dark flex min-h-0 w-full flex-col items-center gap-3 overflow-y-auto py-3 [scrollbar-gutter:stable_both-edges]"
       >
         <DndContext
           sensors={sensors}
@@ -164,8 +164,8 @@ function SortableThumb({
           isDragging ? "cursor-grabbing" : "cursor-grab"
         } ${
           active
-            ? "border-brass-ink border-2 shadow-[0_2px_6px_rgba(40,36,28,0.12)]"
-            : "border border-hair-warm"
+            ? "border-brass shadow-glow-sm border-2"
+            : "border-hair-warm border"
         }`}
       >
         {/* Decorative skeleton bars standing in for a page's content in the
@@ -192,7 +192,7 @@ function SortableThumb({
           onClick={onDelete}
           title={`Delete page ${index + 1}`}
           aria-label={`Delete page ${index + 1}`}
-          className="bg-paper text-faint2 hover:text-danger hover:border-danger border-hair-warm absolute -top-2 -right-2 z-10 flex h-6 w-6 items-center justify-center rounded-full border opacity-0 shadow-sm transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+          className="border-hairline bg-raised text-chrome-muted hover:text-danger-bright hover:border-danger-bright absolute -top-2 -right-2 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border opacity-0 shadow-sm transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
         >
           <Icon name="trash" size={13} strokeWidth={1.8} />
         </button>

@@ -21,8 +21,8 @@ export default async function NotFound() {
         member — yet.
       </h1>
       <p className="text-muted mt-4 max-w-prose font-ui text-[17px] leading-relaxed">
-        {settings.name} is read by members of the {settings.org}. If
-        you&apos;ve just joined, the link in your welcome email will let you in.
+        {settings.name} is read by members of the {settings.org}. If you&apos;ve
+        just joined, the link in your welcome email will let you in.
       </p>
       <div className="mt-8 flex flex-wrap items-center gap-4">
         <Button>Ask about joining</Button>

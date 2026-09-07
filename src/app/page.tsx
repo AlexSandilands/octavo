@@ -43,7 +43,7 @@ export default async function LibraryPage() {
       {/* The archive is offered only once the catalogue outgrows the shelf: a
           magazine with a page's worth of issues shows them all here. */}
       <SiteBar user={user} archive={older > 0} />
-      <main className="mx-auto max-w-6xl px-5 pb-10 sm:px-8">
+      <main className="on-dark mx-auto max-w-6xl px-5 pb-10 sm:px-8">
         <Masthead org={settings.org} tagline={settings.tagline} />
 
         {!latest ? (

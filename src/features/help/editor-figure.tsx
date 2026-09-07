@@ -22,7 +22,9 @@ export function EditorFigure() {
               <span className="bg-lifted text-chrome-muted hidden rounded-full px-2.5 py-0.5 font-meta text-[10px] font-medium tracking-[0.08em] whitespace-nowrap uppercase sm:inline">
                 Draft · No. 4
               </span>
-              <span className="text-chrome-muted font-ui text-[10.5px]">Saved</span>
+              <span className="text-chrome-muted font-ui text-[10.5px]">
+                Saved
+              </span>
             </div>
             <div className="flex flex-none items-center gap-2">
               <FigureBadge n={4} />

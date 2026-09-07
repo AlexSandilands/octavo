@@ -54,7 +54,7 @@ export function EditorToolbar({
       <div
         role="group"
         aria-label="Editor tools"
-        className="border-hair-warm pointer-events-auto flex max-w-full items-center gap-2 rounded-[14px] border bg-white px-2.5 py-2 shadow-[0_8px_28px_rgba(40,36,28,0.22)]"
+        className="border-hairline bg-raised shadow-panel pointer-events-auto flex max-w-full items-center gap-2 rounded-[14px] border px-2.5 py-2"
       >
         {/* `unavailable`, not `disabled`: it keeps the button focusable — see
             `unavailable` in `ui.tsx`. */}
@@ -85,7 +85,7 @@ export function EditorToolbar({
                 ? "This page is filled by a photo"
                 : `Insert a ${b.label.toLowerCase()} block`
             }
-            iconClass="text-brass-ink"
+            iconClass="text-brass"
             showLabel
             disabled={insertDisabled}
             onClick={() => onAddBlock(b.type)}
@@ -115,7 +115,7 @@ export function EditorToolbar({
 }
 
 function Divider() {
-  return <span className="bg-line mx-0.5 h-6 w-px" />;
+  return <span className="bg-hairline mx-0.5 h-6 w-px" />;
 }
 
 // Its own shape rather than the house Button (§6 allows a bordered icon square):
@@ -148,10 +148,10 @@ function Tool({
 }) {
   const inert = disabled || unavailable;
   const look = inert
-    ? "border-hair-warm text-ink cursor-default bg-white opacity-45"
+    ? "border-hairline bg-lifted text-chrome-text cursor-default opacity-45"
     : pressed
-      ? "border-brass-ink bg-brass-ink text-paper cursor-pointer motion-safe:active:scale-95"
-      : "border-hair-warm text-ink hover:border-brass-ink hover:bg-brass-wash cursor-pointer bg-white motion-safe:active:scale-95";
+      ? "border-brass bg-brass text-ground cursor-pointer motion-safe:active:scale-95"
+      : "border-hairline bg-lifted text-chrome-text hover:border-brass hover:text-brass cursor-pointer motion-safe:active:scale-95";
   return (
     <button
       type="button"

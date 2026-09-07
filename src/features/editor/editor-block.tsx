@@ -22,6 +22,7 @@ import { MontageBlockControl } from "./montage-control";
 import { VideoBlockControl } from "./video-control";
 import { SponsorPicker } from "./sponsor-picker";
 import { RichTextEditor } from "./rich-text-editor";
+import { CHIP_BAR, CHIP_DIVIDER, CHIP_INPUT, CHIP_LABEL } from "./chip";
 
 // One block in the editor canvas: the themed BlockView (editable) wrapped in the
 // editing chrome — a faint hover outline, a darker selected outline, a left
@@ -143,7 +144,7 @@ export function EditorBlock({
         {...listeners}
         title="Drag to reorder"
         aria-label="Drag to reorder"
-        className={`border-hair-warm absolute z-10 flex h-7 w-6 cursor-grab touch-none items-center justify-center rounded-[5px] border bg-white text-muted transition-opacity active:cursor-grabbing ${
+        className={`border-hairline bg-raised text-chrome-muted hover:text-brass absolute z-10 flex h-7 w-6 cursor-grab touch-none items-center justify-center rounded-[5px] border transition-opacity active:cursor-grabbing ${
           bleed ? "top-2.5 left-2" : "top-1/2 -left-9 -translate-y-1/2"
         } ${selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
       >
@@ -154,7 +155,7 @@ export function EditorBlock({
         <>
           {block.type === "image" ? (
             <div
-              className={`border-hair chrome-unscaled absolute z-20 flex items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap shadow-[0_4px_14px_rgba(40,36,28,0.16)] ${chromeTop} ${bleed ? "left-11" : "left-0"}`}
+              className={`${CHIP_BAR} chrome-unscaled absolute z-20 ${chromeTop} ${bleed ? "left-11" : "left-0"}`}
             >
               <ImageBlockControl
                 issueId={issueId}
@@ -166,18 +167,16 @@ export function EditorBlock({
               />
               {block.imageId && (
                 <>
-                  <span className="bg-line h-5 w-px" />
+                  <span className={CHIP_DIVIDER} />
                   <ImageLayoutControls
                     align={block.align ?? "full"}
                     width={block.width ?? 100}
                     onChange={onChange}
                     onFillPage={cover ? undefined : onFillPage}
                   />
-                  <span className="bg-line h-5 w-px" />
+                  <span className={CHIP_DIVIDER} />
                   <label className="flex items-center gap-1.5">
-                    <span className="text-faint2 font-meta text-[9px] font-medium tracking-[0.14em] uppercase">
-                      Alt
-                    </span>
+                    <span className={CHIP_LABEL}>Alt</span>
                     <input
                       type="text"
                       value={block.alt ?? ""}
@@ -185,14 +184,16 @@ export function EditorBlock({
                       onClick={(e) => e.stopPropagation()}
                       aria-label="Describe this photo for screen readers"
                       placeholder="Describe this photo for screen readers"
-                      className="border-hair text-ink w-56 rounded-[6px] border bg-white px-2 py-1 font-ui text-[12px]"
+                      className={`${CHIP_INPUT} w-56`}
                     />
                   </label>
                 </>
               )}
             </div>
           ) : block.type === "montage" ? (
-            <div className="border-hair chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap shadow-[0_4px_14px_rgba(40,36,28,0.16)]">
+            <div
+              className={`${CHIP_BAR} chrome-unscaled absolute bottom-full left-0 z-20 mb-2`}
+            >
               <MontageBlockControl
                 items={block.items}
                 interval={block.interval}
@@ -203,7 +204,7 @@ export function EditorBlock({
               />
               {block.items.length > 0 && (
                 <>
-                  <span className="bg-line h-5 w-px" />
+                  <span className={CHIP_DIVIDER} />
                   {/* Placement/size are the image block's controls verbatim —
                       a montage occupies a photo slot, so it sizes like one. */}
                   <ImageLayoutControls
@@ -215,7 +216,9 @@ export function EditorBlock({
               )}
             </div>
           ) : block.type === "video" ? (
-            <div className="border-hair chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap shadow-[0_4px_14px_rgba(40,36,28,0.16)]">
+            <div
+              className={`${CHIP_BAR} chrome-unscaled absolute bottom-full left-0 z-20 mb-2`}
+            >
               <VideoBlockControl
                 videoId={block.videoId}
                 posterImageId={block.posterImageId}
@@ -226,7 +229,7 @@ export function EditorBlock({
               />
               {block.videoId && (
                 <>
-                  <span className="bg-line h-5 w-px" />
+                  <span className={CHIP_DIVIDER} />
                   {/* Placement/size are the image block's controls verbatim —
                       a video occupies a photo slot, so it sizes like one. */}
                   <ImageLayoutControls
@@ -249,7 +252,9 @@ export function EditorBlock({
               />
             </div>
           ) : block.type === "sponsor" ? (
-            <div className="border-hair chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 shadow-[0_4px_14px_rgba(40,36,28,0.16)]">
+            <div
+              className={`${CHIP_BAR} chrome-unscaled absolute bottom-full left-0 z-20 mb-2`}
+            >
               <SponsorPicker
                 sponsorId={block.sponsorId}
                 sponsors={sponsors}
@@ -257,7 +262,7 @@ export function EditorBlock({
               />
             </div>
           ) : (
-            <span className="bg-brass-ink text-paper chrome-unscaled absolute bottom-full left-0 z-10 mb-2 rounded-[3px] px-1.5 py-[3px] font-ui text-[9px] font-semibold tracking-[0.1em] uppercase">
+            <span className="bg-brass text-ground chrome-unscaled absolute bottom-full left-0 z-10 mb-2 rounded-[3px] px-1.5 py-[3px] font-meta text-[9px] font-medium tracking-[0.1em] uppercase">
               {block.type}
             </span>
           )}
@@ -332,10 +337,10 @@ function Ctrl({
       }}
       title={title}
       aria-label={title}
-      className={`border-hair-warm flex h-6 w-6 items-center justify-center rounded-[5px] border bg-white ${
+      className={`border-hairline bg-raised flex h-6 w-6 cursor-pointer items-center justify-center rounded-[5px] border transition-colors ${
         danger
-          ? "text-danger hover:border-danger"
-          : "text-muted hover:border-brass-ink hover:text-brass-ink"
+          ? "text-danger-bright hover:border-danger-bright"
+          : "text-chrome-muted hover:border-brass hover:text-brass"
       }`}
     >
       <Icon name={icon} size={13} strokeWidth={1.9} />

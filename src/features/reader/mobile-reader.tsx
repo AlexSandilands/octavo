@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { DialogShell } from "@/components/dialog-shell";
 import { Icon } from "@/components/icons";
 import { Button, IconButton, Label } from "@/components/ui";
@@ -50,13 +50,14 @@ export function MobileReader({
   const [contents, setContents] = useState(false);
   // A heading chosen from the contents sheet, jumped to once the sheet has
   // gone: the shell hands focus back to the button that opened it as it
-  // unmounts, so the heading is focused after that, not before.
-  const [jump, setJump] = useState<string | null>(null);
+  // unmounts, so the heading is focused after that, not before. A ref, not
+  // state — it is read once by the effect below and never rendered.
+  const jump = useRef<string | null>(null);
 
   useEffect(() => {
-    if (contents || !jump) return;
-    setJump(null);
-    const el = document.getElementById(headingDomId(jump));
+    if (contents || !jump.current) return;
+    const el = document.getElementById(headingDomId(jump.current));
+    jump.current = null;
     if (!el) return;
     const reduceMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
@@ -69,10 +70,10 @@ export function MobileReader({
     // focused after the scroll so screen-reader/keyboard users land where the
     // page did.
     el.focus({ preventScroll: true });
-  }, [contents, jump]);
+  }, [contents]);
 
   const goToHeading = (blockId: string) => {
-    setJump(blockId);
+    jump.current = blockId;
     setContents(false);
   };
 
@@ -249,7 +250,7 @@ export function MobileReader({
       {contents && (
         <DialogShell
           layout="full"
-          panelClassName="bg-ground text-chrome-text flex h-full w-full flex-col overflow-y-auto px-5 py-2"
+          panelClassName="on-dark bg-ground flex h-full w-full flex-col overflow-y-auto px-5 py-2"
           onClose={() => setContents(false)}
         >
           {(titleId) => (

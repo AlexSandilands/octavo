@@ -35,7 +35,7 @@ export default async function PreviewIssuePage({
   return (
     <>
       {issue.status === "draft" && (
-        <div className="bg-caution-soft border-line flex items-center justify-center gap-3 border-b px-4 py-2 font-ui text-[13px]">
+        <div className="bg-caution-soft border-hair-warm flex items-center justify-center gap-3 border-b px-4 py-2.5 font-ui text-[14px]">
           <span className="text-caution font-semibold">
             Draft preview — members can’t see this issue yet.
           </span>

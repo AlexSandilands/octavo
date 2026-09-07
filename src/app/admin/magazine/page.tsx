@@ -23,7 +23,9 @@ export default async function MagazinePage() {
   return (
     <AdminShell active="magazine" user={admin}>
       <div className="pb-16">
-        <h1 className="text-ink font-display text-[32px] leading-tight">Magazine details</h1>
+        <h1 className="text-ink font-display text-[32px] leading-tight">
+          Magazine details
+        </h1>
         <p className="text-faint mt-1.5 font-ui text-[15px]">
           What the magazine calls itself, how the foot of every page is set, and
           whether members can download an issue. Changes go live as soon as you
