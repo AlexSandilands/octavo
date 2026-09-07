@@ -5,8 +5,8 @@ import { MagazineName } from "./branding";
 import { BOOK_MARK_PATHS, BOOK_MARK_VIEWBOX } from "@/lib/brands";
 
 // The house set for the Compass chrome: one wordmark, two labels, one button,
-// one icon button, the status pill and the neutral chip, the avatar and the
-// fallback cover. Every interactive control in the app is built from these.
+// one icon button, the status pill and the neutral chip, and the avatar.
+// Every interactive control in the app is built from these.
 
 // The magazine's name beside the book mark — the app's identity in every bar.
 export function Wordmark({
@@ -333,35 +333,6 @@ export function Avatar({
     >
       {initials}
     </span>
-  );
-}
-
-// The striped magazine cover used for thumbnails and heroes with no cover page.
-export function Cover({
-  no,
-  title,
-  className = "",
-  size = "md",
-}: {
-  no: number;
-  title: string;
-  className?: string;
-  size?: "sm" | "md" | "lg";
-}) {
-  const pad = size === "lg" ? "p-5" : "p-4";
-  const titleSize =
-    size === "lg" ? "text-4xl" : size === "md" ? "text-3xl" : "text-xl";
-  return (
-    <div
-      className={`photo-fill-green flex flex-col justify-between rounded-[4px] ${pad} ${className}`}
-    >
-      <div className="text-cream font-serif text-xs tracking-[0.1em]">
-        <MagazineName /> · No. {no}
-      </div>
-      <div className={`text-paper font-serif leading-[0.98] ${titleSize}`}>
-        {title}
-      </div>
-    </div>
   );
 }
 

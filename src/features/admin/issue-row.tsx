@@ -43,9 +43,11 @@ export function IssueRow({
           onChange={(next) => onSelect(issue.id, next)}
           label={`Select ${issue.title}`}
         />
+        {/* A decorative duplicate of the title link: out of the tab order
+            and the accessibility tree, so each row has one "Edit" name. */}
         <Link
           href={editHref}
-          aria-label={`Edit ${issue.title}`}
+          aria-hidden="true"
           tabIndex={-1}
           className="shadow-card flex-none overflow-hidden rounded-[4px]"
           style={{ width: THUMB_W, height: THUMB_H }}

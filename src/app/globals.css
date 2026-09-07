@@ -139,13 +139,7 @@ body {
   outline: none;
 }
 
-/* Phone chrome that respects the home-indicator inset. */
-@utility pb-tabbar {
-  padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px));
-}
-@utility bottom-tabbar {
-  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px));
-}
+/* The phone tab bar's height plus the home-indicator inset. */
 @utility h-tabbar {
   height: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px));
 }
