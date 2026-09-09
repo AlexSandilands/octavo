@@ -5,7 +5,9 @@ import { createId } from "@/lib/id";
 import { processImage, UnsupportedImageError } from "@/lib/image-processing";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { keyToUrl, putObject, usingLocalStorage } from "@/lib/storage";
-import { createImageRecord } from "@/server/images";
+import { createImageRecord, createDraftImageRecord } from "@/server/images";
+import { sweepOrphanedObjects } from "@/server/asset-cleanup";
+import { getIssue } from "@/server/issues";
 import { getAdminUser } from "@/server/session";
 
 // Admin image upload. Receives one file as multipart form data, re-encodes it to
@@ -25,7 +27,8 @@ const ACCEPTED = [
 ];
 
 const fieldsSchema = z.object({
-  issueId: z.string().min(1).optional(),
+  issueId: z.string().uuid().optional(),
+  importDraft: z.literal("true").optional(),
 });
 
 // Each request re-encodes up to 12 MB through sharp, so throttle per admin even
@@ -82,11 +85,20 @@ export async function POST(request: Request) {
 
   const fields = fieldsSchema.safeParse({
     issueId: form.get("issueId") ?? undefined,
+    importDraft: form.get("importDraft") ?? undefined,
   });
   if (!fields.success) {
     return NextResponse.json({ error: "Invalid fields." }, { status: 400 });
   }
   const issueId = fields.data.issueId ?? null;
+  if (
+    fields.data.importDraft &&
+    (!issueId || (await getIssue(issueId))?.status !== "draft")
+  )
+    return NextResponse.json(
+      { error: "Import requires an existing draft issue." },
+      { status: 409 },
+    );
 
   let processed;
   try {
@@ -144,12 +156,31 @@ export async function POST(request: Request) {
     );
   }
 
-  const record = await createImageRecord({
-    key,
-    width: processed.width,
-    height: processed.height,
-    issueId,
-  });
+  let record;
+  try {
+    const input = {
+      key,
+      width: processed.width,
+      height: processed.height,
+      issueId,
+    };
+    record =
+      fields.data.importDraft && issueId
+        ? await createDraftImageRecord({ ...input, issueId })
+        : await createImageRecord(input);
+  } catch {
+    await sweepOrphanedObjects({
+      keys: [key],
+      context: { route: "admin/images", stage: "record" },
+    });
+    return NextResponse.json(
+      {
+        error:
+          "Could not record the image. Check that the issue is still a draft and retry.",
+      },
+      { status: 409 },
+    );
+  }
 
   return NextResponse.json({
     imageId: record.id,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useEffectEvent, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { type IssueContent } from "@/lib/blocks";
 import {
@@ -36,6 +37,7 @@ import {
 import { pageFillsCanvas } from "@/features/blocks/layout";
 import { useCanvasPanZoom } from "@/features/blocks/use-canvas-pan-zoom";
 import { useEditorPages } from "./use-editor-pages";
+import { usePdfInsertion } from "./pdf-import/use-pdf-insertion";
 import { useTextFlow } from "./use-text-flow";
 import { EditorBlock } from "./editor-block";
 import { reportEditorError } from "./report-error";
@@ -46,6 +48,10 @@ import { EditorToolbar, TOOLBAR_RESERVE } from "./editor-toolbar";
 import { FooterUpdateNotice } from "./footer-update-notice";
 import { useEditorAutosave } from "./use-editor-autosave";
 import { publishIssueAction } from "@/app/admin/actions";
+
+const PdfWorkspace = dynamic(() => import("./pdf-import/workspace"), {
+  ssr: false,
+});
 
 // Extends FooterReserve: the footer this issue's pages were laid out against
 // (issue #128) is what the canvas draws and measures overflow against, whatever
@@ -98,6 +104,8 @@ export function Editor({
   // The page/block model + all its mutation handlers (issue #36 decomposition).
   const {
     pages,
+    applyImport,
+    clearHistory,
     curPage,
     sel,
     setSel,
@@ -150,6 +158,7 @@ export function Editor({
   // page footer updates the moment it changes — no reload, no second query.
   const [logoId, setLogoId] = useState<string | null>(issue.logoId);
   const logo = logos.find((l) => l.id === logoId)?.image ?? null;
+  const [importOpen, setImportOpen] = useState(false);
   const [pub, setPub] = useState(false);
   // Once published (now or on load), the publish modal defaults email OFF so a
   // later correction can't re-blast the list.
@@ -163,6 +172,24 @@ export function Editor({
     title,
     theme: themeId,
     logoId,
+    draftOnly: !published,
+  });
+
+  const importer = usePdfInsertion({
+    pages,
+    curPage,
+    sel,
+    issueId: issue.id,
+    published,
+    flushSave,
+    applyImport,
+    theme: getTheme(themeId),
+    images,
+    sponsors: sponsorMap,
+    settings,
+    logo,
+    issueNo: issue.number,
+    registerImages: (added) => setImages((old) => ({ ...old, ...added })),
   });
 
   // Drag from the handle, or move with the keyboard once the handle is focused.
@@ -197,7 +224,7 @@ export function Editor({
     contentHeight: PAGE_H,
     // The stage's own padding: 40px above the page, the tool bar's reserve below.
     fitMargin: { x: 80, y: 40 + TOOLBAR_RESERVE },
-    fitClamp: { min: 0.5, max: 1.4 },
+    fitClamp: { min: importOpen ? 0.25 : 0.5, max: 1.4 },
     initialFitScale: 0.75,
     blockSelector: "[data-editor-block]",
   });
@@ -246,57 +273,81 @@ export function Editor({
   const footerBehind = footerHeldBack(magazineFooter, issue);
 
   return (
-    <div className="bg-card relative flex h-dvh flex-col">
-      <EditorHeader
-        title={title}
-        onTitleChange={setTitle}
-        issueNumber={issue.number}
-        themes={themes}
-        themeId={themeId}
-        onSelectTheme={setThemeId}
-        logos={logos}
-        logoId={logoId}
-        onSelectLogo={setLogoId}
-        status={status}
-        onRetrySave={() => void enqueueSave("all")}
-        onReload={() => window.location.reload()}
-        onPreview={async () => {
-          // Open the preview in a new tab so the editor stays mounted with its
-          // unsaved in-memory state — closing the tab returns you to the editor
-          // exactly as you left it (no stale back-navigation render). The blank
-          // tab is opened in the click gesture to dodge popup blockers, then
-          // pointed at the reader once the save lands.
-          const tab = window.open("", "_blank");
-          const ok = await flushSave();
-          if (!ok) {
-            // The save didn't land (status pill shows why) — don't preview
-            // stale content.
-            tab?.close();
-            return;
-          }
-          // Preview by internal id under /admin: drafts are never served from
-          // the public /read route (published issues only).
-          const url = `/admin/issues/${issue.id}/preview`;
-          if (tab) tab.location.href = url;
-          else router.push(url);
-        }}
-        onPublish={() => setPub(true)}
-      />
-
-      <div className="flex flex-1 overflow-hidden">
-        <PageRail
-          pages={pages}
-          curPage={curPage}
-          addMenu={addMenu}
-          onSelectPage={selectPage}
-          onReorder={reorderPages}
-          onAddPage={addPage}
-          onDeletePage={deletePage}
-          onToggleAddMenu={() => setAddMenu((v) => !v)}
-          onCloseAddMenu={() => setAddMenu(false)}
+    <div
+      className="bg-card relative flex h-dvh flex-col"
+      data-import-pending={importer.pending}
+    >
+      <div inert={importer.pending}>
+        <EditorHeader
+          title={title}
+          onTitleChange={setTitle}
+          issueNumber={issue.number}
+          themes={themes}
+          themeId={themeId}
+          onSelectTheme={setThemeId}
+          logos={logos}
+          logoId={logoId}
+          onSelectLogo={setLogoId}
+          status={status}
+          onRetrySave={() => void enqueueSave("all")}
+          onReload={() => window.location.reload()}
+          onPreview={async () => {
+            // Open the preview in a new tab so the editor stays mounted with its
+            // unsaved in-memory state — closing the tab returns you to the editor
+            // exactly as you left it (no stale back-navigation render). The blank
+            // tab is opened in the click gesture to dodge popup blockers, then
+            // pointed at the reader once the save lands.
+            const tab = window.open("", "_blank");
+            const ok = await flushSave();
+            if (!ok) {
+              // The save didn't land (status pill shows why) — don't preview
+              // stale content.
+              tab?.close();
+              return;
+            }
+            // Preview by internal id under /admin: drafts are never served from
+            // the public /read route (published issues only).
+            const url = `/admin/issues/${issue.id}/preview`;
+            if (tab) tab.location.href = url;
+            else router.push(url);
+          }}
+          onImport={!published ? () => setImportOpen(true) : undefined}
+          onPublish={() => setPub(true)}
         />
-
-        <div className="bg-canvas relative flex flex-1 flex-col overflow-hidden">
+      </div>
+      <div className="flex flex-1 overflow-hidden">
+        {importOpen && (
+          <PdfWorkspace
+            pages={pages}
+            destination={
+              page?.cover || filled
+                ? `new content page after page ${curPage + 1}`
+                : sel
+                  ? `after selected block on page ${curPage + 1}`
+                  : `end of page ${curPage + 1}`
+            }
+            onClose={() => setImportOpen(false)}
+            onAdd={importer.add}
+          />
+        )}
+        <div inert={importer.pending} className="flex">
+          <PageRail
+            compact={importOpen}
+            pages={pages}
+            curPage={curPage}
+            addMenu={addMenu}
+            onSelectPage={selectPage}
+            onReorder={reorderPages}
+            onAddPage={addPage}
+            onDeletePage={deletePage}
+            onToggleAddMenu={() => setAddMenu((v) => !v)}
+            onCloseAddMenu={() => setAddMenu(false)}
+          />
+        </div>
+        <div
+          inert={importer.pending}
+          className="bg-canvas relative flex min-w-0 flex-1 flex-col overflow-hidden"
+        >
           {footerBehind && page && !page.cover && !filled && (
             <FooterUpdateNotice issueId={issue.id} flushSave={flushSave} />
           )}
@@ -421,8 +472,11 @@ export function Editor({
               const ok = await flushSave();
               if (!ok) return { ok: false };
               const res = await publishIssueAction(issue.id, sendEmail);
-              if (res.ok) setPublished(true);
-              else setStatus("error");
+              if (res.ok) {
+                setPublished(true);
+                setImportOpen(false);
+                if (importer.used) clearHistory();
+              } else setStatus("error");
               return res;
             } catch (error) {
               reportEditorError(error, "publish", {

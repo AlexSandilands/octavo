@@ -2,7 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Page } from "@/lib/blocks";
-import { saveIssueAction, saveMetaAction } from "@/app/admin/actions";
+import {
+  saveIssueAction,
+  saveDraftIssueAction,
+  saveMetaAction,
+} from "@/app/admin/actions";
 import type { SaveStatus } from "./editor-header";
 import { reportEditorError } from "./report-error";
 
@@ -21,6 +25,7 @@ export function useEditorAutosave({
   title,
   theme,
   logoId,
+  draftOnly = false,
 }: {
   issueId: string;
   revision: number;
@@ -28,6 +33,7 @@ export function useEditorAutosave({
   title: string;
   theme: string;
   logoId: string | null;
+  draftOnly?: boolean;
 }) {
   const [status, setStatus] = useState<SaveStatus>("saved");
   const statusRef = useRef(status);
@@ -49,11 +55,9 @@ export function useEditorAutosave({
       try {
         const { pages, title, theme, logoId } = latestRef.current;
         if (kind !== "meta") {
-          const res = await saveIssueAction(
-            issueId,
-            { pages },
-            revisionRef.current,
-          );
+          const res = await (
+            draftOnly ? saveDraftIssueAction : saveIssueAction
+          )(issueId, { pages }, revisionRef.current);
           if (!res.ok) {
             setStatus(res.reason === "conflict" ? "conflict" : "error");
             return false;

@@ -1,0 +1,118 @@
+import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
+import postgres from "postgres";
+import { chromium, type Page as BrowserPage } from "playwright";
+import { issueContentSchema, type Block } from "../src/lib/blocks.ts";
+process.loadEnvFile(existsSync(".env.local") ? ".env.local" : ".env");
+export const base = process.argv[2] ?? "http://localhost:3223";
+assert(
+  ["localhost", "127.0.0.1"].includes(new URL(base).hostname),
+  "Use a local test server.",
+);
+assert(
+  ["localhost", "127.0.0.1"].includes(
+    new URL(process.env.DATABASE_URL!).hostname,
+  ),
+  "Use the local development database, never a live database.",
+);
+export const sql = postgres(process.env.DATABASE_URL!);
+export const browser = await chromium.launch({ headless: true });
+export const uid = crypto.randomUUID(),
+  iid = crypto.randomUUID(),
+  token = crypto.randomUUID();
+export const prefixId = crypto.randomUUID(),
+  suffixId = crypto.randomUUID(),
+  laterId = crypto.randomUUID();
+const text = (id: string, value: string): Block => ({
+  id,
+  type: "text",
+  text: {
+    type: "doc",
+    content: [{ type: "paragraph", content: [{ type: "text", text: value }] }],
+  },
+});
+export const initial = {
+  version: 6,
+  pages: [
+    { id: crypto.randomUUID(), cover: true, blocks: [] },
+    {
+      id: crypto.randomUUID(),
+      blocks: [
+        text(prefixId, "PREFIX before selected content."),
+        text(suffixId, "SUFFIX after selected content."),
+      ],
+    },
+    {
+      id: laterId,
+      blocks: [text(crypto.randomUUID(), "LATER authored page stays intact.")],
+    },
+  ],
+};
+export async function setup() {
+  await sql`insert into users(id,email,is_admin,subscribed,email_verified) values(${uid},${`scratch-223-${uid}@example.invalid`},true,true,now())`;
+  await sql`insert into sessions(session_token,user_id,expires) values(${token},${uid},now()+interval '1 hour')`;
+  for (let tries = 0; tries < 10; tries++) {
+    const number = 900223000 + Math.floor(Math.random() * 100000);
+    const rows =
+      await sql`insert into issues(id,number,title,theme,status,footer_mark_size,footer_text_size,content) values(${iid},${number},'PDF import browser gate','classic','draft',48,16,${sql.json(initial)}) on conflict(number) do nothing returning number`;
+    if (rows.length) return number;
+  }
+  throw new Error("Could not allocate scratch issue number.");
+}
+export async function cleanup() {
+  await browser.close();
+  await (await import("../src/server/issues.ts")).deleteIssue(iid);
+  await sql`delete from users where id=${uid}`;
+  await sql.end();
+}
+export async function readDocument() {
+  const [row] = await sql`select content from issues where id=${iid}`;
+  return issueContentSchema.parse(row?.content);
+}
+export async function settle(page: BrowserPage) {
+  await page.getByText("Saved", { exact: true }).waitFor({ timeout: 30000 });
+}
+export async function openFile(
+  page: BrowserPage,
+  file = "scripts/fixtures/pdf-import/single-column.pdf",
+) {
+  await page.getByLabel("Choose local PDF").setInputFiles(file);
+  await page
+    .getByText("PDF opened on this device. Select regions to review.")
+    .waitFor({ timeout: 35000 });
+}
+export async function waitAdded(page: BrowserPage) {
+  await page
+    .getByText(
+      "Added to the magazine. Check the editor save status before leaving.",
+    )
+    .waitFor({ timeout: 60000 });
+  await settle(page);
+}
+export async function assertFits(page: BrowserPage) {
+  const geometry = await page.evaluate(() => {
+    const frame = document.querySelector<HTMLElement>("[data-page-frame]");
+    const footer = frame?.querySelector<HTMLElement>("[data-page-footer]");
+    if (!frame || !footer)
+      throw new Error("Expected a normal page with a running footer.");
+    const scale = frame.getBoundingClientRect().height / frame.offsetHeight;
+    const limit = footer.getBoundingClientRect().top - 6 * scale;
+    return [...frame.querySelectorAll<HTMLElement>("[data-editor-block]")]
+      .filter((block) => block.getBoundingClientRect().bottom > limit + scale)
+      .map((block) => ({
+        id: block.getAttribute("data-block-id"),
+        bottom: block.getBoundingClientRect().bottom,
+        limit,
+        scale,
+        height: block.offsetHeight,
+        html: block.querySelector("[data-text-body]")?.outerHTML.slice(0, 200),
+      }));
+  });
+  if (geometry.length)
+    await page.screenshot({ path: "/tmp/pdf-import-overflow.png" });
+  assert.deepEqual(
+    geometry,
+    [],
+    "No destination block overflows its actual footer geometry.",
+  );
+}

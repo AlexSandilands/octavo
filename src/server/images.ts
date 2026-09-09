@@ -1,7 +1,7 @@
 import "server-only";
-import { inArray } from "drizzle-orm";
+import { inArray, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { images } from "@/db/schema";
+import { images, issues } from "@/db/schema";
 import { keyToUrl } from "@/lib/storage";
 import { collectImageIds, type ImageMap } from "@/lib/images";
 import type { IssueContent } from "@/lib/blocks";
@@ -18,6 +18,26 @@ export async function createImageRecord(input: {
   const [row] = await db.insert(images).values(input).returning();
   if (!row) throw new Error("Failed to record image");
   return row;
+}
+
+export async function createDraftImageRecord(input: {
+  key: string;
+  width: number;
+  height: number;
+  issueId: string;
+}) {
+  return db.transaction(async (tx) => {
+    const [issue] = await tx
+      .select({ status: issues.status })
+      .from(issues)
+      .where(eq(issues.id, input.issueId))
+      .for("update");
+    if (issue?.status !== "draft")
+      throw new Error("The destination is no longer a draft.");
+    const [record] = await tx.insert(images).values(input).returning();
+    if (!record) throw new Error("Could not record image.");
+    return record;
+  });
 }
 
 export async function getImagesByIds(ids: string[]) {

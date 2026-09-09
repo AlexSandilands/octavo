@@ -83,6 +83,12 @@ export function useEditorHistory() {
     ...ends,
     /** Announced politely when there is nothing left to undo or redo. */
     notice,
+    clear: () => {
+      past.current = [];
+      future.current = [];
+      stream.current = null;
+      sync();
+    },
     record,
     undo: (current: EditorSnapshot) =>
       step(past, future, current, "Nothing to undo"),
@@ -136,7 +142,11 @@ export function useUndoShortcuts({
           el instanceof HTMLTextAreaElement);
       // The dialog query is deliberate: a modal on top owns the keyboard, and
       // asking the DOM is cheaper than threading a flag down to this hook.
-      if (typing || document.querySelector('[role="dialog"]')) return;
+      if (
+        typing ||
+        document.querySelector('[role="dialog"], [data-import-pending="true"]')
+      )
+        return;
       e.preventDefault();
       if (key === "y" || e.shiftKey) onRedo();
       else onUndo();

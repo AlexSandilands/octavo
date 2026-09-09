@@ -32,6 +32,7 @@ export function EditorHeader({
   onReload,
   onPreview,
   onPublish,
+  onImport,
 }: {
   title: string;
   onTitleChange: (v: string) => void;
@@ -51,17 +52,18 @@ export function EditorHeader({
   onReload: () => void;
   onPreview: () => void;
   onPublish: () => void;
+  onImport?: () => void;
 }) {
   return (
-    <header className="border-line flex h-[60px] flex-none items-center justify-between border-b px-6">
-      <div className="flex items-center gap-3.5">
+    <header className="border-line flex min-h-[60px] flex-none flex-wrap items-center justify-between gap-2 border-b px-4 py-2">
+      <div className="flex min-w-0 basis-full items-center gap-3 xl:flex-1 xl:basis-auto">
         <Link href="/admin" className="text-muted" aria-label="Back to issues">
           <Icon name="chevronLeft" size={20} />
         </Link>
         <input
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
-          className="text-ink min-w-0 border-none bg-transparent font-serif text-[21px] outline-none"
+          className="text-ink w-48 min-w-0 flex-1 border-none bg-transparent font-serif text-[21px] outline-none"
           placeholder="Untitled issue"
         />
         <span className="bg-chip flex items-center gap-1.5 rounded-full px-3 py-1">
@@ -98,7 +100,7 @@ export function EditorHeader({
           </span>
         )}
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2">
         <LogoPicker logos={logos} logoId={logoId} onChange={onSelectLogo} />
         {themes.length > 1 && (
           <ThemeMenu
@@ -106,6 +108,11 @@ export function EditorHeader({
             themeId={themeId}
             onSelect={onSelectTheme}
           />
+        )}
+        {onImport && (
+          <Button size="sm" variant="secondary" onClick={onImport}>
+            Import PDF
+          </Button>
         )}
         <Button variant="secondary" size="sm" onClick={onPreview}>
           Preview

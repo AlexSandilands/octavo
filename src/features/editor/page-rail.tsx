@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { Button } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { useQuietScrollbar } from "@/components/use-quiet-scrollbar";
 import { type Page, type PageTemplate } from "@/lib/blocks";
@@ -37,7 +38,9 @@ export function PageRail({
   onDeletePage,
   onToggleAddMenu,
   onCloseAddMenu,
+  compact = false,
 }: {
+  compact?: boolean;
   pages: Page[];
   curPage: number;
   addMenu: boolean;
@@ -76,7 +79,9 @@ export function PageRail({
   useQuietScrollbar(scrollerRef);
 
   return (
-    <div className="bg-paper border-line flex w-[150px] flex-none flex-col items-center border-r py-4">
+    <div
+      className={`bg-paper border-line flex ${compact ? "w-[70px]" : "w-[150px]"} flex-none flex-col items-center border-r py-4`}
+    >
       <span className="text-faint w-full pl-[18px] font-sans text-[10px] font-semibold tracking-[0.18em] uppercase">
         Pages
       </span>
@@ -98,6 +103,7 @@ export function PageRail({
             {pages.map((p, i) => (
               <SortableThumb
                 key={p.id}
+                compact={compact}
                 page={p}
                 index={i}
                 active={i === curPage}
@@ -110,18 +116,30 @@ export function PageRail({
         </DndContext>
       </div>
 
-      <AddPageMenu
-        open={addMenu}
-        onToggle={onToggleAddMenu}
-        onClose={onCloseAddMenu}
-        onAdd={onAddPage}
-      />
+      {compact ? (
+        <Button
+          size="sm"
+          variant="secondary"
+          aria-label="Add magazine page"
+          onClick={() => onAddPage("blank")}
+        >
+          +
+        </Button>
+      ) : (
+        <AddPageMenu
+          open={addMenu}
+          onToggle={onToggleAddMenu}
+          onClose={onCloseAddMenu}
+          onAdd={onAddPage}
+        />
+      )}
     </div>
   );
 }
 
 function SortableThumb({
   page,
+  compact,
   index,
   active,
   canDelete,
@@ -129,6 +147,7 @@ function SortableThumb({
   onDelete,
 }: {
   page: Page;
+  compact: boolean;
   index: number;
   active: boolean;
   canDelete: boolean;
@@ -160,7 +179,8 @@ function SortableThumb({
         {...listeners}
         onClick={onSelect}
         aria-current={active ? "page" : undefined}
-        className={`bg-page relative block h-[108px] w-[84px] touch-none scroll-my-3 rounded-[3px] p-2.5 text-left ${
+        aria-label={`Magazine page ${index + 1}`}
+        className={`bg-page relative block ${compact ? "h-[60px] w-[44px]" : "h-[108px] w-[84px]"} touch-none scroll-my-3 rounded-[3px] p-2.5 text-left ${
           isDragging ? "cursor-grabbing" : "cursor-grab"
         } ${
           active

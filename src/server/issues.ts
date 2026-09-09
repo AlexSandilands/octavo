@@ -364,6 +364,7 @@ export async function updateIssueContent(
   id: string,
   content: IssueContent,
   baseRevision: number,
+  draftOnly = false,
 ): Promise<ContentSaveResult> {
   const [row] = await db
     .update(issues)
@@ -372,7 +373,13 @@ export async function updateIssueContent(
       revision: sql`${issues.revision} + 1`,
       updatedAt: new Date(),
     })
-    .where(and(eq(issues.id, id), eq(issues.revision, baseRevision)))
+    .where(
+      and(
+        eq(issues.id, id),
+        eq(issues.revision, baseRevision),
+        draftOnly ? eq(issues.status, "draft") : undefined,
+      ),
+    )
     .returning({ revision: issues.revision });
   if (row) return { ok: true, revision: row.revision };
 

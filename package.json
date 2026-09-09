@@ -21,7 +21,9 @@
     "db:migrate-content": "tsx src/db/migrate-content.ts",
     "db:admin": "tsx src/db/bootstrap-admin.ts",
     "invoice": "tsx --tsconfig scripts/tsconfig.json scripts/invoice/generate.mts",
-    "icon": "tsx --tsconfig scripts/tsconfig.json scripts/render-site-icon.mts"
+    "icon": "tsx --tsconfig scripts/tsconfig.json scripts/render-site-icon.mts",
+    "predev": "node scripts/copy-pdf-assets.mjs",
+    "prebuild": "node scripts/copy-pdf-assets.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.700.0",

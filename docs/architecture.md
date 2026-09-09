@@ -118,6 +118,14 @@ editables), and the editor-level Ctrl/Cmd+Z stands down whenever focus is in a t
 never fight. Restoring re-seeds the uncontrolled in-place editors by remounting the blocks whose
 content changed, and the ordinary autosave carries the restored document to the server. Issue #222.
 
+## Assisted PDF authoring
+
+Draft editors lazy-load a browser-only PDF workspace; source files never upload.
+Selected regions become ordinary v6 blocks through bounded measured fitting and one
+history commit. Draft-only autosave prevents a concurrent publication from accepting
+an import, and accepted photos use the existing issue-owned image pipeline. Details,
+limits, lifecycle and reproducible browser gates: [PDF import](pdf-import.md).
+
 ## Data flow
 
 ```
