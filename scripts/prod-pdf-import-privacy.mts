@@ -7,6 +7,12 @@ import {
   setup,
   cleanup,
   openFile,
+  openTool,
+  closeTool,
+  fileInput,
+  region,
+  nextPage,
+  panel,
 } from "./pdf-import-gate-support.mts";
 await setup();
 try {
@@ -23,9 +29,9 @@ try {
   });
   const page = await context.newPage();
   await page.goto(`${base}/admin/issues/${iid}/edit`);
-  await page.getByRole("button", { name: "Import PDF", exact: true }).click();
+  await openTool(page);
   await openFile(page);
-  await page.getByRole("button", { name: /^Text region 2/ }).click();
+  await region(page, "Text").nth(1).click();
   await page.evaluate(() =>
     window.dispatchEvent(
       new ErrorEvent("error", {
@@ -39,28 +45,29 @@ try {
     envelopes.some((body) => body.includes("PRIVATE-PDF-CANARY-223")),
     false,
   );
-  await page.getByRole("button", { name: "Next", exact: true }).click();
-  await page.getByText("PDF 2 / 2", { exact: true }).waitFor();
-  await page.getByRole("button", { name: /^Text region/ }).click();
+  // The selection keeps a deliberate order across source pages.
+  await nextPage(page);
+  await panel(page).getByText("2 / 2", { exact: true }).waitFor();
+  await region(page, "Text").first().click();
+  await page.getByRole("button", { name: /^\d+ selected$/ }).click();
+  const rows = page.locator("#pdf-import-selection li");
   await page
-    .getByRole("button", { name: "Move selection 2 up", exact: true })
+    .getByRole("button", { name: "Move up", exact: true })
+    .nth(1)
     .click();
-  const previews = page.getByRole("textbox", {
-    name: "Editable text preview",
-    exact: true,
-  });
-  assert(
-    (await previews.first().textContent())?.startsWith("Article continued"),
-  );
-  await page.getByRole("button", { name: "Previous", exact: true }).click();
-  await page.getByRole("button", { name: /^Text region 4/ }).click();
-  assert(
-    (await previews.first().textContent())?.startsWith("Article continued"),
-    "Selecting later regions keeps deliberate tray order.",
-  );
+  assert.match(await rows.first().innerText(), /Article continued/);
   await page
-    .getByRole("button", { name: "Close importer", exact: true })
+    .getByRole("button", { name: "Previous PDF page", exact: true })
     .click();
+  await panel(page).getByText("1 / 2", { exact: true }).waitFor();
+  await region(page, "Text").nth(2).click();
+  assert.match(
+    await rows.first().innerText(),
+    /Article continued/,
+    "Selecting later regions keeps deliberate order.",
+  );
+  await closeTool(page);
+  await page.waitForTimeout(500);
   await page.evaluate(() =>
     window.dispatchEvent(
       new ErrorEvent("error", {
@@ -108,9 +115,7 @@ try {
     });
   });
   await deadline.goto(`${base}/admin/issues/${iid}/edit`);
-  await deadline
-    .getByRole("button", { name: "Import PDF", exact: true })
-    .click();
+  await openTool(deadline);
   await deadline.clock.install();
   let release: () => void = () => {};
   const blocked = new Promise<void>((resolve) => {
@@ -120,9 +125,9 @@ try {
     await blocked;
     await route.abort().catch(() => {});
   });
-  await deadline
-    .getByLabel("Choose local PDF")
-    .setInputFiles("scripts/fixtures/pdf-import/single-column.pdf");
+  await fileInput(deadline).setInputFiles(
+    "scripts/fixtures/pdf-import/single-column.pdf",
+  );
   await deadline.waitForFunction(
     () => document.documentElement.dataset.pdfGateWorker === "created",
   );

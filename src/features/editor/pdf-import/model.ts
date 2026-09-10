@@ -35,8 +35,11 @@ export type Region = Box & {
   size: TextSize;
   align: TextAlign;
   image?: { blob: Blob; width: number; height: number; key: string };
+  /** The grouped source lines, kept so a region can be split with real geometry. */
+  lines?: Run[][];
   warning?: string;
 };
+export type ImportKind = "heading" | "text" | "image";
 export type SourcePage = {
   number: number;
   width: number;

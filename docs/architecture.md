@@ -120,7 +120,9 @@ content changed, and the ordinary autosave carries the restored document to the 
 
 ## Assisted PDF authoring
 
-Draft editors lazy-load a browser-only PDF workspace; source files never upload.
+The editor's right-hand side panel (`src/features/editor/side-panel/`, opened from a
+tool rail on the editor's edge and resizable by drag or keyboard) hosts the Import PDF
+tool, which lazy-loads a browser-only PDF parser; source files never upload.
 Selected regions become ordinary v6 blocks through bounded measured fitting and one
 history commit. Draft-only autosave prevents a concurrent publication from accepting
 an import, and accepted photos use the existing issue-owned image pipeline. Details,

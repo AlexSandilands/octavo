@@ -18,6 +18,12 @@ import {
   openFile,
   waitAdded,
   assertFits,
+  magazinePage,
+  openTool,
+  selectAll,
+  region,
+  addButton,
+  status,
 } from "./pdf-import-gate-support.mts";
 
 // A deliberately extreme, ordinary JPEG occurrence: no crop/mask/vector fallback.
@@ -122,45 +128,28 @@ try {
     ]) {
       await sql`update issues set content=${sql.json(initial)},status='draft',theme=${theme},logo_id=${logoId},footer_mark_size=${reserve.mark},footer_text_size=${reserve.text},revision=revision+1 where id=${iid}`;
       await page.goto(`${base}/admin/issues/${iid}/edit`);
-      await page
-        .getByRole("button", { name: "Magazine page 2", exact: true })
-        .click();
+      await magazinePage(page, 2).click();
       await page.locator(`[data-block-id="${prefixId}"]`).click();
       heights.push(
         await page
           .locator("[data-page-footer]")
           .evaluate((el) => (el as HTMLElement).offsetHeight),
       );
-      await page
-        .getByRole("button", { name: "Import PDF", exact: true })
-        .click();
+      await openTool(page);
       await openFile(page, fixture);
-      await page
-        .getByRole("button", { name: "Select text on this page", exact: true })
-        .click();
-      await page.getByRole("button", { name: /^Image region/ }).click();
-      await page
-        .getByRole("textbox", { name: "Editable text preview", exact: true })
-        .first()
-        .fill(
-          "Measured footer text remains before the photograph. ".repeat(100),
-        );
-      await page
-        .getByRole("button", { name: "Add to magazine", exact: true })
-        .click();
+      await selectAll(page);
+      await addButton(page).click();
       await page.waitForFunction(
         () => !document.querySelector('[data-import-pending="true"]'),
         undefined,
         { timeout: 45000 },
       );
-      const status = await page
-        .locator('[data-pdf-private] [role="status"]')
-        .innerText();
+      const outcome = await status(page).innerText();
       await page.screenshot({ path: "/tmp/pdf-import-tall-layout.png" });
       assert.match(
-        status,
-        /^Added to the magazine\./,
-        `${theme}, footer ${reserve.mark}/${reserve.text}: ${status}`,
+        outcome,
+        /^Added \d+ blocks? to the magazine\./,
+        `${theme}, footer ${reserve.mark}/${reserve.text}: ${outcome}`,
       );
       await waitAdded(page);
       const doc = await readDocument();
@@ -174,12 +163,7 @@ try {
       );
       assert.equal(doc.pages[photoPage]!.blocks.length, 1);
       for (let index = 1; index < doc.pages.length; index++) {
-        await page
-          .getByRole("button", {
-            name: `Magazine page ${index + 1}`,
-            exact: true,
-          })
-          .click();
+        await magazinePage(page, index + 1).click();
         if (index === photoPage) {
           assert.equal(await page.locator("[data-page-footer]").count(), 0);
           const image = page.locator("[data-page-frame] img").first();
@@ -200,12 +184,7 @@ try {
         } else await assertFits(page);
       }
       await page.reload();
-      await page
-        .getByRole("button", {
-          name: `Magazine page ${photoPage + 1}`,
-          exact: true,
-        })
-        .click();
+      await magazinePage(page, photoPage + 1).click();
       await page
         .locator("[data-page-frame] img")
         .first()
@@ -233,21 +212,14 @@ try {
   };
   await sql`update issues set content=${sql.json(full)},status='draft',revision=revision+1 where id=${iid}`;
   await page.goto(`${base}/admin/issues/${iid}/edit`);
-  await page
-    .getByRole("button", { name: "Magazine page 2", exact: true })
-    .click();
+  await magazinePage(page, 2).click();
   await page.locator(`[data-block-id="${prefixId}"]`).click();
-  await page.getByRole("button", { name: "Import PDF", exact: true }).click();
+  await openTool(page);
   await openFile(page, fixture);
-  await page
-    .getByRole("button", { name: "Select text on this page", exact: true })
-    .click();
-  await page.getByRole("button", { name: /^Image region/ }).click();
+  await selectAll(page);
   const before = imageRequests;
-  await page
-    .getByRole("button", { name: "Add to magazine", exact: true })
-    .click();
-  await page
+  await addButton(page).click();
+  await status(page)
     .getByText(/200 magazine pages|exceeds magazine content limits/)
     .waitFor({ timeout: 45000 });
   assert.deepEqual((await readDocument()).pages, full.pages);
@@ -257,9 +229,10 @@ try {
     "Page-limit refusal happens before image upload.",
   );
   assert(
-    (await page
-      .getByRole("textbox", { name: "Editable text preview", exact: true })
-      .count()) > 0,
+    (await region(page, "Image").count()) === 1 &&
+      (await page.getByRole("button", { name: /^\d+ selected$/ }).count()) ===
+        1,
+    "The selection is kept for correction after a refusal.",
   );
   console.log(
     JSON.stringify({

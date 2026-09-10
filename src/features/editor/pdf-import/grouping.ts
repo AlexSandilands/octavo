@@ -18,7 +18,7 @@ export function union(boxes: Box[]): Box {
     height: Math.max(...boxes.map((b) => b.y + b.height)) - y,
   };
 }
-function paragraph(lines: Run[][]): Paragraph {
+export function paragraph(lines: Run[][]): Paragraph {
   const content: RichInline[] = [];
   for (const [lineIndex, line] of lines.entries()) {
     for (const [index, run] of line.entries()) {
@@ -51,7 +51,37 @@ function paragraph(lines: Run[][]): Paragraph {
   return { type: "paragraph", content };
 }
 
-/** Split wide gutters before ordering vertically, so columns never interleave. */
+// A gap inside a line reads as a column break when neighbouring lines break
+// at the same place: ordinary word spaces are a quarter of the body size and
+// never line up, while a gutter repeats down the column. A page-wide search
+// would miss this whenever a full-width block sits under the columns.
+type Gap = { y: number; from: number; to: number };
+export function columnBreaks(lines: Run[][], body: number): Gap[] {
+  const gaps: Gap[] = [];
+  for (const line of lines) {
+    const sorted = [...line].sort((a, b) => a.x - b.x);
+    for (let i = 1; i < sorted.length; i++) {
+      const prev = sorted[i - 1]!,
+        run = sorted[i]!;
+      const from = prev.x + prev.width;
+      if (run.x - from >= body * 0.8) gaps.push({ y: run.y, from, to: run.x });
+    }
+  }
+  return gaps.filter(
+    (gap) =>
+      gap.to - gap.from > body * 2.4 ||
+      gaps.filter(
+        (other) =>
+          other !== gap &&
+          Math.abs(other.y - gap.y) <= body * 10 &&
+          Math.min(other.to, gap.to) - Math.max(other.from, gap.from) >=
+            Math.min(other.to - other.from, gap.to - gap.from) * 0.5,
+      ).length >= 2,
+  );
+}
+
+/** Split lines at column breaks before ordering vertically, so columns never
+ * interleave. */
 export async function groupRuns(
   runs: Run[],
   page: number,
@@ -91,6 +121,14 @@ export async function groupRuns(
     if (line) line.push(run);
     else lines.push([run]);
   }
+  const breaks = columnBreaks(lines, body);
+  const crossesGutter = (left: Run, right: Run) =>
+    breaks.some(
+      (g) =>
+        Math.abs(g.y - right.y) < body * 0.35 &&
+        Math.abs(g.from - left.x - left.width) < 0.5 &&
+        Math.abs(g.to - right.x) < 0.5,
+    );
   const fragments: Run[][] = [];
   for (const [lineIndex, line] of lines.entries()) {
     if (lineIndex % 200 === 0) {
@@ -101,7 +139,10 @@ export async function groupRuns(
     let part: Run[] = [];
     for (const run of line) {
       const prev = part.at(-1);
-      if (prev && run.x - prev.x - prev.width > body * 2.4) {
+      if (
+        prev &&
+        (run.x - prev.x - prev.width > body * 2.4 || crossesGutter(prev, run))
+      ) {
         fragments.push(part);
         part = [];
       }
@@ -181,6 +222,7 @@ export async function groupRuns(
       order: 0,
       kind: "text",
       doc: { type: "doc", content: [paragraph(group)] },
+      lines: group,
       heading,
       level:
         size > body * 1.7

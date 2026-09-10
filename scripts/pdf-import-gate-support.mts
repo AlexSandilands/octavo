@@ -72,20 +72,53 @@ export async function readDocument() {
 export async function settle(page: BrowserPage) {
   await page.getByText("Saved", { exact: true }).waitFor({ timeout: 30000 });
 }
+
+// The panel's controls, named the way the UI names them.
+export const panel = (page: BrowserPage) => page.locator("[data-pdf-private]");
+export const magazinePage = (page: BrowserPage, n: number) =>
+  page.getByRole("button", { name: String(n), exact: true });
+export const openTool = (page: BrowserPage) =>
+  page.getByRole("button", { name: "Import PDF", exact: true }).click();
+export const closeTool = (page: BrowserPage) =>
+  page.getByRole("button", { name: "Close panel", exact: true }).click();
+export const fileInput = (page: BrowserPage) =>
+  panel(page).locator('input[type="file"]');
+/** Region press targets by kind, e.g. `region(page, "Image")`; the kind
+ * toggles in the pill and the list share those names, so scope to regions. */
+export const region = (page: BrowserPage, kind: "Text" | "Heading" | "Image") =>
+  panel(page)
+    .locator("button[data-region]")
+    .and(page.getByRole("button", { name: new RegExp(`^${kind}\\b`) }));
+export const selectedRegions = (page: BrowserPage) =>
+  panel(page).locator("button[data-region][aria-pressed='true']");
+export const addedRegions = (page: BrowserPage) =>
+  panel(page)
+    .locator("button[data-region]")
+    .and(page.getByRole("button", { name: /, added:/ }));
+export const selectAll = (page: BrowserPage) =>
+  page.getByRole("button", { name: "Select all on page", exact: true }).click();
+/** The command row's Add, not the copy in a hovered region's pill. */
+export const addButton = (page: BrowserPage) =>
+  panel(page)
+    .locator("[data-add-bar]")
+    .getByRole("button", { name: /^Add( \d+)?$/ });
+export const nextPage = (page: BrowserPage) =>
+  page.getByRole("button", { name: "Next PDF page", exact: true }).click();
+export const status = (page: BrowserPage) =>
+  panel(page).locator('[role="status"]');
 export async function openFile(
   page: BrowserPage,
   file = "scripts/fixtures/pdf-import/single-column.pdf",
 ) {
-  await page.getByLabel("Choose local PDF").setInputFiles(file);
+  await fileInput(page).setInputFiles(file);
   await page
-    .getByText("PDF opened on this device. Select regions to review.")
+    .getByRole("group", { name: "PDF page and zoom" })
     .waitFor({ timeout: 35000 });
+  await page.locator("[data-pdf-private] canvas").waitFor({ timeout: 35000 });
 }
 export async function waitAdded(page: BrowserPage) {
-  await page
-    .getByText(
-      "Added to the magazine. Check the editor save status before leaving.",
-    )
+  await panel(page)
+    .getByText(/^Added \d+ blocks? to the magazine\./)
     .waitFor({ timeout: 60000 });
   await settle(page);
 }

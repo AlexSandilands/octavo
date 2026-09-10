@@ -106,11 +106,33 @@ await writeFile(
   pdf([text("Rotated selectable text", 50, 740) + "\n" + photo], 90),
 );
 await writeFile(`${dir}/scan-only.pdf`, pdf([photo]));
+// One paragraph far taller than an Octavo page: the measured split must cut it.
+await writeFile(
+  `${dir}/long-paragraph.pdf`,
+  pdf(
+    [
+      [
+        text("An oversized paragraph", 50, 750, "F2", 20),
+        ...Array.from({ length: 60 }, (_, i) =>
+          text(
+            `Line ${String(i + 1).padStart(2, "0")} measured words preserve marks and order across pages.`,
+            50,
+            720 - i * 11,
+            "F1",
+            10,
+          ),
+        ),
+      ].join("\n"),
+    ],
+    0,
+    false,
+  ),
+);
 await writeFile(
   `${dir}/malformed.pdf`,
   Buffer.from("%PDF-1.7\nnot a valid document"),
 );
-console.log("Wrote five deterministic PDF fixtures.");
+console.log("Wrote the deterministic PDF fixtures.");
 
 await writeFile(
   `${dir}/too-many-pages.pdf`,

@@ -18,6 +18,17 @@ import {
   openFile,
   waitAdded,
   assertFits,
+  magazinePage,
+  openTool,
+  closeTool,
+  fileInput,
+  region,
+  selectAll,
+  addButton,
+  status,
+  panel,
+  selectedRegions,
+  addedRegions,
 } from "./pdf-import-gate-support.mts";
 const number = await setup();
 async function assertPhotoOverlay(page: BrowserPage) {
@@ -55,9 +66,7 @@ async function assertPhotoOverlay(page: BrowserPage) {
         height: ((bottom - top + 1) / canvas.height) * rect.height,
       };
     });
-  const overlay = await page
-    .getByRole("button", { name: /^Image region/ })
-    .boundingBox();
+  const overlay = await region(page, "Image").first().boundingBox();
   assert(overlay);
   for (const axis of ["x", "y", "width", "height"] as const)
     assert(
@@ -100,44 +109,55 @@ try {
       ?.headers()
       ["content-security-policy"]?.includes("worker-src 'self'"),
   );
-  await page
-    .getByRole("button", { name: "Magazine page 2", exact: true })
-    .click();
+  await magazinePage(page, 2).click();
   await page.locator(`[data-block-id="${prefixId}"]`).click();
   assert.equal(
     requests.some((r) => r.url.includes("pdfjs")),
     false,
     "Parser is lazy.",
   );
-  await page.getByRole("button", { name: "Import PDF", exact: true }).click();
+  // The panel slides in beside the canvas and the handle resizes it.
+  await openTool(page);
+  const handle = page.getByRole("separator", { name: "Resize panel" });
+  await handle.waitFor();
+  const canvas = page.locator("[data-page-frame]").first();
+  const widthBefore = Number(await handle.getAttribute("aria-valuenow"));
+  const canvasBefore = (await canvas.boundingBox())!.width;
+  await handle.focus();
+  await page.keyboard.press("ArrowLeft");
+  await page.keyboard.press("ArrowLeft");
+  assert(Number(await handle.getAttribute("aria-valuenow")) > widthBefore);
+  await page.waitForTimeout(400);
+  assert((await canvas.boundingBox())!.width < canvasBefore, "Canvas re-fits.");
   const beforeOpen = requests.length;
   await openFile(page);
-  assert.equal(
-    await page.getByRole("button", { name: /^Image region/ }).count(),
-    1,
-  );
+  assert.equal(await region(page, "Image").count(), 1);
   assert.equal(workers.length, 1);
   assert(workers[0]?.startsWith(base + "/pdfjs/"));
   await assertPhotoOverlay(page);
-  await page
-    .getByRole("button", { name: "Select text on this page", exact: true })
+  // A press selects with the detector's suggestion; the pill retypes it.
+  const heading = region(page, "Heading").first();
+  await heading.click();
+  assert.equal(await heading.getAttribute("aria-pressed"), "true");
+  await heading.hover();
+  await panel(page)
+    .getByRole("group", { name: "Selected region" })
+    .getByRole("button", { name: "Text", exact: true })
     .click();
-  await page.getByRole("button", { name: /^Image region/ }).click();
-  // Correct one body paragraph into a genuinely oversized paragraph.
-  const longText = "Measured words preserve marks and order. ".repeat(180);
-  await page
-    .getByRole("textbox", { name: "Editable text preview", exact: true })
-    .first()
-    .fill(longText);
-  await page
-    .getByRole("button", { name: "Bold preview text", exact: true })
-    .first()
+  assert.equal(await region(page, "Heading").count(), 0);
+  await region(page, "Text").first().hover();
+  await panel(page)
+    .getByRole("group", { name: "Selected region" })
+    .getByRole("button", { name: "Heading", exact: true })
     .click();
-  const sourceButtons = page.getByRole("button", {
-    name: /^Text region|^Image region/,
-  });
+  assert.equal(await region(page, "Heading").count(), 1);
+  await selectAll(page);
+  await page.getByRole("button", { name: /^\d+ selected$/ }).click();
+  const rows = page.locator("#pdf-import-selection li");
+  assert.equal(await rows.count(), await selectedRegions(page).count());
+  const sourceButtons = panel(page).locator("button[data-region]");
   const beforeZoom = await sourceButtons.first().boundingBox();
-  await page.getByRole("button", { name: "+", exact: true }).click();
+  await page.getByRole("button", { name: "Zoom in", exact: true }).click();
   const afterZoom = await sourceButtons.first().boundingBox();
   assert(beforeZoom && afterZoom && afterZoom.width > beforeZoom.width);
   await assertPhotoOverlay(page);
@@ -147,13 +167,12 @@ try {
       (r) =>
         r.body.includes("A day by the river") ||
         r.body.includes("%PDF-") ||
-        r.body.includes(longText) ||
         r.url.includes("single-column.pdf"),
     );
   assert.deepEqual(
     forbidden,
     [],
-    "Opening/selecting/editing review sends no source content, including telemetry.",
+    "Opening and selecting sends no source content, including telemetry.",
   );
   // Upload failure leaves no inserted text or pages; completed images survive retry.
   let uploads = 0,
@@ -169,21 +188,30 @@ try {
     }
     await route.continue();
   });
-  await page
-    .getByRole("button", { name: "Add to magazine", exact: true })
-    .click();
-  await page.getByText(/Image upload failed/).waitFor({ timeout: 60000 });
+  await addButton(page).click();
+  await status(page)
+    .getByText(/Image upload failed/)
+    .waitFor({ timeout: 60000 });
   assert.deepEqual((await readDocument()).pages, initial.pages);
+  assert(
+    (await selectedRegions(page).count()) > 0,
+    "The selection survives a failed batch.",
+  );
   fail = false;
-  await page
-    .getByRole("button", { name: "Add to magazine", exact: true })
-    .dblclick();
+  await addButton(page).dblclick();
   await waitAdded(page);
   assert.equal(
     uploads,
     2,
     "A duplicate Add gesture produces one successful upload.",
   );
+  assert((await region(page, "Text").count()) > 0);
+  assert((await addedRegions(page).count()) > 0, "Added regions say so.");
+  // A paragraph taller than a page is split by measurement, in order.
+  await openFile(page, "scripts/fixtures/pdf-import/long-paragraph.pdf");
+  await selectAll(page);
+  await addButton(page).click();
+  await waitAdded(page);
   const added = await readDocument();
   assert(
     added.pages.length > initial.pages.length,
@@ -196,122 +224,120 @@ try {
   );
   const all = added.pages.flatMap((p) => p.blocks);
   assert.equal(all[0]?.id, prefixId);
-  assert.equal(all.at(-1)?.type, "text");
   const contentText = all
     .filter((b) => b.type === "text")
     .map((b) => richTextToPlain(b.text))
-    .join("");
-  assert(contentText.includes(longText));
-  assert(contentText.indexOf("PREFIX") < contentText.indexOf(longText));
-  assert(contentText.indexOf(longText) < contentText.indexOf("SUFFIX"));
+    .join(" ");
+  for (let i = 1; i <= 60; i++)
+    assert(
+      contentText.includes(`Line ${String(i).padStart(2, "0")} measured`),
+      `Line ${i} survives the split.`,
+    );
+  assert(contentText.indexOf("PREFIX") < contentText.indexOf("Line 01"));
+  assert(contentText.indexOf("Line 60") < contentText.indexOf("SUFFIX"));
+  assert(contentText.indexOf("Line 01") < contentText.indexOf("Line 60"));
   for (let i = 1; i < added.pages.length - 1; i++) {
-    await page
-      .getByRole("button", { name: `Magazine page ${i + 1}`, exact: true })
-      .click();
+    await magazinePage(page, i + 1).click();
     await assertFits(page);
   }
   await page.screenshot({ path: "/tmp/pdf-import-desktop.png" });
-  assert((await page.getByRole("button", { name: /, imported/ }).count()) > 0);
+  assert((await addedRegions(page).count()) > 0);
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   await settle(page);
-  assert.deepEqual((await readDocument()).pages, initial.pages);
   assert.equal(
-    await page.getByRole("button", { name: /, imported/ }).count(),
+    await addedRegions(page).count(),
     0,
+    "Undo clears the added marks.",
   );
   await page.getByRole("button", { name: "Redo", exact: true }).click();
   await settle(page);
   assert.deepEqual((await readDocument()).pages, added.pages);
-  await page
-    .getByRole("button", { name: "Close importer", exact: true })
-    .click();
+  await closeTool(page);
   await page.reload();
   await settle(page);
   assert.deepEqual((await readDocument()).pages, added.pages);
-  await page
-    .getByRole("button", { name: "Magazine page 2", exact: true })
-    .click();
+  await magazinePage(page, 2).click();
   await assertFits(page);
-  await page.getByRole("button", { name: "Import PDF", exact: true }).click();
+  // Keyboard: a region toggles from the keyboard and its pill can split it.
+  await openTool(page);
   await openFile(page, "scripts/fixtures/pdf-import/two-column.pdf");
-  assert.equal(
-    await page.getByRole("button", { name: /^Image region/ }).count(),
-    2,
-  );
-  await page.getByRole("button", { name: /^Text region 2/ }).focus();
+  assert.equal(await region(page, "Image").count(), 2);
+  const textRegions = await region(page, "Text").count();
+  await region(page, "Text").nth(1).focus();
   await page.keyboard.press("Space");
   assert.equal(
-    await page
-      .getByRole("textbox", { name: "Editable text preview", exact: true })
-      .count(),
-    1,
+    await region(page, "Text").nth(1).getAttribute("aria-pressed"),
+    "true",
   );
-  await page.getByRole("button", { name: "Split text", exact: true }).click();
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Tab");
   assert.equal(
-    await page
-      .getByRole("textbox", { name: "Editable text preview", exact: true })
-      .count(),
-    2,
+    await page.evaluate(() =>
+      document.activeElement?.getAttribute("aria-label"),
+    ),
+    "Split",
   );
-  await page
-    .getByRole("button", { name: "Combine with next", exact: true })
-    .first()
-    .click();
+  await page.keyboard.press("Enter");
+  assert.equal(await region(page, "Text").count(), textRegions + 1);
   assert.equal(
-    await page
-      .getByRole("textbox", { name: "Editable text preview", exact: true })
-      .count(),
-    1,
+    await selectedRegions(page).count(),
+    0,
+    "A split region leaves the selection.",
   );
   await openFile(page, "scripts/fixtures/pdf-import/rotated.pdf");
-  assert.equal(
-    await page.getByRole("button", { name: /^Image region/ }).count(),
-    1,
-  );
+  assert.equal(await region(page, "Image").count(), 1);
   await assertPhotoOverlay(page);
-  await page.getByRole("button", { name: "+", exact: true }).click();
+  await page.getByRole("button", { name: "Zoom in", exact: true }).click();
   await assertPhotoOverlay(page);
   await openFile(page, "scripts/fixtures/pdf-import/scan-only.pdf");
-  await page.getByText(/No extractable text/).waitFor();
-  await page
-    .getByLabel("Choose local PDF")
-    .setInputFiles("scripts/fixtures/pdf-import/malformed.pdf");
-  await page.getByText(/Could not read this PDF/).waitFor();
-  await page.getByLabel("Choose local PDF").setInputFiles({
+  await panel(page)
+    .getByText(/No text can be picked up/)
+    .waitFor();
+  await fileInput(page).setInputFiles(
+    "scripts/fixtures/pdf-import/malformed.pdf",
+  );
+  await panel(page)
+    .getByText(/Could not read this PDF/)
+    .waitFor();
+  await fileInput(page).setInputFiles({
     name: "empty.pdf",
     mimeType: "application/pdf",
     buffer: Buffer.alloc(0),
   });
-  await page.getByText(/This file is empty/).waitFor();
-  await page.getByLabel("Choose local PDF").setInputFiles({
+  await panel(page)
+    .getByText(/This file is empty/)
+    .waitFor();
+  await fileInput(page).setInputFiles({
     name: "large.pdf",
     mimeType: "application/pdf",
     buffer: Buffer.alloc(41 * 1024 * 1024),
   });
-  await page.getByText(/PDF is too large/).waitFor();
+  await panel(page)
+    .getByText(/PDF is too large/)
+    .waitFor();
   await openFile(page);
   await page.setViewportSize({ width: 768, height: 1000 });
+  await page.waitForTimeout(500);
   await page.screenshot({ path: "/tmp/pdf-import-min-width.png" });
+  const rail = await page
+    .getByRole("button", { name: "Import PDF", exact: true })
+    .boundingBox();
+  assert(rail && rail.x + rail.width <= 768, "Tool rail stays on screen.");
   assert(
     await page
       .getByRole("button", { name: "Publish", exact: true })
       .isVisible(),
   );
-  await page
-    .getByRole("button", { name: "Select text on this page", exact: true })
-    .click();
+  await selectAll(page);
   // Concurrent publication cannot accept an import or a late draft save.
   await sql`update issues set status='published' where id=${iid}`;
-  await page
-    .getByRole("button", { name: "Add to magazine", exact: true })
-    .click();
-  await page
+  await addButton(page).click();
+  await status(page)
     .getByText(/Save the existing draft successfully/)
     .waitFor({ timeout: 45000 });
   assert.deepEqual((await readDocument()).pages, added.pages);
-  await page
-    .getByRole("button", { name: "Close importer", exact: true })
-    .click();
+  await closeTool(page);
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto(`${base}/read/${number}`);
   await page.getByRole("button", { name: "Next", exact: true }).click();

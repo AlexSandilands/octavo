@@ -12,6 +12,14 @@ import {
   readDocument,
   openFile,
   waitAdded,
+  openTool,
+  closeTool,
+  fileInput,
+  region,
+  addButton,
+  nextPage,
+  status,
+  panel,
 } from "./pdf-import-gate-support.mts";
 await setup();
 const harness = "http://127.0.0.1:19923/_gate";
@@ -29,12 +37,12 @@ try {
   ]);
   const page = await context.newPage();
   await page.goto(`${base}/admin/issues/${iid}/edit`);
-  await page.getByRole("button", { name: "Import PDF", exact: true }).click();
+  await openTool(page);
   await openFile(page);
-  await page.getByRole("button", { name: /^Image region/ }).click();
-  await page.getByRole("button", { name: "Next", exact: true }).click();
-  await page.getByText("PDF 2 / 2", { exact: true }).waitFor();
-  await page.getByRole("button", { name: /^Image region/ }).click();
+  await region(page, "Image").click();
+  await nextPage(page);
+  await panel(page).getByText("2 / 2", { exact: true }).waitFor();
+  await region(page, "Image").click();
   let count = 0;
   await page.route("**/api/admin/images", async (route) => {
     count++;
@@ -45,26 +53,22 @@ try {
       });
     else await route.continue();
   });
-  await page
-    .getByRole("button", { name: "Add to magazine", exact: true })
-    .click();
-  await page.getByText(/Image upload failed/).waitFor({ timeout: 45000 });
+  await addButton(page).click();
+  await status(page)
+    .getByText(/Image upload failed/)
+    .waitFor({ timeout: 45000 });
   assert.deepEqual((await readDocument()).pages, initial.pages);
-  await page
-    .getByRole("button", { name: "Add to magazine", exact: true })
-    .click();
+  await addButton(page).click();
   await waitAdded(page);
   assert.equal(count, 3, "Retry reuses the first successful upload.");
   await page.unroute("**/api/admin/images");
   const saved = await readDocument();
-  // Navigation and replacement while a selected image upload is in flight.
+  // Navigation and closing while a selected image upload is in flight.
   await openFile(page);
-  await page.getByRole("button", { name: /^Image region/ }).click();
+  await region(page, "Image").click();
   await fetch(harness + "?delayPutsMs=800", { method: "POST" });
   const beforeCancel = await state();
-  await page
-    .getByRole("button", { name: "Add to magazine", exact: true })
-    .click();
+  await addButton(page).click();
   for (
     let tries = 0;
     tries < 100 && (await state()).counts.put === beforeCancel.counts.put;
@@ -72,10 +76,7 @@ try {
   )
     await new Promise((r) => setTimeout(r, 20));
   assert((await state()).counts.put > beforeCancel.counts.put);
-  await page.getByRole("button", { name: "Next", exact: true }).click();
-  await page
-    .getByRole("button", { name: "Close importer", exact: true })
-    .click();
+  await closeTool(page);
   await page.waitForFunction(
     () => document.querySelector('[data-import-pending="true"]') === null,
   );
@@ -83,30 +84,38 @@ try {
   assert.deepEqual(
     (await readDocument()).pages,
     saved.pages,
-    "Closing after source navigation cancels the original Add.",
+    "Closing the panel mid-upload cancels the Add.",
   );
   await fetch(harness + "?delayPutsMs=0", { method: "POST" });
-  await page.getByRole("button", { name: "Import PDF", exact: true }).click();
-  await page
-    .getByLabel("Choose local PDF")
-    .setInputFiles("scripts/fixtures/pdf-import/locked.pdf");
-  await page.getByText(/password protected/).waitFor();
-  await page
-    .getByLabel("Choose local PDF")
-    .setInputFiles("scripts/fixtures/pdf-import/too-many-pages.pdf");
-  await page.getByText(/100 source-page limit/).waitFor();
-  await page.getByLabel("Choose local PDF").setInputFiles({
+  await openTool(page);
+  await fileInput(page).setInputFiles("scripts/fixtures/pdf-import/locked.pdf");
+  await panel(page)
+    .getByText(/password protected/)
+    .waitFor();
+  await fileInput(page).setInputFiles(
+    "scripts/fixtures/pdf-import/too-many-pages.pdf",
+  );
+  await panel(page)
+    .getByText(/100 source-page limit/)
+    .waitFor();
+  await fileInput(page).setInputFiles({
     name: "fake.pdf",
     mimeType: "application/pdf",
     buffer: Buffer.from("not a PDF"),
   });
-  await page.getByText(/PDF signature/).waitFor();
+  await panel(page)
+    .getByText(/PDF signature/)
+    .waitFor();
   let closed = 0;
   page.on("worker", (worker) => worker.on("close", () => closed++));
   await openFile(page);
   await page.getByRole("button", { name: "Close PDF", exact: true }).click();
   await page.waitForTimeout(100);
-  assert.equal(closed, 1, "Close terminates the real worker.");
+  assert.equal(closed, 1, "Close PDF terminates the real worker.");
+  await openFile(page);
+  await closeTool(page);
+  await page.waitForTimeout(500);
+  assert.equal(closed, 2, "Closing the panel releases the PDF too.");
   // Storage succeeds while publication races with image record insertion.
   await fetch(harness + "?delayPutsMs=600", { method: "POST" });
   const beforeRecord = await state();
@@ -151,7 +160,7 @@ try {
     "Published destination rejected before storing.",
   );
   console.log(
-    "PDF failure gate passed: retry reuse, navigation/cancel/close race, locked/signature/page limits, worker termination, concurrent publication and compensating cleanup.",
+    "PDF failure gate passed: retry reuse, close-mid-upload cancel, locked/signature/page limits, worker termination, concurrent publication and compensating cleanup.",
   );
 } finally {
   await fetch(harness + "?delayPutsMs=0&failPuts=0", { method: "POST" });

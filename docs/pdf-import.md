@@ -1,63 +1,76 @@
 # Assisted PDF import
 
-An admin can open **Import PDF** in a draft editor, choose a local PDF, select source
-regions, correct the review tray, and **Add to magazine**. Source pages navigate
-independently of magazine pages. The same desktop editor gate applies (768px minimum).
-The PDF itself never leaves the browser. Only accepted blocks and selected raster
-images leave the browser when Add is pressed.
+The editor's right-hand **side panel** (`src/features/editor/side-panel/`) is opened from
+the tool rail on the editor's right edge; its first tool is **Import PDF**. The panel
+slides in beside the canvas, takes half the editor row by default, and its left edge is
+a drag handle (also a keyboard separator: arrow keys, Home, End) with bounds that keep
+the canvas usable. The canvas re-fits to whatever is left. Closing the panel unmounts
+the tool, which releases the PDF, its worker and any selection; magazine content is
+untouched. The same desktop editor gate applies (768px minimum). Import is offered on
+drafts only; on a published issue the rail button is inert with the reason as its hint.
 
-The tray keeps selections across source pages. Its default order is source page then
-inferred reading order. An explicit reorder is retained when more regions are selected.
-Text suggestions can become headings at any existing heading level; body size,
-alignment, emphasis and paragraph breaks can be edited. Split separates paragraphs,
-or cuts a single paragraph at a word boundary; repeat or edit the preview to remove
-neighbouring text. Combine preserves compatible body paragraphs and separate headings
-and images. Nothing forces the author to accept the detector's boundaries.
+## The import flow
 
-Insertion starts after the selected block, or at the selected normal page's end.
-Covers and page-owning photos instead get a new normal page immediately afterwards.
-The destination's prefix, import and suffix are fitted in that order; later authored
-pages stay intact. Each Add is one undo step, including continuation pages and text
-splits. The last inserted block becomes selected. Source labels are derived from block
-IDs currently present, so Undo, Redo and removal update them. Import again is explicit.
+1. **Open a PDF** — a big _Choose PDF_ button inside a drop target, or drag a file onto
+   the panel (dropping onto an open PDF replaces it). The file stays on this device;
+   only the text and photos the author adds are saved. Limits and refusals are shown in
+   place (40 MiB, 100 pages, selectable text only, unlocked copies).
+2. **Pick regions on the page** — every detected text block and ordinary photo is drawn
+   as a gentle lifted box over the rendered page. Hover shows a ghost chip with the
+   detector's suggestion (Heading, Text or Image, using the editor's own block icons); a
+   press selects the region, which gets a solid chip. Hovering or focusing a selected
+   region shows a small tool pill above it (below when it sits at the top of the page):
+   the Heading/Text toggle, **Split** for over-grouped text (cuts at the widest gap
+   between its source lines, with real geometry for both halves), and **Add**.
+3. **Add** — the command row at the top of the panel says how many regions are selected,
+   offers _Select all on page_ (every region, each with its suggested kind), _Clear_ and
+   the one _Add N_ that sends the whole selection. Pressing the count opens the selection
+   list: rows in the order they will be added (source page, then reading order, until
+   the author reorders), each with its kind toggle, a preview, its source page, move
+   up/down and remove. The status line under the row names the destination ("after the
+   selected block on page 2", "at the end of page 3", "on a new page after page 1" for
+   covers and page-owning photos) until there is news: progress, the outcome, or a
+   refusal with the draft unchanged and the selection kept for correction.
+4. The page and zoom controls float over the foot of the PDF view like the editor's own
+   tools. Regions added this session carry an _Added_ chip (derived from the blocks still
+   in the draft, so Undo clears it) and can be added again deliberately.
 
-Closing/replacing a source releases its worker, canvases, selections and local mapping;
-it leaves magazine content alone. A refresh requires choosing the PDF again. The
-ordinary save/retry/conflict status remains authoritative. Draft editor saves, including
-retries and history replay after source close, use a draft-only atomic database write;
-a concurrent publication refuses them. Deliberately publishing an issue after using
-import ends that session's document undo history, closes the source, and establishes
-a saved published baseline that remains editable through normal tools.
+Insertion, fitting and the draft-only guarantees are unchanged from the original
+implementation: the destination's prefix, import and suffix are fitted in that order,
+later authored pages stay intact, each Add is one undo step (continuation pages and text
+splits included), the last inserted block becomes selected, and a concurrent
+publication refuses both the import and any late draft save.
 
 ## Extraction and resource boundaries
 
 `pdfjs-dist` is pinned to **6.3.289** behind `pdf-import/adapter.ts`. The importer and
-parser load only when opened. `predev` and `prebuild` copy the matching worker, CMaps,
-standard fonts and license to `/pdfjs/6.3.289/`. No CDN or PDF upload endpoint exists.
-The adapter passes an actual module `Worker` to `PDFWorker.create({port})`; it does not
-permit a fake-worker fallback. Version 6 has no `isEvalSupported`/generated-function
-path. Font faces and WASM are disabled, using the same-origin standard-font/CMap
-assets. CSP adds only `worker-src 'self'`; fonts remain self-only and production
-scripts gain no unsafe-eval exception. PDF annotations, scripting and XFA are not run.
+parser load only when the tool is opened. `predev` and `prebuild` copy the matching
+worker, CMaps, standard fonts and license to `/pdfjs/6.3.289/`. No CDN or PDF upload
+endpoint exists. The adapter passes an actual module `Worker` to `PDFWorker.create({port})`;
+it does not permit a fake-worker fallback. Font faces and WASM are disabled, using the
+same-origin standard-font/CMap assets. CSP adds only `worker-src 'self'`; fonts remain
+self-only and production scripts gain no unsafe-eval exception. PDF annotations,
+scripting and XFA are not run.
 
 Central limits are in `pdf-import/model.ts`: 40 MiB input, 100 source pages, 16 MP per
 source image, 8 MP per preview canvas, three cached previews, and 30 seconds per active
 PDF operation. Per-page exported images also have 32 MP decoded / 32 MiB encoded /
 200 occurrence budgets; analysis caps 20,000 positioned runs, two million text
-characters and 100,000 drawing operations per page. The
-review tray caps 300 items / 64 MiB. PDF signature and MIME metadata are checked.
-Timeout and cancellation terminate the actual worker and invalidate asynchronous
-results. Analysis yields in bounded batches, and page proxies are cleaned once the
-preview and regions have been extracted. Preview zoom uses stable viewport geometry
-with a bounded raster surface, so extreme zoom may look softer.
+characters and 100,000 drawing operations per page. The selection caps 300 items /
+64 MiB. PDF signature and MIME metadata are checked. Timeout and cancellation
+terminate the actual worker and invalidate asynchronous results. Analysis yields in
+bounded batches, and page proxies are cleaned once the preview and regions have been
+extracted. Preview zoom uses stable viewport geometry with a bounded raster surface.
 
-Text is reconstructed from positioned runs, with columns ordered separately. Tagged
-headings, relative size, font names, spacing and line length support editable heading
-suggestions. Bold/italic require evidence; font aliases can hide it. Alignment is
-conservative, and source body sizes are fixed per extracted page so later pages do
-not change previous imports. Only soft wrapping hyphens are unambiguously removed;
-ordinary hyphens remain for review. Underlines drawn as separate vectors, tables,
-complex columns, rotated text within an otherwise unrotated page, decorative lettering,
+Text is reconstructed from positioned runs. **Columns** are found from local evidence:
+a gap inside a line counts as a column break when at least two neighbouring lines break
+at the same place (or when it is wider than 2.4 body sizes), so a narrow newsletter
+gutter splits correctly even under a full-width block. Tagged headings, relative size,
+font names, spacing and line length support editable heading suggestions. Bold/italic
+require evidence; font aliases can hide it. Alignment is conservative, and body sizes
+are fixed per extracted page so later pages do not change previous imports. Only soft
+wrapping hyphens are unambiguously removed. Regions keep their source lines so a split
+has real geometry. Underlines drawn as separate vectors, tables, decorative lettering
 and uncertain styling remain best effort. There is no OCR or automatic whole-document
 import. Repeated headers/footers remain selectable.
 
@@ -65,7 +78,6 @@ Ordinary RGB/RGBA raster occurrences are recovered with graphics transforms and
 per-occurrence bounds. Reused objects retain separate placements and share locally
 encoded bytes. Containing rectangular clips are supported; arbitrary clips, masks,
 composite groups and unsupported encodings are visibly warned and remain preview-only.
-The importer does not represent an unsupported crop as a faithful image extraction.
 
 ## Layout and image ownership
 
@@ -82,37 +94,27 @@ the minimum width gets its own `page-fit` page. Existing page-photo invariants a
 including omitted caption on a page-owning photo. The accepted batch is validated and
 fitted before any upload, then checked again with server-returned image dimensions.
 Pending imports lock destination edits and check the captured document and geometry
-before committing. Source navigation/cancellation stays available.
+before committing.
 
 Uploads are sequential through the existing authenticated `/api/admin/images` route,
 with its format sniffing, sharp processing, 12 MB cap and 30/minute limit. Successful
-uploads are cached for retry. A failed batch inserts nothing. Cancelling prevents later
-uploads/commit; an already-sent upload may finish as an ordinary issue-owned image.
-Storage-success/record-failure compensates through `sweepOrphanedObjects`. Issue
-delete uses the normal reference-safe asset cleanup; Undo does not delete images that
-Redo may need. No source PDF objects, tables, buckets or backend parser were added.
+uploads are cached for retry. A failed batch inserts nothing. Closing the panel
+mid-upload cancels the Add; an already-sent upload may finish as an ordinary
+issue-owned image. Storage-success/record-failure compensates through
+`sweepOrphanedObjects`. Issue delete uses the normal reference-safe asset cleanup; Undo
+does not delete images that Redo may need.
 
-Browser Sentry breadcrumbs/events are suppressed while the private source workspace is
-open. The parser uses quiet logging and UI failures use fixed messages, not source
-filenames, text or image bytes. No source state is put in persistent browser storage.
+Browser Sentry breadcrumbs/events are suppressed while the panel is open
+(`data-pdf-private`). The parser uses quiet logging and UI failures use fixed messages,
+not source filenames, text or image bytes. No source state is put in persistent
+browser storage.
 
 ## Verification
 
 Synthetic fixtures and provenance are in [the fixture README](../scripts/fixtures/pdf-import/README.md).
-No club PDF was available. The public LOC newsletter demonstrated a normal portrait
-inside Word-style rectangular clips; its masked logo is warned unsupported. The
-PDF.js Tracemonkey paper checks a denser academic layout. These observations establish
-feasibility, not universal newsletter quality.
-
-Initial local Chromium 149 / Linux / 1440×1000 / DPR 2 measurements: first lazy-load
-single-column fixture about 1.07 s (4 text / 1 image regions); warm two-column and
-rotated fixtures 82–83 ms; LOC first page 184 ms (31 text / 5 raster occurrences,
-unsupported masked/composite warning); Tracemonkey first page 199 ms (46 text regions).
-These are single local observations, not device-wide performance promises. The 768px
-workspace, desktop/mobile readers, and exported PDF are also visually checked.
-The final production recheck recovered 30 text / 5 raster regions on the LOC first
-page and 33 text regions on the Tracemonkey first page after grouping refinements;
-the LOC masked/composite artwork warning remained explicit.
+The panel was also exercised against a real two-column newsletter with a masthead,
+photos and bold lead-ins (not committed): it was what showed the page-wide gutter search
+failing under a full-width block, which the local column-break rule replaced.
 
 Focused checks:
 
@@ -157,17 +159,20 @@ npx tsx --tsconfig scripts/tsconfig.json scripts/prod-pdf-import-privacy.mts htt
 npx tsx --tsconfig scripts/tsconfig.json scripts/prod-pdf-import-layout-gate.mts http://localhost:3223
 ```
 
-The core gate checks lazy loading/CSP, no source transmission, measured mixed insertion,
-order, oversized paragraphs, failure atomicity, duplicate clicks, undo/redo/source labels,
-reload, correction controls, rotations, repeated images, bad-input states, concurrent
-publication, both readers and the exported PDF. The failure gate checks successful-upload
-retry reuse, source-navigation/close races, worker teardown, locked/page-limit/signature
-refusals, and compensation when publication races between storage and recording.
-The privacy gate requires live telemetry: a private canary stays local and a post-close
-control event is delivered. It also checks cross-page reorder and worker deadlines.
-The layout gate checks tall-photo scaling and page-fit conversion, theme/footer/logo
-geometry, persisted image decoding, and atomic refusal at the 200-page limit.
+The core gate checks lazy loading/CSP, the panel's resize handle and canvas re-fit, no
+source transmission, retyping through the pill, the selection list, zoom-stable hit
+targets, failure atomicity, duplicate clicks, an oversized paragraph split across
+continuation pages in order, undo/redo/added marks, reload, keyboard selection and
+split, rotation, bad-input states, concurrent publication, both readers and the
+exported PDF. The failure gate checks successful-upload retry reuse, closing the panel
+mid-upload, worker teardown on Close PDF and on closing the panel, locked/page-limit/
+signature refusals, and compensation when publication races between storage and
+recording. The privacy gate requires live telemetry: a private canary stays local and a
+post-close control event is delivered. It also checks cross-page reorder in the
+selection list and worker deadlines. The layout gate checks tall-photo scaling and
+page-fit conversion, theme/footer/logo geometry, persisted image decoding, and atomic
+refusal at the 200-page limit.
 
-Repository lint, app/script typechecks, touched-file formatting, production build,
-production action-refresh and existing alignment/flow gates remain required. The user's
-browser pass on the implementation PR is still a required handoff before merge.
+Repository lint, app/script typechecks, touched-file formatting and the production
+build remain required. The user's browser pass on the implementation PR is still a
+required handoff before merge.

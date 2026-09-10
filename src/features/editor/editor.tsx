@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useEffectEvent, useMemo, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { type IssueContent } from "@/lib/blocks";
@@ -49,9 +49,15 @@ import { FooterUpdateNotice } from "./footer-update-notice";
 import { useEditorAutosave } from "./use-editor-autosave";
 import { publishIssueAction } from "@/app/admin/actions";
 
-const PdfWorkspace = dynamic(() => import("./pdf-import/workspace"), {
+import { SidePanel } from "./side-panel/side-panel";
+import { ToolRail, type EditorTool } from "./side-panel/tool-rail";
+import { usePanelWidth } from "./side-panel/use-panel-width";
+
+// The importer and its parser load only when the tool is opened.
+const PdfImportPanel = dynamic(() => import("./pdf-import/panel"), {
   ssr: false,
 });
+const PANEL_ID = "editor-side-panel";
 
 // Extends FooterReserve: the footer this issue's pages were laid out against
 // (issue #128) is what the canvas draws and measures overflow against, whatever
@@ -158,7 +164,10 @@ export function Editor({
   // page footer updates the moment it changes — no reload, no second query.
   const [logoId, setLogoId] = useState<string | null>(issue.logoId);
   const logo = logos.find((l) => l.id === logoId)?.image ?? null;
-  const [importOpen, setImportOpen] = useState(false);
+  // Which side-panel tool is out, if any. The row ref sizes the panel.
+  const [tool, setTool] = useState<EditorTool | null>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
+  const panel = usePanelWidth(rowRef);
   const [pub, setPub] = useState(false);
   // Once published (now or on load), the publish modal defaults email OFF so a
   // later correction can't re-blast the list.
@@ -224,7 +233,7 @@ export function Editor({
     contentHeight: PAGE_H,
     // The stage's own padding: 40px above the page, the tool bar's reserve below.
     fitMargin: { x: 80, y: 40 + TOOLBAR_RESERVE },
-    fitClamp: { min: importOpen ? 0.25 : 0.5, max: 1.4 },
+    fitClamp: { min: 0.5, max: 1.4 },
     initialFitScale: 0.75,
     blockSelector: "[data-editor-block]",
   });
@@ -311,28 +320,12 @@ export function Editor({
             if (tab) tab.location.href = url;
             else router.push(url);
           }}
-          onImport={!published ? () => setImportOpen(true) : undefined}
           onPublish={() => setPub(true)}
         />
       </div>
-      <div className="flex flex-1 overflow-hidden">
-        {importOpen && (
-          <PdfWorkspace
-            pages={pages}
-            destination={
-              page?.cover || filled
-                ? `new content page after page ${curPage + 1}`
-                : sel
-                  ? `after selected block on page ${curPage + 1}`
-                  : `end of page ${curPage + 1}`
-            }
-            onClose={() => setImportOpen(false)}
-            onAdd={importer.add}
-          />
-        )}
+      <div ref={rowRef} className="flex flex-1 overflow-hidden">
         <div inert={importer.pending} className="flex">
           <PageRail
-            compact={importOpen}
             pages={pages}
             curPage={curPage}
             addMenu={addMenu}
@@ -456,6 +449,38 @@ export function Editor({
             notice={historyNotice}
           />
         </div>
+        <SidePanel
+          id={PANEL_ID}
+          open={tool === "pdf"}
+          title="Import PDF"
+          width={panel.width}
+          min={panel.min}
+          max={panel.max}
+          onResize={panel.setWidth}
+          onClose={() => setTool(null)}
+        >
+          <PdfImportPanel
+            pages={pages}
+            destination={
+              page?.cover || filled
+                ? `on a new page after page ${curPage + 1}`
+                : sel
+                  ? `after the selected block on page ${curPage + 1}`
+                  : `at the end of page ${curPage + 1}`
+            }
+            onAdd={importer.add}
+          />
+        </SidePanel>
+        <div inert={importer.pending} className="flex">
+          <ToolRail
+            active={tool}
+            panelId={PANEL_ID}
+            onToggle={(next) => setTool(tool === next ? null : next)}
+            disabled={
+              published ? { pdf: "Import is available for draft issues" } : {}
+            }
+          />
+        </div>
       </div>
 
       {pub && (
@@ -474,7 +499,7 @@ export function Editor({
               const res = await publishIssueAction(issue.id, sendEmail);
               if (res.ok) {
                 setPublished(true);
-                setImportOpen(false);
+                setTool(null);
                 if (importer.used) clearHistory();
               } else setStatus("error");
               return res;

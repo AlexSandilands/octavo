@@ -9,6 +9,7 @@ import {
   PDF_LIMITS,
   checkAbort,
   yieldTask,
+  type Region,
   type Run,
   type SourcePage,
 } from "./model";
@@ -321,6 +322,11 @@ export class PdfSource {
       this.active = false;
       signal.removeEventListener("abort", abort);
     }
+  }
+  /** Replace a cached page's regions (a split); the render is untouched. */
+  setRegions(number: number, regions: Region[]) {
+    const page = this.cache.get(number);
+    if (page) this.cache.set(number, { ...page, regions });
   }
   private evict(number: number) {
     const page = this.cache.get(number);
