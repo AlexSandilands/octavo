@@ -10,14 +10,19 @@ export function ErrorState({
   title,
   body,
   onRetry,
+  contained = false,
 }: {
   kicker: string;
   title: string;
   body: string;
   onRetry: () => void;
+  contained?: boolean;
 }) {
+  const Container = contained ? "div" : "main";
   return (
-    <main className="flex min-h-screen items-center justify-center px-5 py-12">
+    <Container
+      className={`flex ${contained ? "min-h-full" : "min-h-screen"} items-center justify-center px-5 py-12`}
+    >
       <div className="bg-card border-line flex min-h-[420px] w-full max-w-xl flex-col rounded-[5px] border p-10 shadow-[0_1px_3px_rgba(0,0,0,0.07)]">
         <Wordmark size={18} />
         <div className="my-auto">
@@ -39,6 +44,6 @@ export function ErrorState({
           </Link>
         </div>
       </div>
-    </main>
+    </Container>
   );
 }

@@ -2,13 +2,12 @@ import type { ReactNode } from "react";
 import { ADMIN_MAIN_ID } from "./admin-main";
 import { AdminNavContent } from "./admin-nav-content";
 import { AdminDrawer } from "./admin-drawer";
+import { AdminScrollReset } from "./admin-scroll-reset";
 
 export function AdminShell({
-  active,
   user,
   children,
 }: {
-  active: string;
   user: { name?: string | null; email: string };
   children: ReactNode;
 }) {
@@ -20,11 +19,11 @@ export function AdminShell({
       {/* Desktop rail — hidden below md, where the drawer takes over. Unchanged
           from the original fixed 214px sidebar at md+. */}
       <aside className="bg-paper border-line hidden w-[214px] flex-none flex-col border-r py-6 md:flex">
-        <AdminNavContent active={active} user={user} />
+        <AdminNavContent user={user} />
       </aside>
       {/* Mobile top bar + off-canvas drawer (client island for open/close). */}
       <AdminDrawer>
-        <AdminNavContent active={active} user={user} />
+        <AdminNavContent user={user} />
       </AdminDrawer>
       {/* `relative` keeps absolute descendants (e.g. sr-only live regions) in
           this scroll pane; unanchored they stretch the document (#189). */}
@@ -32,6 +31,7 @@ export function AdminShell({
         id={ADMIN_MAIN_ID}
         className="scrollbar-soft relative flex-1 overflow-y-auto p-7 [--scrollbar-surface:var(--color-card)] [scrollbar-gutter:stable] sm:p-8"
       >
+        <AdminScrollReset />
         {children}
       </main>
     </div>

@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { ADMIN_LIST_PAGE } from "@/components/admin-list-layout";
-import { AdminShell } from "@/components/admin-shell";
 import { Button } from "@/components/ui";
 import { EmptyIssues } from "@/components/empty-states";
 import { coverPageOf, type Page } from "@/lib/blocks";
@@ -14,7 +13,7 @@ import { getSettings } from "@/server/settings";
 import { CoverThumb } from "@/features/library/cover-thumb";
 import { THUMB_W } from "@/features/admin/issue-thumb";
 import { IssuesTable } from "@/features/admin/issues-table";
-import { createIssueAction } from "./actions";
+import { createIssueAction } from "@/app/admin/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +41,7 @@ export default async function AdminDashboard({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   // The layout gates too, but layouts don't re-run on soft navigation.
-  const admin = await requireAdminOrRedirect();
+  await requireAdminOrRedirect();
   const params = paramsSchema.parse(await searchParams);
   const query = params.q.trim();
   const settings = await getSettings();
@@ -93,50 +92,47 @@ export default async function AdminDashboard({
     };
   });
 
+  // Pinned header and filters over scrolling rows from md up; see admin-list-layout.ts.
   return (
-    <AdminShell active="issues" user={admin}>
-      {/* Pinned header and filters over scrolling rows from md up; see
-          admin-list-layout.ts. */}
-      <div className={ADMIN_LIST_PAGE}>
-        <div className="flex flex-none flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-ink font-serif text-3xl">Issues</h1>
-            {/* Whole-list numbers, so the summary holds on every page and under
-              every search. */}
-            <p className="text-faint mt-1.5 font-sans text-sm">
-              {list.total} {list.total === 1 ? "issue" : "issues"} ·{" "}
-              {list.draftTotal} in draft
-            </p>
-          </div>
-          <form action={createIssueAction} className="flex-none">
-            <Button
-              type="submit"
-              icon="plus"
-              iconPosition="left"
-              className="w-full whitespace-nowrap sm:w-auto"
-            >
-              Create new issue
-            </Button>
-          </form>
+    <div className={ADMIN_LIST_PAGE}>
+      <div className="flex flex-none flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-ink font-serif text-3xl">Issues</h1>
+          {/* Whole-list numbers, so the summary holds on every page and under
+            every search. */}
+          <p className="text-faint mt-1.5 font-sans text-sm">
+            {list.total} {list.total === 1 ? "issue" : "issues"} ·{" "}
+            {list.draftTotal} in draft
+          </p>
         </div>
-
-        {list.total === 0 ? (
-          <div className="mt-8">
-            <EmptyIssues />
-          </div>
-        ) : (
-          <IssuesTable
-            rows={rows}
-            page={list.page}
-            pageCount={list.pageCount}
-            matching={list.matching}
-            query={query}
-            filter={params.filter}
-            year={params.year}
-            years={years}
-          />
-        )}
+        <form action={createIssueAction} className="flex-none">
+          <Button
+            type="submit"
+            icon="plus"
+            iconPosition="left"
+            className="w-full whitespace-nowrap sm:w-auto"
+          >
+            Create new issue
+          </Button>
+        </form>
       </div>
-    </AdminShell>
+
+      {list.total === 0 ? (
+        <div className="mt-8">
+          <EmptyIssues />
+        </div>
+      ) : (
+        <IssuesTable
+          rows={rows}
+          page={list.page}
+          pageCount={list.pageCount}
+          matching={list.matching}
+          query={query}
+          filter={params.filter}
+          year={params.year}
+          years={years}
+        />
+      )}
+    </div>
   );
 }
