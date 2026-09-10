@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { AdminShell } from "@/components/admin-shell";
 import { SponsorsManager } from "@/features/sponsors/sponsors-manager";
 import { ADMIN_LIST_QUERY_MAX } from "@/lib/list-query";
 import { pageParamSchema } from "@/lib/pagination";
@@ -31,7 +30,7 @@ export default async function SponsorsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const admin = await requireAdminOrRedirect();
+  await requireAdminOrRedirect();
   const params = paramsSchema.parse(await searchParams);
   const query = params.q.trim();
   const list = await listSponsorsPage({
@@ -39,9 +38,5 @@ export default async function SponsorsPage({
     page: params.page,
     filter: params.filter,
   });
-  return (
-    <AdminShell active="sponsors" user={admin}>
-      <SponsorsManager list={list} query={query} filter={params.filter} />
-    </AdminShell>
-  );
+  return <SponsorsManager list={list} query={query} filter={params.filter} />;
 }

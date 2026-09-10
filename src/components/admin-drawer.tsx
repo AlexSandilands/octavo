@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import { adminMain } from "./admin-main";
 import { Wordmark } from "./ui";
 import { Icon } from "./icons";
@@ -12,14 +13,21 @@ import { Icon } from "./icons";
 //
 // The nav column is passed in as `children` (the shared <AdminNavContent>), so
 // this file owns only the open/close behaviour: focus trap, Escape to close,
-// close-on-link-selection (click delegation — the links themselves stay server
-// rendered), a backdrop press to dismiss, and marking the page content behind
-// the overlay inert so it's out of the tab order and the accessibility tree.
+// close-on-link-selection (click delegation), a backdrop press to dismiss, and
+// marking the page content behind the overlay inert.
 export function AdminDrawer({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const [previousPathname, setPreviousPathname] = useState(pathname);
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+
+  // The drawer now survives navigation, including back/forward while open.
+  if (pathname !== previousPathname) {
+    setPreviousPathname(pathname);
+    setOpen(false);
+  }
 
   // Focus the close button on open; restore focus to the menu button on close.
   useEffect(() => {
