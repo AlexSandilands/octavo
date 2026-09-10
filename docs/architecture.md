@@ -193,7 +193,9 @@ unsubscribe anyone. The `/unsubscribe` route sits outside the member gate by des
 
 The admin dashboard route group owns the sidebar layout; its loading and error states
 replace only the main content. Only the navigation links track the pathname for their
-active state. The editor and preview stay outside this shell. Pages still check admin
+active state. The content pane returns to the top when the pathname changes, including
+browser history; query-only list changes and in-page anchors keep their own scrolling.
+The editor and preview stay outside this shell. Pages still check admin
 authorization on each request, because shared layouts persist across client navigation.
 
 Route-level `loading.tsx`/`error.tsx` cover `/`, `/archive`, `/read/[issueId]` and `/admin/*`. Static

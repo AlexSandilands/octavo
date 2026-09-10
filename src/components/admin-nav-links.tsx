@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon, type IconName } from "./icons";
-import { adminMain } from "./admin-main";
 
 const ADMIN_NAV: {
   key: string;
@@ -40,7 +39,6 @@ export function AdminNavLinks() {
           <Link
             key={n.key}
             href={n.href}
-            onNavigate={() => adminMain()?.scrollTo({ top: 0 })}
             aria-current={on ? "page" : undefined}
             className={`flex items-center gap-3 border-l-2 px-6 py-2.5 font-sans text-[15px] transition-colors ${
               on

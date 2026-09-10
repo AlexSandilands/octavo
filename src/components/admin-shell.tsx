@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { ADMIN_MAIN_ID } from "./admin-main";
 import { AdminNavContent } from "./admin-nav-content";
 import { AdminDrawer } from "./admin-drawer";
+import { AdminScrollReset } from "./admin-scroll-reset";
 
 export function AdminShell({
   user,
@@ -30,6 +31,7 @@ export function AdminShell({
         id={ADMIN_MAIN_ID}
         className="scrollbar-soft relative flex-1 overflow-y-auto p-7 [--scrollbar-surface:var(--color-card)] [scrollbar-gutter:stable] sm:p-8"
       >
+        <AdminScrollReset />
         {children}
       </main>
     </div>

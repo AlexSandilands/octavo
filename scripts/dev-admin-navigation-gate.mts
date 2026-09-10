@@ -187,12 +187,42 @@ try {
       0,
       "new page starts at the top",
     );
+    // History must not carry the other section's scroll into the destination.
+    await navigate(4);
+    await navigate(3);
+    await page.locator("#admin-main").evaluate((el) => {
+      el.scrollTop = 700;
+    });
+    await page.goBack();
+    await ready(page, 4);
+    assert.equal(
+      await page.locator("#admin-main").evaluate((el) => el.scrollTop),
+      0,
+      "Back starts the previous section at the top",
+    );
+    await persistent();
+    await page.locator("#admin-main").evaluate((el) => {
+      el.scrollTop = 700;
+    });
+    await page.goForward();
+    await ready(page, 3);
+    assert.equal(
+      await page.locator("#admin-main").evaluate((el) => el.scrollTop),
+      0,
+      "Forward starts the next section at the top",
+    );
+    await persistent();
     for (let i = 0; i < paths.length; i++) {
       await page.goto(
         `${base}${paths[i]}${i === 1 ? "?q=nav-&filter=all&page=1" : ""}`,
       );
       await ready(page, i);
     }
+    await page.goto(`${base}/admin/help#pdf`);
+    await ready(page, 4);
+    await page.waitForFunction(
+      () => (document.querySelector("#admin-main")?.scrollTop ?? 0) > 0,
+    );
     // The editor and preview keep their standalone layouts and use soft links.
     await page.goto(`${base}/admin?q=${stamp}`);
     await ready(page, 0);
