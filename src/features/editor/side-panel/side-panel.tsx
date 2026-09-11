@@ -37,14 +37,13 @@ export function SidePanel({
   children: ReactNode;
 }) {
   const [mounted, setMounted] = useState(open);
-  const [wasOpen, setWasOpen] = useState(open);
   const [dragging, setDragging] = useState(false);
   const panel = useRef<HTMLElement>(null);
-  // Mount with the open, unmount a slide after the close.
-  if (open !== wasOpen) {
-    setWasOpen(open);
-    if (open) setMounted(true);
-  }
+  // Mount in the same render the panel opens (adjusting state during render —
+  // the single guarded setter is stable and doesn't depend on this component
+  // re-rendering for any other reason), then unmount a slide after it closes so
+  // an open PDF releases its worker only once the panel is gone.
+  if (open && !mounted) setMounted(true);
   useEffect(() => {
     if (open) return;
     const timer = setTimeout(() => setMounted(false), SLIDE_MS);

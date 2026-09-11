@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  Fragment,
-  useEffect,
-  useEffectEvent,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import dynamic from "next/dynamic";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { type IssueContent } from "@/lib/blocks";
 import {
@@ -18,14 +10,10 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
+import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { footerHeldBack } from "@/lib/branding";
 import type { FooterReserve, FooterStyle, SiteSettings } from "@/lib/branding";
-import type { ImageMap, ResolvedImage } from "@/lib/images";
+import type { ImageMap } from "@/lib/images";
 import type { LogoListItem } from "@/lib/logos";
 import type { SponsorListItem, SponsorMap } from "@/lib/sponsors";
 import {
@@ -34,51 +22,29 @@ import {
   normaliseEnabledThemeId,
   type LayoutThemeId,
 } from "@/features/blocks/themes/registry";
-import {
-  PageFrame,
-  ScaledPage,
-  PAGE_W,
-  PAGE_H,
-} from "@/features/blocks/page-frame";
 import { pageFillsCanvas } from "@/features/blocks/layout";
-import { useCanvasPanZoom } from "@/features/blocks/use-canvas-pan-zoom";
 import { useEditorPages } from "./use-editor-pages";
 import { usePdfInsertion } from "./pdf-import/use-pdf-insertion";
 import { dragOutCollision } from "./pdf-import/drag-out";
-import { DropPreview } from "./pdf-import/drop-preview";
 import {
   DragOutGhost,
-  PageDropZone,
   usePdfDragOut,
   type DropHandler,
 } from "./use-pdf-drag-out";
-import { useTextFlow } from "./use-text-flow";
-import { EditorBlock } from "./editor-block";
+import { EditorStage } from "./editor-stage";
+import { EditorSide } from "./editor-side";
 import { reportEditorError } from "./report-error";
 import { PageRail } from "./page-rail";
 import { PublishModal } from "./publish-modal";
 import { EditorHeader } from "./editor-header";
 import { EditorToolbar } from "./editor-toolbar";
-import { TOOLBAR_RESERVE } from "./floating-bar";
-import { StageBadge } from "./stage-badge";
 import { useBarLayout } from "./use-bar-layout";
 import { FooterUpdateNotice } from "./footer-update-notice";
 import { useEditorAutosave } from "./use-editor-autosave";
 import { publishIssueAction } from "@/app/admin/actions";
 
-import { SidePanel } from "./side-panel/side-panel";
-import {
-  ToolRail,
-  type EditorTool,
-  type RailAction,
-} from "./side-panel/tool-rail";
+import type { EditorTool } from "./side-panel/tool-rail";
 import { usePanelWidth } from "./side-panel/use-panel-width";
-
-// The importer and its parser load only when the tool is opened.
-const PdfImportPanel = dynamic(() => import("./pdf-import/panel"), {
-  ssr: false,
-});
-const PANEL_ID = "editor-side-panel";
 
 // Extends FooterReserve: the footer this issue's pages were laid out against
 // (issue #128) is what the canvas draws and measures overflow against, whatever
@@ -159,19 +125,9 @@ export function Editor({
     reorderPages,
     deletePage,
   } = useEditorPages(issue.content);
-  // Overflow marking + its one-action fix (issue #93): the canvas is measured
-  // where it is laid out, and the split — or, for a block that can't be cut, the
-  // move — lands as one edit.
-  const { canvasRef, overflow, flow } = useTextFlow({
-    page,
-    onFlow: flowText,
-    onMove: moveToNextPage,
-  });
   // imageId → resolved image, seeded from the server and grown as uploads land,
   // so the canvas previews an image the moment it's uploaded.
   const [images, setImages] = useState<ImageMap>(initialImages);
-  const registerImage = (imageId: string, image: ResolvedImage) =>
-    setImages((m) => ({ ...m, [imageId]: image }));
   const [title, setTitle] = useState(issue.title);
   // The issue's stored layout theme, normalised to an enabled theme id so the
   // picker (which offers only enabled themes) and the state stay in sync; an
@@ -187,19 +143,12 @@ export function Editor({
   const logo = logos.find((l) => l.id === logoId)?.image ?? null;
   // Which side-panel tool is out, if any. The row ref sizes the panel.
   const [tool, setTool] = useState<EditorTool | null>(null);
-  // What the open tool hangs under its rail button (the PDF panel reports its
-  // Replace once a file is open); Close is the rail's own.
-  const [toolActions, setToolActions] = useState<RailAction[]>([]);
   const rowRef = useRef<HTMLDivElement>(null);
   const panel = usePanelWidth(rowRef);
   // The canvas column: its width, not the window's, decides how the tool bar
   // lays out — labels, icons only, or standing at the left edge.
   const columnRef = useRef<HTMLDivElement>(null);
   const barLayout = useBarLayout(columnRef, { labels: 1000, vertical: 520 });
-  const barStanding = barLayout === "vertical";
-  const stagePadding = barStanding
-    ? { top: 40, right: 40, bottom: 40, left: TOOLBAR_RESERVE }
-    : { top: 40, right: 40, bottom: TOOLBAR_RESERVE, left: 40 };
   const [pub, setPub] = useState(false);
   // Once published (now or on load), the publish modal defaults email OFF so a
   // later correction can't re-blast the list.
@@ -241,73 +190,6 @@ export function Editor({
       coordinateGetter: sortableKeyboardCoordinates,
     }),
   );
-
-  // Fit-and-zoom the fixed PAGE_W×PAGE_H canvas to the editor stage (zoom=1),
-  // exactly as the reader does — so the editor is a faithful, to-scale preview —
-  // then let a wheel/drag zoom+pan ride on top. No scrollbars: content past the
-  // page edge is reached by dragging, and the overflow marker shows where the
-  // page ran out. Drag starts only on blank areas so blocks stay
-  // selectable/editable/draggable (dnd-kit owns their pointer events).
-  // Destructured: property access on the returned object would read through
-  // the ref it carries, which the render can't do.
-  const {
-    containerRef: stageRef,
-    panRef,
-    scale,
-    panning,
-    resetView,
-    onPointerDown,
-    onPointerMove,
-    onPointerUp,
-    consumeClickSuppression,
-  } = useCanvasPanZoom({
-    contentWidth: PAGE_W,
-    contentHeight: PAGE_H,
-    // The stage's own padding, the tool bar's reserve included on its side.
-    fitMargin: {
-      x: stagePadding.left + stagePadding.right,
-      y: stagePadding.top + stagePadding.bottom,
-    },
-    // Small enough that the page still clears a standing tool bar at the
-    // narrowest canvas; the author zooms in from there.
-    fitClamp: { min: 0.2, max: 1.4 },
-    initialFitScale: 0.75,
-    blockSelector: "[data-editor-block]",
-  });
-
-  // Reset zoom/pan to the fitted view when switching pages.
-  useEffect(() => {
-    resetView();
-    // resetView is recreated each render; page change is the trigger that matters.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [curPage]);
-
-  // Deselect the current block and collapse any lingering text highlight.
-  // Clicking blank canvas (or pressing Escape) should clear a text selection
-  // like a normal document, but the canvas pan/zoom layer captures the pointer
-  // on an outside press, which suppresses the browser's native
-  // click-to-collapse — so blur the active editable and clear the selection
-  // ourselves. Covers every in-place editor (Tiptap body text and the plain
-  // contentEditable headings / cover text alike).
-  const deselect = () => {
-    setSel(null);
-    const active = document.activeElement;
-    if (active instanceof HTMLElement && active.isContentEditable) {
-      active.blur();
-    }
-    window.getSelection()?.removeAllRanges();
-  };
-  // An effect event so the once-bound listener calls the latest closure.
-  const deselectByKey = useEffectEvent(() => deselect());
-
-  // Escape deselects the current block (click-off on the canvas does too).
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") deselectByKey();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
 
   const theme = getTheme(themeId);
   // This page is owned by a full-bleed photo (issue #227): no page furniture,
@@ -403,117 +285,34 @@ export function Editor({
               <FooterUpdateNotice issueId={issue.id} flushSave={flushSave} />
             )}
 
-            <div
-              ref={stageRef}
-              onClick={() => {
-                // A drag-pan ends in a click; don't let it deselect the block.
-                if (consumeClickSuppression()) return;
-                deselect();
+            <EditorStage
+              issueId={issue.id}
+              issueNo={issue.number}
+              page={page}
+              curPage={curPage}
+              sel={sel}
+              theme={theme}
+              logo={logo}
+              settings={settings}
+              filled={filled}
+              barStanding={barLayout === "vertical"}
+              images={images}
+              sponsors={sponsors}
+              sponsorMap={sponsorMap}
+              reseed={reseed}
+              preview={dragOut.preview}
+              onSelect={setSel}
+              actions={{
+                updateBlock,
+                moveBlock,
+                removeBlock,
+                fillPage,
+                flowText,
+                moveToNextPage,
+                registerImage: (imageId, image) =>
+                  setImages((m) => ({ ...m, [imageId]: image })),
               }}
-              onPointerDown={onPointerDown}
-              onPointerMove={onPointerMove}
-              onPointerUp={onPointerUp}
-              onPointerCancel={onPointerUp}
-              style={{
-                paddingTop: stagePadding.top,
-                paddingRight: stagePadding.right,
-                paddingBottom: stagePadding.bottom,
-                paddingLeft: stagePadding.left,
-              }}
-              className={`relative flex flex-1 items-center justify-center overflow-hidden ${
-                panning ? "cursor-grabbing select-none" : "cursor-grab"
-              }`}
-            >
-              <StageBadge>Magazine</StageBadge>
-              <PageDropZone
-                panRef={panRef}
-                className="shadow-[0_10px_30px_rgba(40,36,28,0.14)]"
-              >
-                <ScaledPage scale={scale}>
-                  <PageFrame
-                    theme={theme}
-                    w={PAGE_W}
-                    h={PAGE_H}
-                    issueNo={issue.number}
-                    pageNo={curPage + 1}
-                    logo={logo}
-                    settings={settings}
-                    clip={false}
-                    cover={page?.cover}
-                    bleed={filled}
-                  >
-                    <SortableContext
-                      items={(page?.blocks ?? []).map((b) => b.id)}
-                      strategy={verticalListSortingStrategy}
-                    >
-                      <div
-                        ref={canvasRef}
-                        className={
-                          page?.cover
-                            ? "flex min-h-full flex-col justify-center"
-                            : "relative flow-root"
-                        }
-                      >
-                        {page &&
-                          page.blocks.length === 0 &&
-                          !dragOut.preview && (
-                            <div className="text-faint2 py-16 text-center font-serif text-sm">
-                              This page is empty. Add a block below.
-                            </div>
-                          )}
-                        {page?.blocks.map((b, i) => (
-                          // Remounting is how a rewrite behind an
-                          // uncontrolled editor's back (a split, an undo) lands.
-                          <Fragment key={`${b.id}:${reseed[b.id] ?? 0}`}>
-                            {dragOut.preview?.index === i && (
-                              <DropPreview
-                                block={dragOut.preview.block}
-                                theme={theme}
-                                images={dragOut.preview.images}
-                                sponsors={sponsorMap}
-                              />
-                            )}
-                            <EditorBlock
-                              block={b}
-                              theme={theme}
-                              cover={page.cover}
-                              selected={b.id === sel}
-                              issueId={issue.id}
-                              images={images}
-                              sponsors={sponsors}
-                              sponsorMap={sponsorMap}
-                              overflowAt={
-                                overflow?.id === b.id
-                                  ? overflow.markerTop
-                                  : undefined
-                              }
-                              fitsAlone={overflow?.fitsAlone}
-                              onSelect={() => setSel(b.id)}
-                              onChange={(patch) => updateBlock(b.id, patch)}
-                              onMove={(dir) => moveBlock(b.id, dir)}
-                              onRemove={() => removeBlock(b.id)}
-                              onFlow={() => flow(b.id)}
-                              onFillPage={(a) => fillPage(b.id, a)}
-                              onRegisterImage={registerImage}
-                            />
-                          </Fragment>
-                        ))}
-                        {dragOut.preview &&
-                          dragOut.preview.index >=
-                            (page?.blocks.length ?? 0) && (
-                            <DropPreview
-                              block={dragOut.preview.block}
-                              theme={theme}
-                              images={dragOut.preview.images}
-                              sponsors={sponsorMap}
-                            />
-                          )}
-                      </div>
-                    </SortableContext>
-                  </PageFrame>
-                </ScaledPage>
-              </PageDropZone>
-            </div>
+            />
 
             <EditorToolbar
               layout={barLayout}
@@ -529,42 +328,16 @@ export function Editor({
               notice={historyNotice}
             />
           </div>
-          <SidePanel
-            id={PANEL_ID}
-            open={tool === "pdf"}
-            title="Import PDF"
-            width={panel.width}
-            min={panel.min}
-            max={panel.max}
-            onResize={panel.setWidth}
-          >
-            <PdfImportPanel
-              pages={pages}
-              onAdd={importer.add}
-              onRailActions={setToolActions}
-              dropRef={dropRef}
-            />
-          </SidePanel>
-          <div inert={importer.pending} className="flex">
-            <ToolRail
-              active={tool}
-              panelId={PANEL_ID}
-              actions={
-                tool
-                  ? [
-                      {
-                        id: "close",
-                        icon: "close",
-                        label: "Close panel",
-                        onClick: () => setTool(null),
-                      },
-                      ...toolActions,
-                    ]
-                  : []
-              }
-              onToggle={(next) => setTool(tool === next ? null : next)}
-            />
-          </div>
+          <EditorSide
+            tool={tool}
+            onToggle={(next) => setTool(tool === next ? null : next)}
+            onClose={() => setTool(null)}
+            pending={importer.pending}
+            panel={panel}
+            pages={pages}
+            onAdd={importer.add}
+            dropRef={dropRef}
+          />
         </div>
         <DragOutGhost
           dragOut={dragOut}
