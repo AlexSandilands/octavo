@@ -13,7 +13,7 @@ import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 import type { LayoutTheme } from "@/features/blocks/themes/registry";
 import { PAGE_W, PAGE_H } from "@/features/blocks/page-frame";
-import { PageView } from "./page-view";
+import { PageView, Plate } from "./page-view";
 import { STRIPS, sampleCurl } from "./curl-model";
 import { animateCurl, FLIP_MS } from "./turn-curl-animate";
 import type { Turn } from "./reader-spread";
@@ -265,17 +265,10 @@ export function TurnCurl({
       {layer(front, origin, "data-under-origin", true)}
       {cast(origin, "data-cast-origin")}
       {cast(dest, "data-cast-dest")}
-      {/* The drop-shadow plate (see ReaderSpread): follows the cover's landed
-          or lifting edge, or stays full width for an ordinary turn. */}
-      <div
-        data-plate={coverOpen ? "open" : coverClose ? "close" : undefined}
-        aria-hidden
-        className="pointer-events-none absolute top-0 shadow-[0_18px_40px_rgba(40,36,28,0.18)]"
-        style={{
-          left: coverOpen ? "50%" : "0%",
-          width: coverOpen ? "50%" : "100%",
-          height: "100%",
-        }}
+      {/* Follows the cover's landed or lifting edge; full width otherwise. */}
+      <Plate
+        atCover={coverOpen}
+        kind={coverOpen ? "open" : coverClose ? "close" : undefined}
       />
       {strip(0)}
     </div>

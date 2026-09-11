@@ -1,4 +1,4 @@
-// Geometry for the shaded curl (variant E): the sheet is a hinge chain of
+// Geometry for the shaded paper curl: the sheet is a hinge chain of
 // STRIPS flat sections rotating about the spine. Everything the animation
 // needs — each section's angle, its tilt toward the viewer, how far the sheet
 // reaches over either page, and how high it lifts — is sampled here once per
@@ -6,7 +6,9 @@
 
 export const STRIPS = 6;
 /** Total bend across the sheet at the peak of the turn, in degrees. */
-export const DEFAULT_BEND = 48;
+const BEND = 48;
+/** Keyframes per turn. */
+const STEPS = 30;
 /** Root rotation easing: quick off the page, soft landing. */
 const EASE: [number, number, number, number] = [0.3, 0.08, 0.22, 1];
 
@@ -63,18 +65,13 @@ function bendEnvelope(t: number) {
  * perspective distance, both in px; the perspective origin is assumed to sit
  * on the spine (the stage is 2·w wide and the spine is its centre).
  */
-export function sampleCurl(
-  w: number,
-  perspective: number,
-  bend = DEFAULT_BEND,
-  steps = 30,
-): CurlSample[] {
+export function sampleCurl(w: number, perspective: number): CurlSample[] {
   const sw = w / STRIPS;
   const out: CurlSample[] = [];
-  for (let s = 0; s <= steps; s++) {
-    const t = s / steps;
+  for (let s = 0; s <= STEPS; s++) {
+    const t = s / STEPS;
     const root = -180 * bezier(EASE, t);
-    const env = bend * bendEnvelope(t);
+    const env = BEND * bendEnvelope(t);
     // Joints bend against the rotation, so the free edge lags the spine.
     const joints = JOINT_WEIGHTS.map((wt) => (env * wt) / WEIGHT_SUM);
     const angles: number[] = [];

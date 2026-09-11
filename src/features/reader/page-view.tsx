@@ -12,6 +12,31 @@ import {
   PAGE_H,
 } from "@/features/blocks/page-frame";
 
+// Drop-shadow plate behind the pages, sized to the visible sheet: the full
+// spread, or just the cover leaf when centred. A box shadow on the spread
+// wrapper would flatten the flip's 3D, so it lives on its own element. `kind`
+// marks a cover turn's plate for turn-curl-animate.ts to slide with the sheet.
+export function Plate({
+  atCover,
+  kind,
+}: {
+  atCover: boolean;
+  kind?: "open" | "close";
+}) {
+  return (
+    <div
+      data-plate={kind}
+      aria-hidden
+      className="pointer-events-none absolute top-0 shadow-[0_18px_40px_rgba(40,36,28,0.18)]"
+      style={{
+        left: atCover ? "50%" : "0%",
+        width: atCover ? "50%" : "100%",
+        height: "100%",
+      }}
+    />
+  );
+}
+
 // One page, scaled and framed — shared by the resting spread (reader-spread.tsx)
 // and every page copy the curl paints while turning (turn-curl.tsx).
 export function PageView({

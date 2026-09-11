@@ -4,10 +4,9 @@ import { lighting, type CurlSample } from "./curl-model";
 export const FLIP_MS = 700;
 
 /** Deepest shade for a face turned fully from the lamp, and the strongest
- *  sheen for one turned toward it (turn-curl.tsx uses the same constants to
- *  build the overlays this drives). */
-export const SHADE = 0.28;
-export const SHEEN = 0.14;
+ *  sheen for one turned toward it. */
+const SHADE = 0.28;
+const SHEEN = 0.14;
 /** How far the cast shadow reaches past the sheet's footprint, in page widths. */
 const PENUMBRA = 0.3;
 

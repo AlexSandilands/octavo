@@ -6,30 +6,12 @@ import type { SiteSettings } from "@/lib/branding";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 import type { LayoutTheme } from "@/features/blocks/themes/registry";
-import { PageView } from "./page-view";
+import { PageView, Plate } from "./page-view";
 import { TurnCurl } from "./turn-curl";
 
 export { FLIP_MS } from "./turn-curl-animate";
 
 export type Turn = { dir: "next" | "prev"; to: number };
-
-// Drop-shadow plate behind the pages, sized to the visible sheet: the full
-// spread at rest, or just the cover leaf when centred. A box shadow on the
-// spread wrapper would flatten the flip's 3D, so it lives on its own element.
-// No transition at rest — mid-turn it's TurnCurl's animated version instead.
-function Plate({ atCover }: { atCover: boolean }) {
-  return (
-    <div
-      aria-hidden
-      className="pointer-events-none absolute top-0 shadow-[0_18px_40px_rgba(40,36,28,0.18)]"
-      style={{
-        left: atCover ? "50%" : "0%",
-        width: atCover ? "50%" : "100%",
-        height: "100%",
-      }}
-    />
-  );
-}
 
 // The spine-centred spread shown inside the reader's stage: either an in-flight
 // page turn (the shaded curl, issue #215), the standalone cover, or a normal
