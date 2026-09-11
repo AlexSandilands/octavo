@@ -36,6 +36,13 @@ export type PanZoomOptions = {
    */
   blockSelector: string;
   /**
+   * A drag that starts on a block still pans once it has clearly moved, and the
+   * click that would follow is suppressed. For content whose blocks are plain
+   * press targets (the PDF import's regions); the editor's blocks own text
+   * selection and drag-and-drop, so it leaves this off.
+   */
+  panOverBlocks?: boolean;
+  /**
    * When it returns true, wheel-zoom and drag-start are both suppressed — the
    * reader blocks them mid page-turn. Omitted ⇒ always active.
    */
@@ -91,7 +98,9 @@ export function useCanvasPanZoom(opts: PanZoomOptions) {
 
   const isBlocked = () => Boolean(opts.isBlocked?.());
 
-  // Fit the content to the container (zoom = 1), re-measuring on resize.
+  // Fit the content to the container (zoom = 1), re-measuring on resize and
+  // whenever the content or the margins change (PDF pages differ page to page;
+  // a tool bar standing at the side asks for room there instead of below).
   const measureFit = useEffectEvent(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -108,7 +117,12 @@ export function useCanvasPanZoom(opts: PanZoomOptions) {
     const ro = new ResizeObserver(() => measureFit());
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [
+    opts.contentWidth,
+    opts.contentHeight,
+    opts.fitMargin.x,
+    opts.fitMargin.y,
+  ]);
 
   // Keep at least a sliver of the content on screen so it can't be lost.
   const clampPan = (p: Pan, zoomVal: number): Pan => {
@@ -168,22 +182,27 @@ export function useCanvasPanZoom(opts: PanZoomOptions) {
   }, []);
 
   // Click-drag to move the content, started only on blank areas (see the block
-  // selector). `moved` gates a click-suppression flag the caller can read so a
-  // drag that ends in a click doesn't register as one (the editor uses it to
-  // avoid deselecting the current block).
+  // selector) unless `panOverBlocks`, when a press on a block is held back until
+  // it clearly moves and only then captured as a pan. `moved` gates a
+  // click-suppression flag the caller can read so a drag that ends in a click
+  // doesn't register as one (the editor uses it to avoid deselecting the
+  // current block).
   const drag = useRef<{
     x: number;
     y: number;
     px: number;
     py: number;
     moved: boolean;
+    /** Started on a block: not a pan until it moves. */
+    held: boolean;
   } | null>(null);
   const suppressClick = useRef(false);
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (e.button !== 0 || isBlocked()) return;
     suppressClick.current = false;
-    if ((e.target as HTMLElement).closest(blockSelector)) return;
+    const held = Boolean((e.target as HTMLElement).closest(blockSelector));
+    if (held && !opts.panOverBlocks) return;
     const el = containerRef.current;
     if (!el) return;
     drag.current = {
@@ -192,15 +211,23 @@ export function useCanvasPanZoom(opts: PanZoomOptions) {
       px: pan.current.x,
       py: pan.current.y,
       moved: false,
+      held,
     };
+    if (held) return;
     el.setPointerCapture(e.pointerId);
     setPanning(true);
   };
   const onPointerMove = (e: React.PointerEvent) => {
     const d = drag.current;
     if (!d) return;
-    if (Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 3)
+    if (!d.moved && Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 3) {
       d.moved = true;
+      if (d.held) {
+        containerRef.current?.setPointerCapture(e.pointerId);
+        setPanning(true);
+      }
+    }
+    if (d.held && !d.moved) return;
     setPan(
       clampPan(
         { x: d.px + (e.clientX - d.x), y: d.py + (e.clientY - d.y) },

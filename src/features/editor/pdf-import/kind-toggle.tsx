@@ -17,7 +17,7 @@ export function KindToggle({
   image: boolean;
   onChange: (kind: ImportKind) => void;
   size?: "md" | "sm";
-  showLabel?: boolean | "always";
+  showLabel?: boolean;
 }) {
   if (image) {
     const k = blockKind("image");

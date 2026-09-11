@@ -4,10 +4,18 @@ The editor's right-hand **side panel** (`src/features/editor/side-panel/`) is op
 the tool rail on the editor's right edge; its first tool is **Import PDF**. The panel
 slides in beside the canvas, takes half the editor row by default, and its left edge is
 a drag handle (also a keyboard separator: arrow keys, Home, End) with bounds that keep
-the canvas usable. The canvas re-fits to whatever is left. Closing the panel unmounts
+the canvas usable. The canvas re-fits to whatever is left. Inside, the PDF page sits on a
+stage of its own that mirrors the magazine canvas: laid out at the magazine's page width,
+fitted to the panel with the same margins, wheel-zoomed and dragged with the same engine
+(`useCanvasPanZoom`), and reset to the fitted view on every page change. A drag may
+start on a region — they cover most of a text page — and becomes a pan once it clearly
+moves; a plain press still selects. Closing the panel unmounts
 the tool, which releases the PDF, its worker and any selection; magazine content is
-untouched. The same desktop editor gate applies (768px minimum). Import is offered on
-drafts only; on a published issue the rail button is inert with the reason as its hint.
+untouched. The panel has no chrome of its own: the rail button stays pressed while it is
+out, and the tool's actions slide down out of it as smaller buttons — _Close panel_ at
+once, _Replace PDF_ once a file is open. The same desktop editor gate applies (768px
+minimum). Import works on drafts
+and published issues alike: it is an ordinary edit, saved and re-published like any other.
 
 ## The import flow
 
@@ -21,25 +29,30 @@ drafts only; on a published issue the rail button is inert with the reason as it
    press selects the region, which gets a solid chip. Hovering or focusing a selected
    region shows a small tool pill above it (below when it sits at the top of the page):
    the Heading/Text toggle, **Split** for over-grouped text (cuts at the widest gap
-   between its source lines, with real geometry for both halves), and **Add**.
-3. **Add** — the command row at the top of the panel says how many regions are selected,
-   offers _Select all on page_ (every region, each with its suggested kind), _Clear_ and
-   the one _Add N_ that sends the whole selection. Pressing the count opens the selection
-   list: rows in the order they will be added (source page, then reading order, until
-   the author reorders), each with its kind toggle, a preview, its source page, move
-   up/down and remove. The status line under the row names the destination ("after the
-   selected block on page 2", "at the end of page 3", "on a new page after page 1" for
-   covers and page-owning photos) until there is news: progress, the outcome, or a
-   refusal with the draft unchanged and the selection kept for correction.
-4. The page and zoom controls float over the foot of the PDF view like the editor's own
-   tools. Regions added this session carry an _Added_ chip (derived from the blocks still
-   in the draft, so Undo clears it) and can be added again deliberately.
+   between its source lines, with real geometry for both halves), and **Add**. Chips and
+   pills cancel the stage's scale (`.chrome-unscaled`), so they read the same at any zoom.
+3. **Add** — the panel's tool bar floats over the foot of the stage in the same pill as
+   the editor's own tools: previous/next page with the page count, how many regions are
+   selected (press it for the selection list), _Select all on page_ (every region, each
+   with its suggested kind), _Clear_ and the one _Add N_ that sends the whole selection.
+   Both this bar and the editor's answer to their own stage's width, not the window's
+   (`useBarLayout`): labels while there is room, icons only as the stage narrows, and
+   below that the bar slides to stand on end at the stage's outer edge — the editor's on
+   the left, the panel's on the right — with the page re-fitted beside it and the
+   selection count moved onto the list button. The selection list opens as a sheet above the bar: rows in the order they will be
+   added (source page, then reading order, until the author reorders), each with its kind
+   toggle, a preview, its source page, move up/down and remove. News — progress, the
+   outcome, or a refusal with the issue unchanged and the selection kept for correction —
+   is a caption above the bar (a live region, so it is heard as well as seen); with
+   nothing to say the stage stays clear.
+4. Regions added this session carry an _Added_ chip (derived from the blocks still in the
+   issue, so Undo clears it) and can be added again deliberately.
 
-Insertion, fitting and the draft-only guarantees are unchanged from the original
-implementation: the destination's prefix, import and suffix are fitted in that order,
-later authored pages stay intact, each Add is one undo step (continuation pages and text
-splits included), the last inserted block becomes selected, and a concurrent
-publication refuses both the import and any late draft save.
+Insertion and fitting are unchanged from the original implementation: the destination's
+prefix, import and suffix are fitted in that order, later authored pages stay intact,
+each Add is one undo step (continuation pages and text splits included), the last
+inserted block becomes selected, and the import lands through the editor's ordinary
+save, so its revision check refuses a stale write the same way any other edit's does.
 
 ## Extraction and resource boundaries
 
@@ -50,7 +63,11 @@ endpoint exists. The adapter passes an actual module `Worker` to `PDFWorker.crea
 it does not permit a fake-worker fallback. Font faces and WASM are disabled, using the
 same-origin standard-font/CMap assets. CSP adds only `worker-src 'self'`; fonts remain
 self-only and production scripts gain no unsafe-eval exception. PDF annotations,
-scripting and XFA are not run.
+scripting and XFA are not run. Photo detection walks the page's operator list
+(`pdf-import/image-regions.ts`); a matrix may arrive as a plain array or a Float32Array. An
+instruction the walker cannot read costs the page its photos, not its text: the page
+opens with a note saying so, and no library or validation error is ever shown raw (the
+panel falls back to its own wording, `reason` in `use-pdf-source.ts`).
 
 Central limits are in `pdf-import/model.ts`: 40 MiB input, 100 source pages, 16 MP per
 source image, 8 MP per preview canvas, three cached previews, and 30 seconds per active

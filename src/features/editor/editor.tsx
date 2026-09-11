@@ -44,13 +44,20 @@ import { reportEditorError } from "./report-error";
 import { PageRail } from "./page-rail";
 import { PublishModal } from "./publish-modal";
 import { EditorHeader } from "./editor-header";
-import { EditorToolbar, TOOLBAR_RESERVE } from "./editor-toolbar";
+import { EditorToolbar } from "./editor-toolbar";
+import { TOOLBAR_RESERVE } from "./floating-bar";
+import { StageBadge } from "./stage-badge";
+import { useBarLayout } from "./use-bar-layout";
 import { FooterUpdateNotice } from "./footer-update-notice";
 import { useEditorAutosave } from "./use-editor-autosave";
 import { publishIssueAction } from "@/app/admin/actions";
 
 import { SidePanel } from "./side-panel/side-panel";
-import { ToolRail, type EditorTool } from "./side-panel/tool-rail";
+import {
+  ToolRail,
+  type EditorTool,
+  type RailAction,
+} from "./side-panel/tool-rail";
 import { usePanelWidth } from "./side-panel/use-panel-width";
 
 // The importer and its parser load only when the tool is opened.
@@ -166,8 +173,19 @@ export function Editor({
   const logo = logos.find((l) => l.id === logoId)?.image ?? null;
   // Which side-panel tool is out, if any. The row ref sizes the panel.
   const [tool, setTool] = useState<EditorTool | null>(null);
+  // What the open tool hangs under its rail button (the PDF panel reports its
+  // Replace once a file is open); Close is the rail's own.
+  const [toolActions, setToolActions] = useState<RailAction[]>([]);
   const rowRef = useRef<HTMLDivElement>(null);
   const panel = usePanelWidth(rowRef);
+  // The canvas column: its width, not the window's, decides how the tool bar
+  // lays out — labels, icons only, or standing at the left edge.
+  const columnRef = useRef<HTMLDivElement>(null);
+  const barLayout = useBarLayout(columnRef, { labels: 1000, vertical: 520 });
+  const barStanding = barLayout === "vertical";
+  const stagePadding = barStanding
+    ? { top: 40, right: 40, bottom: 40, left: TOOLBAR_RESERVE }
+    : { top: 40, right: 40, bottom: TOOLBAR_RESERVE, left: 40 };
   const [pub, setPub] = useState(false);
   // Once published (now or on load), the publish modal defaults email OFF so a
   // later correction can't re-blast the list.
@@ -189,7 +207,6 @@ export function Editor({
     curPage,
     sel,
     issueId: issue.id,
-    published,
     flushSave,
     applyImport,
     theme: getTheme(themeId),
@@ -231,9 +248,14 @@ export function Editor({
   } = useCanvasPanZoom({
     contentWidth: PAGE_W,
     contentHeight: PAGE_H,
-    // The stage's own padding: 40px above the page, the tool bar's reserve below.
-    fitMargin: { x: 80, y: 40 + TOOLBAR_RESERVE },
-    fitClamp: { min: 0.5, max: 1.4 },
+    // The stage's own padding, the tool bar's reserve included on its side.
+    fitMargin: {
+      x: stagePadding.left + stagePadding.right,
+      y: stagePadding.top + stagePadding.bottom,
+    },
+    // Small enough that the page still clears a standing tool bar at the
+    // narrowest canvas; the author zooms in from there.
+    fitClamp: { min: 0.2, max: 1.4 },
     initialFitScale: 0.75,
     blockSelector: "[data-editor-block]",
   });
@@ -338,6 +360,7 @@ export function Editor({
           />
         </div>
         <div
+          ref={columnRef}
           inert={importer.pending}
           className="bg-canvas relative flex min-w-0 flex-1 flex-col overflow-hidden"
         >
@@ -356,11 +379,17 @@ export function Editor({
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerUp}
-            style={{ paddingBottom: TOOLBAR_RESERVE }}
-            className={`flex flex-1 items-center justify-center overflow-hidden px-10 pt-10 ${
+            style={{
+              paddingTop: stagePadding.top,
+              paddingRight: stagePadding.right,
+              paddingBottom: stagePadding.bottom,
+              paddingLeft: stagePadding.left,
+            }}
+            className={`relative flex flex-1 items-center justify-center overflow-hidden ${
               panning ? "cursor-grabbing select-none" : "cursor-grab"
             }`}
           >
+            <StageBadge>Magazine</StageBadge>
             <div
               ref={panRef}
               className="shadow-[0_10px_30px_rgba(40,36,28,0.14)]"
@@ -437,6 +466,7 @@ export function Editor({
           </div>
 
           <EditorToolbar
+            layout={barLayout}
             onAddBlock={addBlock}
             insertDisabled={filled}
             onToggleCover={toggleCover}
@@ -457,28 +487,31 @@ export function Editor({
           min={panel.min}
           max={panel.max}
           onResize={panel.setWidth}
-          onClose={() => setTool(null)}
         >
           <PdfImportPanel
             pages={pages}
-            destination={
-              page?.cover || filled
-                ? `on a new page after page ${curPage + 1}`
-                : sel
-                  ? `after the selected block on page ${curPage + 1}`
-                  : `at the end of page ${curPage + 1}`
-            }
             onAdd={importer.add}
+            onRailActions={setToolActions}
           />
         </SidePanel>
         <div inert={importer.pending} className="flex">
           <ToolRail
             active={tool}
             panelId={PANEL_ID}
-            onToggle={(next) => setTool(tool === next ? null : next)}
-            disabled={
-              published ? { pdf: "Import is available for draft issues" } : {}
+            actions={
+              tool
+                ? [
+                    {
+                      id: "close",
+                      icon: "close",
+                      label: "Close panel",
+                      onClick: () => setTool(null),
+                    },
+                    ...toolActions,
+                  ]
+                : []
             }
+            onToggle={(next) => setTool(tool === next ? null : next)}
           />
         </div>
       </div>

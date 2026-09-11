@@ -60,7 +60,7 @@ export type SourceMapping = Record<string, string[]>;
 export const yieldTask = () =>
   new Promise<void>((resolve) => setTimeout(resolve, 0));
 export function checkAbort(signal: AbortSignal) {
-  if (signal.aborted) throw new Error("Cancelled. Your draft is unchanged.");
+  if (signal.aborted) throw new Error("Cancelled. The issue is unchanged.");
 }
 
 export function boundedWait<T>(
@@ -76,7 +76,7 @@ export function boundedWait<T>(
     };
     const abort = () => {
       cleanup();
-      reject(new Error("Cancelled. Your draft is unchanged."));
+      reject(new Error("Cancelled. The issue is unchanged."));
     };
     const timer = setTimeout(() => {
       cleanup();

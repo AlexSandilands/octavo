@@ -5,6 +5,8 @@ import type { ReviewItem, SourceMapping } from "./model";
 import type { UploadCache } from "./upload";
 
 export type AddStatus = { text: string; tone: "info" | "warn" };
+/** How long an outcome such as "Added 2 blocks" stays on screen. */
+const OUTCOME_MS = 4000;
 
 // One press of Add: hands the selection to the editor's insertion pipeline and
 // reports back. Successful uploads are cached across retries so a failed batch
@@ -30,6 +32,13 @@ export function useAddSelection(
     },
     [],
   );
+  // Good news clears itself after a moment; a refusal stays until the author
+  // acts on it, and progress stays for as long as the batch runs.
+  useEffect(() => {
+    if (!status || status.tone !== "info" || adding) return;
+    const timer = setTimeout(() => setStatus(null), OUTCOME_MS);
+    return () => clearTimeout(timer);
+  }, [status, adding]);
 
   const add = async (
     items: ReviewItem[],
@@ -60,7 +69,7 @@ export function useAddSelection(
           text:
             error instanceof Error
               ? error.message
-              : "Import failed. Your draft is unchanged.",
+              : "Import failed. The issue is unchanged.",
           tone: "warn",
         });
     } finally {

@@ -30,7 +30,6 @@ export async function uploadSelection(
       const form = new FormData();
       form.append("file", image.blob, "selected-image.png");
       form.append("issueId", issueId);
-      form.append("importDraft", "true");
       // Let an already-sent upload settle so a cancelled retry can reuse its record.
       const response = await fetch("/api/admin/images", {
         method: "POST",
@@ -41,7 +40,7 @@ export async function uploadSelection(
         throw new Error(
           response.status === 429
             ? "Upload rate limit reached. Wait one minute and retry; completed images will be reused."
-            : "Image upload failed. Check that this issue is still a draft, then retry. Completed images will be reused.",
+            : "Image upload failed. Retry; completed images will be reused.",
         );
       result = uploadSchema.parse(await response.json());
       cache.set(image.blob, result);

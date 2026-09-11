@@ -137,12 +137,6 @@ export async function saveDraftIssueAction(
   );
 }
 
-export async function checkImportDraftAction(id: string): Promise<boolean> {
-  await requireAdmin();
-  const input = idSchema.safeParse(id);
-  return input.success && (await getIssue(input.data))?.status === "draft";
-}
-
 export async function saveMetaAction(
   id: string,
   meta: { title?: string; theme?: string; logoId?: string | null },

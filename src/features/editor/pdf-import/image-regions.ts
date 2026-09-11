@@ -21,6 +21,12 @@ const matrixSchema = z.tuple([
   z.number(),
   z.number(),
 ]);
+// PDF.js hands a matrix over as a plain array or, for a form's placement, a
+// Float32Array; either reads as six numbers.
+const readMatrix = (raw: unknown): Matrix =>
+  matrixSchema.parse(
+    ArrayBuffer.isView(raw) ? Array.from(raw as Float32Array) : raw,
+  );
 const identity: Matrix = [1, 0, 0, 1, 0, 0];
 function multiply(a: Matrix, b: Matrix): Matrix {
   return [
@@ -224,10 +230,10 @@ export async function imageRegions(
       const state = stack.pop();
       if (state) ({ matrix, unsupported, clips } = state);
     } else if (op === names.transform)
-      matrix = multiply(matrix, matrixSchema.parse(args));
+      matrix = multiply(matrix, readMatrix(args));
     else if (op === names.paintFormXObjectBegin) {
       stack.push({ matrix, unsupported, clips: [...clips] });
-      if (args[0]) matrix = multiply(matrix, matrixSchema.parse(args[0]));
+      if (args[0]) matrix = multiply(matrix, readMatrix(args[0]));
       if (args[1]) unsupported = true;
     } else if (op === names.paintFormXObjectEnd) {
       const state = stack.pop();

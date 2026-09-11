@@ -3,13 +3,11 @@ import type { EditorSnapshot } from "../use-editor-history";
 import type { MeasurementOptions } from "./measure";
 import { boundedWait, type ReviewItem, type SourceMapping } from "./model";
 import type { UploadCache } from "./upload";
-import { checkImportDraftAction } from "@/app/admin/actions";
 
 export function usePdfInsertion(
   options: MeasurementOptions &
     EditorSnapshot & {
       issueId: string;
-      published: boolean;
       flushSave: () => Promise<boolean>;
       applyImport: (
         expected: EditorSnapshot["pages"],
@@ -41,15 +39,14 @@ export function usePdfInsertion(
     const valid = () => {
       if (signal.aborted)
         throw new Error(
-          "Cancelled. Your draft is unchanged; completed uploads can be reused on retry.",
+          "Cancelled. The issue is unchanged; completed uploads can be reused on retry.",
         );
       if (
         latest.current.pages !== captured.pages ||
         latest.current.theme !== captured.theme ||
         JSON.stringify(latest.current.logo) !== JSON.stringify(captured.logo) ||
         JSON.stringify(latest.current.settings) !==
-          JSON.stringify(captured.settings) ||
-        latest.current.published
+          JSON.stringify(captured.settings)
       )
         throw new Error(
           "The document changed while importing. Review the destination and try again.",
@@ -98,26 +95,13 @@ export function usePdfInsertion(
       valid();
       if (!(await boundedWait(captured.flushSave(), signal)))
         throw new Error(
-          "Save the existing draft successfully before adding this selection. Use Retry or reload after a conflict.",
+          "Save the issue successfully before adding this selection. Use Retry or reload after a conflict.",
         );
       valid();
-      if (
-        !(await boundedWait(checkImportDraftAction(captured.issueId), signal))
-      )
-        throw new Error(
-          "This issue is no longer a draft. Import into another draft.",
-        );
       const uploaded = await boundedWait(
         uploadSelection(items, captured.issueId, uploads, signal),
         signal,
       );
-      valid();
-      if (
-        !(await boundedWait(checkImportDraftAction(captured.issueId), signal))
-      )
-        throw new Error(
-          "This issue was published while importing. The selection was not inserted.",
-        );
       valid();
       const pages = staged.pages.map((page) => ({
         ...page,

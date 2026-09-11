@@ -30,7 +30,8 @@ function Chip({
   const k = blockKind(kind);
   return (
     <span
-      className={`pointer-events-none absolute -top-2.5 z-10 flex items-center gap-1 rounded-full px-2 py-[3px] font-sans text-[11px] leading-none font-semibold ${
+      style={{ transformOrigin: `bottom ${side}` }}
+      className={`chrome-unscaled pointer-events-none absolute -top-2.5 z-10 flex items-center gap-1 rounded-full px-2 py-[3px] font-sans text-[11px] leading-none font-semibold ${
         side === "left" ? "left-1.5" : "right-1.5"
       } ${
         ghost
@@ -45,7 +46,9 @@ function Chip({
 }
 
 // One detected region drawn over the PDF: the press target, its kind chip and,
-// once selected and under the pointer or focus, the tool pill.
+// once selected and under the pointer or focus, the tool pill. The chip and the
+// pill cancel the stage's scale (`.chrome-unscaled`, as the editor's block
+// chrome does) so they read the same size at every zoom.
 export function RegionOverlay({
   region,
   page,
@@ -86,6 +89,7 @@ export function RegionOverlay({
   };
   return (
     <div
+      data-region-overlay
       className={`absolute ${selected || attention ? "z-10" : ""}`}
       style={{
         left: `${(region.x / page.width) * 100}%`,
@@ -113,7 +117,10 @@ export function RegionOverlay({
         <Chip kind={kind} ghost={!selected} side="left" />
       )}
       {added && !selected && (
-        <span className="bg-ok text-paper pointer-events-none absolute -top-2.5 right-1.5 z-10 flex items-center gap-1 rounded-full px-2 py-[3px] font-sans text-[11px] leading-none font-semibold">
+        <span
+          style={{ transformOrigin: "bottom right" }}
+          className="chrome-unscaled bg-ok text-paper pointer-events-none absolute -top-2.5 right-1.5 z-10 flex items-center gap-1 rounded-full px-2 py-[3px] font-sans text-[11px] leading-none font-semibold"
+        >
           <Icon name="check" size={11} strokeWidth={2.4} />
           {added === "partial" ? "Partly added" : "Added"}
         </span>

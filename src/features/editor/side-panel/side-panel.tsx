@@ -1,16 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { IconButton } from "@/components/ui";
+import { SplitGrip } from "@/components/split-grip";
 
 const SLIDE_MS = 320;
 const STEP = 24;
+/** The gutter between canvas and panel: a visible strip with a grip, part of `width`. */
+const GUTTER = 14;
 
 // The editor's right-hand panel. Hidden until a tool on the rail asks for it,
 // then it slides in from the right edge and the canvas re-fits beside it. The
 // content sits at its full width anchored to the right, so it slides rather than
-// unfolds. The left edge is a drag handle (and a keyboard separator) that
-// resizes it. The content stays mounted through the closing slide and unmounts
+// unfolds. Its left edge is a gutter with a grip in the middle — the visible
+// seam between the two stages, and the drag handle (and keyboard separator)
+// that resizes the panel. There is no header: the rail button that opened the panel is
+// pressed while it is out and closes it again, and the tool owns the whole
+// height. The content stays mounted through the closing slide and unmounts
 // after, so an open PDF releases its worker when the panel is dismissed.
 export function SidePanel({
   id,
@@ -20,7 +25,6 @@ export function SidePanel({
   min,
   max,
   onResize,
-  onClose,
   children,
 }: {
   id: string;
@@ -30,7 +34,6 @@ export function SidePanel({
   min: number;
   max: number;
   onResize: (width: number) => void;
-  onClose: () => void;
   children: ReactNode;
 }) {
   const [mounted, setMounted] = useState(open);
@@ -84,26 +87,26 @@ export function SidePanel({
       aria-hidden={!open || undefined}
       inert={!open}
       style={{ width: open ? width : 0 }}
-      className={`border-line bg-card relative flex-none overflow-hidden border-l ${
+      className={`bg-card relative flex-none ${
         dragging
           ? ""
           : "motion-safe:transition-[width] motion-safe:duration-300 motion-safe:ease-out"
       }`}
     >
-      <div
-        style={{ width }}
-        className="absolute inset-y-0 right-0 flex flex-col"
-      >
-        <header className="border-line flex h-[52px] flex-none items-center justify-between border-b pr-4 pl-5">
-          <h2 className="text-ink font-serif text-[19px]">{title}</h2>
-          <IconButton icon="close" label="Close panel" onClick={onClose} />
-        </header>
-        <div className="flex min-h-0 flex-1 flex-col">
-          {mounted && children}
+      {/* The clip lives here, not on the aside, so the grip can overhang the
+          gutter's edges while the sliding content is still cut at them. */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div
+          style={{ width: width - GUTTER }}
+          className="absolute inset-y-0 right-0 flex flex-col"
+        >
+          <div className="flex min-h-0 flex-1 flex-col">
+            {mounted && children}
+          </div>
         </div>
       </div>
-      {/* The handle straddles the panel's left border: a wide hit area around a
-          hairline that lights up on hover and while dragging. */}
+      {/* The gutter is the handle: hairlines either side, the shared grip
+          overhanging them in the middle, tinted on hover and while dragging. */}
       <div
         role="separator"
         aria-orientation="vertical"
@@ -117,17 +120,12 @@ export function SidePanel({
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
         onKeyDown={onKeyDown}
-        className={`group absolute inset-y-0 -left-1.5 z-10 w-3 cursor-col-resize touch-none select-none ${
-          dragging ? "" : "focus-visible:outline-offset-[-2px]"
-        }`}
+        style={{ width: GUTTER }}
+        className={`border-line group absolute inset-y-0 left-0 z-10 cursor-col-resize touch-none items-center justify-center border-x transition-colors duration-150 select-none focus-visible:outline-offset-[-2px] ${
+          mounted ? "flex" : "hidden"
+        } ${dragging ? "bg-accent-wash" : "bg-paper hover:bg-accent-wash"}`}
       >
-        <span
-          className={`absolute inset-y-0 left-[5px] w-0.5 transition-colors duration-150 ${
-            dragging
-              ? "bg-accent"
-              : "bg-transparent group-hover:bg-accent group-focus-visible:bg-accent"
-          }`}
-        />
+        <SplitGrip dragging={dragging} />
       </div>
     </aside>
   );

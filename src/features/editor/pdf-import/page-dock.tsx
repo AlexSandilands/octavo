@@ -1,36 +1,92 @@
 "use client";
 
+import type { ReactNode } from "react";
+import { Button } from "@/components/ui";
+import { BarDivider, FloatingBar } from "../floating-bar";
 import { ToolButton } from "../tool-button";
+import type { BarLayout } from "../use-bar-layout";
+import type { AddStatus } from "./use-add-selection";
 
-export const ZOOM_MIN = 100;
-export const ZOOM_MAX = 250;
-const ZOOM_STEP = 25;
-
-// Page and zoom controls floating over the foot of the PDF view, the way the
-// editor's own tools float over the canvas. `unavailable` keeps an exhausted
-// control focusable so paging to the end doesn't drop keyboard focus.
+// The PDF panel's tool bar, floating over the foot of its stage in the same
+// pill as the editor's own tools: paging, the selection (how much, press to see
+// the list in the order it will be added; select everything on the page; clear)
+// and the one Add that sends it all. News — progress, the outcome, a refusal —
+// is a caption at the foot, otherwise heard only; the open selection list sits
+// above that. Labels go first as the panel narrows, then the bar stands on end
+// at the panel's outer edge and the count moves onto the list button (`layout`).
 export function PageDock({
+  layout,
   pageNumber,
   pageCount,
-  zoom,
   busy,
+  count,
+  listOpen,
+  canSelectAll,
+  adding,
+  status,
   onNavigate,
-  onZoom,
+  onToggleList,
+  onSelectAll,
+  onClear,
+  onAdd,
+  onCancel,
+  children,
 }: {
+  layout: BarLayout;
   pageNumber: number;
   pageCount: number;
-  zoom: number;
+  /** The source is reading a page: paging waits, selection does not. */
   busy: boolean;
+  count: number;
+  listOpen: boolean;
+  canSelectAll: boolean;
+  adding: boolean;
+  status: AddStatus | null;
   onNavigate: (page: number) => void;
-  onZoom: (zoom: number) => void;
+  onToggleList: () => void;
+  onSelectAll: () => void;
+  onClear: () => void;
+  onAdd: () => void;
+  onCancel: () => void;
+  /** The selection list, when open. */
+  children?: ReactNode;
 }) {
+  const vertical = layout === "vertical";
+  const showLabel = layout === "labels";
+  const addLabel = adding ? "Adding…" : count > 1 ? `Add ${count}` : "Add";
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex justify-center px-4 pb-4">
+    <>
+      {/* The list and the news keep to the foot, clear of a standing bar. */}
       <div
-        role="group"
-        aria-label="PDF page and zoom"
-        className="border-hair-warm pointer-events-auto flex items-center gap-1 rounded-[14px] border bg-white px-2 py-1.5 shadow-[0_8px_28px_rgba(40,36,28,0.22)]"
+        className={`pointer-events-none absolute z-30 flex flex-col items-center gap-2 ${
+          vertical ? "right-[92px] bottom-5 left-4" : "inset-x-4 bottom-[86px]"
+        }`}
       >
+        {children}
+        {/* Always mounted so a screen reader hears the change; visible only
+            when there is something to say. */}
+        <p
+          role="status"
+          aria-live="polite"
+          className={
+            status
+              ? `border-hair-warm pointer-events-auto max-w-full rounded-full border bg-white px-3.5 py-1 text-center text-[13px] leading-snug shadow-[0_4px_14px_rgba(40,36,28,0.12)] ${
+                  status.tone === "warn" ? "text-warn" : "text-faint"
+                }`
+              : "sr-only"
+          }
+        >
+          {status?.text}
+        </p>
+      </div>
+      <FloatingBar
+        vertical={vertical}
+        side="right"
+        label="PDF tools"
+        groupProps={{ "data-add-bar": true } as Record<string, boolean>}
+      >
+        {/* `unavailable` keeps an exhausted control focusable, so paging to
+            the end doesn't drop keyboard focus. */}
         <ToolButton
           icon="chevronLeft"
           label="Previous PDF page"
@@ -39,7 +95,9 @@ export function PageDock({
         />
         <span
           aria-live="polite"
-          className="text-ink min-w-[64px] text-center font-sans text-[13px] font-semibold tabular-nums"
+          className={`text-ink text-center font-sans text-[13px] font-semibold tabular-nums ${
+            vertical ? "" : "min-w-[56px]"
+          }`}
         >
           {pageNumber} / {pageCount}
         </span>
@@ -49,23 +107,65 @@ export function PageDock({
           unavailable={busy || pageNumber >= pageCount}
           onClick={() => onNavigate(pageNumber + 1)}
         />
-        <span className="bg-line mx-1 h-6 w-px" />
+        <BarDivider vertical={vertical} />
         <ToolButton
-          icon="minus"
-          label="Zoom out"
-          unavailable={zoom <= ZOOM_MIN}
-          onClick={() => onZoom(Math.max(ZOOM_MIN, zoom - ZOOM_STEP))}
+          icon="listBullet"
+          label={count ? `${count} selected` : "Nothing selected"}
+          hint={
+            count
+              ? "Show the selection in the order it will be added"
+              : "Nothing selected yet"
+          }
+          showLabel={showLabel}
+          badge={showLabel ? undefined : count || undefined}
+          pressed={listOpen}
+          expanded={listOpen}
+          controls="pdf-import-selection"
+          unavailable={!count}
+          onClick={onToggleList}
         />
-        <span className="text-ink min-w-[48px] text-center font-sans text-[13px] font-semibold tabular-nums">
-          {zoom}%
-        </span>
         <ToolButton
+          icon="selectAll"
+          label="Select all on page"
+          hint="Select every region on this page"
+          iconClass="text-accent"
+          showLabel={showLabel}
+          unavailable={!canSelectAll || adding}
+          onClick={onSelectAll}
+        />
+        {count > 0 && (
+          <ToolButton
+            icon="selectNone"
+            label="Clear"
+            hint="Clear the selection"
+            showLabel={showLabel}
+            unavailable={adding}
+            onClick={onClear}
+          />
+        )}
+        <BarDivider vertical={vertical} />
+        {adding &&
+          (vertical ? (
+            <ToolButton icon="close" label="Cancel" onClick={onCancel} />
+          ) : (
+            <Button size="sm" variant="secondary" onClick={onCancel}>
+              Cancel
+            </Button>
+          ))}
+        {/* Add keeps its place while working, so a double press lands on a
+            busy button rather than on Cancel. Standing, it is the icon alone
+            and the count shows on the list button instead. */}
+        <Button
+          size="sm"
           icon="plus"
-          label="Zoom in"
-          unavailable={zoom >= ZOOM_MAX}
-          onClick={() => onZoom(Math.min(ZOOM_MAX, zoom + ZOOM_STEP))}
-        />
-      </div>
-    </div>
+          iconPosition="left"
+          disabled={!count}
+          busy={adding}
+          onClick={onAdd}
+        >
+          {vertical ? <span className="sr-only">{addLabel}</span> : addLabel}
+        </Button>
+      </FloatingBar>
+    </>
   );
 }

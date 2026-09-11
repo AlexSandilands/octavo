@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useId, useRef, useState, type ReactNode } from "react";
+import { SplitGrip } from "@/components/split-grip";
 import { usePrePaintEffect } from "./use-pre-paint-effect";
 
 // The two-column split on /admin/magazine: settings on the left, the live page
@@ -182,20 +183,15 @@ export function ResizableSplit({
           // touch-none so a touch drag resizes instead of scrolling the page.
           className="group sticky top-0 flex h-[70vh] w-8 cursor-col-resize touch-none items-center justify-center rounded"
         >
-          {/* The rail: a hairline the full height of the control, with a short
-              grip at the middle so it reads as something to take hold of. */}
+          {/* The rail: a hairline the full height of the control, with the
+              shared grip at the middle so it reads as something to take hold of. */}
           <span
             aria-hidden="true"
             className={`bg-line group-hover:bg-accent absolute inset-y-0 w-px transition-colors ${
               dragging ? "bg-accent" : ""
             }`}
           />
-          <span
-            aria-hidden="true"
-            className={`border-hair-warm group-hover:border-accent group-hover:bg-accent-wash relative h-10 w-[7px] rounded-full border-[1.5px] bg-white transition-colors ${
-              dragging ? "border-accent bg-accent-wash" : ""
-            }`}
-          />
+          <SplitGrip dragging={dragging} />
         </div>
       </div>
 

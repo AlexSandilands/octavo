@@ -112,6 +112,19 @@ const ICONS: Record<string, ReactNode> = {
       <rect x="3" y="8.5" width="18" height="7" />
     </>
   ),
+  // A dashed selection box with a tick, and the same box emptied.
+  selectAll: (
+    <>
+      <rect x="4" y="4" width="16" height="16" rx="2" strokeDasharray="3 2.5" />
+      <path d="M8.5 12.5l2.5 2.5 5-5.5" />
+    </>
+  ),
+  selectNone: (
+    <>
+      <rect x="4" y="4" width="16" height="16" rx="2" strokeDasharray="3 2.5" />
+      <path d="M9 12h6" />
+    </>
+  ),
   doc: (
     <>
       <path d="M6 3h9l3 3v15H6z" />

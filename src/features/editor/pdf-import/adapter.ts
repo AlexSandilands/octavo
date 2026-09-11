@@ -252,7 +252,19 @@ export class PdfSource {
             );
         }
         const regions = await groupRuns(runs, number, viewport.width, signal);
-        const pictures = await imageRegions(page, ops, pdf.OPS, signal);
+        // Drawing instructions the walker doesn't know cost the page its
+        // photos, not its text: it stays readable and says why.
+        const pictures = await imageRegions(page, ops, pdf.OPS, signal).catch(
+          (error: unknown) => {
+            if (signal.aborted) throw error;
+            return {
+              regions: [],
+              warnings: [
+                "Photos on this page cannot be picked up: it uses drawing instructions the importer does not read yet. Text can still be added.",
+              ],
+            };
+          },
+        );
         // Images join the nearest text column in source order, never selection order.
         const all = [...regions, ...pictures.regions];
         for (const picture of pictures.regions) {

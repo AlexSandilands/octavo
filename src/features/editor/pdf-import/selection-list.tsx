@@ -31,6 +31,7 @@ function Thumb({ region }: { region: Region }) {
 }
 
 // The selection in the order it will be added: retype, reorder or drop a row.
+// A sheet floating above the panel's tool bar, in the bar's own pill.
 export function SelectionList({
   items,
   disabled,
@@ -48,7 +49,7 @@ export function SelectionList({
     <ol
       id="pdf-import-selection"
       aria-label="Selected content, in the order it will be added"
-      className="border-line divide-line-soft scrollbar-soft max-h-[40%] flex-none divide-y overflow-y-auto border-b [--scrollbar-surface:var(--color-card)]"
+      className="border-hair-warm divide-line-soft scrollbar-soft pointer-events-auto max-h-[40vh] w-full max-w-[560px] divide-y overflow-y-auto rounded-[14px] border bg-white shadow-[0_8px_28px_rgba(40,36,28,0.22)] [--scrollbar-surface:white]"
     >
       {items.map((item, index) => (
         <li

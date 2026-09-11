@@ -4,12 +4,12 @@ import { useEffect, useRef } from "react";
 import type { ImportKind, Region, ReviewItem, SourcePage } from "./model";
 import { RegionOverlay } from "./region-overlay";
 
-// The rendered PDF page with every detected region laid over it. The canvas
-// comes from the source's cache and is adopted into the DOM here, so it is
-// drawn once however many times the author pages back and forth.
+// The rendered PDF page with every detected region laid over it, filling the
+// box the stage lays out for it. The canvas comes from the source's cache and
+// is adopted into the DOM here, so it is drawn once however many times the
+// author pages back and forth.
 export function PageView({
   page,
-  zoom,
   addCount,
   disabled,
   itemFor,
@@ -20,7 +20,6 @@ export function PageView({
   onAdd,
 }: {
   page: SourcePage;
-  zoom: number;
   addCount: number;
   disabled: boolean;
   itemFor: (regionId: string) => ReviewItem | undefined;
@@ -39,14 +38,7 @@ export function PageView({
     return () => canvas.remove();
   }, [page]);
   return (
-    <div
-      className="relative mx-auto bg-white shadow-[0_2px_14px_rgba(40,36,28,0.14)]"
-      style={{
-        width: `${zoom}%`,
-        minWidth: "100%",
-        aspectRatio: `${page.width} / ${page.height}`,
-      }}
-    >
+    <div className="relative h-full w-full bg-white">
       <div ref={host} className="absolute inset-0" />
       {page.regions.map((region) => (
         <RegionOverlay

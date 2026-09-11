@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import sharp from "sharp";
 import {
   base,
-  sql,
   browser,
   iid,
   token,
@@ -109,14 +108,10 @@ try {
   let closed = 0;
   page.on("worker", (worker) => worker.on("close", () => closed++));
   await openFile(page);
-  await page.getByRole("button", { name: "Close PDF", exact: true }).click();
-  await page.waitForTimeout(100);
-  assert.equal(closed, 1, "Close PDF terminates the real worker.");
-  await openFile(page);
   await closeTool(page);
   await page.waitForTimeout(500);
-  assert.equal(closed, 2, "Closing the panel releases the PDF too.");
-  // Storage succeeds while publication races with image record insertion.
+  assert.equal(closed, 1, "Closing the panel terminates the real worker.");
+  // Storage succeeds while the issue is deleted under the image record insert.
   await fetch(harness + "?delayPutsMs=600", { method: "POST" });
   const beforeRecord = await state();
   const png = await sharp({
@@ -127,7 +122,6 @@ try {
   const request = context.request.post(`${base}/api/admin/images`, {
     multipart: {
       issueId: iid,
-      importDraft: "true",
       file: { name: "selected-image.png", mimeType: "image/png", buffer: png },
     },
   });
@@ -138,7 +132,7 @@ try {
   )
     await new Promise((r) => setTimeout(r, 20));
   assert((await state()).counts.put > beforeRecord.counts.put);
-  await sql`update issues set status='published' where id=${iid}`;
+  await (await import("../src/server/issues.ts")).deleteIssue(iid);
   assert.equal((await request).status(), 409);
   const afterRecord = await state();
   assert.deepEqual(afterRecord.keys.sort(), beforeRecord.keys.sort());
@@ -146,21 +140,8 @@ try {
     afterRecord.counts.delete > beforeRecord.counts.delete,
     "Failed DB record compensates successful storage write.",
   );
-  const rejected = await context.request.post(`${base}/api/admin/images`, {
-    multipart: {
-      issueId: iid,
-      importDraft: "true",
-      file: { name: "selected-image.png", mimeType: "image/png", buffer: png },
-    },
-  });
-  assert.equal(rejected.status(), 409);
-  assert.equal(
-    (await state()).counts.put,
-    afterRecord.counts.put,
-    "Published destination rejected before storing.",
-  );
   console.log(
-    "PDF failure gate passed: retry reuse, close-mid-upload cancel, locked/signature/page limits, worker termination, concurrent publication and compensating cleanup.",
+    "PDF failure gate passed: retry reuse, close-mid-upload cancel, locked/signature/page limits, worker termination, concurrent deletion and compensating cleanup.",
   );
 } finally {
   await fetch(harness + "?delayPutsMs=0&failPuts=0", { method: "POST" });

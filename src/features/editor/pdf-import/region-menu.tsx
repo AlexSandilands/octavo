@@ -33,7 +33,10 @@ export function RegionMenu({
   const canSplit = region.kind === "text" && (region.lines?.length ?? 0) > 1;
   return (
     <div
-      className={`absolute z-20 ${below ? "top-full pt-1.5" : "bottom-full pb-1.5"} ${
+      style={{
+        transformOrigin: `${below ? "top" : "bottom"} ${fromRight ? "right" : "left"}`,
+      }}
+      className={`chrome-unscaled absolute z-20 w-max ${below ? "top-full pt-1.5" : "bottom-full pb-1.5"} ${
         fromRight ? "right-0" : "left-0"
       }`}
     >
@@ -45,7 +48,7 @@ export function RegionMenu({
         <KindToggle
           kind={kind}
           image={region.kind === "image"}
-          showLabel="always"
+          showLabel
           onChange={onKind}
         />
         {canSplit && (

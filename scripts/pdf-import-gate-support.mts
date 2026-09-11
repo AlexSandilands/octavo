@@ -79,8 +79,12 @@ export const magazinePage = (page: BrowserPage, n: number) =>
   page.getByRole("button", { name: String(n), exact: true });
 export const openTool = (page: BrowserPage) =>
   page.getByRole("button", { name: "Import PDF", exact: true }).click();
+/** The rail button that opened the panel is pressed while it is out; it closes it. */
 export const closeTool = (page: BrowserPage) =>
-  page.getByRole("button", { name: "Close panel", exact: true }).click();
+  page
+    .getByRole("navigation", { name: "Editor panels" })
+    .getByRole("button", { name: "Import PDF", exact: true })
+    .click();
 export const fileInput = (page: BrowserPage) =>
   panel(page).locator('input[type="file"]');
 /** Region press targets by kind, e.g. `region(page, "Image")`; the kind
@@ -112,7 +116,7 @@ export async function openFile(
 ) {
   await fileInput(page).setInputFiles(file);
   await page
-    .getByRole("group", { name: "PDF page and zoom" })
+    .getByRole("group", { name: "PDF tools" })
     .waitFor({ timeout: 35000 });
   await page.locator("[data-pdf-private] canvas").waitFor({ timeout: 35000 });
 }

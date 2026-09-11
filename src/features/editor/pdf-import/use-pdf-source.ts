@@ -1,9 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ZodError } from "zod";
 import { PdfSource } from "./adapter";
 import type { SourcePage } from "./model";
 import { splitPageRegions } from "./split";
+
+// What the panel shows for a failure: the importer's own messages are written
+// for the author; anything else (a validation error, a library throw) is not.
+const reason = (err: unknown, fallback: string) =>
+  err instanceof Error && !(err instanceof ZodError) && err.message
+    ? err.message
+    : fallback;
 
 // One open PDF in the panel: opening a file, reading its pages on demand and
 // releasing everything on close. Every asynchronous result is checked against
@@ -58,7 +66,7 @@ export function usePdfSource() {
       next.dispose();
       source.current = null;
       setName("");
-      setError(err instanceof Error ? err.message : "Could not open PDF.");
+      setError(reason(err, "Could not open PDF."));
     } finally {
       if (gen === generation.current) setBusy(false);
     }
@@ -78,9 +86,7 @@ export function usePdfSource() {
       if (gen === generation.current) setPage(next);
     } catch (err) {
       if (gen === generation.current)
-        setError(
-          err instanceof Error ? err.message : "Could not read this page.",
-        );
+        setError(reason(err, "Could not read this page."));
     } finally {
       if (gen === generation.current) setBusy(false);
     }
