@@ -95,6 +95,17 @@ document, the editor canvas and the library thumbnail leave it off and get one d
 with no client JS. Two blocks read it: `montage` (player vs. first slide) and `video` (a play-button
 facade vs. the poster frame plus the address in printable text).
 
+**The desktop reader's page turn is a shaded paper curl** (issue #215), split the same way as the
+rest of the reader: `curl-model.ts` samples the turn's geometry once per flip — a hinge chain of six
+flat sections rotating about the spine, with per-section tilt, reach and lift — into keyframes;
+`turn-curl-animate.ts` turns those into linear Web Animations (no per-frame JS); `turn-curl.tsx` is
+just the DOM. Underneath the moving sheet sits a static copy of the page it's lifting off, clipped to
+the sheet's own footprint — the "crack fix" that stops a hairline at the section boundaries from
+showing the page underneath instead of the sheet's own content. `PageBlocks`/`BlockView`'s
+`interactive` flag does double duty here: the flat pages still fully in view keep it, the sheet's
+face copies (and the crack-fix copy) don't, and are `aria-hidden` too, so a screen reader doesn't
+meet a dozen copies of one page mid-turn.
+
 **Pagination happens once, in the editor.** Content never reflows at read time — a page is a fixed
 canvas, and what the author placed is what every reader and the PDF get. So when a page overruns,
 the _editor_ fixes it, explicitly: the canvas is measured where it is laid out
