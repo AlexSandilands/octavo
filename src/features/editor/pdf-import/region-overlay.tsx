@@ -1,11 +1,21 @@
 "use client";
 
-import { useState, type FocusEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FocusEvent,
+  type PointerEventHandler,
+} from "react";
+import { useDraggable } from "@dnd-kit/core";
 import { Icon } from "@/components/icons";
 import { blockKind } from "../block-kinds";
+import { pdfDragId } from "./drag-out";
 import type { ImportKind, Region, ReviewItem, SourcePage } from "./model";
 import { RegionMenu } from "./region-menu";
 import { itemKind, regionLabel, suggestedKind } from "./region-text";
+import { reviewItem } from "./synthesis";
 
 // How a region is drawn on the page in each state. Idle marks every region
 // that can be picked up; the rest lift it as the author's attention arrives.
@@ -48,7 +58,8 @@ function Chip({
 // One detected region drawn over the PDF: the press target, its kind chip and,
 // once selected and under the pointer or focus, the tool pill. The chip and the
 // pill cancel the stage's scale (`.chrome-unscaled`, as the editor's block
-// chrome does) so they read the same size at every zoom.
+// chrome does) so they read the same size at every zoom. Held, the region can
+// be dragged out onto the magazine page (see `drag-out.ts`).
 export function RegionOverlay({
   region,
   page,
@@ -75,6 +86,24 @@ export function RegionOverlay({
   const [hover, setHover] = useState(false);
   const [focus, setFocus] = useState(false);
   const selected = Boolean(item);
+  // What a drag out carries: the region as selected, or as the detector saw it.
+  const carried = useMemo(() => item ?? reviewItem(region), [item, region]);
+  const { setNodeRef, listeners, isDragging } = useDraggable({
+    id: pdfDragId(region.id),
+    data: { item: carried },
+    disabled,
+  });
+  // The press that lifted the region must not also toggle it when it lands
+  // back on itself; the flag outlives the drag by a beat and then lets go.
+  const dragged = useRef(false);
+  useEffect(() => {
+    if (isDragging) {
+      dragged.current = true;
+      return;
+    }
+    const timer = setTimeout(() => (dragged.current = false), 250);
+    return () => clearTimeout(timer);
+  }, [isDragging]);
   const kind = item ? itemKind(item) : suggestedKind(region);
   const attention = hover || focus;
   const look = selected
@@ -103,15 +132,25 @@ export function RegionOverlay({
       onBlur={onBlur}
     >
       <button
+        ref={setNodeRef}
         type="button"
         data-region={region.id}
         aria-pressed={selected}
         aria-label={regionLabel(region, kind, selected, added)}
         disabled={disabled}
-        onClick={onToggle}
-        className={`absolute inset-0 rounded-[3px] transition-[box-shadow,background-color] duration-150 ${
+        onClick={() => {
+          if (dragged.current) return;
+          onToggle();
+        }}
+        // Only the pointer activator: the keyboard keeps its button behaviour.
+        onPointerDown={
+          listeners?.onPointerDown as
+            | PointerEventHandler<HTMLButtonElement>
+            | undefined
+        }
+        className={`absolute inset-0 rounded-[3px] transition-[box-shadow,background-color,opacity] duration-150 ${
           disabled ? "cursor-default" : "cursor-pointer"
-        } ${look}`}
+        } ${isDragging ? "opacity-40" : ""} ${look}`}
       />
       {(selected || (attention && !disabled)) && (
         <Chip kind={kind} ghost={!selected} side="left" />

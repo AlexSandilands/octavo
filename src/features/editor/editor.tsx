@@ -1,14 +1,19 @@
 "use client";
 
-import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
+import {
+  Fragment,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { type IssueContent } from "@/lib/blocks";
 import {
   DndContext,
   KeyboardSensor,
-  PointerSensor,
-  closestCenter,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -38,6 +43,18 @@ import { pageFillsCanvas } from "@/features/blocks/layout";
 import { useCanvasPanZoom } from "@/features/blocks/use-canvas-pan-zoom";
 import { useEditorPages } from "./use-editor-pages";
 import { usePdfInsertion } from "./pdf-import/use-pdf-insertion";
+import {
+  BlockPointerSensor,
+  RegionPointerSensor,
+  dragOutCollision,
+} from "./pdf-import/drag-out";
+import { DropPreview } from "./pdf-import/drop-preview";
+import {
+  DragOutGhost,
+  PageDropZone,
+  usePdfDragOut,
+  type DropHandler,
+} from "./use-pdf-drag-out";
 import { useTextFlow } from "./use-text-flow";
 import { EditorBlock } from "./editor-block";
 import { reportEditorError } from "./report-error";
@@ -220,8 +237,13 @@ export function Editor({
 
   // Drag from the handle, or move with the keyboard once the handle is focused.
   // A small distance threshold lets a plain click on the handle still select.
+  // Blocks lift after a short travel; a PDF region after a short hold, so a
+  // quick drag across it still pans the PDF stage (`drag-out.ts`).
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(BlockPointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(RegionPointerSensor, {
+      activationConstraint: { delay: 180, tolerance: 6 },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
@@ -298,6 +320,16 @@ export function Editor({
   // This page is owned by a full-bleed photo (issue #227): no page furniture,
   // and nothing else may be added to it.
   const filled = pageFillsCanvas(page);
+  // A region dragged out of the PDF panel: previewed in place on this page and,
+  // dropped, added through the panel's own Add (it sets `dropRef`).
+  const dropRef = useRef<DropHandler | null>(null);
+  const dragOut = usePdfDragOut({
+    page,
+    curPage,
+    images,
+    previewable: Boolean(page) && !page?.cover && !filled,
+    drop: dropRef,
+  });
   // The magazine's footer is taller than this issue's pages have room for, so
   // the canvas (and the reader) draw the smaller one it was made with until the
   // author says otherwise — see FooterUpdateNotice.
@@ -345,72 +377,77 @@ export function Editor({
           onPublish={() => setPub(true)}
         />
       </div>
-      <div ref={rowRef} className="flex flex-1 overflow-hidden">
-        <div inert={importer.pending} className="flex">
-          <PageRail
-            pages={pages}
-            curPage={curPage}
-            addMenu={addMenu}
-            onSelectPage={selectPage}
-            onReorder={reorderPages}
-            onAddPage={addPage}
-            onDeletePage={deletePage}
-            onToggleAddMenu={() => setAddMenu((v) => !v)}
-            onCloseAddMenu={() => setAddMenu(false)}
-          />
-        </div>
-        <div
-          ref={columnRef}
-          inert={importer.pending}
-          className="bg-canvas relative flex min-w-0 flex-1 flex-col overflow-hidden"
-        >
-          {footerBehind && page && !page.cover && !filled && (
-            <FooterUpdateNotice issueId={issue.id} flushSave={flushSave} />
-          )}
-
+      <DndContext
+        sensors={sensors}
+        collisionDetection={dragOutCollision}
+        onDragStart={dragOut.onDragStart}
+        onDragMove={dragOut.onDragMove}
+        onDragEnd={(e) => {
+          if (!dragOut.onDragEnd(e)) onDragEnd(e);
+        }}
+        onDragCancel={dragOut.onDragCancel}
+      >
+        <div ref={rowRef} className="flex flex-1 overflow-hidden">
+          <div inert={importer.pending} className="flex">
+            <PageRail
+              pages={pages}
+              curPage={curPage}
+              addMenu={addMenu}
+              onSelectPage={selectPage}
+              onReorder={reorderPages}
+              onAddPage={addPage}
+              onDeletePage={deletePage}
+              onToggleAddMenu={() => setAddMenu((v) => !v)}
+              onCloseAddMenu={() => setAddMenu(false)}
+            />
+          </div>
           <div
-            ref={stageRef}
-            onClick={() => {
-              // A drag-pan ends in a click; don't let it deselect the block.
-              if (consumeClickSuppression()) return;
-              deselect();
-            }}
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            onPointerCancel={onPointerUp}
-            style={{
-              paddingTop: stagePadding.top,
-              paddingRight: stagePadding.right,
-              paddingBottom: stagePadding.bottom,
-              paddingLeft: stagePadding.left,
-            }}
-            className={`relative flex flex-1 items-center justify-center overflow-hidden ${
-              panning ? "cursor-grabbing select-none" : "cursor-grab"
-            }`}
+            ref={columnRef}
+            inert={importer.pending}
+            className="bg-canvas relative flex min-w-0 flex-1 flex-col overflow-hidden"
           >
-            <StageBadge>Magazine</StageBadge>
+            {footerBehind && page && !page.cover && !filled && (
+              <FooterUpdateNotice issueId={issue.id} flushSave={flushSave} />
+            )}
+
             <div
-              ref={panRef}
-              className="shadow-[0_10px_30px_rgba(40,36,28,0.14)]"
+              ref={stageRef}
+              onClick={() => {
+                // A drag-pan ends in a click; don't let it deselect the block.
+                if (consumeClickSuppression()) return;
+                deselect();
+              }}
+              onPointerDown={onPointerDown}
+              onPointerMove={onPointerMove}
+              onPointerUp={onPointerUp}
+              onPointerCancel={onPointerUp}
+              style={{
+                paddingTop: stagePadding.top,
+                paddingRight: stagePadding.right,
+                paddingBottom: stagePadding.bottom,
+                paddingLeft: stagePadding.left,
+              }}
+              className={`relative flex flex-1 items-center justify-center overflow-hidden ${
+                panning ? "cursor-grabbing select-none" : "cursor-grab"
+              }`}
             >
-              <ScaledPage scale={scale}>
-                <PageFrame
-                  theme={theme}
-                  w={PAGE_W}
-                  h={PAGE_H}
-                  issueNo={issue.number}
-                  pageNo={curPage + 1}
-                  logo={logo}
-                  settings={settings}
-                  clip={false}
-                  cover={page?.cover}
-                  bleed={filled}
-                >
-                  <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={onDragEnd}
+              <StageBadge>Magazine</StageBadge>
+              <PageDropZone
+                panRef={panRef}
+                className="shadow-[0_10px_30px_rgba(40,36,28,0.14)]"
+              >
+                <ScaledPage scale={scale}>
+                  <PageFrame
+                    theme={theme}
+                    w={PAGE_W}
+                    h={PAGE_H}
+                    issueNo={issue.number}
+                    pageNo={curPage + 1}
+                    logo={logo}
+                    settings={settings}
+                    clip={false}
+                    cover={page?.cover}
+                    bleed={filled}
                   >
                     <SortableContext
                       items={(page?.blocks ?? []).map((b) => b.id)}
@@ -424,97 +461,125 @@ export function Editor({
                             : "relative flow-root"
                         }
                       >
-                        {page && page.blocks.length === 0 && (
-                          <div className="text-faint2 py-16 text-center font-serif text-sm">
-                            This page is empty. Add a block below.
-                          </div>
-                        )}
-                        {page?.blocks.map((b) => (
-                          <EditorBlock
-                            // Remounting is how a rewrite behind an
-                            // uncontrolled editor's back (a split, an undo) lands.
-                            key={`${b.id}:${reseed[b.id] ?? 0}`}
-                            block={b}
-                            theme={theme}
-                            cover={page.cover}
-                            selected={b.id === sel}
-                            issueId={issue.id}
-                            images={images}
-                            sponsors={sponsors}
-                            sponsorMap={sponsorMap}
-                            overflowAt={
-                              overflow?.id === b.id
-                                ? overflow.markerTop
-                                : undefined
-                            }
-                            fitsAlone={overflow?.fitsAlone}
-                            onSelect={() => setSel(b.id)}
-                            onChange={(patch) => updateBlock(b.id, patch)}
-                            onMove={(dir) => moveBlock(b.id, dir)}
-                            onRemove={() => removeBlock(b.id)}
-                            onFlow={() => flow(b.id)}
-                            onFillPage={(a) => fillPage(b.id, a)}
-                            onRegisterImage={registerImage}
-                          />
+                        {page &&
+                          page.blocks.length === 0 &&
+                          !dragOut.preview && (
+                            <div className="text-faint2 py-16 text-center font-serif text-sm">
+                              This page is empty. Add a block below.
+                            </div>
+                          )}
+                        {page?.blocks.map((b, i) => (
+                          // Remounting is how a rewrite behind an
+                          // uncontrolled editor's back (a split, an undo) lands.
+                          <Fragment key={`${b.id}:${reseed[b.id] ?? 0}`}>
+                            {dragOut.preview?.index === i && (
+                              <DropPreview
+                                block={dragOut.preview.block}
+                                theme={theme}
+                                images={dragOut.preview.images}
+                                sponsors={sponsorMap}
+                              />
+                            )}
+                            <EditorBlock
+                              block={b}
+                              theme={theme}
+                              cover={page.cover}
+                              selected={b.id === sel}
+                              issueId={issue.id}
+                              images={images}
+                              sponsors={sponsors}
+                              sponsorMap={sponsorMap}
+                              overflowAt={
+                                overflow?.id === b.id
+                                  ? overflow.markerTop
+                                  : undefined
+                              }
+                              fitsAlone={overflow?.fitsAlone}
+                              onSelect={() => setSel(b.id)}
+                              onChange={(patch) => updateBlock(b.id, patch)}
+                              onMove={(dir) => moveBlock(b.id, dir)}
+                              onRemove={() => removeBlock(b.id)}
+                              onFlow={() => flow(b.id)}
+                              onFillPage={(a) => fillPage(b.id, a)}
+                              onRegisterImage={registerImage}
+                            />
+                          </Fragment>
                         ))}
+                        {dragOut.preview &&
+                          dragOut.preview.index >=
+                            (page?.blocks.length ?? 0) && (
+                            <DropPreview
+                              block={dragOut.preview.block}
+                              theme={theme}
+                              images={dragOut.preview.images}
+                              sponsors={sponsorMap}
+                            />
+                          )}
                       </div>
                     </SortableContext>
-                  </DndContext>
-                </PageFrame>
-              </ScaledPage>
+                  </PageFrame>
+                </ScaledPage>
+              </PageDropZone>
             </div>
-          </div>
 
-          <EditorToolbar
-            layout={barLayout}
-            onAddBlock={addBlock}
-            insertDisabled={filled}
-            onToggleCover={toggleCover}
-            coverDisabled={curPage === 0}
-            coverActive={Boolean(page?.cover)}
-            canUndo={canUndo}
-            canRedo={canRedo}
-            onUndo={undo}
-            onRedo={redo}
-            notice={historyNotice}
-          />
+            <EditorToolbar
+              layout={barLayout}
+              onAddBlock={addBlock}
+              insertDisabled={filled}
+              onToggleCover={toggleCover}
+              coverDisabled={curPage === 0}
+              coverActive={Boolean(page?.cover)}
+              canUndo={canUndo}
+              canRedo={canRedo}
+              onUndo={undo}
+              onRedo={redo}
+              notice={historyNotice}
+            />
+          </div>
+          <SidePanel
+            id={PANEL_ID}
+            open={tool === "pdf"}
+            title="Import PDF"
+            width={panel.width}
+            min={panel.min}
+            max={panel.max}
+            onResize={panel.setWidth}
+          >
+            <PdfImportPanel
+              pages={pages}
+              onAdd={importer.add}
+              onRailActions={setToolActions}
+              dropRef={dropRef}
+            />
+          </SidePanel>
+          <div inert={importer.pending} className="flex">
+            <ToolRail
+              active={tool}
+              panelId={PANEL_ID}
+              actions={
+                tool
+                  ? [
+                      {
+                        id: "close",
+                        icon: "close",
+                        label: "Close panel",
+                        onClick: () => setTool(null),
+                      },
+                      ...toolActions,
+                    ]
+                  : []
+              }
+              onToggle={(next) => setTool(tool === next ? null : next)}
+            />
+          </div>
         </div>
-        <SidePanel
-          id={PANEL_ID}
-          open={tool === "pdf"}
-          title="Import PDF"
-          width={panel.width}
-          min={panel.min}
-          max={panel.max}
-          onResize={panel.setWidth}
-        >
-          <PdfImportPanel
-            pages={pages}
-            onAdd={importer.add}
-            onRailActions={setToolActions}
-          />
-        </SidePanel>
-        <div inert={importer.pending} className="flex">
-          <ToolRail
-            active={tool}
-            panelId={PANEL_ID}
-            actions={
-              tool
-                ? [
-                    {
-                      id: "close",
-                      icon: "close",
-                      label: "Close panel",
-                      onClick: () => setTool(null),
-                    },
-                    ...toolActions,
-                  ]
-                : []
-            }
-            onToggle={(next) => setTool(tool === next ? null : next)}
-          />
-        </div>
-      </div>
+        <DragOutGhost
+          dragOut={dragOut}
+          page={page}
+          curPage={curPage}
+          filled={filled}
+        />
+      </DndContext>
 
       {pub && (
         <PublishModal

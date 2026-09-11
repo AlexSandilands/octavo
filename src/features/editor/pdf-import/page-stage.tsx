@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, type ReactNode } from "react";
+import { useDndContext } from "@dnd-kit/core";
 import { PAGE_W } from "@/features/blocks/page-frame";
 import { useCanvasPanZoom } from "@/features/blocks/use-canvas-pan-zoom";
 import { TOOLBAR_RESERVE } from "../floating-bar";
@@ -10,8 +11,9 @@ import type { SourcePage } from "./model";
 // magazine page beside it: laid out at the magazine's page width, scaled to fit
 // the panel, then wheel-zoomed and dragged on top. A drag may start on a region
 // (they cover most of a text page) and becomes a pan once it clearly moves;
-// a plain press still selects. The same stage padding and tool-bar reserve as
-// the editor give the two pages the same fit when they share the row.
+// a plain press still selects, and a held press lifts the region for the
+// magazine, during which the stage neither pans nor zooms. The same stage
+// padding and tool-bar reserve as the editor give the two pages the same fit.
 export function PageStage({
   page,
   barStanding,
@@ -23,6 +25,7 @@ export function PageStage({
   children: ReactNode;
 }) {
   const height = Math.round((PAGE_W * page.height) / page.width);
+  const { active } = useDndContext();
   const padding = barStanding
     ? { top: 40, right: TOOLBAR_RESERVE, bottom: 40, left: 40 }
     : { top: 40, right: 40, bottom: TOOLBAR_RESERVE, left: 40 };
@@ -46,6 +49,7 @@ export function PageStage({
     initialFitScale: 0.75,
     blockSelector: "[data-region-overlay]",
     panOverBlocks: true,
+    isBlocked: () => Boolean(active),
   });
 
   // A new page (or a new file) starts from the fitted view, as the editor does

@@ -45,7 +45,15 @@ and published issues alike: it is an ordinary edit, saved and re-published like 
    outcome, or a refusal with the issue unchanged and the selection kept for correction —
    is a caption above the bar (a live region, so it is heard as well as seen); with
    nothing to say the stage stays clear.
-4. Regions added this session carry an _Added_ chip (derived from the blocks still in the
+4. **Drag out** — hold a region for a beat and it lifts (a quick drag still pans the PDF
+   stage): a small ghost of its kind and content rides under the pointer, and once it is
+   over the magazine page the block it will become is set into the page at the place it
+   would take, moving as the pointer does, with the ghost quietened. Dropping runs the
+   ordinary Add aimed at that place (`DropTarget`), so fitting, uploads, undo and the
+   _Added_ marks are the same as the bar's button; over a cover or a page-owning photo the
+   ghost says the block will land on a new page instead. One `DndContext` wraps the editor
+   row for this and for the page's own block sorting (`pdf-import/drag-out.ts`).
+5. Regions added this session carry an _Added_ chip (derived from the blocks still in the
    issue, so Undo clears it) and can be added again deliberately.
 
 Insertion and fitting are unchanged from the original implementation: the destination's

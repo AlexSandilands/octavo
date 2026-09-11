@@ -220,6 +220,12 @@ export function useCanvasPanZoom(opts: PanZoomOptions) {
   const onPointerMove = (e: React.PointerEvent) => {
     const d = drag.current;
     if (!d) return;
+    // A held press that something else claimed meanwhile (a drag out of the
+    // PDF panel) is not a pan after all.
+    if (d.held && isBlocked()) {
+      drag.current = null;
+      return;
+    }
     if (!d.moved && Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 3) {
       d.moved = true;
       if (d.held) {

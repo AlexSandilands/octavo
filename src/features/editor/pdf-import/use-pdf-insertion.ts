@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import type { EditorSnapshot } from "../use-editor-history";
 import type { MeasurementOptions } from "./measure";
+import type { DropTarget } from "./drag-out";
 import { boundedWait, type ReviewItem, type SourceMapping } from "./model";
 import type { UploadCache } from "./upload";
 
@@ -27,6 +28,8 @@ export function usePdfInsertion(
     items: ReviewItem[],
     signal: AbortSignal,
     uploads: UploadCache,
+    /** A drop's exact place; otherwise after the selected block on the current page. */
+    target?: DropTarget,
   ): Promise<SourceMapping> => {
     if (lock.current) throw new Error("An import is already running.");
     lock.current = true;
@@ -86,8 +89,9 @@ export function usePdfInsertion(
       dispose = measurer.dispose;
       const staged = await paginateImport({
         pages: captured.pages,
-        index: captured.curPage,
+        index: target?.page ?? captured.curPage,
         selected: captured.sel,
+        position: target?.position,
         inserted: batch.blocks,
         fits: measurer.fits,
         signal,

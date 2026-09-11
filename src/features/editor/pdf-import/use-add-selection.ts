@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { DropTarget } from "./drag-out";
 import type { ReviewItem, SourceMapping } from "./model";
 import type { UploadCache } from "./upload";
 
@@ -16,6 +17,7 @@ export function useAddSelection(
     items: ReviewItem[],
     signal: AbortSignal,
     uploads: UploadCache,
+    target?: DropTarget,
   ) => Promise<SourceMapping>,
 ) {
   const [adding, setAdding] = useState(false);
@@ -43,6 +45,7 @@ export function useAddSelection(
   const add = async (
     items: ReviewItem[],
     onDone: (added: SourceMapping) => void,
+    target?: DropTarget,
   ) => {
     if (lock.current || !items.length) return;
     lock.current = true;
@@ -55,7 +58,7 @@ export function useAddSelection(
       tone: "info",
     });
     try {
-      const added = await onAdd(items, run.signal, uploads.current);
+      const added = await onAdd(items, run.signal, uploads.current, target);
       if (gen !== generation.current) return;
       onDone(added);
       const n = Object.values(added).flat().length;

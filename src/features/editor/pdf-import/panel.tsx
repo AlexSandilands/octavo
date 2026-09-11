@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import type { Page } from "@/lib/blocks";
 import type { RailAction } from "../side-panel/tool-rail";
 import { StageBadge } from "../stage-badge";
 import { useBarLayout } from "../use-bar-layout";
+import type { DropHandler } from "../use-pdf-drag-out";
+import type { DropTarget } from "./drag-out";
 import { DropZone } from "./drop-zone";
 import type { ImportKind, Region, ReviewItem, SourceMapping } from "./model";
 import { PageDock } from "./page-dock";
@@ -23,9 +25,12 @@ export type PdfImportPanelProps = {
     items: ReviewItem[],
     signal: AbortSignal,
     uploads: UploadCache,
+    target?: DropTarget,
   ) => Promise<SourceMapping>;
   /** The tool's rail actions, as they change: Replace PDF while a file is open. */
   onRailActions: (actions: RailAction[]) => void;
+  /** Where the editor finds this panel's Add when a region is dropped on the page. */
+  dropRef: RefObject<DropHandler | null>;
 };
 
 // The Import PDF tool: open a local PDF, pick regions on its pages, add them to
@@ -36,6 +41,7 @@ export default function PdfImportPanel({
   pages,
   onAdd,
   onRailActions,
+  dropRef,
 }: PdfImportPanelProps) {
   const source = usePdfSource();
   const selection = useImportSelection(pages);
@@ -78,6 +84,22 @@ export default function PdfImportPanel({
       selection.clear();
       setListOpen(false);
     });
+  // A dropped region goes through the same Add, aimed where it landed; if it
+  // was also selected it leaves the selection, the rest of which stays.
+  useEffect(() => {
+    dropRef.current = (item, target) =>
+      void batch.add(
+        [item],
+        (added) => {
+          selection.markAdded(added);
+          if (selection.itemFor(item.region.id)) selection.remove(item.id);
+        },
+        target,
+      );
+    return () => {
+      dropRef.current = null;
+    };
+  });
   const split = (region: Region) => {
     selection.dropSource(region.id);
     source.split(region.id);

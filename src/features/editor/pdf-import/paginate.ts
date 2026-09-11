@@ -78,13 +78,17 @@ export async function paginateImport({
   pages,
   index,
   selected,
+  position,
   inserted,
   fits,
   signal,
 }: {
   pages: Page[];
   index: number;
+  /** Insert after this block (after the page's last when null)… */
   selected: string | null;
+  /** …or at this block index, when a drop said exactly where. */
+  position?: number;
   inserted: Block[];
   fits: Fits;
   signal: AbortSignal;
@@ -95,13 +99,18 @@ export async function paginateImport({
   const at = separate
     ? -1
     : destination.blocks.findIndex((b) => b.id === selected);
-  const position = at < 0 ? destination.blocks.length : at + 1;
+  const slot =
+    position !== undefined
+      ? Math.min(position, destination.blocks.length)
+      : at < 0
+        ? destination.blocks.length
+        : at + 1;
   const sequence = separate
     ? inserted
     : [
-        ...destination.blocks.slice(0, position),
+        ...destination.blocks.slice(0, slot),
         ...inserted,
-        ...destination.blocks.slice(position),
+        ...destination.blocks.slice(slot),
       ];
   const queue = sequence.map((block) => ({ block, origin: block.id }));
   const output: Page[] = [];
