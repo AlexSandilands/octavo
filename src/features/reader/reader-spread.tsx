@@ -1,34 +1,27 @@
 "use client";
 
+import type { RefObject } from "react";
 import type { Page } from "@/lib/blocks";
 import type { SiteSettings } from "@/lib/branding";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 import type { LayoutTheme } from "@/features/blocks/themes/registry";
-import { pageFillsCanvas } from "@/features/blocks/layout";
-import { PageBlocks } from "@/features/blocks/page-blocks";
-import {
-  PageFrame,
-  ScaledPage,
-  PAGE_W,
-  PAGE_H,
-} from "@/features/blocks/page-frame";
+import { PageView, Plate } from "./page-view";
+import { TurnCurl } from "./turn-curl";
 
-// Duration of the page-curl, shared with the reader's turn commit timer.
-export const FLIP_MS = 700;
+export { FLIP_MS } from "./turn-curl-animate";
 
 export type Turn = { dir: "next" | "prev"; to: number };
 
 // The spine-centred spread shown inside the reader's stage: either an in-flight
-// page turn, the standalone cover, or a normal two-page spread. The outer
-// transform/pan wrapper and the edge-zone flip live in the reader; this owns the
-// page rendering and the turn animation only.
+// page turn (the shaded curl, issue #215), the standalone cover, or a normal
+// two-page spread. The outer transform/pan wrapper and the edge-zone flip live
+// in the reader; this owns the page rendering and the turn animation only.
 export function ReaderSpread({
   pages,
   spread,
   turn,
-  turnAngle,
-  leftFade,
+  onTurnEnd,
   theme,
   scale,
   issueNo,
@@ -36,17 +29,14 @@ export function ReaderSpread({
   settings,
   images,
   sponsors,
+  recentreRef,
 }: {
   pages: Page[];
   spread: number;
   turn: Turn | null;
-  turnAngle: number;
-  /**
-   * Opacity for the standing left-hand leaf while the cover opens/closes, so the
-   * facing page fades in (open) or out (close) in step with the curl. Undefined
-   * for every non-cover turn — those render at full opacity, unchanged.
-   */
-  leftFade?: number;
+  /** Called once the curl's animations finish (or fail to, see the reader's
+   *  safety-net timer) — commits `spread` to `turn.to` and clears `turn`. */
+  onTurnEnd: () => void;
   theme: LayoutTheme;
   scale: number;
   issueNo: number;
@@ -55,15 +45,16 @@ export function ReaderSpread({
   settings: SiteSettings;
   images: ImageMap;
   sponsors: SponsorMap;
+  /** The reader's outer wrapper — a cover turn recentres it on the curl's
+   *  shared timeline (see turn-curl-animate.ts). */
+  recentreRef: RefObject<HTMLDivElement | null>;
 }) {
   if (turn) {
     return (
-      <TurnLeaf
+      <TurnCurl
         pages={pages}
         spread={spread}
         turn={turn}
-        turnAngle={turnAngle}
-        leftFade={leftFade}
         theme={theme}
         scale={scale}
         issueNo={issueNo}
@@ -71,6 +62,8 @@ export function ReaderSpread({
         settings={settings}
         images={images}
         sponsors={sponsors}
+        onFinish={onTurnEnd}
+        recentreRef={recentreRef}
       />
     );
   }
@@ -91,6 +84,7 @@ export function ReaderSpread({
     // its layout slot (constant width) but is hidden, so only the cover shows.
     return (
       <>
+        <Plate atCover />
         <div className="flex-none [visibility:hidden]">
           <PageView
             side="left"
@@ -121,6 +115,7 @@ export function ReaderSpread({
 
   return (
     <>
+      <Plate atCover={false} />
       <PageView
         page={left}
         side="left"
@@ -146,215 +141,5 @@ export function ReaderSpread({
         sponsors={sponsors}
       />
     </>
-  );
-}
-
-// The animated spread: the destination spread painted beneath, the current
-// non-moving page on top, and a single leaf rotating around the spine from the
-// moving half (front = the current page, back = the destination page it lands
-// on, so the turn resolves seamlessly into the committed spread).
-function TurnLeaf({
-  pages,
-  spread: s,
-  turn,
-  turnAngle,
-  leftFade,
-  theme,
-  scale,
-  issueNo,
-  logo,
-  settings,
-  images,
-  sponsors,
-}: {
-  pages: Page[];
-  spread: number;
-  turn: Turn;
-  turnAngle: number;
-  leftFade?: number;
-  theme: LayoutTheme;
-  scale: number;
-  issueNo: number;
-  logo: ResolvedImage | null;
-  /** The magazine's effective branding + footer appearance (issue #105). */
-  settings: SiteSettings;
-  images: ImageMap;
-  sponsors: SponsorMap;
-}) {
-  const pageW = PAGE_W * scale;
-  const pageH = PAGE_H * scale;
-  const fwd = turn.dir === "next";
-  const clIdx = 2 * s - 1; // current left
-  const crIdx = 2 * s; // current right
-  const baseLeftIdx = fwd ? 2 * s + 1 : 2 * s - 3;
-  const baseRightIdx = fwd ? 2 * s + 2 : 2 * s - 2;
-
-  // `opacity` is only set for the standing left leaf during a cover turn (see
-  // ReaderSpread's leftFade); it transitions in step with the curl and is a
-  // no-op — full opacity, no transition — for every other turn.
-  const layer = (
-    idx: number,
-    side: "left" | "right",
-    x: number,
-    opacity?: number,
-  ) => (
-    <div
-      className={
-        opacity !== undefined
-          ? "transition-opacity duration-700 ease-[cubic-bezier(0.3,0.1,0.2,1)] motion-reduce:transition-none"
-          : undefined
-      }
-      style={{ position: "absolute", top: 0, left: x, opacity }}
-    >
-      <PageView
-        page={pages[idx]}
-        side={side}
-        theme={theme}
-        scale={scale}
-        issueNo={issueNo}
-        logo={logo}
-        settings={settings}
-        pageNo={idx + 1}
-        images={images}
-        sponsors={sponsors}
-      />
-    </div>
-  );
-
-  const frontIdx = fwd ? crIdx : clIdx;
-  const backIdx = fwd ? baseLeftIdx : baseRightIdx;
-  const backSide = fwd ? "left" : "right";
-
-  // Opening the cover, the destination left page must not be painted flat
-  // beneath the leaf — its content arrives on the leaf's back face as it lands,
-  // like a real page. Only blank backing paper fades in under it. (Closing has
-  // this for free: the base left is already the blank facing leaf.)
-  const paintedBaseLeftIdx = fwd && s === 0 ? -1 : baseLeftIdx;
-
-  return (
-    <div
-      style={{
-        position: "relative",
-        width: 2 * pageW,
-        height: pageH,
-        perspective: 2200,
-      }}
-    >
-      {layer(paintedBaseLeftIdx, "left", 0, leftFade)}
-      {layer(baseRightIdx, "right", pageW)}
-      {fwd ? layer(clIdx, "left", 0, leftFade) : layer(crIdx, "right", pageW)}
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: fwd ? pageW : 0,
-          width: pageW,
-          height: pageH,
-          zIndex: 5,
-          transformStyle: "preserve-3d",
-          transformOrigin: fwd ? "left center" : "right center",
-          transform: `rotateY(${turnAngle}deg)`,
-          transition: `transform ${FLIP_MS}ms cubic-bezier(0.3, 0.1, 0.2, 1)`,
-        }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            backfaceVisibility: "hidden",
-          }}
-        >
-          <PageView
-            page={pages[frontIdx]}
-            side={fwd ? "right" : "left"}
-            theme={theme}
-            scale={scale}
-            issueNo={issueNo}
-            logo={logo}
-            settings={settings}
-            pageNo={frontIdx + 1}
-            images={images}
-            sponsors={sponsors}
-          />
-        </div>
-        <div
-          className="bg-page"
-          style={{
-            position: "absolute",
-            inset: 0,
-            backfaceVisibility: "hidden",
-            transform: "rotateY(180deg)",
-          }}
-        >
-          <PageView
-            page={pages[backIdx]}
-            side={backSide}
-            theme={theme}
-            scale={scale}
-            issueNo={issueNo}
-            logo={logo}
-            settings={settings}
-            pageNo={backIdx + 1}
-            images={images}
-            sponsors={sponsors}
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PageView({
-  page,
-  side,
-  theme,
-  scale,
-  issueNo,
-  logo,
-  settings,
-  pageNo,
-  images,
-  sponsors,
-}: {
-  page?: Page;
-  side: "left" | "right";
-  theme: LayoutTheme;
-  scale: number;
-  issueNo: number;
-  logo: ResolvedImage | null;
-  settings: SiteSettings;
-  pageNo?: number;
-  images: ImageMap;
-  sponsors: SponsorMap;
-}) {
-  return (
-    <ScaledPage scale={scale}>
-      <PageFrame
-        theme={theme}
-        w={PAGE_W}
-        h={PAGE_H}
-        issueNo={issueNo}
-        logo={logo}
-        settings={settings}
-        pageNo={page ? pageNo : undefined}
-        side={side}
-        cover={page?.cover}
-        bleed={pageFillsCanvas(page)}
-      >
-        {page && (
-          <PageBlocks
-            page={page}
-            theme={theme}
-            images={images}
-            sponsors={sponsors}
-            // Only the spread(s) currently in view are mounted here, so a
-            // montage's timer exists only for pages the member can actually
-            // see — and a leaf mid-turn rotates edge-on and stops intersecting,
-            // which pauses it for the duration of the flip.
-            interactive
-          />
-        )}
-      </PageFrame>
-    </ScaledPage>
   );
 }
