@@ -9,11 +9,11 @@ import type { SourcePage } from "./model";
 
 // The PDF page on a canvas of its own, fitted and moved exactly like the
 // magazine page beside it: laid out at the magazine's page width, scaled to fit
-// the panel, then wheel-zoomed and dragged on top. A drag may start on a region
-// (they cover most of a text page) and becomes a pan once it clearly moves;
-// a plain press still selects, and a held press lifts the region for the
-// magazine, during which the stage neither pans nor zooms. The same stage
-// padding and tool-bar reserve as the editor give the two pages the same fit.
+// the panel, then wheel-zoomed and dragged on top. Panning starts on the page's
+// blank areas or the stage around it; a drag on a region lifts it for the
+// magazine instead, and the stage neither pans nor zooms while it is in hand.
+// The same stage padding and tool-bar reserve as the editor give the two pages
+// the same fit.
 export function PageStage({
   page,
   barStanding,
@@ -48,7 +48,6 @@ export function PageStage({
     fitClamp: { min: 0.2, max: 1.4 },
     initialFitScale: 0.75,
     blockSelector: "[data-region-overlay]",
-    panOverBlocks: true,
     isBlocked: () => Boolean(active),
   });
 

@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  PointerSensor,
   closestCenter,
   type CollisionDetection,
   type DragMoveEvent,
@@ -13,6 +12,8 @@ import { getEventCoordinates } from "@dnd-kit/utilities";
 // Dragging a region out of the PDF panel onto the magazine page. One DndContext
 // wraps the whole editor row, so the page's own block sorting and this share
 // its sensors and collision detection; everything here tells the two apart.
+// Regions lift after the same short travel as blocks: the PDF stage never pans
+// from a region, only from blank page or the stage around it.
 
 const PREFIX = "pdf-region:";
 export const pdfDragId = (regionId: string) => `${PREFIX}${regionId}`;
@@ -23,31 +24,6 @@ export const PAGE_DROP_ID = "magazine-page";
 
 /** Where a dropped region lands: a page, and the block index it takes there. */
 export type DropTarget = { page: number; position: number };
-
-const base = PointerSensor.activators[0]!;
-type Args = Parameters<typeof base.handler>;
-const onRegion = (args: Args) =>
-  Boolean((args[0].target as Element | null)?.closest?.("[data-region]"));
-
-// Magazine blocks lift after a short travel, as they always have. A region
-// lifts only after a short hold, so a quick drag across one still pans the
-// PDF stage (see `panOverBlocks`); the hold is what says "pick this up".
-export class BlockPointerSensor extends PointerSensor {
-  static activators: typeof PointerSensor.activators = [
-    {
-      eventName: "onPointerDown",
-      handler: (...args: Args) => !onRegion(args) && base.handler(...args),
-    },
-  ];
-}
-export class RegionPointerSensor extends PointerSensor {
-  static activators: typeof PointerSensor.activators = [
-    {
-      eventName: "onPointerDown",
-      handler: (...args: Args) => onRegion(args) && base.handler(...args),
-    },
-  ];
-}
 
 /** The pointer's place on screen during a drag: where it went down, plus the travel. */
 export function dragPointer(event: DragMoveEvent) {

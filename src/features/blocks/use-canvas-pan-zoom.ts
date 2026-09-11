@@ -36,13 +36,6 @@ export type PanZoomOptions = {
    */
   blockSelector: string;
   /**
-   * A drag that starts on a block still pans once it has clearly moved, and the
-   * click that would follow is suppressed. For content whose blocks are plain
-   * press targets (the PDF import's regions); the editor's blocks own text
-   * selection and drag-and-drop, so it leaves this off.
-   */
-  panOverBlocks?: boolean;
-  /**
    * When it returns true, wheel-zoom and drag-start are both suppressed — the
    * reader blocks them mid page-turn. Omitted ⇒ always active.
    */
@@ -182,27 +175,22 @@ export function useCanvasPanZoom(opts: PanZoomOptions) {
   }, []);
 
   // Click-drag to move the content, started only on blank areas (see the block
-  // selector) unless `panOverBlocks`, when a press on a block is held back until
-  // it clearly moves and only then captured as a pan. `moved` gates a
-  // click-suppression flag the caller can read so a drag that ends in a click
-  // doesn't register as one (the editor uses it to avoid deselecting the
-  // current block).
+  // selector). `moved` gates a click-suppression flag the caller can read so a
+  // drag that ends in a click doesn't register as one (the editor uses it to
+  // avoid deselecting the current block).
   const drag = useRef<{
     x: number;
     y: number;
     px: number;
     py: number;
     moved: boolean;
-    /** Started on a block: not a pan until it moves. */
-    held: boolean;
   } | null>(null);
   const suppressClick = useRef(false);
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (e.button !== 0 || isBlocked()) return;
     suppressClick.current = false;
-    const held = Boolean((e.target as HTMLElement).closest(blockSelector));
-    if (held && !opts.panOverBlocks) return;
+    if ((e.target as HTMLElement).closest(blockSelector)) return;
     const el = containerRef.current;
     if (!el) return;
     drag.current = {
@@ -211,29 +199,15 @@ export function useCanvasPanZoom(opts: PanZoomOptions) {
       px: pan.current.x,
       py: pan.current.y,
       moved: false,
-      held,
     };
-    if (held) return;
     el.setPointerCapture(e.pointerId);
     setPanning(true);
   };
   const onPointerMove = (e: React.PointerEvent) => {
     const d = drag.current;
     if (!d) return;
-    // A held press that something else claimed meanwhile (a drag out of the
-    // PDF panel) is not a pan after all.
-    if (d.held && isBlocked()) {
-      drag.current = null;
-      return;
-    }
-    if (!d.moved && Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 3) {
+    if (Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 3)
       d.moved = true;
-      if (d.held) {
-        containerRef.current?.setPointerCapture(e.pointerId);
-        setPanning(true);
-      }
-    }
-    if (d.held && !d.moved) return;
     setPan(
       clampPan(
         { x: d.px + (e.clientX - d.x), y: d.py + (e.clientY - d.y) },

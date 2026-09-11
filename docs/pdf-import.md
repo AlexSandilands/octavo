@@ -7,9 +7,9 @@ a drag handle (also a keyboard separator: arrow keys, Home, End) with bounds tha
 the canvas usable. The canvas re-fits to whatever is left. Inside, the PDF page sits on a
 stage of its own that mirrors the magazine canvas: laid out at the magazine's page width,
 fitted to the panel with the same margins, wheel-zoomed and dragged with the same engine
-(`useCanvasPanZoom`), and reset to the fitted view on every page change. A drag may
-start on a region — they cover most of a text page — and becomes a pan once it clearly
-moves; a plain press still selects. Closing the panel unmounts
+(`useCanvasPanZoom`), and reset to the fitted view on every page change. Panning starts
+on the page's blank areas or the stage around it; a drag on a region lifts it for the
+magazine (below), and a plain press still selects. Closing the panel unmounts
 the tool, which releases the PDF, its worker and any selection; magazine content is
 untouched. The panel has no chrome of its own: the rail button stays pressed while it is
 out, and the tool's actions slide down out of it as smaller buttons — _Close panel_ at
@@ -45,8 +45,8 @@ and published issues alike: it is an ordinary edit, saved and re-published like 
    outcome, or a refusal with the issue unchanged and the selection kept for correction —
    is a caption above the bar (a live region, so it is heard as well as seen); with
    nothing to say the stage stays clear.
-4. **Drag out** — hold a region for a beat and it lifts (a quick drag still pans the PDF
-   stage): a small ghost of its kind and content rides under the pointer, and once it is
+4. **Drag out** — drag a region and it lifts after the same short travel as a magazine
+   block: a small ghost of its kind and content rides under the pointer, and once it is
    over the magazine page the block it will become is set into the page at the place it
    would take, moving as the pointer does, with the ghost quietened. Dropping runs the
    ordinary Add aimed at that place (`DropTarget`), so fitting, uploads, undo and the

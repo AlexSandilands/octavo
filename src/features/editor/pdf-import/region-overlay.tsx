@@ -58,8 +58,8 @@ function Chip({
 // One detected region drawn over the PDF: the press target, its kind chip and,
 // once selected and under the pointer or focus, the tool pill. The chip and the
 // pill cancel the stage's scale (`.chrome-unscaled`, as the editor's block
-// chrome does) so they read the same size at every zoom. Held, the region can
-// be dragged out onto the magazine page (see `drag-out.ts`).
+// chrome does) so they read the same size at every zoom. Dragged, the region
+// lifts out onto the magazine page (see `drag-out.ts`).
 export function RegionOverlay({
   region,
   page,

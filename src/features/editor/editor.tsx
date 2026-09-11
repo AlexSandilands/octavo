@@ -14,6 +14,7 @@ import { type IssueContent } from "@/lib/blocks";
 import {
   DndContext,
   KeyboardSensor,
+  PointerSensor,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -43,11 +44,7 @@ import { pageFillsCanvas } from "@/features/blocks/layout";
 import { useCanvasPanZoom } from "@/features/blocks/use-canvas-pan-zoom";
 import { useEditorPages } from "./use-editor-pages";
 import { usePdfInsertion } from "./pdf-import/use-pdf-insertion";
-import {
-  BlockPointerSensor,
-  RegionPointerSensor,
-  dragOutCollision,
-} from "./pdf-import/drag-out";
+import { dragOutCollision } from "./pdf-import/drag-out";
 import { DropPreview } from "./pdf-import/drop-preview";
 import {
   DragOutGhost,
@@ -237,13 +234,9 @@ export function Editor({
 
   // Drag from the handle, or move with the keyboard once the handle is focused.
   // A small distance threshold lets a plain click on the handle still select.
-  // Blocks lift after a short travel; a PDF region after a short hold, so a
-  // quick drag across it still pans the PDF stage (`drag-out.ts`).
+  // Blocks and PDF regions alike lift after a short travel (`drag-out.ts`).
   const sensors = useSensors(
-    useSensor(BlockPointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(RegionPointerSensor, {
-      activationConstraint: { delay: 180, tolerance: 6 },
-    }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
