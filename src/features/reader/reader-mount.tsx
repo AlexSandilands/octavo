@@ -34,6 +34,7 @@ export function ReaderMount({
   settings,
   images,
   sponsors,
+  fillDesktopHeight = false,
 }: {
   content: IssueContent;
   issueNo: number;
@@ -44,6 +45,9 @@ export function ReaderMount({
   settings: SiteSettings;
   images: ImageMap;
   sponsors: SponsorMap;
+  /** Fill a height supplied by the parent instead of claiming the viewport.
+   *  Used by the admin preview, where the draft banner shares that viewport. */
+  fillDesktopHeight?: boolean;
 }) {
   // `null` until mounted: matchMedia isn't available during SSR, and picking the
   // wrong reader then swapping would download both bundles. The query stays live
@@ -66,6 +70,7 @@ export function ReaderMount({
       settings={settings}
       images={images}
       sponsors={sponsors}
+      fillHeight={fillDesktopHeight}
     />
   ) : (
     <MobileReader
