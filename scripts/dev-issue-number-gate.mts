@@ -1,33 +1,22 @@
 // Dev-only: proves the issue number is allocated at publish, not at create
-// (issue #270), headless against a running dev server.
-//
-// What it covers, in order:
-//   1. creating a draft through the dashboard allocates nothing — the row's
-//      `number` is NULL, the editor chip says "Draft" with no number, the
-//      dashboard row shows no "No. …", and the canvas running head previews
-//      the number publishing would propose,
-//   2. publishing under the proposed number,
-//   3. publishing under an edited number,
-//   4. a non-positive / non-integer / already-taken number is refused with a
-//      legible message and the modal stays open, the issue still a draft,
-//   5. deleting a published issue frees its number — the next publish proposes
-//      it again,
-//   6. ordering: a lower number published last does not become "latest", on
-//      the home page or in the archive,
-//   7. two publishes racing the same number: one wins, the other is told.
-//
-// It mints its own admin, session and issues — numbered far above whatever the
-// database holds so every proposal below is deterministic — and deletes them
-// again by tracked id in the finally block. It never seeds and never touches an
-// existing row.
+// (issue #270), headless against a running dev server. In section order: a
+// numberless draft, the proposed number, an edited number, the refusals,
+// delete-and-reuse, ordering with a lower number published last, and two
+// publishes racing one number. It mints its own admin, session and issues —
+// numbered clear of the database so the proposals are deterministic — and
+// deletes them by tracked id in the finally block.
 // Run: npx tsx --tsconfig scripts/tsconfig.json scripts/dev-issue-number-gate.mts <base-url>
+import { existsSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { chromium, type Browser, type Page } from "playwright";
 import postgres from "postgres";
 import { emptyIssueContent } from "../src/lib/blocks.ts";
 import { nextIssueNumber, publishIssue } from "../src/server/issues.ts";
 
-process.loadEnvFile?.(".env.local");
+for (const file of [".env.local", ".env"]) {
+  if (existsSync(file)) process.loadEnvFile(file);
+}
+
 const base = process.argv[2];
 if (!base) throw new Error("usage: dev-issue-number-gate.mts <base-url>");
 

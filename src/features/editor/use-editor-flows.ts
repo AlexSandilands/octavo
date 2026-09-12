@@ -14,8 +14,6 @@ export function useEditorFlows({
   issueId: string;
   flushSave: () => Promise<boolean>;
   onSaveError: () => void;
-  /** The number the publish allocated (issue #270) — the editor's chip, canvas
-   *  and running head switch from the proposal to it. */
   onPublished: (number: number) => void;
 }) {
   const router = useRouter();

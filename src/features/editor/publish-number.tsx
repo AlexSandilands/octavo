@@ -3,11 +3,8 @@
 import { useId, type RefObject } from "react";
 import { ISSUE_NUMBER_MAX } from "@/lib/issue-number";
 
-// The publish modal's issue-number row (issue #270). A draft has no number
-// until now, so this proposes the next one in the published sequence and lets
-// the admin type another — for a back issue being digitised, say. Once the
-// issue is live the number is read-only: renumbering would break every link
-// already shared or emailed.
+// The publish modal's issue-number row (issue #270): the next number in the
+// published sequence, editable — for a back issue being digitised, say.
 export function PublishNumber({
   value,
   onChange,
@@ -64,8 +61,8 @@ export function PublishNumber({
   );
 }
 
-// The same row for an issue that is already live: what its number is, and why
-// it can't be changed.
+// The same row for an issue that is already live — read-only, since renumbering
+// would break the links already shared and emailed.
 export function PublishedNumber({ number }: { number: number }) {
   return (
     <div className="border-hair mt-5 rounded-lg border-[1.5px] bg-white p-4">

@@ -10,7 +10,6 @@ import type { IssueStatus } from "@/server/issues";
 /** One dashboard row's data. `thumb` is the cover, rendered on the server. */
 export type IssueRowData = {
   id: string;
-  /** null while the issue is a draft — the number is chosen at publish (#270). */
   number: number | null;
   title: string;
   status: IssueStatus;

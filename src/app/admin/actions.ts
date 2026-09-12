@@ -133,15 +133,13 @@ export type PublishResult =
   | { ok: false; reason: "taken"; suggested: number }
   | { ok: true; number: number; emailed: BlastResult | null };
 
-// Publish an issue under the number the admin confirmed in the modal (issue
-// #270) and, unless they skipped it, email every subscribed member their
-// personal magic link to the new issue. `sendEmail` is a required explicit
-// choice (the modal defaults it off for a re-publish) so a correction can't
-// accidentally re-blast a thousand people.
+// Publish an issue and, unless the admin skipped it, email every subscribed
+// member their personal magic link to the new issue. `sendEmail` is a required
+// explicit choice (the modal defaults it off for a re-publish) so a correction
+// can't accidentally re-blast a thousand people.
 //
-// `number` is only consulted for a draft — publishIssue leaves a live issue's
-// number alone — and a number another publish has since taken comes back as
-// "taken", which keeps the modal open on the admin's own chosen number.
+// `number` is the one the admin confirmed in the modal (issue #270), consulted
+// only for a draft; a number since taken comes back as "taken", not a failure.
 //
 // The blast runs after the publish has committed and never throws — a mail
 // outage leaves the issue published and comes back as a reported failure count,

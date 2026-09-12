@@ -51,9 +51,7 @@ export default async function EditIssuePage({
           footerMarkSize: issue.footerMarkSize,
           footerTextSize: issue.footerTextSize,
         }}
-        // A draft has no number of its own (issue #270), but the classic
-        // running head needs one to preview; this is what publishing would
-        // propose. Nothing is stored until the admin confirms it.
+        // What a draft's running head previews; stored only at publish (#270).
         suggestedNumber={suggestedNumber}
         images={images}
         sponsors={sponsors}

@@ -86,11 +86,8 @@ export type IssueListOptions = {
   year?: number | null;
 };
 
-// The dashboard's order (issue #270): work in progress first, most recently
-// edited at the top, then the published run by number descending. Drafts have
-// no number to sort by, and an author's unfinished issue is what they came for.
-// `id` last makes it a total order, which is what keeps plain offset paging
-// safe now that `number` alone no longer is.
+// Drafts first, most recently edited at the top, then published by number
+// (issue #270). `id` last keeps it a total order, which offset paging needs.
 const DASHBOARD_ORDER = [
   sql`${issues.status} = 'draft' desc`,
   sql`case when ${issues.status} = 'draft' then ${issues.updatedAt} end desc`,
@@ -312,12 +309,9 @@ export type PublishOutcome =
   | { ok: true; number: number }
   | { ok: false; reason: "taken" | "missing" };
 
-// Publish an issue under `number` (issue #270). One statement, so the number a
-// live issue already carries is never disturbed even if two requests race: the
-// CASE only writes on a draft, which is what keeps shared and emailed links
-// good. Uniqueness among published issues belongs to the partial unique index —
-// checking first would only narrow the race, not close it — so a number taken
-// since the modal proposed it comes back as "taken", not a 500.
+// Publish under `number` (issue #270) in one statement: the CASE writes only on
+// a draft, so a re-publish never renumbers a live issue. A taken number surfaces
+// as the partial index's unique violation — a pre-check would only narrow the race.
 export async function publishIssue(
   id: string,
   number: number,

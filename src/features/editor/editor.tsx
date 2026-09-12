@@ -61,7 +61,6 @@ import { usePanelWidth } from "./side-panel/use-panel-width";
 // the magazine setting has since become.
 export type EditorIssue = FooterReserve & {
   id: string;
-  /** null until the issue is published, when the number is chosen (issue #270). */
   number: number | null;
   title: string;
   theme: string;
@@ -82,9 +81,8 @@ export function Editor({
   subscriberCount,
 }: {
   issue: EditorIssue;
-  /** The number a draft would be published under — what the canvas and the
-   *  running head preview, and what the publish modal proposes (issue #270).
-   *  Nothing is stored until publish. */
+  /** What a draft's canvas and running head preview, and what the publish modal
+   *  proposes (issue #270). Nothing is stored until publish. */
   suggestedNumber: number;
   images: ImageMap;
   sponsors: SponsorListItem[];
@@ -178,13 +176,9 @@ export function Editor({
   const barLayout = barLayoutAtPosition(responsiveBarLayout, barPosition);
   const [toolbarReserve, setToolbarReserve] = useState(TOOLBAR_RESERVE);
   const [pub, setPub] = useState(false);
-  // The issue's allocated number — null until it is published (issue #270), and
-  // set from the publish's answer so the chip and canvas stop previewing. Its
-  // being non-null is also what defaults the modal's email OFF, so a later
-  // correction can't re-blast the list.
+  // Null until published (issue #270), then whatever the publish allocated —
+  // which is also what defaults the modal's email off on a re-publish.
   const [number, setNumber] = useState(issue.number);
-  // What the pages are drawn with: the real number once there is one, the
-  // proposal while the issue is a draft.
   const issueNo = number ?? suggestedNumber;
   // Items a pointed-at layout warning is lighting up on the page.
   const [hint, setHint] = useState<string[]>([]);

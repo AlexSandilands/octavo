@@ -50,8 +50,6 @@ export default async function AdminDashboard({
   const params = paramsSchema.parse(await searchParams);
   const query = params.q.trim();
   const settings = await getSettings();
-  // `suggestedNumber` is what a draft's thumbnail previews as its running head
-  // (issue #270) — drafts carry no number until they are published.
   const [list, years, suggestedNumber] = await Promise.all([
     listIssuesPage({
       query,

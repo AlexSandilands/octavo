@@ -79,12 +79,9 @@ export const issues = pgTable(
   "issues",
   {
     id: text("id").primaryKey().$defaultFn(createId),
-    // The public address (/read/14) — and only meaningful on a published issue
-    // (issue #270). A draft has none: the number is chosen in the publish modal
-    // and allocated by `publishIssue`, so creating drafts never burns numbers.
-    // Uniqueness is therefore a partial index over published rows, and the
-    // check constraint is what lets a published row's number be read as a
-    // number rather than `number | null` (see `PublishedIssueRow`).
+    // The public address (/read/14), nullable and meaningful only once the issue
+    // is published (issue #270) — a draft has none. The partial unique index and
+    // the check constraint below are what enforce that.
     number: integer("number"),
     title: text("title").notNull(),
     theme: text("theme").notNull().default("classic"),
@@ -133,9 +130,8 @@ export const issues = pgTable(
       .defaultNow(),
   },
   (t) => [
-    // Kept as it was: it still serves the published lists' `status = 'published'
-    // order by number desc`, which the partial unique index below cannot (its
-    // predicate is not part of the key, so it can't order the scan).
+    // Kept: it orders the published lists' scan, which the partial unique index
+    // below cannot — its predicate is not part of the key.
     index("issues_status_number_idx").on(t.status, t.number),
     uniqueIndex("issues_published_number_idx")
       .on(t.number)

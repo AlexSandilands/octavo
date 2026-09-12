@@ -56,8 +56,6 @@ export default async function PreviewIssuePage({
       <div className="md:min-h-0 md:flex-1">
         <ReaderMount
           content={issue.content}
-          // A draft previews under the number publishing would propose
-          // (issue #270); nothing is stored until then.
           issueNo={issue.number ?? suggestedNumber}
           logo={logo}
           settings={settingsForIssue(settings, issue)}
