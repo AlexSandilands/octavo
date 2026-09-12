@@ -1,7 +1,6 @@
 "use client";
 import { CoverTextProvider } from "./cover-text-context";
 import { useEffect, useEffectEvent, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { type IssueContent } from "@/lib/blocks";
 import {
   DndContext,
@@ -43,22 +42,18 @@ import { coverItems } from "@/lib/cover-order";
 import { coverSources } from "@/lib/cover-elements";
 import { useCoverLayoutWarnings } from "./use-cover-layout-warnings";
 import { EditorPageContent } from "./editor-page-content";
-import {
-  CoverOverlayControls,
-  INSPECTOR_RESERVE,
-} from "./cover-overlay-controls";
-import { usePanelDock } from "./use-panel-dock";
+import { CoverOverlayControls } from "./cover-overlay-controls";
+import { stagePadding, usePanelDock } from "./use-panel-dock";
 import { useCanvasPanZoom } from "@/features/blocks/use-canvas-pan-zoom";
 import { useEditorPages } from "./use-editor-pages";
 import { useTextFlow } from "./use-text-flow";
-import { reportEditorError } from "./report-error";
 import { PageRail } from "./page-rail";
 import { PublishModal } from "./publish-modal";
 import { EditorHeader } from "./editor-header";
 import { EditorToolbar, TOOLBAR_RESERVE } from "./editor-toolbar";
 import { FooterUpdateNotice } from "./footer-update-notice";
 import { useEditorAutosave } from "./use-editor-autosave";
-import { publishIssueAction } from "@/app/admin/actions";
+import { useEditorFlows } from "./use-editor-flows";
 
 // Extends FooterReserve: the footer this issue's pages were laid out against
 // (issue #128) is what the canvas draws and measures overflow against, whatever
@@ -174,7 +169,6 @@ export function Editor({
   // Once published (now or on load), the publish modal defaults email OFF so a
   // later correction can't re-blast the list.
   const [published, setPublished] = useState(issue.status === "published");
-  const router = useRouter();
 
   const { status, setStatus, enqueueSave, flushSave } = useEditorAutosave({
     issueId: issue.id,
@@ -183,6 +177,12 @@ export function Editor({
     title,
     theme: themeId,
     logoId,
+  });
+  const flows = useEditorFlows({
+    issueId: issue.id,
+    flushSave,
+    onSaveError: () => setStatus("error"),
+    onPublished: () => setPublished(true),
   });
 
   // Drag from the handle, or move with the keyboard once the handle is focused.
@@ -202,15 +202,10 @@ export function Editor({
   const filled = pageFillsCanvas(page);
   const showCoverTools = Boolean(page?.cover || page?.coverElements?.length);
   const toolbarReserve = TOOLBAR_RESERVE;
-  // The inspector floats over the stage; the stage pads the docked side so the
-  // fitted page sits clear of it, and a panned page shows through beneath.
+  // The inspector floats over the stage, which pads its side to keep the
+  // fitted page clear; a panned page shows through beneath it.
   const docking = usePanelDock();
-  const stagePad = {
-    left:
-      showCoverTools && docking.dock === "left" ? INSPECTOR_RESERVE + 16 : 40,
-    right:
-      showCoverTools && docking.dock === "right" ? INSPECTOR_RESERVE + 16 : 40,
-  };
+  const stagePad = stagePadding(docking.dock, showCoverTools);
 
   // Fit-and-zoom the fixed PAGE_W×PAGE_H canvas to the editor stage (zoom=1),
   // exactly as the reader does — so the editor is a faithful, to-scale preview —
@@ -297,26 +292,7 @@ export function Editor({
           status={status}
           onRetrySave={() => void enqueueSave("all")}
           onReload={() => window.location.reload()}
-          onPreview={async () => {
-            // Open the preview in a new tab so the editor stays mounted with its
-            // unsaved in-memory state — closing the tab returns you to the editor
-            // exactly as you left it (no stale back-navigation render). The blank
-            // tab is opened in the click gesture to dodge popup blockers, then
-            // pointed at the reader once the save lands.
-            const tab = window.open("", "_blank");
-            const ok = await flushSave();
-            if (!ok) {
-              // The save didn't land (status pill shows why) — don't preview
-              // stale content.
-              tab?.close();
-              return;
-            }
-            // Preview by internal id under /admin: drafts are never served from
-            // the public /read route (published issues only).
-            const url = `/admin/issues/${issue.id}/preview`;
-            if (tab) tab.location.href = url;
-            else router.push(url);
-          }}
+          onPreview={flows.preview}
           onPublish={() => setPub(true)}
         />
 
@@ -338,9 +314,17 @@ export function Editor({
             className="bg-canvas relative flex min-w-0 flex-1"
           >
             <div className="bg-canvas relative flex min-w-0 flex-1 flex-col overflow-hidden">
-              {footerBehind && page && !page.cover && !filled && (
-                <FooterUpdateNotice issueId={issue.id} flushSave={flushSave} />
-              )}
+              {/* Not while the inspector is up: it spans the stage's height. */}
+              {footerBehind &&
+                page &&
+                !page.cover &&
+                !filled &&
+                !showCoverTools && (
+                  <FooterUpdateNotice
+                    issueId={issue.id}
+                    flushSave={flushSave}
+                  />
+                )}
 
               <div
                 ref={stageRef}
@@ -477,26 +461,7 @@ export function Editor({
             subscriberCount={subscriberCount}
             alreadyPublished={published}
             onClose={() => setPub(false)}
-            onPublish={async (sendEmail) => {
-              try {
-                // Flush the latest edits first; publishing stale content would
-                // ship the wrong issue. A failed flush surfaces in the status
-                // pill and blocks the publish.
-                const ok = await flushSave();
-                if (!ok) return { ok: false };
-                const res = await publishIssueAction(issue.id, sendEmail);
-                if (res.ok) setPublished(true);
-                else setStatus("error");
-                return res;
-              } catch (error) {
-                reportEditorError(error, "publish", {
-                  issueId: issue.id,
-                  sendEmail,
-                });
-                setStatus("error");
-                return { ok: false };
-              }
-            }}
+            onPublish={flows.publish}
           />
         )}
       </div>

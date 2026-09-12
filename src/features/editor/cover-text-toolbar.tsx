@@ -1,12 +1,5 @@
 "use client";
-import {
-  useEffect,
-  useMemo,
-  useReducer,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useEffect, useReducer, useRef, useState, type ReactNode } from "react";
 import { colorCss, type CoverAppearance } from "@/lib/cover-appearance";
 import { useCoverText } from "./cover-text-context";
 import { ColorSwatches } from "./cover-color-picker";
@@ -20,9 +13,12 @@ import { CAP_NUDGE, TbBtn } from "./rich-text-editor";
 // make on ordinary pages.
 export function CoverTextToolbar({
   appearance,
+  italicByDefault = false,
 }: {
   /** What the item paints with, so an unpainted selection shows its real colour. */
   appearance: Required<CoverAppearance>;
+  /** The cover's tagline style sets its text in italics before any formatting. */
+  italicByDefault?: boolean;
 }) {
   const { target } = useCoverText();
   const editor = target?.editor;
@@ -53,20 +49,12 @@ export function CoverTextToolbar({
       document.removeEventListener("keydown", onKey);
     };
   }, [open]);
-  // Whether the theme sets this field in italics to begin with: fixed per
-  // editor, so read once rather than on every transaction.
-  const themeItalic = useMemo(
-    () =>
-      Boolean(editor) &&
-      getComputedStyle(editor!.view.dom).fontStyle === "italic",
-    [editor],
-  );
   if (!editor) return null;
 
   const paint = editor.getAttributes("coverPaint");
   const italic = paint.fontStyle
     ? paint.fontStyle === "italic"
-    : editor.isActive("italic") || themeItalic;
+    : editor.isActive("italic") || italicByDefault;
   const colour = (paint.color as string | undefined) ?? appearance.text;
   const shadow =
     (paint.shadow as typeof appearance.shadow) ?? appearance.shadow;

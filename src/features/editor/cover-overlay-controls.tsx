@@ -5,10 +5,7 @@ import type { Page } from "@/lib/blocks";
 import { COVER_ELEMENT_LABELS } from "@/lib/cover-elements";
 import { coverOverlayOf } from "@/lib/cover-order";
 import { CoverInspector, type CoverInspectorProps } from "./cover-inspector";
-import type { usePanelDock } from "./use-panel-dock";
-
-/** Width of the inspector's column (panel plus its gutters), which the stage pads out. */
-export const INSPECTOR_RESERVE = 344;
+import { INSPECTOR_RESERVE, type usePanelDock } from "./use-panel-dock";
 
 type Props = Omit<CoverInspectorProps, "page" | "overlay" | "pageNumber"> & {
   page?: Page;

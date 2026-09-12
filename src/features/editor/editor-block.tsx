@@ -203,7 +203,10 @@ export function EditorBlock({
         />
       )}
       {coverItem && selected && appearance && block.type !== "image" && (
-        <CoverTextToolbar appearance={appearance} />
+        <CoverTextToolbar
+          appearance={appearance}
+          italicByDefault={block.type === "text"}
+        />
       )}
       {selected && !coverItem && (
         <>

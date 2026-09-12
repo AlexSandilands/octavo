@@ -7,7 +7,18 @@ import {
 } from "react";
 
 export type Dock = "left" | "right";
+/** Width of the inspector's column (panel plus its gutters), which the stage pads out. */
+export const INSPECTOR_RESERVE = 344;
 const KEY = "octavo.editor.inspector-dock";
+
+/** The stage's side padding: the inspector's column on its docked side while it shows. */
+export function stagePadding(dock: Dock, reserved: boolean) {
+  const pad = INSPECTOR_RESERVE + 16;
+  return {
+    left: reserved && dock === "left" ? pad : 40,
+    right: reserved && dock === "right" ? pad : 40,
+  };
+}
 const listeners = new Set<() => void>();
 const subscribe = (cb: () => void) => {
   listeners.add(cb);
@@ -25,7 +36,7 @@ const readDock = (): Dock =>
 // stage row the pointer is over. Remembered per browser.
 export function usePanelDock() {
   // Server-rendered on the right; the saved side takes over on hydration.
-  const dock = useSyncExternalStore(subscribe, readDock, () => "right");
+  const dock = useSyncExternalStore<Dock>(subscribe, readDock, () => "right");
   const [drag, setDrag] = useState<{ x: number; y: number } | null>(null);
   // Set by a drag so the click that ends it doesn't flip the side a second time.
   const dragged = useRef(false);

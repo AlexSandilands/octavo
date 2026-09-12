@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { hasCoverLayout } from "@/lib/cover-order";
 import type { Page } from "@/lib/blocks";
 import { pageFillsCanvas } from "@/features/blocks/layout";
-
 import { richDocBlocks } from "@/lib/rich-text-split";
 import {
   measurePageOverflow,
