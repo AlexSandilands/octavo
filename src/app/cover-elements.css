@@ -3,6 +3,9 @@
   display: grid;
   position: relative;
   pointer-events: none;
+  /* Its own stacking context: items layered backward stay within the grid,
+     above a Fill/Fit photo rather than vanishing behind it. */
+  isolation: isolate;
 }
 .cover-placement-group {
   grid-area: 1 / 1;
