@@ -10,7 +10,6 @@ import type { SponsorMap } from "@/lib/sponsors";
 import { externalHref } from "@/lib/rich-text";
 import { richTextToPlain } from "@/lib/rich-text-doc";
 import { CoverRichText } from "./cover-rich-text";
-import type { CoverRichDoc } from "@/lib/cover-rich-text";
 import { coverTextScale } from "@/lib/cover-elements";
 import { pageAlignOf } from "./layout";
 import type { LayoutTheme } from "./themes/registry";
@@ -166,9 +165,7 @@ export function BlockView({
           text={text}
           doc={
             "coverPlacement" in block
-              ? (block.coverPlacement?.richText?.[field] as
-                  | CoverRichDoc
-                  | undefined)
+              ? block.coverPlacement?.richText?.[field]
               : undefined
           }
         />

@@ -1,8 +1,9 @@
 import { appearanceVars, resolveCoverAppearance } from "@/lib/cover-appearance";
 import type { ReactNode, Ref } from "react";
-import { DEFAULT_COVER_OVERLAY, type Block, type Page } from "@/lib/blocks";
+import type { Block, Page } from "@/lib/blocks";
+import { coverOverlayOf, hasCoverLayout } from "@/lib/cover-order";
 import { isFillPage } from "./layout";
-import { hasCoverLayout, type CoverElement } from "@/lib/cover-elements";
+import { type CoverElement } from "@/lib/cover-elements";
 import { coverEntries } from "./cover-entries";
 import { CoverGrid } from "./cover-grid";
 import { PAGE_H, PAGE_PAD } from "./page-frame";
@@ -24,10 +25,7 @@ export function PageContent({
   const background = page.cover ? page.blocks.find(isFillPage) : undefined;
   const elements = page.coverElements ?? [];
   if (hasCoverLayout(page)) {
-    const overlay = page.coverOverlay ?? {
-      style: background ? "light-shadow" : "dark",
-      position: "center",
-    };
+    const overlay = coverOverlayOf(page);
     const entries = coverEntries(page, renderBlock, renderElement);
     return (
       <div
@@ -36,7 +34,7 @@ export function PageContent({
         data-cover-style={overlay.style}
       >
         {background && renderBlock(background)}
-        <CoverGrid entries={entries} style={overlay.style} />
+        <CoverGrid entries={entries} />
       </div>
     );
   }
@@ -63,7 +61,7 @@ export function PageContent({
       </div>
     );
   }
-  const overlay = page.coverOverlay ?? DEFAULT_COVER_OVERLAY;
+  const overlay = coverOverlayOf(page);
   const paint = resolveCoverAppearance(overlay.style, overlay.appearance);
   const foreground = page.blocks.filter((b) => b.id !== background.id);
   return (

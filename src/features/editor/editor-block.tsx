@@ -3,7 +3,6 @@ import { CoverTextEditor } from "./cover-text-editor";
 import { CoverTextToolbar } from "./cover-text-toolbar";
 import { DEFAULT_COVER_PLACEMENT, nudgeLayer } from "@/lib/cover-elements";
 import type { CoverAppearance } from "@/lib/cover-appearance";
-
 import { useCoverSortable } from "./use-cover-sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Icon, type IconName } from "@/components/icons";
@@ -94,7 +93,9 @@ export function EditorBlock({
     Boolean(cover),
     Boolean(cover && isFillPage(block)),
   );
-  const coverText = cover && ["heading", "text", "image"].includes(block.type);
+  // Headings, text and photos on a cover are cover items: side tools and, for
+  // the two with words, the floating format bar.
+  const coverItem = cover && ["heading", "text", "image"].includes(block.type);
 
   // A floated (inline left/right) picture is an earlier sibling than the text
   // that wraps it, so the text block's box paints on top and swallows clicks on
@@ -181,7 +182,7 @@ export function EditorBlock({
         </button>
       )}
 
-      {coverText && (
+      {coverItem && (
         <CoverItemTools
           selected={selected}
           bleed={bleed}
@@ -201,10 +202,10 @@ export function EditorBlock({
           onRemove={onRemove}
         />
       )}
-      {coverText && selected && appearance && block.type !== "image" && (
+      {coverItem && selected && appearance && block.type !== "image" && (
         <CoverTextToolbar appearance={appearance} />
       )}
-      {selected && !coverText && (
+      {selected && !coverItem && (
         <>
           {block.type === "image" ? (
             <div
@@ -316,19 +317,26 @@ export function EditorBlock({
             </span>
           )}
           <div
-            className={`absolute z-10 flex flex-col gap-1 ${
+            className={`absolute z-10 ${
               // Bottom corner on a filled page: the top one is where the
               // block's own tool bar lands, at whatever zoom.
               bleed ? "right-2 bottom-2.5" : "top-1/2 -right-9 -translate-y-1/2"
             }`}
           >
-            <Ctrl icon="arrowUp" title="Move up" onClick={() => onMove(-1)} />
-            <Ctrl
-              icon="arrowDown"
-              title="Move down"
-              onClick={() => onMove(1)}
-            />
-            <Ctrl icon="trash" title="Delete" danger onClick={onRemove} />
+            <div
+              className="chrome-unscaled flex flex-col gap-1"
+              style={{
+                transformOrigin: bleed ? "bottom right" : "center left",
+              }}
+            >
+              <Ctrl icon="arrowUp" title="Move up" onClick={() => onMove(-1)} />
+              <Ctrl
+                icon="arrowDown"
+                title="Move down"
+                onClick={() => onMove(1)}
+              />
+              <Ctrl icon="trash" title="Delete" danger onClick={onRemove} />
+            </div>
           </div>
         </>
       )}

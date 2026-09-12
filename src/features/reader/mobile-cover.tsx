@@ -1,7 +1,8 @@
 import { appearanceVars, resolveCoverAppearance } from "@/lib/cover-appearance";
 import type { CSSProperties } from "react";
-import { DEFAULT_COVER_OVERLAY, type Page } from "@/lib/blocks";
-import { hasCoverLayout, type CoverSource } from "@/lib/cover-elements";
+import type { Page } from "@/lib/blocks";
+import { coverOverlayOf, hasCoverLayout } from "@/lib/cover-order";
+import { type CoverSource } from "@/lib/cover-elements";
 import type { ImageMap } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 import { BlockImage } from "@/features/blocks/block-view";
@@ -33,15 +34,8 @@ export function MobileCover({
     background?.type === "image" && background.imageId
       ? images[background.imageId]
       : undefined;
-  const overlay =
-    page.coverOverlay ??
-    (background
-      ? DEFAULT_COVER_OVERLAY
-      : { style: "dark" as const, position: "center" as const });
-  const paint = resolveCoverAppearance(
-    overlay.style,
-    page.coverOverlay?.appearance,
-  );
+  const overlay = coverOverlayOf(page);
+  const paint = resolveCoverAppearance(overlay.style, overlay.appearance);
   const foreground = page.blocks.filter((b) => b.id !== background?.id);
   const renderBlock = (b: Page["blocks"][number]) => (
     <div
@@ -92,7 +86,6 @@ export function MobileCover({
         {hasCoverLayout(page) ? (
           <CoverGrid
             mobile
-            style={overlay.style}
             entries={coverEntries(page, renderBlock, (element) => (
               <CoverElementView
                 element={element}

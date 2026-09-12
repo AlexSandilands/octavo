@@ -5,7 +5,6 @@
 @import "./brands.css";
 @import "./cover-overlay.css";
 @import "./cover-elements.css";
-/* Floating editor controls and their reduced-motion fallback. */
 
 /* Design system from docs/claude-design — editorial, paper + one accent.
    Tokens drive Tailwind utilities (bg-paper, text-accent, font-serif, ...).

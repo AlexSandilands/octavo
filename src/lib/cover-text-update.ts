@@ -34,3 +34,17 @@ export function updateCoverText(
   }
   return element;
 }
+
+/** As above, from an on-page editor showing `shown` (which for a linked title is
+ *  the source heading): formatting alone leaves the stored text untouched, so a
+ *  linked title stays linked. */
+export function updateShownCoverText(
+  element: CoverElement,
+  field: string,
+  shown: string,
+  text: string,
+  doc: CoverRichDoc,
+): CoverElement {
+  const next = updateCoverText(element, field, text, doc);
+  return text === shown ? { ...element, placement: next.placement } : next;
+}

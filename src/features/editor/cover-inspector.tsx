@@ -124,26 +124,28 @@ export function CoverInspector({
           )}
         </div>
         <div className={`${scroll} border-t`}>
-          <InspectorSection title="Appearance">
-            <CoverAppearanceControls
-              value={itemAppearance(selected, page)}
-              style={placement.style ?? overlay.style}
-              inherited={!placement.style && !placement.appearance}
-              panelOnly={element?.type === "logo"}
-              onInherit={(inherit) =>
-                updatePlacement({
-                  ...placement,
-                  style: undefined,
-                  appearance: inherit
-                    ? undefined
-                    : itemAppearance(selected, page),
-                })
-              }
-              onChange={(appearance) =>
-                updatePlacement({ ...placement, appearance })
-              }
-            />
-          </InspectorSection>
+          {page.cover && (
+            <InspectorSection title="Appearance">
+              <CoverAppearanceControls
+                value={itemAppearance(selected, page)}
+                style={placement.style ?? overlay.style}
+                inherited={!placement.style && !placement.appearance}
+                panelOnly={element?.type === "logo"}
+                onInherit={(inherit) =>
+                  updatePlacement({
+                    ...placement,
+                    style: undefined,
+                    appearance: inherit
+                      ? undefined
+                      : itemAppearance(selected, page),
+                  })
+                }
+                onChange={(appearance) =>
+                  updatePlacement({ ...placement, appearance })
+                }
+              />
+            </InspectorSection>
+          )}
           {element && (
             <InspectorSection title={CONTENT_TITLES[element.type]}>
               <CoverElementFields
@@ -168,22 +170,24 @@ export function CoverInspector({
           cover’s defaults; any item can depart from them.
         </p>
       </InspectorSection>
-      <InspectorSection title="Default appearance">
-        <CoverAppearanceControls
-          value={overlay.appearance}
-          style={overlay.style}
-          onChange={(appearance) => onChange({ ...overlay, appearance })}
-        />
-      </InspectorSection>
       {page.cover && (
-        <InspectorSection title="Page">
-          <CoverDecorationControls
-            page={page}
-            value={overlay}
-            hasMasthead={hasMasthead}
-            onChange={onChange}
-          />
-        </InspectorSection>
+        <>
+          <InspectorSection title="Default appearance">
+            <CoverAppearanceControls
+              value={overlay.appearance}
+              style={overlay.style}
+              onChange={(appearance) => onChange({ ...overlay, appearance })}
+            />
+          </InspectorSection>
+          <InspectorSection title="Page">
+            <CoverDecorationControls
+              page={page}
+              value={overlay}
+              hasMasthead={hasMasthead}
+              onChange={onChange}
+            />
+          </InspectorSection>
+        </>
       )}
       {checks}
     </div>

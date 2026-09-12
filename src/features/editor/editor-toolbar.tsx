@@ -116,7 +116,6 @@ export function EditorToolbar({
                   value=""
                   side="top"
                   portal
-                  className="rounded-[9px]! text-[13px]! font-semibold!"
                   items={(["teaser", "contents", "details"] as const).map(
                     (type) => ({
                       key: type,
@@ -140,20 +139,16 @@ export function EditorToolbar({
               />
             </>
           )}
+          {/* The first page is always the cover, so it gets no toggle at all. */}
           {!coverDisabled && (
             <>
               <Divider />
               <Tool
                 icon="doc"
                 label="Cover page"
-                hint={
-                  coverDisabled
-                    ? "The first page is always the cover"
-                    : "Lay this page out as a cover"
-                }
+                hint="Lay this page out as a cover"
                 showLabel
                 pressed={coverActive}
-                disabled={coverDisabled}
                 onClick={onToggleCover}
               />
             </>

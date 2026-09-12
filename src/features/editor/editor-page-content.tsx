@@ -1,10 +1,6 @@
 import type { Ref } from "react";
 import type { Page, BlockPatch, PageAlign } from "@/lib/blocks";
-import {
-  hasCoverLayout,
-  type CoverElement,
-  type CoverSource,
-} from "@/lib/cover-elements";
+import { type CoverElement, type CoverSource } from "@/lib/cover-elements";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { SponsorListItem, SponsorMap } from "@/lib/sponsors";
 import type { LayoutTheme } from "@/features/blocks/themes/registry";
@@ -69,10 +65,6 @@ export function EditorPageContent({
   registerImage: (id: string, image: ResolvedImage) => void;
 }) {
   const photo = pageFillsCanvas(page);
-  // On a grid cover the inspector's layout checks name any item that runs past
-  // the margin (with some slack), so the per-block overflow marker stands down
-  // there rather than flagging the same item on a stricter rule.
-  const marked = hasCoverLayout(page) ? null : overflow;
   return (
     <PageContent
       page={page}
@@ -96,7 +88,7 @@ export function EditorPageContent({
           onSelect={() => onSelectElement(element.id)}
           onMove={(dir) => moveElement(element.id, dir)}
           onRemove={() => removeElement(element.id)}
-          overflow={marked?.id === element.id}
+          overflow={overflow?.id === element.id}
         />
       )}
       renderBlock={(b) => (
@@ -117,8 +109,8 @@ export function EditorPageContent({
           images={images}
           sponsors={sponsors}
           sponsorMap={sponsorMap}
-          overflowAt={marked?.id === b.id ? marked.markerTop : undefined}
-          fitsAlone={marked?.fitsAlone}
+          overflowAt={overflow?.id === b.id ? overflow.markerTop : undefined}
+          fitsAlone={overflow?.fitsAlone}
           onSelect={() => onSelect(b.id)}
           onChange={(patch) => updateBlock(b.id, patch)}
           onMove={(dir) => moveBlock(b.id, dir)}

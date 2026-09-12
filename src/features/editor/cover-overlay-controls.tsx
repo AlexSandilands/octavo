@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import type { Page } from "@/lib/blocks";
-import { COVER_ELEMENT_LABELS, coverSources } from "@/lib/cover-elements";
+import { COVER_ELEMENT_LABELS } from "@/lib/cover-elements";
 import { coverOverlayOf } from "@/lib/cover-order";
 import { CoverInspector, type CoverInspectorProps } from "./cover-inspector";
 import type { usePanelDock } from "./use-panel-dock";
@@ -10,10 +10,7 @@ import type { usePanelDock } from "./use-panel-dock";
 /** Width of the inspector's column (panel plus its gutters), which the stage pads out. */
 export const INSPECTOR_RESERVE = 344;
 
-type Props = Omit<
-  CoverInspectorProps,
-  "page" | "sources" | "overlay" | "pageNumber"
-> & {
+type Props = Omit<CoverInspectorProps, "page" | "overlay" | "pageNumber"> & {
   page?: Page;
   pages: Page[];
   docking: ReturnType<typeof usePanelDock>;
@@ -101,7 +98,6 @@ export function CoverOverlayControls({
           page={page}
           overlay={coverOverlayOf(page)}
           pageNumber={pages.findIndex((p) => p.id === page.id) + 1}
-          sources={coverSources(pages)}
         />
       </aside>
     </div>

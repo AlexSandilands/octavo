@@ -102,7 +102,7 @@ export async function browserPass(base: string, cover: Page) {
     };
     await canvas.locator('[data-block-id="photo"] img').click();
     await page
-      .getByRole("button", { name: "Placement: page-fill", exact: true })
+      .getByRole("button", { name: "Placement: fill page", exact: true })
       .click();
     await page.locator('[data-cover-style="light-shadow"]').waitFor();
     assert.equal(await canvas.locator("[data-block-id]").count(), 3);
@@ -238,7 +238,7 @@ export async function browserPass(base: string, cover: Page) {
       .locator("[data-cover-background]")
       .click({ position: { x: 5, y: 5 } });
     await page
-      .getByRole("button", { name: "Placement: page-fit", exact: true })
+      .getByRole("button", { name: "Placement: fit page", exact: true })
       .click();
     assert.equal(
       await canvas

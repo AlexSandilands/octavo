@@ -107,6 +107,7 @@ export function TurnCurl({
   // a duplicate of content shown elsewhere (the crack fix, or a strip face) —
   // those are static and hidden from assistive tech; the real standing/flat
   // pages stay interactive and visible to it.
+  const sources = coverSources(pages);
   const layer = (
     index: number,
     side: "left" | "right",
@@ -120,7 +121,7 @@ export function TurnCurl({
       style={{ position: "absolute", top: 0, left: side === "left" ? 0 : w }}
     >
       <PageView
-        sources={coverSources(pages)}
+        sources={sources}
         page={index >= 0 ? pages[index] : undefined}
         side={side}
         theme={theme}
@@ -220,7 +221,7 @@ export function TurnCurl({
                 }}
               >
                 <PageView
-                  sources={coverSources(pages)}
+                  sources={sources}
                   page={pages[rear ? back : front]}
                   side={rear === forward ? "left" : "right"}
                   theme={theme}

@@ -35,6 +35,8 @@
   pointer-events: auto;
   top: var(--cover-offset, 0px);
   overflow-wrap: anywhere;
+  /* Overlapping items stack by their layer; unset layers keep source order. */
+  z-index: var(--cover-layer, auto);
 }
 .cover-positioned[data-width="narrow"] {
   width: 31%;
@@ -45,10 +47,6 @@
 .cover-positioned > [data-editor-block],
 .cover-positioned > [data-reader-block] {
   margin-bottom: 0 !important;
-}
-/* Overlapping items stack by their layer; unset layers keep source order. */
-.cover-positioned {
-  z-index: var(--cover-layer, auto);
 }
 /* A photo's frame is the photo: the entry takes the photo's width so its panel
    and selection box hug the picture instead of the whole column. */

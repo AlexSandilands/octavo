@@ -115,7 +115,7 @@ export function CoverPlacementControls({
               { value: "small", label: "S" },
               { value: "normal", label: "M" },
               { value: "large", label: "L" },
-              { value: "xlarge", label: "XL" },
+              { value: "xlarge", label: "XL", name: "extra large" },
             ]}
             onChange={(textSize) => onChange({ ...value, textSize })}
           />

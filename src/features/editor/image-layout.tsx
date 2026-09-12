@@ -42,11 +42,7 @@ export function ImageLayoutControls({
   width,
   onChange,
   onFillPage,
-  stacked = false,
-  cover = false,
 }: {
-  stacked?: boolean;
-  cover?: boolean;
   align: ImageAlign;
   width: number;
   onChange: (patch: BlockPatch) => void;
@@ -60,34 +56,18 @@ export function ImageLayoutControls({
   const filled = owned && onFillPage !== undefined;
   const shown = owned && !filled ? "full" : align;
   return (
-    <div
-      className={
-        stacked
-          ? "grid grid-cols-[max-content_max-content] items-center gap-x-1.5 gap-y-2.5"
-          : "flex items-center gap-2.5"
-      }
-    >
-      <Group label="Placement" stacked={stacked}>
-        {cover ? (
+    <div className="flex items-center gap-2.5">
+      <Group label="Placement">
+        {PLACEMENTS.map((p) => (
           <Seg
-            active={!owned}
-            title="Normal image (resizable)"
-            onClick={() => onChange({ align: "full" })}
+            key={p.value}
+            active={shown === p.value}
+            title={p.title}
+            onClick={() => onChange({ align: p.value })}
           >
-            Normal
+            <Icon name={p.icon} size={16} />
           </Seg>
-        ) : (
-          PLACEMENTS.map((p) => (
-            <Seg
-              key={p.value}
-              active={shown === p.value}
-              title={p.title}
-              onClick={() => onChange({ align: p.value })}
-            >
-              <Icon name={p.icon} size={16} />
-            </Seg>
-          ))
-        )}
+        ))}
         {onFillPage &&
           PAGE_PLACEMENTS.map((p) => (
             <Seg
@@ -96,22 +76,14 @@ export function ImageLayoutControls({
               title={p.title}
               onClick={() => onFillPage(p.value)}
             >
-              {cover ? (
-                p.value === "page-fill" ? (
-                  "Fill page"
-                ) : (
-                  "Fit page"
-                )
-              ) : (
-                <Icon name={p.icon} size={16} />
-              )}
+              <Icon name={p.icon} size={16} />
             </Seg>
           ))}
       </Group>
       {/* A page-owning photo has no text column to be a percentage of; the
           stored width is left alone so unsetting the placement restores it. */}
       {!filled && (
-        <Group label="Size" stacked={stacked}>
+        <Group label="Size">
           {SIZES.map((s) => (
             <Seg
               key={s.value}
@@ -132,19 +104,17 @@ export function ImageLayoutControls({
 
 function Group({
   label,
-  stacked,
   children,
 }: {
   label: string;
-  stacked: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <div className={stacked ? "contents" : "flex items-center gap-1.5"}>
+    <div className="flex items-center gap-1.5">
       <span className="text-faint2 font-sans text-[9px] font-semibold tracking-[0.14em] uppercase">
         {label}
       </span>
-      <div className="border-hair flex justify-self-start overflow-hidden rounded-[6px] border">
+      <div className="border-hair flex overflow-hidden rounded-[6px] border">
         {children}
       </div>
     </div>
@@ -172,7 +142,7 @@ function Seg({
         e.stopPropagation();
         onClick();
       }}
-      className={`flex h-7 min-w-7 items-center justify-center px-1.5 font-sans text-xs font-medium whitespace-nowrap ${
+      className={`flex h-7 min-w-7 items-center justify-center px-1.5 ${
         active
           ? "bg-accent text-paper"
           : "text-muted hover:bg-accent-wash hover:text-accent bg-white"

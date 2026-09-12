@@ -1,8 +1,8 @@
 "use client";
 
-import { coverSources, hasCoverLayout } from "@/lib/cover-elements";
+import { coverSources } from "@/lib/cover-elements";
+import { hasCoverLayout } from "@/lib/cover-order";
 import { CoverElementView } from "@/features/blocks/cover-element-view";
-
 import { Fragment, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
@@ -90,6 +90,7 @@ export function MobileReader({
   };
 
   const sections = readerSections(content.pages);
+  const sources = coverSources(content.pages);
   const blocks: Block[] = sections.flatMap((s) => s.blocks);
   const headings = blocks.filter(
     (b): b is Extract<Block, { type: "heading" }> =>
@@ -197,7 +198,7 @@ export function MobileReader({
               {s.cover && (s.filled || hasCoverLayout(s)) ? (
                 <MobileCover
                   page={s}
-                  sources={coverSources(content.pages)}
+                  sources={sources}
                   issueNo={issueNo}
                   images={images}
                   sponsors={sponsors}
@@ -235,7 +236,7 @@ export function MobileReader({
                     <div className="my-6" key={element.id}>
                       <CoverElementView
                         element={element}
-                        sources={coverSources(content.pages)}
+                        sources={sources}
                         issueNo={issueNo}
                         images={images}
                       />

@@ -1,5 +1,5 @@
 import { CoverTextEditor } from "./cover-text-editor";
-import { updateCoverText } from "@/lib/cover-text-update";
+import { updateShownCoverText } from "@/lib/cover-text-update";
 import { useCoverSortable } from "./use-cover-sortable";
 import { Icon } from "@/components/icons";
 import {
@@ -102,27 +102,9 @@ export function EditorCoverElement({
               text={text}
               doc={element.placement.richText?.[field]}
               label={label}
-              onChange={(value, doc) => {
-                const updated = updateCoverText(element, field, value, doc);
-                // Formatting a linked title alone must not freeze its source text.
-                if (
-                  value === text &&
-                  element.type === "teaser" &&
-                  updated.type === "teaser" &&
-                  field === "title"
-                )
-                  updated.title = element.title;
-                if (
-                  value === text &&
-                  element.type === "contents" &&
-                  updated.type === "contents"
-                )
-                  updated.items = updated.items.map((item, i) => ({
-                    ...item,
-                    title: element.items[i]!.title,
-                  }));
-                onUpdate(updated);
-              }}
+              onChange={(value, doc) =>
+                onUpdate(updateShownCoverText(element, field, text, value, doc))
+              }
             />
           )}
         />

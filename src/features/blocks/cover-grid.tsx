@@ -16,11 +16,9 @@ export type CoverEntry = {
 /** Groups stack within an anchor. Mobile follows row/column order in normal flow. */
 export function CoverGrid({
   entries,
-  style,
   mobile = false,
 }: {
   entries: CoverEntry[];
-  style: NonNullable<CoverPlacement["style"]>;
   mobile?: boolean;
 }) {
   const groups = ["top", "center", "bottom"]
@@ -54,7 +52,6 @@ export function CoverGrid({
               data-kind={entry.imageWidth !== undefined ? "image" : undefined}
               data-width={entry.placement.width}
               data-align={entry.placement.align}
-              data-cover-style={entry.placement.style ?? style}
               data-cover-panel={entry.paint.panel}
               className="cover-positioned cover-treatment"
               style={

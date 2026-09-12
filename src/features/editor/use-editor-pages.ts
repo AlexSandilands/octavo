@@ -114,7 +114,8 @@ export function useEditorPages(content: IssueContent) {
         JSON.stringify(coverOverlay.appearance)
     )
       return;
-    commit();
+    // One stream: a custom-colour drag fires many changes, which fold into one step.
+    commit("cover-overlay");
     editPage((p) => ({ ...p, coverOverlay }));
   };
 

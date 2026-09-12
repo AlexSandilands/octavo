@@ -1,23 +1,10 @@
-/* Cover treatments change contrast, never the magazine's type or ornaments. */
+/* Cover treatments change contrast, never the magazine's type or ornaments.
+   The resolved appearance (`appearanceVars`) sets these inline on every
+   composition and item; this is only the fallback beneath it. */
 .cover-composition,
 .cover-treatment {
   --cover-ink: var(--color-page);
   --cover-shadow: none;
-}
-:is(.cover-composition, .cover-treatment)[data-cover-style="dark"],
-:is(.cover-composition, .cover-treatment)[data-cover-style="dark-shadow"],
-:is(.cover-composition, .cover-treatment)[data-cover-style="paper-panel"] {
-  --cover-ink: var(--color-ink);
-}
-:is(.cover-composition, .cover-treatment)[data-cover-style="light-shadow"] {
-  --cover-shadow:
-    0 1px 2px color-mix(in srgb, var(--color-ink) 80%, transparent),
-    0 2px 6px color-mix(in srgb, var(--color-ink) 65%, transparent);
-}
-:is(.cover-composition, .cover-treatment)[data-cover-style="dark-shadow"] {
-  --cover-shadow:
-    0 1px 2px color-mix(in srgb, var(--color-page) 80%, transparent),
-    0 2px 6px color-mix(in srgb, var(--color-page) 65%, transparent);
 }
 .cover-overlay-layout {
   justify-content: center;

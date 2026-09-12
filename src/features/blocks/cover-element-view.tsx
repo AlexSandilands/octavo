@@ -58,27 +58,13 @@ export function CoverElementView({
     ].filter(Boolean);
     return (
       <P data-cover-copy className="cover-issue-details">
-        {renderText ? (
-          <>
-            {parts[0] && element.showNumber && (
-              <span>
-                {parts[0]}
-                {element.text ? " · " : ""}
-              </span>
-            )}
-            {copy("text", element.text, "Date or edition")}
-          </>
-        ) : (
-          <>
-            {element.showNumber && (
-              <>
-                {parts[0]}
-                {element.text ? " · " : ""}
-              </>
-            )}
-            {copy("text", element.text, "Date or edition")}
-          </>
+        {element.showNumber && (
+          <span>
+            {parts[0]}
+            {element.text ? " · " : ""}
+          </span>
         )}
+        {copy("text", element.text, "Date or edition")}
       </P>
     );
   }

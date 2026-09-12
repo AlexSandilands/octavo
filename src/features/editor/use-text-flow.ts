@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { hasCoverLayout } from "@/lib/cover-order";
 import type { Page } from "@/lib/blocks";
 import { pageFillsCanvas } from "@/features/blocks/layout";
+
 import { richDocBlocks } from "@/lib/rich-text-split";
 import {
   measurePageOverflow,
@@ -34,8 +36,12 @@ export function useTextFlow({
   const measured = useRef<BlockOverflow | null>(null);
 
   // Full-image covers still need an overflow warning for their overlay content.
+  // A grid cover is not measured here: the inspector's layout checks name any
+  // item that runs past the margin, on one rule with some slack.
   const measurable = Boolean(
-    page && (page.cover ? pageFillsCanvas(page) : !pageFillsCanvas(page)),
+    page &&
+    !hasCoverLayout(page) &&
+    (page.cover ? pageFillsCanvas(page) : !pageFillsCanvas(page)),
   );
 
   const measure = useCallback(() => {

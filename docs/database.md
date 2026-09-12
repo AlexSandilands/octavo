@@ -182,7 +182,9 @@ while retaining the frame (omitted means shown when decoration is on). Neither s
 the issue theme, typography or interior pages.
 An optional `coverOverlay: { style, position }` stores the cover treatment. Styles are `light`,
 `dark`, `light-shadow`, `dark-shadow`, `paper-panel` and `ink-panel`; positions are `top`, `center`
-and `bottom`. Absent settings resolve to light lettering with shadow, centred. These options
+and `bottom`. `position` is legacy: it is read as the fallback row for a heading or text block
+that has no `coverPlacement` of its own, and no control writes it any more (v7 placements carry
+their own row). Absent settings resolve to light lettering with shadow, centred. These options
 change contrast and placement while retaining the magazine fonts and ornaments; solid panels
 use the brand's page/ink pair for predictable contrast over any photograph. The optional field
 does not bump content v6 or rewrite old rows. It is retained when normal placement is restored.

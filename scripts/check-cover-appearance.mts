@@ -114,7 +114,7 @@ await withCoverFixture(
       .getByRole("button", { name: "Edit Issue details", exact: true })
       .click();
     await panel
-      .getByRole("button", { name: "Text size: xlarge", exact: true })
+      .getByRole("button", { name: "Text size: extra large", exact: true })
       .click();
     assert.equal(await font(".cover-issue-details"), 16.8);
     await waitSaved(

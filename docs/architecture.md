@@ -114,9 +114,10 @@ and independent text/shadow colours and strength. The six older contrast presets
 as backward-compatible defaults. Per-element appearance can inherit the cover or override it.
 `cover-overlay.css` retains the magazine typography. The mobile reader uses `MobileCover` for the same composition in a reflowing
 viewport beneath the header (growing for larger text). Interior full-page images keep their
-image-only behaviour. Cover overflow is marked in the editor; content is never silently removed.
-`EditorToolbar` uses the same buttons on covers and ordinary pages. Covers offer Heading, Text,
-Image, Add detail (story preview, contents list, issue details), and Logo. A floating rounded inspector
+image-only behaviour. Content is never silently removed: on a grid cover the inspector's layout
+checks name anything that runs past the margin; legacy stacked covers keep the on-page overflow
+marker. `EditorToolbar` offers a cover-specific set on covers: Heading, Text, Image, Add detail
+(story preview, contents list, issue details), and Logo. A floating rounded inspector
 occupies a reserved column beside the fitted canvas; it never covers the page. Its header grip drags
 it to either side of the page (a plain press flips it; the side is remembered per browser in
 `use-panel-dock.ts`). The inspector holds whole-item settings in titled bands — Placement, Appearance,

@@ -6,8 +6,8 @@ import {
   type RefObject,
 } from "react";
 import type { Page } from "@/lib/blocks";
-import { hasCoverLayout, type CoverSource } from "@/lib/cover-elements";
-import { coverItemLabel, coverItems } from "@/lib/cover-order";
+import { type CoverSource } from "@/lib/cover-elements";
+import { coverItemLabel, coverItems, hasCoverLayout } from "@/lib/cover-order";
 
 /** One thing to look at, naming the item(s) so the inspector can point at them. */
 export type CoverWarning = { ids: string[]; text: string };

@@ -9,10 +9,10 @@ import { CoverAppearanceControls } from "./cover-appearance-controls";
 import { ImageBlockControl } from "./image-upload";
 
 const SIZES = [
-  { value: "33", label: "S" },
-  { value: "50", label: "M" },
-  { value: "66", label: "L" },
-  { value: "100", label: "Full" },
+  { value: "33", label: "S", name: "small" },
+  { value: "50", label: "M", name: "medium" },
+  { value: "66", label: "L", name: "large" },
+  { value: "100", label: "Full", name: "full width" },
 ];
 
 type Props = {
@@ -40,8 +40,8 @@ export function CoverImagePlacement({
         value={owned ? (block.align as PageAlign) : "normal"}
         options={[
           { value: "normal", label: "Normal" },
-          { value: "page-fill", label: "Fill page" },
-          { value: "page-fit", label: "Fit page" },
+          { value: "page-fill", label: "Fill page", name: "fill page" },
+          { value: "page-fit", label: "Fit page", name: "fit page" },
         ]}
         onChange={(v) =>
           v === "normal" ? onChange({ align: "full" }) : onFillPage(v)

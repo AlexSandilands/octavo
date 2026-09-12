@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import {
   PAGE_ALIGNS,
+  isPageOwning,
   type Block,
   type Page,
   type PageAlign,
@@ -35,7 +36,7 @@ export function pageAlignOf(block: Block): PageAlign | null {
 }
 
 export function isFillPage(block: Block): boolean {
-  return pageAlignOf(block) !== null;
+  return isPageOwning(block);
 }
 
 /** Whether this page is filled edge to edge by one photo. */

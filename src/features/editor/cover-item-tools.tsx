@@ -23,39 +23,45 @@ export function CoverItemTools({
       {handle}
       {selected && (
         <div
-          className={`absolute z-20 flex flex-col gap-1 ${bleed ? "right-2 bottom-2.5" : "top-1/2 -right-9 -translate-y-1/2"}`}
+          className={`absolute z-20 ${bleed ? "right-2 bottom-2.5" : "top-1/2 -right-9 -translate-y-1/2"}`}
         >
-          {!bleed && (
-            <>
-              <Control
-                icon="arrowUp"
-                label="Move up"
-                onClick={() => onMove(-1)}
-              />
-              <Control
-                icon="arrowDown"
-                label="Move down"
-                onClick={() => onMove(1)}
-              />
-            </>
-          )}
-          {onLayer && (
-            <>
-              <span className="h-1" />
-              <Control
-                icon="layerUp"
-                label="Bring forward"
-                onClick={() => onLayer(1)}
-              />
-              <Control
-                icon="layerDown"
-                label="Send backward"
-                onClick={() => onLayer(-1)}
-              />
-            </>
-          )}
-          <span className="h-1" />
-          <Control icon="trash" label="Delete" onClick={onRemove} />
+          {/* Like the other canvas chrome, one size at every zoom. */}
+          <div
+            className="chrome-unscaled flex flex-col gap-1"
+            style={{ transformOrigin: bleed ? "bottom right" : "center left" }}
+          >
+            {!bleed && (
+              <>
+                <Control
+                  icon="arrowUp"
+                  label="Move up"
+                  onClick={() => onMove(-1)}
+                />
+                <Control
+                  icon="arrowDown"
+                  label="Move down"
+                  onClick={() => onMove(1)}
+                />
+              </>
+            )}
+            {onLayer && (
+              <>
+                <span className="h-1" />
+                <Control
+                  icon="layerUp"
+                  label="Bring forward"
+                  onClick={() => onLayer(1)}
+                />
+                <Control
+                  icon="layerDown"
+                  label="Send backward"
+                  onClick={() => onLayer(-1)}
+                />
+              </>
+            )}
+            <span className="h-1" />
+            <Control icon="trash" label="Delete" onClick={onRemove} />
+          </div>
         </div>
       )}
     </>

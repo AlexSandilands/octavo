@@ -1,5 +1,12 @@
 "use client";
-import { useEffect, useReducer, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { colorCss, type CoverAppearance } from "@/lib/cover-appearance";
 import { useCoverText } from "./cover-text-context";
 import { ColorSwatches } from "./cover-color-picker";
@@ -46,13 +53,20 @@ export function CoverTextToolbar({
       document.removeEventListener("keydown", onKey);
     };
   }, [open]);
+  // Whether the theme sets this field in italics to begin with: fixed per
+  // editor, so read once rather than on every transaction.
+  const themeItalic = useMemo(
+    () =>
+      Boolean(editor) &&
+      getComputedStyle(editor!.view.dom).fontStyle === "italic",
+    [editor],
+  );
   if (!editor) return null;
 
   const paint = editor.getAttributes("coverPaint");
   const italic = paint.fontStyle
     ? paint.fontStyle === "italic"
-    : editor.isActive("italic") ||
-      getComputedStyle(editor.view.dom).fontStyle === "italic";
+    : editor.isActive("italic") || themeItalic;
   const colour = (paint.color as string | undefined) ?? appearance.text;
   const shadow =
     (paint.shadow as typeof appearance.shadow) ?? appearance.shadow;

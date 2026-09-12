@@ -1,5 +1,6 @@
 import {
   DEFAULT_COVER_OVERLAY,
+  isPageOwning,
   type Block,
   type CoverOverlay,
   type Page,
@@ -24,12 +25,18 @@ export function placementOf(item: CoverItem, page: Page): CoverPlacement {
         row: page.coverOverlay?.position ?? "center",
       };
 }
+/** Whether a cover is laid out on the anchor grid (v7) rather than as a stack. */
+export function hasCoverLayout(page: Page) {
+  return Boolean(
+    page.cover &&
+    (page.coverElements?.length ||
+      (page.coverOverlay && !page.blocks.some(isPageOwning)) ||
+      page.blocks.some((b) => "coverPlacement" in b && b.coverPlacement)),
+  );
+}
 /** The cover's default contrast: shadowed light type over a photo, dark type on paper. */
 export function coverOverlayOf(page: Page): CoverOverlay {
-  const photo = page.blocks.some(
-    (b) =>
-      b.type === "image" && (b.align === "page-fill" || b.align === "page-fit"),
-  );
+  const photo = page.blocks.some(isPageOwning);
   return (
     page.coverOverlay ??
     (photo
@@ -67,13 +74,7 @@ export function coverItemLabel(item: CoverItem): string {
 }
 export function coverItems(page: Page): CoverItem[] {
   return [
-    ...page.blocks.filter(
-      (b) =>
-        !(
-          b.type === "image" &&
-          (b.align === "page-fill" || b.align === "page-fit")
-        ),
-    ),
+    ...page.blocks.filter((b) => !isPageOwning(b)),
     ...(page.coverElements ?? []),
   ].sort(
     (a, b) =>

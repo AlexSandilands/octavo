@@ -3,6 +3,7 @@ import { Icon } from "@/components/icons";
 import {
   COVER_PALETTE,
   colorCss,
+  isLightColor,
   type CoverColor,
 } from "@/lib/cover-appearance";
 import { FieldLabel } from "./cover-fields";
@@ -20,14 +21,9 @@ export function resolvedColor(css: string): string {
     ? `#${rgb.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("")}`
     : "#20201c";
 }
+/** The text colour a freshly chosen panel colour calls for. */
 export function readableText(background: CoverColor): CoverColor {
-  const hex = resolvedColor(colorCss(background));
-  const rgb = [1, 3, 5]
-    .map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
-    .map((c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
-  return 0.2126 * rgb[0]! + 0.7152 * rgb[1]! + 0.0722 * rgb[2]! > 0.35
-    ? "ink"
-    : "paper";
+  return isLightColor(background) ? "ink" : "paper";
 }
 
 /** A labelled swatch row for the inspector. */

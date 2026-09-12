@@ -1,12 +1,11 @@
 import { z } from "zod";
-import { coverAppearanceSchema } from "./cover-appearance";
 import { createId } from "./id";
 import { richTextValueSchema } from "./rich-text-doc";
 import { YOUTUBE_ID_RE } from "./youtube";
 import {
   coverElementSchema,
+  coverOverlaySchema,
   coverPlacementSchema,
-  coverStyleSchema,
   MAX_COVER_ELEMENTS,
 } from "./cover-elements";
 
@@ -189,18 +188,17 @@ export const blockSchema = z.discriminatedUnion("type", [
   sponsorBlockSchema,
 ]);
 
-export const coverOverlaySchema = z.object({
-  appearance: coverAppearanceSchema.optional(),
-  style: coverStyleSchema,
-  position: z.enum(["top", "center", "bottom"]),
-  decoration: z.boolean().optional(),
-  masthead: z.boolean().optional(),
-});
-export type CoverOverlay = z.infer<typeof coverOverlaySchema>;
-export const DEFAULT_COVER_OVERLAY: CoverOverlay = {
-  style: "light-shadow",
-  position: "center",
-};
+// The cover's own settings live with the rest of the cover model.
+export {
+  coverOverlaySchema,
+  DEFAULT_COVER_OVERLAY,
+  type CoverOverlay,
+} from "./cover-elements";
+
+/** A photo set to fill or fit the page owns it (v6); cover content overlays it. */
+export function isPageOwning(block: Block): boolean {
+  return block.type === "image" && PAGE_ALIGNS.some((a) => a === block.align);
+}
 
 export const pageSchema = z.object({
   id: z.string().max(ID_MAX),

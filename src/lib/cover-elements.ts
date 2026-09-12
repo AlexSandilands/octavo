@@ -13,6 +13,19 @@ export const COVER_STYLES = [
   "ink-panel",
 ] as const;
 export const coverStyleSchema = z.enum(COVER_STYLES);
+export const coverOverlaySchema = z.object({
+  appearance: coverAppearanceSchema.optional(),
+  style: coverStyleSchema,
+  // Legacy: the row headings/text without their own placement fall back to.
+  position: z.enum(["top", "center", "bottom"]),
+  decoration: z.boolean().optional(),
+  masthead: z.boolean().optional(),
+});
+export type CoverOverlay = z.infer<typeof coverOverlaySchema>;
+export const DEFAULT_COVER_OVERLAY: CoverOverlay = {
+  style: "light-shadow",
+  position: "center",
+};
 export const COVER_LAYER_MAX = 20;
 export const coverPlacementSchema = z.object({
   column: z.enum(["left", "center", "right"]),
@@ -156,18 +169,5 @@ export function previewTitle(
     (item.title.trim()
       ? item.title
       : sources.find((s) => s.id === item.headingId)?.title) || ""
-  );
-}
-export function hasCoverLayout(page: Page) {
-  return Boolean(
-    page.cover &&
-    (page.coverElements?.length ||
-      (page.coverOverlay &&
-        !page.blocks.some(
-          (b) =>
-            b.type === "image" &&
-            (b.align === "page-fill" || b.align === "page-fit"),
-        )) ||
-      page.blocks.some((b) => "coverPlacement" in b && b.coverPlacement)),
   );
 }

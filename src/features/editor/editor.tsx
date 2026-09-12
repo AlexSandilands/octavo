@@ -1,6 +1,5 @@
 "use client";
 import { CoverTextProvider } from "./cover-text-context";
-
 import { useEffect, useEffectEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { type IssueContent } from "@/lib/blocks";
@@ -197,11 +196,9 @@ export function Editor({
     }),
   );
 
-  const coverWarnings = useCoverLayoutWarnings(
-    page,
-    canvasRef,
-    coverSources(pages),
-  );
+  // Section titles the cover can reference; derived once per change of pages.
+  const sources = useMemo(() => coverSources(pages), [pages]);
+  const coverWarnings = useCoverLayoutWarnings(page, canvasRef, sources);
   const filled = pageFillsCanvas(page);
   const showCoverTools = Boolean(page?.cover || page?.coverElements?.length);
   const toolbarReserve = TOOLBAR_RESERVE;
@@ -406,7 +403,7 @@ export function Editor({
                             <EditorPageContent
                               page={page}
                               containerRef={canvasRef}
-                              sources={coverSources(pages)}
+                              sources={sources}
                               issueNo={issue.number}
                               issueId={issue.id}
                               theme={theme}
@@ -440,6 +437,7 @@ export function Editor({
             {showCoverTools && (
               <CoverOverlayControls
                 docking={docking}
+                sources={sources}
                 hasMasthead={theme.page.hasMasthead}
                 issueId={issue.id}
                 onFillPage={fillPage}
