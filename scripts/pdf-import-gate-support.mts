@@ -3,12 +3,7 @@ import { existsSync } from "node:fs";
 import postgres from "postgres";
 import { chromium, type Page as BrowserPage } from "playwright";
 import { issueContentSchema, type Block } from "../src/lib/blocks.ts";
-const envFile = existsSync(".env.local")
-  ? ".env.local"
-  : existsSync(".env")
-    ? ".env"
-    : null;
-if (envFile) process.loadEnvFile(envFile);
+process.loadEnvFile(existsSync(".env.local") ? ".env.local" : ".env");
 export const base = process.argv[2] ?? "http://localhost:3223";
 assert(
   ["localhost", "127.0.0.1"].includes(new URL(base).hostname),

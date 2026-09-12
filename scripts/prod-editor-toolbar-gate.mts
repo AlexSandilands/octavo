@@ -25,6 +25,10 @@ async function box(locator: Locator) {
   return bounds;
 }
 
+// Set once, from the bar's first render — main's toolbar grows tools over
+// time (a Logo tool, cover tools), so a literal count would go stale.
+let expectedToolCount: number | null = null;
+
 async function assertMagazineBarClear(
   page: Page,
   placement: "bottom" | "left",
@@ -62,7 +66,12 @@ async function assertMagazineBarClear(
     }).length;
     return { count: buttons.length, outside };
   });
-  assert.equal(containment.count, 10, "Every editor tool remains rendered.");
+  expectedToolCount ??= containment.count;
+  assert.equal(
+    containment.count,
+    expectedToolCount,
+    "Every editor tool remains rendered.",
+  );
   assert.equal(containment.outside, 0, "No editor tool is clipped by its bar.");
 }
 
@@ -97,6 +106,9 @@ try {
   const page = await context.newPage();
   await page.goto(`${base}/admin/issues/${iid}/edit`);
   await editorBar(page).waitFor();
+  // Off the cover (page 1): its mandatory overlay inspector reserves its own
+  // canvas width, a separate concern from the toolbar placement under test.
+  await magazinePage(page, 2).click();
 
   // Without a manual choice, resizing the panel still drives the existing
   // automatic bottom/left behavior in both directions.

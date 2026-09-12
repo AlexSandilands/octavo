@@ -164,8 +164,9 @@ export function Editor({
   const columnRef = useRef<HTMLDivElement>(null);
   const responsiveBarLayout = useBarLayout(columnRef, {
     labels: 1000,
-    // The destination toggle adds one tool and divider to the compact row.
-    vertical: 565,
+    // The icons-only row (cover tools, the destination toggle) measures
+    // ~533px; switch to standing before a narrower canvas would clip it.
+    vertical: 575,
   });
   const [barPosition, setBarPosition] = useState<BarPosition | null>(null);
   const barLayout = barLayoutAtPosition(responsiveBarLayout, barPosition);
