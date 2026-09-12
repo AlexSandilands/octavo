@@ -223,12 +223,29 @@ Reader / library / dashboard (server components)
   └─ data layer (server/issues.ts) ─▶ Postgres ─▶ rendered via shared block renderers
 
 Publish → email blast (publishIssueAction, admin only)
-  └─ publishIssue() ─▶ Postgres (status=published)
+  └─ publishIssue(id, number) ─▶ Postgres (status=published, number allocated)
   └─ if "email members" chosen: server/publish-email.ts
        ├─ per member: mint an Auth.js verification token (same mechanism as
        │  sign-in) targeting /read/[number]  ─▶ verification_tokens
        └─ render + batch-send via Resend (console in dev)  ─▶ {sent, failed} → admin
 ```
+
+### The issue number is chosen at publish (issue #270)
+
+A draft has **no number** — `issues.number` is nullable and only means something on a
+published row. The publish modal proposes the next one in the published sequence
+(`nextIssueNumber`, one server-side definition shared by the modal's proposal and the
+editor's running-head preview), the admin can type another, and `publishIssue` writes it.
+A number taken in between comes back as a conflict and the modal stays open. A published
+issue's number is **read-only** — renumbering would break links already shared and
+emailed — and a re-publish leaves it alone. Deleting a published issue frees its number.
+
+Ordering stays by `number desc` among published issues, so a back issue digitised later
+(No. 3 published after No. 8 exists) does not become "latest". The dashboard lists drafts
+first by last edit, then published issues by number. Drafts read as "Draft" in the row and
+the editor chip; their canvas, thumbnail and preview render the proposed number so the
+pages look right, storing nothing. See [database.md](database.md) for the column, the
+partial unique index and the check constraint.
 
 ### Publish → email (the core loop)
 
