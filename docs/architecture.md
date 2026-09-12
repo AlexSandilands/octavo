@@ -63,7 +63,9 @@ src/
                        server/settings.ts — nothing else may)
     env.ts             validated server env
     id.ts              id generator
-  server/              server-only data access (issues.ts, users.ts, images.ts) and auth
+  server/              server-only data access (users.ts, images.ts, ...) and auth
+    issues.ts          admin issue listing + filters, and all issue CRUD
+    library.ts         member-facing reads: library home page, published archive
     auth.ts            Auth.js config: provider, callbacks, session shape
     auth-adapter.ts    hand-rolled Auth.js adapter over the users/sessions tables
     auth-email.ts      the magic-link email (template + Resend/console transport)
@@ -124,8 +126,9 @@ The editor's right-hand side panel (`src/features/editor/side-panel/`, opened fr
 tool rail on the editor's edge and resizable by drag or keyboard) hosts the Import PDF
 tool, which lazy-loads a browser-only PDF parser; source files never upload.
 Selected regions become ordinary v6 blocks through bounded measured fitting and one
-history commit. Draft-only autosave prevents a concurrent publication from accepting
-an import, and accepted photos use the existing issue-owned image pipeline. Details,
+history commit. Import is an ordinary edit on drafts and published issues alike,
+refused only by the same revision check as any other save, and accepted photos use
+the existing issue-owned image pipeline. Details,
 limits, lifecycle and reproducible browser gates: [PDF import](pdf-import.md).
 
 ## Data flow
@@ -168,8 +171,8 @@ unsubscribe anyone. The `/unsubscribe` route sits outside the member gate by des
 
 - **Server Components by default.** `"use client"` only for interactivity (editor, readers, members
   table). Keep client islands at the leaves.
-- **All DB access goes through `src/server/issues.ts`** (marked `server-only`). Never query Drizzle
-  from a component.
+- **All DB access goes through `src/server/` data-access modules** (`issues.ts`, `library.ts`, ...,
+  each marked `server-only`). Never query Drizzle from a component.
 - **Mutations are Server Actions** in `src/app/admin/actions.ts`, validated with zod at the boundary
   (ids, meta and the whole content document) so adding auth later is just a gate, not a rewrite.
 - **Content saves are optimistically concurrent**: each save carries the `revision` it was based on
