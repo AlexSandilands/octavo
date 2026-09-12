@@ -10,11 +10,11 @@ export async function checkCoverEdits(f: CoverFixture, storyId: string) {
   });
   const clickCanvas = async (name: string) =>
     canvas.getByRole("button", { name, exact: true }).click();
-  // Both Stories elements answer to one label, so the story is reached by id.
+  // Its name follows the heading it links to, which these checks rename; the id doesn't.
   const clickStory = async () =>
     canvas
       .locator(`[data-cover-element="${storyId}"]`)
-      .getByRole("button", { name: "Edit Stories", exact: true })
+      .getByRole("button", { name: /^Edit Stories/ })
       .click();
   const close = async () => page.getByRole("button", { name: "Done" }).click();
   const logoSize = (c: Awaited<ReturnType<CoverFixture["stored"]>>) => {

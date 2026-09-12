@@ -58,8 +58,7 @@ await withCoverFixture(base, async (fixture) => {
     return (await ids()).find((id) => !before.includes(id))!;
   };
   const contentsId = await addElement("Inside this issue");
-  // The preset seeds one blank story; link it, then add the second as a section.
-  await panel.getByText("1. New story", { exact: true }).click();
+  // The preset seeds one blank story, open and ready; the second arrives as a section.
   await choose(
     /^Source for story 1:/,
     "Section headings",
@@ -88,7 +87,6 @@ await withCoverFixture(base, async (fixture) => {
   await panel.getByRole("button", { name: "Bottom left", exact: true }).click();
   await page.getByRole("button", { name: "Done" }).click();
   const storyId = await addElement("Story");
-  await panel.getByText("1. New story", { exact: true }).click();
   await choose(
     /^Source for story 1:/,
     "Section headings",
@@ -134,6 +132,14 @@ await withCoverFixture(base, async (fixture) => {
       logo.size === 140
     );
   });
+  const named = await canvas
+    .locator('[data-cover-element] [aria-label^="Edit Stories"]')
+    .evaluateAll((els) => els.map((el) => el.getAttribute("aria-label")!));
+  assert.deepEqual(
+    named.sort(),
+    ["Edit Stories: Inside this issue", "Edit Stories: Meet the members"],
+    "the two Stories elements are told apart by what they say",
+  );
   const mark = canvas.locator('[data-cover-entry][data-logo="true"]');
   const markWidth = await mark.evaluate(
     (el) => (el as HTMLElement).offsetWidth,
@@ -183,7 +189,7 @@ await withCoverFixture(base, async (fixture) => {
     );
     await canvas
       .locator(`[data-cover-element="${contentsId}"]`)
-      .getByRole("button", { name: "Edit Stories", exact: true })
+      .getByRole("button", { name: /^Edit Stories/ })
       .click();
     await panel.waitFor();
     const box = await panel.boundingBox();

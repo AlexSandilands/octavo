@@ -29,6 +29,7 @@ export function CoverElementView({
     );
   const P = renderText ? "div" : "p";
   const H3 = renderText ? "div" : "h3";
+  const H4 = renderText ? "div" : "h4";
   if (element.type === "logo") {
     const image = element.imageId ? images[element.imageId] : undefined;
     return image ? (
@@ -70,15 +71,17 @@ export function CoverElementView({
   const entries = element.items.filter(
     (item) => editing || previewTitle(item, sources) || item.description,
   );
+  // Entries sit under the list heading when there is one, so they step down a level.
+  const Headline = element.title ? H4 : H3;
   const story = (item: (typeof entries)[number]) => {
     const title = previewTitle(item, sources);
     const source = sources.find((s) => s.id === item.headingId);
     return (
       <>
         {(title || editing) && (
-          <H3 data-cover-copy className="cover-stories-headline">
+          <Headline data-cover-copy className="cover-stories-headline">
             {copy(`${item.id}:title`, title, "Story headline")}
-          </H3>
+          </Headline>
         )}
         {item.description && (
           <P data-cover-copy className="cover-story-description">

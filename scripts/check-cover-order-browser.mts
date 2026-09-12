@@ -121,7 +121,6 @@ await withCoverFixture(
     await page
       .getByRole("menuitemradio", { name: "Story", exact: true })
       .click();
-    await panel.getByText("1. New story", { exact: true }).click();
     await panel
       .getByRole("textbox", { name: "Headline for story 1", exact: true })
       .fill("A featured story");

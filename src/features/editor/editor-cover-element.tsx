@@ -3,7 +3,7 @@ import { updateShownCoverText } from "@/lib/cover-text-update";
 import { useCoverSortable } from "./use-cover-sortable";
 import { Icon } from "@/components/icons";
 import {
-  COVER_ELEMENT_LABELS,
+  coverElementName,
   nudgeLayer,
   type CoverElement,
   type CoverSource,
@@ -66,7 +66,7 @@ export function EditorCoverElement({
       <div
         role="button"
         tabIndex={0}
-        aria-label={`Edit ${COVER_ELEMENT_LABELS[element.type]}`}
+        aria-label={`Edit ${coverElementName(element, sources)}`}
         className="cursor-pointer"
         onClick={(e) => {
           e.stopPropagation();

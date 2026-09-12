@@ -3,6 +3,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { issueContentSchema, makePage, type Page } from "../src/lib/blocks";
 import {
+  type CoverElement,
   coverSources,
   coverElementSchema,
   COVER_HEADLINE_SIZES,
@@ -119,6 +120,30 @@ for (const row of ["top", "center", "bottom"] as const)
         html.includes(`data-column="${column}"`),
     );
   }
+// Entries step down a level under a list heading, and stand at h3 without one.
+const render = (element: CoverElement) =>
+  renderToStaticMarkup(
+    createElement(PageBlocks, {
+      page: { ...front, coverElements: [element] },
+      theme: resolveTheme("classic"),
+      images: {},
+      sponsors: {},
+      sources,
+      issueNo: 42,
+    }),
+  );
+const headed = render(contents);
+assert(
+  headed.includes('<h3 data-cover-copy="true" class="cover-stories-heading"'),
+);
+assert(
+  headed.includes('<h4 data-cover-copy="true" class="cover-stories-headline"'),
+);
+assert(
+  render({ ...contents, title: "" }).includes(
+    '<h3 data-cover-copy="true" class="cover-stories-headline"',
+  ),
+);
 // A lone unlinked story keeps the size it was stored with: nothing promotes itself.
 const lone = { ...story, items: [makeCoverStory()], headlineSize: "compact" };
 const parsedLone = coverElementSchema.parse(lone);
@@ -156,5 +181,5 @@ const seeds = buildIssues(
 seeds.forEach((i) => assert(issueContentSchema.safeParse(i.content).success));
 assert.equal(seeds[5]?.content.pages[0]?.coverElements?.length, 3);
 console.log(
-  "PASS: preset defaults, stored headline sizes, schema bounds, references/page numbering, logo asset traversal, demotion preservation, all anchors, shared renderer and seed compatibility",
+  "PASS: preset defaults, stored headline sizes, heading hierarchy, schema bounds, references/page numbering, logo asset traversal, demotion preservation, all anchors, shared renderer and seed compatibility",
 );

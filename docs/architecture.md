@@ -146,7 +146,8 @@ left/centre/right and top/middle/bottom, stacking entries that share an anchor. 
 renders story lists, issue details and logos across the editor, reader, thumbnail and PDF. One
 `stories` element covers both cover lists: an optional list heading, one to six linked or
 free-standing stories, and a stored `headlineSize` stepping the headline from 18px to 36px (the
-description stays at body size) — the _Add detail_ menu only seeds it two ways. `coverSources` derives section titles and page numbers from live headings;
+description stays at body size) — the _Add detail_ menu only seeds it two ways.
+`coverSources` derives section titles and page numbers from live headings;
 only an explicitly authored cover title overrides that reference. Logos use the ordinary ImageMap
 and asset reference traversal, with an additional library deletion guard. Heading/text blocks
 can independently opt into `coverPlacement`; otherwise their original cover flow remains.

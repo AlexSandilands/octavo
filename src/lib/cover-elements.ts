@@ -115,6 +115,16 @@ export const COVER_ELEMENT_LABELS: Record<CoverElementType, string> = {
   details: "Issue details",
   logo: "Logo",
 };
+/** Names one item apart from its siblings: two Stories elements share one label. */
+export function coverElementName(
+  element: CoverElement,
+  sources: CoverSource[],
+): string {
+  const label = COVER_ELEMENT_LABELS[element.type];
+  if (element.type !== "stories") return label;
+  const said = element.title || previewTitle(element.items[0]!, sources);
+  return said ? `${label}: ${said}` : label;
+}
 /** Stories carries both cover lists; the presets differ only in how they start out. */
 export const COVER_ELEMENT_PRESETS = [
   "story",
