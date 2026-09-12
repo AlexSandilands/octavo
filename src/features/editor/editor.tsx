@@ -44,7 +44,11 @@ import { coverItems } from "@/lib/cover-order";
 import { coverSources } from "@/lib/cover-elements";
 import { useCoverLayoutWarnings } from "./use-cover-layout-warnings";
 import { EditorPageContent } from "./editor-page-content";
-import { CoverOverlayControls } from "./cover-overlay-controls";
+import {
+  CoverOverlayControls,
+  INSPECTOR_RESERVE,
+} from "./cover-overlay-controls";
+import { usePanelDock } from "./use-panel-dock";
 import { useCanvasPanZoom } from "@/features/blocks/use-canvas-pan-zoom";
 import { useEditorPages } from "./use-editor-pages";
 import { useTextFlow } from "./use-text-flow";
@@ -201,6 +205,15 @@ export function Editor({
   const filled = pageFillsCanvas(page);
   const showCoverTools = Boolean(page?.cover || page?.coverElements?.length);
   const toolbarReserve = TOOLBAR_RESERVE;
+  // The inspector floats over the stage; the stage pads the docked side so the
+  // fitted page sits clear of it, and a panned page shows through beneath.
+  const docking = usePanelDock();
+  const stagePad = {
+    left:
+      showCoverTools && docking.dock === "left" ? INSPECTOR_RESERVE + 16 : 40,
+    right:
+      showCoverTools && docking.dock === "right" ? INSPECTOR_RESERVE + 16 : 40,
+  };
 
   // Fit-and-zoom the fixed PAGE_W×PAGE_H canvas to the editor stage (zoom=1),
   // exactly as the reader does — so the editor is a faithful, to-scale preview —
@@ -223,8 +236,9 @@ export function Editor({
   } = useCanvasPanZoom({
     contentWidth: PAGE_W,
     contentHeight: PAGE_H,
-    // The stage's own padding: 40px above the page, the tool bar's reserve below.
-    fitMargin: { x: 80, y: 40 + toolbarReserve },
+    // The stage's own padding: 40px above the page, the tool bar's reserve
+    // below, and the inspector's column on its side.
+    fitMargin: { x: stagePad.left + stagePad.right, y: 40 + toolbarReserve },
     fitClamp: { min: 0.25, max: 1.4 },
     initialFitScale: 0.75,
     blockSelector: "[data-editor-block]",
@@ -342,8 +356,12 @@ export function Editor({
                 onPointerMove={onPointerMove}
                 onPointerUp={onPointerUp}
                 onPointerCancel={onPointerUp}
-                style={{ paddingBottom: toolbarReserve }}
-                className={`flex flex-1 items-center justify-center overflow-hidden px-10 pt-10 ${
+                style={{
+                  paddingBottom: toolbarReserve,
+                  paddingLeft: stagePad.left,
+                  paddingRight: stagePad.right,
+                }}
+                className={`flex flex-1 items-center justify-center overflow-hidden pt-10 ${
                   panning ? "cursor-grabbing select-none" : "cursor-grab"
                 }`}
               >
@@ -421,6 +439,7 @@ export function Editor({
             </div>
             {showCoverTools && (
               <CoverOverlayControls
+                docking={docking}
                 hasMasthead={theme.page.hasMasthead}
                 issueId={issue.id}
                 onFillPage={fillPage}

@@ -5,7 +5,10 @@ import type { Page } from "@/lib/blocks";
 import { COVER_ELEMENT_LABELS, coverSources } from "@/lib/cover-elements";
 import { coverOverlayOf } from "@/lib/cover-order";
 import { CoverInspector, type CoverInspectorProps } from "./cover-inspector";
-import { usePanelDock } from "./use-panel-dock";
+import type { usePanelDock } from "./use-panel-dock";
+
+/** Width of the inspector's column (panel plus its gutters), which the stage pads out. */
+export const INSPECTOR_RESERVE = 344;
 
 type Props = Omit<
   CoverInspectorProps,
@@ -13,11 +16,17 @@ type Props = Omit<
 > & {
   page?: Page;
   pages: Page[];
+  docking: ReturnType<typeof usePanelDock>;
 };
-/** A reserved column beside the stage, outside the pan/zoom. Selecting never obscures the page. */
-export function CoverOverlayControls({ page, pages, ...props }: Props) {
-  const { dock, setDock, drag, onHandlePointerDown, onHandleClick } =
-    usePanelDock();
+/** Floats over the stage on the docked side; the stage pads that side so the
+ *  fitted page stays clear, while a panned page shows through underneath. */
+export function CoverOverlayControls({
+  page,
+  pages,
+  docking,
+  ...props
+}: Props) {
+  const { dock, setDock, drag, onHandlePointerDown, onHandleClick } = docking;
   if (!page) return null;
   const element = page.coverElements?.find((e) => e.id === props.selectedId);
   const block = page.blocks.find(
@@ -40,9 +49,9 @@ export function CoverOverlayControls({ page, pages, ...props }: Props) {
   const other: typeof dock = dock === "left" ? "right" : "left";
   return (
     <div
-      style={{ order: dock === "left" ? -1 : 1 }}
-      className={`relative z-10 flex w-[324px] shrink-0 items-start pt-5 pb-[92px] lg:w-[344px] xl:w-[368px] ${
-        dock === "left" ? "pr-3 pl-6" : "pr-6 pl-3"
+      style={{ width: INSPECTOR_RESERVE }}
+      className={`pointer-events-none absolute inset-y-0 z-10 flex items-start pt-5 pb-[92px] ${
+        dock === "left" ? "left-0 pr-3 pl-6" : "right-0 pr-6 pl-3"
       }`}
     >
       <aside
@@ -52,7 +61,7 @@ export function CoverOverlayControls({ page, pages, ...props }: Props) {
             ? { transform: `translate(${drag.x}px, ${drag.y}px)` }
             : undefined
         }
-        className={`border-hair-warm bg-card flex max-h-full w-full flex-col overflow-hidden rounded-[14px] border shadow-[0_8px_24px_-6px_color-mix(in_srgb,var(--color-ink)_14%,transparent)] ${
+        className={`border-hair-warm bg-card pointer-events-auto flex max-h-full w-full flex-col overflow-hidden rounded-[14px] border shadow-[0_8px_24px_-6px_color-mix(in_srgb,var(--color-ink)_14%,transparent)] ${
           drag
             ? "opacity-90 shadow-[0_18px_40px_-8px_color-mix(in_srgb,var(--color-ink)_30%,transparent)]"
             : "transition-transform"
