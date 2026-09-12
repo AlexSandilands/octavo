@@ -159,10 +159,10 @@ heading/text/detail typography without changing
 wrapping width; both fixed-page renderers and the reflowing phone reader apply it. The cover
 decoration toggle passes through `PageFrame` in the editor, reader, thumbnail and PDF; the
 phone reader continues its unframed layout. A separate masthead toggle hides the automatic
-magazine name and issue number while keeping the frame; only themes declaring `hasMasthead`
-offer it, and interior pages keep their running heads unless the owner's page-top switch (issue
-#269) turns the text off site-wide — `PageFrame` folds setting and page flag into the one
-`showMasthead` the theme sees. The inspector has its own stacking layer so the
+magazine name and issue number while keeping the frame; it is offered only by themes declaring
+`hasMasthead` and only while the owner's page-top switch (issue #269) is on, since that switch
+already hides the text on every page the theme frames, covers included — `PageFrame` folds the
+setting and the page's flag into the one `showMasthead` the theme sees. The inspector has its own stacking layer so the
 canvas cannot paint over its soft shadow. Every text item uses the same position grid; legacy cover-flow positions are read as fallback
 anchors, with no separate flow controls. `cover-order.ts` supplies shared ordering: a drop joins the
 target anchor and saves placement order across headings, text, inline images and details. Cover sorting

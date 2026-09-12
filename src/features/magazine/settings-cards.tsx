@@ -86,7 +86,7 @@ export function SettingsFormCard({
       <SettingsToggle
         id="running-head"
         label="Show magazine name and issue number at the top of pages"
-        hint="Applies to interior pages in the reader, the editor and the PDF, including published issues. A theme with no textual running head is unchanged."
+        hint="Applies to every page the classic theme frames, covers included, in the reader, the editor and the PDF. A theme with no textual running head is unchanged."
         value={form.showRunningHead}
         onChange={(showRunningHead) => onChange({ showRunningHead })}
       />

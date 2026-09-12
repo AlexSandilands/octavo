@@ -1,23 +1,9 @@
-// Dev-only: proves the owner's running-head switch (issue #269) headless
-// against a running dev server.
-//
-// The switch hides the textual running head the classic theme prints above the
-// page content ("THE MAGAZINE · NO. 6") and nothing else. So for each of the
-// surfaces that draw a page — the admin preview, the editor canvas (cover and
-// interior), the library thumbnail, the desktop reader (cover and an interior
-// spread) and the print route in both themes — this surveys four counts:
-// `[data-page-masthead]`, the two classic frame rules and `[data-page-decoration]`.
-// Switching the setting off must zero the first and leave the other three
-// exactly as they were; switching it back on must restore all four.
-//
-// It also checks the untouched default (a NULL column) renders the same as an
-// explicit `true`, that the live preview follows the unsaved form state, that
-// the modern theme is unaffected, and that the PDF cache re-keys — read from
-// the print route's `print-chrome` stamp, which is `chromeFingerprint()`.
-//
-// It mints its own scratch admin + session + published issue, and puts the
-// `settings` row back the way it found it (including removing a row it had to
-// create), so it never disturbs existing content.
+// Dev-only: the owner's running-head switch (issue #269) hides the classic
+// theme's page-top magazine name and issue number and nothing else — surveyed
+// on the admin preview, the editor canvas, a library thumbnail, both reader
+// views, the print route in both themes, and the print route's chrome stamp
+// (the PDF cache key). Mints its own admin, session and published issue, and
+// restores the `settings` row it touches.
 // Run: npx tsx --tsconfig scripts/tsconfig.json scripts/dev-running-head-gate.mts <base-url>
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
@@ -170,6 +156,22 @@ try {
     const canvas = page.locator("[data-page-frame]");
     await canvas.locator('[data-block-id="cover-title"]').waitFor();
     surveys["editor cover"] = await survey(canvas);
+    // The cover's own masthead opt-out (#255) must not be offered once the
+    // site-wide switch has already taken the text away.
+    const inspector = page.getByRole("complementary", {
+      name: "Cover element settings",
+    });
+    // The cover's own defaults show while nothing on it is selected.
+    await page.keyboard.press("Escape");
+    await inspector
+      .getByRole("checkbox", { name: "Show theme decoration" })
+      .waitFor();
+    const coverControl = await inspector
+      .getByRole("checkbox", {
+        name: "Show magazine name and issue number",
+        exact: true,
+      })
+      .count();
     // The rail's page thumbs carry no name of their own; their Delete twin does.
     await page
       .locator("div.group", { has: page.getByLabel("Delete page 2") })
@@ -221,7 +223,7 @@ try {
       if (theme === "classic") fingerprint = stamp;
       else assert.equal(stamp, fingerprint, "the stamp is not theme-dependent");
     }
-    return { surveys, fingerprint };
+    return { surveys, coverControl, fingerprint };
   }
 
   heading("Shown by default (an untouched deployment: NULL column)");
@@ -236,6 +238,7 @@ try {
       `${surface}: ${s.masthead} running head(s) over ${s.frame} frame + ${s.frameSoft} soft rule(s)`,
     );
   }
+  ok(shown.coverControl === 1, "the cover's masthead opt-out is offered");
 
   heading("The live preview follows the unsaved form state");
   await page.goto(`${base}/admin/magazine`);
@@ -300,6 +303,10 @@ try {
     );
   }
   ok(
+    hidden.coverControl === 0,
+    "the cover's masthead opt-out is withdrawn — no switch that does nothing",
+  );
+  ok(
     hidden.fingerprint !== shown.fingerprint,
     `the PDF cache key changes (${shown.fingerprint} → ${hidden.fingerprint})`,
   );
@@ -311,6 +318,7 @@ try {
     assert.deepEqual(s, shown.surveys[surface], `${surface} did not come back`);
   }
   ok(true, "every surface matches the default render again");
+  ok(back.coverControl === 1, "the cover's masthead opt-out is offered again");
   ok(
     back.fingerprint === shown.fingerprint,
     `an explicit true keys the same as the NULL default (${back.fingerprint})`,

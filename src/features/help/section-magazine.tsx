@@ -33,20 +33,20 @@ export function SectionMagazine() {
           <strong>
             Show magazine name and issue number at the top of pages
           </strong>
-          . Leave it on and each interior page carries the small line of
-          lettering the classic theme has always printed above the content; turn
-          it off and only that lettering goes — the page&rsquo;s borders and the
-          rest of the theme&rsquo;s decoration stay exactly as they were, covers
-          included, and a theme that never printed such a line is unaffected.
-          Below it, three choices that decide the look of the running footer:
-          how big the mark is, how big the wording is, and whether the lockup
-          sits on the left, in the middle or on the right — the page number
-          always takes the opposite margin on both leaves of a spread. Covers
-          and full-page photos have no footer. The phone reader closes the issue
-          with the same mark and wording, without a page number. All of it
-          applies to interior pages in the reader, editor and PDF, including
-          published issues. Issues with no room for a taller footer keep their
-          smaller one; see the note further down.
+          . Leave it on and every page the classic theme frames — covers
+          included — carries the small line of lettering it has always printed
+          above the content; turn it off and only that lettering goes, from
+          every page. The page&rsquo;s borders and the rest of the theme&rsquo;s
+          decoration stay exactly as they were, and a theme that never printed
+          such a line is unaffected. Below it, three choices that decide the
+          look of the running footer: how big the mark is, how big the wording
+          is, and whether the lockup sits on the left, in the middle or on the
+          right — the page number always takes the opposite margin on both
+          leaves of a spread. Covers and full-page photos have no footer. The
+          phone reader closes the issue with the same mark and wording, without
+          a page number. All of it applies to interior pages in the reader,
+          editor and PDF, including published issues. Issues with no room for a
+          taller footer keep their smaller one; see the note further down.
         </Step>
         <Step n={3} title="PDF downloads — whether members can keep a copy">
           One switch: <strong>Let members download issues as a PDF</strong>.
