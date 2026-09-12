@@ -119,7 +119,7 @@ viewport beneath the header (growing for larger text). Interior full-page images
 image-only behaviour. Content is never silently removed: on a grid cover the inspector's layout
 checks name anything that runs past the margin; legacy stacked covers keep the on-page overflow
 marker. `EditorToolbar` offers a cover-specific set on covers: Heading, Text — a menu of
-Paragraph, Section and Details — Image, and Logo. A floating rounded inspector
+Paragraph, Story and Details — Image, and Logo. A floating rounded inspector
 sits over the stage on its docked side; the fit leaves room for it, the page slides away from it
 only as far as the two would otherwise meet (eased), and a page panned towards it shows through
 beneath. Its header grip drags
@@ -146,7 +146,7 @@ field documents carry only cover formatting, and stale documents never override 
 **Optional cover elements** are defined in `lib/cover-elements.ts`. `CoverGrid` anchors groups to
 left/centre/right and top/middle/bottom, stacking entries that share an anchor. `CoverElementView`
 renders story lists, issue details and logos across the editor, reader, thumbnail and PDF. One
-`section` element covers every cover list: an optional list heading (blank by default, ghosted
+`story` element covers every cover list: an optional list heading (blank by default, ghosted
 "Inside this issue" in the inspector), one to six linked or free-standing stories, and a stored
 `headlineSize` stepping the headline from 18px to 36px (the description stays at body size).
 `coverSources` derives section titles and page numbers from live headings;

@@ -79,7 +79,7 @@ export function CoverElementView({
     return (
       <>
         {(title || editing) && (
-          <Headline data-cover-copy className="cover-section-headline">
+          <Headline data-cover-copy className="cover-story-headline">
             {copy(`${item.id}:title`, title, "Story headline")}
           </Headline>
         )}
@@ -101,14 +101,14 @@ export function CoverElementView({
     );
   };
   return (
-    <div className="cover-section" data-headline-size={element.headlineSize}>
+    <div className="cover-story" data-headline-size={element.headlineSize}>
       {element.title && (
-        <H3 data-cover-copy className="cover-section-heading">
+        <H3 data-cover-copy className="cover-story-heading">
           {copy("title", element.title, "List heading")}
         </H3>
       )}
       {entries.length > 1 ? (
-        <ol className="cover-section-list">
+        <ol className="cover-story-list">
           {entries.map((item) => (
             <li key={item.id}>{story(item)}</li>
           ))}

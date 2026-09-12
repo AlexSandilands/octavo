@@ -10,7 +10,7 @@ import {
 import { CoverTextField } from "./cover-text-field";
 import { SourcePicker } from "./cover-source-picker";
 
-type SectionElement = Extract<CoverElement, { type: "section" }>;
+type StoryElement = Extract<CoverElement, { type: "story" }>;
 
 /** A section's stories, one collapsible band each: source, words and order. */
 export function CoverStoryFields({
@@ -19,7 +19,7 @@ export function CoverStoryFields({
   afterPage,
   onChange,
 }: {
-  element: SectionElement;
+  element: StoryElement;
   sources: CoverSource[];
   afterPage: number;
   onChange: (value: CoverElement) => void;
@@ -128,8 +128,8 @@ export function CoverStoryFields({
             </div>
             {only && (
               <p className="text-muted font-sans text-xs">
-                A Section keeps one story. Delete the Section on the page to
-                remove it altogether.
+                The last story stays. Delete the Story on the page to remove it
+                altogether.
               </p>
             )}
           </StoryBand>

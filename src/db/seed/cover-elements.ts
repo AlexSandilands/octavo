@@ -10,12 +10,12 @@ import type { SeedIssue } from "./builders";
 export function withCoverElements(issue: SeedIssue): SeedIssue {
   const front = issue.content.pages[0]!;
   const sources = coverSources(issue.content.pages);
-  const contents = makeCoverElement("section"),
-    story = makeCoverElement("section"),
+  const contents = makeCoverElement("story"),
+    story = makeCoverElement("story"),
     details = makeCoverElement("details");
   if (
-    contents.type !== "section" ||
-    story.type !== "section" ||
+    contents.type !== "story" ||
+    story.type !== "story" ||
     details.type !== "details"
   )
     return issue;

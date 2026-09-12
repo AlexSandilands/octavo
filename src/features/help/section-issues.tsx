@@ -60,9 +60,9 @@ export function SectionIssues() {
       <Callout title="Arrange your cover">
         On a cover the <strong>Text</strong> button in the toolbar opens a menu:{" "}
         <strong>Paragraph</strong> for an ordinary block of words,{" "}
-        <strong>Section</strong> for a list of stories, and{" "}
+        <strong>Story</strong> for a story or a list of them, and{" "}
         <strong>Details</strong> for the issue number and a date or edition. A
-        Section holds up to six stories under an optional list heading, and{" "}
+        Story holds one story, or up to six under an optional list heading, and{" "}
         <strong>Headline size</strong> in the inspector sets how large their
         headlines print. Use <strong>Logo</strong> to add a mark from your
         library. These are optional on both plain and photo covers. A story can

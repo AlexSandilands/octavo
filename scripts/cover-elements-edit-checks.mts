@@ -14,7 +14,7 @@ export async function checkCoverEdits(f: CoverFixture, storyId: string) {
   const clickStory = async () =>
     canvas
       .locator(`[data-cover-element="${storyId}"]`)
-      .getByRole("button", { name: /^Edit Section/ })
+      .getByRole("button", { name: /^Edit Story/ })
       .click();
   const close = async () => page.getByRole("button", { name: "Done" }).click();
   const logoSize = (c: Awaited<ReturnType<CoverFixture["stored"]>>) => {

@@ -123,7 +123,7 @@ await withCoverFixture(
           .map((i) => i.id)
           .indexOf(headingId),
     );
-    await textMenu("Section");
+    await textMenu("Story");
     await panel
       .getByRole("textbox", { name: "Headline for story 1", exact: true })
       .fill("A featured story");

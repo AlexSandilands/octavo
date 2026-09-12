@@ -31,7 +31,7 @@ export function CoverElementFields({
   onRegisterImage: (id: string, image: ResolvedImage) => void;
 }) {
   const choices = sources.filter((s) => s.pageNo > afterPage);
-  if (element.type === "section")
+  if (element.type === "story")
     return (
       <div className="space-y-3">
         <CoverTextField

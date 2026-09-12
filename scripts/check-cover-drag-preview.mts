@@ -26,9 +26,9 @@ await withCoverFixture(
     cover.blocks = [photo, heading];
     const detail = makeCoverElement("details");
     detail.id = "pinned";
-    const story = makeCoverElement("section");
+    const story = makeCoverElement("story");
     story.id = "story";
-    assert(story.type === "section");
+    assert(story.type === "story");
     story.placement = { ...story.placement, column: "right", align: "right" };
     story.items = [
       { id: "one", title: "A story at the side", description: "" },

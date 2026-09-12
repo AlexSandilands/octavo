@@ -35,7 +35,7 @@ await withCoverFixture(base, async (fixture) => {
     if (name === "Logo")
       await toolbar.getByRole("button", { name, exact: true }).click();
     else {
-      // On a cover the Text tool is a menu: Paragraph, Section, Details.
+      // On a cover the Text tool is a menu: Paragraph, Story, Details.
       await toolbar.getByRole("button", { name: "Text", exact: true }).click();
       await page
         .getByRole("menu", { name: "Text", exact: true })
@@ -50,13 +50,13 @@ await withCoverFixture(base, async (fixture) => {
       .evaluateAll((els) =>
         els.map((el) => el.getAttribute("data-cover-element")!),
       );
-  /** Adds an element and returns its id; two Sections share one label. */
+  /** Adds an element and returns its id; two Stories share one label. */
   const addElement = async (name: string) => {
     const before = await ids();
     await add(name);
     return (await ids()).find((id) => !before.includes(id))!;
   };
-  const contentsId = await addElement("Section");
+  const contentsId = await addElement("Story");
   const listHeading = panel.getByRole("textbox", {
     name: "List heading (optional)",
     exact: true,
@@ -68,13 +68,13 @@ await withCoverFixture(base, async (fixture) => {
   );
   assert.equal(
     await canvas
-      .locator(`[data-cover-element="${contentsId}"] .cover-section-heading`)
+      .locator(`[data-cover-element="${contentsId}"] .cover-story-heading`)
       .count(),
     0,
     "and prints nothing on the page until one is written",
   );
   await listHeading.fill("Inside this issue");
-  // A Section starts with one blank story, open and ready; the second arrives as a section.
+  // A Story starts with one blank story, open and ready; the second is a linked section heading.
   await choose(
     /^Source for story 1:/,
     "Section headings",
@@ -102,7 +102,7 @@ await withCoverFixture(base, async (fixture) => {
   );
   await panel.getByRole("button", { name: "Bottom left", exact: true }).click();
   await page.getByRole("button", { name: "Done" }).click();
-  const storyId = await addElement("Section");
+  const storyId = await addElement("Story");
   await choose(
     /^Source for story 1:/,
     "Section headings",
@@ -115,15 +115,11 @@ await withCoverFixture(base, async (fixture) => {
     .getByRole("button", { name: "Width: narrow", exact: true })
     .click();
   const headline = canvas
-    .locator(`[data-cover-element="${storyId}"] .cover-section-headline`)
+    .locator(`[data-cover-element="${storyId}"] .cover-story-headline`)
     .first();
   const headlineSize = () =>
     headline.evaluate((el) => getComputedStyle(el).fontSize);
-  assert.equal(
-    await headlineSize(),
-    "23px",
-    "a new Section starts at list size",
-  );
+  assert.equal(await headlineSize(), "23px", "a new Story starts at list size");
   await panel
     .getByRole("button", { name: "Headline size: display", exact: true })
     .click();
@@ -149,7 +145,7 @@ await withCoverFixture(base, async (fixture) => {
     return (
       c.version === 7 &&
       elements?.length === 4 &&
-      story?.type === "section" &&
+      story?.type === "story" &&
       story.headlineSize === "large" &&
       story.items.length === 1 &&
       logo?.type === "logo" &&
@@ -157,12 +153,12 @@ await withCoverFixture(base, async (fixture) => {
     );
   });
   const named = await canvas
-    .locator('[data-cover-element] [aria-label^="Edit Section"]')
+    .locator('[data-cover-element] [aria-label^="Edit Story"]')
     .evaluateAll((els) => els.map((el) => el.getAttribute("aria-label")!));
   assert.deepEqual(
     named.sort(),
-    ["Edit Section: Inside this issue", "Edit Section: Meet the members"],
-    "the two Sections are told apart by what they say",
+    ["Edit Story: Inside this issue", "Edit Story: Meet the members"],
+    "the two Stories are told apart by what they say",
   );
   const mark = canvas.locator('[data-cover-entry][data-logo="true"]');
   const markWidth = await mark.evaluate(
@@ -213,7 +209,7 @@ await withCoverFixture(base, async (fixture) => {
     );
     await canvas
       .locator(`[data-cover-element="${contentsId}"]`)
-      .getByRole("button", { name: /^Edit Section/ })
+      .getByRole("button", { name: /^Edit Story/ })
       .click();
     await panel.waitFor();
     const box = await panel.boundingBox();
@@ -252,7 +248,7 @@ await withCoverFixture(base, async (fixture) => {
   const openContents = async () => {
     await canvas
       .locator(`[data-cover-element="${contentsId}"]`)
-      .getByRole("button", { name: /^Edit Section/ })
+      .getByRole("button", { name: /^Edit Story/ })
       .click();
     await panel.waitFor();
   };
@@ -283,6 +279,6 @@ await withCoverFixture(base, async (fixture) => {
   await checkCoverReaders(base, fixture);
   assert.deepEqual(errors, []);
   console.log(
-    "PASS: the Text menu's Sections and Details, headline sizes, heading references, title override, placement, logo selection/size, docked responsive controls and autosave/reload",
+    "PASS: the Text menu's Stories and Details, headline sizes, heading references, title override, placement, logo selection/size, docked responsive controls and autosave/reload",
   );
 });

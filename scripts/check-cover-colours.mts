@@ -21,8 +21,8 @@ await withCoverFixture(
       row: "top",
       style: "paper-panel",
     };
-    const story = makeCoverElement("section");
-    assert(story.type === "section");
+    const story = makeCoverElement("story");
+    assert(story.type === "story");
     story.id = "story";
     story.placement = { ...story.placement, column: "right", align: "right" };
     story.items = [
@@ -186,7 +186,7 @@ await withCoverFixture(
     await page.keyboard.type(" today");
     await waitSaved(
       (c) =>
-        c.pages[0]!.coverElements?.[0]?.type === "section" &&
+        c.pages[0]!.coverElements?.[0]?.type === "story" &&
         c.pages[0]!.coverElements[0].items[0]!.title.includes("today"),
     );
     await page.keyboard.press("Escape");

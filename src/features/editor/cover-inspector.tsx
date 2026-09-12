@@ -34,7 +34,7 @@ export type CoverInspectorProps = {
 };
 
 const CONTENT_TITLES = {
-  section: "Section",
+  story: "Story",
   details: "Details",
   logo: "Logo",
 } as const;

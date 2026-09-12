@@ -50,46 +50,41 @@ const front: Page = {
     },
   ],
 };
-const section = makeCoverElement("section"),
+const fresh = makeCoverElement("story"),
   logo = makeCoverElement("logo");
-assert(section.type === "section");
+assert(fresh.type === "story");
 assert(logo.type === "logo");
-// A new Section starts blank: one empty story, nothing seeded on the author's behalf.
+// A new Story starts blank: one empty story, nothing seeded on the author's behalf.
 assert.deepEqual(
-  [
-    section.title,
-    section.headlineSize,
-    section.showPageNumbers,
-    section.items.length,
-  ],
+  [fresh.title, fresh.headlineSize, fresh.showPageNumbers, fresh.items.length],
   ["", "list", false, 1],
 );
 assert.deepEqual(
   [
-    section.placement.column,
-    section.placement.row,
-    section.placement.width,
-    section.placement.align,
+    fresh.placement.column,
+    fresh.placement.row,
+    fresh.placement.width,
+    fresh.placement.align,
   ],
   ["left", "center", "medium", "left"],
 );
 assert.deepEqual(
   [
-    section.items[0]!.headingId,
-    section.items[0]!.title,
-    section.items[0]!.description,
+    fresh.items[0]!.headingId,
+    fresh.items[0]!.title,
+    fresh.items[0]!.description,
   ],
   [undefined, "", ""],
 );
 const contents = {
-  ...section,
+  ...fresh,
   title: "Inside this issue",
   showPageNumbers: true,
   items: [
     { ...makeCoverStory("heading"), description: "Our community in focus." },
   ],
 };
-const story = { ...section, headlineSize: "display" as const };
+const story = { ...fresh, headlineSize: "display" as const };
 logo.logoId = "club";
 logo.imageId = "mark";
 front.coverElements = [contents, logo];
@@ -151,24 +146,24 @@ const render = (element: CoverElement) =>
   );
 const headed = render(contents);
 assert(
-  headed.includes('<h3 data-cover-copy="true" class="cover-section-heading"'),
+  headed.includes('<h3 data-cover-copy="true" class="cover-story-heading"'),
 );
 assert(
-  headed.includes('<h4 data-cover-copy="true" class="cover-section-headline"'),
+  headed.includes('<h4 data-cover-copy="true" class="cover-story-headline"'),
 );
 assert(
   render({ ...contents, title: "" }).includes(
-    '<h3 data-cover-copy="true" class="cover-section-headline"',
+    '<h3 data-cover-copy="true" class="cover-story-headline"',
   ),
 );
 // A lone unlinked story keeps the size it was stored with: nothing promotes itself.
 const lone = { ...story, items: [makeCoverStory()], headlineSize: "compact" };
 const parsedLone = coverElementSchema.parse(lone);
-assert(parsedLone.type === "section" && parsedLone.headlineSize === "compact");
+assert(parsedLone.type === "story" && parsedLone.headlineSize === "compact");
 assert(!parsedLone.items[0]!.headingId);
 for (const size of COVER_HEADLINE_SIZES) {
   const parsed = coverElementSchema.parse({ ...story, headlineSize: size });
-  assert(parsed.type === "section" && parsed.headlineSize === size);
+  assert(parsed.type === "story" && parsed.headlineSize === size);
 }
 assert(!coverElementSchema.safeParse({ ...story, items: [] }).success);
 assert(
@@ -198,5 +193,5 @@ const seeds = buildIssues(
 seeds.forEach((i) => assert(issueContentSchema.safeParse(i.content).success));
 assert.equal(seeds[5]?.content.pages[0]?.coverElements?.length, 3);
 console.log(
-  "PASS: Section defaults, stored headline sizes, heading hierarchy, schema bounds, references/page numbering, logo asset traversal, demotion preservation, all anchors, shared renderer and seed compatibility",
+  "PASS: Story defaults, stored headline sizes, heading hierarchy, schema bounds, references/page numbering, logo asset traversal, demotion preservation, all anchors, shared renderer and seed compatibility",
 );

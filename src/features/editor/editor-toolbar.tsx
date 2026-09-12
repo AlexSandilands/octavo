@@ -17,7 +17,7 @@ import type { HistoryNotice } from "./use-editor-history";
 const COVER_KINDS: BlockType[] = ["heading", "text", "image"];
 
 /** What the cover's Text menu offers; "" is the unset value no option carries. */
-type TextChoice = "" | "paragraph" | "section" | "details";
+type TextChoice = "" | "paragraph" | "story" | "details";
 
 // The editor's tool bar: undo/redo, the block-insert buttons and the cover-page
 // toggle. It floats over the foot of the canvas rather than sitting in a strip
@@ -159,7 +159,7 @@ function CoverTextMenu({
     ...(atCapacity
       ? []
       : ([
-          { key: "section", value: "section", content: "Section" },
+          { key: "story", value: "story", content: "Story" },
           { key: "details", value: "details", content: "Details" },
         ] as const)),
   ];
