@@ -35,7 +35,8 @@ export function EditorHeader({
 }: {
   title: string;
   onTitleChange: (v: string) => void;
-  issueNumber: number;
+  /** The issue's number, or null while it is a draft (issue #270). */
+  issueNumber: number | null;
   /** The deployment-enabled layout themes; the picker hides with only one. */
   themes: LayoutTheme[];
   /** The current layout theme id. */
@@ -67,8 +68,10 @@ export function EditorHeader({
         />
         <span className="bg-chip hidden shrink-0 items-center whitespace-nowrap lg:flex gap-1.5 rounded-full px-3 py-1">
           <span className="bg-chip-dot h-1.5 w-1.5 rounded-full" />
+          {/* A draft has no number yet — it is chosen in the publish modal
+              (issue #270) — so the chip just says what the issue is. */}
           <span className="text-faint font-sans text-[11px] font-semibold">
-            Draft · No. {issueNumber}
+            {issueNumber === null ? "Draft" : `No. ${issueNumber}`}
           </span>
         </span>
         {status === "error" ? (

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ReaderMount } from "@/features/reader/reader-mount";
-import { getIssue } from "@/server/issues";
+import { getIssue, nextIssueNumber } from "@/server/issues";
 import { resolveIssueImages } from "@/server/images";
 import { getLogoImage } from "@/server/logos";
 import { resolveIssueSponsors } from "@/server/sponsors";
@@ -25,12 +25,15 @@ export default async function PreviewIssuePage({
   const issue = await getIssue(id);
   if (!issue) notFound();
 
-  const [images, sponsors, logo, settings] = await Promise.all([
-    resolveIssueImages(issue.content),
-    resolveIssueSponsors(issue.content),
-    getLogoImage(issue.logoId),
-    getSettings(),
-  ]);
+  const [images, sponsors, logo, settings, suggestedNumber] = await Promise.all(
+    [
+      resolveIssueImages(issue.content),
+      resolveIssueSponsors(issue.content),
+      getLogoImage(issue.logoId),
+      getSettings(),
+      nextIssueNumber(),
+    ],
+  );
 
   return (
     <div className="md:flex md:h-screen md:flex-col md:overflow-hidden">
@@ -53,7 +56,9 @@ export default async function PreviewIssuePage({
       <div className="md:min-h-0 md:flex-1">
         <ReaderMount
           content={issue.content}
-          issueNo={issue.number}
+          // A draft previews under the number publishing would propose
+          // (issue #270); nothing is stored until then.
+          issueNo={issue.number ?? suggestedNumber}
           logo={logo}
           settings={settingsForIssue(settings, issue)}
           images={images}

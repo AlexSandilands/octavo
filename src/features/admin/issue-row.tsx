@@ -10,7 +10,8 @@ import type { IssueStatus } from "@/server/issues";
 /** One dashboard row's data. `thumb` is the cover, rendered on the server. */
 export type IssueRowData = {
   id: string;
-  number: number;
+  /** null while the issue is a draft — the number is chosen at publish (#270). */
+  number: number | null;
   title: string;
   status: IssueStatus;
   pages: number;
@@ -53,9 +54,12 @@ export function IssueRow({
             >
               {issue.title}
             </Link>
-            <span className="text-faint2 font-mono text-[11px]">
-              No. {issue.number}
-            </span>
+            {/* A draft has no number to show; its Pill already says "Draft". */}
+            {issue.number !== null && (
+              <span className="text-faint2 font-mono text-[11px]">
+                No. {issue.number}
+              </span>
+            )}
           </div>
           <div className="text-faint mt-1 font-sans text-[13px]">
             {issue.pages} {issue.pages === 1 ? "page" : "pages"}

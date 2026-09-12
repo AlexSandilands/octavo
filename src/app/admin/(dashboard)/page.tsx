@@ -6,7 +6,11 @@ import { EmptyIssues } from "@/components/empty-states";
 import { coverPageOf, type Page } from "@/lib/blocks";
 import { ADMIN_LIST_QUERY_MAX } from "@/lib/list-query";
 import { pageParamSchema } from "@/lib/pagination";
-import { listIssuesPage, listIssueYears } from "@/server/issues";
+import {
+  listIssuesPage,
+  listIssueYears,
+  nextIssueNumber,
+} from "@/server/issues";
 import { resolveIssueImages } from "@/server/images";
 import { resolveIssueSponsors } from "@/server/sponsors";
 import { requireAdminOrRedirect } from "@/server/session";
@@ -46,7 +50,9 @@ export default async function AdminDashboard({
   const params = paramsSchema.parse(await searchParams);
   const query = params.q.trim();
   const settings = await getSettings();
-  const [list, years] = await Promise.all([
+  // `suggestedNumber` is what a draft's thumbnail previews as its running head
+  // (issue #270) — drafts carry no number until they are published.
+  const [list, years, suggestedNumber] = await Promise.all([
     listIssuesPage({
       query,
       page: params.page,
@@ -54,6 +60,7 @@ export default async function AdminDashboard({
       year: params.year,
     }),
     listIssueYears(),
+    nextIssueNumber(),
   ]);
   const issues = list.rows;
 
@@ -86,7 +93,7 @@ export default async function AdminDashboard({
           theme={i.theme}
           images={coverImages}
           sponsors={coverSponsors}
-          issueNo={i.number}
+          issueNo={i.number ?? suggestedNumber}
           settings={settings}
           width={THUMB_W}
         />

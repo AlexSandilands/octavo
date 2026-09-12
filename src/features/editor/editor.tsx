@@ -61,7 +61,8 @@ import { usePanelWidth } from "./side-panel/use-panel-width";
 // the magazine setting has since become.
 export type EditorIssue = FooterReserve & {
   id: string;
-  number: number;
+  /** null until the issue is published, when the number is chosen (issue #270). */
+  number: number | null;
   title: string;
   theme: string;
   logoId: string | null;
@@ -72,6 +73,7 @@ export type EditorIssue = FooterReserve & {
 
 export function Editor({
   issue,
+  suggestedNumber,
   images: initialImages,
   sponsors,
   logos,
@@ -80,6 +82,10 @@ export function Editor({
   subscriberCount,
 }: {
   issue: EditorIssue;
+  /** The number a draft would be published under — what the canvas and the
+   *  running head preview, and what the publish modal proposes (issue #270).
+   *  Nothing is stored until publish. */
+  suggestedNumber: number;
   images: ImageMap;
   sponsors: SponsorListItem[];
   logos: LogoListItem[];
@@ -172,9 +178,14 @@ export function Editor({
   const barLayout = barLayoutAtPosition(responsiveBarLayout, barPosition);
   const [toolbarReserve, setToolbarReserve] = useState(TOOLBAR_RESERVE);
   const [pub, setPub] = useState(false);
-  // Once published (now or on load), the publish modal defaults email OFF so a
-  // later correction can't re-blast the list.
-  const [published, setPublished] = useState(issue.status === "published");
+  // The issue's allocated number — null until it is published (issue #270), and
+  // set from the publish's answer so the chip and canvas stop previewing. Its
+  // being non-null is also what defaults the modal's email OFF, so a later
+  // correction can't re-blast the list.
+  const [number, setNumber] = useState(issue.number);
+  // What the pages are drawn with: the real number once there is one, the
+  // proposal while the issue is a draft.
+  const issueNo = number ?? suggestedNumber;
   // Items a pointed-at layout warning is lighting up on the page.
   const [hint, setHint] = useState<string[]>([]);
 
@@ -190,7 +201,7 @@ export function Editor({
     issueId: issue.id,
     flushSave,
     onSaveError: () => setStatus("error"),
-    onPublished: () => setPublished(true),
+    onPublished: setNumber,
   });
 
   const importer = usePdfInsertion({
@@ -205,7 +216,7 @@ export function Editor({
     sponsors: sponsorMap,
     settings,
     logo,
-    issueNo: issue.number,
+    issueNo,
     registerImages: (added) => setImages((old) => ({ ...old, ...added })),
   });
 
@@ -262,7 +273,7 @@ export function Editor({
           <EditorHeader
             title={title}
             onTitleChange={setTitle}
-            issueNumber={issue.number}
+            issueNumber={number}
             themes={themes}
             themeId={themeId}
             onSelectTheme={setThemeId}
@@ -319,7 +330,7 @@ export function Editor({
 
               <EditorStage
                 issueId={issue.id}
-                issueNo={issue.number}
+                issueNo={issueNo}
                 page={page}
                 curPage={curPage}
                 sel={sel}
@@ -405,9 +416,9 @@ export function Editor({
 
         {pub && (
           <PublishModal
-            number={issue.number}
+            number={number}
             subscriberCount={subscriberCount}
-            alreadyPublished={published}
+            suggestedNumber={suggestedNumber}
             onClose={() => setPub(false)}
             onPublish={flows.publish}
           />

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { Editor } from "@/features/editor/editor";
 import { EditorGate } from "@/features/editor/editor-gate";
-import { getIssue } from "@/server/issues";
+import { getIssue, nextIssueNumber } from "@/server/issues";
 import { resolveIssueImages } from "@/server/images";
 import { listLogos } from "@/server/logos";
 import { countSubscribedRecipients } from "@/server/recipients";
@@ -26,13 +26,14 @@ export default async function EditIssuePage({
   // derives the render map from it, so one query covers both. The logo list
   // does the same double duty for the footer mark: it is the picker's options
   // *and* how the canvas resolves the current choice to an image.
-  const [images, sponsors, logos, settings, subscriberCount] =
+  const [images, sponsors, logos, settings, subscriberCount, suggestedNumber] =
     await Promise.all([
       resolveIssueImages(issue.content),
       listSponsors(),
       listLogos(),
       getSettings(),
       countSubscribedRecipients(),
+      nextIssueNumber(),
     ]);
 
   return (
@@ -50,6 +51,10 @@ export default async function EditIssuePage({
           footerMarkSize: issue.footerMarkSize,
           footerTextSize: issue.footerTextSize,
         }}
+        // A draft has no number of its own (issue #270), but the classic
+        // running head needs one to preview; this is what publishing would
+        // propose. Nothing is stored until the admin confirms it.
+        suggestedNumber={suggestedNumber}
         images={images}
         sponsors={sponsors}
         logos={logos}

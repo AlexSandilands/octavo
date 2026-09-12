@@ -14,7 +14,9 @@ export function useEditorFlows({
   issueId: string;
   flushSave: () => Promise<boolean>;
   onSaveError: () => void;
-  onPublished: () => void;
+  /** The number the publish allocated (issue #270) — the editor's chip, canvas
+   *  and running head switch from the proposal to it. */
+  onPublished: (number: number) => void;
 }) {
   const router = useRouter();
   const preview = async () => {
@@ -36,19 +38,23 @@ export function useEditorFlows({
     if (tab) tab.location.href = url;
     else router.push(url);
   };
-  const publish = async (sendEmail: boolean): Promise<PublishResult> => {
+  const publish = async (
+    sendEmail: boolean,
+    number: number,
+  ): Promise<PublishResult> => {
     try {
       // A failed flush surfaces in the status pill and blocks the publish.
       const ok = await flushSave();
-      if (!ok) return { ok: false as const };
-      const res = await publishIssueAction(issueId, sendEmail);
-      if (res.ok) onPublished();
-      else onSaveError();
+      if (!ok) return { ok: false, reason: "failed" };
+      const res = await publishIssueAction(issueId, sendEmail, number);
+      if (res.ok) onPublished(res.number);
+      // A taken number is the modal's to correct — nothing went wrong here.
+      else if (res.reason !== "taken") onSaveError();
       return res;
     } catch (error) {
-      reportEditorError(error, "publish", { issueId, sendEmail });
+      reportEditorError(error, "publish", { issueId, sendEmail, number });
       onSaveError();
-      return { ok: false as const };
+      return { ok: false, reason: "failed" };
     }
   };
   return { preview, publish };
