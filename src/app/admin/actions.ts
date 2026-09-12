@@ -4,11 +4,6 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { ensureCoverFirst, issueContentSchema } from "@/lib/blocks";
-import {
-  THEME_IDS,
-  type LayoutThemeId,
-} from "@/features/blocks/themes/registry";
 import { env } from "@/lib/env";
 import {
   createIssue,
@@ -17,9 +12,7 @@ import {
   getIssue,
   listMatchingIssues,
   publishIssue,
-  updateIssueContent,
   updateIssueFooterReserve,
-  updateIssueMeta,
   type DeleteIssuesResult,
   type IssueStatus,
 } from "@/server/issues";
@@ -37,27 +30,6 @@ import { footerReserveOf } from "@/lib/branding";
 // directly by any client that knows its id, so the gate lives in the action.
 
 const idSchema = z.string().uuid();
-
-// .strict() so unexpected keys are rejected, not silently written to columns.
-// The theme enum is derived from the layout-theme registry (issue #40) — one
-// source of truth, so adding a theme needs no edit here. Any *known* theme is
-// accepted (not just the deployment-enabled subset), so a re-save never rejects
-// an issue authored under a since-disabled theme.
-// `logoId` is nullable *and* optional, and the two mean different things: null
-// clears the issue's footer mark, absent leaves it as it is. An id that names no
-// logo is rejected by the foreign key, and the renderers degrade a logo that
-// disappears later to the text-only footer.
-const metaSchema = z
-  .object({
-    title: z.string().max(200).optional(),
-    theme: z.enum(THEME_IDS as [LayoutThemeId, ...LayoutThemeId[]]).optional(),
-    logoId: idSchema.nullable().optional(),
-  })
-  .strict();
-
-export type SaveResult =
-  | { ok: true; revision: number }
-  | { ok: false; reason: "invalid" | "conflict" | "missing" };
 
 export async function createIssueAction() {
   await requireAdmin();
@@ -86,40 +58,6 @@ export async function adoptFooterAction(id: string): Promise<{ ok: boolean }> {
     parsedId.data,
     footerReserveOf(settings.footer),
   );
-  revalidatePath("/admin");
-  return { ok: true };
-}
-
-export async function saveIssueAction(
-  id: string,
-  content: unknown,
-  baseRevision: number,
-): Promise<SaveResult> {
-  await requireAdmin();
-  const parsedId = idSchema.safeParse(id);
-  const parsedRevision = z.number().int().min(0).safeParse(baseRevision);
-  const parsedContent = issueContentSchema.safeParse(content);
-  if (!parsedId.success || !parsedRevision.success || !parsedContent.success) {
-    return { ok: false, reason: "invalid" };
-  }
-  // Re-apply the cover-first invariant server-side; the editor enforces it in
-  // the UI but the document must hold it regardless of the caller.
-  const doc = {
-    ...parsedContent.data,
-    pages: ensureCoverFirst(parsedContent.data.pages),
-  };
-  return updateIssueContent(parsedId.data, doc, parsedRevision.data);
-}
-
-export async function saveMetaAction(
-  id: string,
-  meta: { title?: string; theme?: string; logoId?: string | null },
-): Promise<{ ok: boolean }> {
-  await requireAdmin();
-  const parsedId = idSchema.safeParse(id);
-  const parsedMeta = metaSchema.safeParse(meta);
-  if (!parsedId.success || !parsedMeta.success) return { ok: false };
-  await updateIssueMeta(parsedId.data, parsedMeta.data);
   revalidatePath("/admin");
   return { ok: true };
 }

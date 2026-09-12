@@ -352,6 +352,14 @@ deployment from the Railway dashboard. (Migrations are forward-only, so a rollba
 does not undo a schema change — roll forward with a fix tag if a migration is the
 problem.)
 
+**Editor autosave compatibility (#245):** the first release with the stable save API cannot
+update JavaScript in tabs already running the older Server Action editor. Have authors save
+and close those tabs before that rollout, then reopen afterward. Later releases and rollback
+targets must keep `POST /api/admin/issues/[id]/save` and its payload/response contract compatible
+with already-open editors. Rolling back to a release without the endpoint breaks those saves;
+prefer a fix release retaining the endpoint. No database migration or new deployment variable
+is needed. `deploymentId`/automatic reload behavior is deliberately a separate change.
+
 **One-time setup:**
 
 1. **Railway token** — project → Settings → Tokens: create a token scoped to the
