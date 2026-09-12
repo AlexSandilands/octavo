@@ -54,10 +54,13 @@ type PageGeometry = {
 function pageGeometry(container: HTMLElement): PageGeometry | null {
   const page = container.closest<HTMLElement>("[data-page-frame]");
   const footer = page?.querySelector<HTMLElement>("[data-page-footer]");
-  if (!page || !footer) return null;
+  if (!page || (!footer && !container.hasAttribute("data-cover-style")))
+    return null;
   return {
     page,
-    limit: footer.offsetTop - FOOTER_GUTTER,
+    limit: footer
+      ? footer.offsetTop - FOOTER_GUTTER
+      : page.clientHeight - parseFloat(getComputedStyle(page).paddingTop),
     contentTop: container.offsetTop,
   };
 }
@@ -76,8 +79,11 @@ export function measurePageOverflow(
   const geo = pageGeometry(container);
   if (!geo) return null;
   let first: { id: string; top: number; height: number } | null = null;
-  for (const el of container.querySelectorAll<HTMLElement>("[data-block-id]")) {
-    const id = el.dataset.blockId;
+  for (const el of container.querySelectorAll<HTMLElement>(
+    "[data-block-id], [data-cover-element]",
+  )) {
+    if (el.hasAttribute("data-cover-background")) continue;
+    const id = el.dataset.blockId ?? el.dataset.coverElement;
     const top = offsetWithin(el, geo.page);
     if (!id || top === null) continue;
     const height = el.offsetHeight;

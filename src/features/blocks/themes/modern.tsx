@@ -37,7 +37,10 @@ export const modernTheme = {
     caption: (content) => (
       <figcaption className="mt-2.5 flex items-start gap-2.5">
         <div className="bg-accent h-7 w-[3px] flex-none" />
-        <span className="text-muted font-sans text-[13px] leading-snug">
+        <span
+          data-cover-copy
+          className="text-muted font-sans text-[13px] leading-snug"
+        >
           {content}
         </span>
       </figcaption>

@@ -1,3 +1,4 @@
+import { coverSources } from "@/lib/cover-elements";
 import type { IssueContent } from "@/lib/blocks";
 import type { SiteSettings } from "@/lib/branding";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
@@ -73,10 +74,14 @@ export function PrintDocument({
               logo={logo}
               settings={settings}
               cover={page.cover}
+              coverDecoration={page.coverOverlay?.decoration}
+              coverMasthead={page.coverOverlay?.masthead}
               bleed={pageFillsCanvas(page)}
             >
               <PageBlocks
                 page={page}
+                sources={coverSources(content.pages)}
+                issueNo={issueNo}
                 theme={t}
                 images={images}
                 sponsors={sponsors}

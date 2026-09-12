@@ -12,12 +12,14 @@ export type ReaderSection = {
   divided: boolean;
   /** The page is owned by one photo (#227), so its section carries no padding. */
   filled: boolean;
+  coverOverlay?: Page["coverOverlay"];
+  coverElements?: Page["coverElements"];
 };
 
 export function readerSections(pages: Page[]): ReaderSection[] {
   const sections: ReaderSection[] = [];
   for (const page of pages) {
-    if (page.blocks.length === 0) continue;
+    if (page.blocks.length === 0 && !page.coverElements?.length) continue;
     const cover = page.cover === true;
     const filled = pageFillsCanvas(page);
     const prev = sections.at(-1);
@@ -31,6 +33,8 @@ export function readerSections(pages: Page[]): ReaderSection[] {
         prev !== undefined &&
         (cover || prev.cover || filled || prev.filled || startsRun(page)),
       filled,
+      coverOverlay: page.coverOverlay,
+      coverElements: page.coverElements,
     });
   }
   return sections;

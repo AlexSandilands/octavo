@@ -1,7 +1,14 @@
 import { z } from "zod";
+import { coverAppearanceSchema } from "./cover-appearance";
 import { createId } from "./id";
 import { richTextValueSchema } from "./rich-text-doc";
 import { YOUTUBE_ID_RE } from "./youtube";
+import {
+  coverElementSchema,
+  coverPlacementSchema,
+  coverStyleSchema,
+  MAX_COVER_ELEMENTS,
+} from "./cover-elements";
 
 // The canonical content model. Editor, reader and (later) PDF all speak this.
 // An issue is pages → ordered blocks; stored as one JSONB document on the issue.
@@ -22,6 +29,7 @@ export const MAX_MONTAGE_IMAGES = 20; // a slideshow, not a photo dump
 export const headingBlockSchema = z.object({
   id: z.string().max(ID_MAX),
   type: z.literal("heading"),
+  coverPlacement: coverPlacementSchema.optional(),
   kicker: z.string().max(SHORT_TEXT_MAX).default(""),
   title: z.string().max(SHORT_TEXT_MAX).default(""),
   // Heading rank: "main" is the big page/feature title, "section" an article
@@ -33,6 +41,7 @@ export const headingBlockSchema = z.object({
 export const textBlockSchema = z.object({
   id: z.string().max(ID_MAX),
   type: z.literal("text"),
+  coverPlacement: coverPlacementSchema.optional(),
   // Content v3: body text is a structured rich-text document (Tiptap JSON) —
   // see rich-text-doc.ts, which bounds/depth-caps it and re-validates link
   // hrefs. A legacy v1/v2 value (plain-text or constrained-HTML string) still
@@ -49,6 +58,7 @@ export const textBlockSchema = z.object({
 });
 
 export const imageBlockSchema = z.object({
+  coverPlacement: coverPlacementSchema.optional(),
   id: z.string().max(ID_MAX),
   type: z.literal("image"),
   imageId: z.string().max(ID_MAX).optional(), // resolved to an R2 image later
@@ -179,6 +189,19 @@ export const blockSchema = z.discriminatedUnion("type", [
   sponsorBlockSchema,
 ]);
 
+export const coverOverlaySchema = z.object({
+  appearance: coverAppearanceSchema.optional(),
+  style: coverStyleSchema,
+  position: z.enum(["top", "center", "bottom"]),
+  decoration: z.boolean().optional(),
+  masthead: z.boolean().optional(),
+});
+export type CoverOverlay = z.infer<typeof coverOverlaySchema>;
+export const DEFAULT_COVER_OVERLAY: CoverOverlay = {
+  style: "light-shadow",
+  position: "center",
+};
+
 export const pageSchema = z.object({
   id: z.string().max(ID_MAX),
   // A cover page is laid out and styled differently from a normal page —
@@ -186,6 +209,9 @@ export const pageSchema = z.object({
   // "cover" variant in BlockView and `blockFlowStyle`). Optional + defaults to a
   // normal page, so existing issues are unaffected.
   cover: z.boolean().optional(),
+  // Optional so existing covers keep their layout. Used only with a full-page image.
+  coverOverlay: coverOverlaySchema.optional(),
+  coverElements: z.array(coverElementSchema).max(MAX_COVER_ELEMENTS).optional(),
   blocks: z.array(blockSchema).max(MAX_BLOCKS_PER_PAGE),
 });
 
@@ -227,7 +253,9 @@ export const pageSchema = z.object({
 // adding a block type: no version-1…5 document holds either value, so every one
 // parses and renders unchanged and no stored row is rewritten. Confined to
 // `image`; montage and video keep the three-value union (see docs/database.md).
-export const CONTENT_VERSION = 6;
+// v7: optional cover elements and independent heading/text placement. Existing
+// documents retain their layout; no stored content is rewritten.
+export const CONTENT_VERSION = 7;
 
 export const issueContentSchema = z.object({
   version: z.number().int().min(1).default(CONTENT_VERSION),

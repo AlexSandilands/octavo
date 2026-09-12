@@ -1,3 +1,4 @@
+import type { CoverSource } from "@/lib/cover-elements";
 import type { Page } from "@/lib/blocks";
 import type { SiteSettings } from "@/lib/branding";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
@@ -51,8 +52,10 @@ export function PageView({
   images,
   sponsors,
   interactive = true,
+  sources,
 }: {
   page?: Page;
+  sources?: CoverSource[];
   side: "left" | "right";
   theme: LayoutTheme;
   scale: number;
@@ -79,11 +82,15 @@ export function PageView({
         pageNo={page ? pageNo : undefined}
         side={side}
         cover={page?.cover}
+        coverDecoration={page?.coverOverlay?.decoration}
+        coverMasthead={page?.coverOverlay?.masthead}
         bleed={pageFillsCanvas(page)}
       >
         {page && (
           <PageBlocks
             page={page}
+            sources={sources}
+            issueNo={issueNo}
             theme={theme}
             images={images}
             sponsors={sponsors}

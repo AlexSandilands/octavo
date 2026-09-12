@@ -33,10 +33,10 @@ export function useTextFlow({
   const [overflow, setOverflow] = useState<BlockOverflow | null>(null);
   const measured = useRef<BlockOverflow | null>(null);
 
-  // Cover pages centre their blocks instead of flowing them from the top, and
-  // have nothing to continue onto — leave them out of this entirely, and a page
-  // a photo fills has no text area to measure (see `pageFillsCanvas`).
-  const measurable = Boolean(page && !page.cover && !pageFillsCanvas(page));
+  // Full-image covers still need an overflow warning for their overlay content.
+  const measurable = Boolean(
+    page && (page.cover ? pageFillsCanvas(page) : !pageFillsCanvas(page)),
+  );
 
   const measure = useCallback(() => {
     const el = canvasRef.current;

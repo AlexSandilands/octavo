@@ -7,6 +7,7 @@ import {
   type CSSProperties,
   type RefObject,
 } from "react";
+import { coverSources } from "@/lib/cover-elements";
 import type { Page } from "@/lib/blocks";
 import type { SiteSettings } from "@/lib/branding";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
@@ -119,6 +120,7 @@ export function TurnCurl({
       style={{ position: "absolute", top: 0, left: side === "left" ? 0 : w }}
     >
       <PageView
+        sources={coverSources(pages)}
         page={index >= 0 ? pages[index] : undefined}
         side={side}
         theme={theme}
@@ -218,6 +220,7 @@ export function TurnCurl({
                 }}
               >
                 <PageView
+                  sources={coverSources(pages)}
                   page={pages[rear ? back : front]}
                   side={rear === forward ? "left" : "right"}
                   theme={theme}

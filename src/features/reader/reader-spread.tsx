@@ -1,6 +1,7 @@
 "use client";
 
 import type { RefObject } from "react";
+import { coverSources } from "@/lib/cover-elements";
 import type { Page } from "@/lib/blocks";
 import type { SiteSettings } from "@/lib/branding";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
@@ -87,6 +88,7 @@ export function ReaderSpread({
         <Plate atCover />
         <div className="flex-none [visibility:hidden]">
           <PageView
+            sources={coverSources(pages)}
             side="left"
             theme={theme}
             scale={scale}
@@ -98,6 +100,7 @@ export function ReaderSpread({
           />
         </div>
         <PageView
+          sources={coverSources(pages)}
           page={left}
           side="right"
           theme={theme}
@@ -117,6 +120,7 @@ export function ReaderSpread({
     <>
       <Plate atCover={false} />
       <PageView
+        sources={coverSources(pages)}
         page={left}
         side="left"
         theme={theme}
@@ -129,6 +133,7 @@ export function ReaderSpread({
         sponsors={sponsors}
       />
       <PageView
+        sources={coverSources(pages)}
         page={right}
         side="right"
         theme={theme}

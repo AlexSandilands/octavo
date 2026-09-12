@@ -1,0 +1,72 @@
+import type { Block, Page } from "./blocks";
+import {
+  DEFAULT_COVER_PLACEMENT,
+  type CoverElement,
+  type CoverPlacement,
+} from "./cover-elements";
+
+export type CoverItem = Block | CoverElement;
+export function placementOf(item: CoverItem, page: Page): CoverPlacement {
+  return "placement" in item
+    ? item.placement
+    : ("coverPlacement" in item && item.coverPlacement) || {
+        ...DEFAULT_COVER_PLACEMENT,
+        row: page.coverOverlay?.position ?? "center",
+      };
+}
+export function coverItems(page: Page): CoverItem[] {
+  return [
+    ...page.blocks.filter(
+      (b) =>
+        !(
+          b.type === "image" &&
+          (b.align === "page-fill" || b.align === "page-fit")
+        ),
+    ),
+    ...(page.coverElements ?? []),
+  ].sort(
+    (a, b) =>
+      (placementOf(a, page).order ?? 0) - (placementOf(b, page).order ?? 0),
+  );
+}
+/** Dropping onto an item joins its anchor; one ordering spans every cover item. */
+export function reorderCover(
+  page: Page,
+  activeId: string,
+  overId: string,
+): Page {
+  const items = coverItems(page),
+    from = items.findIndex((i) => i.id === activeId),
+    to = items.findIndex((i) => i.id === overId);
+  if (from < 0 || to < 0 || from === to) return page;
+  const active = items[from]!,
+    target = placementOf(items[to]!, page);
+  items.splice(from, 1);
+  items.splice(to, 0, active);
+  const placements = new Map(
+    items.map((item, order) => [
+      item.id,
+      {
+        ...placementOf(item, page),
+        order,
+        ...(item.id === activeId
+          ? { row: target.row, column: target.column }
+          : {}),
+      },
+    ]),
+  );
+  return {
+    ...page,
+    blocks: page.blocks.map((b) =>
+      b.type === "heading" ||
+      b.type === "text" ||
+      (b.type === "image" && placements.has(b.id))
+        ? { ...b, coverPlacement: placements.get(b.id) }
+        : b,
+    ),
+    coverElements: page.coverElements?.map((e) => ({
+      ...e,
+      placement: placements.get(e.id) ?? e.placement,
+    })),
+  };
+}

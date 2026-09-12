@@ -1,6 +1,8 @@
 "use client";
+import { CoverTextEditor } from "./cover-text-editor";
+import { DEFAULT_COVER_PLACEMENT } from "@/lib/cover-elements";
 
-import { useSortable } from "@dnd-kit/sortable";
+import { useCoverSortable } from "./use-cover-sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Icon, type IconName } from "@/components/icons";
 import { BlockView } from "@/features/blocks/block-view";
@@ -21,6 +23,7 @@ import { HeadingLevelControl } from "./heading-level-control";
 import { MontageBlockControl } from "./montage-control";
 import { VideoBlockControl } from "./video-control";
 import { SponsorPicker } from "./sponsor-picker";
+import { CoverItemTools } from "./cover-item-tools";
 import { RichTextEditor } from "./rich-text-editor";
 
 // One block in the editor canvas: the themed BlockView (editable) wrapped in the
@@ -75,7 +78,12 @@ export function EditorBlock({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: block.id });
+  } = useCoverSortable(
+    block.id,
+    Boolean(cover),
+    Boolean(cover && isFillPage(block)),
+  );
+  const coverText = cover && ["heading", "text", "image"].includes(block.type);
 
   // A floated (inline left/right) picture is an earlier sibling than the text
   // that wraps it, so the text block's box paints on top and swallows clicks on
@@ -85,7 +93,7 @@ export function EditorBlock({
 
   // A full-bleed photo covers the page, so its chrome moves inside the page and
   // scales from its own top edge rather than hanging off the top-left corner.
-  const bleed = !cover && isFillPage(block);
+  const bleed = isFillPage(block);
   const chromeTop = bleed
     ? "top-2 [transform-origin:top_left]"
     : "bottom-full mb-2";
@@ -100,11 +108,16 @@ export function EditorBlock({
     block.type === "text" && !cover && richDocBlocks(block.text).length > 1;
   const overflowAction = !overflowing
     ? undefined
-    : splittable
-      ? { note: "Text overflows this page", label: "Flow onto next page" }
-      : fitsAlone
-        ? { note: "Overflows this page", label: "Move to next page" }
-        : { note: "Taller than a whole page", label: undefined };
+    : cover
+      ? {
+          note: "Cover content overflows — shorten or remove blocks",
+          label: undefined,
+        }
+      : splittable
+        ? { note: "Text overflows this page", label: "Flow onto next page" }
+        : fitsAlone
+          ? { note: "Overflows this page", label: "Move to next page" }
+          : { note: "Taller than a whole page", label: undefined };
 
   return (
     <div
@@ -113,11 +126,13 @@ export function EditorBlock({
       // selectable, editable and draggable); see onPanDown in editor.tsx.
       data-editor-block
       data-block-id={block.id}
+      data-cover-sponsor={block.type === "sponsor" || undefined}
+      data-cover-background={(cover && bleed) || undefined}
       style={{
         ...blockFlowStyle(block, cover),
         ...(floated && !isDragging ? { zIndex: 5 } : {}),
-        transform: CSS.Translate.toString(transform),
-        transition,
+        transform: cover ? undefined : CSS.Translate.toString(transform),
+        transition: cover ? undefined : transition,
       }}
       onClick={(e) => {
         // Keep the click from reaching the canvas, which deselects.
@@ -136,21 +151,31 @@ export function EditorBlock({
             : "hover:[box-shadow:0_0_0_6px_var(--color-page),0_0_0_8px_var(--color-hair)]"
       }`}
     >
-      <button
-        type="button"
-        ref={setActivatorNodeRef}
-        {...attributes}
-        {...listeners}
-        title="Drag to reorder"
-        aria-label="Drag to reorder"
-        className={`border-hair-warm absolute z-10 flex h-7 w-6 cursor-grab touch-none items-center justify-center rounded-[5px] border bg-white text-muted transition-opacity active:cursor-grabbing ${
-          bleed ? "top-2.5 left-2" : "top-1/2 -left-9 -translate-y-1/2"
-        } ${selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
-      >
-        <Icon name="grip" size={15} />
-      </button>
+      {!(cover && bleed) && (
+        <button
+          type="button"
+          ref={setActivatorNodeRef}
+          {...attributes}
+          {...listeners}
+          title="Drag to reorder"
+          aria-label="Drag to reorder"
+          className={`border-hair-warm absolute z-10 flex h-7 w-6 cursor-grab touch-none items-center justify-center rounded-[5px] border bg-white text-muted transition-opacity active:cursor-grabbing ${
+            bleed ? "top-2.5 left-2" : "top-1/2 -left-9 -translate-y-1/2"
+          } ${selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+        >
+          <Icon name="grip" size={15} />
+        </button>
+      )}
 
-      {selected && (
+      {coverText && (
+        <CoverItemTools
+          selected={selected}
+          bleed={bleed}
+          onMove={onMove}
+          onRemove={onRemove}
+        />
+      )}
+      {selected && !coverText && (
         <>
           {block.type === "image" ? (
             <div
@@ -171,7 +196,7 @@ export function EditorBlock({
                     align={block.align ?? "full"}
                     width={block.width ?? 100}
                     onChange={onChange}
-                    onFillPage={cover ? undefined : onFillPage}
+                    onFillPage={onFillPage}
                   />
                   <span className="bg-line h-5 w-px" />
                   <label className="flex items-center gap-1.5">
@@ -291,7 +316,34 @@ export function EditorBlock({
         <BlockView
           block={block}
           theme={theme}
-          edit={{ onChange }}
+          edit={{
+            onChange,
+            coverText:
+              cover && (block.type === "heading" || block.type === "text")
+                ? (field, text, label) => (
+                    <CoverTextEditor
+                      id={block.id}
+                      maxLength={block.type === "heading" ? 300 : 8000}
+                      text={text}
+                      doc={block.coverPlacement?.richText?.[field]}
+                      label={label}
+                      onChange={(value, doc) =>
+                        onChange({
+                          [field]: value,
+                          coverPlacement: {
+                            ...(block.coverPlacement ??
+                              DEFAULT_COVER_PLACEMENT),
+                            richText: {
+                              ...block.coverPlacement?.richText,
+                              [field]: doc,
+                            },
+                          },
+                        })
+                      }
+                    />
+                  )
+                : undefined,
+          }}
           images={images}
           sponsors={sponsorMap}
           variant={cover ? "cover" : undefined}

@@ -6,6 +6,8 @@ import type { ImageMap } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 import { externalHref } from "@/lib/rich-text";
 import { richTextToPlain } from "@/lib/rich-text-doc";
+import { CoverRichText } from "@/features/blocks/cover-rich-text";
+import { coverTextScale } from "@/lib/cover-elements";
 import { BlockImage } from "@/features/blocks/block-view";
 import { isFillPage } from "@/features/blocks/layout";
 import { RichText } from "@/features/blocks/rich-text";
@@ -66,32 +68,64 @@ export function MobileBlock({
             className="text-ink mt-4 mb-1.5 font-serif font-semibold leading-snug"
             style={{ fontSize: m + 2 }}
           >
-            {block.title}
+            {cover ? (
+              <CoverRichText
+                text={block.title}
+                doc={block.coverPlacement?.richText?.title}
+              />
+            ) : (
+              block.title
+            )}
           </h3>
         );
       }
       // main/cover get the largest type; section sits between it and the body.
-      const fontSize = cover ? m + 22 : level === "section" ? m + 7 : m + 13;
+      const fontSize = cover
+        ? (m + 22) * coverTextScale(block.coverPlacement)
+        : level === "section"
+          ? m + 7
+          : m + 13;
       return (
         <div className={cover ? "mb-4" : "mb-3 mt-1"}>
           {block.kicker && (
             <div
+              data-cover-copy={cover || undefined}
+              style={
+                cover
+                  ? { fontSize: 12 * coverTextScale(block.coverPlacement) }
+                  : undefined
+              }
               className={`text-accent mb-2 font-sans font-semibold uppercase ${
                 cover
                   ? "text-[12px] tracking-[0.3em]"
                   : "text-[11px] tracking-[0.2em]"
               }`}
             >
-              {block.kicker}
+              {cover ? (
+                <CoverRichText
+                  text={block.kicker}
+                  doc={block.coverPlacement?.richText?.kicker}
+                />
+              ) : (
+                block.kicker
+              )}
             </div>
           )}
           <h2
+            data-cover-copy={cover || undefined}
             id={headingDomId(block.id)}
             tabIndex={-1}
             className="text-ink scroll-mt-4 font-serif leading-[1.1]"
             style={{ fontSize }}
           >
-            {block.title}
+            {cover ? (
+              <CoverRichText
+                text={block.title}
+                doc={block.coverPlacement?.richText?.title}
+              />
+            ) : (
+              block.title
+            )}
           </h2>
         </div>
       );
@@ -99,10 +133,17 @@ export function MobileBlock({
     case "text":
       return cover ? (
         <p
+          data-cover-copy
           className="text-muted mb-3 font-serif whitespace-pre-line italic"
-          style={{ fontSize: m + 2, lineHeight: 1.6 }}
+          style={{
+            fontSize: (m + 2) * coverTextScale(block.coverPlacement),
+            lineHeight: 1.6,
+          }}
         >
-          {richTextToPlain(block.text)}
+          <CoverRichText
+            text={richTextToPlain(block.text)}
+            doc={block.coverPlacement?.richText?.text}
+          />
         </p>
       ) : (
         <div

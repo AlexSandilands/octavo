@@ -1,7 +1,13 @@
 "use client";
 
+import { MenuSelect } from "@/components/menu-select";
 import { Icon, type IconName } from "@/components/icons";
 import type { BlockType } from "@/lib/blocks";
+import {
+  COVER_ELEMENT_LABELS,
+  MAX_COVER_ELEMENTS,
+  type CoverElementType,
+} from "@/lib/cover-elements";
 import type { HistoryNotice } from "./use-editor-history";
 
 const INSERT: { type: BlockType; label: string; icon: IconName }[] = [
@@ -33,6 +39,8 @@ export function EditorToolbar({
   onUndo,
   onRedo,
   notice,
+  onAddCoverElement,
+  coverElementCount,
 }: {
   onAddBlock: (type: BlockType) => void;
   /** This page is filled edge to edge by one photo, which owns it (issue #227). */
@@ -46,69 +54,115 @@ export function EditorToolbar({
   onRedo: () => void;
   /** Announced politely when a shortcut found the history stack empty. */
   notice: HistoryNotice;
+  onAddCoverElement: (type: CoverElementType) => void;
+  coverElementCount: number;
 }) {
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex justify-center px-4 pb-5">
-      {/* A group, not role="toolbar": that role promises arrow-key navigation
+      <div className="relative flex max-w-full justify-center">
+        {/* A group, not role="toolbar": that role promises arrow-key navigation
           within one tab stop, and here every button is its own tab stop. */}
-      <div
-        role="group"
-        aria-label="Editor tools"
-        className="border-hair-warm pointer-events-auto flex max-w-full items-center gap-2 rounded-[14px] border bg-white px-2.5 py-2 shadow-[0_8px_28px_rgba(40,36,28,0.22)]"
-      >
-        {/* `unavailable`, not `disabled`: it keeps the button focusable — see
+        <div
+          role="group"
+          aria-label="Editor tools"
+          className="border-hair-warm pointer-events-auto relative z-20 flex max-w-full items-center gap-2 rounded-[14px] border bg-white px-2.5 py-2 shadow-[0_8px_28px_rgba(40,36,28,0.22)]"
+        >
+          {/* `unavailable`, not `disabled`: it keeps the button focusable — see
             `unavailable` in `ui.tsx`. */}
-        <Tool
-          icon="undo"
-          label="Undo"
-          hint="Undo (Ctrl+Z)"
-          shortcut="Control+Z Meta+Z"
-          unavailable={!canUndo}
-          onClick={onUndo}
-        />
-        <Tool
-          icon="redo"
-          label="Redo"
-          hint="Redo (Ctrl+Shift+Z)"
-          shortcut="Control+Shift+Z Meta+Shift+Z Control+Y"
-          unavailable={!canRedo}
-          onClick={onRedo}
-        />
-        <Divider />
-        {INSERT.map((b) => (
           <Tool
-            key={b.type}
-            icon={b.icon}
-            label={b.label}
-            hint={
-              insertDisabled
-                ? "This page is filled by a photo"
-                : `Insert a ${b.label.toLowerCase()} block`
-            }
-            iconClass="text-accent"
-            showLabel
-            disabled={insertDisabled}
-            onClick={() => onAddBlock(b.type)}
+            icon="undo"
+            label="Undo"
+            hint="Undo (Ctrl+Z)"
+            shortcut="Control+Z Meta+Z"
+            unavailable={!canUndo}
+            onClick={onUndo}
           />
-        ))}
-        <Divider />
-        <Tool
-          icon="doc"
-          label="Cover page"
-          hint={
-            coverDisabled
-              ? "The first page is always the cover"
-              : "Lay this page out as a cover"
-          }
-          showLabel
-          pressed={coverActive}
-          disabled={coverDisabled}
-          onClick={onToggleCover}
-        />
-        <span role="status" aria-live="polite" className="sr-only">
-          {/* Keyed by the counter so the same text twice is still a change. */}
-          <span key={notice.n}>{notice.text}</span>
-        </span>
+          <Tool
+            icon="redo"
+            label="Redo"
+            hint="Redo (Ctrl+Shift+Z)"
+            shortcut="Control+Shift+Z Meta+Shift+Z Control+Y"
+            unavailable={!canRedo}
+            onClick={onRedo}
+          />
+          <Divider />
+          {INSERT.filter(
+            (b) =>
+              !coverActive || ["heading", "text", "image"].includes(b.type),
+          ).map((b) => (
+            <Tool
+              key={b.type}
+              icon={b.icon}
+              label={b.label}
+              hint={
+                insertDisabled
+                  ? "This page is filled by a photo"
+                  : `Insert a ${b.label.toLowerCase()} block`
+              }
+              iconClass="text-accent"
+              showLabel
+              disabled={insertDisabled}
+              onClick={() => onAddBlock(b.type)}
+            />
+          ))}
+          {coverActive && (
+            <>
+              {coverElementCount < MAX_COVER_ELEMENTS && (
+                <MenuSelect
+                  label=""
+                  current="Add detail"
+                  triggerLabel="Add detail"
+                  ariaLabel="Cover details"
+                  value=""
+                  side="top"
+                  portal
+                  className="rounded-[9px]! text-[13px]! font-semibold!"
+                  items={(["teaser", "contents", "details"] as const).map(
+                    (type) => ({
+                      key: type,
+                      value: type,
+                      content: COVER_ELEMENT_LABELS[type],
+                    }),
+                  )}
+                  onSelect={(type) =>
+                    onAddCoverElement(type as CoverElementType)
+                  }
+                />
+              )}
+              <Tool
+                icon="image"
+                label="Logo"
+                hint="Add a logo"
+                showLabel
+                iconClass="text-accent"
+                disabled={coverElementCount >= MAX_COVER_ELEMENTS}
+                onClick={() => onAddCoverElement("logo")}
+              />
+            </>
+          )}
+          {!coverDisabled && (
+            <>
+              <Divider />
+              <Tool
+                icon="doc"
+                label="Cover page"
+                hint={
+                  coverDisabled
+                    ? "The first page is always the cover"
+                    : "Lay this page out as a cover"
+                }
+                showLabel
+                pressed={coverActive}
+                disabled={coverDisabled}
+                onClick={onToggleCover}
+              />
+            </>
+          )}
+          <span role="status" aria-live="polite" className="sr-only">
+            {/* Keyed by the counter so the same text twice is still a change. */}
+            <span key={notice.n}>{notice.text}</span>
+          </span>
+        </div>
       </div>
     </div>
   );
