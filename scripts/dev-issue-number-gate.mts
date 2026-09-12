@@ -149,8 +149,11 @@ try {
   // ── 1. Creating a draft allocates nothing ─────────────────────────────────
   heading("a draft has no number");
   await page.goto(`${base}/admin`);
+  // The create is a server action that redirects into the editor. Wait on the
+  // editor itself rather than a navigation event: under a production build the
+  // redirect arrives as a router transition, with no page load to wait for.
   await page.click("button:has-text('Create new issue')");
-  await page.waitForURL(/\/admin\/issues\/[^/]+\/edit$/);
+  await page.waitForSelector(PUBLISH_TRIGGER, { timeout: 60_000 });
   const firstId = page.url().match(/\/issues\/([^/]+)\/edit/)![1]!;
   scratchIds.push(firstId);
   ok((await rowOf(firstId))!.number === null, "createIssue wrote no number");

@@ -612,6 +612,13 @@ try {
   heading("VideoDialog");
   await page.goto(`${base}/admin/issues/${issueId}/edit`);
   await page.waitForSelector("button:has-text('Theme:')");
+  // The editor opens on page 1, which is the cover — and a cover offers the
+  // cover tools, not the Insert row. Walk the rail to page 2 the same way the
+  // montage section does.
+  await page.evaluate(() => {
+    const del = document.querySelector('[aria-label="Delete page 2"]');
+    del?.closest("div.group")?.querySelector("button")?.click();
+  });
   await page.click("button:has-text('Video')");
   const videoTrigger = page.locator("button", {
     hasText: /^Add a video link$/,
