@@ -177,7 +177,12 @@
 .cover-rich-editor {
   cursor: text;
 }
-.cover-text-editor:has(> p:only-child:empty)::before {
+/* ProseMirror keeps a trailing <br> in an empty paragraph, so :empty alone
+   never matches; :has() cannot nest, hence the :is() pair. */
+.cover-text-editor:is(
+    :has(> p:only-child:empty),
+    :has(> p:only-child > br:only-child)
+  )::before {
   content: attr(data-placeholder);
   opacity: 0.5;
   pointer-events: none;
