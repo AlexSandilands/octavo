@@ -63,7 +63,12 @@ migrate old rows deliberately. **Current version: 7.** Every string field is len
 page/block arrays bounded in the zod schemas, so a bad save can't persist an unbounded document.
 
 **Content v7 — optional cover elements.** `coverElements` stores a bounded array of
-`contents`, `teaser`, `details` and `logo` elements. They are independent of the article-block
+`stories`, `details` and `logo` elements. A `stories` element carries an optional list heading
+(`title`, empty for none), one to six `items` and one `headlineSize` (`compact` | `list` | `large`
+| `display`, stored, never inferred). Each item has its own `id` (so a free-standing story is
+addressable), an optional `headingId` linking it to a section, a title override and a description.
+The editor's _Add detail_ menu seeds the same type two ways — **Story** (no list heading, display
+headline, right column) and **Inside this issue** (the heading, list headline, left column). They are independent of the article-block
 union. Each has a row/column anchor, width, text alignment, vertical adjustment and optional
 contrast override. Optional `textSize` (`small`, `normal`, `large`, `xlarge`) scales text to
 80%, 100%, 120% or 140% independently of wrapping width; omitted means 100%. Heading, text and inline image blocks can opt into the same placement through
@@ -73,12 +78,12 @@ cover details together within an anchor. Missing fields preserve the old cover f
 `text`, `shadow` and `shadowColor` overrides. Colours are bounded palette identifiers or six-digit
 hex, never arbitrary CSS; shadows are none/soft/strong. Omitted fields resolve from the saved
 legacy style. `coverPlacement.richText` stores at most 20 keyed, bounded paragraph-only documents
-(title/kicker/text, or preview-id plus field), with bold/italic/underline and a validated colour/shadow
+(title/kicker/text, or story-id plus field), with bold/italic/underline and a validated colour/shadow
 mark. Plain fields are updated atomically alongside the documents. A document only renders when its
 plain text matches the current field, so source-heading renames cannot display stale words. These
 optional v7 additions keep existing rows readable without migration; normal article rich text is unchanged.
-Preview entries reference heading ids, resolving current titles and page numbers at render time;
-an optional cover title overrides only the preview. Logos retain both their library id and image
+Linked stories reference heading ids, resolving current titles and page numbers at render time;
+an optional cover title overrides only the cover. Logos retain both their library id and image
 id, so the shared image resolver/cleanup sees the asset and library deletion refuses active cover
 references. Demoting a cover retains its elements in ordinary flow and preserves their positions
 for re-enabling cover styling. The seed's issue 6 explicitly demonstrates the new composition;

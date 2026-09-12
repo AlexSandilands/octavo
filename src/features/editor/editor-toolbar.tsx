@@ -3,9 +3,9 @@
 import { MenuSelect } from "@/components/menu-select";
 import type { BlockType } from "@/lib/blocks";
 import {
-  COVER_ELEMENT_LABELS,
+  COVER_PRESET_LABELS,
   MAX_COVER_ELEMENTS,
-  type CoverElementType,
+  type CoverElementPreset,
 } from "@/lib/cover-elements";
 import { BLOCK_KINDS } from "./block-kinds";
 import { BarDivider, FloatingBar } from "./floating-bar";
@@ -50,7 +50,7 @@ export function EditorToolbar({
   onRedo: () => void;
   /** Announced politely when a shortcut found the history stack empty. */
   notice: HistoryNotice;
-  onAddCoverElement: (type: CoverElementType) => void;
+  onAddCoverElement: (preset: CoverElementPreset) => void;
   coverElementCount: number;
 }) {
   const vertical = layout === "vertical";
@@ -106,14 +106,16 @@ export function EditorToolbar({
               value=""
               side="top"
               portal
-              items={(["teaser", "contents", "details"] as const).map(
-                (type) => ({
-                  key: type,
-                  value: type,
-                  content: COVER_ELEMENT_LABELS[type],
+              items={(["story", "contents", "details"] as const).map(
+                (preset) => ({
+                  key: preset,
+                  value: preset,
+                  content: COVER_PRESET_LABELS[preset],
                 }),
               )}
-              onSelect={(type) => onAddCoverElement(type as CoverElementType)}
+              onSelect={(preset) =>
+                onAddCoverElement(preset as CoverElementPreset)
+              }
             />
           )}
           <Tool

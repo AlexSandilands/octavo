@@ -37,9 +37,8 @@ export function useCoverLayoutWarnings(
     const ids = new Set(sources.map((s) => s.id));
     for (const e of page?.coverElements ?? []) {
       const broken =
-        e.type === "contents"
-          ? e.items.some((i) => !ids.has(i.headingId))
-          : e.type === "teaser" && e.headingId && !ids.has(e.headingId);
+        e.type === "stories" &&
+        e.items.some((i) => i.headingId && !ids.has(i.headingId));
       if (broken)
         next.push({
           ids: [e.id],

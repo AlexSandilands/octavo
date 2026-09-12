@@ -5,7 +5,9 @@ import { issueContentSchema, makePage, type Page } from "../src/lib/blocks";
 import {
   coverSources,
   coverElementSchema,
+  COVER_HEADLINE_SIZES,
   makeCoverElement,
+  makeCoverStory,
   previewTitle,
   DEFAULT_COVER_PLACEMENT,
 } from "../src/lib/cover-elements";
@@ -48,10 +50,26 @@ const front: Page = {
   ],
 };
 const contents = makeCoverElement("contents"),
+  story = makeCoverElement("story"),
   logo = makeCoverElement("logo");
-assert(contents.type === "contents" && logo.type === "logo");
+assert(contents.type === "stories" && story.type === "stories");
+assert(logo.type === "logo");
+// The two presets differ only in how they start out.
+assert.deepEqual(
+  [contents.title, contents.headlineSize, contents.placement.column],
+  ["Inside this issue", "list", "left"],
+);
+assert.deepEqual(
+  [story.title, story.headlineSize, story.placement.column],
+  ["", "display", "right"],
+);
+assert.equal(contents.items.length, 1);
+assert.equal(story.items.length, 1);
 contents.items = [
-  { headingId: "heading", title: "", description: "Our community in focus." },
+  {
+    ...makeCoverStory("heading"),
+    description: "Our community in focus.",
+  },
 ];
 contents.showPageNumbers = true;
 logo.logoId = "club";
@@ -101,6 +119,24 @@ for (const row of ["top", "center", "bottom"] as const)
         html.includes(`data-column="${column}"`),
     );
   }
+// A lone unlinked story keeps the size it was stored with: nothing promotes itself.
+const lone = { ...story, items: [makeCoverStory()], headlineSize: "compact" };
+const parsedLone = coverElementSchema.parse(lone);
+assert(parsedLone.type === "stories" && parsedLone.headlineSize === "compact");
+assert(!parsedLone.items[0]!.headingId);
+for (const size of COVER_HEADLINE_SIZES) {
+  const parsed = coverElementSchema.parse({ ...story, headlineSize: size });
+  assert(parsed.type === "stories" && parsed.headlineSize === size);
+}
+assert(!coverElementSchema.safeParse({ ...story, items: [] }).success);
+assert(
+  !coverElementSchema.safeParse({ ...story, headlineSize: "huge" }).success,
+);
+for (const legacy of ["teaser", "contents"])
+  assert(
+    !coverElementSchema.safeParse({ ...contents, type: legacy }).success,
+    `${legacy} is no longer a cover element type`,
+  );
 assert(!coverElementSchema.safeParse({ ...logo, size: 10000 }).success);
 assert(
   !coverElementSchema.safeParse({
@@ -111,11 +147,7 @@ assert(
 assert(
   !coverElementSchema.safeParse({
     ...contents,
-    items: Array.from({ length: 7 }, (_, i) => ({
-      headingId: String(i),
-      title: "",
-      description: "",
-    })),
+    items: Array.from({ length: 7 }, () => makeCoverStory()),
   }).success,
 );
 const seeds = buildIssues(
@@ -124,5 +156,5 @@ const seeds = buildIssues(
 seeds.forEach((i) => assert(issueContentSchema.safeParse(i.content).success));
 assert.equal(seeds[5]?.content.pages[0]?.coverElements?.length, 3);
 console.log(
-  "PASS: opt-in defaults, schema bounds, references/page numbering, logo asset traversal, demotion preservation, all anchors, shared renderer and seed/legacy compatibility",
+  "PASS: preset defaults, stored headline sizes, schema bounds, references/page numbering, logo asset traversal, demotion preservation, all anchors, shared renderer and seed compatibility",
 );

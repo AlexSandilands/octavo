@@ -119,10 +119,11 @@ await withCoverFixture(
       .getByRole("button", { name: "Add detail", exact: true })
       .click();
     await page
-      .getByRole("menuitemradio", { name: "Story preview", exact: true })
+      .getByRole("menuitemradio", { name: "Story", exact: true })
       .click();
+    await panel.getByText("1. New story", { exact: true }).click();
     await panel
-      .getByRole("textbox", { name: "Headline", exact: true })
+      .getByRole("textbox", { name: "Headline for story 1", exact: true })
       .fill("A featured story");
     const story = canvas.locator("[data-cover-element]");
     const storyId = await story.getAttribute("data-cover-element");

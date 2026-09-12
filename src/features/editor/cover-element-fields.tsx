@@ -3,7 +3,7 @@ import { MenuSelect } from "@/components/menu-select";
 import { SelectCheckbox } from "@/components/select-checkbox";
 import {
   MAX_COVER_PREVIEWS,
-  previewTitle,
+  makeCoverStory,
   type CoverElement,
   type CoverSource,
 } from "@/lib/cover-elements";
@@ -11,7 +11,9 @@ import type { LogoListItem } from "@/lib/logos";
 import type { ResolvedImage } from "@/lib/images";
 import { CoverTextField } from "./cover-text-field";
 import { CoverField } from "./cover-fields";
-import { CoverPreviewFields } from "./cover-preview-fields";
+import { Segments } from "./cover-segments";
+import { CoverStoryFields } from "./cover-story-fields";
+import { SourcePicker } from "./cover-source-picker";
 
 export function CoverElementFields({
   element,
@@ -29,15 +31,26 @@ export function CoverElementFields({
   onRegisterImage: (id: string, image: ResolvedImage) => void;
 }) {
   const choices = sources.filter((s) => s.pageNo > afterPage);
-  if (element.type === "contents")
+  if (element.type === "stories")
     return (
       <div className="space-y-3">
         <CoverTextField
           element={element}
           field="title"
-          label="List heading"
+          label="List heading (optional)"
           value={element.title}
           onChange={onChange}
+        />
+        <Segments
+          label="Headline size"
+          value={element.headlineSize}
+          options={[
+            { value: "compact", label: "Compact" },
+            { value: "list", label: "List" },
+            { value: "large", label: "Large" },
+            { value: "display", label: "Display" },
+          ]}
+          onChange={(headlineSize) => onChange({ ...element, headlineSize })}
         />
         <SelectCheckbox
           label="Show page numbers"
@@ -48,85 +61,39 @@ export function CoverElementFields({
         >
           Show page numbers
         </SelectCheckbox>
-        <CoverPreviewFields
+        <CoverStoryFields
           element={element}
           sources={sources}
+          afterPage={afterPage}
           onChange={onChange}
         />
         {element.items.length < MAX_COVER_PREVIEWS && (
-          <SourcePicker
-            sources={choices.filter(
-              (s) => !element.items.some((i) => i.headingId === s.id),
-            )}
-            label="Add section"
-            onSelect={(headingId) =>
-              onChange({
-                ...element,
-                items: [
-                  ...element.items,
-                  { headingId, title: "", description: "" },
-                ],
-              })
-            }
-          />
-        )}
-      </div>
-    );
-  if (element.type === "teaser")
-    return (
-      <div className="space-y-3">
-        <SourcePicker
-          sources={choices}
-          selected={element.headingId}
-          label="Source"
-          allowCustom
-          onSelect={(headingId) =>
-            onChange({ ...element, headingId: headingId || undefined })
-          }
-        />
-        {element.headingId &&
-          !sources.some((s) => s.id === element.headingId) && (
-            <p role="status" className="text-warn font-sans text-sm">
-              The linked section was removed. Choose another section or write a
-              headline.
-            </p>
-          )}
-        <CoverTextField
-          element={element}
-          field="title"
-          label={
-            element.headingId
-              ? "Cover headline (optional override)"
-              : "Headline"
-          }
-          value={element.title}
-          placeholder={
-            previewTitle(
-              { title: "", headingId: element.headingId },
-              sources,
-            ) || "Story headline"
-          }
-          onChange={onChange}
-        />
-        <CoverTextField
-          element={element}
-          field="description"
-          label="Supporting text (optional)"
-          value={element.description}
-          multiline
-          maxLength={600}
-          onChange={onChange}
-        />
-        {element.headingId && (
-          <SelectCheckbox
-            label="Show page number"
-            checked={element.showPageNumbers}
-            onChange={(showPageNumbers) =>
-              onChange({ ...element, showPageNumbers })
-            }
-          >
-            Show page number
-          </SelectCheckbox>
+          <div className="space-y-3">
+            <SourcePicker
+              sources={choices.filter(
+                (s) => !element.items.some((i) => i.headingId === s.id),
+              )}
+              label="Add section"
+              onSelect={(headingId) =>
+                onChange({
+                  ...element,
+                  items: [...element.items, makeCoverStory(headingId)],
+                })
+              }
+            />
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() =>
+                onChange({
+                  ...element,
+                  items: [...element.items, makeCoverStory()],
+                })
+              }
+            >
+              Add story
+            </Button>
+          </div>
         )}
       </div>
     );
@@ -207,61 +174,5 @@ export function CoverElementFields({
         onChange={(alt) => onChange({ ...element, alt })}
       />
     </div>
-  );
-}
-export function SourcePicker({
-  sources,
-  selected,
-  label,
-  onSelect,
-  allowCustom = false,
-}: {
-  sources: CoverSource[];
-  selected?: string;
-  label: string;
-  onSelect: (id: string) => void;
-  allowCustom?: boolean;
-}) {
-  if (!sources.length && !allowCustom)
-    return (
-      <p className="text-muted font-sans text-sm">
-        Add a heading to a later page to include it here.
-      </p>
-    );
-  return (
-    <MenuSelect
-      portal
-      label={label}
-      current={
-        sources.find((s) => s.id === selected)?.title ??
-        (allowCustom ? "Custom headline" : "Choose a heading")
-      }
-      ariaLabel="Section headings"
-      value={selected ?? ""}
-      className="w-full"
-      menuClassName="w-full max-h-56 overflow-y-auto scrollbar-soft"
-      items={[
-        ...(allowCustom
-          ? [
-              {
-                key: "custom",
-                value: "",
-                content: <span>Custom headline</span>,
-              },
-            ]
-          : []),
-        ...sources.map((s) => ({
-          key: s.id,
-          value: s.id,
-          content: (
-            <span className="flex min-w-0 flex-1 items-baseline justify-between gap-3">
-              <span className="truncate">{s.title}</span>
-              <span className="text-muted shrink-0 text-xs">p. {s.pageNo}</span>
-            </span>
-          ),
-        })),
-      ]}
-      onSelect={onSelect}
-    />
   );
 }

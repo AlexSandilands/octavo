@@ -11,22 +11,15 @@ export function updateCoverText(
     ...element.placement,
     richText: { ...element.placement.richText, [field]: doc },
   };
-  if (element.type === "teaser")
-    return {
-      ...element,
-      placement,
-      ...(field === "title" ? { title: text } : { description: text }),
-    };
   if (element.type === "details") return { ...element, placement, text };
-  if (element.type === "contents") {
+  if (element.type === "stories") {
     if (field === "title") return { ...element, placement, title: text };
     return {
       ...element,
       placement,
       items: element.items.map((item) => {
-        if (field === `${item.headingId}:title`)
-          return { ...item, title: text };
-        if (field === `${item.headingId}:description`)
+        if (field === `${item.id}:title`) return { ...item, title: text };
+        if (field === `${item.id}:description`)
           return { ...item, description: text };
         return item;
       }),

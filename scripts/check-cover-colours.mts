@@ -21,12 +21,13 @@ await withCoverFixture(
       row: "top",
       style: "paper-panel",
     };
-    const teaser = makeCoverElement("teaser");
-    assert(teaser.type === "teaser");
-    teaser.id = "story";
-    teaser.title = "Club stories";
-    teaser.description = "Meet our community.";
-    cover.coverElements = [teaser];
+    const story = makeCoverElement("story");
+    assert(story.type === "stories");
+    story.id = "story";
+    story.items = [
+      { id: "one", title: "Club stories", description: "Meet our community." },
+    ];
+    cover.coverElements = [story];
     await sql`update issues set content=${sql.json(content)} where id=${id}`;
     await page.goto(edit);
     const canvas = page.locator("[data-page-frame]"),
@@ -168,23 +169,24 @@ await withCoverFixture(
     await panel
       .getByRole("button", { name: "Background: panel", exact: true })
       .click();
-    const story = canvas.getByRole("textbox", {
+    const headline = canvas.getByRole("textbox", {
       name: "Story headline",
       exact: true,
     });
-    await story.click();
+    await headline.click();
     await page.keyboard.press("Control+Home");
     await page.keyboard.press("Control+Shift+ArrowRight");
     await bar.getByRole("button", { name: "Bold", exact: true }).click();
     await waitSaved(
-      (c) => !!c.pages[0]!.coverElements?.[0]?.placement.richText?.title,
+      (c) =>
+        !!c.pages[0]!.coverElements?.[0]?.placement.richText?.["one:title"],
     );
     await page.keyboard.press("End");
     await page.keyboard.type(" today");
     await waitSaved(
       (c) =>
-        c.pages[0]!.coverElements?.[0]?.type === "teaser" &&
-        c.pages[0]!.coverElements[0].title.includes("today"),
+        c.pages[0]!.coverElements?.[0]?.type === "stories" &&
+        c.pages[0]!.coverElements[0].items[0]!.title.includes("today"),
     );
     await page.keyboard.press("Escape");
     await panel

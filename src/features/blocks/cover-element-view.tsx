@@ -29,7 +29,6 @@ export function CoverElementView({
     );
   const P = renderText ? "div" : "p";
   const H3 = renderText ? "div" : "h3";
-  const H4 = renderText ? "div" : "h4";
   if (element.type === "logo") {
     const image = element.imageId ? images[element.imageId] : undefined;
     return image ? (
@@ -68,19 +67,26 @@ export function CoverElementView({
       </P>
     );
   }
-  if (element.type === "teaser") {
-    const title = previewTitle(element, sources);
-    const source = sources.find((s) => s.id === element.headingId);
+  const entries = element.items.filter(
+    (item) => editing || previewTitle(item, sources) || item.description,
+  );
+  const story = (item: (typeof entries)[number]) => {
+    const title = previewTitle(item, sources);
+    const source = sources.find((s) => s.id === item.headingId);
     return (
-      <div className="cover-story">
+      <>
         {(title || editing) && (
-          <H3 data-cover-copy className="cover-story-title">
-            {copy("title", title, "Story headline")}
+          <H3 data-cover-copy className="cover-stories-headline">
+            {copy(`${item.id}:title`, title, "Story headline")}
           </H3>
         )}
-        {element.description && (
+        {item.description && (
           <P data-cover-copy className="cover-story-description">
-            {copy("description", element.description, "Supporting text")}
+            {copy(
+              `${item.id}:description`,
+              item.description,
+              "Supporting text",
+            )}
           </P>
         )}
         {element.showPageNumbers && source && (
@@ -88,46 +94,24 @@ export function CoverElementView({
             Page {source.pageNo}
           </P>
         )}
-      </div>
+      </>
     );
-  }
+  };
   return (
-    <div>
+    <div className="cover-stories" data-headline-size={element.headlineSize}>
       {element.title && (
-        <H3 data-cover-copy className="cover-contents-title">
-          {copy("title", element.title, "Inside this issue heading")}
+        <H3 data-cover-copy className="cover-stories-heading">
+          {copy("title", element.title, "List heading")}
         </H3>
       )}
-      <ol className="cover-preview-list">
-        {element.items.map((item) => {
-          const title = previewTitle(item, sources);
-          const source = sources.find((s) => s.id === item.headingId);
-          if (!title && !editing) return null;
-          return (
-            <li key={item.headingId}>
-              <H4 data-cover-copy className="cover-preview-title">
-                {copy(`${item.headingId}:title`, title, "Preview headline")}
-              </H4>
-              {item.description && (
-                <P data-cover-copy className="cover-story-description">
-                  {copy(
-                    `${item.headingId}:description`,
-                    item.description,
-                    "Preview description",
-                  )}
-                </P>
-              )}
-              {element.showPageNumbers && source && (
-                <P data-cover-copy className="cover-story-page">
-                  Page {source.pageNo}
-                </P>
-              )}
-            </li>
-          );
-        })}
-      </ol>
-      {editing && !element.items.length && (
-        <P className="cover-element-empty">Choose sections to preview</P>
+      {entries.length > 1 ? (
+        <ol className="cover-stories-list">
+          {entries.map((item) => (
+            <li key={item.id}>{story(item)}</li>
+          ))}
+        </ol>
+      ) : (
+        entries[0] && story(entries[0])
       )}
     </div>
   );

@@ -92,7 +92,8 @@ It cleans up its own rows. The existing `dev-fill-page-gate.mts` still covers in
 placements and cover Fill/Fit rendering. Run both for cover composition changes.
 
 The cover-element gate runs with `npx tsx --tsconfig scripts/tsconfig.json
-scripts/dev-cover-elements-gate.mts <base-url>`. It authors all four optional elements, checks
+scripts/dev-cover-elements-gate.mts <base-url>`. It authors all four _Add detail_ presets (the Story and Inside this issue
+seedings of one `stories` element, issue details and a logo), checks
 references, history, independent placement/contrast, responsive controls, mobile text sizing,
 thumbnails, the logo deletion guard and both PDF themes. It creates and removes its own local
 issue, admin and logo; it never changes existing issues. The in-memory companion is

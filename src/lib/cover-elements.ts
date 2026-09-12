@@ -66,28 +66,30 @@ export const DEFAULT_COVER_PLACEMENT: CoverPlacement = {
   offset: 0,
 };
 const base = { id: z.string().max(64), placement: coverPlacementSchema };
-export const coverPreviewSchema = z.object({
-  headingId: z.string().min(1).max(64),
+/** One story on the cover: a free-standing entry, or one linked to a section heading. */
+export const coverStorySchema = z.object({
+  id: z.string().max(64),
+  headingId: z.string().max(64).optional(),
   title: z.string().max(300).default(""),
   description: z.string().max(600).default(""),
 });
 export const MAX_COVER_ELEMENTS = 16;
 export const MAX_COVER_PREVIEWS = 6;
+export const COVER_HEADLINE_SIZES = [
+  "compact",
+  "list",
+  "large",
+  "display",
+] as const;
 export const coverElementSchema = z.discriminatedUnion("type", [
   z.object({
     ...base,
-    type: z.literal("contents"),
-    title: z.string().max(300).default("Inside this issue"),
-    items: z.array(coverPreviewSchema).max(MAX_COVER_PREVIEWS).default([]),
-    showPageNumbers: z.boolean().default(false),
-  }),
-  z.object({
-    ...base,
-    type: z.literal("teaser"),
-    headingId: z.string().max(64).optional(),
+    type: z.literal("stories"),
+    /** The optional list heading ("Inside this issue"); empty prints nothing. */
     title: z.string().max(300).default(""),
-    description: z.string().max(600).default(""),
+    items: z.array(coverStorySchema).min(1).max(MAX_COVER_PREVIEWS),
     showPageNumbers: z.boolean().default(false),
+    headlineSize: z.enum(COVER_HEADLINE_SIZES).default("list"),
   }),
   z.object({
     ...base,
@@ -106,43 +108,63 @@ export const coverElementSchema = z.discriminatedUnion("type", [
 ]);
 export type CoverElement = z.infer<typeof coverElementSchema>;
 export type CoverElementType = CoverElement["type"];
-export type CoverPreview = z.infer<typeof coverPreviewSchema>;
+export type CoverStory = z.infer<typeof coverStorySchema>;
+export type CoverHeadlineSize = (typeof COVER_HEADLINE_SIZES)[number];
 export const COVER_ELEMENT_LABELS: Record<CoverElementType, string> = {
-  contents: "Inside this issue",
-  teaser: "Story preview",
+  stories: "Stories",
   details: "Issue details",
   logo: "Logo",
 };
-export function makeCoverElement(type: CoverElementType): CoverElement {
+/** Stories carries both cover lists; the presets differ only in how they start out. */
+export const COVER_ELEMENT_PRESETS = [
+  "story",
+  "contents",
+  "details",
+  "logo",
+] as const;
+export type CoverElementPreset = (typeof COVER_ELEMENT_PRESETS)[number];
+export const COVER_PRESET_LABELS: Record<CoverElementPreset, string> = {
+  story: "Story",
+  contents: "Inside this issue",
+  details: "Issue details",
+  logo: "Logo",
+};
+export function makeCoverStory(headingId?: string): CoverStory {
+  return { id: createId(), headingId, title: "", description: "" };
+}
+export function makeCoverElement(preset: CoverElementPreset): CoverElement {
+  const right = preset === "logo" || preset === "story";
   const placement: CoverPlacement = {
     ...DEFAULT_COVER_PLACEMENT,
-    column: type === "logo" || type === "teaser" ? "right" : "left",
-    row: type === "details" ? "top" : type === "logo" ? "bottom" : "center",
+    column: right ? "right" : "left",
+    row: preset === "details" ? "top" : preset === "logo" ? "bottom" : "center",
     width: "medium",
-    align: type === "logo" || type === "teaser" ? "right" : "left",
+    align: right ? "right" : "left",
   };
   const common = { id: createId(), placement };
-  switch (type) {
+  switch (preset) {
+    case "story":
+      return {
+        ...common,
+        type: "stories",
+        title: "",
+        items: [makeCoverStory()],
+        showPageNumbers: false,
+        headlineSize: "display",
+      };
     case "contents":
       return {
         ...common,
-        type,
+        type: "stories",
         title: "Inside this issue",
-        items: [],
+        items: [makeCoverStory()],
         showPageNumbers: false,
-      };
-    case "teaser":
-      return {
-        ...common,
-        type,
-        title: "",
-        description: "",
-        showPageNumbers: false,
+        headlineSize: "list",
       };
     case "details":
-      return { ...common, type, showNumber: true, text: "" };
+      return { ...common, type: "details", showNumber: true, text: "" };
     case "logo":
-      return { ...common, type, alt: "", size: 100 };
+      return { ...common, type: "logo", alt: "", size: 100 };
   }
 }
 export type CoverSource = {

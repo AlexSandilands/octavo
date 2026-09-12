@@ -68,17 +68,33 @@
 .cover-logo {
   position: relative;
 }
-.cover-story-title {
-  font-family: var(--font-serif);
-  font-size: calc(28px * var(--cover-text-scale, 1));
-  font-weight: 500;
-  line-height: 1.12;
+/* One headline ramp, stepped by the element's stored size; the description and
+   page line stay at body size at every step. */
+.cover-stories[data-headline-size="compact"] {
+  --cover-headline: 18px;
+  --cover-headline-leading: 1.24;
+  --cover-headline-grow: 2px;
 }
-.cover-preview-title {
+.cover-stories[data-headline-size="list"] {
+  --cover-headline: 23px;
+  --cover-headline-leading: 1.18;
+  --cover-headline-grow: 5px;
+}
+.cover-stories[data-headline-size="large"] {
+  --cover-headline: 28px;
+  --cover-headline-leading: 1.12;
+  --cover-headline-grow: 9px;
+}
+.cover-stories[data-headline-size="display"] {
+  --cover-headline: 36px;
+  --cover-headline-leading: 1.06;
+  --cover-headline-grow: 14px;
+}
+.cover-stories-headline {
   font-family: var(--font-serif);
-  font-size: calc(23px * var(--cover-text-scale, 1));
+  font-size: calc(var(--cover-headline, 23px) * var(--cover-text-scale, 1));
   font-weight: 500;
-  line-height: 1.18;
+  line-height: var(--cover-headline-leading, 1.18);
 }
 .cover-story-description {
   margin-top: 7px;
@@ -93,7 +109,7 @@
   font-size: calc(11px * var(--cover-text-scale, 1));
   line-height: 1.4;
 }
-.cover-contents-title,
+.cover-stories-heading,
 .cover-issue-details {
   font-family: var(--font-sans);
   font-size: calc(12px * var(--cover-text-scale, 1));
@@ -102,10 +118,10 @@
   line-height: 1.5;
   text-transform: uppercase;
 }
-.cover-contents-title {
+.cover-stories-heading {
   margin-bottom: 18px;
 }
-.cover-preview-list {
+.cover-stories-list {
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -129,21 +145,17 @@
   width: 100%;
   top: 0;
 }
-.cover-grid-mobile .cover-story-title {
+.cover-grid-mobile .cover-stories-headline {
   font-size: calc(
-    (var(--cover-mobile-text, 19px) + 9px) * var(--cover-text-scale, 1)
-  );
-}
-.cover-grid-mobile .cover-preview-title {
-  font-size: calc(
-    (var(--cover-mobile-text, 19px) + 5px) * var(--cover-text-scale, 1)
+    (var(--cover-mobile-text, 19px) + var(--cover-headline-grow, 5px)) *
+      var(--cover-text-scale, 1)
   );
 }
 .cover-grid-mobile .cover-story-description {
   font-size: calc(var(--cover-mobile-text, 19px) * var(--cover-text-scale, 1));
 }
 .cover-grid-mobile .cover-story-page,
-.cover-grid-mobile .cover-contents-title,
+.cover-grid-mobile .cover-stories-heading,
 .cover-grid-mobile .cover-issue-details {
   font-size: calc(
     var(--cover-mobile-text, 19px) * 0.78 * var(--cover-text-scale, 1)
