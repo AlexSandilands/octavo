@@ -9,6 +9,8 @@ import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 import { externalHref } from "@/lib/rich-text";
 import { richTextToPlain } from "@/lib/rich-text-doc";
+import { CoverRichText } from "./cover-rich-text";
+import { coverTextScale } from "@/lib/cover-elements";
 import { pageAlignOf } from "./layout";
 import type { LayoutTheme } from "./themes/registry";
 import { RichText } from "./rich-text";
@@ -82,6 +84,7 @@ export function BlockImage({
 // reader, the only difference being you can click the text and type.
 export type BlockEditHandlers = {
   onChange: (patch: BlockPatch) => void;
+  coverText?: (field: string, text: string, label: string) => React.ReactNode;
 };
 
 // Read-only OR editable rendering of one block, in a resolved layout theme
@@ -154,42 +157,74 @@ export function BlockView({
   // sized/centred by `blockFlowStyle`'s cover branch). The cover treatment is
   // the same across layout themes, so it stays here rather than in the modules.
   if (variant === "cover") {
+    const copy = (field: string, text: string, label: string) =>
+      edit?.coverText ? (
+        edit.coverText(field, text, label)
+      ) : (
+        <CoverRichText
+          text={text}
+          doc={
+            "coverPlacement" in block
+              ? block.coverPlacement?.richText?.[field]
+              : undefined
+          }
+        />
+      );
     if (block.type === "heading") {
       // Read path emits a real heading so screen readers get a document outline;
       // the editor keeps a <div> so it doesn't fight contentEditable.
       const CoverTitle = edit ? "div" : "h2";
       return (
-        <div className="text-center">
+        <div style={{ textAlign: block.coverPlacement?.align ?? "center" }}>
           {(edit || block.kicker) && (
-            <div className="text-accent font-sans text-[12px] font-semibold tracking-[0.34em] uppercase">
-              {f((v) => ({ kicker: v }), block.kicker, "Masthead")}
+            <div
+              data-cover-copy
+              className="text-accent font-sans text-[12px] font-semibold tracking-[0.34em] uppercase"
+              style={{ fontSize: 12 * coverTextScale(block.coverPlacement) }}
+            >
+              {copy("kicker", block.kicker, "Masthead")}
             </div>
           )}
           <CoverTitle
+            data-cover-copy
             className="text-ink mt-5 font-serif leading-[1.03]"
-            style={{ fontSize: 68 }}
+            style={{ fontSize: 68 * coverTextScale(block.coverPlacement) }}
           >
-            {f((v) => ({ title: v }), block.title, "Cover title")}
+            {copy("title", block.title, "Cover title")}
           </CoverTitle>
-          <div className="mt-7 flex items-center justify-center gap-3">
-            <div className="h-px w-16 bg-rule" />
-            <div className="bg-accent h-1.5 w-1.5 rotate-45" />
-            <div className="h-px w-16 bg-rule" />
+          <div
+            className="mt-7 flex items-center gap-3"
+            style={{
+              justifyContent:
+                block.coverPlacement?.align === "left"
+                  ? "flex-start"
+                  : block.coverPlacement?.align === "right"
+                    ? "flex-end"
+                    : "center",
+            }}
+          >
+            <div data-cover-rule className="h-px w-16 bg-rule" />
+            <div data-cover-rule className="bg-accent h-1.5 w-1.5 rotate-45" />
+            <div data-cover-rule className="h-px w-16 bg-rule" />
           </div>
         </div>
       );
     }
     if (block.type === "text") {
+      const CoverText = edit ? "div" : "p";
       return (
-        <p className="text-muted text-center font-serif text-[24px] leading-relaxed whitespace-pre-line italic">
+        <CoverText
+          data-cover-copy
+          className="text-muted font-serif text-[24px] leading-relaxed whitespace-pre-line italic"
+          style={{
+            textAlign: block.coverPlacement?.align ?? "center",
+            fontSize: 24 * coverTextScale(block.coverPlacement),
+          }}
+        >
           {/* Cover text is authored as a plain tagline/date; coerce so a value
               that ever held rich JSON still renders as a string. */}
-          {f(
-            (v) => ({ text: v }),
-            richTextToPlain(block.text),
-            "Add a tagline or date…",
-          )}
-        </p>
+          {copy("text", richTextToPlain(block.text), "Add a tagline or date…")}
+        </CoverText>
       );
     }
   }
@@ -251,9 +286,8 @@ export function BlockView({
 
     case "image": {
       const resolved = block.imageId ? images?.[block.imageId] : undefined;
-      // Page-owning (v6): fill crops, fit letterboxes; no caption either way,
-      // and a cover never bleeds.
-      const owns = variant === "cover" ? null : pageAlignOf(block);
+      // Fill crops, fit letterboxes; the background has no visible caption.
+      const owns = pageAlignOf(block);
       const bleed = owns !== null;
       // Prefer the authored alt text; fall back to the caption so an uncaptioned
       // photo is still described rather than announced decorative.

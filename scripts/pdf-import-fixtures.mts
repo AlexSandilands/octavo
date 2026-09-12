@@ -13,7 +13,12 @@ const jpeg = await sharp({
 })
   .jpeg()
   .toBuffer();
-function pdf(streams: string[], rotation = 0, image = true) {
+function pdf(
+  streams: string[],
+  rotation = 0,
+  image = true,
+  raster = { jpeg, width: 240, height: 160 },
+) {
   const objects: Buffer[] = [];
   const put = (s: string | Buffer) => {
     objects.push(typeof s === "string" ? Buffer.from(s) : s);
@@ -29,9 +34,9 @@ function pdf(streams: string[], rotation = 0, image = true) {
   put(
     Buffer.concat([
       Buffer.from(
-        `<< /Type /XObject /Subtype /Image /Width 240 /Height 160 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >>\nstream\n`,
+        `<< /Type /XObject /Subtype /Image /Width ${raster.width} /Height ${raster.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${raster.jpeg.length} >>\nstream\n`,
       ),
-      jpeg,
+      raster.jpeg,
       Buffer.from("\nendstream"),
     ]),
   );
@@ -71,6 +76,28 @@ function pdf(streams: string[], rotation = 0, image = true) {
 const text = (s: string, x: number, y: number, font = "F1", size = 12) =>
   `BT /${font} ${size} Tf 1 0 0 1 ${x} ${y} Tm (${s.replace(/[()\\]/g, "\\$&")}) Tj ET`;
 const photo = "q 240 0 0 160 50 300 cm /Im1 Do Q";
+// Resizes to 2000 × 1000: slightly taller at the same rendered width (#256).
+const boundaryPhoto = await sharp({
+  create: { width: 2401, height: 1200, channels: 3, background: "#246544" },
+})
+  .jpeg()
+  .toBuffer();
+await writeFile(
+  `${dir}/resize-boundary.pdf`,
+  pdf(
+    [
+      text("A resized photograph", 50, 740) +
+        "\nq 480.2 0 0 240 50 300 cm /Im1 Do Q",
+    ],
+    0,
+    true,
+    {
+      jpeg: boundaryPhoto,
+      width: 2401,
+      height: 1200,
+    },
+  ),
+);
 await writeFile(
   `${dir}/single-column.pdf`,
   pdf(

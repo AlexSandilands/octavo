@@ -46,14 +46,12 @@ export function ImageLayoutControls({
   align: ImageAlign;
   width: number;
   onChange: (patch: BlockPatch) => void;
-  /** Offered on image blocks only (issue #227), and not on a cover page. Its own
+  /** Offered on image blocks only. Its own
    *  handler rather than a patch: taking the page may have to move the photo
    *  onto a page of its own first, which is one edit, not a field write. */
   onFillPage?: (align: PageAlign) => void;
 }) {
-  // Only page-owning where the control is offered. A cover page renders a stored
-  // page-owning image as an ordinary centred photo, so it reads — and is edited
-  // — as the "full" it actually is, size control and all.
+  // Montage and video blocks use these controls without page placements.
   const owned = PAGE_ALIGNS.some((a) => a === align);
   const filled = owned && onFillPage !== undefined;
   const shown = owned && !filled ? "full" : align;

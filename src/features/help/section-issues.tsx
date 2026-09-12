@@ -42,6 +42,44 @@ export function SectionIssues() {
           it.
         </Step>
       </Steps>
+      <Callout title="Full-page cover photos">
+        Select a cover image and choose <strong>Fill page</strong> to crop it
+        edge to edge, or <strong>Fit page</strong> to show the whole image with
+        page-coloured space around it. Other cover blocks stay editable over the
+        photo; click the photo itself to change or replace it. For an image-only
+        cover, remove the blocks you don&rsquo;t need. The cover inspector
+        beside the page offers a background panel, magazine colour swatches and
+        a custom colour. Text colour, shadow colour and shadow strength are
+        independent. Fonts stay consistent with the magazine. Choose a panel for
+        busy photos, and preview both phone and desktop layouts. Selecting
+        another background returns the previous photo to a normal image block.
+        Returning to normal placement restores the image&rsquo;s previous width;
+        turning off cover styling returns a cover with overlays to ordinary
+        flow. These changes can all be undone.
+      </Callout>
+      <Callout title="Arrange your cover">
+        Use <strong>Add detail</strong> in the cover toolbar to add an
+        <strong> Inside this issue</strong> list, a story preview, or issue
+        details. Use <strong>Logo</strong> to add a mark from your library.
+        These are optional on both plain and photo covers. Preview lists and
+        teasers can follow headings from later pages; a custom cover headline
+        leaves the original section title unchanged. Click an element on the
+        page to edit it in the inspector beside the page (drag its handle to
+        park it on the other side). Keep <strong>Use cover appearance</strong>
+        checked to follow the cover defaults, or uncheck it to customise the
+        element. Select words on the page to make them bold, italic or
+        underlined, or give them a colour or shadow, from the small bar above
+        the element. Use the + swatch for a custom colour. Logo size is
+        adjustable. Use the on-page drag handle to reorder items, the layer
+        buttons to bring an item in front of or behind one it overlaps, or the
+        trash button to remove one. Click any heading, text block or photo to
+        use the same placement controls; edit words directly on the page.
+        Elements at the same position stack in order; phones show them in a
+        readable column. Under <strong>Needs attention</strong> the inspector
+        names anything that overlaps or runs past the margin; point at a line to
+        see the item, press it to select it. Use Undo to recover a removed
+        element.
+      </Callout>
       <Callout title="Editing an issue that’s already published">
         There&rsquo;s no separate &ldquo;working copy&rdquo;. Once an issue is
         published, anything you change in the editor is saved straight into the

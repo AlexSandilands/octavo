@@ -38,6 +38,7 @@ export interface PageDecorationContext {
    *  owner's setting reaches the reader, the editor, the thumbnails and the
    *  print document by the same route. */
   magazineName: string;
+  showMasthead?: boolean;
 }
 
 export interface LayoutTheme {
@@ -53,6 +54,7 @@ export interface LayoutTheme {
   /** The page chrome PageFrame paints behind the content (borders/masthead or
    *  accent bar). The running footer stays shared in PageFrame. */
   page: {
+    hasMasthead?: boolean;
     decoration: (ctx: PageDecorationContext) => ReactNode;
     /**
      * How far the *logo* footer (issue #97) sits above the page's bottom edge,

@@ -101,6 +101,11 @@ const checkBrand = (id: string, tokens: Map<string, string>) => {
     r >= AA,
     `[${id}] paper ink on warn background is ${r.toFixed(2)}:1 (≥ ${AA})`,
   );
+  const panel = contrast(hex("page"), hex("ink"));
+  ok(
+    panel >= AA,
+    `[${id}] both solid cover panels are ${panel.toFixed(2)}:1 (≥ ${AA}), regardless of the photo`,
+  );
 };
 
 for (const [id, tokens] of brands) {

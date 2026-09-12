@@ -1,4 +1,12 @@
+import { coverItems, placementOf, reorderCover } from "@/lib/cover-order";
 import { useState } from "react";
+import {
+  makeCoverElement,
+  DEFAULT_COVER_PLACEMENT,
+  MAX_COVER_ELEMENTS,
+  type CoverElement,
+  type CoverElementType,
+} from "@/lib/cover-elements";
 import {
   ensureCoverFirst,
   makeBlock,
@@ -6,6 +14,7 @@ import {
   mergeBlock,
   type BlockPatch,
   type BlockType,
+  type CoverOverlay,
   type IssueContent,
   type Page,
   type PageAlign,
@@ -14,6 +23,7 @@ import {
 import { arrayMove } from "@dnd-kit/sortable";
 import type { DragEndEvent } from "@dnd-kit/core";
 import { pageFillsCanvas } from "@/features/blocks/layout";
+import { setCoverBackground, withCoverStyle } from "./cover-layout";
 import { flowTextBlock, moveBlockToNextPage } from "./text-flow";
 import {
   changedBlockIds,
@@ -90,20 +100,104 @@ export function useEditorPages(content: IssueContent) {
   const toggleCover = () => {
     if (curPage === 0) return;
     commit();
-    editPage((p) => ({ ...p, cover: !p.cover }));
+    editPage((p) => withCoverStyle(p, !p.cover));
+  };
+
+  const updateCoverOverlay = (coverOverlay: CoverOverlay) => {
+    if (!page?.cover) return;
+    if (
+      page.coverOverlay?.style === coverOverlay.style &&
+      page.coverOverlay.position === coverOverlay.position &&
+      page.coverOverlay.decoration === coverOverlay.decoration &&
+      page.coverOverlay.masthead === coverOverlay.masthead &&
+      JSON.stringify(page.coverOverlay.appearance) ===
+        JSON.stringify(coverOverlay.appearance)
+    )
+      return;
+    // One stream: a custom-colour drag fires many changes, which fold into one step.
+    commit("cover-overlay");
+    editPage((p) => ({ ...p, coverOverlay }));
+  };
+
+  const addCoverElement = (type: CoverElementType) => {
+    if (!page?.cover || (page.coverElements?.length ?? 0) >= MAX_COVER_ELEMENTS)
+      return;
+    const element = makeCoverElement(type);
+    element.placement.order = Math.max(
+      0,
+      ...coverItems(page).map((i) => (placementOf(i, page).order ?? 0) + 1),
+    );
+    commit();
+    editPage((p) => ({
+      ...p,
+      coverElements: [...(p.coverElements ?? []), element],
+    }));
+    setSel(element.id);
+  };
+  const updateCoverElement = (element: CoverElement) => {
+    const previous = page?.coverElements?.find((e) => e.id === element.id);
+    if (
+      !previous ||
+      previous.type !== element.type ||
+      JSON.stringify(previous) === JSON.stringify(element)
+    )
+      return;
+    commit(`cover:${element.id}`);
+    editPage((p) => ({
+      ...p,
+      coverElements: p.coverElements?.map((e) =>
+        e.id === element.id ? element : e,
+      ),
+    }));
+  };
+  const removeCoverElement = (id: string) => {
+    if (!page?.coverElements?.some((e) => e.id === id)) return;
+    commit();
+    editPage((p) => ({
+      ...p,
+      coverElements: p.coverElements?.filter((e) => e.id !== id),
+    }));
+    if (sel === id) setSel(null);
+  };
+  const moveCoverElement = (id: string, direction: -1 | 1) => {
+    if (page?.cover) {
+      moveBlock(id, direction);
+      return;
+    }
+    const elements = page?.coverElements ?? [],
+      from = elements.findIndex((e) => e.id === id),
+      to = from + direction;
+    if (from < 0 || to < 0 || to >= elements.length) return;
+    commit();
+    editPage((p) => ({ ...p, coverElements: arrayMove(elements, from, to) }));
   };
 
   const addBlock = (type: BlockType) => {
-    // A filled page belongs to its photo; the tool bar disables the insert
-    // buttons, and this is the guard behind them.
-    if (pageFillsCanvas(page)) return;
+    // Interior full-page photos are image-only; cover content overlays the photo.
+    if (!page || (!page.cover && pageFillsCanvas(page))) return;
     const blk = makeBlock(type);
+    if (page.cover && (blk.type === "heading" || blk.type === "text"))
+      blk.coverPlacement = {
+        ...DEFAULT_COVER_PLACEMENT,
+        row: page.coverOverlay?.position ?? "center",
+        order: Math.max(
+          0,
+          ...coverItems(page).map((i) => (placementOf(i, page).order ?? 0) + 1),
+        ),
+      };
     commit();
     editPage((p) => ({ ...p, blocks: [...p.blocks, blk] }));
     setSel(blk.id);
   };
 
   const updateBlock = (id: string, patch: BlockPatch) => {
+    const block = page?.blocks.find((b) => b.id === id);
+    if (!block) return;
+    const current: Record<string, unknown> = block;
+    if (
+      Object.entries(patch).every(([field, value]) => current[field] === value)
+    )
+      return;
     // One stream per block *and* field, so a typing run, a size nudge and a
     // width drag each fold into their own step rather than into each other.
     commit(`${id}:${Object.keys(patch).sort().join(",")}`);
@@ -114,6 +208,21 @@ export function useEditorPages(content: IssueContent) {
   };
 
   const moveBlock = (id: string, dir: -1 | 1) => {
+    if (page?.cover) {
+      const active = coverItems(page).find((i) => i.id === id);
+      if (!active) return;
+      const anchor = placementOf(active, page);
+      const items = coverItems(page).filter((i) => {
+          const p = placementOf(i, page);
+          return p.row === anchor.row && p.column === anchor.column;
+        }),
+        index = items.findIndex((i) => i.id === id);
+      const target = items[index + dir];
+      if (!target || index < 0) return;
+      commit();
+      editPage((p) => reorderCover(p, id, target.id));
+      return;
+    }
     const blocks = pages[curPage]?.blocks;
     const i = blocks?.findIndex((b) => b.id === id) ?? -1;
     const j = i + dir;
@@ -131,6 +240,13 @@ export function useEditorPages(content: IssueContent) {
   const onDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
+    if (page?.cover) {
+      const next = reorderCover(page, String(active.id), String(over.id));
+      if (next === page) return;
+      commit();
+      editPage(() => next);
+      return;
+    }
     const blocks = pages[curPage]?.blocks;
     const from = blocks?.findIndex((b) => b.id === active.id) ?? -1;
     const to = blocks?.findIndex((b) => b.id === over.id) ?? -1;
@@ -176,7 +292,13 @@ export function useEditorPages(content: IssueContent) {
   const fillPage = (id: string, align: PageAlign) => {
     const source = pages[curPage];
     const block = source?.blocks.find((b) => b.id === id);
-    if (!source || source.cover || block?.type !== "image") return;
+    if (!source || block?.type !== "image") return;
+    if (source.cover) {
+      if (block.align === align) return;
+      commit();
+      editPage((p) => setCoverBackground(p, id, align));
+      return;
+    }
     // Already this placement and already alone: no work, and no empty undo step.
     if (block.align === align && source.blocks.length === 1) return;
     const filled = pages.map((p, i) =>
@@ -223,7 +345,7 @@ export function useEditorPages(content: IssueContent) {
     const prevFirstId = pages[0]?.id;
     const next = ensureCoverFirst(
       arrayMove(pages, from, to).map((p, i) =>
-        i !== 0 && p.id === prevFirstId ? { ...p, cover: false } : p,
+        i !== 0 && p.id === prevFirstId ? withCoverStyle(p, false) : p,
       ),
     );
     commit();
@@ -265,6 +387,11 @@ export function useEditorPages(content: IssueContent) {
     redo,
     selectPage,
     toggleCover,
+    updateCoverOverlay,
+    addCoverElement,
+    updateCoverElement,
+    removeCoverElement,
+    moveCoverElement,
     addBlock,
     updateBlock,
     moveBlock,

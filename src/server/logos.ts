@@ -1,5 +1,5 @@
 import "server-only";
-import { count, desc, eq } from "drizzle-orm";
+import { count, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { images, issues, logos } from "@/db/schema";
 import { keyToUrl } from "@/lib/storage";
@@ -88,6 +88,15 @@ export async function renameLogo(id: string, name: string): Promise<void> {
 // deleteLogo refuses while any of them reports a hit. Add an entry per new
 // referencing site — nothing else needs to change for the refusal to hold.
 const REFERENCE_COUNTERS: ((logoId: string) => Promise<number>)[] = [
+  async (logoId) => {
+    const [row] = await db
+      .select({ n: count() })
+      .from(issues)
+      .where(
+        sql`${issues.content} @> ${JSON.stringify({ pages: [{ coverElements: [{ type: "logo", logoId }] }] })}::jsonb`,
+      );
+    return row?.n ?? 0;
+  },
   // issues.logoId — the running page footer's mark (issue #97). Counts drafts
   // as well as published issues: an admin who picked the logo for a draft would
   // otherwise lose it silently before the issue ever shipped.

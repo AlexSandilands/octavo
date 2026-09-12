@@ -1,5 +1,8 @@
 "use client";
 
+import { coverSources } from "@/lib/cover-elements";
+import { hasCoverLayout } from "@/lib/cover-order";
+import { CoverElementView } from "@/features/blocks/cover-element-view";
 import { Fragment, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
@@ -14,6 +17,7 @@ import {
   footerTextStyle,
 } from "@/features/blocks/page-footer";
 import { headingDomId, MobileBlock } from "./mobile-block";
+import { MobileCover } from "./mobile-cover";
 import { breakHeight, readerSections } from "./mobile-sections";
 import { useIssuePdf } from "./use-issue-pdf";
 
@@ -86,6 +90,7 @@ export function MobileReader({
   };
 
   const sections = readerSections(content.pages);
+  const sources = coverSources(content.pages);
   const blocks: Block[] = sections.flatMap((s) => s.blocks);
   const headings = blocks.filter(
     (b): b is Extract<Block, { type: "heading" }> =>
@@ -190,31 +195,55 @@ export function MobileReader({
                   style={{ height: breakHeight(m) }}
                 />
               )}
-              <section
-                style={
-                  front
-                    ? { minHeight: `calc(100dvh - ${HEADER_HEIGHT}px)` }
-                    : undefined
-                }
-                // The space under the break is the next page's own top padding;
-                // a page owned by a photo has none, so the photo runs from the
-                // break above it to the one below.
-                className={[
-                  "px-5",
-                  !s.filled && !s.cover && (i === 0 || s.divided) && "pt-6",
-                  !s.filled &&
-                    (i === sections.length - 1 || sections[i + 1]?.divided) &&
-                    "pb-8",
-                  s.cover && "py-8 text-center",
-                  front && "flex flex-col justify-center",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-              >
-                {/* One flex child, so centring the cover leaves the blocks' own
+              {s.cover && (s.filled || hasCoverLayout(s)) ? (
+                <MobileCover
+                  page={s}
+                  sources={sources}
+                  issueNo={issueNo}
+                  images={images}
+                  sponsors={sponsors}
+                  m={m}
+                  minHeight={
+                    front ? `calc(100dvh - ${HEADER_HEIGHT}px)` : "100dvh"
+                  }
+                />
+              ) : (
+                <section
+                  style={
+                    front
+                      ? { minHeight: `calc(100dvh - ${HEADER_HEIGHT}px)` }
+                      : undefined
+                  }
+                  // The space under the break is the next page's own top padding;
+                  // a page owned by a photo has none, so the photo runs from the
+                  // break above it to the one below.
+                  className={[
+                    "px-5",
+                    !s.filled && !s.cover && (i === 0 || s.divided) && "pt-6",
+                    !s.filled &&
+                      (i === sections.length - 1 || sections[i + 1]?.divided) &&
+                      "pb-8",
+                    s.cover && "py-8 text-center",
+                    front && "flex flex-col justify-center",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                >
+                  {/* One flex child, so centring the cover leaves the blocks' own
                     collapsed margins alone. */}
-                {front ? <div>{body}</div> : body}
-              </section>
+                  {front ? <div>{body}</div> : body}
+                  {s.coverElements?.map((element) => (
+                    <div className="my-6" key={element.id}>
+                      <CoverElementView
+                        element={element}
+                        sources={sources}
+                        issueNo={issueNo}
+                        images={images}
+                      />
+                    </div>
+                  ))}
+                </section>
+              )}
             </Fragment>
           );
         })}

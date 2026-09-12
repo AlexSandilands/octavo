@@ -54,13 +54,35 @@ The whole pages→blocks tree is stored as **one JSONB document** in `issues.con
 `IssueContent`:
 
 ```ts
-IssueContent = { version, pages: { id, cover?, blocks: Block[] }[] }
+IssueContent = { version, pages: { id, cover?, coverOverlay?, coverElements?, blocks: Block[] }[] }
 Block = Heading | Text | Image | Montage | Video | Sponsor  // discriminated union on `type`
 ```
 
 `version` marks which shape of the content model a document holds, so block-shape changes can
-migrate old rows deliberately. **Current version: 6.** Every string field is length-capped and the
+migrate old rows deliberately. **Current version: 7.** Every string field is length-capped and the
 page/block arrays bounded in the zod schemas, so a bad save can't persist an unbounded document.
+
+**Content v7 — optional cover elements.** `coverElements` stores a bounded array of
+`contents`, `teaser`, `details` and `logo` elements. They are independent of the article-block
+union. Each has a row/column anchor, width, text alignment, vertical adjustment and optional
+contrast override. Optional `textSize` (`small`, `normal`, `large`, `xlarge`) scales text to
+80%, 100%, 120% or 140% independently of wrapping width; omitted means 100%. Heading, text and inline image blocks can opt into the same placement through
+`coverPlacement`, including an optional nonnegative `order` for ordering headings, text and
+cover details together within an anchor. Missing fields preserve the old cover flow; templates add no elements by default.
+`coverOverlay.appearance` and `coverPlacement.appearance` hold independent `panel`, `background`,
+`text`, `shadow` and `shadowColor` overrides. Colours are bounded palette identifiers or six-digit
+hex, never arbitrary CSS; shadows are none/soft/strong. Omitted fields resolve from the saved
+legacy style. `coverPlacement.richText` stores at most 20 keyed, bounded paragraph-only documents
+(title/kicker/text, or preview-id plus field), with bold/italic/underline and a validated colour/shadow
+mark. Plain fields are updated atomically alongside the documents. A document only renders when its
+plain text matches the current field, so source-heading renames cannot display stale words. These
+optional v7 additions keep existing rows readable without migration; normal article rich text is unchanged.
+Preview entries reference heading ids, resolving current titles and page numbers at render time;
+an optional cover title overrides only the preview. Logos retain both their library id and image
+id, so the shared image resolver/cleanup sees the asset and library deletion refuses active cover
+references. Demoting a cover retains its elements in ordinary flow and preserves their positions
+for re-enabling cover styling. The seed's issue 6 explicitly demonstrates the new composition;
+issue 5 retains the deliberate legacy page. Existing rows need no migration or rewrite.
 
 **Content v2 (issue #8) — sponsor blocks reference the `sponsors` table.** A sponsor block now
 carries an optional `sponsorId`; the reader/editor resolve the referenced sponsor's live
@@ -128,12 +150,13 @@ page-coloured bars above and below and a tall one spans the height with bars eit
 paints `bg-page` so those bars are the page's own colour on every surface.
 
 A page carrying either is **owned** by it: `PageFrame` drops the running footer and the theme's
-decoration (`bleed`), so no page number or masthead prints over the photograph, and the block
+decoration (`bleed`), so no page number or automatic masthead prints over the photograph, and the block
 carries no caption (alt text is unchanged). `width` is kept but ignored, so unsetting the placement
 restores the size the photo had. Deliberately confined to `image`: a montage would have to crop
 several photos to one page shape and a video's frame is always 16:9, so both keep the three-value
-union — and a cover page ignores both, because its title and tagline sit over the whole page and
-type over an arbitrary photograph needs a scrim treatment this doesn't build.
+union. On a cover, either placement becomes the background and existing blocks remain as
+editable overlays. Only one background is active: selecting another returns the previous image
+to ordinary placement without removing it. Interior full-page photos remain image-only.
 
 Where it plays is again a **render-path** decision: with `interactive`, the block mounts the client
 `VideoPlayer` — a facade showing the poster and one large play button, which injects a
@@ -152,7 +175,22 @@ A page may set `cover: true` — it then renders through the dedicated cover
 treatment (vertically centred, oversized hero type) in both readers and the
 editor, rather than the normal flow. Covers carry no running footer in the
 desktop reader, editor, PDF or thumbnails; theme decoration stays, and interior
-page numbers still count the cover as page 1. The mobile reader has no page
+page numbers still count the cover as page 1. `coverOverlay.decoration` overrides the cover
+frame and running masthead only; omitted retains the existing default (on for plain covers,
+off for full-image covers). `coverOverlay.masthead` separately hides the automatic magazine name and issue number
+while retaining the frame (omitted means shown when decoration is on). Neither setting changes
+the issue theme, typography or interior pages.
+An optional `coverOverlay: { style, position }` stores the cover treatment. Styles are `light`,
+`dark`, `light-shadow`, `dark-shadow`, `paper-panel` and `ink-panel`; positions are `top`, `center`
+and `bottom`. `position` is legacy: it is read as the fallback row for a heading or text block
+that has no `coverPlacement` of its own, and no control writes it any more (v7 placements carry
+their own row). Absent settings resolve to light lettering with shadow, centred. These options
+change contrast and placement while retaining the magazine fonts and ornaments; solid panels
+use the brand's page/ink pair for predictable contrast over any photograph. The optional field
+does not bump content v6 or rewrite old rows. It is retained when normal placement is restored.
+Turning off cover styling (including reordering the front cover away) restores normal image
+placement when other blocks share the page; an image-only page keeps its Fill/Fit placement.
+All of these edits participate in the document undo history and autosave. The mobile reader has no page
 footers and keeps its closing lockup. A `Text` block carries an optional `size`
 (`s|m|l|xl`); since the page is a **fixed design canvas** that scales as a whole
 (see below), that size is absolute px on desktop/print and a relative multiplier

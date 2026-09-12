@@ -85,6 +85,32 @@ The durable lessons:
 | New pages / inline scripts            | CSP is nonce-based in `src/proxy.ts` — pages must render dynamically; no new inline styles/scripts                                                                                                             |
 | Every change                          | `npm run lint`, `npx tsc --noEmit`, `npm run typecheck:scripts`, prettier on touched files, and a production build (plain `npm run build`; see below)                                                          |
 
+The cover overlay gate runs with `npx tsx --tsconfig scripts/tsconfig.json
+scripts/dev-cover-overlay-gate.mts [base-url]`. Without a URL it validates the schema and shared
+renderers; with a local server it also checks editor controls, undo/redo, autosave, phone sizing,
+page turning and PDF generation using a temporary issue/admin and read-only seed image references.
+It cleans up its own rows. The existing `dev-fill-page-gate.mts` still covers interior image-only
+placements and cover Fill/Fit rendering. Run both for cover composition changes.
+
+The cover-element gate runs with `npx tsx --tsconfig scripts/tsconfig.json
+scripts/dev-cover-elements-gate.mts <base-url>`. It authors all four optional elements, checks
+references, history, independent placement/contrast, responsive controls, mobile text sizing,
+thumbnails, the logo deletion guard and both PDF themes. It creates and removes its own local
+issue, admin and logo; it never changes existing issues. The in-memory companion is
+`scripts/check-cover-elements.mts`. The `scripts/check-cover-order-browser.mts <base-url>` gate
+covers deleting/recreating headings, pointer and keyboard dragging, shared detail/text ordering,
+undo/redo and persistence. `scripts/check-cover-drag-preview.mts <base-url>` verifies live image/panel
+displacement, cancellation, drop geometry and cross-anchor previews. Run these after changing cover
+elements or their asset paths.
+
+`scripts/check-cover-appearance.mts <base-url>` checks cover decoration defaults, toggle/history,
+independent text sizes, autosave, the floating inspector at three widths, desktop/phone readers,
+thumbnails and both PDF themes. It uses and removes its own scratch issue.
+
+`scripts/check-cover-colours.mts <base-url>` checks palette/custom panel colours, chained selected-word
+formatting, unaffected neighbouring text, independent appearance inheritance, save/reload, both PDF
+themes, thumbnails and phone reflow. Run it for changes to cover appearance or inline formatting.
+
 The alignment gate also runs in memory when its URL argument is omitted. Its browser
 pass needs `DATABASE_URL` and `AUTH_SECRET` (or `.env.local`); it creates and removes
 its own temporary issue and admin. The seed's issue-01 opening editorial is justified,
