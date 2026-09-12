@@ -42,7 +42,6 @@ const paragraphs = (count: number) => ({
 });
 const parsedLegacy = textBlockSchema.parse(legacy);
 assert.deepEqual(parsedLegacy, legacy);
-assert(!("align" in parsedLegacy), "optional alignment gets no default");
 const noAlignFixture: IssueContent = {
   version: CONTENT_VERSION,
   pages: [{ id: "p", blocks: [parsedLegacy] }],
@@ -163,6 +162,7 @@ for (const align of aligns) {
       const cover = renderCover(block);
       // The cover ignores the block's own align (it centres via coverPlacement instead).
       assert.equal(cover, renderCover({ ...block, align: undefined }));
+      assert(cover.includes("text-align:center"));
       assert(!cover.includes("hyphens-auto"));
     }
     const mobileCover = (b: Block) =>
