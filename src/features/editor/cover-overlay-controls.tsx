@@ -44,7 +44,9 @@ export function CoverOverlayControls({
   return (
     <div
       style={{ width: INSPECTOR_RESERVE }}
-      // Inside the stage: a press here is the panel's, not a pan or a deselect.
+      // Inside the stage: a press here is the panel's, not a pan or a deselect,
+      // and the wheel scrolls the panel rather than zooming the page.
+      data-canvas-chrome
       onPointerDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
       className={`pointer-events-none absolute inset-y-0 z-10 flex items-start pt-5 pb-[92px] ${
