@@ -15,6 +15,7 @@ password entry UI. Its source content is the same synthetic fixture.
 - `rotated.pdf`: 90-degree page rotation with positioned text and raster occurrence.
 - `scan-only.pdf`: image-only page; no OCR is expected.
 - `long-paragraph.pdf`: one 60-line paragraph far taller than an Octavo page, for the measured split.
+- `resize-boundary.pdf`: a 2401 × 1200 photo that becomes 2000 × 1000 through the upload pipeline; the legacy browser gate uses its slightly increased aspect height to reproduce #256.
 - `malformed.pdf`: deliberately invalid bytes after a valid signature.
 - `too-many-pages.pdf`: 101 tiny source pages, refused before page rendering.
 - `locked.pdf`: password-protected input, refused with an unlocked-copy instruction.

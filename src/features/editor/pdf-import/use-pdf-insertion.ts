@@ -86,15 +86,20 @@ export function usePdfInsertion(
         signal,
       );
       dispose = measurer.dispose;
-      const staged = await paginateImport({
+      const destination = {
         pages: captured.pages,
         index: target?.page ?? captured.curPage,
         selected: captured.sel,
         position: target?.position,
+        signal,
+      };
+      let staged = await paginateImport({
+        ...destination,
         inserted: batch.blocks,
         fits: measurer.fits,
-        signal,
       });
+      dispose();
+      dispose = () => {};
       valid();
       if (!(await boundedWait(captured.flushSave(), signal)))
         throw new Error(
@@ -106,47 +111,32 @@ export function usePdfInsertion(
         signal,
       );
       valid();
-      const pages = staged.pages.map((page) => ({
-        ...page,
-        blocks: page.blocks.map((block) =>
+      if (Object.keys(uploaded.images).length) {
+        const blocks = batch.blocks.map((block) =>
           block.type === "image" &&
           block.imageId &&
           uploaded.replacements[block.imageId]
             ? { ...block, imageId: uploaded.replacements[block.imageId] }
             : block,
-        ),
-      }));
-      const verified = await createMeasurer(
-        { ...captured, images: { ...captured.images, ...uploaded.images } },
-        signal,
-      );
-      try {
-        const changed = pages.filter(
-          (page) =>
-            !captured.pages.some(
-              (old) => JSON.stringify(old) === JSON.stringify(page),
-            ),
         );
-        for (const page of changed)
-          if (
-            !(await verified.fits(
-              page.blocks,
-              page.blocks.length === 1 &&
-                page.blocks[0]?.type === "image" &&
-                page.blocks[0].align === "page-fit",
-            ))
-          )
-            throw new Error(
-              "An uploaded image changed the layout. Retry with fewer items; completed uploads will be reused.",
-            );
-      } finally {
-        verified.dispose();
+        const finalMeasurer = await createMeasurer(
+          { ...captured, images: { ...captured.images, ...uploaded.images } },
+          signal,
+        );
+        dispose = finalMeasurer.dispose;
+        // Reflow the original destination and unsplit selection: upload rounding
+        // can change page breaks, image sizing and source-to-block mappings.
+        staged = await paginateImport({
+          ...destination,
+          inserted: blocks,
+          fits: finalMeasurer.fits,
+        });
       }
       valid();
       captured.registerImages(uploaded.images);
       if (
         !latest.current.applyImport(captured.pages, {
-          pages,
+          pages: staged.pages,
           sel: staged.sel,
           curPage: staged.curPage,
         })
