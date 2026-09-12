@@ -10,6 +10,7 @@ import {
   primaryKey,
   pgEnum,
   index,
+  uniqueIndex,
   check,
 } from "drizzle-orm/pg-core";
 import { createId } from "@/lib/id";
@@ -72,14 +73,19 @@ export const issueStatus = pgEnum("issue_status", ["draft", "published"]);
 
 // The whole pages→blocks tree lives in `content` as one JSONB document — the
 // source of truth. Validated with zod at the edges (see src/lib/blocks.ts).
-// `number` is the public address (/read/14), so it must be unique; it is
-// allocated atomically in createIssue. No column default for `content`: every
-// insert must supply a document that satisfies the cover-first invariant.
+// No column default for `content`: every insert must supply a document that
+// satisfies the cover-first invariant.
 export const issues = pgTable(
   "issues",
   {
     id: text("id").primaryKey().$defaultFn(createId),
-    number: integer("number").notNull().unique(),
+    // The public address (/read/14) — and only meaningful on a published issue
+    // (issue #270). A draft has none: the number is chosen in the publish modal
+    // and allocated by `publishIssue`, so creating drafts never burns numbers.
+    // Uniqueness is therefore a partial index over published rows, and the
+    // check constraint is what lets a published row's number be read as a
+    // number rather than `number | null` (see `PublishedIssueRow`).
+    number: integer("number"),
     title: text("title").notNull(),
     theme: text("theme").notNull().default("classic"),
     status: issueStatus("status").notNull().default("draft"),
@@ -126,7 +132,19 @@ export const issues = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => [index("issues_status_number_idx").on(t.status, t.number)],
+  (t) => [
+    // Kept as it was: it still serves the published lists' `status = 'published'
+    // order by number desc`, which the partial unique index below cannot (its
+    // predicate is not part of the key, so it can't order the scan).
+    index("issues_status_number_idx").on(t.status, t.number),
+    uniqueIndex("issues_published_number_idx")
+      .on(t.number)
+      .where(sql`${t.status} = 'published'`),
+    check(
+      "issues_published_has_number",
+      sql`${t.status} <> 'published' or ${t.number} is not null`,
+    ),
+  ],
 );
 
 export const images = pgTable(
