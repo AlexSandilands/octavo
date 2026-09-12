@@ -38,6 +38,9 @@ export interface PageDecorationContext {
    *  owner's setting reaches the reader, the editor, the thumbnails and the
    *  print document by the same route. */
   magazineName: string;
+  /** Whether textual running-head content should render. Non-text decoration
+   *  must remain regardless of this value. */
+  showRunningHead: boolean;
 }
 
 export interface LayoutTheme {

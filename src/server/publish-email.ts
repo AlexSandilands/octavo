@@ -59,7 +59,8 @@ function hashVerificationToken(rawToken: string): string {
 // the URL) so the caller can bulk-insert rows, then send.
 function prepare(
   recipient: Recipient,
-  issueNumber: number,
+  routeNumber: number,
+  displayNumber: number,
   issueTitle: string,
   origin: string,
   branding: Branding,
@@ -75,7 +76,7 @@ function prepare(
   // Where the link lands after sign-in. Fixed to the published issue and run
   // through the same same-origin guard the sign-in ?next uses — belt-and-braces
   // against ever emitting an off-site callbackUrl.
-  const readPath = safeNextPath(`/read/${issueNumber}`);
+  const readPath = safeNextPath(`/read/${routeNumber}`);
   const params = new URLSearchParams({
     callbackUrl: readPath,
     token: rawToken,
@@ -110,18 +111,18 @@ function prepare(
     },
     email: {
       to: recipient.email,
-      subject: issueEmailSubject(branding.name, issueNumber, issueTitle),
+      subject: issueEmailSubject(branding.name, displayNumber, issueTitle),
       html: renderIssueEmailHtml({
         branding,
         issueTitle,
-        issueNumber,
+        issueNumber: displayNumber,
         readUrl,
         unsubscribeUrl,
       }),
       text: renderIssueEmailText({
         branding,
         issueTitle,
-        issueNumber,
+        issueNumber: displayNumber,
         readUrl,
         unsubscribeUrl,
       }),
@@ -136,7 +137,8 @@ function prepare(
 // is published before this runs, so a mail failure must degrade to a reported
 // count, not a rollback. Returns {sent, failed} for the admin to see.
 export async function sendIssueBlast(
-  issueNumber: number,
+  routeNumber: number,
+  displayNumber: number,
   issueTitle: string,
   origin: string,
 ): Promise<BlastResult> {
@@ -147,7 +149,7 @@ export async function sendIssueBlast(
   // branding, and a mid-blast settings edit must not split the run in two.
   const branding = await getSettings();
   const prepared = recipients.map((r) =>
-    prepare(r, issueNumber, issueTitle, origin, branding),
+    prepare(r, routeNumber, displayNumber, issueTitle, origin, branding),
   );
 
   // Persist every magic-link token up front (one write), so the links are live
@@ -197,7 +199,7 @@ export async function sendIssueBlast(
         Sentry.captureMessage(`Issue blast batch failed: ${error.message}`, {
           level: "error",
           tags: { pipeline: "publish-blast", stage: "batch-send" },
-          extra: { issueNumber, batchSize: batch.length },
+          extra: { routeNumber, displayNumber, batchSize: batch.length },
         });
         return false;
       }
@@ -206,7 +208,7 @@ export async function sendIssueBlast(
       console.error("[publish] batch send threw:", err);
       Sentry.captureException(err, {
         tags: { pipeline: "publish-blast", stage: "batch-send" },
-        extra: { issueNumber, batchSize: batch.length },
+        extra: { routeNumber, displayNumber, batchSize: batch.length },
       });
       return false;
     }

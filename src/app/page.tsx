@@ -10,6 +10,7 @@ import { ArchiveGrid, toArchiveItems } from "@/features/library/archive-grid";
 import { LibraryHeader } from "@/features/library/library-header";
 import { Masthead } from "@/features/library/masthead";
 import { SiteFooter } from "@/features/library/site-footer";
+import { displayedIssueNumber } from "@/lib/issue-number";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +57,8 @@ export default async function LibraryPage() {
       ) : (
         <>
           <LatestIssue
-            number={latest.number}
+            routeNumber={latest.number}
+            displayNumber={displayedIssueNumber(latest)}
             title={latest.title}
             content={latest.content}
             publishedAt={latest.publishedAt}

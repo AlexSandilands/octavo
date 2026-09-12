@@ -9,7 +9,8 @@ import { DownloadPdfButton } from "./download-pdf-button";
 import { issueMonth, issueSections } from "./contents";
 
 type LatestIssueProps = {
-  number: number;
+  routeNumber: number;
+  displayNumber: number;
   title: string;
   content: IssueContent;
   publishedAt: Date | null;
@@ -26,7 +27,8 @@ type LatestIssueProps = {
 // The library hero: the cover as a physical object on the left, and an editorial
 // "in this issue" teaser on the right so the latest issue sells itself.
 export function LatestIssue({
-  number,
+  routeNumber,
+  displayNumber,
   title,
   content,
   publishedAt,
@@ -44,7 +46,7 @@ export function LatestIssue({
   return (
     <section className="border-line-soft grid gap-8 border-b py-9 md:grid-cols-[240px_1fr]">
       <Link
-        href={`/read/${number}`}
+        href={`/read/${routeNumber}`}
         aria-label={`Read ${title}`}
         className="group relative block w-[240px] self-start"
       >
@@ -58,7 +60,7 @@ export function LatestIssue({
               theme={theme}
               images={images}
               sponsors={sponsors}
-              issueNo={number}
+              issueNo={displayNumber}
               settings={settings}
               width={240}
               priority
@@ -69,7 +71,7 @@ export function LatestIssue({
               <div className="absolute inset-y-0 left-0 w-[7px] bg-black/20" />
               <div className="absolute inset-y-0 left-[7px] w-px bg-white/10" />
               <div className="text-cream font-serif text-[13px] tracking-[0.1em]">
-                {settings.name} · No. {number}
+                {settings.name} · No. {displayNumber}
               </div>
               <div className="text-paper font-serif text-4xl leading-[0.96]">
                 {title}
@@ -86,7 +88,7 @@ export function LatestIssue({
           {title}
         </h2>
         <div className="text-faint mt-3 font-sans text-[13px] tracking-wide">
-          No. {number} · {pageCount} {pageCount === 1 ? "page" : "pages"}
+          No. {displayNumber} · {pageCount} {pageCount === 1 ? "page" : "pages"}
           {month ? ` · ${month}` : ""}
         </div>
 
@@ -100,7 +102,7 @@ export function LatestIssue({
                   className="border-line-soft/70 border-b last:border-0"
                 >
                   <Link
-                    href={`/read/${number}`}
+                    href={`/read/${routeNumber}`}
                     aria-label={`Read this issue: ${s.title}`}
                     className="group/entry flex min-h-11 items-baseline gap-3 py-2.5"
                   >
@@ -128,13 +130,18 @@ export function LatestIssue({
         )}
 
         <div className="mt-auto flex flex-wrap items-center gap-3 pt-7">
-          <Button href={`/read/${number}`} icon="arrowRight">
+          <Button href={`/read/${routeNumber}`} icon="arrowRight">
             Read this issue
           </Button>
           {/* The owner can switch downloads off site-wide (issue #162). This is
               a Server Component, so "off" means the control is never built —
               not hidden with CSS, not decided in the browser. */}
-          {settings.pdfDownloads && <DownloadPdfButton issueNumber={number} />}
+          {settings.pdfDownloads && (
+            <DownloadPdfButton
+              routeNumber={routeNumber}
+              displayNumber={displayNumber}
+            />
+          )}
         </div>
       </div>
     </section>

@@ -10,6 +10,8 @@ import type {
 import type { LogoListItem } from "@/lib/logos";
 import { LogoPicker } from "./logo-picker";
 import { ThemeMenu } from "./theme-menu";
+import { IssueNumberControl } from "./issue-number-control";
+import type { SetIssueDisplayNumberActionResult } from "@/app/admin/actions";
 
 export type SaveStatus = "saved" | "saving" | "error" | "conflict";
 
@@ -20,7 +22,9 @@ export type SaveStatus = "saved" | "saving" | "error" | "conflict";
 export function EditorHeader({
   title,
   onTitleChange,
-  issueNumber,
+  displayNumber,
+  published,
+  onSetDisplayNumber,
   themes,
   themeId,
   onSelectTheme,
@@ -35,7 +39,11 @@ export function EditorHeader({
 }: {
   title: string;
   onTitleChange: (v: string) => void;
-  issueNumber: number;
+  displayNumber: number;
+  published: boolean;
+  onSetDisplayNumber: (
+    number: number,
+  ) => Promise<SetIssueDisplayNumberActionResult>;
   /** The deployment-enabled layout themes; the picker hides with only one. */
   themes: LayoutTheme[];
   /** The current layout theme id. */
@@ -53,23 +61,26 @@ export function EditorHeader({
   onPublish: () => void;
 }) {
   return (
-    <header className="border-line flex h-[60px] flex-none items-center justify-between border-b px-6">
-      <div className="flex items-center gap-3.5">
-        <Link href="/admin" className="text-muted" aria-label="Back to issues">
+    <header className="border-line flex h-[60px] flex-none items-center gap-4 border-b px-6">
+      <div className="flex min-w-0 flex-1 items-center gap-3.5">
+        <Link
+          href="/admin"
+          className="text-muted flex-none"
+          aria-label="Back to issues"
+        >
           <Icon name="chevronLeft" size={20} />
         </Link>
         <input
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
-          className="text-ink min-w-0 border-none bg-transparent font-serif text-[21px] outline-none"
+          className="text-ink min-w-0 flex-1 border-none bg-transparent font-serif text-[21px] outline-none"
           placeholder="Untitled issue"
         />
-        <span className="bg-chip flex items-center gap-1.5 rounded-full px-3 py-1">
-          <span className="bg-chip-dot h-1.5 w-1.5 rounded-full" />
-          <span className="text-faint font-sans text-[11px] font-semibold">
-            Draft · No. {issueNumber}
-          </span>
-        </span>
+        <IssueNumberControl
+          displayNumber={displayNumber}
+          published={published}
+          onSetDisplayNumber={onSetDisplayNumber}
+        />
         {status === "error" ? (
           <span className="flex items-center gap-2 font-sans text-[12px]">
             <span className="text-warn font-semibold">Couldn’t save</span>
@@ -98,7 +109,7 @@ export function EditorHeader({
           </span>
         )}
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex flex-none items-center gap-3">
         <LogoPicker logos={logos} logoId={logoId} onChange={onSelectLogo} />
         {themes.length > 1 && (
           <ThemeMenu

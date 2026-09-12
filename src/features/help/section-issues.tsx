@@ -17,7 +17,11 @@ export function SectionIssues() {
           <strong>saves by itself</strong> a moment after every change — watch
           the little &ldquo;Saved&rdquo; note beside the title. There is no save
           button, and closing the tab loses nothing. If it ever says it
-          couldn&rsquo;t save, press the retry button it offers.
+          couldn&rsquo;t save, press the retry button it offers. The nearby
+          display number field lets you correct the number members see, before
+          or after publication; it must be a positive whole number no other
+          issue uses. The issue&rsquo;s web address stays the same, so links
+          already shared with members keep working.
         </Step>
         <Step n={2} title="Build the pages">
           The rail down the left lists the issue&rsquo;s pages. Add one with the{" "}

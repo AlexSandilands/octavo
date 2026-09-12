@@ -8,6 +8,7 @@ import { resolveIssueSponsors } from "@/server/sponsors";
 import { requireAdminOrRedirect } from "@/server/session";
 import { getSettings } from "@/server/settings";
 import { settingsForIssue } from "@/lib/branding";
+import { displayedIssueNumber } from "@/lib/issue-number";
 
 export const dynamic = "force-dynamic";
 
@@ -53,7 +54,8 @@ export default async function PreviewIssuePage({
       <div className="md:min-h-0 md:flex-1">
         <ReaderMount
           content={issue.content}
-          issueNo={issue.number}
+          issueNo={displayedIssueNumber(issue)}
+          routeNumber={issue.number}
           logo={logo}
           settings={settingsForIssue(settings, issue)}
           images={images}

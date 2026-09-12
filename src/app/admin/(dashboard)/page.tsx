@@ -14,6 +14,7 @@ import { CoverThumb } from "@/features/library/cover-thumb";
 import { THUMB_W } from "@/features/admin/issue-thumb";
 import { IssuesTable } from "@/features/admin/issues-table";
 import { createIssueAction } from "@/app/admin/actions";
+import { displayedIssueNumber } from "@/lib/issue-number";
 
 export const dynamic = "force-dynamic";
 
@@ -72,9 +73,10 @@ export default async function AdminDashboard({
   // each cover is rendered here, on the server, and travels as the row's thumb.
   const rows = issues.map((i) => {
     const cover = coverPageOf(i.content);
+    const displayNumber = displayedIssueNumber(i);
     return {
       id: i.id,
-      number: i.number,
+      displayNumber,
       title: i.title,
       status: i.status,
       pages: i.content.pages.length,
@@ -84,7 +86,7 @@ export default async function AdminDashboard({
           theme={i.theme}
           images={coverImages}
           sponsors={coverSponsors}
-          issueNo={i.number}
+          issueNo={displayNumber}
           settings={settings}
           width={THUMB_W}
         />

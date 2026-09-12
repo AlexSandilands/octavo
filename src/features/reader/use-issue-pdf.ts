@@ -12,7 +12,8 @@ import type { LayoutThemeId } from "@/features/blocks/themes/registry";
 export type PdfState = "idle" | "loading" | "error";
 
 export function useIssuePdf(
-  issueNumber: number,
+  routeNumber: number,
+  displayNumber: number,
   // The desktop reader passes its current theme toggle so the PDF matches what
   // the member is looking at; callers without a theme concept (mobile reader,
   // latest-issue card) omit it and the server renders the reader's default.
@@ -29,7 +30,7 @@ export function useIssuePdf(
     setState("loading");
     try {
       const query = theme ? `?theme=${theme}` : "";
-      const res = await fetch(`/api/issues/${issueNumber}/pdf${query}`, {
+      const res = await fetch(`/api/issues/${routeNumber}/pdf${query}`, {
         headers: { Accept: "application/pdf" },
       });
       if (!res.ok) throw new Error(`PDF request failed: ${res.status}`);
@@ -42,7 +43,7 @@ export function useIssuePdf(
       link.href = url;
       link.download =
         filenameFromDisposition(res.headers.get("Content-Disposition")) ??
-        `issue-${issueNumber}.pdf`;
+        `issue-${displayNumber}.pdf`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -54,7 +55,7 @@ export function useIssuePdf(
     } finally {
       busy.current = false;
     }
-  }, [issueNumber, theme]);
+  }, [displayNumber, routeNumber, theme]);
 
   return { state, download };
 }

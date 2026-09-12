@@ -10,7 +10,7 @@ import type { IssueStatus } from "@/server/issues";
 /** One dashboard row's data. `thumb` is the cover, rendered on the server. */
 export type IssueRowData = {
   id: string;
-  number: number;
+  displayNumber: number;
   title: string;
   status: IssueStatus;
   pages: number;
@@ -54,7 +54,7 @@ export function IssueRow({
               {issue.title}
             </Link>
             <span className="text-faint2 font-mono text-[11px]">
-              No. {issue.number}
+              No. {issue.displayNumber}
             </span>
           </div>
           <div className="text-faint mt-1 font-sans text-[13px]">

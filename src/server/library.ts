@@ -8,7 +8,7 @@ import {
 } from "@/features/library/archive-limits";
 import { likePattern } from "@/lib/like-pattern";
 import { pageBounds, type PagedList } from "@/lib/pagination";
-import { publishedYear, type IssueRow } from "./issues";
+import { effectiveIssueNumber, publishedYear, type IssueRow } from "./issues";
 
 // Member-facing reads: the library home page and the full published archive.
 // Admin listing and all issue CRUD stay in server/issues.ts.
@@ -49,7 +49,7 @@ export async function getLibraryHome(): Promise<LibraryHome> {
         .select()
         .from(issues)
         .where(published)
-        .orderBy(desc(issues.number))
+        .orderBy(desc(effectiveIssueNumber))
         .limit(HOME_ARCHIVE_MAX + 1);
 
       const [latest, ...recent] = rows;
@@ -97,7 +97,7 @@ export type ArchiveList = PagedList<IssueRow> & {
   estYear: number | null;
 };
 
-// One page of the full archive. Unique issue numbers descending are a total
+// One page of the full archive. Unique displayed numbers descending are a total
 // order, which is what makes plain offset paging safe; an out-of-range page is
 // clamped rather than 404ed, so a held URL lands on the nearest real page.
 //
@@ -126,7 +126,7 @@ export async function listArchivePage(
         .select()
         .from(issues)
         .where(where)
-        .orderBy(desc(issues.number))
+        .orderBy(desc(effectiveIssueNumber))
         .limit(ARCHIVE_PAGE_SIZE)
         .offset(bounds.offset);
 

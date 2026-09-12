@@ -107,7 +107,12 @@ export function PageFrame({
       } ${side === "left" ? "border-page-seam border-r" : ""}`}
     >
       {!bleed &&
-        theme.page.decoration({ issueNo, side, magazineName: settings.name })}
+        theme.page.decoration({
+          issueNo,
+          side,
+          magazineName: settings.name,
+          showRunningHead: settings.showRunningHead,
+        })}
 
       {children}
 

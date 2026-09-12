@@ -30,6 +30,7 @@ const DESKTOP_QUERY = "(min-width: 768px)";
 export function ReaderMount({
   content,
   issueNo,
+  routeNumber,
   logo,
   settings,
   images,
@@ -37,7 +38,10 @@ export function ReaderMount({
   fillDesktopHeight = false,
 }: {
   content: IssueContent;
+  /** Reader-facing number used in page chrome. */
   issueNo: number;
+  /** Immutable number used only to address the issue's PDF endpoint. */
+  routeNumber: number;
   /** The issue's footer mark (issue #97), resolved server-side. */
   logo: ResolvedImage | null;
   /** The magazine's effective branding + footer appearance (issue #105),
@@ -66,6 +70,7 @@ export function ReaderMount({
     <DesktopReader
       content={content}
       issueNo={issueNo}
+      routeNumber={routeNumber}
       logo={logo}
       settings={settings}
       images={images}
@@ -76,6 +81,7 @@ export function ReaderMount({
     <MobileReader
       content={content}
       issueNo={issueNo}
+      routeNumber={routeNumber}
       logo={logo}
       settings={settings}
       images={images}

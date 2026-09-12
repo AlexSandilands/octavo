@@ -8,6 +8,7 @@ import { resolveIssueSponsors } from "@/server/sponsors";
 import { requireMemberOrRedirect } from "@/server/session";
 import { getSettings } from "@/server/settings";
 import { settingsForIssue } from "@/lib/branding";
+import { displayedIssueNumber } from "@/lib/issue-number";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,8 @@ export default async function ReadPage({
     <>
       <ReaderMount
         content={issue.content}
-        issueNo={issue.number}
+        issueNo={displayedIssueNumber(issue)}
+        routeNumber={issue.number}
         logo={logo}
         // The footer is held to what this issue's pages were laid out against
         // (issue #128), so a later settings change can't overlap their last

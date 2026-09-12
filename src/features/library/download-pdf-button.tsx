@@ -7,8 +7,14 @@ import { useIssuePdf } from "@/features/reader/use-issue-pdf";
 // The latest-issue card's "Download PDF" action. A secondary button that mirrors
 // the reader's PDF control: the first hit generates on the server (a spinner
 // covers the wait), a failure surfaces a legible retry rather than a dead click.
-export function DownloadPdfButton({ issueNumber }: { issueNumber: number }) {
-  const pdf = useIssuePdf(issueNumber);
+export function DownloadPdfButton({
+  routeNumber,
+  displayNumber,
+}: {
+  routeNumber: number;
+  displayNumber: number;
+}) {
+  const pdf = useIssuePdf(routeNumber, displayNumber);
   const label =
     pdf.state === "loading"
       ? "Preparing…"

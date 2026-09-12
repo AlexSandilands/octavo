@@ -80,13 +80,15 @@ export const classicTheme = {
   ),
 
   page: {
-    decoration: ({ issueNo, magazineName }) => (
+    decoration: ({ issueNo, magazineName, showRunningHead }) => (
       <>
         <div className="border-page-frame pointer-events-none absolute inset-3.5 border" />
         <div className="border-page-frame-soft pointer-events-none absolute inset-[17px] border" />
-        <div className="text-faint2 pointer-events-none absolute top-5 right-3.5 left-3.5 text-center font-sans text-[8px] tracking-[0.32em] uppercase">
-          {magazineName} · No. {issueNo}
-        </div>
+        {showRunningHead && (
+          <div className="text-faint2 pointer-events-none absolute top-5 right-3.5 left-3.5 text-center font-sans text-[8px] tracking-[0.32em] uppercase">
+            {magazineName} · No. {issueNo}
+          </div>
+        )}
       </>
     ),
     // The inner hairline above runs at inset-[17px], so the page's ruled area

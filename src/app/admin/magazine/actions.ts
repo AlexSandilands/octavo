@@ -52,6 +52,7 @@ const settingsSchema = z
     footerMarkSize: footerSizeSchema(MARK_SIZE),
     footerTextSize: footerSizeSchema(TEXT_SIZE),
     footerAlign: z.enum(FOOTER_ALIGNS),
+    showRunningHead: z.boolean(),
     pdfDownloads: z.boolean(),
   })
   .strict();

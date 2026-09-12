@@ -17,6 +17,7 @@ import {
   getIssue,
   listMatchingIssues,
   publishIssue,
+  setIssueDisplayNumber,
   updateIssueContent,
   updateIssueFooterReserve,
   updateIssueMeta,
@@ -29,6 +30,10 @@ import { sendIssueBlast, type BlastResult } from "@/server/publish-email";
 import { requireAdmin } from "@/server/session";
 import { getSettings } from "@/server/settings";
 import { footerReserveOf } from "@/lib/branding";
+import {
+  displayedIssueNumber,
+  ISSUE_NUMBER_MAX,
+} from "@/lib/issue-number";
 
 // Mutations the admin UI calls. Server action arguments are attacker-controlled
 // JSON regardless of their TypeScript types, so every argument is re-validated
@@ -37,6 +42,7 @@ import { footerReserveOf } from "@/lib/branding";
 // directly by any client that knows its id, so the gate lives in the action.
 
 const idSchema = z.string().uuid();
+const issueNumberSchema = z.number().int().positive().max(ISSUE_NUMBER_MAX);
 
 // .strict() so unexpected keys are rejected, not silently written to columns.
 // The theme enum is derived from the layout-theme registry (issue #40) — one
@@ -124,6 +130,46 @@ export async function saveMetaAction(
   return { ok: true };
 }
 
+export type SetIssueDisplayNumberActionResult =
+  | { ok: true; displayNumber: number; routeNumber: number }
+  | {
+      ok: false;
+      reason: "invalid" | "duplicate" | "missing" | "error";
+    };
+
+export async function setIssueDisplayNumberAction(
+  id: unknown,
+  displayNumber: unknown,
+): Promise<SetIssueDisplayNumberActionResult> {
+  await requireAdmin();
+  const parsedId = idSchema.safeParse(id);
+  const parsedNumber = issueNumberSchema.safeParse(displayNumber);
+  if (!parsedId.success || !parsedNumber.success) {
+    return { ok: false, reason: "invalid" };
+  }
+
+  try {
+    const result = await setIssueDisplayNumber(
+      parsedId.data,
+      parsedNumber.data,
+    );
+    if (!result.ok) return result;
+    revalidatePath("/admin");
+    revalidatePath("/");
+    revalidatePath("/archive");
+    revalidatePath(`/admin/issues/${parsedId.data}/preview`);
+    revalidatePath(`/read/${result.number}`);
+    return {
+      ok: true,
+      displayNumber: result.displayNumber ?? result.number,
+      routeNumber: result.number,
+    };
+  } catch (err) {
+    console.error("setIssueDisplayNumberAction failed", err);
+    return { ok: false, reason: "error" };
+  }
+}
+
 export type PublishResult =
   | { ok: false }
   | { ok: true; emailed: BlastResult | null };
@@ -161,7 +207,12 @@ export async function publishIssueAction(
   // (members may reach a different host than the admin did), fall back to the
   // request's own Host when APP_URL is unset (dev).
   const origin = env.APP_URL ?? originFromHeaders(await headers());
-  const emailed = await sendIssueBlast(issue.number, issue.title, origin);
+  const emailed = await sendIssueBlast(
+    issue.number,
+    displayedIssueNumber(issue),
+    issue.title,
+    origin,
+  );
   return { ok: true, emailed };
 }
 

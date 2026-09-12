@@ -10,6 +10,7 @@ import {
   primaryKey,
   pgEnum,
   index,
+  uniqueIndex,
   check,
 } from "drizzle-orm/pg-core";
 import { createId } from "@/lib/id";
@@ -71,14 +72,18 @@ export const issueStatus = pgEnum("issue_status", ["draft", "published"]);
 
 // The whole pages→blocks tree lives in `content` as one JSONB document — the
 // source of truth. Validated with zod at the edges (see src/lib/blocks.ts).
-// `number` is the public address (/read/14), so it must be unique; it is
-// allocated atomically in createIssue. No column default for `content`: every
-// insert must supply a document that satisfies the cover-first invariant.
+// `number` is the immutable public address (/read/14), while `displayNumber`
+// is the owner-editable number readers see. A null display number preserves
+// legacy rows by falling back to the route number. The expression index makes
+// that effective number unique across both explicit values and fallbacks.
+// No column default for `content`: every insert must supply a document that
+// satisfies the cover-first invariant.
 export const issues = pgTable(
   "issues",
   {
     id: text("id").primaryKey().$defaultFn(createId),
     number: integer("number").notNull().unique(),
+    displayNumber: integer("display_number"),
     title: text("title").notNull(),
     theme: text("theme").notNull().default("classic"),
     status: issueStatus("status").notNull().default("draft"),
@@ -125,7 +130,12 @@ export const issues = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => [index("issues_status_number_idx").on(t.status, t.number)],
+  (t) => [
+    index("issues_status_number_idx").on(t.status, t.number),
+    uniqueIndex("issues_effective_display_number_idx").on(
+      sql`coalesce(${t.displayNumber}, ${t.number})`,
+    ),
+  ],
 );
 
 export const images = pgTable(
@@ -215,6 +225,9 @@ export const settings = pgTable(
     footerMarkSize: integer("footer_mark_size"),
     footerTextSize: integer("footer_text_size"),
     footerAlign: text("footer_align").$type<FooterAlign>(),
+    // Whether a theme may draw its textual page-top running head. Nullable so
+    // untouched deployments resolve to the shipped behaviour (shown).
+    showRunningHead: boolean("show_running_head"),
     // Whether members are offered the PDF download (issue #162). Nullable like
     // every column above it — NULL is "not configured", which resolves to the
     // shipped default (enabled), so a deployment that never opens the page keeps

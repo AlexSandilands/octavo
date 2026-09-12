@@ -41,7 +41,11 @@ import { EditorToolbar } from "./editor-toolbar";
 import { useBarLayout } from "./use-bar-layout";
 import { FooterUpdateNotice } from "./footer-update-notice";
 import { useEditorAutosave } from "./use-editor-autosave";
-import { publishIssueAction } from "@/app/admin/actions";
+import {
+  publishIssueAction,
+  setIssueDisplayNumberAction,
+} from "@/app/admin/actions";
+import { displayedIssueNumber } from "@/lib/issue-number";
 
 import type { EditorTool } from "./side-panel/tool-rail";
 import { usePanelWidth } from "./side-panel/use-panel-width";
@@ -52,6 +56,7 @@ import { usePanelWidth } from "./side-panel/use-panel-width";
 export type EditorIssue = FooterReserve & {
   id: string;
   number: number;
+  displayNumber: number | null;
   title: string;
   theme: string;
   logoId: string | null;
@@ -128,6 +133,7 @@ export function Editor({
   // so the canvas previews an image the moment it's uploaded.
   const [images, setImages] = useState<ImageMap>(initialImages);
   const [title, setTitle] = useState(issue.title);
+  const [issueNumber, setIssueNumber] = useState(displayedIssueNumber(issue));
   // The issue's stored layout theme, normalised to an enabled theme id so the
   // picker (which offers only enabled themes) and the state stay in sync; an
   // unknown/disabled stored value degrades to the deployment default.
@@ -175,7 +181,7 @@ export function Editor({
     sponsors: sponsorMap,
     settings,
     logo,
-    issueNo: issue.number,
+    issueNo: issueNumber,
     registerImages: (added) => setImages((old) => ({ ...old, ...added })),
   });
 
@@ -217,7 +223,13 @@ export function Editor({
         <EditorHeader
           title={title}
           onTitleChange={setTitle}
-          issueNumber={issue.number}
+          displayNumber={issueNumber}
+          published={published}
+          onSetDisplayNumber={async (number) => {
+            const result = await setIssueDisplayNumberAction(issue.id, number);
+            if (result.ok) setIssueNumber(result.displayNumber);
+            return result;
+          }}
           themes={themes}
           themeId={themeId}
           onSelectTheme={setThemeId}
@@ -285,7 +297,7 @@ export function Editor({
 
             <EditorStage
               issueId={issue.id}
-              issueNo={issue.number}
+              issueNo={issueNumber}
               page={page}
               curPage={curPage}
               sel={sel}
@@ -347,7 +359,7 @@ export function Editor({
 
       {pub && (
         <PublishModal
-          number={issue.number}
+          number={issueNumber}
           subscriberCount={subscriberCount}
           alreadyPublished={published}
           onClose={() => setPub(false)}

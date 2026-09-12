@@ -52,6 +52,10 @@ const FILTER_CONDITIONS = {
 const APP_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
 export const publishedYear = sql`extract(year from ${issues.publishedAt} at time zone ${APP_TZ})`;
 
+// The number readers see. Kept as one SQL expression so list ordering and new
+// number allocation use the same nullable fallback as displayedIssueNumber().
+export const effectiveIssueNumber = sql<number>`coalesce(${issues.displayNumber}, ${issues.number})`;
+
 // The WHERE for a search + status + year, shared by every query below so
 // "matching" can never mean two different things. A year narrows on publication
 // date, so it never matches a draft — which is what filtering by "when it was
@@ -73,7 +77,7 @@ export type IssueListOptions = {
   year?: number | null;
 };
 
-// The dashboard list, paged. Unique issue numbers descending are a total order,
+// The dashboard list, paged. Unique displayed numbers descending are a total order,
 // which is what makes plain offset paging safe; the counts and the rows share
 // one read-only REPEATABLE READ snapshot, so neither the clamp nor the summary
 // can disagree with the rows served. The search and filters run in the database
@@ -107,7 +111,7 @@ export async function listIssuesPage(
         .select()
         .from(issues)
         .where(where)
-        .orderBy(desc(issues.number))
+        .orderBy(desc(effectiveIssueNumber))
         .limit(ADMIN_LIST_PAGE_SIZE)
         .offset(bounds.offset);
 
@@ -143,7 +147,7 @@ export async function listMatchingIssues(
     .select({ id: issues.id, status: issues.status })
     .from(issues)
     .where(where)
-    .orderBy(desc(issues.number))
+    .orderBy(desc(effectiveIssueNumber))
     .limit(opts.limit);
 }
 
@@ -182,12 +186,15 @@ export async function getPublishedIssueByNumber(number: number) {
 
 // True for Postgres unique-constraint violations (SQLSTATE 23505).
 function isUniqueViolation(err: unknown): boolean {
-  return (
-    typeof err === "object" &&
-    err !== null &&
-    "code" in err &&
-    (err as { code?: unknown }).code === "23505"
-  );
+  let current = err;
+  // Drizzle wraps the postgres.js error in DrizzleQueryError; keep walking the
+  // standard `cause` chain until the SQLSTATE appears.
+  for (let depth = 0; depth < 4; depth++) {
+    if (typeof current !== "object" || current === null) return false;
+    if ("code" in current && current.code === "23505") return true;
+    current = "cause" in current ? current.cause : null;
+  }
+  return false;
 }
 
 // The issue's pages will be laid out against the footer that is set right now,
@@ -195,15 +202,18 @@ function isUniqueViolation(err: unknown): boolean {
 // read here: this module is data access, and the DB → env → default resolution
 // belongs to server/settings.ts alone.
 export async function createIssue(reserve: FooterReserve) {
-  // Allocate `number` inside the INSERT itself so two concurrent creates can't
-  // both read the same max. The unique constraint is the backstop; if we still
-  // lose that race, retry with a freshly computed number.
+  // Allocate both identities inside the INSERT. The route identity continues
+  // monotonically and never changes; the displayed sequence continues from
+  // the largest effective display number, so correcting a historical gap also
+  // corrects what the next new issue shows. Unique indexes are the concurrency
+  // backstop; retry with freshly computed values if another create wins.
   for (let attempt = 0; ; attempt++) {
     try {
       const [row] = await db
         .insert(issues)
         .values({
           number: sql`coalesce((select max(${issues.number}) from ${issues}), 0) + 1`,
+          displayNumber: sql`coalesce((select max(coalesce(${issues.displayNumber}, ${issues.number})) from ${issues}), 0) + 1`,
           title: "Untitled draft",
           theme: "classic",
           status: "draft",
@@ -263,6 +273,34 @@ export async function updateIssueMeta(
       updatedAt: new Date(),
     })
     .where(eq(issues.id, id));
+}
+
+export type SetIssueDisplayNumberResult =
+  | { ok: true; displayNumber: number | null; number: number }
+  | { ok: false; reason: "duplicate" | "missing" };
+
+/** Change only the number readers see. The immutable `number` continues to key
+ * /read and PDF routes, so this is safe for drafts and published issues alike.
+ * Passing null removes the override and returns to the route-number fallback. */
+export async function setIssueDisplayNumber(
+  id: string,
+  displayNumber: number | null,
+): Promise<SetIssueDisplayNumberResult> {
+  try {
+    const [row] = await db
+      .update(issues)
+      .set({ displayNumber, updatedAt: new Date() })
+      .where(eq(issues.id, id))
+      .returning({
+        displayNumber: issues.displayNumber,
+        number: issues.number,
+      });
+    if (row) return { ok: true, ...row };
+  } catch (err) {
+    if (isUniqueViolation(err)) return { ok: false, reason: "duplicate" };
+    throw err;
+  }
+  return { ok: false, reason: "missing" };
 }
 
 // Adopt a new footer reserve for one issue (issue #128) — the write behind the

@@ -230,6 +230,7 @@ const settings: SiteSettings = {
   org: "The Club",
   tagline: "",
   footer: DEFAULT_FOOTER_STYLE,
+  showRunningHead: true,
   pdfDownloads: false,
 };
 
@@ -416,6 +417,7 @@ for (const theme of ["classic", "modern"]) {
             issueNo: 1,
             side: surface === "page" ? "left" : "right",
             magazineName: settings.name,
+            showRunningHead: settings.showRunningHead,
           }),
         ),
       );

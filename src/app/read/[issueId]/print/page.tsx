@@ -7,6 +7,7 @@ import { resolveIssueSponsors, sponsorFingerprint } from "@/server/sponsors";
 import { chromeFingerprint, getSettings } from "@/server/settings";
 import { settingsForIssue } from "@/lib/branding";
 import { verifyPrintToken } from "@/lib/pdf-token";
+import { displayedIssueNumber } from "@/lib/issue-number";
 
 // The print view the PDF generator loads (src/lib/pdf.ts) over localhost. It is
 // NOT session-gated — the proxy auth gate lets `/print` through so the cookie-
@@ -74,7 +75,7 @@ export default async function PrintPage({
       />
       <PrintDocument
         content={issue.content}
-        issueNo={issue.number}
+        issueNo={displayedIssueNumber(issue)}
         // The reader's theme is a member-facing toggle (client state, not stored
         // on the issue), so the generator forwards the selection here; the
         // download endpoint validated it against the registry. PrintDocument

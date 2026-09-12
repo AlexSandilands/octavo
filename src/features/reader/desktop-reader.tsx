@@ -26,6 +26,7 @@ const EDGE_BAND = 0.05;
 export function DesktopReader({
   content,
   issueNo,
+  routeNumber,
   logo,
   settings,
   images,
@@ -34,6 +35,7 @@ export function DesktopReader({
 }: {
   content: IssueContent;
   issueNo: number;
+  routeNumber: number;
   /** The issue's footer mark (issue #97), or null for the text-only footer. */
   logo: ResolvedImage | null;
   /** The magazine's effective branding + footer appearance (issue #105),
@@ -61,7 +63,7 @@ export function DesktopReader({
   // or not the owner offers downloads (issue #162) — hooks can't be
   // conditional, and it costs nothing until something calls `download`; only
   // the control below is conditional.
-  const pdf = useIssuePdf(issueNo, themeId);
+  const pdf = useIssuePdf(routeNumber, issueNo, themeId);
 
   // Page-turn animation. `turn` holds the in-flight flip (direction + target
   // spread); the curl itself (TurnCurl) owns the Web Animations that carry it

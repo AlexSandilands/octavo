@@ -41,6 +41,7 @@ export default async function EditIssuePage({
         issue={{
           id: issue.id,
           number: issue.number,
+          displayNumber: issue.displayNumber,
           title: issue.title,
           theme: issue.theme,
           logoId: issue.logoId,

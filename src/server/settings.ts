@@ -36,6 +36,7 @@ const settingsSelection = {
   footerMarkSize: settings.footerMarkSize,
   footerTextSize: settings.footerTextSize,
   footerAlign: settings.footerAlign,
+  showRunningHead: settings.showRunningHead,
   pdfDownloads: settings.pdfDownloads,
 };
 
@@ -56,6 +57,7 @@ const storedSchema = z.object({
   footerMarkSize: footerSizeSchema(MARK_SIZE).nullable().catch(null),
   footerTextSize: footerSizeSchema(TEXT_SIZE).nullable().catch(null),
   footerAlign: z.enum(FOOTER_ALIGNS).nullable().catch(null),
+  showRunningHead: z.boolean().nullable().catch(null),
   // Postgres types this one, so `.catch(null)` only fires on a row that isn't
   // the shape the driver promised. Same treatment anyway: unreadable means "not
   // configured", which is the enabled default — see DEFAULT_PDF_DOWNLOADS for
@@ -175,6 +177,7 @@ export async function updateSettings(input: StoredSettings): Promise<void> {
     footerMarkSize: input.footerMarkSize,
     footerTextSize: input.footerTextSize,
     footerAlign: input.footerAlign,
+    showRunningHead: input.showRunningHead,
     pdfDownloads: input.pdfDownloads,
     updatedAt: new Date(),
   };
@@ -185,10 +188,10 @@ export async function updateSettings(input: StoredSettings): Promise<void> {
 }
 
 // The chrome fingerprint the PDF cache key carries (issue #105 §4). Cached PDFs
-// bake the magazine name (classic running head, no-logo footer), the org name
-// (footer lockup) and the footer's appearance into every page, none of which
-// bumps `issues.revision` — so without this a branding edit would serve stale
-// PDFs forever.
+// bake the magazine name (classic running head, no-logo footer), the running-
+// head choice, the org name (footer lockup) and the footer's appearance into
+// every page, none of which bumps `issues.revision` — so without this a settings
+// edit would serve stale PDFs forever.
 //
 // It hashes the *effective* values, and only the ones that reach the printed
 // page: the tagline is deliberately absent because it never renders in a PDF,
@@ -205,6 +208,7 @@ export function chromeFingerprint(s: SiteSettings): string {
     s.footer.markSize,
     s.footer.textSize,
     s.footer.align,
+    s.showRunningHead,
   ].join("\u0000");
   return createHash("sha256").update(material).digest("hex").slice(0, 10);
 }

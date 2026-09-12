@@ -87,12 +87,13 @@ Member ── Cloudflare (DNS/CDN) ── Railway (Next.js + Postgres)
 PDF export (issue #16) uses headless Chromium via Playwright, in the **main
 service** (no separate service). How it works: the download endpoint
 (`GET /api/issues/[number]/pdf`, members-only) checks R2 for a cached PDF keyed
-by issue id, revision, reader theme, footer mark, magazine chrome, sponsors and
-render version
-(`pdfs/{issueId}/{revision}-{theme}-{logoId}-{chrome}-{sponsors}-v{N}.pdf` — the
+by issue id, route identity, displayed number, revision, reader theme, footer mark, magazine chrome,
+sponsors and render version
+(`pdfs/{issueId}/{routeNumber}-{displayNumber}-{revision}-{theme}-{logoId}-{chrome}-{sponsors}-v{N}.pdf` — the
 theme follows the desktop reader's toggle; `{chrome}` is a short hash of the
-branding and footer settings that appear on a printed page, so editing them in
-the admin regenerates rather than serving stale PDFs; `{sponsors}` is the same
+branding, running-head choice and footer settings that appear on a printed page,
+so editing them in the admin regenerates rather than serving stale PDFs;
+`{sponsors}` is the same
 idea for the managed sponsors the issue places (a sponsor block stores an id, and
 its name, link and logo are resolved at print time), so renaming or removing a
 sponsor regenerates instead of leaving cached PDFs advertising it; `v{N}` is a

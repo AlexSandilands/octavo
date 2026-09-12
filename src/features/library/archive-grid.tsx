@@ -6,6 +6,7 @@ import type { SiteSettings } from "@/lib/branding";
 import type { ImageMap } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 import { PAGE_W, PAGE_H } from "@/features/blocks/page-frame";
+import { displayedIssueNumber } from "@/lib/issue-number";
 import { CoverThumb } from "./cover-thumb";
 
 // A curated set of muted cover tints — decorative variety for legacy issues
@@ -22,7 +23,8 @@ function stripes(tint: string) {
 
 type ArchiveItem = {
   id: string;
-  number: number;
+  routeNumber: number;
+  displayNumber: number;
   title: string;
   publishedAt: Date | null;
   theme: string;
@@ -34,7 +36,8 @@ type ArchiveItem = {
 export function toArchiveItems(rows: IssueRow[]): ArchiveItem[] {
   return rows.map((i) => ({
     id: i.id,
-    number: i.number,
+    routeNumber: i.number,
+    displayNumber: displayedIssueNumber(i),
     title: i.title,
     publishedAt: i.publishedAt,
     theme: i.theme,
@@ -140,7 +143,7 @@ function ArchiveCard({
   const tint = ARCHIVE_TINTS[index % ARCHIVE_TINTS.length] ?? "#cdbfa6";
   return (
     <Link
-      href={`/read/${a.number}`}
+      href={`/read/${a.routeNumber}`}
       className="group"
       style={{ width: THUMB_W }}
     >
@@ -151,12 +154,12 @@ function ArchiveCard({
             theme={a.theme}
             images={images}
             sponsors={sponsors}
-            issueNo={a.number}
+            issueNo={a.displayNumber}
             settings={settings}
             width={THUMB_W}
           />
         ) : (
-          <PlaceholderCover number={a.number} tint={tint} />
+          <PlaceholderCover number={a.displayNumber} tint={tint} />
         )}
       </div>
       <div className="mt-2.5">
@@ -164,7 +167,7 @@ function ArchiveCard({
           {a.title}
         </span>{" "}
         <span className="text-faint2 inline-block font-mono text-[11px] whitespace-nowrap">
-          No. {a.number}
+          No. {a.displayNumber}
         </span>
       </div>
     </Link>

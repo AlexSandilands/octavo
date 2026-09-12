@@ -27,6 +27,7 @@ const HEADER_HEIGHT = 52;
 export function MobileReader({
   content,
   issueNo,
+  routeNumber,
   logo,
   settings,
   images,
@@ -34,6 +35,7 @@ export function MobileReader({
 }: {
   content: IssueContent;
   issueNo: number;
+  routeNumber: number;
   /** The issue's footer mark (issue #97), or null for no closing wordmark. */
   logo: ResolvedImage | null;
   /** The magazine's effective branding + footer appearance (issue #105). */
@@ -44,7 +46,7 @@ export function MobileReader({
   const [m, setM] = useState(19);
   // Unconditional — hooks always are. Whether the button that uses it renders
   // is the owner's call (issue #162); see the header below.
-  const pdf = useIssuePdf(issueNo);
+  const pdf = useIssuePdf(routeNumber, issueNo);
   const [drawer, setDrawer] = useState(false);
   const menuBtnRef = useRef<HTMLButtonElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);

@@ -1,6 +1,7 @@
 import {
   DEFAULT_FOOTER_STYLE,
   DEFAULT_PDF_DOWNLOADS,
+  DEFAULT_SHOW_RUNNING_HEAD,
   type SiteSettings,
 } from "./branding";
 
@@ -29,6 +30,8 @@ export const siteDefaults: SiteSettings = {
   // The footer appearance has no env var — its default is the look the code
   // shipped with, so an untouched deployment is unchanged by issue #105.
   footer: DEFAULT_FOOTER_STYLE,
+  // The classic running head predates settings and remains on by default.
+  showRunningHead: DEFAULT_SHOW_RUNNING_HEAD,
   // Likewise the PDF download switch (issue #162): no env var, its default is
   // the behaviour the code shipped with — downloads on.
   pdfDownloads: DEFAULT_PDF_DOWNLOADS,

@@ -15,6 +15,7 @@ import { getUserFailClosed } from "@/server/session";
 import { chromeFingerprint, getSettings } from "@/server/settings";
 import { resolveIssueSponsors, sponsorFingerprint } from "@/server/sponsors";
 import { settingsForIssue } from "@/lib/branding";
+import { displayedIssueNumber } from "@/lib/issue-number";
 
 // Members-only PDF download. The reader is gated, so this is too: a signed-out
 // request is refused. Demo mode (issue #50) ungates the reader, so this
@@ -22,21 +23,23 @@ import { settingsForIssue } from "@/lib/branding";
 // the anonymous generation cost bounded (one Chromium run per revision+theme).
 //
 // The PDF is a derived artifact cached in R2 keyed by every input that changes
-// what it looks like: issue id + revision + theme + footer logo + magazine
-// chrome + sponsors + render version
-// (`pdfs/{issueId}/{revision}-{theme}-{logo}-{chrome}-{sponsors}-v{RENDER_VERSION}.pdf`)
+// what it looks like: issue id + route/display numbers + revision + theme + footer logo +
+// magazine chrome + sponsors + render version
+// (`pdfs/{issueId}/{routeNumber}-{displayNumber}-{revision}-{theme}-{logo}-{chrome}-{sponsors}-v{RENDER_VERSION}.pdf`)
 // — a cache hit serves the stored bytes; a miss generates once via Playwright,
 // stores, and serves. Since `revision` bumps on every content write (and
 // RENDER_VERSION on renderer changes), editing + republishing yields a new key
 // and a fresh PDF with no manual invalidation (design-principles §4).
 //
-// Three of those segments are *render* inputs living outside `content`, so none
+// Four of those segments are *render* inputs living outside `content`, so none
 // of them bumps `revision`; without them a re-download would keep serving a
 // stale document:
+//   - the displayed issue number: printed in the running head and footer
+//     (issue #258), independently editable without changing the route.
 //   - the logo: swapping the issue's mark is a meta save (issue #97).
 //   - the chrome fingerprint: a short hash of the branding + footer appearance
 //     the owner edits at /admin/magazine (issue #105), baked into every printed
-//     page (classic running head, footer name, footer lockup). See
+//     page (classic running-head choice, footer name, footer lockup). See
 //     chromeFingerprint() for exactly what it does and does not cover.
 //   - the sponsor fingerprint: a short hash of the sponsors this issue's blocks
 //     reference, as they resolve right now (issue #180). A sponsor block stores
@@ -109,12 +112,13 @@ const themeSchema = z
 // issue that adopts it and every cached PDF must be rebuilt from it.
 // v11: cover pages omit the running footer (issue #237).
 // v12: per-block body-text alignment (issue #238), without fixed-page hyphenation.
+// v13: the classic textual running head can be hidden (issue #258).
 //
 // Not bumped for the sponsor segment (issue #180): the renderer is untouched —
 // the key merely learned an input it was always missing, and adding the segment
 // re-keys every cached PDF exactly once by itself. A bump would only discard the
 // same objects twice over.
-const RENDER_VERSION = 12;
+const RENDER_VERSION = 13;
 
 // Percent-encode for an RFC 8187 ext-value (the `filename*=UTF-8''…` form).
 // Only attr-char may appear bare there: ALPHA / DIGIT / "!" / "#" / "$" / "&" /
@@ -201,6 +205,7 @@ export async function GET(
     return NextResponse.json({ error: "Unknown theme." }, { status: 400 });
   }
   const theme = themeParam.data;
+  const displayNumber = displayedIssueNumber(issue);
 
   // The print route resolves settings and sponsors again in its own request, so
   // the two can disagree — an edit landing in between, or a database blip
@@ -231,7 +236,10 @@ export async function GET(
       await resolveIssueSponsors(issue.content),
     ),
   };
-  const key = `pdfs/${issue.id}/${issue.revision}-${theme}-${issue.logoId ?? "nologo"}-${chrome}-${stamps.sponsors}-v${RENDER_VERSION}.pdf`;
+  // Route identity selects the source issue; display number is independently
+  // editable and changes both page chrome and the download filename. Naming
+  // both prevents a published display-number correction serving stale bytes.
+  const key = `pdfs/${issue.id}/${issue.number}-${displayNumber}-${issue.revision}-${theme}-${issue.logoId ?? "nologo"}-${chrome}-${stamps.sponsors}-v${RENDER_VERSION}.pdf`;
 
   let pdf: Buffer | null;
   try {
@@ -261,7 +269,7 @@ export async function GET(
     headers: {
       "Content-Type": "application/pdf",
       "Content-Length": String(pdf.length),
-      "Content-Disposition": contentDisposition(settings.name, number),
+      "Content-Disposition": contentDisposition(settings.name, displayNumber),
       // Always revalidate against the endpoint so a republish (new revision) is
       // never masked by a cached download.
       "Cache-Control": "private, no-store",
