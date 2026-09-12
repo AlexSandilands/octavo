@@ -57,25 +57,30 @@ await withCoverFixture(
       await frame.evaluate((e) => getComputedStyle(e).backgroundColor),
       "rgb(29, 77, 62)",
     );
+    // Selected-word formatting lives in the floating bar over the item, with
+    // the colour and shadow swatches in trays under it.
+    const bar = page.getByRole("group", { name: "Selected text formatting" });
     await textbox.click();
     await page.keyboard.press("Control+Home");
     await page.keyboard.press("Control+Shift+ArrowRight");
-    await panel.getByRole("button", { name: "Bold", exact: true }).click();
-    await panel.getByRole("button", { name: "Underline", exact: true }).click();
-    await panel.getByRole("button", { name: "Italic", exact: true }).click();
-    await panel
+    await bar.getByRole("button", { name: "Bold", exact: true }).click();
+    await bar.getByRole("button", { name: "Underline", exact: true }).click();
+    await bar.getByRole("button", { name: "Italic", exact: true }).click();
+    await bar.getByRole("button", { name: "Text colour", exact: true }).click();
+    await bar
       .getByRole("button", {
         name: "Selected text colour: Warm stone",
         exact: true,
       })
       .click();
-    await panel
+    await bar.getByRole("button", { name: "Text shadow", exact: true }).click();
+    await bar
       .getByRole("button", {
         name: "Selected text shadow: strong",
         exact: true,
       })
       .click();
-    await panel
+    await bar
       .getByRole("button", {
         name: "Selected text shadow colour: Blue",
         exact: true,
@@ -170,7 +175,7 @@ await withCoverFixture(
     await story.click();
     await page.keyboard.press("Control+Home");
     await page.keyboard.press("Control+Shift+ArrowRight");
-    await panel.getByRole("button", { name: "Bold", exact: true }).click();
+    await bar.getByRole("button", { name: "Bold", exact: true }).click();
     await waitSaved(
       (c) => !!c.pages[0]!.coverElements?.[0]?.placement.richText?.title,
     );

@@ -13,6 +13,7 @@ export const COVER_STYLES = [
   "ink-panel",
 ] as const;
 export const coverStyleSchema = z.enum(COVER_STYLES);
+export const COVER_LAYER_MAX = 20;
 export const coverPlacementSchema = z.object({
   column: z.enum(["left", "center", "right"]),
   row: z.enum(["top", "center", "bottom"]),
@@ -24,12 +25,25 @@ export const coverPlacementSchema = z.object({
   richText: coverRichFieldsSchema.optional(),
   textSize: z.enum(["small", "normal", "large", "xlarge"]).optional(),
   order: z.number().int().min(0).max(10000).optional(),
+  // Stacking when items overlap: higher prints in front. 0 when unset.
+  layer: z.number().int().min(-COVER_LAYER_MAX).max(COVER_LAYER_MAX).optional(),
 });
 export type CoverPlacement = z.infer<typeof coverPlacementSchema>;
 export function coverTextScale(placement?: CoverPlacement): number {
   return { small: 0.8, normal: 1, large: 1.2, xlarge: 1.4 }[
     placement?.textSize ?? "normal"
   ];
+}
+/** One step forward (+1) or back (-1) in the stacking order, held to the cap. */
+export function nudgeLayer(
+  placement: CoverPlacement,
+  direction: -1 | 1,
+): CoverPlacement {
+  const layer = Math.max(
+    -COVER_LAYER_MAX,
+    Math.min(COVER_LAYER_MAX, (placement.layer ?? 0) + direction),
+  );
+  return { ...placement, layer: layer === 0 ? undefined : layer };
 }
 export const DEFAULT_COVER_PLACEMENT: CoverPlacement = {
   column: "center",

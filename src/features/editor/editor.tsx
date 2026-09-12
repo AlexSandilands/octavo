@@ -34,7 +34,7 @@ import {
   PAGE_W,
   PAGE_H,
 } from "@/features/blocks/page-frame";
-import { isFillPage, pageFillsCanvas } from "@/features/blocks/layout";
+import { pageFillsCanvas } from "@/features/blocks/layout";
 import {
   coverCollisionDetection,
   coverKeyboardCoordinates,
@@ -166,6 +166,8 @@ export function Editor({
   const [logoId, setLogoId] = useState<string | null>(issue.logoId);
   const logo = logos.find((l) => l.id === logoId)?.image ?? null;
   const [pub, setPub] = useState(false);
+  // Items a pointed-at layout warning is lighting up on the page.
+  const [hint, setHint] = useState<string[]>([]);
   // Once published (now or on load), the publish modal defaults email OFF so a
   // later correction can't re-blast the list.
   const [published, setPublished] = useState(issue.status === "published");
@@ -320,7 +322,10 @@ export function Editor({
             onCloseAddMenu={() => setAddMenu(false)}
           />
 
-          <div className="bg-canvas relative flex min-w-0 flex-1">
+          <div
+            data-editor-stage-row
+            className="bg-canvas relative flex min-w-0 flex-1"
+          >
             <div className="bg-canvas relative flex min-w-0 flex-1 flex-col overflow-hidden">
               {footerBehind && page && !page.cover && !filled && (
                 <FooterUpdateNotice issueId={issue.id} flushSave={flushSave} />
@@ -392,6 +397,7 @@ export function Editor({
                               sponsorMap={sponsorMap}
                               reseed={reseed}
                               sel={sel}
+                              hint={hint}
                               overflow={overflow}
                               onSelect={setSel}
                               onSelectElement={setSel}
@@ -428,9 +434,7 @@ export function Editor({
                 onChange={updateCoverOverlay}
                 onUpdate={updateCoverElement}
                 onUpdateBlock={updateBlock}
-                onSelectImage={() => {
-                  setSel(page?.blocks.find(isFillPage)?.id ?? null);
-                }}
+                onHint={setHint}
               />
             )}
             <EditorToolbar

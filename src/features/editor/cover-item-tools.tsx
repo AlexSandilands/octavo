@@ -1,17 +1,20 @@
 import type { ReactNode } from "react";
 import { Icon, type IconName } from "@/components/icons";
 
-/** Same on-page move/delete affordances as ordinary magazine blocks. */
+/** Same on-page move/delete affordances as ordinary magazine blocks, plus layering. */
 export function CoverItemTools({
   selected,
   bleed = false,
   onMove,
+  onLayer,
   onRemove,
   handle,
 }: {
   selected: boolean;
   bleed?: boolean;
   onMove: (direction: -1 | 1) => void;
+  /** Bring forward (+1) or send backward (-1) among overlapping items. */
+  onLayer?: (direction: -1 | 1) => void;
   onRemove: () => void;
   handle?: ReactNode;
 }) {
@@ -36,6 +39,22 @@ export function CoverItemTools({
               />
             </>
           )}
+          {onLayer && (
+            <>
+              <span className="h-1" />
+              <Control
+                icon="layerUp"
+                label="Bring forward"
+                onClick={() => onLayer(1)}
+              />
+              <Control
+                icon="layerDown"
+                label="Send backward"
+                onClick={() => onLayer(-1)}
+              />
+            </>
+          )}
+          <span className="h-1" />
           <Control icon="trash" label="Delete" onClick={onRemove} />
         </div>
       )}
@@ -56,11 +75,12 @@ function Control({
       type="button"
       aria-label={label}
       title={label}
+      onMouseDown={(e) => e.preventDefault()}
       onClick={(e) => {
         e.stopPropagation();
         onClick();
       }}
-      className={`border-hair-warm flex h-6 w-6 cursor-pointer items-center justify-center rounded-[5px] border bg-white ${icon === "trash" ? "text-warn hover:border-warn" : "text-muted hover:border-accent hover:text-accent"}`}
+      className={`border-hair-warm flex h-6 w-6 cursor-pointer items-center justify-center rounded-[5px] border bg-white transition-colors ${icon === "trash" ? "text-warn hover:border-warn" : "text-muted hover:border-accent hover:text-accent"}`}
     >
       <Icon name={icon} size={13} strokeWidth={1.9} />
     </button>

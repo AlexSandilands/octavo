@@ -31,7 +31,7 @@ export function CoverTextEditor({
   maxLength?: number;
   onChange: (text: string, doc: CoverRichDoc) => void;
 }) {
-  const { activate } = useCoverText();
+  const { activate, register, unregister } = useCoverText();
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -79,6 +79,12 @@ export function CoverTextEditor({
       if (parsed.success) onChange(coverDocPlain(parsed.data), parsed.data);
     },
   });
+  // Known to the format bar from creation, so it can act before the first focus.
+  useEffect(() => {
+    if (!editor) return;
+    register({ id, editor });
+    return () => unregister(editor);
+  }, [editor, id, register, unregister]);
   // Sidebar edits and history can change a field without remounting the element.
   useEffect(() => {
     if (!editor) return;

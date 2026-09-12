@@ -117,12 +117,21 @@ viewport beneath the header (growing for larger text). Interior full-page images
 image-only behaviour. Cover overflow is marked in the editor; content is never silently removed.
 `EditorToolbar` uses the same buttons on covers and ordinary pages. Covers offer Heading, Text,
 Image, Add detail (story preview, contents list, issue details), and Logo. A floating rounded inspector
-occupies a reserved column beside the fitted canvas; it never covers the page.
-Cover menus use viewport-constrained portals so inspector scrolling cannot clip their options.
+occupies a reserved column beside the fitted canvas; it never covers the page. Its header grip drags
+it to either side of the page (a plain press flips it; the side is remembered per browser in
+`use-panel-dock.ts`). The inspector holds whole-item settings in titled bands — Placement, Appearance,
+the item's content — plus the cover's defaults and page toggles when nothing is selected, and a
+"Needs attention" list of layout checks that name the item(s) concerned: pointing at one lights the
+item up on the page, pressing it selects it. Cover menus use viewport-constrained portals so
+inspector scrolling cannot clip their options. Colour rows are the magazine palette plus one custom
+swatch; the native colour input is a 1px anchor at the row's left edge, opened from the swatch, so
+the browser's picker opens over the row rather than off the edge of the screen.
 
-Cover text uses an inline-only Tiptap editor on the page and in detail fields. The selected editor
-is shared with the side inspector through `CoverTextProvider`, keeping the text range while controls
-apply bold, italic, underline, palette/hex colour and shadow. `cover-rich-text.ts` bounds and validates
+Cover text uses an inline-only Tiptap editor on the page and in detail fields. Formatting for the
+selected words — bold, italic, underline, a colour and a shadow — is a floating bar over the selected
+item (`CoverTextToolbar`), the same split the body-text blocks make on ordinary pages; whole-item
+appearance stays in the inspector. The bar finds its editor through `CoverTextProvider`: the focused
+editor, else the selected item's first text field. `cover-rich-text.ts` bounds and validates
 the document, and `CoverRichText` renders React elements in readers/thumbnails/print; editor code does
 not enter the reader bundle. Plain fields remain the source for headings/references; matching rich
 field documents carry only cover formatting, and stale documents never override renamed text.
@@ -136,8 +145,12 @@ and asset reference traversal, with an additional library deletion guard. Headin
 can independently opt into `coverPlacement`; otherwise their original cover flow remains.
 `MobileCover` uses the same entries in row/column reading order, reflowing to a full-width column
 at the member's text size. Direct canvas selection controls the inspector target, including existing
-headings, text and images. Placement and contrast stay visible above a separately scrolling content
-section. A separate text-size preset scales heading/text/detail typography without changing
+headings, text and images. A photo on the cover takes its size as the entry's width, so its frame,
+panel and selection box hug the picture, and it takes no panel unless one is asked for
+(`itemAppearance` in `cover-order.ts` is the one resolver for what an item paints with). Overlapping
+items stack by an optional `layer` on the placement (`--cover-layer` → `z-index`), stepped with the
+Bring forward / Send backward controls beside a selected item. A separate text-size preset scales
+heading/text/detail typography without changing
 wrapping width; both fixed-page renderers and the reflowing phone reader apply it. The cover
 decoration toggle passes through `PageFrame` in the editor, reader, thumbnail and PDF; the
 phone reader continues its unframed layout. A separate masthead toggle hides the automatic

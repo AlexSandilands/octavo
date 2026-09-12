@@ -93,7 +93,6 @@ export function MobileCover({
           <CoverGrid
             mobile
             style={overlay.style}
-            appearance={page.coverOverlay?.appearance}
             entries={coverEntries(page, renderBlock, (element) => (
               <CoverElementView
                 element={element}

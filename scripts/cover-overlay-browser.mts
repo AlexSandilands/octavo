@@ -102,10 +102,7 @@ export async function browserPass(base: string, cover: Page) {
     };
     await canvas.locator('[data-block-id="photo"] img').click();
     await page
-      .getByRole("button", {
-        name: "Fill page (edge to edge, trims the photo)",
-        exact: true,
-      })
+      .getByRole("button", { name: "Placement: page-fill", exact: true })
       .click();
     await page.locator('[data-cover-style="light-shadow"]').waitFor();
     assert.equal(await canvas.locator("[data-block-id]").count(), 3);
@@ -165,7 +162,7 @@ export async function browserPass(base: string, cover: Page) {
           .click();
       await page
         .getByRole("button", {
-          name: `Element text colour: ${paint.text === "ink" ? "Charcoal" : "Paper"}`,
+          name: `Text colour: ${paint.text === "ink" ? "Charcoal" : "Paper"}`,
           exact: true,
         })
         .click();
@@ -235,14 +232,13 @@ export async function browserPass(base: string, cover: Page) {
       )
       .waitFor();
     await openCoverLayout();
+    // The background is selected by pressing it on the page (its top-left
+    // corner sits in the page margin, clear of every cover item).
+    await canvas
+      .locator("[data-cover-background]")
+      .click({ position: { x: 5, y: 5 } });
     await page
-      .getByRole("button", { name: "Edit background image", exact: true })
-      .click();
-    await page
-      .getByRole("button", {
-        name: "Fit page (the whole photo, with bars)",
-        exact: true,
-      })
+      .getByRole("button", { name: "Placement: page-fit", exact: true })
       .click();
     assert.equal(
       await canvas
@@ -251,7 +247,7 @@ export async function browserPass(base: string, cover: Page) {
       "contain",
     );
     await page
-      .getByRole("button", { name: "Normal image (resizable)", exact: true })
+      .getByRole("button", { name: "Placement: normal", exact: true })
       .click();
     assert.equal(
       await canvas
@@ -264,9 +260,9 @@ export async function browserPass(base: string, cover: Page) {
     assert.equal(await canvas.locator("[data-block-id]").count(), 4);
     await page.getByRole("button", { name: "Undo", exact: true }).click();
     await openCoverLayout();
-    await page
-      .getByRole("button", { name: "Edit background image", exact: true })
-      .click();
+    await canvas
+      .locator("[data-cover-background]")
+      .click({ position: { x: 5, y: 5 } });
     await canvas
       .locator('[data-block-id="photo"]')
       .getByRole("button", { name: "Delete", exact: true })

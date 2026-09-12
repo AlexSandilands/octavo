@@ -27,10 +27,10 @@ export async function checkCoverEdits(f: CoverFixture) {
   await waitSaved((c) => logoSize(c) === 140);
   await clickCanvas("Edit Logo");
   await panel.getByRole("slider", { name: "Vertical adjustment" }).fill("60");
-  await panel.getByText(/Some cover content extends beyond/).waitFor();
+  await panel.getByText(/runs past the page margin/).waitFor();
   await panel.getByRole("slider", { name: "Vertical adjustment" }).fill("0");
   await panel
-    .getByText(/Some cover content extends beyond/)
+    .getByText(/runs past the page margin/)
     .waitFor({ state: "hidden" });
   await canvas
     .locator("[data-cover-element]")
@@ -84,7 +84,7 @@ export async function checkCoverEdits(f: CoverFixture) {
     .click();
   await page.getByRole("button", { name: "1", exact: true }).click();
   await clickCanvas("Edit Story preview");
-  await panel.getByText(/A linked section is no longer available/).waitFor();
+  await panel.getByText(/links to a section that no longer exists/).waitFor();
   await close();
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   await page.getByRole("button", { name: "1", exact: true }).click();

@@ -1,6 +1,8 @@
 "use client";
 import { CoverTextEditor } from "./cover-text-editor";
-import { DEFAULT_COVER_PLACEMENT } from "@/lib/cover-elements";
+import { CoverTextToolbar } from "./cover-text-toolbar";
+import { DEFAULT_COVER_PLACEMENT, nudgeLayer } from "@/lib/cover-elements";
+import type { CoverAppearance } from "@/lib/cover-appearance";
 
 import { useCoverSortable } from "./use-cover-sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -35,6 +37,8 @@ export function EditorBlock({
   theme,
   cover,
   selected,
+  hinted = false,
+  appearance,
   issueId,
   images,
   sponsors,
@@ -53,6 +57,10 @@ export function EditorBlock({
   theme: LayoutTheme;
   cover?: boolean;
   selected: boolean;
+  /** A layout warning in the inspector is pointing at this block. */
+  hinted?: boolean;
+  /** What this block paints with on a cover (drives the text format bar). */
+  appearance?: Required<CoverAppearance>;
   issueId: string;
   images: ImageMap;
   sponsors: SponsorListItem[];
@@ -146,9 +154,11 @@ export function EditorBlock({
       className={`group relative cursor-pointer rounded-sm transition-[box-shadow] ${
         isDragging
           ? "z-30 [box-shadow:0_0_0_2px_var(--color-accent),0_12px_28px_rgba(40,36,28,0.22)]"
-          : selected
-            ? "[box-shadow:0_0_0_6px_var(--color-page),0_0_0_8px_var(--color-accent)]"
-            : "hover:[box-shadow:0_0_0_6px_var(--color-page),0_0_0_8px_var(--color-hair)]"
+          : hinted
+            ? "[box-shadow:0_0_0_6px_var(--color-page),0_0_0_8px_var(--color-warn)]"
+            : selected
+              ? "[box-shadow:0_0_0_6px_var(--color-page),0_0_0_8px_var(--color-accent)]"
+              : "hover:[box-shadow:0_0_0_6px_var(--color-page),0_0_0_8px_var(--color-hair)]"
       }`}
     >
       {!(cover && bleed) && (
@@ -172,8 +182,23 @@ export function EditorBlock({
           selected={selected}
           bleed={bleed}
           onMove={onMove}
+          onLayer={
+            bleed
+              ? undefined
+              : (dir) =>
+                  onChange({
+                    coverPlacement: nudgeLayer(
+                      ("coverPlacement" in block && block.coverPlacement) ||
+                        DEFAULT_COVER_PLACEMENT,
+                      dir,
+                    ),
+                  })
+          }
           onRemove={onRemove}
         />
+      )}
+      {coverText && selected && appearance && block.type !== "image" && (
+        <CoverTextToolbar appearance={appearance} />
       )}
       {selected && !coverText && (
         <>

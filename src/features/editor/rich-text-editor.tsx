@@ -280,7 +280,7 @@ const TEXT_ALIGNS = [
   title: string;
 }[];
 
-function TbBtn({
+export function TbBtn({
   label,
   labelClass = "",
   labelFont = "sans",

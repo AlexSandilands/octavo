@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Label } from "@/components/ui";
 
 const INPUT =
   "border-hair-warm text-ink mt-1.5 w-full rounded-lg border bg-white px-3 py-2 font-sans text-sm";
@@ -32,19 +33,34 @@ export function CoverField({
     </label>
   );
 }
-export function CoverFieldGroup({
-  label,
+
+/** The small label above every inspector control. */
+export function FieldLabel({
+  as: Tag = "div",
   children,
 }: {
-  label: string;
+  as?: "div" | "legend";
   children: ReactNode;
 }) {
   return (
-    <fieldset className="space-y-3">
-      <legend className="text-muted mb-3 font-sans text-xs font-semibold">
-        {label}
-      </legend>
+    <Tag className="text-muted mb-2 block font-sans text-xs font-medium">
       {children}
-    </fieldset>
+    </Tag>
+  );
+}
+
+/** One titled band of the inspector; bands are separated by a hairline. */
+export function InspectorSection({
+  title,
+  children,
+}: {
+  title?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="border-line space-y-4 border-t px-4 py-5 first:border-t-0">
+      {title && <Label>{title}</Label>}
+      {children}
+    </section>
   );
 }

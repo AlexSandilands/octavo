@@ -43,6 +43,17 @@
 .cover-positioned > [data-reader-block] {
   margin-bottom: 0 !important;
 }
+/* Overlapping items stack by their layer; unset layers keep source order. */
+.cover-positioned {
+  z-index: var(--cover-layer, auto);
+}
+/* A photo's frame is the photo: the entry takes the photo's width so its panel
+   and selection box hug the picture instead of the whole column. */
+.cover-positioned[data-kind="image"] > [data-editor-block],
+.cover-positioned[data-kind="image"] > [data-reader-block] {
+  width: 100% !important;
+  margin-inline: 0 !important;
+}
 .cover-treatment[data-cover-panel="true"] {
   padding: 18px;
   background: var(--cover-background, var(--color-page));

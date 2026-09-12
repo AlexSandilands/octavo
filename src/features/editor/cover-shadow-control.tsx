@@ -1,6 +1,13 @@
-import { Button } from "@/components/ui";
 import type { CoverShadow, CoverColor } from "@/lib/cover-appearance";
 import { CoverColorPicker } from "./cover-color-picker";
+import { Segments } from "./cover-segments";
+
+export const SHADOW_OPTIONS = [
+  { value: "none", label: "None" },
+  { value: "soft", label: "Soft" },
+  { value: "strong", label: "Strong" },
+] as const satisfies { value: CoverShadow; label: string }[];
+
 export function CoverShadowControl({
   label = "Text shadow",
   value,
@@ -13,28 +20,13 @@ export function CoverShadowControl({
   onChange: (value: CoverShadow, color: CoverColor) => void;
 }) {
   return (
-    <div className="space-y-3">
-      <fieldset>
-        <legend className="text-muted mb-2 font-sans text-xs font-medium">
-          {label}
-        </legend>
-        <div className="flex gap-1">
-          {(["none", "soft", "strong"] as const).map((s) => (
-            <Button
-              key={s}
-              size="sm"
-              variant={value === s ? "primary" : "secondary"}
-              className="min-w-0 flex-1 px-2!"
-              aria-label={`${label}: ${s}`}
-              aria-pressed={value === s}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => onChange(s, color)}
-            >
-              {s[0]!.toUpperCase() + s.slice(1)}
-            </Button>
-          ))}
-        </div>
-      </fieldset>
+    <div className="space-y-4">
+      <Segments
+        label={label}
+        value={value}
+        options={[...SHADOW_OPTIONS]}
+        onChange={(s) => onChange(s, color)}
+      />
       {value !== "none" && (
         <CoverColorPicker
           label={`${label} colour`}

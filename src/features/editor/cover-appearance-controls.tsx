@@ -1,61 +1,54 @@
-import { Button } from "@/components/ui";
+import { SelectCheckbox } from "@/components/select-checkbox";
 import {
   type CoverAppearance,
   resolveCoverAppearance,
 } from "@/lib/cover-appearance";
 import { CoverColorPicker, readableText } from "./cover-color-picker";
 import { CoverShadowControl } from "./cover-shadow-control";
+import { Segments } from "./cover-segments";
+
+/** Panel, text colour and shadow for the whole cover or one item on it. */
 export function CoverAppearanceControls({
   value,
   style,
   onChange,
   inherited,
   onInherit,
-  logo = false,
+  panelOnly = false,
 }: {
   value?: CoverAppearance;
   style?: string;
   onChange: (appearance: CoverAppearance) => void;
   inherited?: boolean;
   onInherit?: (inherit: boolean) => void;
-  logo?: boolean;
+  /** Logos and photos carry no type, so only the panel applies. */
+  panelOnly?: boolean;
 }) {
   const resolved = resolveCoverAppearance(style, value);
   return (
     <div className="space-y-4">
       {onInherit && (
-        <label className="text-muted flex cursor-pointer items-center gap-2 font-sans text-xs">
-          <input
-            type="checkbox"
-            className="accent-accent h-4 w-4"
-            checked={inherited}
-            onChange={(e) => onInherit(e.target.checked)}
-          />
-          Use cover appearance
-        </label>
+        <div className="-ml-3">
+          <SelectCheckbox
+            label="Use cover appearance"
+            checked={Boolean(inherited)}
+            onChange={onInherit}
+          >
+            Use cover appearance
+          </SelectCheckbox>
+        </div>
       )}
       {!inherited && (
         <>
-          <fieldset>
-            <legend className="text-muted mb-2 font-sans text-xs font-medium">
-              Background
-            </legend>
-            <div className="flex gap-1">
-              {([false, true] as const).map((panel) => (
-                <Button
-                  key={String(panel)}
-                  variant={resolved.panel === panel ? "primary" : "secondary"}
-                  size="sm"
-                  className="flex-1"
-                  aria-label={`Background: ${panel ? "panel" : "none"}`}
-                  aria-pressed={resolved.panel === panel}
-                  onClick={() => onChange({ ...resolved, panel })}
-                >
-                  {panel ? "Panel" : "None"}
-                </Button>
-              ))}
-            </div>
-          </fieldset>
+          <Segments
+            label="Background"
+            value={resolved.panel ? "panel" : "none"}
+            options={[
+              { value: "none", label: "None" },
+              { value: "panel", label: "Panel" },
+            ]}
+            onChange={(v) => onChange({ ...resolved, panel: v === "panel" })}
+          />
           {resolved.panel && (
             <CoverColorPicker
               label="Panel colour"
@@ -69,10 +62,10 @@ export function CoverAppearanceControls({
               }
             />
           )}
-          {!logo && (
+          {!panelOnly && (
             <>
               <CoverColorPicker
-                label="Element text colour"
+                label="Text colour"
                 value={resolved.text}
                 onChange={(text) => onChange({ ...resolved, text })}
               />

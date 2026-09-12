@@ -36,11 +36,7 @@ export function PageContent({
         data-cover-style={overlay.style}
       >
         {background && renderBlock(background)}
-        <CoverGrid
-          entries={entries}
-          style={overlay.style}
-          appearance={page.coverOverlay?.appearance}
-        />
+        <CoverGrid entries={entries} style={overlay.style} />
       </div>
     );
   }

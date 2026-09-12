@@ -1,8 +1,4 @@
-import {
-  appearanceVars,
-  resolveCoverAppearance,
-  type CoverAppearance,
-} from "@/lib/cover-appearance";
+import { appearanceVars, type CoverAppearance } from "@/lib/cover-appearance";
 import type { CSSProperties, ReactNode } from "react";
 import { coverTextScale, type CoverPlacement } from "@/lib/cover-elements";
 import { PAGE_H, PAGE_PAD } from "./page-frame";
@@ -10,20 +6,22 @@ import { PAGE_H, PAGE_PAD } from "./page-frame";
 export type CoverEntry = {
   id: string;
   placement: CoverPlacement;
+  /** Resolved by `itemAppearance`: the item's overrides over the cover's defaults. */
+  paint: Required<CoverAppearance>;
   content: ReactNode;
   logoSize?: number;
+  /** Percent of the column for a photo; the entry takes it instead of a width band. */
+  imageWidth?: number;
 };
 /** Groups stack within an anchor. Mobile follows row/column order in normal flow. */
 export function CoverGrid({
   entries,
   style,
-  appearance,
   mobile = false,
 }: {
   entries: CoverEntry[];
   style: NonNullable<CoverPlacement["style"]>;
   mobile?: boolean;
-  appearance?: CoverAppearance;
 }) {
   const groups = ["top", "center", "bottom"]
     .flatMap((row) =>
@@ -48,39 +46,37 @@ export function CoverGrid({
           data-row={group.row}
           data-column={group.column}
         >
-          {group.entries.map((entry) => {
-            const paint = resolveCoverAppearance(
-              entry.placement.style ?? style,
-              entry.placement.style
-                ? entry.placement.appearance
-                : { ...appearance, ...entry.placement.appearance },
-            );
-            return (
-              <div
-                key={entry.id}
-                data-cover-entry={entry.id}
-                data-logo={entry.logoSize ? "true" : undefined}
-                data-width={entry.placement.width}
-                data-align={entry.placement.align}
-                data-cover-style={entry.placement.style ?? style}
-                data-cover-panel={paint.panel}
-                className="cover-positioned cover-treatment"
-                style={
-                  {
-                    ...appearanceVars(paint),
-                    "--cover-logo-size": entry.logoSize
-                      ? `${entry.logoSize}px`
+          {group.entries.map((entry) => (
+            <div
+              key={entry.id}
+              data-cover-entry={entry.id}
+              data-logo={entry.logoSize ? "true" : undefined}
+              data-kind={entry.imageWidth !== undefined ? "image" : undefined}
+              data-width={entry.placement.width}
+              data-align={entry.placement.align}
+              data-cover-style={entry.placement.style ?? style}
+              data-cover-panel={entry.paint.panel}
+              className="cover-positioned cover-treatment"
+              style={
+                {
+                  ...appearanceVars(entry.paint),
+                  "--cover-logo-size": entry.logoSize
+                    ? `${entry.logoSize}px`
+                    : undefined,
+                  "--cover-layer": entry.placement.layer,
+                  width:
+                    entry.imageWidth !== undefined && !mobile
+                      ? `${entry.imageWidth}%`
                       : undefined,
-                    textAlign: entry.placement.align,
-                    "--cover-offset": `${entry.placement.offset}px`,
-                    "--cover-text-scale": coverTextScale(entry.placement),
-                  } as CSSProperties
-                }
-              >
-                {entry.content}
-              </div>
-            );
-          })}
+                  textAlign: entry.placement.align,
+                  "--cover-offset": `${entry.placement.offset}px`,
+                  "--cover-text-scale": coverTextScale(entry.placement),
+                } as CSSProperties
+              }
+            >
+              {entry.content}
+            </div>
+          ))}
         </div>
       ))}
     </div>

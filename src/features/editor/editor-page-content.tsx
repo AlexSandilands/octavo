@@ -5,6 +5,7 @@ import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { SponsorListItem, SponsorMap } from "@/lib/sponsors";
 import type { LayoutTheme } from "@/features/blocks/themes/registry";
 import { PageContent } from "@/features/blocks/page-content";
+import { itemAppearance } from "@/lib/cover-order";
 import { EditorCoverElement } from "./editor-cover-element";
 import { EditorBlock } from "./editor-block";
 import type { BlockOverflow } from "./page-metrics";
@@ -21,6 +22,7 @@ export function EditorPageContent({
   sponsorMap,
   reseed,
   sel,
+  hint,
   overflow,
   onSelect,
   onSelectElement,
@@ -45,6 +47,8 @@ export function EditorPageContent({
   sponsorMap: SponsorMap;
   reseed: Record<string, number>;
   sel: string | null;
+  /** Items a layout warning is pointing at. */
+  hint: string[];
   overflow: BlockOverflow | null;
   onSelect: (id: string) => void;
   onSelectElement: (id: string) => void;
@@ -75,6 +79,8 @@ export function EditorPageContent({
           issueNo={issueNo}
           images={images}
           selected={sel === element.id}
+          hinted={hint.includes(element.id)}
+          appearance={itemAppearance(element, page)}
           onSelect={() => onSelectElement(element.id)}
           onMove={(dir) => moveElement(element.id, dir)}
           onRemove={() => removeElement(element.id)}
@@ -88,6 +94,8 @@ export function EditorPageContent({
           theme={theme}
           cover={page.cover}
           selected={b.id === sel}
+          hinted={hint.includes(b.id)}
+          appearance={page.cover ? itemAppearance(b, page) : undefined}
           issueId={issueId}
           images={images}
           sponsors={sponsors}
