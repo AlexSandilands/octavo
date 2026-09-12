@@ -7,6 +7,7 @@ import {
   ilike,
   inArray,
   isNotNull,
+  max,
   sql,
 } from "drizzle-orm";
 import { db } from "@/db";
@@ -15,6 +16,7 @@ import { emptyIssueContent, type IssueContent } from "@/lib/blocks";
 import type { FooterReserve } from "@/lib/branding";
 import { isUniqueViolation } from "@/lib/db-errors";
 import { collectImageIds } from "@/lib/images";
+import { ISSUE_NUMBER_MAX } from "@/lib/issue-number";
 import { likePattern } from "@/lib/like-pattern";
 import {
   ADMIN_LIST_PAGE_SIZE,
@@ -28,6 +30,16 @@ import { sweepOrphanedObjects, takeOrphanedImages } from "./asset-cleanup";
 
 export type IssueRow = typeof issues.$inferSelect;
 export type IssueStatus = IssueRow["status"];
+
+/** A published issue. Its number was allocated at publish and a database check
+ *  constraint holds it non-null, which the inferred row type can't say. */
+export type PublishedIssueRow = IssueRow & { number: number };
+
+/** Narrows the rows of a published-only query. Nothing can be dropped — the
+ *  check constraint makes a numberless published row impossible. */
+export function isNumbered(row: IssueRow): row is PublishedIssueRow {
+  return row.number !== null;
+}
 
 export type IssueList = PagedList<IssueRow> & {
   /** Whole-list numbers for the summary line, independent of the search. */
@@ -74,13 +86,21 @@ export type IssueListOptions = {
   year?: number | null;
 };
 
-// The dashboard list, paged. Unique issue numbers descending are a total order,
-// which is what makes plain offset paging safe; the counts and the rows share
-// one read-only REPEATABLE READ snapshot, so neither the clamp nor the summary
-// can disagree with the rows served. The search and filters run in the database
-// so they see every issue, not just the served page; an out-of-range page is
-// clamped rather than 404ed, so the URL an admin held while rows were being
-// deleted still lands on the nearest real page.
+// Drafts first, most recently edited at the top, then published by number
+// (issue #270). `id` last keeps it a total order, which offset paging needs.
+const DASHBOARD_ORDER = [
+  sql`${issues.status} = 'draft' desc`,
+  sql`case when ${issues.status} = 'draft' then ${issues.updatedAt} end desc`,
+  desc(issues.number),
+  issues.id,
+];
+
+// The dashboard list, paged. The counts and the rows share one read-only
+// REPEATABLE READ snapshot, so neither the clamp nor the summary can disagree
+// with the rows served. The search and filters run in the database so they see
+// every issue, not just the served page; an out-of-range page is clamped rather
+// than 404ed, so the URL an admin held while rows were being deleted still
+// lands on the nearest real page.
 export async function listIssuesPage(
   opts: IssueListOptions = {},
 ): Promise<IssueList> {
@@ -108,7 +128,7 @@ export async function listIssuesPage(
         .select()
         .from(issues)
         .where(where)
-        .orderBy(desc(issues.number))
+        .orderBy(...DASHBOARD_ORDER)
         .limit(ADMIN_LIST_PAGE_SIZE)
         .offset(bounds.offset);
 
@@ -144,7 +164,7 @@ export async function listMatchingIssues(
     .select({ id: issues.id, status: issues.status })
     .from(issues)
     .where(where)
-    .orderBy(desc(issues.number))
+    .orderBy(...DASHBOARD_ORDER)
     .limit(opts.limit);
 }
 
@@ -172,13 +192,27 @@ export async function getIssue(id: string) {
 
 // Reader lookup — published issues only. Drafts are reachable solely through
 // the admin editor and its preview route (by internal id, via getIssue).
-export async function getPublishedIssueByNumber(number: number) {
+export async function getPublishedIssueByNumber(
+  number: number,
+): Promise<PublishedIssueRow | null> {
   const [row] = await db
     .select()
     .from(issues)
     .where(and(eq(issues.number, number), eq(issues.status, "published")))
     .limit(1);
-  return row ?? null;
+  // The number is what was matched on, so re-stating it narrows the row type
+  // without a cast.
+  return row ? { ...row, number } : null;
+}
+
+/** The number the publish modal proposes: the next after the highest published
+ *  one (issue #270). A deleted top issue frees its number, so it comes back. */
+export async function nextIssueNumber(): Promise<number> {
+  const [row] = await db
+    .select({ highest: max(issues.number) })
+    .from(issues)
+    .where(eq(issues.status, "published"));
+  return Math.min((row?.highest ?? 0) + 1, ISSUE_NUMBER_MAX);
 }
 
 // The issue's pages will be laid out against the footer that is set right now,
@@ -186,29 +220,21 @@ export async function getPublishedIssueByNumber(number: number) {
 // read here: this module is data access, and the DB → env → default resolution
 // belongs to server/settings.ts alone.
 export async function createIssue(reserve: FooterReserve) {
-  // Allocate `number` inside the INSERT itself so two concurrent creates can't
-  // both read the same max. The unique constraint is the backstop; if we still
-  // lose that race, retry with a freshly computed number.
-  for (let attempt = 0; ; attempt++) {
-    try {
-      const [row] = await db
-        .insert(issues)
-        .values({
-          number: sql`coalesce((select max(${issues.number}) from ${issues}), 0) + 1`,
-          title: "Untitled draft",
-          theme: "classic",
-          status: "draft",
-          content: emptyIssueContent(),
-          footerMarkSize: reserve.footerMarkSize,
-          footerTextSize: reserve.footerTextSize,
-        })
-        .returning();
-      if (!row) throw new Error("Failed to create issue");
-      return row;
-    } catch (err) {
-      if (attempt >= 2 || !isUniqueViolation(err)) throw err;
-    }
-  }
+  // No `number`: a draft has none (issue #270), so a magazine that throws away
+  // a dozen drafts still publishes its first edition as No. 1.
+  const [row] = await db
+    .insert(issues)
+    .values({
+      title: "Untitled draft",
+      theme: "classic",
+      status: "draft",
+      content: emptyIssueContent(),
+      footerMarkSize: reserve.footerMarkSize,
+      footerTextSize: reserve.footerTextSize,
+    })
+    .returning();
+  if (!row) throw new Error("Failed to create issue");
+  return row;
 }
 
 export type ContentSaveResult =
@@ -279,15 +305,34 @@ export async function updateIssueFooterReserve(
     .where(eq(issues.id, id));
 }
 
-export async function publishIssue(id: string) {
-  await db
-    .update(issues)
-    .set({
-      status: "published",
-      publishedAt: new Date(),
-      updatedAt: new Date(),
-    })
-    .where(eq(issues.id, id));
+export type PublishOutcome =
+  | { ok: true; number: number }
+  | { ok: false; reason: "taken" | "missing" };
+
+// Publish under `number` (issue #270) in one statement: the CASE writes only on
+// a draft, so a re-publish never renumbers a live issue. A taken number surfaces
+// as the partial index's unique violation — a pre-check would only narrow the race.
+export async function publishIssue(
+  id: string,
+  number: number,
+): Promise<PublishOutcome> {
+  try {
+    const [row] = await db
+      .update(issues)
+      .set({
+        number: sql`case when ${issues.status} = 'draft' then ${number}::integer else ${issues.number} end`,
+        status: "published",
+        publishedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(issues.id, id))
+      .returning({ number: issues.number });
+    if (!row?.number) return { ok: false, reason: "missing" };
+    return { ok: true, number: row.number };
+  } catch (err) {
+    if (isUniqueViolation(err)) return { ok: false, reason: "taken" };
+    throw err;
+  }
 }
 
 export type DeleteIssuesResult = {

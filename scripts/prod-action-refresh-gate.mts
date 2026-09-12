@@ -119,16 +119,14 @@ try {
     );
   });
 
-  // Issues — numbered above the current max, so the row tops the dashboard.
+  // Issues — a fresh draft, which tops the dashboard: it lists drafts first,
+  // most recently edited at the top (issue #270), and carries no number.
   await sample(3, "issue delete", async (i) => {
     const title = `i198 ${stamp} Issue ${i}`;
     const id = randomUUID();
     issueIds.push(id);
-    const [maxRow] =
-      await sql`select coalesce(max(number), 0)::int as n from issues`;
-    await sql`insert into issues (id, number, title, content)
-              values (${id}, ${(maxRow!.n as number) + 1}, ${title},
-                      ${sql.json(emptyIssueContent())})`;
+    await sql`insert into issues (id, title, content)
+              values (${id}, ${title}, ${sql.json(emptyIssueContent())})`;
     return trial("/admin", `Delete ${title}`, "Delete issue", async () => {
       const [row] =
         await sql`select count(*)::int n from issues where id = ${id}`;

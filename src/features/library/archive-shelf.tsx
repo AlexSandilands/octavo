@@ -3,7 +3,7 @@ import type { SiteSettings } from "@/lib/branding";
 import type { ImageMap } from "@/lib/images";
 import type { PagedList } from "@/lib/pagination";
 import type { SponsorMap } from "@/lib/sponsors";
-import type { IssueRow } from "@/server/issues";
+import type { PublishedIssueRow } from "@/server/issues";
 import { ArchiveGrid, toArchiveItems } from "./archive-grid";
 import { archiveResultMessage } from "./archive-message";
 import { ArchiveSearch } from "./archive-search";
@@ -23,7 +23,7 @@ export function ArchiveShelf({
   sponsors,
   settings,
 }: {
-  list: PagedList<IssueRow>;
+  list: PagedList<PublishedIssueRow>;
   query: string;
   year: number | null;
   years: number[];

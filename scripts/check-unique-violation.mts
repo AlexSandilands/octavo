@@ -1,6 +1,7 @@
 // Dev-only: checks that `isUniqueViolation` (src/lib/db-errors.ts) recognises a
 // real SQLSTATE 23505 as drizzle throws it — wrapped, with the driver error on
-// `.cause` — so createIssue's retry-on-collision loop retries (issue #271).
+// `.cause` — so `publishIssue` can answer a taken issue number with a conflict
+// instead of a 500 (issues #271, #270).
 // Needs DATABASE_URL; its writes roll back, leaving no rows behind.
 // Run: npx tsx --tsconfig scripts/tsconfig.json scripts/check-unique-violation.mts
 import { existsSync } from "node:fs";
@@ -72,8 +73,9 @@ ok(
 console.log("\n— a real violation through drizzle —");
 class Rollback extends Error {}
 
-// Mirrors createIssue's INSERT for a fixed number.
-const insertNumbered = (
+// A published row at a fixed number — the only shape the number is unique in
+// (the partial unique index over published rows, issue #270).
+const insertPublished = (
   tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
   number: number,
 ) =>
@@ -81,7 +83,8 @@ const insertNumbered = (
     number,
     title: "issue #271 check (rolled back)",
     theme: "classic",
-    status: "draft",
+    status: "published",
+    publishedAt: new Date(),
     content: emptyIssueContent(),
   });
 
@@ -97,14 +100,14 @@ let landedOn: number | null = null;
 
 try {
   await db.transaction(async (tx) => {
-    await insertNumbered(tx, taken); // the number a concurrent create won
-    // createIssue's loop, one savepoint per attempt so a failed insert doesn't
-    // abort the whole transaction.
+    await insertPublished(tx, taken); // the number another publish won
+    // One savepoint per attempt, so the refused write doesn't abort the
+    // transaction the free number still has to land in.
     for (const number of [taken, fresh]) {
       attempts++;
       try {
         await tx.transaction(async (sp) => {
-          await insertNumbered(sp, number);
+          await insertPublished(sp, number);
         });
         landedOn = number;
         break;
@@ -127,9 +130,9 @@ ok(
 ok(isUniqueViolation(caught), "isUniqueViolation recognises it → true");
 ok(
   attempts === 2,
-  `the retry loop ran a second attempt (attempts: ${attempts})`,
+  `the taken number was refused and a second attempt made (attempts: ${attempts})`,
 );
-ok(landedOn === fresh, `the retry landed on the fresh number ${landedOn}`);
+ok(landedOn === fresh, `a free number still lands (No. ${landedOn})`);
 
 const leftovers = await db
   .select({ number: issues.number })

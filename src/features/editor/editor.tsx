@@ -61,7 +61,7 @@ import { usePanelWidth } from "./side-panel/use-panel-width";
 // the magazine setting has since become.
 export type EditorIssue = FooterReserve & {
   id: string;
-  number: number;
+  number: number | null;
   title: string;
   theme: string;
   logoId: string | null;
@@ -72,6 +72,7 @@ export type EditorIssue = FooterReserve & {
 
 export function Editor({
   issue,
+  suggestedNumber,
   images: initialImages,
   sponsors,
   logos,
@@ -80,6 +81,9 @@ export function Editor({
   subscriberCount,
 }: {
   issue: EditorIssue;
+  /** What a draft's canvas and running head preview, and what the publish modal
+   *  proposes (issue #270). Nothing is stored until publish. */
+  suggestedNumber: number;
   images: ImageMap;
   sponsors: SponsorListItem[];
   logos: LogoListItem[];
@@ -172,9 +176,10 @@ export function Editor({
   const barLayout = barLayoutAtPosition(responsiveBarLayout, barPosition);
   const [toolbarReserve, setToolbarReserve] = useState(TOOLBAR_RESERVE);
   const [pub, setPub] = useState(false);
-  // Once published (now or on load), the publish modal defaults email OFF so a
-  // later correction can't re-blast the list.
-  const [published, setPublished] = useState(issue.status === "published");
+  // Null until published (issue #270), then whatever the publish allocated —
+  // which is also what defaults the modal's email off on a re-publish.
+  const [number, setNumber] = useState(issue.number);
+  const issueNo = number ?? suggestedNumber;
   // Items a pointed-at layout warning is lighting up on the page.
   const [hint, setHint] = useState<string[]>([]);
 
@@ -190,7 +195,7 @@ export function Editor({
     issueId: issue.id,
     flushSave,
     onSaveError: () => setStatus("error"),
-    onPublished: () => setPublished(true),
+    onPublished: setNumber,
   });
 
   const importer = usePdfInsertion({
@@ -205,7 +210,7 @@ export function Editor({
     sponsors: sponsorMap,
     settings,
     logo,
-    issueNo: issue.number,
+    issueNo,
     registerImages: (added) => setImages((old) => ({ ...old, ...added })),
   });
 
@@ -262,7 +267,7 @@ export function Editor({
           <EditorHeader
             title={title}
             onTitleChange={setTitle}
-            issueNumber={issue.number}
+            issueNumber={number}
             themes={themes}
             themeId={themeId}
             onSelectTheme={setThemeId}
@@ -319,7 +324,7 @@ export function Editor({
 
               <EditorStage
                 issueId={issue.id}
-                issueNo={issue.number}
+                issueNo={issueNo}
                 page={page}
                 curPage={curPage}
                 sel={sel}
@@ -408,9 +413,9 @@ export function Editor({
 
         {pub && (
           <PublishModal
-            number={issue.number}
+            number={number}
             subscriberCount={subscriberCount}
-            alreadyPublished={published}
+            suggestedNumber={suggestedNumber}
             onClose={() => setPub(false)}
             onPublish={flows.publish}
           />

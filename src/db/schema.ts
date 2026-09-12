@@ -10,6 +10,7 @@ import {
   primaryKey,
   pgEnum,
   index,
+  uniqueIndex,
   check,
 } from "drizzle-orm/pg-core";
 import { createId } from "@/lib/id";
@@ -72,14 +73,16 @@ export const issueStatus = pgEnum("issue_status", ["draft", "published"]);
 
 // The whole pages→blocks tree lives in `content` as one JSONB document — the
 // source of truth. Validated with zod at the edges (see src/lib/blocks.ts).
-// `number` is the public address (/read/14), so it must be unique; it is
-// allocated atomically in createIssue. No column default for `content`: every
-// insert must supply a document that satisfies the cover-first invariant.
+// No column default for `content`: every insert must supply a document that
+// satisfies the cover-first invariant.
 export const issues = pgTable(
   "issues",
   {
     id: text("id").primaryKey().$defaultFn(createId),
-    number: integer("number").notNull().unique(),
+    // The public address (/read/14), nullable and meaningful only once the issue
+    // is published (issue #270) — a draft has none. The partial unique index and
+    // the check constraint below are what enforce that.
+    number: integer("number"),
     title: text("title").notNull(),
     theme: text("theme").notNull().default("classic"),
     status: issueStatus("status").notNull().default("draft"),
@@ -126,7 +129,18 @@ export const issues = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => [index("issues_status_number_idx").on(t.status, t.number)],
+  (t) => [
+    // Kept: it orders the published lists' scan, which the partial unique index
+    // below cannot — its predicate is not part of the key.
+    index("issues_status_number_idx").on(t.status, t.number),
+    uniqueIndex("issues_published_number_idx")
+      .on(t.number)
+      .where(sql`${t.status} = 'published'`),
+    check(
+      "issues_published_has_number",
+      sql`${t.status} <> 'published' or ${t.number} is not null`,
+    ),
+  ],
 );
 
 export const images = pgTable(

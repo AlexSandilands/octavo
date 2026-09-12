@@ -16,6 +16,7 @@ import {
   deleteIssues,
   getIssue,
   listMatchingIssues,
+  nextIssueNumber,
   publishIssue,
   updateIssueContent,
   updateIssueFooterReserve,
@@ -24,6 +25,7 @@ import {
   type IssueStatus,
 } from "@/server/issues";
 import { ISSUES_SELECTION_MAX } from "@/features/admin/selection-limit";
+import { issueNumberSchema } from "@/lib/issue-number";
 import { ADMIN_LIST_QUERY_MAX } from "@/lib/list-query";
 import { sendIssueBlast, type BlastResult } from "@/server/publish-email";
 import { requireAdmin } from "@/server/session";
@@ -125,13 +127,19 @@ export async function saveMetaAction(
 }
 
 export type PublishResult =
-  | { ok: false }
-  | { ok: true; emailed: BlastResult | null };
+  | { ok: false; reason: "invalid" | "failed" }
+  /** The number was taken between the modal's proposal and the write; the
+   *  modal stays open and offers `suggested` instead. */
+  | { ok: false; reason: "taken"; suggested: number }
+  | { ok: true; number: number; emailed: BlastResult | null };
 
 // Publish an issue and, unless the admin skipped it, email every subscribed
 // member their personal magic link to the new issue. `sendEmail` is a required
 // explicit choice (the modal defaults it off for a re-publish) so a correction
 // can't accidentally re-blast a thousand people.
+//
+// `number` is the one the admin confirmed in the modal (issue #270), consulted
+// only for a draft; a number since taken comes back as "taken", not a failure.
 //
 // The blast runs after the publish has committed and never throws — a mail
 // outage leaves the issue published and comes back as a reported failure count,
@@ -142,27 +150,38 @@ export type PublishResult =
 export async function publishIssueAction(
   id: string,
   sendEmail: boolean,
+  number: unknown,
 ): Promise<PublishResult> {
   await requireAdmin();
   const parsedId = idSchema.safeParse(id);
   const parsedSend = z.boolean().safeParse(sendEmail);
-  if (!parsedId.success || !parsedSend.success) return { ok: false };
+  const parsedNumber = issueNumberSchema.safeParse(number);
+  if (!parsedId.success || !parsedSend.success || !parsedNumber.success) {
+    return { ok: false, reason: "invalid" };
+  }
 
-  await publishIssue(parsedId.data);
+  const published = await publishIssue(parsedId.data, parsedNumber.data);
+  if (!published.ok) {
+    return published.reason === "taken"
+      ? { ok: false, reason: "taken", suggested: await nextIssueNumber() }
+      : { ok: false, reason: "failed" };
+  }
   revalidatePath("/admin");
   revalidatePath("/");
 
-  if (!parsedSend.data) return { ok: true, emailed: null };
+  if (!parsedSend.data) {
+    return { ok: true, number: published.number, emailed: null };
+  }
 
   const issue = await getIssue(parsedId.data);
-  if (!issue) return { ok: false };
+  if (!issue) return { ok: false, reason: "failed" };
 
   // Absolute origin for the emailed links: prefer the configured canonical URL
   // (members may reach a different host than the admin did), fall back to the
   // request's own Host when APP_URL is unset (dev).
   const origin = env.APP_URL ?? originFromHeaders(await headers());
-  const emailed = await sendIssueBlast(issue.number, issue.title, origin);
-  return { ok: true, emailed };
+  const emailed = await sendIssueBlast(published.number, issue.title, origin);
+  return { ok: true, number: published.number, emailed };
 }
 
 function originFromHeaders(h: Headers): string {

@@ -31,7 +31,15 @@ export function SectionPublishing() {
       <PublishFigure />
       <PublishModalFigure />
       <Steps>
-        <Step n={1} title="The tickbox decides">
+        <Step n={1} title="The number is chosen here">
+          A draft has no number until now. The window offers the next one in the
+          sequence — change it if you&rsquo;re adding an older edition out of
+          order. If someone else has just used that number you&rsquo;ll be told
+          and offered a free one, and nothing will have been published.
+          Publishing the same issue again shows its number but won&rsquo;t let
+          you change it: members may already have the link.
+        </Step>
+        <Step n={2} title="The tickbox decides">
           Ticked, publishing also emails the club; unticked, the issue quietly
           appears in the library and nobody is emailed.{" "}
           <strong>
@@ -42,12 +50,12 @@ export function SectionPublishing() {
           typo), it starts <strong>unticked</strong>, so a small correction
           can&rsquo;t accidentally email the whole club twice.
         </Step>
-        <Step n={2} title="The small print tells you the reach">
+        <Step n={3} title="The small print tells you the reach">
           The line under the tickbox always says exactly how many subscribed
           members would be emailed. If it&rsquo;s ticked and that number
           surprises you, stop and check the Members screen first.
         </Step>
-        <Step n={3} title="The buttons say what will happen">
+        <Step n={4} title="The buttons say what will happen">
           &ldquo;Keep as draft&rdquo; backs out without doing anything. The
           green button&rsquo;s label matches the tickbox — it reads
           &ldquo;Publish &amp; send&rdquo; only when email will actually go out.

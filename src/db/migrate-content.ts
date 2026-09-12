@@ -34,7 +34,10 @@ function upgrade(content: {
       return { ...block, text: stringToDoc(block.text) };
     }),
   }));
-  return { content: { ...content, version: CONTENT_VERSION, pages }, converted };
+  return {
+    content: { ...content, version: CONTENT_VERSION, pages },
+    converted,
+  };
 }
 
 async function main() {
@@ -67,7 +70,7 @@ async function main() {
     const parsed = issueContentSchema.safeParse(content);
     if (!parsed.success) {
       console.error(
-        `Issue #${row.number} (${row.id}) failed validation:`,
+        `Issue ${row.number === null ? "(draft)" : `#${row.number}`} (${row.id}) failed validation:`,
         parsed.error.issues.slice(0, 3),
       );
       throw new Error("Aborting: a converted document did not validate.");

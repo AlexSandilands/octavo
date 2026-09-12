@@ -133,6 +133,8 @@ export const cover = (blocks: Block[]): Page => ({
 
 export type { SeedImages } from "./images";
 
+// Every seeded issue is published, which is the only state a `number` means
+// anything in (issue #270) — a draft would carry null.
 export type SeedIssue = {
   number: number;
   title: string;
