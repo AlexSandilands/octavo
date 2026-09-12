@@ -121,7 +121,13 @@ export function PageFrame({
             issueNo,
             side,
             magazineName: settings.name,
-            showMasthead: cover ? coverMasthead : undefined,
+            // One flag, not two (issue #269): the owner's site-wide switch may
+            // veto the running head, and the page's own flag decides the rest.
+            showMasthead: settings.showRunningHead
+              ? cover
+                ? coverMasthead
+                : undefined
+              : false,
           })}
         </div>
       )}

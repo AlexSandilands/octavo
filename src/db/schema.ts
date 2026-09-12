@@ -216,6 +216,11 @@ export const settings = pgTable(
     footerMarkSize: integer("footer_mark_size"),
     footerTextSize: integer("footer_text_size"),
     footerAlign: text("footer_align").$type<FooterAlign>(),
+    // Whether a theme may draw its textual running head — the magazine name and
+    // issue number above the page content (issue #269). Nullable like every
+    // column here, so an untouched deployment resolves to the shipped default
+    // (shown).
+    showRunningHead: boolean("show_running_head"),
     // Whether members are offered the PDF download (issue #162). Nullable like
     // every column above it — NULL is "not configured", which resolves to the
     // shipped default (enabled), so a deployment that never opens the page keeps
