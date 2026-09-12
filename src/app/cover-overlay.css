@@ -1,0 +1,40 @@
+/* Cover treatments change contrast, never the magazine's type or ornaments.
+   The resolved appearance (`appearanceVars`) sets these inline on every
+   composition and item; this is only the fallback beneath it. */
+.cover-composition,
+.cover-treatment {
+  --cover-ink: var(--color-page);
+  --cover-shadow: none;
+}
+.cover-overlay-layout {
+  justify-content: center;
+}
+[data-cover-position="top"] > .cover-overlay-layout {
+  justify-content: flex-start;
+}
+[data-cover-position="bottom"] > .cover-overlay-layout {
+  justify-content: flex-end;
+}
+.cover-overlay-content > :last-child {
+  margin-bottom: 0 !important;
+}
+[data-cover-panel="true"] > .cover-overlay-layout > .cover-overlay-content {
+  padding: 24px;
+  background: var(--cover-background, var(--color-page));
+}
+.cover-composition [data-cover-copy] {
+  color: var(--cover-ink);
+  text-shadow: var(--cover-shadow);
+}
+.cover-composition figcaption {
+  color: var(--cover-ink);
+  text-shadow: var(--cover-shadow);
+}
+.cover-composition [data-cover-rule] {
+  background: var(--cover-ink);
+}
+/* Sponsor logos and their house colours keep their own paper surface. */
+.cover-composition [data-cover-sponsor] {
+  background: var(--color-page);
+  text-shadow: none;
+}

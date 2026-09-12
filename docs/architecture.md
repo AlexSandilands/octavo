@@ -109,6 +109,69 @@ showing the page underneath instead of the sheet's own content. `PageBlocks`/`Bl
 face copies (and the crack-fix copy) don't, and are `aria-hidden` too, so a screen reader doesn't
 meet a dozen copies of one page mid-turn.
 
+**Full-image covers** share `PageContent` across the editor, desktop reader, thumbnail and print
+renderers. It places the Fill/Fit photo behind the cover blocks without changing their stored
+order. Page-level appearance now chooses a panel or no background, palette/custom colours,
+and independent text/shadow colours and strength. The six older contrast presets are resolved
+as backward-compatible defaults. Per-element appearance can inherit the cover or override it.
+`cover-overlay.css` retains the magazine typography. The mobile reader uses `MobileCover` for the same composition in a reflowing
+viewport beneath the header (growing for larger text). Interior full-page images keep their
+image-only behaviour. Content is never silently removed: on a grid cover the inspector's layout
+checks name anything that runs past the margin; legacy stacked covers keep the on-page overflow
+marker. `EditorToolbar` offers a cover-specific set on covers: Heading, Text, Image, Add detail
+(story preview, contents list, issue details), and Logo. A floating rounded inspector
+sits over the stage on its docked side; the fit leaves room for it, the page slides away from it
+only as far as the two would otherwise meet (eased), and a page panned towards it shows through
+beneath. Its header grip drags
+it to either side of the page (a plain press flips it; the side is remembered per browser in
+`use-panel-dock.ts`). The inspector holds whole-item settings in titled bands — Placement, Appearance,
+the item's content — plus the cover's defaults and page toggles when nothing is selected, and a
+"Needs attention" list of layout checks that name the item(s) concerned: pointing at one lights the
+item up on the page, pressing it selects it. Cover menus use viewport-constrained portals so
+inspector scrolling cannot clip their options. Colour rows are the magazine palette plus one custom
+swatch; the native colour input is a 1px anchor at the row's left edge, opened from the swatch, so
+the browser's picker opens over the row rather than off the edge of the screen.
+
+Cover text uses an inline-only Tiptap editor on the page and in detail fields. Formatting for the
+selected words — bold, italic, underline, a colour and a shadow — is a floating bar over the selected
+item (`CoverTextToolbar`), the same split the body-text blocks make on ordinary pages; whole-item
+appearance stays in the inspector. The bar finds its editor through `CoverTextProvider`: the focused
+editor, else the selected item's first text field. `cover-rich-text.ts` bounds and validates
+the document, and `CoverRichText` renders React elements in readers/thumbnails/print; editor code does
+not enter the reader bundle. Plain fields remain the source for headings/references; matching rich
+field documents carry only cover formatting, and stale documents never override renamed text.
+
+**Optional cover elements** are defined in `lib/cover-elements.ts`. `CoverGrid` anchors groups to
+left/centre/right and top/middle/bottom, stacking entries that share an anchor. `CoverElementView`
+renders preview lists, individual teasers, issue details and logos across the editor, reader,
+thumbnail and PDF. `coverSources` derives section titles and page numbers from live headings;
+only an explicitly authored cover title overrides that reference. Logos use the ordinary ImageMap
+and asset reference traversal, with an additional library deletion guard. Heading/text blocks
+can independently opt into `coverPlacement`; otherwise their original cover flow remains.
+`MobileCover` uses the same entries in row/column reading order, reflowing to a full-width column
+at the member's text size. Direct canvas selection controls the inspector target, including existing
+headings, text and images. A photo on the cover takes its size as the entry's width, so its frame,
+panel and selection box hug the picture, and it takes no panel unless one is asked for
+(`itemAppearance` in `cover-order.ts` is the one resolver for what an item paints with). Overlapping
+items stack by an optional `layer` on the placement (`--cover-layer` → `z-index`), stepped with the
+Bring forward / Send backward controls beside a selected item. A separate text-size preset scales
+heading/text/detail typography without changing
+wrapping width; both fixed-page renderers and the reflowing phone reader apply it. The cover
+decoration toggle passes through `PageFrame` in the editor, reader, thumbnail and PDF; the
+phone reader continues its unframed layout. A separate masthead toggle hides the automatic
+magazine name and issue number while keeping the frame; only themes declaring `hasMasthead`
+offer it, and interior pages retain their running heads. The inspector has its own stacking layer so the
+canvas cannot paint over its soft shadow. Every text item uses the same position grid; legacy cover-flow positions are read as fallback
+anchors, with no separate flow controls. `cover-order.ts` supplies shared ordering: a drop joins the
+target anchor and saves placement order across headings, text, inline images and details. Cover sorting
+reuses the normal vertical-list displacement within each anchor. Crossing anchors previews the space
+opening in the destination stack and closing in the source stack; unrelated pinned groups stay put.
+The sortable frame includes contrast-panel padding, so panels and content move together. Canvas handles support
+pointer/keyboard dragging, with move and delete buttons matching ordinary blocks. New headings and
+text join the central stack. Logo frames use intrinsic image width plus panel padding.
+Measurements flag collisions and out-of-margin content. Elements are optional on both plain and photographic covers, and all edits share history
+and autosave.
+
 **Pagination happens once, in the editor.** Content never reflows at read time — a page is a fixed
 canvas, and what the author placed is what every reader and the PDF get. So when a page overruns,
 the _editor_ fixes it, explicitly: the canvas is measured where it is laid out
@@ -314,7 +377,8 @@ footer sizes its pages were laid out against — `issues.footerMarkSize` / `foot
 `settingsForIssue(settings, issue)` ([`src/lib/branding.ts`](../src/lib/branding.ts)) instead of
 using the global footer directly: reader, mobile closer, editor canvas, the print document,
 and the PDF cache key's chrome fingerprint. Covers omit the running footer in every page
-renderer, including thumbnails, while retaining theme decoration. Full-bleed pages omit both.
+renderer, including thumbnails. Covers retain theme decoration unless disabled in cover settings;
+full-bleed covers default to no decoration but allow an explicit override. Interior full-bleed pages omit both.
 A _smaller_ footer always applies at once (it can only free space); a larger one applies to the issues with room for it and waits on the rest
 until the author adopts it in the editor, where the overflow marker catches what no longer fits
 (`adoptFooterAction`). There is no room to solve this by growing the footer downward instead — the

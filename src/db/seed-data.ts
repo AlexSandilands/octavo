@@ -17,6 +17,7 @@ import { issue02 } from "./seed/issue-02";
 import { issue03 } from "./seed/issue-03";
 import { issue04 } from "./seed/issue-04";
 import { issue05 } from "./seed/issue-05";
+import { withCoverElements } from "./seed/cover-elements";
 import { issue06 } from "./seed/issue-06";
 
 export function buildIssues(img: SeedImages): SeedIssue[] {
@@ -26,6 +27,6 @@ export function buildIssues(img: SeedImages): SeedIssue[] {
     issue03(img),
     issue04(img),
     issue05(img),
-    issue06(img),
+    withCoverElements(issue06(img)),
   ];
 }

@@ -1,3 +1,4 @@
+import { coverSources } from "@/lib/cover-elements";
 import { z } from "zod";
 import { ADMIN_LIST_PAGE } from "@/components/admin-list-layout";
 import { Button } from "@/components/ui";
@@ -81,6 +82,7 @@ export default async function AdminDashboard({
       thumb: cover ? (
         <CoverThumb
           page={cover}
+          sources={coverSources(i.content.pages)}
           theme={i.theme}
           images={coverImages}
           sponsors={coverSponsors}

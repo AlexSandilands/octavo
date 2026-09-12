@@ -62,6 +62,34 @@ const ICONS: Record<string, ReactNode> = {
     </>
   ),
   heading: <path d="M6 4v16M18 4v16M6 12h12" />,
+  layerUp: (
+    <>
+      <path d="M9 8V5.5A1.5 1.5 0 0110.5 4h8A1.5 1.5 0 0120 5.5v8a1.5 1.5 0 01-1.5 1.5H16" />
+      <rect
+        x="4"
+        y="9"
+        width="11"
+        height="11"
+        rx="1.5"
+        fill="currentColor"
+        stroke="none"
+      />
+    </>
+  ),
+  layerDown: (
+    <>
+      <rect
+        x="4"
+        y="4"
+        width="11"
+        height="11"
+        rx="1.5"
+        fill="currentColor"
+        stroke="none"
+      />
+      <path d="M9 15v3.5a1.5 1.5 0 001.5 1.5h8a1.5 1.5 0 001.5-1.5v-8A1.5 1.5 0 0018.5 9H15" />
+    </>
+  ),
   grip: (
     <>
       <circle cx="9" cy="6" r="1.1" fill="currentColor" stroke="none" />

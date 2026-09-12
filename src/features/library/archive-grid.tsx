@@ -1,3 +1,4 @@
+import { coverSources, type CoverSource } from "@/lib/cover-elements";
 import Link from "next/link";
 import { Label } from "@/components/ui";
 import { coverPageOf, type Page } from "@/lib/blocks";
@@ -27,6 +28,7 @@ type ArchiveItem = {
   publishedAt: Date | null;
   theme: string;
   cover?: Page;
+  sources: CoverSource[];
 };
 
 // Issue rows as shelf cards — one mapping for the home page and /archive, so
@@ -39,6 +41,7 @@ export function toArchiveItems(rows: IssueRow[]): ArchiveItem[] {
     publishedAt: i.publishedAt,
     theme: i.theme,
     cover: coverPageOf(i.content),
+    sources: coverSources(i.content.pages),
   }));
 }
 
@@ -148,6 +151,7 @@ function ArchiveCard({
         {a.cover ? (
           <CoverThumb
             page={a.cover}
+            sources={a.sources}
             theme={a.theme}
             images={images}
             sponsors={sponsors}

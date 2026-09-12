@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { type IssueContent } from "@/lib/blocks";
 import {
   DndContext,
@@ -9,6 +8,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  type CollisionDetection,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { footerHeldBack } from "@/lib/branding";
@@ -16,6 +16,7 @@ import type { FooterReserve, FooterStyle, SiteSettings } from "@/lib/branding";
 import type { ImageMap } from "@/lib/images";
 import type { LogoListItem } from "@/lib/logos";
 import type { SponsorListItem, SponsorMap } from "@/lib/sponsors";
+import { coverSources } from "@/lib/cover-elements";
 import {
   enabledThemes,
   getTheme,
@@ -25,15 +26,20 @@ import {
 import { pageFillsCanvas } from "@/features/blocks/layout";
 import { useEditorPages } from "./use-editor-pages";
 import { usePdfInsertion } from "./pdf-import/use-pdf-insertion";
-import { dragOutCollision } from "./pdf-import/drag-out";
+import { dragOutCollision, isPdfDrag } from "./pdf-import/drag-out";
 import {
   DragOutGhost,
   usePdfDragOut,
   type DropHandler,
 } from "./use-pdf-drag-out";
+import {
+  coverCollisionDetection,
+  coverKeyboardCoordinates,
+} from "./cover-drag";
+import { CoverTextProvider } from "./cover-text-context";
+import { usePanelDock } from "./use-panel-dock";
 import { EditorStage } from "./editor-stage";
 import { EditorSide } from "./editor-side";
-import { reportEditorError } from "./report-error";
 import { PageRail } from "./page-rail";
 import { PublishModal } from "./publish-modal";
 import { EditorHeader } from "./editor-header";
@@ -41,8 +47,7 @@ import { EditorToolbar } from "./editor-toolbar";
 import { useBarLayout } from "./use-bar-layout";
 import { FooterUpdateNotice } from "./footer-update-notice";
 import { useEditorAutosave } from "./use-editor-autosave";
-import { publishIssueAction } from "@/app/admin/actions";
-
+import { useEditorFlows } from "./use-editor-flows";
 import type { EditorTool } from "./side-panel/tool-rail";
 import { usePanelWidth } from "./side-panel/use-panel-width";
 
@@ -112,6 +117,11 @@ export function Editor({
     redo,
     selectPage,
     toggleCover,
+    updateCoverOverlay,
+    addCoverElement,
+    updateCoverElement,
+    removeCoverElement,
+    moveCoverElement,
     addBlock,
     updateBlock,
     moveBlock,
@@ -152,7 +162,8 @@ export function Editor({
   // Once published (now or on load), the publish modal defaults email OFF so a
   // later correction can't re-blast the list.
   const [published, setPublished] = useState(issue.status === "published");
-  const router = useRouter();
+  // Items a pointed-at layout warning is lighting up on the page.
+  const [hint, setHint] = useState<string[]>([]);
 
   const { status, setStatus, enqueueSave, flushSave } = useEditorAutosave({
     issueId: issue.id,
@@ -161,6 +172,12 @@ export function Editor({
     title,
     theme: themeId,
     logoId,
+  });
+  const flows = useEditorFlows({
+    issueId: issue.id,
+    flushSave,
+    onSaveError: () => setStatus("error"),
+    onPublished: () => setPublished(true),
   });
 
   const importer = usePdfInsertion({
@@ -181,18 +198,32 @@ export function Editor({
 
   // Drag from the handle, or move with the keyboard once the handle is focused.
   // A small distance threshold lets a plain click on the handle still select.
-  // Blocks and PDF regions alike lift after a short travel (`drag-out.ts`).
+  // Blocks and PDF regions alike lift after a short travel (`drag-out.ts`); on
+  // a cover the anchors, not a list, decide where a keyboard move lands.
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
+      coordinateGetter: page?.cover
+        ? coverKeyboardCoordinates
+        : sortableKeyboardCoordinates,
     }),
   );
+  // A PDF region in hand keeps its own targeting; cover items drop onto the
+  // item under the pointer; ordinary blocks sort by nearest centre.
+  const collision: CollisionDetection = (args) =>
+    isPdfDrag(args.active.id) || !page?.cover
+      ? dragOutCollision(args)
+      : coverCollisionDetection(args);
 
   const theme = getTheme(themeId);
   // This page is owned by a full-bleed photo (issue #227): no page furniture,
-  // and nothing else may be added to it.
+  // and nothing else may be added to it — except on a cover, whose content
+  // overlays the photo.
   const filled = pageFillsCanvas(page);
+  const showCoverTools = Boolean(page?.cover || page?.coverElements?.length);
+  // Section titles the cover can reference; derived once per change of pages.
+  const sources = useMemo(() => coverSources(pages), [pages]);
+  const docking = usePanelDock();
   // A region dragged out of the PDF panel: previewed in place on this page and,
   // dropped, added through the panel's own Add (it sets `dropRef`).
   const dropRef = useRef<DropHandler | null>(null);
@@ -209,171 +240,161 @@ export function Editor({
   const footerBehind = footerHeldBack(magazineFooter, issue);
 
   return (
-    <div
-      className="bg-card relative flex h-dvh flex-col"
-      data-import-pending={importer.pending}
-    >
-      <div inert={importer.pending}>
-        <EditorHeader
-          title={title}
-          onTitleChange={setTitle}
-          issueNumber={issue.number}
-          themes={themes}
-          themeId={themeId}
-          onSelectTheme={setThemeId}
-          logos={logos}
-          logoId={logoId}
-          onSelectLogo={setLogoId}
-          status={status}
-          onRetrySave={() => void enqueueSave("all")}
-          onReload={() => window.location.reload()}
-          onPreview={async () => {
-            // Open the preview in a new tab so the editor stays mounted with its
-            // unsaved in-memory state — closing the tab returns you to the editor
-            // exactly as you left it (no stale back-navigation render). The blank
-            // tab is opened in the click gesture to dodge popup blockers, then
-            // pointed at the reader once the save lands.
-            const tab = window.open("", "_blank");
-            const ok = await flushSave();
-            if (!ok) {
-              // The save didn't land (status pill shows why) — don't preview
-              // stale content.
-              tab?.close();
-              return;
-            }
-            // Preview by internal id under /admin: drafts are never served from
-            // the public /read route (published issues only).
-            const url = `/admin/issues/${issue.id}/preview`;
-            if (tab) tab.location.href = url;
-            else router.push(url);
-          }}
-          onPublish={() => setPub(true)}
-        />
-      </div>
-      <DndContext
-        sensors={sensors}
-        collisionDetection={dragOutCollision}
-        onDragStart={dragOut.onDragStart}
-        onDragMove={dragOut.onDragMove}
-        onDragEnd={(e) => {
-          if (!dragOut.onDragEnd(e)) onDragEnd(e);
-        }}
-        onDragCancel={dragOut.onDragCancel}
+    <CoverTextProvider selectedId={sel}>
+      <div
+        className="bg-card relative flex h-dvh flex-col"
+        data-import-pending={importer.pending}
       >
-        <div ref={rowRef} className="flex flex-1 overflow-hidden">
-          <div inert={importer.pending} className="flex">
-            <PageRail
-              pages={pages}
-              curPage={curPage}
-              addMenu={addMenu}
-              onSelectPage={selectPage}
-              onReorder={reorderPages}
-              onAddPage={addPage}
-              onDeletePage={deletePage}
-              onToggleAddMenu={() => setAddMenu((v) => !v)}
-              onCloseAddMenu={() => setAddMenu(false)}
-            />
-          </div>
-          <div
-            ref={columnRef}
-            inert={importer.pending}
-            className="bg-canvas relative flex min-w-0 flex-1 flex-col overflow-hidden"
-          >
-            {footerBehind && page && !page.cover && !filled && (
-              <FooterUpdateNotice issueId={issue.id} flushSave={flushSave} />
-            )}
-
-            <EditorStage
-              issueId={issue.id}
-              issueNo={issue.number}
-              page={page}
-              curPage={curPage}
-              sel={sel}
-              theme={theme}
-              logo={logo}
-              settings={settings}
-              filled={filled}
-              barStanding={barLayout === "vertical"}
-              images={images}
-              sponsors={sponsors}
-              sponsorMap={sponsorMap}
-              reseed={reseed}
-              preview={dragOut.preview}
-              onSelect={setSel}
-              actions={{
-                updateBlock,
-                moveBlock,
-                removeBlock,
-                fillPage,
-                flowText,
-                moveToNextPage,
-                registerImage: (imageId, image) =>
-                  setImages((m) => ({ ...m, [imageId]: image })),
-              }}
-            />
-
-            <EditorToolbar
-              layout={barLayout}
-              onAddBlock={addBlock}
-              insertDisabled={filled}
-              onToggleCover={toggleCover}
-              coverDisabled={curPage === 0}
-              coverActive={Boolean(page?.cover)}
-              canUndo={canUndo}
-              canRedo={canRedo}
-              onUndo={undo}
-              onRedo={redo}
-              notice={historyNotice}
-            />
-          </div>
-          <EditorSide
-            tool={tool}
-            onToggle={(next) => setTool(tool === next ? null : next)}
-            onClose={() => setTool(null)}
-            pending={importer.pending}
-            panel={panel}
-            pages={pages}
-            onAdd={importer.add}
-            dropRef={dropRef}
+        <div inert={importer.pending}>
+          <EditorHeader
+            title={title}
+            onTitleChange={setTitle}
+            issueNumber={issue.number}
+            themes={themes}
+            themeId={themeId}
+            onSelectTheme={setThemeId}
+            logos={logos}
+            logoId={logoId}
+            onSelectLogo={setLogoId}
+            status={status}
+            onRetrySave={() => void enqueueSave("all")}
+            onReload={() => window.location.reload()}
+            onPreview={flows.preview}
+            onPublish={() => setPub(true)}
           />
         </div>
-        <DragOutGhost
-          dragOut={dragOut}
-          page={page}
-          curPage={curPage}
-          filled={filled}
-        />
-      </DndContext>
-
-      {pub && (
-        <PublishModal
-          number={issue.number}
-          subscriberCount={subscriberCount}
-          alreadyPublished={published}
-          onClose={() => setPub(false)}
-          onPublish={async (sendEmail) => {
-            try {
-              // Flush the latest edits first; publishing stale content would
-              // ship the wrong issue. A failed flush surfaces in the status
-              // pill and blocks the publish.
-              const ok = await flushSave();
-              if (!ok) return { ok: false };
-              const res = await publishIssueAction(issue.id, sendEmail);
-              if (res.ok) {
-                setPublished(true);
-              } else setStatus("error");
-              return res;
-            } catch (error) {
-              reportEditorError(error, "publish", {
-                issueId: issue.id,
-                sendEmail,
-              });
-              setStatus("error");
-              return { ok: false };
-            }
+        <DndContext
+          sensors={sensors}
+          collisionDetection={collision}
+          onDragStart={dragOut.onDragStart}
+          onDragMove={dragOut.onDragMove}
+          onDragEnd={(e) => {
+            if (!dragOut.onDragEnd(e)) onDragEnd(e);
           }}
-        />
-      )}
-    </div>
+          onDragCancel={dragOut.onDragCancel}
+        >
+          <div ref={rowRef} className="flex flex-1 overflow-hidden">
+            <div inert={importer.pending} className="flex">
+              <PageRail
+                pages={pages}
+                curPage={curPage}
+                addMenu={addMenu}
+                onSelectPage={selectPage}
+                onReorder={reorderPages}
+                onAddPage={addPage}
+                onDeletePage={deletePage}
+                onToggleAddMenu={() => setAddMenu((v) => !v)}
+                onCloseAddMenu={() => setAddMenu(false)}
+              />
+            </div>
+            <div
+              ref={columnRef}
+              inert={importer.pending}
+              className="bg-canvas relative flex min-w-0 flex-1 flex-col overflow-hidden"
+            >
+              {/* Not while the inspector is up: it spans the stage's height. */}
+              {footerBehind &&
+                page &&
+                !page.cover &&
+                !filled &&
+                !showCoverTools && (
+                  <FooterUpdateNotice
+                    issueId={issue.id}
+                    flushSave={flushSave}
+                  />
+                )}
+
+              <EditorStage
+                issueId={issue.id}
+                issueNo={issue.number}
+                page={page}
+                curPage={curPage}
+                sel={sel}
+                theme={theme}
+                logo={logo}
+                settings={settings}
+                filled={filled}
+                barStanding={barLayout === "vertical"}
+                images={images}
+                sponsors={sponsors}
+                sponsorMap={sponsorMap}
+                reseed={reseed}
+                preview={dragOut.preview}
+                onSelect={setSel}
+                actions={{
+                  updateBlock,
+                  moveBlock,
+                  removeBlock,
+                  fillPage,
+                  flowText,
+                  moveToNextPage,
+                  registerImage: (imageId, image) =>
+                    setImages((m) => ({ ...m, [imageId]: image })),
+                }}
+                cover={
+                  showCoverTools
+                    ? {
+                        pages,
+                        sources,
+                        logos,
+                        hasMasthead: theme.page.hasMasthead,
+                        hint,
+                        onHint: setHint,
+                        docking,
+                        updateOverlay: updateCoverOverlay,
+                        updateElement: updateCoverElement,
+                        removeElement: removeCoverElement,
+                        moveElement: moveCoverElement,
+                      }
+                    : undefined
+                }
+              />
+
+              <EditorToolbar
+                layout={barLayout}
+                onAddBlock={addBlock}
+                insertDisabled={filled && !page?.cover}
+                onToggleCover={toggleCover}
+                coverDisabled={curPage === 0}
+                coverActive={Boolean(page?.cover)}
+                canUndo={canUndo}
+                canRedo={canRedo}
+                onUndo={undo}
+                onRedo={redo}
+                notice={historyNotice}
+                onAddCoverElement={addCoverElement}
+                coverElementCount={page?.coverElements?.length ?? 0}
+              />
+            </div>
+            <EditorSide
+              tool={tool}
+              onToggle={(next) => setTool(tool === next ? null : next)}
+              onClose={() => setTool(null)}
+              pending={importer.pending}
+              panel={panel}
+              pages={pages}
+              onAdd={importer.add}
+              dropRef={dropRef}
+            />
+          </div>
+          <DragOutGhost
+            dragOut={dragOut}
+            page={page}
+            curPage={curPage}
+            filled={filled}
+          />
+        </DndContext>
+
+        {pub && (
+          <PublishModal
+            number={issue.number}
+            subscriberCount={subscriberCount}
+            alreadyPublished={published}
+            onClose={() => setPub(false)}
+            onPublish={flows.publish}
+          />
+        )}
+      </div>
+    </CoverTextProvider>
   );
 }

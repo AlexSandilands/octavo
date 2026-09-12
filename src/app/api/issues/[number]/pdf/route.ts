@@ -114,7 +114,10 @@ const themeSchema = z
 // the key merely learned an input it was always missing, and adding the segment
 // re-keys every cached PDF exactly once by itself. A bump would only discard the
 // same objects twice over.
-const RENDER_VERSION = 12;
+// v13 onward: full-page cover photos, positioned cover elements and their
+// follow-ups (issue #243 and after) — each visible change to the cover
+// renderer bumped it.
+const RENDER_VERSION = 20;
 
 // Percent-encode for an RFC 8187 ext-value (the `filename*=UTF-8''…` form).
 // Only attr-char may appear bare there: ALPHA / DIGIT / "!" / "#" / "$" / "&" /
