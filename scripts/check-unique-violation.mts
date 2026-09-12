@@ -1,0 +1,143 @@
+// Dev-only: checks that `isUniqueViolation` (src/server/issues.ts) recognises a
+// real SQLSTATE 23505 as drizzle 1.0 throws it — wrapped in a DrizzleQueryError
+// with the driver error on `.cause` — and that createIssue's retry-on-collision
+// loop therefore retries instead of throwing (issue #271). Needs DATABASE_URL;
+// every write happens inside a transaction that is rolled back, so it leaves no
+// rows behind.
+// Run: npx tsx --tsconfig scripts/tsconfig.json scripts/check-unique-violation.mts
+import { existsSync } from "node:fs";
+import { DrizzleQueryError } from "drizzle-orm/errors";
+import { inArray, sql } from "drizzle-orm";
+import { db } from "../src/db/index.ts";
+import { issues } from "../src/db/schema.ts";
+import { emptyIssueContent } from "../src/lib/blocks.ts";
+import { isUniqueViolation } from "../src/server/issues.ts";
+
+for (const file of [".env.local", ".env"]) {
+  if (existsSync(file)) process.loadEnvFile(file);
+}
+
+const ok = (cond: unknown, msg: string) => {
+  if (!cond) throw new Error(`FAIL: ${msg}`);
+  console.log(`ok — ${msg}`);
+};
+
+// The check the fix replaced: top-level `code` only. Kept here to show the
+// wrapped error really did slip past it.
+const topLevelOnly = (err: unknown) =>
+  typeof err === "object" &&
+  err !== null &&
+  "code" in err &&
+  (err as { code?: unknown }).code === "23505";
+
+console.log("\n— hand-built errors —");
+ok(
+  isUniqueViolation(
+    new DrizzleQueryError("insert …", [], {
+      code: "23505",
+    } as unknown as Error),
+  ),
+  "DrizzleQueryError with cause.code 23505 → true",
+);
+ok(
+  isUniqueViolation(
+    Object.assign(new Error("duplicate key"), { code: "23505" }),
+  ),
+  "bare driver error with code 23505 → true",
+);
+ok(
+  isUniqueViolation(
+    new Error("a", {
+      cause: new Error("b", {
+        cause: Object.assign(new Error("c"), { code: "23505" }),
+      }),
+    }),
+  ),
+  "23505 two levels down the cause chain → true",
+);
+ok(
+  !isUniqueViolation(
+    new DrizzleQueryError(
+      "insert …",
+      [],
+      Object.assign(new Error("fk"), { code: "23503" }),
+    ),
+  ),
+  "foreign-key violation (23503) → false",
+);
+ok(!isUniqueViolation(new Error("plain")), "unrelated error → false");
+ok(
+  !isUniqueViolation(undefined) && !isUniqueViolation(null),
+  "nullish → false",
+);
+
+console.log("\n— a real violation through drizzle —");
+class Rollback extends Error {}
+
+// Mirrors createIssue's INSERT for a fixed number.
+const insertNumbered = (
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  number: number,
+) =>
+  tx.insert(issues).values({
+    number,
+    title: "issue #271 check (rolled back)",
+    theme: "classic",
+    status: "draft",
+    content: emptyIssueContent(),
+  });
+
+const [maxRow] = await db
+  .select({ max: sql<number | null>`coalesce(max(${issues.number}), 0)` })
+  .from(issues);
+const taken = (maxRow?.max ?? 0) + 1000;
+const fresh = taken + 1;
+
+let caught: unknown;
+let attempts = 0;
+let landedOn: number | null = null;
+
+try {
+  await db.transaction(async (tx) => {
+    await insertNumbered(tx, taken); // the number a concurrent create won
+    // createIssue's loop, one savepoint per attempt so a failed insert doesn't
+    // abort the whole transaction.
+    for (const number of [taken, fresh]) {
+      attempts++;
+      try {
+        await tx.transaction(async (sp) => {
+          await insertNumbered(sp, number);
+        });
+        landedOn = number;
+        break;
+      } catch (err) {
+        caught = err;
+        if (attempts >= 2 || !isUniqueViolation(err)) throw err;
+      }
+    }
+    throw new Rollback();
+  });
+} catch (err) {
+  if (!(err instanceof Rollback)) throw err;
+}
+
+ok(caught instanceof Error, `the collision threw ${caught?.constructor.name}`);
+ok(
+  !topLevelOnly(caught),
+  "the old top-level `code` check missed it (the bug in #271)",
+);
+ok(isUniqueViolation(caught), "isUniqueViolation recognises it → true");
+ok(
+  attempts === 2,
+  `the retry loop ran a second attempt (attempts: ${attempts})`,
+);
+ok(landedOn === fresh, `the retry landed on the fresh number ${landedOn}`);
+
+const leftovers = await db
+  .select({ number: issues.number })
+  .from(issues)
+  .where(inArray(issues.number, [taken, fresh]));
+ok(leftovers.length === 0, "the transaction rolled back — no rows left behind");
+
+console.log("\nall checks passed");
+process.exit(0);
