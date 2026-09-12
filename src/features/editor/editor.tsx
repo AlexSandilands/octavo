@@ -44,7 +44,12 @@ import { PageRail } from "./page-rail";
 import { PublishModal } from "./publish-modal";
 import { EditorHeader } from "./editor-header";
 import { EditorToolbar } from "./editor-toolbar";
-import { useBarLayout } from "./use-bar-layout";
+import { TOOLBAR_RESERVE } from "./floating-bar";
+import {
+  barLayoutAtPosition,
+  useBarLayout,
+  type BarPosition,
+} from "./use-bar-layout";
 import { FooterUpdateNotice } from "./footer-update-notice";
 import { useEditorAutosave } from "./use-editor-autosave";
 import { useEditorFlows } from "./use-editor-flows";
@@ -157,7 +162,15 @@ export function Editor({
   // The canvas column: its width, not the window's, decides how the tool bar
   // lays out — labels, icons only, or standing at the left edge.
   const columnRef = useRef<HTMLDivElement>(null);
-  const barLayout = useBarLayout(columnRef, { labels: 1000, vertical: 520 });
+  const responsiveBarLayout = useBarLayout(columnRef, {
+    labels: 1000,
+    // The icons-only row (cover tools, the destination toggle) measures
+    // ~533px; switch to standing before a narrower canvas would clip it.
+    vertical: 575,
+  });
+  const [barPosition, setBarPosition] = useState<BarPosition | null>(null);
+  const barLayout = barLayoutAtPosition(responsiveBarLayout, barPosition);
+  const [toolbarReserve, setToolbarReserve] = useState(TOOLBAR_RESERVE);
   const [pub, setPub] = useState(false);
   // Once published (now or on load), the publish modal defaults email OFF so a
   // later correction can't re-blast the list.
@@ -315,6 +328,7 @@ export function Editor({
                 settings={settings}
                 filled={filled}
                 barStanding={barLayout === "vertical"}
+                barReserve={toolbarReserve}
                 images={images}
                 sponsors={sponsors}
                 sponsorMap={sponsorMap}
@@ -361,6 +375,10 @@ export function Editor({
                 canRedo={canRedo}
                 onUndo={undo}
                 onRedo={redo}
+                onTogglePosition={() =>
+                  setBarPosition(barLayout === "vertical" ? "bottom" : "left")
+                }
+                onReserveChange={setToolbarReserve}
                 notice={historyNotice}
                 onAddCoverElement={addCoverElement}
                 coverElementCount={page?.coverElements?.length ?? 0}
