@@ -110,31 +110,21 @@ export function CoverTextToolbar({
           open={open === "colour"}
           onClick={() => toggle("colour")}
         >
-          <span className="flex flex-col items-center leading-none">
-            <span className="font-serif text-[13px] translate-y-px">A</span>
-            <span
-              aria-hidden
-              className="border-hair-warm mt-[3px] h-[3px] w-4 rounded-full border-[0.5px]"
-              style={{ background: colorCss(colour) }}
-            />
-          </span>
+          {/* The current colour as a swatch; a paper ring keeps it legible
+              on the pressed (accent) button. */}
+          <span
+            aria-hidden
+            className="border-hair-warm block h-4 w-4 rounded-full border shadow-[0_0_0_1.5px_var(--color-page)]"
+            style={{ background: colorCss(colour) }}
+          />
         </Tray>
         <Tray
           title="Text shadow"
           open={open === "shadow"}
+          active={shadow !== "none"}
           onClick={() => toggle("shadow")}
         >
-          <span
-            className="font-serif text-[13px]"
-            style={{
-              textShadow:
-                shadow === "none"
-                  ? undefined
-                  : `1px 1px 0 ${colorCss(shadowColour)}`,
-            }}
-          >
-            S
-          </span>
+          Shadow
         </Tray>
         <span className="bg-line h-5 w-px" />
         <TbBtn
@@ -177,15 +167,18 @@ export function CoverTextToolbar({
   );
 }
 
-// A toolbar button that opens a tray below the bar.
+// A toolbar button that opens a tray below the bar. `active` marks a setting
+// that is on for the selection, in the same pressed style as bold or italic.
 function Tray({
   title,
   open,
+  active = false,
   onClick,
   children,
 }: {
   title: string;
   open: boolean;
+  active?: boolean;
   onClick: () => void;
   children: ReactNode;
 }) {
@@ -195,6 +188,7 @@ function Tray({
       title={title}
       aria-label={title}
       aria-expanded={open}
+      aria-pressed={active || undefined}
       aria-haspopup="true"
       onMouseDown={(e) => e.preventDefault()}
       onClick={(e) => {
@@ -202,7 +196,7 @@ function Tray({
         onClick();
       }}
       className={`flex h-7 min-w-7 cursor-pointer items-center justify-center rounded-[6px] px-1.5 font-sans text-[12px] font-semibold transition-colors ${
-        open
+        open || active
           ? "bg-accent text-paper"
           : "text-muted hover:bg-accent-wash hover:text-accent bg-white"
       }`}
