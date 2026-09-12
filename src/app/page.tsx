@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui";
 import { coverPageOf, type Page } from "@/lib/blocks";
-import { getLibraryHome } from "@/server/issues";
+import { getLibraryHome } from "@/server/library";
 import { resolveIssueImages } from "@/server/images";
 import { resolveIssueSponsors } from "@/server/sponsors";
 import { requireMemberOrRedirect } from "@/server/session";

@@ -6,6 +6,7 @@ import { processImage, UnsupportedImageError } from "@/lib/image-processing";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { keyToUrl, putObject, usingLocalStorage } from "@/lib/storage";
 import { createImageRecord } from "@/server/images";
+import { sweepOrphanedObjects } from "@/server/asset-cleanup";
 import { getAdminUser } from "@/server/session";
 
 // Admin image upload. Receives one file as multipart form data, re-encodes it to
@@ -25,7 +26,7 @@ const ACCEPTED = [
 ];
 
 const fieldsSchema = z.object({
-  issueId: z.string().min(1).optional(),
+  issueId: z.string().uuid().optional(),
 });
 
 // Each request re-encodes up to 12 MB through sharp, so throttle per admin even
@@ -144,12 +145,27 @@ export async function POST(request: Request) {
     );
   }
 
-  const record = await createImageRecord({
-    key,
-    width: processed.width,
-    height: processed.height,
-    issueId,
-  });
+  let record;
+  try {
+    record = await createImageRecord({
+      key,
+      width: processed.width,
+      height: processed.height,
+      issueId,
+    });
+  } catch {
+    await sweepOrphanedObjects({
+      keys: [key],
+      context: { route: "admin/images", stage: "record" },
+    });
+    return NextResponse.json(
+      {
+        error:
+          "Could not record the image. Check that the issue still exists and retry.",
+      },
+      { status: 409 },
+    );
+  }
 
   return NextResponse.json({
     imageId: record.id,

@@ -24,6 +24,11 @@ if (dsn) {
     tracesSampleRate: 0,
     sendDefaultPii: false,
     enableLogs: false,
+    // Source PDFs and unaccepted selections are private browser memory.
+    beforeBreadcrumb: (breadcrumb) =>
+      document.querySelector("[data-pdf-private]") ? null : breadcrumb,
+    beforeSend: (event) =>
+      document.querySelector("[data-pdf-private]") ? null : event,
   });
 }
 

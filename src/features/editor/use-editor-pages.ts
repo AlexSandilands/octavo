@@ -244,6 +244,12 @@ export function useEditorPages(content: IssueContent) {
 
   return {
     pages,
+    applyImport: (expected: Page[], next: EditorSnapshot) => {
+      if (expected !== pages) return false;
+      commit();
+      restore(next);
+      return true;
+    },
     curPage,
     setCurPage,
     sel,

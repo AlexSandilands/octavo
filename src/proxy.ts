@@ -108,6 +108,7 @@ function buildCsp(nonce: string): string {
     // inherited from default-src, so no existing request is affected.
     `connect-src 'self'${sentryOrigin ? ` ${sentryOrigin}` : ""}`,
     "font-src 'self'",
+    "worker-src 'self'",
     // The one third-party frame the app may embed: a video block's player
     // (issue #161), and only after the member presses play — the readers show
     // our own stored poster until then. Named exactly, and only the

@@ -91,7 +91,9 @@ export function useCanvasPanZoom(opts: PanZoomOptions) {
 
   const isBlocked = () => Boolean(opts.isBlocked?.());
 
-  // Fit the content to the container (zoom = 1), re-measuring on resize.
+  // Fit the content to the container (zoom = 1), re-measuring on resize and
+  // whenever the content or the margins change (PDF pages differ page to page;
+  // a tool bar standing at the side asks for room there instead of below).
   const measureFit = useEffectEvent(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -108,7 +110,12 @@ export function useCanvasPanZoom(opts: PanZoomOptions) {
     const ro = new ResizeObserver(() => measureFit());
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [
+    opts.contentWidth,
+    opts.contentHeight,
+    opts.fitMargin.x,
+    opts.fitMargin.y,
+  ]);
 
   // Keep at least a sliver of the content on screen so it can't be lost.
   const clampPan = (p: Pan, zoomVal: number): Pan => {
