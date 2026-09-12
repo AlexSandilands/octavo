@@ -356,7 +356,10 @@ export function Editor({
                         pages,
                         sources,
                         logos,
-                        hasMasthead: theme.page.hasMasthead,
+                        // Also off when the owner has hidden the running head
+                        // site-wide (issue #269) — no switch that does nothing.
+                        hasMasthead:
+                          theme.page.hasMasthead && settings.showRunningHead,
                         hint,
                         onHint: setHint,
                         docking,

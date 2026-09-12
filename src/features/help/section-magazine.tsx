@@ -28,16 +28,25 @@ export function SectionMagazine() {
           installed, and the note under the box tells you what that is. Clearing
           a field never leaves the magazine nameless.
         </Step>
-        <Step n={2} title="Page footer — how the foot of a page is set">
-          Three choices that decide the look of the running footer: how big the
-          mark is, how big the wording is, and whether the lockup sits on the
-          left, in the middle or on the right — the page number always takes the
-          opposite margin on both leaves of a spread. Covers and full-page
-          photos have no footer. The phone reader closes the issue with the same
-          mark and wording, without a page number. These settings apply to
-          interior page footers in the reader, editor and PDF, including
-          published issues. Issues with no room for a taller footer keep their
-          smaller one; see the note further down.
+        <Step n={2} title="Page top and footer — how a page is framed">
+          At the top, one switch:{" "}
+          <strong>
+            Show magazine name and issue number at the top of pages
+          </strong>
+          . Leave it on and every page the classic theme frames — covers
+          included — carries the small line of lettering it has always printed
+          above the content; turn it off and only that lettering goes, from
+          every page. The page&rsquo;s borders and the rest of the theme&rsquo;s
+          decoration stay exactly as they were, and a theme that never printed
+          such a line is unaffected. Below it, three choices that decide the
+          look of the running footer: how big the mark is, how big the wording
+          is, and whether the lockup sits on the left, in the middle or on the
+          right — the page number always takes the opposite margin on both
+          leaves of a spread. Covers and full-page photos have no footer. The
+          phone reader closes the issue with the same mark and wording, without
+          a page number. All of it applies to interior pages in the reader,
+          editor and PDF, including published issues. Issues with no room for a
+          taller footer keep their smaller one; see the note further down.
         </Step>
         <Step n={3} title="PDF downloads — whether members can keep a copy">
           One switch: <strong>Let members download issues as a PDF</strong>.
@@ -70,11 +79,11 @@ export function SectionMagazine() {
           separate from Sponsors, which is for other people&rsquo;s businesses.
         </Step>
         <Step n={6} title="Save changes — one button for the lot">
-          The wording, the footer settings and the download switch are one form
-          with one button, so the whole screen commits together. Until you press
-          it nothing has changed anywhere but that preview, and the line beside
-          the button tells you which of the two you are looking at. Once saved,
-          it is live on the site immediately.
+          The wording, the page-top switch, the footer settings and the download
+          switch are one form with one button, so the whole screen commits
+          together. Until you press it nothing has changed anywhere but that
+          preview, and the line beside the button tells you which of the two you
+          are looking at. Once saved, it is live on the site immediately.
         </Step>
       </Steps>
       <Callout title="After you make the footer bigger">

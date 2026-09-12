@@ -231,6 +231,7 @@ const settings: SiteSettings = {
   org: "The Club",
   tagline: "",
   footer: DEFAULT_FOOTER_STYLE,
+  showRunningHead: true,
   pdfDownloads: false,
 };
 
