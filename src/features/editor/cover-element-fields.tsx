@@ -31,7 +31,7 @@ export function CoverElementFields({
   onRegisterImage: (id: string, image: ResolvedImage) => void;
 }) {
   const choices = sources.filter((s) => s.pageNo > afterPage);
-  if (element.type === "stories")
+  if (element.type === "section")
     return (
       <div className="space-y-3">
         <CoverTextField
@@ -39,6 +39,7 @@ export function CoverElementFields({
           field="title"
           label="List heading (optional)"
           value={element.title}
+          placeholder="Inside this issue"
           onChange={onChange}
         />
         <Segments

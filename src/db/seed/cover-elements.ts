@@ -10,12 +10,12 @@ import type { SeedIssue } from "./builders";
 export function withCoverElements(issue: SeedIssue): SeedIssue {
   const front = issue.content.pages[0]!;
   const sources = coverSources(issue.content.pages);
-  const contents = makeCoverElement("contents"),
-    story = makeCoverElement("story"),
+  const contents = makeCoverElement("section"),
+    story = makeCoverElement("section"),
     details = makeCoverElement("details");
   if (
-    contents.type !== "stories" ||
-    story.type !== "stories" ||
+    contents.type !== "section" ||
+    story.type !== "section" ||
     details.type !== "details"
   )
     return issue;
@@ -50,6 +50,7 @@ export function withCoverElements(issue: SeedIssue): SeedIssue {
             { ...details, text: "Winter 2026" },
             {
               ...contents,
+              title: "Inside this issue",
               placement: {
                 ...contents.placement,
                 appearance: {
@@ -64,6 +65,7 @@ export function withCoverElements(issue: SeedIssue): SeedIssue {
             },
             {
               ...story,
+              headlineSize: "display",
               items: [
                 {
                   ...makeCoverStory(sources[2]?.id),
@@ -72,6 +74,8 @@ export function withCoverElements(issue: SeedIssue): SeedIssue {
               ],
               placement: {
                 ...story.placement,
+                column: "right",
+                align: "right",
                 style: "paper-panel",
                 width: "narrow",
               },

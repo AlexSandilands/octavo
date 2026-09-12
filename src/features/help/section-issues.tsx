@@ -58,18 +58,19 @@ export function SectionIssues() {
         flow. These changes can all be undone.
       </Callout>
       <Callout title="Arrange your cover">
-        Use <strong>Add detail</strong> in the cover toolbar to add a
-        <strong> Story</strong>, an <strong>Inside this issue</strong> list, or
-        issue details. Story and Inside this issue are the same element started
-        two ways: a story on its own with a large headline, or a headed list.
-        Either can hold up to six stories, and <strong>Headline size</strong> in
-        the inspector sets how large their headlines print. Use{" "}
-        <strong>Logo</strong> to add a mark from your library. These are
-        optional on both plain and photo covers. A story can follow a heading
-        from a later page or stand on its own; a custom cover headline leaves
-        the original section title unchanged. Click an element on the page to
-        edit it in the inspector beside the page (drag its handle to park it on
-        the other side). Keep <strong>Use cover appearance</strong>
+        On a cover the <strong>Text</strong> button in the toolbar opens a menu:{" "}
+        <strong>Paragraph</strong> for an ordinary block of words,{" "}
+        <strong>Section</strong> for a list of stories, and{" "}
+        <strong>Details</strong> for the issue number and a date or edition. A
+        Section holds up to six stories under an optional list heading, and{" "}
+        <strong>Headline size</strong> in the inspector sets how large their
+        headlines print. Use <strong>Logo</strong> to add a mark from your
+        library. These are optional on both plain and photo covers. A story can
+        follow a heading from a later page or stand on its own; a custom cover
+        headline leaves the original section title unchanged. Click an element
+        on the page to edit it in the inspector beside the page (drag its handle
+        to park it on the other side). Keep{" "}
+        <strong>Use cover appearance</strong>
         checked to follow the cover defaults, or uncheck it to customise the
         element. Select words on the page to make them bold, italic or
         underlined, or give them a colour or shadow, from the small bar above

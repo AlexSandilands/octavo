@@ -21,9 +21,10 @@ await withCoverFixture(
       row: "top",
       style: "paper-panel",
     };
-    const story = makeCoverElement("story");
-    assert(story.type === "stories");
+    const story = makeCoverElement("section");
+    assert(story.type === "section");
     story.id = "story";
+    story.placement = { ...story.placement, column: "right", align: "right" };
     story.items = [
       { id: "one", title: "Club stories", description: "Meet our community." },
     ];
@@ -185,7 +186,7 @@ await withCoverFixture(
     await page.keyboard.type(" today");
     await waitSaved(
       (c) =>
-        c.pages[0]!.coverElements?.[0]?.type === "stories" &&
+        c.pages[0]!.coverElements?.[0]?.type === "section" &&
         c.pages[0]!.coverElements[0].items[0]!.title.includes("today"),
     );
     await page.keyboard.press("Escape");

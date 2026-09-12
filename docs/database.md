@@ -62,14 +62,14 @@ Block = Heading | Text | Image | Montage | Video | Sponsor  // discriminated uni
 migrate old rows deliberately. **Current version: 7.** Every string field is length-capped and the
 page/block arrays bounded in the zod schemas, so a bad save can't persist an unbounded document.
 
-**Content v7 — optional cover elements.** `coverElements` stores a bounded array of `stories`,
-`details` and `logo` elements. A `stories` element carries an optional list heading (`title`,
+**Content v7 — optional cover elements.** `coverElements` stores a bounded array of `section`,
+`details` and `logo` elements. A `section` element carries an optional list heading (`title`,
 empty for none), one to six `items` and one `headlineSize` (`compact` | `list` | `large` |
 `display`, stored, never inferred). Each item has its own `id` (so a free-standing story is
 addressable), an optional `headingId` linking it to a section, a title override and a description.
-The editor's _Add detail_ menu seeds the same type two ways — **Story** (no list heading, display
-headline, right column) and **Inside this issue** (the heading, list headline, left column). They
-are independent of the article-block union. Each has a row/column anchor, width, text alignment,
+A new Section starts blank — no list heading, one empty story, the `list` headline size — and the
+editor's Text menu (Paragraph / Section / Details) is where it and the details element come from.
+They are independent of the article-block union. Each has a row/column anchor, width, text alignment,
 vertical adjustment and optional contrast override. Optional `textSize` (`small`, `normal`,
 `large`, `xlarge`) scales text to 80%, 100%, 120% or 140% independently of wrapping width; omitted
 means 100%. Heading, text and inline image blocks can opt into the same placement through

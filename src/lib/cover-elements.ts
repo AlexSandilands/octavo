@@ -66,7 +66,7 @@ export const DEFAULT_COVER_PLACEMENT: CoverPlacement = {
   offset: 0,
 };
 const base = { id: z.string().max(64), placement: coverPlacementSchema };
-/** One story on the cover: a free-standing entry, or one linked to a section heading. */
+/** One story in a cover section: free-standing, or linked to a section heading. */
 export const coverStorySchema = z.object({
   id: z.string().max(64),
   headingId: z.string().max(64).optional(),
@@ -84,7 +84,7 @@ export const COVER_HEADLINE_SIZES = [
 export const coverElementSchema = z.discriminatedUnion("type", [
   z.object({
     ...base,
-    type: z.literal("stories"),
+    type: z.literal("section"),
     /** The optional list heading ("Inside this issue"); empty prints nothing. */
     title: z.string().max(300).default(""),
     items: z.array(coverStorySchema).min(1).max(MAX_COVER_PREVIEWS),
@@ -111,62 +111,39 @@ export type CoverElementType = CoverElement["type"];
 export type CoverStory = z.infer<typeof coverStorySchema>;
 export type CoverHeadlineSize = (typeof COVER_HEADLINE_SIZES)[number];
 export const COVER_ELEMENT_LABELS: Record<CoverElementType, string> = {
-  stories: "Stories",
+  section: "Section",
   details: "Issue details",
   logo: "Logo",
 };
-/** Names one item apart from its siblings: two Stories elements share one label. */
+/** Names one item apart from its siblings: two Sections share one label. */
 export function coverElementName(
   element: CoverElement,
   sources: CoverSource[],
 ): string {
   const label = COVER_ELEMENT_LABELS[element.type];
-  if (element.type !== "stories") return label;
+  if (element.type !== "section") return label;
   const said = element.title || previewTitle(element.items[0]!, sources);
   return said ? `${label}: ${said}` : label;
 }
-/** Stories carries both cover lists; the presets differ only in how they start out. */
-export const COVER_ELEMENT_PRESETS = [
-  "story",
-  "contents",
-  "details",
-  "logo",
-] as const;
-export type CoverElementPreset = (typeof COVER_ELEMENT_PRESETS)[number];
-export const COVER_PRESET_LABELS: Record<CoverElementPreset, string> = {
-  story: "Story",
-  contents: "Inside this issue",
-  details: "Issue details",
-  logo: "Logo",
-};
 export function makeCoverStory(headingId?: string): CoverStory {
   return { id: createId(), headingId, title: "", description: "" };
 }
-export function makeCoverElement(preset: CoverElementPreset): CoverElement {
-  const right = preset === "logo" || preset === "story";
+export function makeCoverElement(type: CoverElementType): CoverElement {
+  const logo = type === "logo";
   const placement: CoverPlacement = {
     ...DEFAULT_COVER_PLACEMENT,
-    column: right ? "right" : "left",
-    row: preset === "details" ? "top" : preset === "logo" ? "bottom" : "center",
+    column: logo ? "right" : "left",
+    row: type === "details" ? "top" : logo ? "bottom" : "center",
     width: "medium",
-    align: right ? "right" : "left",
+    align: logo ? "right" : "left",
   };
   const common = { id: createId(), placement };
-  switch (preset) {
-    case "story":
+  switch (type) {
+    case "section":
       return {
         ...common,
-        type: "stories",
+        type: "section",
         title: "",
-        items: [makeCoverStory()],
-        showPageNumbers: false,
-        headlineSize: "display",
-      };
-    case "contents":
-      return {
-        ...common,
-        type: "stories",
-        title: "Inside this issue",
         items: [makeCoverStory()],
         showPageNumbers: false,
         headlineSize: "list",

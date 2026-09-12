@@ -5,7 +5,7 @@ import {
   DEFAULT_COVER_PLACEMENT,
   MAX_COVER_ELEMENTS,
   type CoverElement,
-  type CoverElementPreset,
+  type CoverElementType,
 } from "@/lib/cover-elements";
 import {
   ensureCoverFirst,
@@ -119,10 +119,10 @@ export function useEditorPages(content: IssueContent) {
     editPage((p) => ({ ...p, coverOverlay }));
   };
 
-  const addCoverElement = (preset: CoverElementPreset) => {
+  const addCoverElement = (type: CoverElementType) => {
     if (!page?.cover || (page.coverElements?.length ?? 0) >= MAX_COVER_ELEMENTS)
       return;
-    const element = makeCoverElement(preset);
+    const element = makeCoverElement(type);
     element.placement.order = Math.max(
       0,
       ...coverItems(page).map((i) => (placementOf(i, page).order ?? 0) + 1),

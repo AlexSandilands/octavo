@@ -12,7 +12,7 @@ export function updateCoverText(
     richText: { ...element.placement.richText, [field]: doc },
   };
   if (element.type === "details") return { ...element, placement, text };
-  if (element.type === "stories") {
+  if (element.type === "section") {
     if (field === "title") return { ...element, placement, title: text };
     return {
       ...element,

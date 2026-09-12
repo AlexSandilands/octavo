@@ -40,6 +40,7 @@ export function MenuSelect<T>({
   className = "",
   menuClassName = "",
   triggerLabel,
+  icon,
   portal = false,
 }: {
   /** Trigger prefix — the control names itself, e.g. "Theme". */
@@ -60,6 +61,8 @@ export function MenuSelect<T>({
   className?: string;
   menuClassName?: string;
   triggerLabel?: string;
+  /** A mark before the trigger's label, where the control stands in for a tool. */
+  icon?: ReactNode;
   /** Escape scrolling inspectors; constrain the menu to the viewport. */
   portal?: boolean;
 }) {
@@ -245,6 +248,7 @@ export function MenuSelect<T>({
           size === "md" ? "h-11" : "h-10"
         } ${className}`}
       >
+        {icon}
         <span className="min-w-0 truncate">
           {label ? `${label}: ` : ""}
           {current}

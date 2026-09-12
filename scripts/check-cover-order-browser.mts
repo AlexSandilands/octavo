@@ -15,7 +15,15 @@ await withCoverFixture(
     const panel = page.getByRole("complementary", {
       name: "Cover element settings",
     });
-    await toolbar.getByRole("button", { name: "Text", exact: true }).click();
+    // On a cover the Text tool is a menu; Paragraph inserts the ordinary block.
+    const textMenu = async (option: string) => {
+      await toolbar.getByRole("button", { name: "Text", exact: true }).click();
+      await page
+        .getByRole("menu", { name: "Text", exact: true })
+        .getByRole("menuitemradio", { name: option, exact: true })
+        .click();
+    };
+    await textMenu("Paragraph");
     const text = canvas.locator("[data-block-id]").filter({
       has: page.getByRole("textbox", {
         name: "Add a tagline or date…",
@@ -115,12 +123,7 @@ await withCoverFixture(
           .map((i) => i.id)
           .indexOf(headingId),
     );
-    await toolbar
-      .getByRole("button", { name: "Add detail", exact: true })
-      .click();
-    await page
-      .getByRole("menuitemradio", { name: "Story", exact: true })
-      .click();
+    await textMenu("Section");
     await panel
       .getByRole("textbox", { name: "Headline for story 1", exact: true })
       .fill("A featured story");
