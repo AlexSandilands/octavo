@@ -4,7 +4,9 @@
 // wedged the revalidation re-render and left stale rows indefinitely. Each
 // trial deletes a scratch row through the UI and fails if the row is still
 // on screen 8s later; the bug fired on ~2/3 of trials, so a clean sweep of
-// all twelve is a reliable detector.
+// all twelve is a reliable detector. A last trial presses "Create new issue"
+// and proves the browser reaches the new draft's editor — the server-action
+// redirect that used to do it never landed under a production build (#276).
 //
 // Run against a production server:
 //   rm -rf .next && npm run build
@@ -153,6 +155,38 @@ try {
       },
     );
   });
+
+  // Create — the action returns the new id for the button to navigate to.
+  // Under a production build the redirect() it used to do never landed: the
+  // router silently dropped it and the admin stayed on the dashboard (#276).
+  {
+    const ctx = await adminContext();
+    const page = await ctx.newPage();
+    const since = new Date();
+    await page.goto(`${base}/admin`);
+    await page.click("button:has-text('Create new issue')");
+    let mounted = true;
+    try {
+      await page.waitForSelector("header button:text-is('Publish')", {
+        timeout: 20_000,
+      });
+    } catch {
+      mounted = false;
+    }
+    // Prefer the id in the URL; fall back to the newest row so a create that
+    // never navigated is still cleaned up.
+    const [row] = await sql`select id from issues where created_at >= ${since}
+                            order by created_at desc limit 1`;
+    const id = page.url().match(/\/issues\/([^/]+)\/edit/)?.[1] ?? row?.id;
+    if (id) issueIds.push(id as string);
+    ok(!!row, "the create action wrote a draft");
+    ok(
+      page.url() === `${base}/admin/issues/${row!.id}/edit`,
+      `the browser landed on the new issue's editor (at ${page.url()})`,
+    );
+    ok(mounted, "the editor mounted after the create");
+    await ctx.close();
+  }
 
   ok(
     failures.length === 0,

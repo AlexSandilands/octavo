@@ -1,7 +1,6 @@
 import { coverSources } from "@/lib/cover-elements";
 import { z } from "zod";
 import { ADMIN_LIST_PAGE } from "@/components/admin-list-layout";
-import { Button } from "@/components/ui";
 import { EmptyIssues } from "@/components/empty-states";
 import { coverPageOf, type Page } from "@/lib/blocks";
 import { ADMIN_LIST_QUERY_MAX } from "@/lib/list-query";
@@ -18,7 +17,7 @@ import { getSettings } from "@/server/settings";
 import { CoverThumb } from "@/features/library/cover-thumb";
 import { THUMB_W } from "@/features/admin/issue-thumb";
 import { IssuesTable } from "@/features/admin/issues-table";
-import { createIssueAction } from "@/app/admin/actions";
+import { CreateIssueButton } from "@/features/admin/create-issue-button";
 
 export const dynamic = "force-dynamic";
 
@@ -112,16 +111,12 @@ export default async function AdminDashboard({
             {list.draftTotal} in draft
           </p>
         </div>
-        <form action={createIssueAction} className="flex-none">
-          <Button
-            type="submit"
-            icon="plus"
-            iconPosition="left"
-            className="w-full whitespace-nowrap sm:w-auto"
-          >
-            Create new issue
-          </Button>
-        </form>
+        <CreateIssueButton
+          iconPosition="left"
+          className="w-full flex-none whitespace-nowrap sm:w-auto"
+        >
+          Create new issue
+        </CreateIssueButton>
       </div>
 
       {list.total === 0 ? (

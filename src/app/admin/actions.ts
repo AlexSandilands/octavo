@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import { z } from "zod";
 import { ensureCoverFirst, issueContentSchema } from "@/lib/blocks";
 import {
@@ -61,14 +60,16 @@ export type SaveResult =
   | { ok: true; revision: number }
   | { ok: false; reason: "invalid" | "conflict" | "missing" };
 
-export async function createIssueAction() {
+// Returns the new issue's id for the caller to navigate to — see
+// CreateIssueButton for why this doesn't redirect() itself (issue #276).
+export async function createIssueAction(): Promise<string> {
   await requireAdmin();
   // The new issue's pages will be authored against the footer that is set right
   // now, so it starts with that as its reserve (issue #128).
   const settings = await getSettings();
   const issue = await createIssue(footerReserveOf(settings.footer));
   revalidatePath("/admin");
-  redirect(`/admin/issues/${issue.id}/edit`);
+  return issue.id;
 }
 
 // Bring one issue's footer up to the magazine's current setting (issue #128).

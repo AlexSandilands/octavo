@@ -89,9 +89,13 @@ function isGatedRoute(pathname: string): boolean {
   return false;
 }
 
-// Known Next 16 defect: streamed pages emit one duplicate <script> for the
-// next/link chunk without the nonce, which this CSP blocks — console noise
-// only, since the same module also arrives inside a nonce-tagged chunk.
+// Known Next 16 defect: the scripts Next emits for a segment's loading/error
+// boundaries carry no nonce (its layout and page scripts do), so this CSP
+// blocks one — harmless in the page, where the same module also arrives inside
+// a nonce-tagged chunk, but a server-action redirect re-renders from the root
+// and its response carries that script, which the router then never applies.
+// Hence the create-issue button navigates itself rather than the action
+// redirecting (issue #276).
 function buildCsp(nonce: string): string {
   return [
     "default-src 'self'",
