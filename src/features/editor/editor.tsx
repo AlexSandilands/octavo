@@ -98,7 +98,6 @@ export function Editor({
   const {
     pages,
     applyImport,
-    clearHistory,
     curPage,
     sel,
     setSel,
@@ -162,7 +161,6 @@ export function Editor({
     title,
     theme: themeId,
     logoId,
-    draftOnly: !published,
   });
 
   const importer = usePdfInsertion({
@@ -363,8 +361,6 @@ export function Editor({
               const res = await publishIssueAction(issue.id, sendEmail);
               if (res.ok) {
                 setPublished(true);
-                setTool(null);
-                if (importer.used) clearHistory();
               } else setStatus("error");
               return res;
             } catch (error) {

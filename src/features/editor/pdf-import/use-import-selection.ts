@@ -17,7 +17,7 @@ const byReadingOrder = (a: ReviewItem, b: ReviewItem) =>
 
 // What the author has picked on the PDF, in the order it will be added: source
 // page then reading order until they reorder by hand. Also remembers which
-// regions were added this session, derived from the blocks still in the draft
+// regions were added this session, derived from the blocks still in the issue
 // so an undo clears the mark.
 export function useImportSelection(pages: Page[]) {
   const [items, setItems] = useState<ReviewItem[]>([]);
@@ -50,7 +50,7 @@ export function useImportSelection(pages: Page[]) {
     items,
     limit,
     itemFor,
-    /** "imported" / "partial" when this region's blocks are in the draft now. */
+    /** "imported" / "partial" when this region's blocks are in the issue now. */
     stateOf: (regionId: string) => sourceState(mapping[regionId] ?? [], pages),
     toggle: (region: Region) => {
       const existing = itemFor(region.id);

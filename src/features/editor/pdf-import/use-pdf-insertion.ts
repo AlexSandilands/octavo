@@ -17,7 +17,6 @@ export function usePdfInsertion(
       registerImages: (images: MeasurementOptions["images"]) => void;
     },
 ) {
-  const [used, setUsed] = useState(false);
   const [pending, setPending] = useState(false);
   const lock = useRef(false);
   const latest = useRef(options);
@@ -153,7 +152,6 @@ export function usePdfInsertion(
         })
       )
         throw new Error("The document changed. Try adding again.");
-      setUsed(true);
       return Object.fromEntries(
         Object.entries(batch.mapping).map(([source, ids]) => [
           source,
@@ -168,5 +166,5 @@ export function usePdfInsertion(
       setPending(false);
     }
   };
-  return { pending, add, used };
+  return { pending, add };
 }

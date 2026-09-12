@@ -330,13 +330,17 @@ try {
       .isVisible(),
   );
   await selectAll(page);
-  // Concurrent publication cannot accept an import or a late draft save.
+  // Import is an ordinary edit: publishing mid-session doesn't block it, only
+  // a stale revision would (the same check any other save is subject to).
   await sql`update issues set status='published' where id=${iid}`;
   await addButton(page).click();
-  await status(page)
-    .getByText(/Save the existing draft successfully/)
-    .waitFor({ timeout: 45000 });
-  assert.deepEqual((await readDocument()).pages, added.pages);
+  await waitAdded(page);
+  const publishedDoc = await readDocument();
+  assert(
+    publishedDoc.pages.flatMap((p) => p.blocks).length >
+      added.pages.flatMap((p) => p.blocks).length,
+    "Import lands on a published issue.",
+  );
   await closeTool(page);
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto(`${base}/read/${number}`);

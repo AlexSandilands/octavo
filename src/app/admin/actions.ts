@@ -111,32 +111,6 @@ export async function saveIssueAction(
   return updateIssueContent(parsedId.data, doc, parsedRevision.data);
 }
 
-// Draft editors keep this boundary for autosave, retry and history replay.
-export async function saveDraftIssueAction(
-  id: string,
-  content: unknown,
-  baseRevision: number,
-): Promise<SaveResult> {
-  await requireAdmin();
-  const input = z
-    .object({
-      id: idSchema,
-      content: issueContentSchema,
-      revision: z.number().int().min(0),
-    })
-    .safeParse({ id, content, revision: baseRevision });
-  if (!input.success) return { ok: false, reason: "invalid" };
-  return updateIssueContent(
-    input.data.id,
-    {
-      ...input.data.content,
-      pages: ensureCoverFirst(input.data.content.pages),
-    },
-    input.data.revision,
-    true,
-  );
-}
-
 export async function saveMetaAction(
   id: string,
   meta: { title?: string; theme?: string; logoId?: string | null },

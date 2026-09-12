@@ -250,7 +250,6 @@ export function useEditorPages(content: IssueContent) {
       restore(next);
       return true;
     },
-    clearHistory: history.clear,
     curPage,
     setCurPage,
     sel,

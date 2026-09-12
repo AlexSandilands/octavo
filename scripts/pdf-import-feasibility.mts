@@ -5,6 +5,9 @@ import {
   iid,
   setup,
   cleanup,
+  openTool,
+  fileInput,
+  region,
 } from "./pdf-import-gate-support.mts";
 await setup();
 try {
@@ -22,7 +25,7 @@ try {
   page.on("pageerror", (e) => console.log("pageerror", e.message));
   page.on("worker", (w) => console.log("worker", w.url()));
   await page.goto(`${base}/admin/issues/${iid}/edit`);
-  await page.getByRole("button", { name: "Import PDF", exact: true }).click();
+  await openTool(page);
   for (const file of [
     "scripts/fixtures/pdf-import/single-column.pdf",
     "scripts/fixtures/pdf-import/two-column.pdf",
@@ -30,14 +33,16 @@ try {
     ...process.argv.slice(3),
   ]) {
     const start = Date.now();
-    await page.getByLabel("Choose local PDF").setInputFiles(file);
+    await fileInput(page).setInputFiles(file);
     await page
-      .getByText("PDF opened on this device. Select regions to review.")
+      .getByRole("group", { name: "PDF tools" })
       .waitFor({ timeout: 45000 });
+    await page.locator("[data-pdf-private] canvas").waitFor({ timeout: 45000 });
     console.log(file, {
       ms: Date.now() - start,
-      text: await page.getByRole("button", { name: /^Text region/ }).count(),
-      images: await page.getByRole("button", { name: /^Image region/ }).count(),
+      text: await region(page, "Text").count(),
+      headings: await region(page, "Heading").count(),
+      images: await region(page, "Image").count(),
       warnings: await page
         .locator("[data-pdf-private] .text-warn")
         .allTextContents(),

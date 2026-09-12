@@ -64,9 +64,11 @@ save, so its revision check refuses a stale write the same way any other edit's 
 
 ## Extraction and resource boundaries
 
-`pdfjs-dist` is pinned to **6.3.289** behind `pdf-import/adapter.ts`. The importer and
-parser load only when the tool is opened. `predev` and `prebuild` copy the matching
-worker, CMaps, standard fonts and license to `/pdfjs/6.3.289/`. No CDN or PDF upload
+`pdfjs-dist` is pinned behind `pdf-import/adapter.ts`, which reads the installed
+package's `version` rather than hardcoding it. The importer and parser load only when
+the tool is opened. `predev` and `prebuild` copy the matching worker, CMaps, standard
+fonts and license to `/pdfjs/<version>/`, the same versioned path the adapter builds its
+asset URLs from. No CDN or PDF upload
 endpoint exists. The adapter passes an actual module `Worker` to `PDFWorker.create({port})`;
 it does not permit a fake-worker fallback. Font faces and WASM are disabled, using the
 same-origin standard-font/CMap assets. CSP adds only `worker-src 'self'`; fonts remain
@@ -188,9 +190,10 @@ The core gate checks lazy loading/CSP, the panel's resize handle and canvas re-f
 source transmission, retyping through the pill, the selection list, zoom-stable hit
 targets, failure atomicity, duplicate clicks, an oversized paragraph split across
 continuation pages in order, undo/redo/added marks, reload, keyboard selection and
-split, rotation, bad-input states, concurrent publication, both readers and the
-exported PDF. The failure gate checks successful-upload retry reuse, closing the panel
-mid-upload, worker teardown on Close PDF and on closing the panel, locked/page-limit/
+split, rotation, bad-input states, an import landing after the issue is published
+mid-session, both readers and the exported PDF. The failure gate checks
+successful-upload retry reuse, closing the panel mid-upload, worker teardown on Close
+PDF and on closing the panel, locked/page-limit/
 signature refusals, and compensation when publication races between storage and
 recording. The privacy gate requires live telemetry: a private canary stays local and a
 post-close control event is delivered. It also checks cross-page reorder in the

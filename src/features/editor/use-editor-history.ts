@@ -83,12 +83,6 @@ export function useEditorHistory() {
     ...ends,
     /** Announced politely when there is nothing left to undo or redo. */
     notice,
-    clear: () => {
-      past.current = [];
-      future.current = [];
-      stream.current = null;
-      sync();
-    },
     record,
     undo: (current: EditorSnapshot) =>
       step(past, future, current, "Nothing to undo"),

@@ -16,7 +16,6 @@ import {
 import { groupRuns, union } from "./grouping";
 import { imageRegions } from "./image-regions";
 
-const ASSETS = "/pdfjs/6.3.289/";
 const runSchema = z.object({
   str: z.string(),
   transform: z.array(z.number().finite()).length(6),
@@ -63,9 +62,11 @@ export class PdfSource {
       throw new Error("This file does not have a PDF signature.");
     await this.operation(signal, async () => {
       const pdf = await import("pdfjs-dist");
+      // copy-pdf-assets.mjs publishes to this same versioned public path.
+      const assets = `/pdfjs/${pdf.version}/`;
       const data = new Uint8Array(await file.arrayBuffer());
       checkAbort(signal);
-      this.worker = new Worker(`${ASSETS}pdf.worker.min.mjs`, {
+      this.worker = new Worker(`${assets}pdf.worker.min.mjs`, {
         type: "module",
         name: "octavo-pdf",
       });
@@ -83,9 +84,9 @@ export class PdfSource {
         isImageDecoderSupported: false,
         maxImageSize: PDF_LIMITS.imagePixels,
         canvasMaxAreaInBytes: PDF_LIMITS.canvasPixels * 4,
-        cMapUrl: `${ASSETS}cmaps/`,
+        cMapUrl: `${assets}cmaps/`,
         cMapPacked: true,
-        standardFontDataUrl: `${ASSETS}standard_fonts/`,
+        standardFontDataUrl: `${assets}standard_fonts/`,
         enableXfa: false,
       });
       try {
