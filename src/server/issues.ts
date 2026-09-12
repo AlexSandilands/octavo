@@ -13,6 +13,7 @@ import { db } from "@/db";
 import { images, issues } from "@/db/schema";
 import { emptyIssueContent, type IssueContent } from "@/lib/blocks";
 import type { FooterReserve } from "@/lib/branding";
+import { isUniqueViolation } from "@/lib/db-errors";
 import { collectImageIds } from "@/lib/images";
 import { likePattern } from "@/lib/like-pattern";
 import {
@@ -178,16 +179,6 @@ export async function getPublishedIssueByNumber(number: number) {
     .where(and(eq(issues.number, number), eq(issues.status, "published")))
     .limit(1);
   return row ?? null;
-}
-
-// True for Postgres unique-constraint violations (SQLSTATE 23505).
-function isUniqueViolation(err: unknown): boolean {
-  return (
-    typeof err === "object" &&
-    err !== null &&
-    "code" in err &&
-    (err as { code?: unknown }).code === "23505"
-  );
 }
 
 // The issue's pages will be laid out against the footer that is set right now,
