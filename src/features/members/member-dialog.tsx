@@ -8,9 +8,10 @@ import {
   updateMemberAction,
 } from "@/app/admin/members/actions";
 import type { MemberRow as Member } from "@/server/users";
+import { MEMBER_NOTES_MAX } from "./member-notes";
 
-// Add or edit one member. Email is required; name is optional (the club often
-// only has an address). Passing a `member` switches the dialog to edit mode:
+// Add or edit one member. Email is required; name and admin-only notes are
+// optional. Passing a `member` switches the dialog to edit mode:
 // the fields pre-fill and saving updates that row via updateMemberAction.
 // Duplicates and malformed addresses come back as a legible message rather than
 // a thrown error. Editing to the member's own current email is not a duplicate.
@@ -24,6 +25,7 @@ export function MemberDialog({
   const editing = member != null;
   const [email, setEmail] = useState(member?.email ?? "");
   const [name, setName] = useState(member?.name ?? "");
+  const [notes, setNotes] = useState(member?.notes ?? "");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -35,8 +37,13 @@ export function MemberDialog({
         ? await updateMemberAction(member.id, {
             email,
             name: name.trim() || undefined,
+            notes: notes.trim() || undefined,
           })
-        : await addMemberAction({ email, name: name.trim() || undefined });
+        : await addMemberAction({
+            email,
+            name: name.trim() || undefined,
+            notes: notes.trim() || undefined,
+          });
       if (res.ok) {
         onClose();
       } else if (res.reason === "duplicate") {
@@ -51,7 +58,7 @@ export function MemberDialog({
 
   return (
     <DialogShell
-      panelClassName="bg-card w-[440px] max-w-full overflow-hidden rounded-[10px] shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
+      panelClassName="bg-card max-h-[calc(100vh-2rem)] w-[440px] max-w-full overflow-y-auto rounded-[10px] shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
       locked={pending}
       onClose={onClose}
     >
@@ -102,6 +109,22 @@ export function MemberDialog({
               onChange={(e) => setName(e.target.value)}
               placeholder="Margaret Cole"
               className="border-line text-ink mt-2 h-12 w-full rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-[15px] outline-none focus:border-[var(--color-accent)]"
+            />
+
+            <label
+              htmlFor="member-notes"
+              className="text-faint mt-4 block font-sans text-[11px] font-semibold tracking-[0.2em] uppercase"
+            >
+              Notes (optional)
+            </label>
+            <textarea
+              id="member-notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              maxLength={MEMBER_NOTES_MAX}
+              rows={3}
+              placeholder="Club, location, role or other details"
+              className="border-line text-ink mt-2 w-full resize-y rounded-lg border-[1.5px] bg-white px-3.5 py-3 font-sans text-[15px] outline-none focus:border-[var(--color-accent)]"
             />
 
             {error && (

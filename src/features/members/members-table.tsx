@@ -150,8 +150,8 @@ export function MembersTable({
         <div className="min-w-0 flex-1">
           <ListSearch
             query={query}
-            placeholder="Search by name or email"
-            ariaLabel="Search all members by name or email"
+            placeholder="Search name, email or notes"
+            ariaLabel="Search all members by name, email, location, club or other notes"
           />
         </div>
         <ListFilter
@@ -178,9 +178,12 @@ export function MembersTable({
         onClear={() => setSelected(new Set())}
       />
 
-      <div className="border-line text-faint2 mt-3 hidden flex-none items-center px-1.5 pb-2.5 font-sans text-[10px] font-semibold tracking-[0.14em] uppercase sm:flex">
-        <span className="w-11 flex-none" />
-        <span className="ml-3 flex-1">Member</span>
+      {/* At md+ the rows reserve an 8px scrollbar gutter; matching that on
+          the header keeps every fixed-width column on the same x-coordinate.
+          The member inset clears its checkbox, avatar and their two gaps. */}
+      <div className="border-line text-faint2 mt-3 hidden flex-none items-center gap-x-3 px-1.5 pb-2.5 font-sans text-[10px] font-semibold tracking-[0.14em] uppercase sm:flex md:pr-3.5">
+        <span className="min-w-0 flex-1 pl-[104px]">Member</span>
+        <span className="hidden w-[160px] lg:block xl:w-[220px]">Notes</span>
         <span className="w-[120px]">Subscription</span>
         <span className="w-[112px]">Role</span>
         <span className="w-[76px]">Joined</span>

@@ -32,6 +32,7 @@ const memberColumns = {
   id: users.id,
   name: users.name,
   email: users.email,
+  notes: users.notes,
   isAdmin: users.isAdmin,
   subscribed: users.subscribed,
   createdAt: users.createdAt,
@@ -41,6 +42,7 @@ export type MemberRow = {
   id: string;
   name: string | null;
   email: string;
+  notes: string | null;
   isAdmin: boolean;
   subscribed: boolean;
   createdAt: Date;
@@ -71,6 +73,7 @@ function memberWhere(query: string, filter: MemberFilter) {
       ? or(
           ilike(users.name, likePattern(query)),
           ilike(users.email, likePattern(query)),
+          ilike(users.notes, likePattern(query)),
         )
       : undefined,
     FILTER_CONDITIONS[filter],
@@ -201,11 +204,12 @@ export type CreateUserResult =
 export async function createUser(input: {
   email: string;
   name: string | null;
+  notes: string | null;
 }): Promise<CreateUserResult> {
   try {
     const [row] = await db
       .insert(users)
-      .values({ email: input.email, name: input.name })
+      .values({ email: input.email, name: input.name, notes: input.notes })
       .returning(memberColumns);
     if (!row) throw new Error("Failed to create user");
     return { ok: true, member: row };
@@ -219,19 +223,19 @@ export type UpdateUserResult =
   | { ok: true; member: MemberRow }
   | { ok: false; reason: "duplicate" | "missing" };
 
-// Edit a member's name and/or email in place. Email is canonicalised upstream
+// Edit a member's name, email and/or notes in place. Email is canonicalised upstream
 // (trim + lowercase) so it still matches the unique index and future sign-ins.
 // Setting the email to the row's *own* current value is a no-op for the unique
 // index (it only conflicts with *other* rows), so an unchanged email never
 // false-positives as a duplicate; only a collision with another member does.
 export async function updateUser(
   id: string,
-  input: { email: string; name: string | null },
+  input: { email: string; name: string | null; notes: string | null },
 ): Promise<UpdateUserResult> {
   try {
     const [row] = await db
       .update(users)
-      .set({ email: input.email, name: input.name })
+      .set({ email: input.email, name: input.name, notes: input.notes })
       .where(eq(users.id, id))
       .returning(memberColumns);
     if (!row) return { ok: false, reason: "missing" };

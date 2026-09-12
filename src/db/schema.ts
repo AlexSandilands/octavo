@@ -26,6 +26,7 @@ export const users = pgTable("users", {
   id: text("id").primaryKey().$defaultFn(createId),
   name: text("name"),
   email: text("email").notNull().unique(),
+  notes: text("notes"),
   emailVerified: timestamp("email_verified", {
     mode: "date",
     withTimezone: true,

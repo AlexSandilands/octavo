@@ -19,6 +19,7 @@ import { requireAdmin } from "@/server/session";
 import { ADMIN_LIST_QUERY_MAX } from "@/lib/list-query";
 import { MEMBERS_IMPORT_MAX } from "@/features/members/import-limit";
 import { MEMBERS_SELECTION_MAX } from "@/features/members/selection-limit";
+import { MEMBER_NOTES_MAX } from "@/features/members/member-notes";
 import {
   isMemberEmail,
   MEMBER_EMAIL_MAX,
@@ -60,12 +61,17 @@ const emailSchema = z
       .refine(isMemberEmail, "Not an address we can use"),
   );
 const nameSchema = z.string().trim().max(200);
+const notesSchema = z.string().trim().max(MEMBER_NOTES_MAX);
 
 const addSchema = z
-  .object({ email: emailSchema, name: nameSchema.optional() })
+  .object({
+    email: emailSchema,
+    name: nameSchema.optional(),
+    notes: notesSchema.optional(),
+  })
   .strict();
 
-// Same shape as add: editing sets both fields (name absent/blank → null).
+// Same shape as add: editing sets every field (optional blanks → null).
 const updateSchema = addSchema;
 
 // One row of an import, validated on its own — see importMembersAction for why
@@ -95,9 +101,11 @@ export async function addMemberAction(
   const parsed = addSchema.safeParse(input);
   if (!parsed.success) return { ok: false, reason: "invalid" };
   const name = parsed.data.name;
+  const notes = parsed.data.notes;
   const result = await createUser({
     email: parsed.data.email,
     name: name && name.length > 0 ? name : null,
+    notes: notes && notes.length > 0 ? notes : null,
   });
   if (!result.ok) return { ok: false, reason: "duplicate" };
   revalidatePath("/admin/members");
@@ -108,7 +116,7 @@ export type UpdateMemberResult =
   | { ok: true }
   | { ok: false; reason: "invalid" | "duplicate" | "missing" };
 
-// Edit an existing member's name + email. Email is the sign-in identity: future
+// Edit an existing member's details. Email is the sign-in identity: future
 // magic links go to the new address, but existing DB sessions are keyed by user
 // id, so changing it doesn't sign the member out. Mirrors addMemberAction —
 // requireAdmin first, then re-validate id + body (both attacker-controlled).
@@ -123,9 +131,11 @@ export async function updateMemberAction(
     return { ok: false, reason: "invalid" };
   }
   const name = parsed.data.name;
+  const notes = parsed.data.notes;
   const result = await updateUser(parsedId.data, {
     email: parsed.data.email,
     name: name && name.length > 0 ? name : null,
+    notes: notes && notes.length > 0 ? notes : null,
   });
   if (!result.ok) return { ok: false, reason: result.reason };
   revalidatePath("/admin/members");
