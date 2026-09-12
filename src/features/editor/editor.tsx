@@ -43,7 +43,11 @@ import { coverSources } from "@/lib/cover-elements";
 import { useCoverLayoutWarnings } from "./use-cover-layout-warnings";
 import { EditorPageContent } from "./editor-page-content";
 import { CoverOverlayControls } from "./cover-overlay-controls";
-import { stagePadding, usePanelDock } from "./use-panel-dock";
+import {
+  INSPECTOR_RESERVE,
+  usePanelDock,
+  useStageDodge,
+} from "./use-panel-dock";
 import { useCanvasPanZoom } from "@/features/blocks/use-canvas-pan-zoom";
 import { useEditorPages } from "./use-editor-pages";
 import { useTextFlow } from "./use-text-flow";
@@ -202,10 +206,9 @@ export function Editor({
   const filled = pageFillsCanvas(page);
   const showCoverTools = Boolean(page?.cover || page?.coverElements?.length);
   const toolbarReserve = TOOLBAR_RESERVE;
-  // The inspector floats over the stage, which pads its side to keep the
-  // fitted page clear; a panned page shows through beneath it.
+  // The inspector floats over the stage. The fit leaves room for it, and the
+  // page slides away from it only as far as the two would otherwise meet.
   const docking = usePanelDock();
-  const stagePad = stagePadding(docking.dock, showCoverTools);
 
   // Fit-and-zoom the fixed PAGE_W×PAGE_H canvas to the editor stage (zoom=1),
   // exactly as the reader does — so the editor is a faithful, to-scale preview —
@@ -229,12 +232,16 @@ export function Editor({
     contentWidth: PAGE_W,
     contentHeight: PAGE_H,
     // The stage's own padding: 40px above the page, the tool bar's reserve
-    // below, and the inspector's column on its side.
-    fitMargin: { x: stagePad.left + stagePad.right, y: 40 + toolbarReserve },
+    // below, and the inspector's column while it shows.
+    fitMargin: {
+      x: 80 + (showCoverTools ? INSPECTOR_RESERVE : 0),
+      y: 40 + toolbarReserve,
+    },
     fitClamp: { min: 0.25, max: 1.4 },
     initialFitScale: 0.75,
     blockSelector: "[data-editor-block]",
   });
+  const dodge = useStageDodge(stageRef, scale, showCoverTools);
 
   // Reset zoom/pan to the fitted view when switching pages.
   useEffect(() => {
@@ -337,84 +344,89 @@ export function Editor({
                 onPointerMove={onPointerMove}
                 onPointerUp={onPointerUp}
                 onPointerCancel={onPointerUp}
-                style={{
-                  paddingBottom: toolbarReserve,
-                  paddingLeft: stagePad.left,
-                  paddingRight: stagePad.right,
-                }}
-                className={`flex flex-1 items-center justify-center overflow-hidden pt-10 ${
+                style={{ paddingBottom: toolbarReserve }}
+                className={`flex flex-1 items-center justify-center overflow-hidden px-10 pt-10 ${
                   panning ? "cursor-grabbing select-none" : "cursor-grab"
                 }`}
               >
                 <div
-                  ref={panRef}
-                  className="shadow-[0_10px_30px_rgba(40,36,28,0.14)]"
+                  style={{
+                    transform: `translateX(${docking.dock === "left" ? dodge : -dodge}px)`,
+                  }}
+                  className="transition-transform duration-300 ease-out motion-reduce:transition-none"
                 >
-                  <ScaledPage scale={scale}>
-                    <PageFrame
-                      theme={theme}
-                      w={PAGE_W}
-                      h={PAGE_H}
-                      issueNo={issue.number}
-                      pageNo={curPage + 1}
-                      logo={logo}
-                      settings={settings}
-                      clip={false}
-                      cover={page?.cover}
-                      coverDecoration={page?.coverOverlay?.decoration}
-                      coverMasthead={page?.coverOverlay?.masthead}
-                      bleed={filled}
-                    >
-                      <DndContext
-                        sensors={sensors}
-                        collisionDetection={
-                          page?.cover ? coverCollisionDetection : closestCenter
-                        }
-                        onDragEnd={onDragEnd}
+                  <div
+                    ref={panRef}
+                    className="shadow-[0_10px_30px_rgba(40,36,28,0.14)]"
+                  >
+                    <ScaledPage scale={scale}>
+                      <PageFrame
+                        theme={theme}
+                        w={PAGE_W}
+                        h={PAGE_H}
+                        issueNo={issue.number}
+                        pageNo={curPage + 1}
+                        logo={logo}
+                        settings={settings}
+                        clip={false}
+                        cover={page?.cover}
+                        coverDecoration={page?.coverOverlay?.decoration}
+                        coverMasthead={page?.coverOverlay?.masthead}
+                        bleed={filled}
                       >
-                        <SortableContext
-                          items={(page?.cover
-                            ? coverItems(page)
-                            : (page?.blocks ?? [])
-                          ).map((b) => b.id)}
-                          strategy={
+                        <DndContext
+                          sensors={sensors}
+                          collisionDetection={
                             page?.cover
-                              ? coverSortingStrategy(page, scale)
-                              : verticalListSortingStrategy
+                              ? coverCollisionDetection
+                              : closestCenter
                           }
+                          onDragEnd={onDragEnd}
                         >
-                          {page && (
-                            <EditorPageContent
-                              page={page}
-                              containerRef={canvasRef}
-                              sources={sources}
-                              issueNo={issue.number}
-                              issueId={issue.id}
-                              theme={theme}
-                              images={images}
-                              sponsors={sponsors}
-                              sponsorMap={sponsorMap}
-                              reseed={reseed}
-                              sel={sel}
-                              hint={hint}
-                              overflow={overflow}
-                              onSelect={setSel}
-                              onSelectElement={setSel}
-                              updateBlock={updateBlock}
-                              updateElement={updateCoverElement}
-                              moveBlock={moveBlock}
-                              removeBlock={removeBlock}
-                              removeElement={removeCoverElement}
-                              moveElement={moveCoverElement}
-                              flow={flow}
-                              fillPage={fillPage}
-                              registerImage={registerImage}
-                            />
-                          )}
-                        </SortableContext>
-                      </DndContext>
-                    </PageFrame>
-                  </ScaledPage>
+                          <SortableContext
+                            items={(page?.cover
+                              ? coverItems(page)
+                              : (page?.blocks ?? [])
+                            ).map((b) => b.id)}
+                            strategy={
+                              page?.cover
+                                ? coverSortingStrategy(page, scale)
+                                : verticalListSortingStrategy
+                            }
+                          >
+                            {page && (
+                              <EditorPageContent
+                                page={page}
+                                containerRef={canvasRef}
+                                sources={sources}
+                                issueNo={issue.number}
+                                issueId={issue.id}
+                                theme={theme}
+                                images={images}
+                                sponsors={sponsors}
+                                sponsorMap={sponsorMap}
+                                reseed={reseed}
+                                sel={sel}
+                                hint={hint}
+                                overflow={overflow}
+                                onSelect={setSel}
+                                onSelectElement={setSel}
+                                updateBlock={updateBlock}
+                                updateElement={updateCoverElement}
+                                moveBlock={moveBlock}
+                                removeBlock={removeBlock}
+                                removeElement={removeCoverElement}
+                                moveElement={moveCoverElement}
+                                flow={flow}
+                                fillPage={fillPage}
+                                registerImage={registerImage}
+                              />
+                            )}
+                          </SortableContext>
+                        </DndContext>
+                      </PageFrame>
+                    </ScaledPage>
+                  </div>
                 </div>
               </div>
             </div>

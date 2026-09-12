@@ -1,23 +1,44 @@
 "use client";
 import {
+  useEffect,
   useRef,
   useState,
   useSyncExternalStore,
   type PointerEvent as ReactPointerEvent,
+  type RefObject,
 } from "react";
+import { PAGE_W } from "@/features/blocks/page-frame";
 
 export type Dock = "left" | "right";
 /** Width of the inspector's column (panel plus its gutters), which the stage pads out. */
 export const INSPECTOR_RESERVE = 344;
 const KEY = "octavo.editor.inspector-dock";
 
-/** The stage's side padding: the inspector's column on its docked side while it shows. */
-export function stagePadding(dock: Dock, reserved: boolean) {
-  const pad = INSPECTOR_RESERVE + 16;
-  return {
-    left: reserved && dock === "left" ? pad : 40,
-    right: reserved && dock === "right" ? pad : 40,
-  };
+/** Breathing room kept between the page's edge and the inspector. */
+const DODGE_GAP = 24;
+
+/** How far the page must slide away from the inspector so the two never meet:
+ *  0 when the fitted page already clears it, otherwise just the overlap. The
+ *  page keeps its natural centre instead of being recentred beside the panel. */
+export function useStageDodge(
+  stage: RefObject<HTMLElement | null>,
+  scale: number,
+  active: boolean,
+) {
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    const el = stage.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setWidth(el.clientWidth));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [stage]);
+  if (!active || !width) return 0;
+  // The page is centred in the stage; the panel's inner edge sits one gutter
+  // (12px) inside its column on the docked side.
+  const pageEdge = width / 2 + (PAGE_W * scale) / 2;
+  const panelEdge = width - INSPECTOR_RESERVE + 12;
+  return Math.max(0, Math.round(pageEdge + DODGE_GAP - panelEdge));
 }
 const listeners = new Set<() => void>();
 const subscribe = (cb: () => void) => {

@@ -118,8 +118,9 @@ image-only behaviour. Content is never silently removed: on a grid cover the ins
 checks name anything that runs past the margin; legacy stacked covers keep the on-page overflow
 marker. `EditorToolbar` offers a cover-specific set on covers: Heading, Text, Image, Add detail
 (story preview, contents list, issue details), and Logo. A floating rounded inspector
-sits over the stage on its docked side; the stage pads that side so the fitted page stays clear of
-it, and a page panned towards it shows through beneath. Its header grip drags
+sits over the stage on its docked side; the fit leaves room for it, the page slides away from it
+only as far as the two would otherwise meet (eased), and a page panned towards it shows through
+beneath. Its header grip drags
 it to either side of the page (a plain press flips it; the side is remembered per browser in
 `use-panel-dock.ts`). The inspector holds whole-item settings in titled bands — Placement, Appearance,
 the item's content — plus the cover's defaults and page toggles when nothing is selected, and a
