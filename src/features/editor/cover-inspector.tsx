@@ -10,6 +10,7 @@ import { CoverAppearanceControls } from "./cover-appearance-controls";
 import { CoverDecorationControls } from "./cover-decoration-controls";
 import { CoverWarnings } from "./cover-warnings";
 import { InspectorSection } from "./cover-fields";
+import { useInspectorPlacement } from "./use-inspector-band";
 import type { CoverWarning } from "./use-cover-layout-warnings";
 
 export type CoverInspectorProps = {
@@ -58,6 +59,7 @@ export function CoverInspector({
   onHint,
   warnings,
 }: CoverInspectorProps) {
+  const band = useInspectorPlacement();
   const image = page.blocks.find(
     (b) => b.id === selectedId && b.type === "image",
   );
@@ -79,7 +81,8 @@ export function CoverInspector({
   const scroll =
     "scrollbar-soft border-line min-h-0 flex-1 overflow-y-auto overscroll-contain [--scrollbar-surface:var(--color-card)]";
   // Placement is pinned above the scrolling rest, so the position grid stays
-  // in reach while a long content section is being edited.
+  // in reach while a long content section is being edited; it folds away for
+  // the author who wants the room back.
   if (page.cover && image?.type === "image") {
     const props = {
       block: image,
@@ -92,7 +95,7 @@ export function CoverInspector({
     return (
       <>
         <div className="shrink-0">
-          <CoverImagePlacement {...props} />
+          <CoverImagePlacement {...props} band={band} />
         </div>
         <div className={`${scroll} border-t`}>
           <CoverImageDetails {...props} />
@@ -106,7 +109,7 @@ export function CoverInspector({
       <>
         <div className="shrink-0">
           {page.cover ? (
-            <InspectorSection title="Placement">
+            <InspectorSection title="Placement" collapsible={band}>
               <CoverPlacementControls
                 value={placement}
                 variant={element?.type === "logo" ? "logo" : "text"}

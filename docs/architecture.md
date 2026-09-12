@@ -127,10 +127,12 @@ it to either side of the page (a plain press flips it; the side is remembered pe
 `use-panel-dock.ts`). The inspector holds whole-item settings in titled bands — Placement, Appearance,
 the item's content — plus the cover's defaults and page toggles when nothing is selected, and a
 "Needs attention" list of layout checks that name the item(s) concerned: pointing at one lights the
-item up on the page, pressing it selects it. Cover menus use viewport-constrained portals so
-inspector scrolling cannot clip their options. Colour rows are the magazine palette plus one custom
-swatch; the native colour input is a 1px anchor at the row's left edge, opened from the swatch, so
-the browser's picker opens over the row rather than off the edge of the screen.
+item up on the page, pressing it selects it. Placement is pinned above the scrolling bands and folds
+away on a press of its title; the fold is remembered per browser (`use-inspector-band.ts`). Cover
+menus use viewport-constrained portals so inspector scrolling cannot clip their options. Colour
+rows are the magazine palette plus one custom swatch; the native colour input is a 1px anchor at
+the row's left edge, opened from the swatch, so the browser's picker opens over the row rather
+than off the edge of the screen.
 
 Cover text uses an inline-only Tiptap editor on the page and in detail fields. Formatting for the
 selected words — bold, italic, underline, a colour and a shadow — is a floating bar over the selected

@@ -248,6 +248,37 @@ await withCoverFixture(base, async (fixture) => {
     .getByRole("button", { name: "Edit Logo", exact: true })
     .waitFor();
   assert.equal(await canvas.locator("[data-cover-element]").count(), 4);
+  // The pinned Placement band folds away, and the choice survives a reload.
+  const openContents = async () => {
+    await canvas
+      .locator(`[data-cover-element="${contentsId}"]`)
+      .getByRole("button", { name: /^Edit Section/ })
+      .click();
+    await panel.waitFor();
+  };
+  const placementBand = panel.getByRole("button", {
+    name: "Placement",
+    exact: true,
+  });
+  const grid = panel.getByRole("button", { name: "Top left", exact: true });
+  await openContents();
+  assert.equal(await placementBand.getAttribute("aria-expanded"), "true");
+  await placementBand.click();
+  assert.equal(await placementBand.getAttribute("aria-expanded"), "false");
+  assert.equal(await grid.count(), 0, "a folded band shows no grid");
+  await page.reload();
+  await canvas
+    .getByRole("button", { name: "Edit Logo", exact: true })
+    .waitFor();
+  await openContents();
+  assert.equal(
+    await placementBand.getAttribute("aria-expanded"),
+    "false",
+    "the fold is remembered",
+  );
+  await placementBand.click();
+  await grid.waitFor();
+  await page.getByRole("button", { name: "Done", exact: true }).click();
   await checkCoverEdits(fixture, storyId);
   await checkCoverReaders(base, fixture);
   assert.deepEqual(errors, []);
