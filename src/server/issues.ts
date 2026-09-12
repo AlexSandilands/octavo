@@ -99,11 +99,11 @@ const DASHBOARD_ORDER = [
 ];
 
 // The dashboard list, paged. The counts and the rows share one read-only
-// REPEATABLE READ snapshot, so neither the clamp nor the summary
-// can disagree with the rows served. The search and filters run in the database
-// so they see every issue, not just the served page; an out-of-range page is
-// clamped rather than 404ed, so the URL an admin held while rows were being
-// deleted still lands on the nearest real page.
+// REPEATABLE READ snapshot, so neither the clamp nor the summary can disagree
+// with the rows served. The search and filters run in the database so they see
+// every issue, not just the served page; an out-of-range page is clamped rather
+// than 404ed, so the URL an admin held while rows were being deleted still
+// lands on the nearest real page.
 export async function listIssuesPage(
   opts: IssueListOptions = {},
 ): Promise<IssueList> {

@@ -10,9 +10,9 @@ import { PublishNumber, PublishedNumber } from "./publish-number";
 // Confirmation dialog shown before publishing an issue. Pulled out of the editor
 // to keep that file under the 500-line limit (docs/design-principles.md).
 //
-// It owns the whole publish interaction now: the email opt-in, the "publishing…"
-// state, and the sent/failed result. `onPublish` does the actual work (flush +
-// server action) and hands back the outcome.
+// It owns the whole publish interaction now: the issue number (issue #270), the
+// email opt-in, the "publishing…" state, and the sent/failed result. `onPublish`
+// does the actual work (flush + server action) and hands back the outcome.
 //
 // The backdrop is the shell's viewport-fixed one (issue #153). It used to be
 // `absolute inset-0` against the editor root, which could then grow taller than
