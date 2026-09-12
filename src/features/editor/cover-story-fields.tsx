@@ -150,13 +150,13 @@ function StoryBand({
   const bodyId = useId();
   return (
     <div className="border-hair-warm rounded-lg border bg-white">
-      <div className="flex items-center gap-1 pr-2">
+      <div className="hover:bg-accent-wash only:rounded-lg flex items-center gap-1 rounded-t-lg pr-2 transition-colors">
         <button
           type="button"
           aria-expanded={open}
           aria-controls={bodyId}
           onClick={() => setOpen((o) => !o)}
-          className="text-ink hover:bg-accent-wash flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-l-lg px-3 py-3 text-left font-sans text-sm transition-colors"
+          className="text-ink flex min-w-0 flex-1 cursor-pointer items-center gap-2 px-3 py-3 text-left font-sans text-sm"
         >
           <Icon
             name="chevronDown"
@@ -199,8 +199,8 @@ function StoryAction({
       onClick={onClick}
       className={`border-hair-warm text-ink flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md border bg-white transition-colors disabled:cursor-default disabled:opacity-40 ${
         destructive
-          ? "hover:border-warn hover:text-warn enabled:hover:bg-white"
-          : "hover:bg-accent-wash"
+          ? "enabled:hover:border-warn enabled:hover:text-warn"
+          : "enabled:hover:border-accent enabled:hover:text-accent"
       }`}
     >
       <Icon name={icon} size={14} strokeWidth={1.8} />
