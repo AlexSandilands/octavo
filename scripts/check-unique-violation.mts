@@ -1,9 +1,7 @@
-// Dev-only: checks that `isUniqueViolation` (src/server/issues.ts) recognises a
-// real SQLSTATE 23505 as drizzle 1.0 throws it — wrapped in a DrizzleQueryError
-// with the driver error on `.cause` — and that createIssue's retry-on-collision
-// loop therefore retries instead of throwing (issue #271). Needs DATABASE_URL;
-// every write happens inside a transaction that is rolled back, so it leaves no
-// rows behind.
+// Dev-only: checks that `isUniqueViolation` (src/lib/db-errors.ts) recognises a
+// real SQLSTATE 23505 as drizzle throws it — wrapped, with the driver error on
+// `.cause` — so createIssue's retry-on-collision loop retries (issue #271).
+// Needs DATABASE_URL; its writes roll back, leaving no rows behind.
 // Run: npx tsx --tsconfig scripts/tsconfig.json scripts/check-unique-violation.mts
 import { existsSync } from "node:fs";
 import { DrizzleQueryError } from "drizzle-orm/errors";
@@ -11,7 +9,7 @@ import { inArray, sql } from "drizzle-orm";
 import { db } from "../src/db/index.ts";
 import { issues } from "../src/db/schema.ts";
 import { emptyIssueContent } from "../src/lib/blocks.ts";
-import { isUniqueViolation } from "../src/server/issues.ts";
+import { isUniqueViolation } from "../src/lib/db-errors.ts";
 
 for (const file of [".env.local", ".env"]) {
   if (existsSync(file)) process.loadEnvFile(file);

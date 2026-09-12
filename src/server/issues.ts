@@ -13,6 +13,7 @@ import { db } from "@/db";
 import { images, issues } from "@/db/schema";
 import { emptyIssueContent, type IssueContent } from "@/lib/blocks";
 import type { FooterReserve } from "@/lib/branding";
+import { isUniqueViolation } from "@/lib/db-errors";
 import { collectImageIds } from "@/lib/images";
 import { likePattern } from "@/lib/like-pattern";
 import {
@@ -178,24 +179,6 @@ export async function getPublishedIssueByNumber(number: number) {
     .where(and(eq(issues.number, number), eq(issues.status, "published")))
     .limit(1);
   return row ?? null;
-}
-
-// True for Postgres unique-constraint violations (SQLSTATE 23505). drizzle 1.0
-// wraps driver errors in a DrizzleQueryError, so the SQLSTATE lives on `.cause`;
-// walk a few levels of the chain rather than only the top-level error.
-export function isUniqueViolation(err: unknown): boolean {
-  let e: unknown = err;
-  for (let depth = 0; e != null && depth < 4; depth++) {
-    if (
-      typeof e === "object" &&
-      "code" in e &&
-      (e as { code?: unknown }).code === "23505"
-    ) {
-      return true;
-    }
-    e = (e as { cause?: unknown }).cause;
-  }
-  return false;
 }
 
 // The issue's pages will be laid out against the footer that is set right now,

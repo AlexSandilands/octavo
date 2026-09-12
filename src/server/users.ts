@@ -14,6 +14,7 @@ import {
 } from "drizzle-orm";
 import { db } from "@/db";
 import { sessions, users } from "@/db/schema";
+import { isUniqueViolation } from "@/lib/db-errors";
 import { likePattern } from "@/lib/like-pattern";
 import {
   ADMIN_LIST_PAGE_SIZE,
@@ -177,23 +178,6 @@ function chunked<T>(items: T[]): T[][] {
     batches.push(items.slice(i, i + ID_CHUNK));
   }
   return batches;
-}
-
-// True for Postgres unique-constraint violations (SQLSTATE 23505) — here, the
-// `users.email` unique index rejecting a duplicate. drizzle 1.0 wraps driver
-// errors in a DrizzleQueryError, so the SQLSTATE lives on `.cause`; walk the
-// chain rather than only checking the top-level error.
-function isUniqueViolation(err: unknown): boolean {
-  for (let e: unknown = err; e != null; e = (e as { cause?: unknown }).cause) {
-    if (
-      typeof e === "object" &&
-      "code" in e &&
-      (e as { code?: unknown }).code === "23505"
-    ) {
-      return true;
-    }
-  }
-  return false;
 }
 
 export type CreateUserResult =
