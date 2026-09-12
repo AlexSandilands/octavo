@@ -24,6 +24,8 @@ export function EditorToolbar({
   canRedo,
   onUndo,
   onRedo,
+  onTogglePosition,
+  onReserveChange,
   notice,
 }: {
   layout: BarLayout;
@@ -37,13 +39,24 @@ export function EditorToolbar({
   canRedo: boolean;
   onUndo: () => void;
   onRedo: () => void;
+  onTogglePosition: () => void;
+  onReserveChange: (reserve: number) => void;
   /** Announced politely when a shortcut found the history stack empty. */
   notice: HistoryNotice;
 }) {
   const vertical = layout === "vertical";
   const showLabel = layout === "labels";
+  const positionLabel = vertical
+    ? "Move toolbar to bottom"
+    : "Move toolbar to left";
   return (
-    <FloatingBar vertical={vertical} side="left" label="Editor tools">
+    <FloatingBar
+      vertical={vertical}
+      side="left"
+      label="Editor tools"
+      wrap={!vertical}
+      onReserveChange={onReserveChange}
+    >
       {/* `unavailable`, not `disabled`: it keeps the button focusable — see
           `unavailable` in `ui.tsx`. */}
       <Tool
@@ -92,6 +105,13 @@ export function EditorToolbar({
         pressed={coverActive}
         disabled={coverDisabled}
         onClick={onToggleCover}
+      />
+      <BarDivider vertical={vertical} />
+      <Tool
+        icon={vertical ? "toolbarBottom" : "toolbarLeft"}
+        label={positionLabel}
+        hint={positionLabel}
+        onClick={onTogglePosition}
       />
       <span role="status" aria-live="polite" className="sr-only">
         {/* Keyed by the counter so the same text twice is still a change. */}

@@ -18,7 +18,6 @@ import {
 import type { LayoutTheme } from "@/features/blocks/themes/registry";
 import { useCanvasPanZoom } from "@/features/blocks/use-canvas-pan-zoom";
 import { EditorBlock } from "./editor-block";
-import { TOOLBAR_RESERVE } from "./floating-bar";
 import { DropPreview } from "./pdf-import/drop-preview";
 import { StageBadge } from "./stage-badge";
 import type { useEditorPages } from "./use-editor-pages";
@@ -54,6 +53,7 @@ export function EditorStage({
   settings,
   filled,
   barStanding,
+  barReserve,
   images,
   sponsors,
   sponsorMap,
@@ -74,6 +74,8 @@ export function EditorStage({
   filled: boolean;
   /** The tool bar stands at the left edge, so the room for it moves there. */
   barStanding: boolean;
+  /** Space occupied by the bar on its current edge, including page clearance. */
+  barReserve: number;
   images: ImageMap;
   sponsors: SponsorListItem[];
   sponsorMap: SponsorMap;
@@ -84,8 +86,8 @@ export function EditorStage({
   actions: StageActions;
 }) {
   const padding = barStanding
-    ? { top: 40, right: 40, bottom: 40, left: TOOLBAR_RESERVE }
-    : { top: 40, right: 40, bottom: TOOLBAR_RESERVE, left: 40 };
+    ? { top: 40, right: 40, bottom: 40, left: barReserve }
+    : { top: 40, right: 40, bottom: barReserve, left: 40 };
 
   // Overflow marking + its one-action fix (issue #93): the canvas is measured
   // where it is laid out, and the split — or, for a block that can't be cut,

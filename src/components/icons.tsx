@@ -179,6 +179,18 @@ const ICONS: Record<string, ReactNode> = {
       <rect x="9.5" y="8" width="5" height="8" rx="0.5" />
     </>
   ),
+  toolbarLeft: (
+    <>
+      <rect x="4" y="3" width="16" height="18" rx="1.5" />
+      <path d="M8 3v18M15 12H9m0 0 2.5-2.5M9 12l2.5 2.5" />
+    </>
+  ),
+  toolbarBottom: (
+    <>
+      <rect x="4" y="3" width="16" height="18" rx="1.5" />
+      <path d="M4 17h16M12 10v6m0 0-2.5-2.5M12 16l2.5-2.5" />
+    </>
+  ),
 };
 
 export type IconName = keyof typeof ICONS;

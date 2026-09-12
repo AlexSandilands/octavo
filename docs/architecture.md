@@ -132,6 +132,12 @@ editables), and the editor-level Ctrl/Cmd+Z stands down whenever focus is in a t
 never fight. Restoring re-seeds the uncontrolled in-place editors by remounting the blocks whose
 content changed, and the ordinary autosave carries the restored document to the server. Issue #222.
 
+The magazine tool bar responds to its canvas width (labels, icons, then a standing bar), and its
+destination button lets the author pin it to the bottom or left for the rest of the mounted editor
+session. The stage moves the measured reserve with it and re-fits the fixed page; a manually bottomed
+bar wraps when the PDF panel leaves too little room for one row. The PDF bar keeps its independent,
+mirrored automatic position on the panel's right edge. Issue #259.
+
 ## Assisted PDF authoring
 
 The editor's right-hand side panel (`src/features/editor/side-panel/`, opened from a
