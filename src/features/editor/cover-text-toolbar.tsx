@@ -5,7 +5,7 @@ import { useCoverText } from "./cover-text-context";
 import { ColorSwatches } from "./cover-color-picker";
 import { Segments } from "./cover-segments";
 import { SHADOW_OPTIONS } from "./cover-shadow-control";
-import { TbBtn } from "./rich-text-editor";
+import { CAP_NUDGE, TbBtn } from "./rich-text-editor";
 
 // The floating bar above a selected cover item, for the words inside it: bold,
 // italic, underline, a colour and a shadow for the selection only. Whole-item
@@ -124,7 +124,8 @@ export function CoverTextToolbar({
           active={shadow !== "none"}
           onClick={() => toggle("shadow")}
         >
-          Shadow
+          {/* Same cap-height nudge as the bar's other text labels. */}
+          <span className={CAP_NUDGE.sans}>Shadow</span>
         </Tray>
         <span className="bg-line h-5 w-px" />
         <TbBtn
