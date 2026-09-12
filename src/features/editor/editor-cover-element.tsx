@@ -22,6 +22,7 @@ export function EditorCoverElement({
   selected,
   hinted = false,
   appearance,
+  caret,
   onSelect,
   onUpdate,
   onMove,
@@ -36,6 +37,8 @@ export function EditorCoverElement({
   /** A layout warning in the inspector is pointing at this item. */
   hinted?: boolean;
   appearance: Required<CoverAppearance>;
+  /** Caret colour that contrasts with what sits behind the words. */
+  caret?: string;
   onSelect: () => void;
   onUpdate: (element: CoverElement) => void;
   onMove: (direction: -1 | 1) => void;
@@ -56,6 +59,7 @@ export function EditorCoverElement({
       ref={setNodeRef}
       data-editor-block
       data-cover-element={element.id}
+      style={{ caretColor: caret }}
       onFocus={onSelect}
       className={`group relative rounded-sm transition-shadow ${isDragging ? "z-30" : ""} ${ring}`}
     >

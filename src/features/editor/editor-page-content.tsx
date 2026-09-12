@@ -6,6 +6,8 @@ import type { SponsorListItem, SponsorMap } from "@/lib/sponsors";
 import type { LayoutTheme } from "@/features/blocks/themes/registry";
 import { PageContent } from "@/features/blocks/page-content";
 import { itemAppearance } from "@/lib/cover-order";
+import { caretColorFor } from "@/lib/cover-appearance";
+import { pageFillsCanvas } from "@/features/blocks/layout";
 import { EditorCoverElement } from "./editor-cover-element";
 import { EditorBlock } from "./editor-block";
 import type { BlockOverflow } from "./page-metrics";
@@ -62,6 +64,7 @@ export function EditorPageContent({
   fillPage: (id: string, align: PageAlign) => void;
   registerImage: (id: string, image: ResolvedImage) => void;
 }) {
+  const photo = pageFillsCanvas(page);
   return (
     <PageContent
       page={page}
@@ -81,6 +84,7 @@ export function EditorPageContent({
           selected={sel === element.id}
           hinted={hint.includes(element.id)}
           appearance={itemAppearance(element, page)}
+          caret={caretColorFor(itemAppearance(element, page), photo)}
           onSelect={() => onSelectElement(element.id)}
           onMove={(dir) => moveElement(element.id, dir)}
           onRemove={() => removeElement(element.id)}
@@ -96,6 +100,11 @@ export function EditorPageContent({
           selected={b.id === sel}
           hinted={hint.includes(b.id)}
           appearance={page.cover ? itemAppearance(b, page) : undefined}
+          caret={
+            page.cover
+              ? caretColorFor(itemAppearance(b, page), photo)
+              : undefined
+          }
           issueId={issueId}
           images={images}
           sponsors={sponsors}

@@ -59,3 +59,25 @@ export function appearanceVars(
     "--cover-shadow": shadowCss(value.shadow, value.shadowColor),
   } as CSSProperties;
 }
+
+// Which palette entries read as light. A custom hex is judged by luminance.
+const LIGHT = new Set<string>(["paper", "stone"]);
+export function isLightColor(color: CoverColor): boolean {
+  if (!color.startsWith("#")) return LIGHT.has(color);
+  const [r, g, b] = [1, 3, 5]
+    .map((i) => parseInt(color.slice(i, i + 2), 16) / 255)
+    .map((c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b! > 0.35;
+}
+/** The text caret follows the text colour, which vanishes when the words match
+ *  their panel. Pick a caret that contrasts with what is behind them instead. */
+export function caretColorFor(
+  paint: Required<CoverAppearance>,
+  overPhoto: boolean,
+): string {
+  if (paint.panel)
+    return isLightColor(paint.background)
+      ? "var(--color-ink)"
+      : "var(--color-page)";
+  return overPhoto ? colorCss(paint.text) : "var(--color-ink)";
+}

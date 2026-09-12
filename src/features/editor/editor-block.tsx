@@ -39,6 +39,7 @@ export function EditorBlock({
   selected,
   hinted = false,
   appearance,
+  caret,
   issueId,
   images,
   sponsors,
@@ -61,6 +62,8 @@ export function EditorBlock({
   hinted?: boolean;
   /** What this block paints with on a cover (drives the text format bar). */
   appearance?: Required<CoverAppearance>;
+  /** Caret colour that contrasts with what sits behind the words (covers). */
+  caret?: string;
   issueId: string;
   images: ImageMap;
   sponsors: SponsorListItem[];
@@ -139,6 +142,7 @@ export function EditorBlock({
       style={{
         ...blockFlowStyle(block, cover),
         ...(floated && !isDragging ? { zIndex: 5 } : {}),
+        caretColor: caret,
         transform: cover ? undefined : CSS.Translate.toString(transform),
         transition: cover ? undefined : transition,
       }}
