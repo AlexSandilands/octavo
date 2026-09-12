@@ -44,6 +44,9 @@ export function CoverOverlayControls({
   return (
     <div
       style={{ width: INSPECTOR_RESERVE }}
+      // Inside the stage: a press here is the panel's, not a pan or a deselect.
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
       className={`pointer-events-none absolute inset-y-0 z-10 flex items-start pt-5 pb-[92px] ${
         dock === "left" ? "left-0 pr-3 pl-6" : "right-0 pr-6 pl-3"
       }`}

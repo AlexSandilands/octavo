@@ -4,6 +4,7 @@ import {
   type CollisionDetection,
   type KeyboardCoordinateGetter,
 } from "@dnd-kit/core";
+import { PAGE_DROP_ID } from "./pdf-import/drag-out";
 
 /** Centre-based navigation works for a tall masthead beside a short text block. */
 export const coverKeyboardCoordinates: KeyboardCoordinateGetter = (
@@ -49,15 +50,14 @@ export const coverKeyboardCoordinates: KeyboardCoordinateGetter = (
     : undefined;
 };
 
-/** A handle can sit outside its item; point at the intended drop target. */
+/** A handle can sit outside its item; point at the intended drop target. The
+ *  page-wide drop zone (for PDF regions) is never a target for a cover item. */
 export const coverCollisionDetection: CollisionDetection = (args) => {
-  const hits = pointerWithin({
-    ...args,
-    droppableContainers: args.droppableContainers.filter(
-      (item) => item.id !== args.active.id,
-    ),
-  });
-  return hits.length ? hits : closestCenter(args);
+  const droppableContainers = args.droppableContainers.filter(
+    (item) => item.id !== args.active.id && item.id !== PAGE_DROP_ID,
+  );
+  const hits = pointerWithin({ ...args, droppableContainers });
+  return hits.length ? hits : closestCenter({ ...args, droppableContainers });
 };
 export function coverDragTransform(transform: { x: number; y: number } | null) {
   return transform

@@ -279,10 +279,7 @@ export async function browserPass(base: string, cover: Page) {
     await page.getByRole("button", { name: "3", exact: true }).click();
     await canvas.locator('[data-block-id="back-photo"] img').click();
     await page
-      .getByRole("button", {
-        name: "Fill page (edge to edge, trims the photo)",
-        exact: true,
-      })
+      .getByRole("button", { name: "Placement: fill page", exact: true })
       .click();
     await page.getByRole("button", { name: "Cover page", exact: true }).click();
     assert.equal(await page.locator(".cover-composition").count(), 0);
@@ -317,23 +314,19 @@ export async function browserPass(base: string, cover: Page) {
     await page.getByRole("button", { name: "Undo", exact: true }).click();
     await page.locator(".cover-composition").waitFor();
     console.log("Checking cover overflow");
-    // Overfull cover copy is warned about, never silently clipped in the editor.
+    // Overfull cover copy is flagged by the inspector's layout checks, never
+    // silently clipped in the editor.
     const tagline = page.getByRole("textbox", {
       name: "Add a tagline or date…",
       exact: true,
     });
     await tagline.fill(Array(30).fill("A longer cover line").join("\n"));
-    await page
-      .getByText("Cover content overflows — shorten or remove blocks", {
-        exact: true,
-      })
-      .waitFor();
+    const overflowCheck = page.getByText("Text runs past the page margin.", {
+      exact: true,
+    });
+    await overflowCheck.waitFor();
     await page.getByRole("button", { name: "Undo", exact: true }).click();
-    await page
-      .getByText("Cover content overflows — shorten or remove blocks", {
-        exact: true,
-      })
-      .waitFor({ state: "hidden" });
+    await overflowCheck.waitFor({ state: "hidden" });
     console.log("Checking tablet controls");
     await page.setViewportSize({ width: 1024, height: 900 });
     await openCoverLayout();

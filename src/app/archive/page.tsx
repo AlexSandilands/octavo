@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { coverPageOf, type Page } from "@/lib/blocks";
 import { pageParamSchema } from "@/lib/pagination";
-import { listArchivePage, listPublishedYears } from "@/server/issues";
+import { listArchivePage, listPublishedYears } from "@/server/library";
 import { resolveIssueImages } from "@/server/images";
 import { resolveIssueSponsors } from "@/server/sponsors";
 import { requireMemberOrRedirect } from "@/server/session";

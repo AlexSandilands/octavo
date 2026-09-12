@@ -30,6 +30,7 @@ export function DesktopReader({
   settings,
   images,
   sponsors,
+  fillHeight = false,
 }: {
   content: IssueContent;
   issueNo: number;
@@ -40,6 +41,8 @@ export function DesktopReader({
   settings: SiteSettings;
   images: ImageMap;
   sponsors: SponsorMap;
+  /** Fill a bounded preview pane; the public reader still owns the viewport. */
+  fillHeight?: boolean;
 }) {
   const pages = content.pages;
   const toc = buildToc(pages);
@@ -231,7 +234,9 @@ export function DesktopReader({
   return (
     <div
       ref={rootRef}
-      className="bg-stage relative flex h-screen overflow-hidden"
+      className={`bg-stage relative flex overflow-hidden ${
+        fillHeight ? "h-full" : "h-screen"
+      }`}
     >
       {/* Only offer the toggle when the deployment enables more than one layout
           theme (NEXT_PUBLIC_ISSUE_THEMES) — with a single theme there's nothing

@@ -140,12 +140,34 @@ const ICONS: Record<string, ReactNode> = {
       <rect x="3" y="8.5" width="18" height="7" />
     </>
   ),
+  // A dashed selection box with a tick, and the same box emptied.
+  selectAll: (
+    <>
+      <rect x="4" y="4" width="16" height="16" rx="2" strokeDasharray="3 2.5" />
+      <path d="M8.5 12.5l2.5 2.5 5-5.5" />
+    </>
+  ),
+  selectNone: (
+    <>
+      <rect x="4" y="4" width="16" height="16" rx="2" strokeDasharray="3 2.5" />
+      <path d="M9 12h6" />
+    </>
+  ),
   doc: (
     <>
       <path d="M6 3h9l3 3v15H6z" />
       <path d="M9 8h6M9 12h6M9 16h4" />
     </>
   ),
+  // A page with content arriving from the left: the editor's PDF import tool.
+  importFile: (
+    <>
+      <path d="M9 3h6l4 4v14H9" />
+      <path d="M9 3v6M3 12h9m0 0l-3-3m3 3l-3 3" />
+    </>
+  ),
+  // A cut with the halves pushed apart: split a detected text region.
+  split: <path d="M12 4v16M5 8l3 4-3 4M19 8l-3 4 3 4" />,
   help: (
     <>
       <circle cx="12" cy="12" r="9" />

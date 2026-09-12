@@ -15,12 +15,15 @@ export function PageContent({
   containerRef,
   empty,
   renderElement,
+  trailing,
 }: {
   page: Page;
   renderBlock: (block: Block) => ReactNode;
   containerRef?: Ref<HTMLDivElement>;
   empty?: ReactNode;
   renderElement?: (element: CoverElement) => ReactNode;
+  /** Rendered after the blocks of an ordinary page (the editor's drop preview). */
+  trailing?: ReactNode;
 }) {
   const background = page.cover ? page.blocks.find(isFillPage) : undefined;
   const elements = page.coverElements ?? [];
@@ -50,9 +53,10 @@ export function PageContent({
       >
         {page.blocks.length
           ? page.blocks.map(renderBlock)
-          : elements.length
+          : elements.length || trailing
             ? null
             : empty}
+        {trailing}
         {elements.map((e) => (
           <div key={e.id} className="mb-6">
             {renderElement?.(e)}

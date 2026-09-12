@@ -52,3 +52,6 @@ yarn-error.log*
 # claude code — share project config, keep local state out
 .claude/settings.local.json
 .claude/worktrees/
+
+# Generated from the pinned browser PDF parser.
+/public/pdfjs/

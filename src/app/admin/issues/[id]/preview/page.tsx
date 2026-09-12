@@ -33,9 +33,9 @@ export default async function PreviewIssuePage({
   ]);
 
   return (
-    <>
+    <div className="md:flex md:h-screen md:flex-col md:overflow-hidden">
       {issue.status === "draft" && (
-        <div className="bg-warn-soft border-line flex items-center justify-center gap-3 border-b px-4 py-2 font-sans text-[13px]">
+        <div className="bg-warn-soft border-line flex items-center justify-center gap-3 border-b px-4 py-2 font-sans text-[13px] md:shrink-0">
           <span className="text-warn font-semibold">
             Draft preview — members can’t see this issue yet.
           </span>
@@ -50,14 +50,17 @@ export default async function PreviewIssuePage({
       {/* Reuse the reader's viewport-split mount (issue #36) so the admin preview
           lazy-loads only the reader its viewport needs, matching /read — instead
           of statically bundling both. */}
-      <ReaderMount
-        content={issue.content}
-        issueNo={issue.number}
-        logo={logo}
-        settings={settingsForIssue(settings, issue)}
-        images={images}
-        sponsors={sponsors}
-      />
-    </>
+      <div className="md:min-h-0 md:flex-1">
+        <ReaderMount
+          content={issue.content}
+          issueNo={issue.number}
+          logo={logo}
+          settings={settingsForIssue(settings, issue)}
+          images={images}
+          sponsors={sponsors}
+          fillDesktopHeight
+        />
+      </div>
+    </div>
   );
 }

@@ -1,4 +1,4 @@
-import type { Ref } from "react";
+import { Fragment, type ReactNode, type Ref } from "react";
 import type { Page, BlockPatch, PageAlign } from "@/lib/blocks";
 import { type CoverElement, type CoverSource } from "@/lib/cover-elements";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
@@ -37,6 +37,7 @@ export function EditorPageContent({
   flow,
   fillPage,
   registerImage,
+  preview,
 }: {
   page: Page;
   containerRef: Ref<HTMLDivElement>;
@@ -63,6 +64,8 @@ export function EditorPageContent({
   flow: (id: string) => void;
   fillPage: (id: string, align: PageAlign) => void;
   registerImage: (id: string, image: ResolvedImage) => void;
+  /** A PDF region in hand, shown in place at the index it would take. */
+  preview?: { index: number; node: ReactNode } | null;
 }) {
   const photo = pageFillsCanvas(page);
   return (
@@ -91,34 +94,41 @@ export function EditorPageContent({
           overflow={overflow?.id === element.id}
         />
       )}
+      trailing={
+        preview && preview.index >= page.blocks.length ? preview.node : null
+      }
       renderBlock={(b) => (
-        <EditorBlock
-          key={`${b.id}:${reseed[b.id] ?? 0}`}
-          block={b}
-          theme={theme}
-          cover={page.cover}
-          selected={b.id === sel}
-          hinted={hint.includes(b.id)}
-          appearance={page.cover ? itemAppearance(b, page) : undefined}
-          caret={
-            page.cover
-              ? caretColorFor(itemAppearance(b, page), photo)
-              : undefined
-          }
-          issueId={issueId}
-          images={images}
-          sponsors={sponsors}
-          sponsorMap={sponsorMap}
-          overflowAt={overflow?.id === b.id ? overflow.markerTop : undefined}
-          fitsAlone={overflow?.fitsAlone}
-          onSelect={() => onSelect(b.id)}
-          onChange={(patch) => updateBlock(b.id, patch)}
-          onMove={(dir) => moveBlock(b.id, dir)}
-          onRemove={() => removeBlock(b.id)}
-          onFlow={() => flow(b.id)}
-          onFillPage={(a) => fillPage(b.id, a)}
-          onRegisterImage={registerImage}
-        />
+        // Remounting is how a rewrite behind an uncontrolled editor's back (a
+        // split, an undo) lands.
+        <Fragment key={`${b.id}:${reseed[b.id] ?? 0}`}>
+          {preview?.index === page.blocks.indexOf(b) && preview.node}
+          <EditorBlock
+            block={b}
+            theme={theme}
+            cover={page.cover}
+            selected={b.id === sel}
+            hinted={hint.includes(b.id)}
+            appearance={page.cover ? itemAppearance(b, page) : undefined}
+            caret={
+              page.cover
+                ? caretColorFor(itemAppearance(b, page), photo)
+                : undefined
+            }
+            issueId={issueId}
+            images={images}
+            sponsors={sponsors}
+            sponsorMap={sponsorMap}
+            overflowAt={overflow?.id === b.id ? overflow.markerTop : undefined}
+            fitsAlone={overflow?.fitsAlone}
+            onSelect={() => onSelect(b.id)}
+            onChange={(patch) => updateBlock(b.id, patch)}
+            onMove={(dir) => moveBlock(b.id, dir)}
+            onRemove={() => removeBlock(b.id)}
+            onFlow={() => flow(b.id)}
+            onFillPage={(a) => fillPage(b.id, a)}
+            onRegisterImage={registerImage}
+          />
+        </Fragment>
       )}
     />
   );

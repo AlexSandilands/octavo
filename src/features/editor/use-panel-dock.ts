@@ -59,11 +59,15 @@ export function usePanelDock() {
   // Server-rendered on the right; the saved side takes over on hydration.
   const dock = useSyncExternalStore<Dock>(subscribe, readDock, () => "right");
   const [drag, setDrag] = useState<{ x: number; y: number } | null>(null);
+  // Whether the panel has changed sides this session: only then does the page
+  // glide to its new place; on load it simply sits where it belongs.
+  const [moved, setMoved] = useState(false);
   // Set by a drag so the click that ends it doesn't flip the side a second time.
   const dragged = useRef(false);
   const setDock = (next: Dock) => {
     window.localStorage.setItem(KEY, next);
     listeners.forEach((l) => l());
+    setMoved(true);
   };
   const onHandlePointerDown = (e: ReactPointerEvent<HTMLElement>) => {
     if (e.button !== 0) return;
@@ -95,5 +99,5 @@ export function usePanelDock() {
     }
     setDock(dock === "left" ? "right" : "left");
   };
-  return { dock, setDock, drag, onHandlePointerDown, onHandleClick };
+  return { dock, setDock, drag, moved, onHandlePointerDown, onHandleClick };
 }
