@@ -17,10 +17,6 @@ export const issue06 = (img: SeedImages) =>
   mkIssue(4, "Kiln & Wheel — The Guild Annual", "modern", "2026-01-17", [
     cover([
       H("Kiln & Wheel", "The Potters' Guild Annual"),
-      Img(img.glaze, {
-        alt: "Quarter-circle tiles in terracotta, umber and sea-green, like glaze test chips.",
-        width: 65,
-      }),
       T(
         "A year at the wheel, a night at the kiln, and the glaze that almost worked",
       ),

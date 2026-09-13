@@ -18,10 +18,11 @@
    ```
 
    This generates the artwork in R2, validates the six issues, then replaces the
-   issues, image rows and dependent logo rows in one database transaction. It
-   preserves members, sessions and magazine settings; existing sponsor rows remain,
+   issues, image rows and all existing logos (including manually uploaded marks)
+   in one database transaction. Members, sessions and magazine settings are
+   preserved; existing sponsor rows remain,
    but their old image references are cleared. There is no separate database wipe,
-   schema reset or R2 bucket deletion. Expect six published issues and 28 generated
+   schema reset or R2 bucket deletion. Expect six published issues and 25 generated
    images, with Regatta as issue 6 at the top of the library.
 
 4. Refresh the demo and inspect the featured cover, back issues and logo library.

@@ -191,6 +191,11 @@ const seeds = buildIssues(
   Object.fromEntries(SEED_IMAGES.map((i) => [i.key, i.key])) as SeedImages,
 );
 seeds.forEach((i) => assert(issueContentSchema.safeParse(i.content).success));
+// Every generated image must survive cover composition and have a real owner.
+assert.deepEqual(
+  new Set(seeds.flatMap((issue) => [...collectImageIds(issue.content)])),
+  new Set(SEED_IMAGES.map((image) => image.key)),
+);
 assert.deepEqual(
   seeds.map((i) => i.number),
   [1, 2, 3, 4, 5, 6],

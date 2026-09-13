@@ -1,5 +1,3 @@
-import { coverArt, coverMark, type CoverMotif } from "./cover-art";
-
 // Generated placeholder art for the seed (issue #58). Every seed image is
 // rasterized from an SVG composed here — no committed binaries — so the seed is
 // fully self-contained on any machine and any deploy. The pieces are deliberate
@@ -11,6 +9,8 @@ import { coverArt, coverMark, type CoverMotif } from "./cover-art";
 // Deliberately no <text>: librsvg (sharp's SVG rasterizer) resolves fonts from
 // the host system, and a slim deploy container may have none — pure geometry
 // renders identically everywhere.
+
+import { coverArt, coverMark, type CoverMotif } from "./cover-art";
 
 // A magazine's art palette, darkest to lightest plus one accent.
 type Palette = {

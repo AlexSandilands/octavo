@@ -10,7 +10,6 @@
 // Run: npm run db:seed  (after `docker compose up -d` and `npm run db:migrate`)
 import sharp from "sharp";
 import { issueContentSchema } from "../lib/blocks";
-import { SEED_LOGOS } from "./seed/cover-elements";
 import {
   DEFAULT_FOOTER_STYLE,
   MARK_SIZE,
@@ -20,6 +19,7 @@ import {
 } from "../lib/branding";
 import { buildIssues } from "./seed-data";
 import { renderArtSvg, type SeedArtSpec } from "./seed/art";
+import { SEED_LOGOS } from "./seed/cover-elements";
 import { SEED_IMAGES, type SeedImages } from "./seed/images";
 import { putSeedObject, seedStorageTarget } from "./seed-storage";
 
@@ -152,7 +152,7 @@ async function main() {
   for (const row of rows) issueContentSchema.parse(row.content);
 
   await db.transaction(async (tx) => {
-    // Wipe (images first — they FK onto issues).
+    // Wipe (images first — they FK onto issues; all logos cascade with them).
     await tx.delete(images);
     await tx.delete(issues);
     await tx.insert(images).values(imageRows);

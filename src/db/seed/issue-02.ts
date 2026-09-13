@@ -19,10 +19,6 @@ export const issue02 = (img: SeedImages) =>
   mkIssue(2, "Aperture — The Winter Salon", "modern", "2025-07-19", [
     cover([
       H("Aperture", "The Camera Club Quarterly · Winter Salon"),
-      Img(img.silver, {
-        alt: "Diagonal bands of charcoal, slate and one amber stripe on a pale ground.",
-        width: 70,
-      }),
       T("Forty-one prints. One wall. No apologies."),
     ]),
 
