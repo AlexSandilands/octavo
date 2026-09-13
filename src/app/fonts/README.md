@@ -97,7 +97,8 @@ Rebuild each added file with the `pyftsubset` recipe above against its linked TT
 these fonts have only the `wght` axis, so do not run the Newsreader opsz step.
 Sources were retrieved 2026-09-13. The added files were checked with FontTools:
 every face retains its full weight axis and `ĀāĒēĪīŌōŪū` in its Unicode cmap.
-The editor exposes standard 100-step positions: seven Newsreader weights
+The stored model supports standard 100-step positions: seven Newsreader weights
 (200–800), nine Hanken Grotesk weights and nine Roboto Condensed weights
 (100–900), each with genuine upright and italic outlines. The variable fonts
-support intermediate values, but the controls deliberately offer named weights.
+support intermediate values. The menus offer four named presets: 200, 400, 600
+and the family’s heaviest weight; previously saved weights remain supported.

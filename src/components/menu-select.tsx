@@ -56,8 +56,8 @@ export function MenuSelect<T>({
   value: T;
   onSelect: (value: T) => void;
   /** Trigger height: "sm" (40px) suits dense chrome like the editor header;
-   * "md" (44px) sits beside full-size fields and meets the tap-target floor. */
-  size?: "sm" | "md";
+   * "md" (44px) meets the tap-target floor; "toolbar" (28px) matches text tools. */
+  size?: "sm" | "md" | "toolbar";
   /** Bottom toolbars open their menus upward, clear of the viewport edge. */
   side?: "top" | "bottom";
   /** Extra classes for the trigger — widths and placement only, as on Button. */
@@ -258,8 +258,10 @@ export function MenuSelect<T>({
             toggle();
           }
         }}
-        className={`border-hair-warm text-ink enabled:hover:border-accent enabled:hover:bg-accent-wash disabled:cursor-default disabled:opacity-40 flex cursor-pointer items-center gap-2 rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-sm font-medium transition-[transform,background-color,border-color] duration-150 ease-out select-none motion-safe:active:scale-[0.97] ${
-          size === "md" ? "h-11" : "h-10"
+        className={`border-hair-warm text-ink enabled:hover:border-accent enabled:hover:bg-accent-wash disabled:cursor-default disabled:opacity-40 flex cursor-pointer items-center border-[1.5px] bg-white font-sans font-medium transition-[transform,background-color,border-color] duration-150 ease-out select-none motion-safe:active:scale-[0.97] ${
+          size === "toolbar"
+            ? "h-7 gap-1 rounded-[6px] px-1.5 text-[12px]"
+            : `gap-2 rounded-lg px-3.5 text-sm ${size === "md" ? "h-11" : "h-10"}`
         } ${className}`}
       >
         {icon}
@@ -269,7 +271,7 @@ export function MenuSelect<T>({
         </span>
         <Icon
           name="chevronDown"
-          size={14}
+          size={size === "toolbar" ? 12 : 14}
           strokeWidth={1.8}
           className={`shrink-0 ${side === "top" ? "rotate-180" : ""}`}
         />

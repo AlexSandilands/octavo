@@ -2,11 +2,17 @@ import { MenuSelect } from "@/components/menu-select";
 import {
   COVER_FONTS,
   COVER_FONT_IDS,
-  fontWeights,
+  coverWeightPresets,
   weightLabel,
   type CoverFont,
   type CoverWeight,
 } from "@/lib/cover-fonts";
+
+const SHORT_FONT_NAMES: Record<CoverFont, string> = {
+  newsreader: "Newsreader",
+  "hanken-grotesk": "Hanken",
+  "roboto-condensed": "Roboto Cond.",
+};
 
 /** The same named, bounded choices in the inspector and selection toolbar. */
 export function CoverFontMenus({
@@ -41,20 +47,23 @@ export function CoverFontMenus({
         <MenuSelect<CoverFont | undefined>
           portal
           returnFocusOnSelect={!inline}
+          size={inline ? "toolbar" : "sm"}
           label=""
           ariaLabel={fontLabel}
           triggerLabel={fontLabel}
           current={
             family
-              ? COVER_FONTS[family].label
+              ? inline
+                ? SHORT_FONT_NAMES[family]
+                : COVER_FONTS[family].label
               : inline
-                ? "Inherit font"
+                ? "Font"
                 : "Original (Newsreader)"
           }
           value={family ?? undefined}
           disabled={disabled}
           onBeforeOpen={onBeforeOpen}
-          className={inline ? "w-40" : "w-full"}
+          className={inline ? "w-28" : "w-full"}
           menuClassName="scrollbar-soft"
           items={[
             {
@@ -80,20 +89,23 @@ export function CoverFontMenus({
         <MenuSelect<CoverWeight | undefined>
           portal
           returnFocusOnSelect={!inline}
+          size={inline ? "toolbar" : "sm"}
           label=""
           ariaLabel={weightName}
           triggerLabel={weightName}
           current={
             weight
-              ? weightLabel(weight)
+              ? inline
+                ? weightLabel(weight).replace(/ \d+$/, "")
+                : weightLabel(weight)
               : inline
-                ? "Inherit weight"
+                ? "Weight"
                 : "Original (Medium 500)"
           }
           value={weight ?? undefined}
           disabled={disabled}
           onBeforeOpen={onBeforeOpen}
-          className={inline ? "w-40" : "w-full"}
+          className={inline ? "w-[88px]" : "w-full"}
           menuClassName="scrollbar-soft"
           items={[
             {
@@ -101,7 +113,7 @@ export function CoverFontMenus({
               value: undefined,
               content: inline ? "Inherit weight" : "Original (Medium 500)",
             },
-            ...fontWeights(effectiveFamily).map((value) => ({
+            ...coverWeightPresets(effectiveFamily).map((value) => ({
               key: String(value),
               value,
               content: weightLabel(value),

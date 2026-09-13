@@ -63,6 +63,10 @@ export function fontWeights(family: CoverFont): CoverWeight[] {
     .map((w) => w.value)
     .filter((w) => w >= min && w <= max);
 }
+/** Four clearly spaced editor choices; the full stored range remains valid. */
+export function coverWeightPresets(family: CoverFont): CoverWeight[] {
+  return [200, 400, 600, COVER_FONTS[family].max as CoverWeight];
+}
 export function clampWeight(family: CoverFont, weight: number): CoverWeight {
   const { min, max } = COVER_FONTS[family];
   return Math.max(

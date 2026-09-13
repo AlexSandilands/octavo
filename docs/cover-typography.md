@@ -5,13 +5,19 @@ are self-hosted; [sources, licences and rebuild instructions](../src/app/fonts/R
 live beside their files. Newsreader offers Extra Light 200 through Extra Bold
 800 (seven weights); Hanken Grotesk and Roboto Condensed offer Thin 100 through
 Black 900 (nine each). Every face includes genuine italics and Māori macrons.
+The menus offer four distinct presets: Extra Light 200, Regular 400, Semi Bold
+600, and the heaviest weight (Extra Bold 800 for Newsreader, Black 900 for the
+others), plus the separate inheritance/reset choice. All previously saved weights
+remain supported and display their name without being changed.
 
 A Story's **Headline font** and **Headline weight**, beneath Headline size,
 apply to the story headlines. Supporting copy and the optional list heading
 retain their own typography. Original restores the old Newsreader/Medium 500
 appearance. Changing the font clamps any saved weight to its supported range.
 
-The floating selected-text toolbar offers the same family and weight menus.
+The floating selected-text toolbar offers the same family and weight choices
+in compact 28px selectors on the same row as Bold, Italic and Underline.
+The inspector retains its full-size controls.
 They require highlighted words; opening a menu retains that range, and choosing
 an option returns focus to the text. **Inherit font** removes both inline font
 and weight; **Inherit weight** removes just the weight. The current field supplies

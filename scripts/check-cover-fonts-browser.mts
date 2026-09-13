@@ -91,9 +91,9 @@ await withCoverFixture(base, async (f) => {
   };
   const beforeDescription = await style(description);
   for (const [font, count, max] of [
-    ["Newsreader", 7, "Extra Bold 800"],
-    ["Hanken Grotesk", 9, "Black 900"],
-    ["Roboto Condensed", 9, "Black 900"],
+    ["Newsreader", 4, "Extra Bold 800"],
+    ["Hanken Grotesk", 4, "Black 900"],
+    ["Roboto Condensed", 4, "Black 900"],
   ] as const) {
     await choose(panel, "Headline font", font);
     await panel
@@ -104,6 +104,10 @@ await withCoverFixture(base, async (f) => {
       exact: true,
     });
     assert.equal(await menu.getByRole("menuitemradio").count(), count + 1);
+    assert.deepEqual(
+      (await menu.getByRole("menuitemradio").allTextContents()).slice(1),
+      ["Extra Light 200", "Regular 400", "Semi Bold 600", max],
+    );
     assert.equal(
       await menu.getByRole("menuitemradio", { name: max, exact: true }).count(),
       1,
@@ -279,6 +283,13 @@ await withCoverFixture(base, async (f) => {
   assert.equal(await painted.innerText(), "Club");
   assert.equal((await style(painted)).weight, "900");
   assert.equal((await style(painted)).style, "italic");
+  await panel
+    .getByRole("button", { name: "Bottom right", exact: true })
+    .click();
+  await panel
+    .getByRole("group", { name: "Width", exact: true })
+    .getByRole("button", { name: "Width: medium", exact: true })
+    .click();
   for (const width of [1440, 1024, 768]) {
     await page.setViewportSize({ width, height: 1000 });
     await selectClub();
@@ -292,13 +303,81 @@ await withCoverFixture(base, async (f) => {
     const bounds = await menu.boundingBox();
     assert(bounds && bounds.x >= 0 && bounds.x + bounds.width <= width);
     await page.keyboard.press("Escape");
+    const boldBox = await bar
+      .getByRole("button", { name: "Bold", exact: true })
+      .boundingBox();
+    assert(boldBox);
+    for (const name of ["Selected text font", "Selected text weight"]) {
+      const box = await bar
+        .getByRole("button", { name, exact: true })
+        .boundingBox();
+      assert(box);
+      assert(
+        Math.abs(box.height - boldBox.height) <= 1,
+        `${name} matches existing button height`,
+      );
+      assert(
+        Math.abs(box.y + box.height / 2 - boldBox.y - boldBox.height / 2) <= 1,
+        `${name} shares existing toolbar row`,
+      );
+    }
+    const toolbarBox = await bar.boundingBox();
+    assert(
+      toolbarBox &&
+        toolbarBox.x >= 0 &&
+        toolbarBox.x + toolbarBox.width <= width,
+      "toolbar remains in the viewport",
+    );
+    for (const name of [
+      "Selected text font",
+      "Selected text weight",
+      "Bold",
+      "Italic",
+      "Underline",
+      "Text colour",
+      "Text shadow",
+      "Clear formatting",
+    ]) {
+      await bar
+        .getByRole("button", { name, exact: true })
+        .click({ trial: true });
+    }
+    await bar
+      .getByRole("button", { name: "Selected text font", exact: true })
+      .scrollIntoViewIfNeeded();
     await page.screenshot({
       path: `.data/cover-font-check/editor-${width}.png`,
     });
   }
+  const canvasWidth = (await frame.boundingBox())!.width;
+  await bar.hover();
+  await page.mouse.wheel(200, 80);
+  await page.waitForFunction(() => {
+    const row = document.querySelector(
+      '[aria-label="Selected text formatting"] > div',
+    );
+    return row && row.scrollLeft > 0;
+  });
+  assert.equal(
+    (await frame.boundingBox())!.width,
+    canvasWidth,
+    "scrolling tools does not zoom the page",
+  );
+  await panel
+    .getByRole("button", { name: "Move panel to the left", exact: true })
+    .click();
+  for (const name of [
+    "Selected text font",
+    "Selected text weight",
+    "Bold",
+    "Text shadow",
+    "Clear formatting",
+  ]) {
+    await bar.getByRole("button", { name, exact: true }).click({ trial: true });
+  }
   await checkFontReaders(base, f);
   assert.deepEqual(f.errors, []);
   console.log(
-    "PASS: complete weight menus, headline defaults, selection-only overrides, inheritance, heavy Bold, keyboard undo/redo, copy/paste, empty selection, autosave/reload and responsive menus",
+    "PASS: four weight presets, compact single-row font controls, headline defaults, selection-only overrides, inheritance, heavy Bold, keyboard undo/redo, copy/paste, empty selection, autosave/reload and responsive menus",
   );
 });
