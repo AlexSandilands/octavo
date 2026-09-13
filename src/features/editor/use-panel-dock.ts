@@ -1,11 +1,9 @@
 "use client";
 import {
-  useEffect,
   useRef,
   useState,
   useSyncExternalStore,
   type PointerEvent as ReactPointerEvent,
-  type RefObject,
 } from "react";
 import { PAGE_W } from "@/features/blocks/page-frame";
 
@@ -18,27 +16,25 @@ const KEY = "octavo.editor.inspector-dock";
 const DODGE_GAP = 24;
 
 /** How far the page must slide away from the inspector so the two never meet:
- *  0 when the fitted page already clears it, otherwise just the overlap. The
- *  page keeps its natural centre instead of being recentred beside the panel. */
-export function useStageDodge(
-  stage: RefObject<HTMLElement | null>,
+ *  0 when the fitted page already clears it, otherwise just the overlap, capped
+ *  so the page never leaves the stage's padding (`padX`) on the far side. */
+export function stageDodge(
+  width: number,
+  padX: number,
   scale: number,
   active: boolean,
 ) {
-  const [width, setWidth] = useState(0);
-  useEffect(() => {
-    const el = stage.current;
-    if (!el) return;
-    const ro = new ResizeObserver(() => setWidth(el.clientWidth));
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [stage]);
   if (!active || !width) return 0;
   // The page is centred in the stage; the panel's inner edge sits one gutter
   // (12px) inside its column on the docked side.
-  const pageEdge = width / 2 + (PAGE_W * scale) / 2;
+  const pageWidth = PAGE_W * scale;
+  const pageEdge = width / 2 + pageWidth / 2;
   const panelEdge = width - INSPECTOR_RESERVE + 12;
-  return Math.max(0, Math.round(pageEdge + DODGE_GAP - panelEdge));
+  const limit = Math.max(0, (width - padX - pageWidth) / 2);
+  return Math.min(
+    limit,
+    Math.max(0, Math.round(pageEdge + DODGE_GAP - panelEdge)),
+  );
 }
 const listeners = new Set<() => void>();
 const subscribe = (cb: () => void) => {

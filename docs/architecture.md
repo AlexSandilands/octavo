@@ -123,7 +123,11 @@ marker. `EditorToolbar` offers a cover-specific set on covers: Heading, Text —
 Paragraph, Story and Details — Image, and Logo. A floating rounded inspector
 sits over the stage on its docked side; the fit leaves room for it, the page slides away from it
 only as far as the two would otherwise meet (eased), and a page panned towards it shows through
-beneath. Its header grip drags
+beneath. On a stage too narrow to hold a half-scale page beside the column, the inspector gives the
+column back and collapses into a tab on its docked edge (`inspectorMode` in `use-inspector-mode.ts`,
+one pure rule from the stage's width): selecting an item or pressing the tab opens it over the page,
+and Done, Escape or a press on blank canvas closes it. The PDF panel's maximum width budgets for the
+column, and the page never slides out of the stage. Its header grip drags
 it to either side of the page (a plain press flips it; the side is remembered per browser in
 `use-panel-dock.ts`). The inspector holds whole-item settings in titled bands — Placement, Appearance,
 the item's content — plus the cover's defaults and page toggles when nothing is selected, and a

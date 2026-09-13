@@ -25,9 +25,75 @@ async function box(locator: Locator) {
   return bounds;
 }
 
-// Set once, from the bar's first render — main's toolbar grows tools over
-// time (a Logo tool, cover tools), so a literal count would go stale.
+// Set once per page kind, from the bar's first render there — main's toolbar
+// grows tools over time (a Logo tool, cover tools), so a literal count would go
+// stale, and a cover offers a different set from an interior page.
 let expectedToolCount: number | null = null;
+
+const inspectorPanel = (page: Page) =>
+  page.getByRole("complementary", { name: "Cover element settings" });
+const inspectorTab = (page: Page) => page.locator("[data-inspector-tab]");
+
+// The cover inspector holds a column while the stage has room, and otherwise
+// collapses to a tab that opens it over the page; the page never leaves the stage.
+async function assertCoverInspector(
+  page: Page,
+  mode: "reserved" | "overlay",
+): Promise<void> {
+  await page.waitForTimeout(350);
+  const tab = inspectorTab(page);
+  assert.equal(await tab.count(), mode === "overlay" ? 1 : 0);
+  const [stage, frame] = await Promise.all([
+    box(page.locator("[data-editor-stage]")),
+    box(page.locator("[data-page-frame]")),
+  ]);
+  const within = (b: { x: number; width: number }) =>
+    b.x >= stage.x - 1 && b.x + b.width <= stage.x + stage.width + 1;
+  assert(within(frame), "The magazine page stays inside its stage.");
+  if (mode === "reserved") {
+    const panel = await box(inspectorPanel(page));
+    assert(
+      panel.x >= frame.x + frame.width - 1,
+      "The reserved inspector never covers the page.",
+    );
+    return;
+  }
+  const tabBox = await box(tab);
+  assert(
+    tabBox.width >= 44 && tabBox.height >= 44,
+    "The tab is a large enough target.",
+  );
+  assert(within(tabBox), "The tab stays inside the stage.");
+  assert.equal((await tab.innerText()).trim(), "Cover");
+  assert.equal(await tab.getAttribute("aria-expanded"), "false");
+  await tab.click();
+  await page.waitForTimeout(300);
+  assert.equal(await tab.getAttribute("aria-expanded"), "true");
+  assert(
+    within(await box(inspectorPanel(page))),
+    "The overlay inspector opens inside the stage.",
+  );
+  await tab.click();
+  await page.waitForTimeout(300);
+  assert.equal(await tab.getAttribute("aria-expanded"), "false");
+
+  // A selection opens it too, and its Done closes it again.
+  await editorBar(page)
+    .getByRole("button", { name: "Heading", exact: true })
+    .click();
+  await page.waitForTimeout(300);
+  assert.equal(await tab.getAttribute("aria-expanded"), "true");
+  assert.equal((await tab.innerText()).trim(), "Heading");
+  await inspectorPanel(page)
+    .getByRole("button", { name: "Done", exact: true })
+    .click();
+  await page.waitForTimeout(300);
+  assert.equal(await tab.getAttribute("aria-expanded"), "false");
+  await editorBar(page)
+    .getByRole("button", { name: "Undo", exact: true })
+    .click();
+  await settle(page);
+}
 
 async function assertMagazineBarClear(
   page: Page,
@@ -106,20 +172,23 @@ try {
   const page = await context.newPage();
   await page.goto(`${base}/admin/issues/${iid}/edit`);
   await editorBar(page).waitFor();
-  // Off the cover (page 1): its mandatory overlay inspector reserves its own
-  // canvas width, a separate concern from the toolbar placement under test.
-  await magazinePage(page, 2).click();
 
   // Without a manual choice, resizing the panel still drives the existing
-  // automatic bottom/left behavior in both directions.
+  // automatic bottom/left behavior in both directions, on the cover.
   await assertMagazineBarClear(page, "bottom");
+  await assertCoverInspector(page, "reserved");
   await openTool(page);
   const handle = page.getByRole("separator", { name: "Resize panel" });
   await handle.focus();
   await page.keyboard.press("End");
   await assertMagazineBarClear(page, "left");
+  await assertCoverInspector(page, "overlay");
   await closeTool(page);
   await assertMagazineBarClear(page, "bottom");
+  await assertCoverInspector(page, "reserved");
+  // An interior page offers a different insert set from a cover's.
+  await magazinePage(page, 2).click();
+  expectedToolCount = null;
 
   // Both manual directions work with the panel closed. Navigation, editing and
   // the resulting autosave leave the mounted-session choice alone.

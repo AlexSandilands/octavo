@@ -202,6 +202,14 @@ await withCoverFixture(
     await page.screenshot({ path: "/tmp/octavo-cover-colours-panel.png" });
     for (const width of [1024, 768]) {
       await page.setViewportSize({ width, height: 900 });
+      // Let the stage re-measure, then open the inspector if it collapsed to its tab.
+      await page.waitForTimeout(400);
+      const tab = page.locator("[data-inspector-tab]");
+      if (
+        (await tab.count()) === 1 &&
+        (await tab.getAttribute("aria-expanded")) === "false"
+      )
+        await tab.click();
       await panel
         .getByRole("button", { name: "Panel colour: Blue", exact: true })
         .waitFor();

@@ -23,17 +23,24 @@ export const PAGE_PAD = 40;
 // scaled page pinned to the reserved box's corner.
 export function ScaledPage({
   scale,
+  eased = false,
   children,
 }: {
   scale: number;
+  /** Ease this scale change, for a refit the author did not ask for by hand. */
+  eased?: boolean;
   children: React.ReactNode;
 }) {
+  const ease = eased
+    ? "motion-safe:transition-[width,height,transform] motion-safe:duration-300 motion-safe:ease-out"
+    : undefined;
   return (
     <div
       style={{ width: PAGE_W * scale, height: PAGE_H * scale }}
-      className="flex-none"
+      className={ease ? `flex-none ${ease}` : "flex-none"}
     >
       <div
+        className={ease}
         style={
           {
             width: PAGE_W,

@@ -184,6 +184,8 @@ await withCoverFixture(base, async (fixture) => {
   assert.equal(await canvas.locator("[data-cover-element]").count(), 4);
   for (const width of [1440, 1024, 768]) {
     await page.setViewportSize({ width, height: 900 });
+    // Let the stage re-measure: its width decides how the inspector shows.
+    await page.waitForTimeout(400);
     const main = await page
       .getByRole("group", { name: "Editor tools", exact: true })
       .boundingBox();
@@ -207,6 +209,9 @@ await withCoverFixture(base, async (fixture) => {
       await page.getByRole("button", { name: /^Editing:/ }).count(),
       0,
     );
+    // A tight stage collapses the inspector to a tab that opens it over the page.
+    const tab = page.locator("[data-inspector-tab]");
+    const collapsed = (await tab.count()) === 1;
     await canvas
       .locator(`[data-cover-element="${contentsId}"]`)
       .getByRole("button", { name: /^Edit Story/ })
@@ -214,9 +219,16 @@ await withCoverFixture(base, async (fixture) => {
     await panel.waitFor();
     const box = await panel.boundingBox();
     const frameBox = await canvas.boundingBox();
+    const stageBox = await page.locator("[data-editor-stage]").boundingBox();
     assert(
-      box && frameBox && box.x >= frameBox.x + frameBox.width - 1,
-      "inspector never covers the fitted page",
+      box &&
+        frameBox &&
+        stageBox &&
+        (collapsed
+          ? box.x >= stageBox.x - 1 &&
+            box.x + box.width <= stageBox.x + stageBox.width + 1
+          : box.x >= frameBox.x + frameBox.width - 1),
+      "the reserved inspector never covers the fitted page; a collapsed one stays inside the stage",
     );
     assert(box && box.y >= 60 && box.x + box.width <= width);
     await panel
@@ -234,6 +246,11 @@ await withCoverFixture(base, async (fixture) => {
       path: `/tmp/octavo-cover-elements-panel-${width}.png`,
     });
     await page.keyboard.press("Escape");
+    if (collapsed) {
+      // Escape deselects, which closes the overlay; its tab opens it again.
+      assert.equal(await tab.getAttribute("aria-expanded"), "false");
+      await tab.click();
+    }
     assert.equal(
       await panel.getByRole("heading", { name: "Cover", exact: true }).count(),
       1,

@@ -127,29 +127,40 @@ await withCoverFixture(
     await page.keyboard.press("Escape");
     for (const width of [1440, 1024, 768]) {
       await page.setViewportSize({ width, height: 900 });
+      // Let the stage re-measure; a tight one collapses the inspector to a tab.
+      await page.waitForTimeout(400);
+      const tab = page.locator("[data-inspector-tab]");
+      const collapsed = (await tab.count()) === 1;
+      if (collapsed && (await tab.getAttribute("aria-expanded")) === "false")
+        await tab.click();
       await panel.waitFor();
-      await page.waitForFunction(() => {
-        const frame = document
-          .querySelector("[data-page-frame]")
-          ?.getBoundingClientRect();
-        const panel = document
-          .querySelector('aside[aria-label="Cover element settings"]')
-          ?.getBoundingClientRect();
-        return frame && panel && panel.left >= frame.right - 1;
-      });
+      if (!collapsed)
+        await page.waitForFunction(() => {
+          const frame = document
+            .querySelector("[data-page-frame]")
+            ?.getBoundingClientRect();
+          const panel = document
+            .querySelector('aside[aria-label="Cover element settings"]')
+            ?.getBoundingClientRect();
+          return frame && panel && panel.left >= frame.right - 1;
+        });
       const box = await panel.boundingBox(),
-        frame = await canvas.boundingBox();
+        frame = await canvas.boundingBox(),
+        stage = await page.locator("[data-editor-stage]").boundingBox();
       assert(
         box &&
           frame &&
-          box.x >= frame.x + frame.width &&
-          box.x + box.width <= width,
+          stage &&
+          box.x + box.width <= width &&
+          (collapsed
+            ? box.x >= stage.x && box.x + box.width <= stage.x + stage.width
+            : box.x >= frame.x + frame.width),
       );
       assert.equal(
         await panel.evaluate(
           (el) => getComputedStyle(el.parentElement!).zIndex,
         ),
-        "10",
+        collapsed ? "40" : "10",
       );
       await page.screenshot({
         path: `/tmp/octavo-cover-appearance-${width}.png`,

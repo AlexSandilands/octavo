@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState, type RefObject } from "react";
+import { INSPECTOR_RESERVE } from "../use-panel-dock";
 
 export const PANEL_MIN = 340;
-/** Space kept for the page rail, the tool rail and a usable canvas. */
-const CANVAS_RESERVE = 150 + 48 + 260;
+/** Space kept for the page rail, the tool rail, and a canvas that still holds
+ *  the cover inspector's column with room to breathe. */
+const CANVAS_RESERVE = 150 + 48 + INSPECTOR_RESERVE + 24;
 
 // The side panel's width: half the editor row by default (the page and the
 // panel share the space evenly), dragged or keyed within bounds that keep the

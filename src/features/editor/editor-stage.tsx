@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useEffectEvent, type RefObject } from "react";
+import {
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
 import {
   SortableContext,
   verticalListSortingStrategy,
@@ -25,8 +31,13 @@ import { coverSortingStrategy } from "./cover-sorting";
 import { EditorPageContent } from "./editor-page-content";
 import { useCoverLayoutWarnings } from "./use-cover-layout-warnings";
 import {
+  inspectorMode,
+  useRefitEase,
+  useStageWidth,
+} from "./use-inspector-mode";
+import {
   INSPECTOR_RESERVE,
-  useStageDodge,
+  stageDodge,
   type usePanelDock,
 } from "./use-panel-dock";
 import { DropPreview } from "./pdf-import/drop-preview";
@@ -119,6 +130,15 @@ export function EditorStage({
   const padding = barStanding
     ? { top: 40, right: 40, bottom: 40, left: barReserve }
     : { top: 40, right: 40, bottom: barReserve, left: 40 };
+  const padX = padding.left + padding.right;
+
+  // How the cover inspector shows: holding a column of the stage, or collapsed
+  // to a tab that opens it over the page when the stage is too tight for both.
+  const stageRef = useRef<HTMLDivElement>(null);
+  const stageWidth = useStageWidth(stageRef);
+  const mode = inspectorMode(stageWidth, padX);
+  const reserved = Boolean(cover) && mode === "reserved";
+  const [overlayOpen, setOverlayOpen] = useState(false);
 
   // Overflow marking + its one-action fix (issue #93): the canvas is measured
   // where it is laid out, and the split — or, for a block that can't be cut,
@@ -132,7 +152,6 @@ export function EditorStage({
   // Destructured: property access on the returned object would read through
   // the ref it carries, which the render can't do.
   const {
-    containerRef: stageRef,
     panRef,
     scale,
     panning,
@@ -142,12 +161,13 @@ export function EditorStage({
     onPointerUp,
     consumeClickSuppression,
   } = useCanvasPanZoom({
+    containerRef: stageRef,
     contentWidth: PAGE_W,
     contentHeight: PAGE_H,
     // The stage's own padding, the tool bar's reserve included on its side,
-    // and the cover inspector's column while it shows.
+    // and the cover inspector's column while it holds one.
     fitMargin: {
-      x: padding.left + padding.right + (cover ? INSPECTOR_RESERVE : 0),
+      x: padX + (reserved ? INSPECTOR_RESERVE : 0),
       y: padding.top + padding.bottom,
     },
     // Small enough that the page still clears a standing tool bar at the
@@ -157,9 +177,18 @@ export function EditorStage({
     blockSelector: "[data-editor-block]",
   });
 
-  // The inspector floats over the stage; the page slides away from it only as
-  // far as the two would otherwise meet. Layout checks name the items concerned.
-  const dodge = useStageDodge(stageRef, scale, Boolean(cover));
+  // The page slides away from a reserved inspector only as far as the two
+  // would otherwise meet, and never from an overlay.
+  const dodge = stageDodge(stageWidth, padX, scale, reserved);
+  const refitting = useRefitEase(mode, stageWidth);
+
+  // A new selection opens the overlay inspector; the initial one does not.
+  // State adjusted during render (React's own pattern) rather than in an effect.
+  const [lastSel, setLastSel] = useState(sel);
+  if (sel !== lastSel) {
+    setLastSel(sel);
+    if (sel) setOverlayOpen(true);
+  }
   const warnings = useCoverLayoutWarnings(
     page,
     canvasRef,
@@ -181,6 +210,7 @@ export function EditorStage({
   // ourselves. Covers every in-place editor (Tiptap body text and the plain
   // contentEditable headings / cover text alike).
   const deselect = () => {
+    setOverlayOpen(false);
     onSelect(null);
     const active = document.activeElement;
     if (active instanceof HTMLElement && active.isContentEditable) {
@@ -220,6 +250,7 @@ export function EditorStage({
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
+      data-editor-stage
       style={{
         paddingTop: padding.top,
         paddingRight: padding.right,
@@ -236,7 +267,7 @@ export function EditorStage({
           transform: `translateX(${cover?.docking.dock === "left" ? dodge : -dodge}px)`,
         }}
         className={
-          cover?.docking.moved
+          cover?.docking.moved || refitting
             ? "transition-transform duration-300 ease-out motion-reduce:transition-none"
             : undefined
         }
@@ -245,7 +276,7 @@ export function EditorStage({
           panRef={panRef as RefObject<HTMLDivElement | null>}
           className="shadow-[0_10px_30px_rgba(40,36,28,0.14)]"
         >
-          <ScaledPage scale={scale}>
+          <ScaledPage scale={scale} eased={refitting}>
             <PageFrame
               theme={theme}
               w={PAGE_W}
@@ -312,6 +343,10 @@ export function EditorStage({
       {cover && page && (
         <CoverOverlayControls
           docking={cover.docking}
+          mode={mode}
+          stage={{ width: stageWidth, barStanding, barReserve }}
+          open={overlayOpen}
+          onOpenChange={setOverlayOpen}
           hasMasthead={cover.hasMasthead}
           issueId={issueId}
           onFillPage={actions.fillPage}

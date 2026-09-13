@@ -6,6 +6,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type RefObject,
 } from "react";
 
 // Zoom bounds shared by the editor canvas and the desktop reader (and the
@@ -40,6 +41,9 @@ export type PanZoomOptions = {
    * reader blocks them mid page-turn. Omitted ⇒ always active.
    */
   isBlocked?: () => boolean;
+  /** The caller's own ref for the container, when it has to measure the
+   *  container before it can say what the fit margins are. */
+  containerRef?: RefObject<HTMLDivElement | null>;
 };
 
 // The shared pan/zoom engine. Owns the zoom and the pan, clamps the pan so a
@@ -52,7 +56,8 @@ export type PanZoomOptions = {
 export function useCanvasPanZoom(opts: PanZoomOptions) {
   const { blockSelector, initialFitScale } = opts;
 
-  const containerRef = useRef<HTMLDivElement>(null);
+  const ownRef = useRef<HTMLDivElement>(null);
+  const containerRef = opts.containerRef ?? ownRef;
   const [fitScale, setFitScale] = useState(initialFitScale);
   const [zoom, setZoom] = useState(1);
   const [panning, setPanning] = useState(false);
@@ -111,6 +116,7 @@ export function useCanvasPanZoom(opts: PanZoomOptions) {
     ro.observe(el);
     return () => ro.disconnect();
   }, [
+    containerRef,
     opts.contentWidth,
     opts.contentHeight,
     opts.fitMargin.x,
@@ -175,7 +181,7 @@ export function useCanvasPanZoom(opts: PanZoomOptions) {
     const handler = (e: WheelEvent) => onWheel(e);
     el.addEventListener("wheel", handler, { passive: false });
     return () => el.removeEventListener("wheel", handler);
-  }, []);
+  }, [containerRef]);
 
   // Click-drag to move the content, started only on blank areas (see the block
   // selector). `moved` gates a click-suppression flag the caller can read so a
