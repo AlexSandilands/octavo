@@ -51,11 +51,14 @@ export const initial = {
 export async function setup() {
   await sql`insert into users(id,email,is_admin,subscribed,email_verified) values(${uid},${`scratch-223-${uid}@example.invalid`},true,true,now())`;
   await sql`insert into sessions(session_token,user_id,expires) values(${token},${uid},now()+interval '1 hour')`;
+  // Only published numbers are unique (a partial index), so a draft's is
+  // checked by hand.
   for (let tries = 0; tries < 10; tries++) {
     const number = 900223000 + Math.floor(Math.random() * 100000);
-    const rows =
-      await sql`insert into issues(id,number,title,theme,status,footer_mark_size,footer_text_size,content) values(${iid},${number},'PDF import browser gate','classic','draft',48,16,${sql.json(initial)}) on conflict(number) do nothing returning number`;
-    if (rows.length) return number;
+    const taken = await sql`select 1 from issues where number=${number}`;
+    if (taken.length) continue;
+    await sql`insert into issues(id,number,title,theme,status,footer_mark_size,footer_text_size,content) values(${iid},${number},'PDF import browser gate','classic','draft',48,16,${sql.json(initial)})`;
+    return number;
   }
   throw new Error("Could not allocate scratch issue number.");
 }

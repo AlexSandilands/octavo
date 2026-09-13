@@ -23,6 +23,7 @@ export function ToolButton({
   unavailable = false,
   size = "md",
   controls,
+  describedBy,
   onClick,
 }: {
   ref?: Ref<HTMLButtonElement>;
@@ -45,6 +46,8 @@ export function ToolButton({
   size?: "md" | "sm";
   /** The id of the region this tool shows or hides. */
   controls?: string;
+  /** Supporting text that explains the control's current state. */
+  describedBy?: string;
   onClick: () => void;
 }) {
   const inert = disabled || unavailable;
@@ -68,6 +71,7 @@ export function ToolButton({
       aria-expanded={expanded}
       aria-keyshortcuts={shortcut}
       aria-controls={controls}
+      aria-describedby={describedBy}
       className={`relative flex flex-none items-center justify-center gap-1.5 rounded-[9px] border font-sans text-[13px] font-semibold transition-[transform,background-color,border-color,color] duration-150 ease-out select-none ${box} ${grow} ${look}`}
     >
       <Icon name={icon} size={16} className={pressed ? "" : iconClass} />
