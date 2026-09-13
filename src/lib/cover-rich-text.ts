@@ -1,14 +1,25 @@
 import { z } from "zod";
+import { coverFontSchema, coverWeightSchema, clampWeight } from "./cover-fonts";
 import { coverColorSchema, coverShadowSchema } from "./cover-appearance";
 const emphasis = z.object({ type: z.enum(["bold", "italic", "underline"]) });
 const paint = z.object({
   type: z.literal("coverPaint"),
-  attrs: z.object({
-    color: coverColorSchema.nullish(),
-    shadow: coverShadowSchema.nullish(),
-    shadowColor: coverColorSchema.nullish(),
-    fontStyle: z.enum(["normal", "italic"]).nullish(),
-  }),
+  attrs: z
+    .object({
+      color: coverColorSchema.nullish(),
+      shadow: coverShadowSchema.nullish(),
+      shadowColor: coverColorSchema.nullish(),
+      fontStyle: z.enum(["normal", "italic"]).nullish(),
+      fontFamily: coverFontSchema.nullish(),
+      fontWeight: coverWeightSchema.nullish(),
+    })
+    .refine(
+      (a) =>
+        !a.fontFamily ||
+        !a.fontWeight ||
+        clampWeight(a.fontFamily, a.fontWeight) === a.fontWeight,
+      "Weight is not supported by this font",
+    ),
 });
 export const coverRichDocSchema = z
   .object({

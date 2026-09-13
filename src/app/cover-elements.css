@@ -171,6 +171,11 @@
   width: calc(var(--cover-logo-size) + 36px);
 }
 
+/* Override Tiptap’s later break-spaces rule: wrap gaps must not offset aligned lines. */
+.cover-text-editor.ProseMirror {
+  white-space: pre-wrap;
+}
+
 .cover-text-editor p {
   margin: 0;
 }
@@ -189,8 +194,10 @@
   float: left;
   height: 0;
 }
+/* Twin of COVER_BOLD_STYLE in src/lib/cover-fonts.ts (the reader's <strong>). */
 .cover-text-editor strong {
-  font-weight: 700;
+  --cover-bold-weight: 700;
+  font-weight: max(700, var(--cover-font-weight, 700));
 }
 
 .cover-issue-details .cover-rich-editor,

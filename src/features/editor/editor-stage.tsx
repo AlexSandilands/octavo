@@ -211,6 +211,7 @@ export function EditorStage({
   return (
     <div
       ref={stageRef}
+      data-editor-canvas-stage
       onClick={() => {
         // A drag-pan ends in a click; don't let it deselect the block.
         if (consumeClickSuppression()) return;

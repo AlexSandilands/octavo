@@ -118,7 +118,8 @@ const themeSchema = z
 // follow-ups (issue #243 and after) — each visible change to the cover
 // renderer bumped it.
 // v22: per-image montage captions and stable space for the longest caption.
-const RENDER_VERSION = 22;
+// v23: optional cover headline fonts and selected-word typography.
+const RENDER_VERSION = 23;
 
 // Percent-encode for an RFC 8187 ext-value (the `filename*=UTF-8''…` form).
 // Only attr-char may appear bare there: ALPHA / DIGIT / "!" / "#" / "$" / "&" /

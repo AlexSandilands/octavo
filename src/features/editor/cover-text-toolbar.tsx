@@ -1,10 +1,13 @@
 "use client";
 import { useEffect, useReducer, useRef, useState, type ReactNode } from "react";
 import { colorCss, type CoverAppearance } from "@/lib/cover-appearance";
+import { coverSelectionIsBold, toggleCoverSelectionBold } from "./cover-bold";
 import { useCoverText } from "./cover-text-context";
 import { ColorSwatches } from "./cover-color-picker";
 import { Segments } from "./cover-segments";
 import { SHADOW_OPTIONS } from "./cover-shadow-control";
+import { CoverSelectedFont } from "./cover-selected-font";
+import { useCoverToolbarBounds } from "./use-cover-toolbar-bounds";
 import { CAP_NUDGE, TbBtn } from "./rich-text-editor";
 
 // The floating bar above a selected cover item, for the words inside it: bold,
@@ -25,6 +28,7 @@ export function CoverTextToolbar({
   const [, refresh] = useReducer((n: number) => n + 1, 0);
   const [open, setOpen] = useState<"colour" | "shadow" | null>(null);
   const root = useRef<HTMLDivElement>(null);
+  useCoverToolbarBounds(root, Boolean(editor));
   useEffect(() => {
     if (!editor) return;
     const update = () => refresh();
@@ -68,18 +72,28 @@ export function CoverTextToolbar({
   return (
     <div
       ref={root}
+      data-canvas-chrome
+      onClick={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
       role="group"
       aria-label="Selected text formatting"
-      className="border-hair chrome-unscaled absolute bottom-full left-0 z-30 mb-2 flex flex-col gap-1.5 rounded-[8px] border bg-white p-1.5 shadow-[0_4px_14px_rgba(40,36,28,0.16)]"
+      className="border-hair chrome-unscaled absolute bottom-full left-0 z-30 mb-2 flex w-max flex-col gap-1.5 rounded-[8px] border bg-white p-1.5 shadow-[0_4px_14px_rgba(40,36,28,0.16)]"
     >
-      <div className="flex items-center gap-1.5 whitespace-nowrap">
+      <div className="scrollbar-soft flex min-w-0 items-center gap-1.5 overflow-x-auto whitespace-nowrap [&>*]:shrink-0">
+        <CoverSelectedFont editor={editor} font={target.font} />
         <div className="border-hair flex overflow-hidden rounded-[6px] border">
           <TbBtn
             label="B"
             labelClass="font-bold"
             title="Bold"
-            active={editor.isActive("bold")}
-            onClick={() => editor.chain().focus().toggleBold().run()}
+            active={coverSelectionIsBold(editor.state, target.font)}
+            onClick={() =>
+              editor
+                .chain()
+                .focus()
+                .command(({ tr }) => toggleCoverSelectionBold(tr, target.font))
+                .run()
+            }
           />
           <TbBtn
             label="I"

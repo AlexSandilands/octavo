@@ -1,3 +1,4 @@
+import { elementFontContext } from "@/lib/cover-fonts";
 import { CoverTextEditor } from "./cover-text-editor";
 import { updateShownCoverText } from "@/lib/cover-text-update";
 import { useCoverSortable } from "./use-cover-sortable";
@@ -92,6 +93,7 @@ export function EditorCoverElement({
           renderText={(field, text, label) => (
             <CoverTextEditor
               id={element.id}
+              font={elementFontContext(element, field)}
               maxLength={
                 field.includes("description")
                   ? 600

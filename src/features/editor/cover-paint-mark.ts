@@ -1,3 +1,10 @@
+import {
+  COVER_FONTS,
+  clampWeight,
+  coverFontSchema,
+  coverWeightSchema,
+  coverWeightCss,
+} from "@/lib/cover-fonts";
 import { Mark } from "@tiptap/core";
 import {
   colorCss,
@@ -20,6 +27,8 @@ export const CoverPaint = Mark.create({
       shadow: { default: null },
       shadowColor: { default: null },
       fontStyle: { default: null },
+      fontFamily: { default: null },
+      fontWeight: { default: null },
     };
   },
   parseHTML() {
@@ -34,7 +43,17 @@ export const CoverPaint = Mark.create({
             el.dataset.coverShadowColor,
           );
           const fontStyle = el.dataset.coverFontStyle;
+          const family = coverFontSchema.safeParse(el.dataset.coverFontFamily);
+          const weight = coverWeightSchema.safeParse(
+            Number(el.dataset.coverFontWeight),
+          );
           const attrs = {
+            fontFamily: family.success ? family.data : null,
+            fontWeight: weight.success
+              ? family.success
+                ? clampWeight(family.data, weight.data)
+                : weight.data
+              : null,
             color: color.success ? color.data : null,
             shadow: shadow.success ? shadow.data : null,
             shadowColor: shadowColor.success ? shadowColor.data : null,
@@ -53,7 +72,16 @@ export const CoverPaint = Mark.create({
       a.shadow
         ? `text-shadow:${shadowCss(a.shadow, a.shadowColor ?? "ink")}`
         : "",
-      a.fontStyle ? `font-style:${a.fontStyle}` : "",
+      // A literal italic style also parses as StarterKit's italic mark.
+      a.fontStyle
+        ? `--cover-run-font-style:${a.fontStyle};font-style:var(--cover-run-font-style)`
+        : "",
+      a.fontFamily
+        ? `font-family:${COVER_FONTS[coverFontSchema.parse(a.fontFamily)].css}`
+        : "",
+      a.fontWeight
+        ? `font-weight:${coverWeightCss(a.fontWeight)};--cover-font-weight:${a.fontWeight}`
+        : "",
     ]
       .filter(Boolean)
       .join(";");
@@ -67,6 +95,8 @@ export const CoverPaint = Mark.create({
           ? (a.shadowColor ?? undefined)
           : undefined,
         "data-cover-font-style": a.fontStyle ?? undefined,
+        "data-cover-font-family": a.fontFamily ?? undefined,
+        "data-cover-font-weight": a.fontWeight ?? undefined,
         style: styles,
       },
       0,

@@ -42,6 +42,9 @@ export function MenuSelect<T>({
   triggerLabel,
   icon,
   portal = false,
+  disabled = false,
+  onBeforeOpen,
+  returnFocusOnSelect = true,
 }: {
   /** Trigger prefix — the control names itself, e.g. "Theme". */
   label: string;
@@ -53,8 +56,8 @@ export function MenuSelect<T>({
   value: T;
   onSelect: (value: T) => void;
   /** Trigger height: "sm" (40px) suits dense chrome like the editor header;
-   * "md" (44px) sits beside full-size fields and meets the tap-target floor. */
-  size?: "sm" | "md";
+   * "md" (44px) meets the tap-target floor; "toolbar" (30px) matches the text-tool box. */
+  size?: "sm" | "md" | "toolbar";
   /** Bottom toolbars open their menus upward, clear of the viewport edge. */
   side?: "top" | "bottom";
   /** Extra classes for the trigger — widths and placement only, as on Button. */
@@ -65,6 +68,11 @@ export function MenuSelect<T>({
   icon?: ReactNode;
   /** Escape scrolling inspectors; constrain the menu to the viewport. */
   portal?: boolean;
+  disabled?: boolean;
+  /** Snapshot a text selection before the menu moves focus. */
+  onBeforeOpen?: () => void;
+  /** Editors can restore their selection/focus from onSelect instead. */
+  returnFocusOnSelect?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<React.CSSProperties>({});
@@ -111,7 +119,13 @@ export function MenuSelect<T>({
     itemsRef.current[checkedRef.current]?.focus();
   }, [open]);
 
+  // A mouse press snapshots on pointerdown, before the button takes focus from
+  // an editor; a keyboard open has no pointerdown, so toggle snapshots instead.
+  const snapshotted = useRef(false);
   const toggle = () => {
+    if (disabled) return;
+    if (!open && !snapshotted.current) onBeforeOpen?.();
+    snapshotted.current = false;
     if (!open && portal && btnRef.current) {
       const r = btnRef.current.getBoundingClientRect();
       const below = window.innerHeight - r.bottom - 12;
@@ -155,7 +169,7 @@ export function MenuSelect<T>({
 
   const choose = (next: T) => {
     onSelect(next);
-    close();
+    close(returnFocusOnSelect);
   };
 
   const onItemKeyDown = (e: React.KeyboardEvent, index: number) => {
@@ -230,7 +244,13 @@ export function MenuSelect<T>({
       <button
         ref={btnRef}
         type="button"
+        disabled={disabled}
         aria-label={triggerLabel}
+        onPointerDown={() => {
+          if (open || disabled) return;
+          onBeforeOpen?.();
+          snapshotted.current = true;
+        }}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={toggle}
@@ -244,8 +264,10 @@ export function MenuSelect<T>({
             toggle();
           }
         }}
-        className={`border-hair-warm text-ink hover:border-accent hover:bg-accent-wash flex cursor-pointer items-center gap-2 rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-sm font-medium transition-[transform,background-color,border-color] duration-150 ease-out select-none motion-safe:active:scale-[0.97] ${
-          size === "md" ? "h-11" : "h-10"
+        className={`border-hair-warm text-ink enabled:hover:border-accent enabled:hover:bg-accent-wash disabled:cursor-default disabled:opacity-40 flex cursor-pointer items-center border-[1.5px] bg-white font-sans font-medium transition-[transform,background-color,border-color] duration-150 ease-out select-none motion-safe:active:scale-[0.97] ${
+          size === "toolbar"
+            ? "h-[30px] gap-1 rounded-[6px] px-1.5 text-[12px]"
+            : `gap-2 rounded-lg px-3.5 text-sm ${size === "md" ? "h-11" : "h-10"}`
         } ${className}`}
       >
         {icon}
@@ -255,7 +277,7 @@ export function MenuSelect<T>({
         </span>
         <Icon
           name="chevronDown"
-          size={14}
+          size={size === "toolbar" ? 12 : 14}
           strokeWidth={1.8}
           className={`shrink-0 ${side === "top" ? "rotate-180" : ""}`}
         />

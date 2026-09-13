@@ -1,3 +1,4 @@
+import { elementFontContext } from "@/lib/cover-fonts";
 import { CoverTextEditor } from "./cover-text-editor";
 import { updateCoverText } from "@/lib/cover-text-update";
 import type { CoverElement } from "@/lib/cover-elements";
@@ -28,6 +29,7 @@ export function CoverTextField({
       >
         <CoverTextEditor
           id={element.id}
+          font={elementFontContext(element, field)}
           text={value}
           label={label}
           placeholder={placeholder}

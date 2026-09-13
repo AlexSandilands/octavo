@@ -1,19 +1,12 @@
 import { Button } from "@/components/ui";
 import { MenuSelect } from "@/components/menu-select";
 import { SelectCheckbox } from "@/components/select-checkbox";
-import {
-  MAX_COVER_PREVIEWS,
-  makeCoverStory,
-  type CoverElement,
-  type CoverSource,
-} from "@/lib/cover-elements";
+import { type CoverElement, type CoverSource } from "@/lib/cover-elements";
 import type { LogoListItem } from "@/lib/logos";
 import type { ResolvedImage } from "@/lib/images";
 import { CoverTextField } from "./cover-text-field";
 import { CoverField } from "./cover-fields";
-import { Segments } from "./cover-segments";
-import { CoverStoryFields } from "./cover-story-fields";
-import { SourcePicker } from "./cover-source-picker";
+import { CoverStoryControls } from "./cover-story-controls";
 
 export function CoverElementFields({
   element,
@@ -30,73 +23,14 @@ export function CoverElementFields({
   onChange: (value: CoverElement) => void;
   onRegisterImage: (id: string, image: ResolvedImage) => void;
 }) {
-  const choices = sources.filter((s) => s.pageNo > afterPage);
   if (element.type === "story")
     return (
-      <div className="space-y-3">
-        <CoverTextField
-          element={element}
-          field="title"
-          label="List heading (optional)"
-          value={element.title}
-          placeholder="Inside this issue"
-          onChange={onChange}
-        />
-        <Segments
-          label="Headline size"
-          value={element.headlineSize}
-          options={[
-            { value: "compact", label: "Compact" },
-            { value: "list", label: "List" },
-            { value: "large", label: "Large" },
-            { value: "display", label: "Display" },
-          ]}
-          onChange={(headlineSize) => onChange({ ...element, headlineSize })}
-        />
-        <SelectCheckbox
-          label="Show page numbers"
-          checked={element.showPageNumbers}
-          onChange={(showPageNumbers) =>
-            onChange({ ...element, showPageNumbers })
-          }
-        >
-          Show page numbers
-        </SelectCheckbox>
-        <CoverStoryFields
-          element={element}
-          sources={sources}
-          afterPage={afterPage}
-          onChange={onChange}
-        />
-        {element.items.length < MAX_COVER_PREVIEWS && (
-          <div className="space-y-3">
-            <SourcePicker
-              sources={choices.filter(
-                (s) => !element.items.some((i) => i.headingId === s.id),
-              )}
-              label="Add section"
-              onSelect={(headingId) =>
-                onChange({
-                  ...element,
-                  items: [...element.items, makeCoverStory(headingId)],
-                })
-              }
-            />
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() =>
-                onChange({
-                  ...element,
-                  items: [...element.items, makeCoverStory()],
-                })
-              }
-            >
-              Add story
-            </Button>
-          </div>
-        )}
-      </div>
+      <CoverStoryControls
+        element={element}
+        sources={sources}
+        afterPage={afterPage}
+        onChange={onChange}
+      />
     );
   if (element.type === "details")
     return (

@@ -126,6 +126,15 @@ thumbnails and both PDF themes. It uses and removes its own scratch issue.
 formatting, unaffected neighbouring text, independent appearance inheritance, save/reload, both PDF
 themes, thumbnails and phone reflow. Run it for changes to cover appearance or inline formatting.
 
+`scripts/check-cover-fonts.mts` checks cover font schema/renderer and seed invariants
+in memory. `scripts/check-cover-fonts-browser.mts <base-url>` covers the three
+families, four weight presets, selected-word scope, keyboard menus, clipboard,
+undo/redo, autosave and reading/print surfaces.
+`scripts/check-cover-font-caret-browser.mts <base-url>` covers font/weight choices
+before typing, cursor tracking, pending styles and range formatting;
+`scripts/check-cover-right-alignment.mts <base-url>` checks wrapped line endings.
+`docs/cover-typography.md` lists the in-memory checks. Run them all for cover typography.
+
 The alignment gate also runs in memory when its URL argument is omitted. Its browser
 pass needs `DATABASE_URL` and `AUTH_SECRET` (or `.env.local`); it creates and removes
 its own temporary issue and admin. The seed's issue-01 opening editorial is justified,

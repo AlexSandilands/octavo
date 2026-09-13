@@ -54,6 +54,7 @@ export function CoverOverlayControls({
       }`}
     >
       <aside
+        data-cover-inspector
         aria-label="Cover element settings"
         style={
           drag

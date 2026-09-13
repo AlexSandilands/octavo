@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { coverFontStyle, storyHeadlineFont } from "@/lib/cover-fonts";
 import { CoverRichText } from "./cover-rich-text";
 import type { CoverElement, CoverSource } from "@/lib/cover-elements";
 import { previewTitle } from "@/lib/cover-elements";
@@ -73,13 +74,18 @@ export function CoverElementView({
   );
   // Entries sit under the list heading when there is one, so they step down a level.
   const Headline = element.title ? H4 : H3;
+  const headline = storyHeadlineFont(element);
   const story = (item: (typeof entries)[number]) => {
     const title = previewTitle(item, sources);
     const source = sources.find((s) => s.id === item.headingId);
     return (
       <>
         {(title || editing) && (
-          <Headline data-cover-copy className="cover-story-headline">
+          <Headline
+            data-cover-copy
+            className="cover-story-headline"
+            style={coverFontStyle(headline.family, headline.weight)}
+          >
             {copy(`${item.id}:title`, title, "Story headline")}
           </Headline>
         )}

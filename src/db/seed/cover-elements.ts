@@ -19,6 +19,32 @@ export function withCoverElements(issue: SeedIssue): SeedIssue {
     details.type !== "details"
   )
     return issue;
+  details.placement.richText = {
+    text: {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            {
+              type: "text",
+              text: "Winter 2026",
+              marks: [
+                {
+                  type: "coverPaint",
+                  attrs: {
+                    fontFamily: "hanken-grotesk",
+                    fontWeight: 900,
+                    fontStyle: "italic",
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  };
   return {
     ...issue,
     content: {
@@ -51,6 +77,8 @@ export function withCoverElements(issue: SeedIssue): SeedIssue {
             {
               ...contents,
               title: "Inside this issue",
+              headlineFont: "newsreader",
+              headlineWeight: 800,
               placement: {
                 ...contents.placement,
                 appearance: {
@@ -66,6 +94,8 @@ export function withCoverElements(issue: SeedIssue): SeedIssue {
             {
               ...story,
               headlineSize: "display",
+              headlineFont: "roboto-condensed",
+              headlineWeight: 900,
               items: [
                 {
                   ...makeCoverStory(sources[2]?.id),

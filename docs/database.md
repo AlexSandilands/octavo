@@ -81,8 +81,16 @@ Block = Heading | Text | Image | Montage | Video | Sponsor  // discriminated uni
 ```
 
 `version` marks which shape of the content model a document holds, so block-shape changes can
-migrate old rows deliberately. **Current version: 8.** Every string field is length-capped and the
+migrate old rows deliberately. **Current version: 9.** Every string field is length-capped and the
 page/block arrays bounded in the zod schemas, so a bad save can't persist an unbounded document.
+
+**Content v9 — cover typography.** Optional Story `headlineFont` and `headlineWeight`
+set headline defaults. Inline `coverPaint` gains validated `fontFamily` and
+`fontWeight` attributes. The three font ids are `newsreader`, `hanken-grotesk` and
+`roboto-condensed`; weights are standard 100-step positions (200–800 Newsreader,
+100–900 the others). Omitted values retain the original typography. No DB
+migration or content rewrite is needed. See [cover typography](cover-typography.md)
+for selection, inheritance, bold interaction, font sources and checks.
 
 **Content v7 — optional cover elements.** `coverElements` stores a bounded array of `story`,
 `details` and `logo` elements. A `story` element carries an optional list heading (`title`,
