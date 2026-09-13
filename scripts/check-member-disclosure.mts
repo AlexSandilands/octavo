@@ -2,8 +2,11 @@ import assert from "node:assert/strict";
 import type { Locator, Page } from "playwright";
 
 export async function expandMember(row: Locator) {
+  // Streamed rows may be attached before their Suspense boundary is revealed.
+  await row.waitFor({ state: "visible" });
   const toggle = row.getByRole("button", { name: /^Show details for / });
   if (await toggle.isVisible()) await toggle.click();
+  await row.locator("[data-member-details]").waitFor({ state: "visible" });
 }
 
 export async function checkMemberDisclosure(
