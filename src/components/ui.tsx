@@ -1,5 +1,10 @@
 import Link from "next/link";
-import { forwardRef, type ReactNode, type MouseEventHandler } from "react";
+import {
+  forwardRef,
+  type ReactNode,
+  type MouseEventHandler,
+  type PointerEventHandler,
+} from "react";
 import { Icon, type IconName } from "./icons";
 import { MagazineName } from "./branding";
 
@@ -43,8 +48,6 @@ type ButtonProps = {
   onClick?: () => void;
   onMouseDown?: MouseEventHandler<HTMLButtonElement>;
   "aria-pressed"?: boolean;
-  "aria-expanded"?: boolean;
-  "aria-controls"?: string;
   type?: "button" | "submit";
   disabled?: boolean;
   /** Nothing left to do here, but the control stays reachable: it looks and
@@ -81,8 +84,6 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       onClick,
       onMouseDown,
       "aria-pressed": ariaPressed,
-      "aria-expanded": ariaExpanded,
-      "aria-controls": ariaControls,
       type = "button",
       disabled = false,
       unavailable = false,
@@ -153,8 +154,6 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         onClick={inert ? undefined : onClick}
         onMouseDown={inert ? undefined : onMouseDown}
         aria-pressed={ariaPressed}
-        aria-expanded={ariaExpanded}
-        aria-controls={ariaControls}
         disabled={isDisabled}
         aria-disabled={unavailable || undefined}
         aria-label={ariaLabel}
@@ -178,13 +177,29 @@ export const IconButton = forwardRef<
     /** Accessible name — an icon alone says nothing. */
     label: string;
     title?: string;
+    "aria-expanded"?: boolean;
+    "aria-controls"?: string;
+    onPointerEnter?: PointerEventHandler<HTMLButtonElement>;
+    onPointerLeave?: PointerEventHandler<HTMLButtonElement>;
     onClick?: () => void;
     size?: number;
     disabled?: boolean;
     className?: string;
   }
 >(function IconButton(
-  { icon, label, title, onClick, size = 22, disabled = false, className = "" },
+  {
+    icon,
+    label,
+    title,
+    onClick,
+    onPointerEnter,
+    onPointerLeave,
+    "aria-expanded": ariaExpanded,
+    "aria-controls": ariaControls,
+    size = 22,
+    disabled = false,
+    className = "",
+  },
   ref,
 ) {
   // Same disabled treatment as Button: dimmed, no pointer, and the hover wash
@@ -200,6 +215,10 @@ export const IconButton = forwardRef<
       disabled={disabled}
       aria-label={label}
       title={title}
+      aria-expanded={ariaExpanded}
+      aria-controls={ariaControls}
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave}
       className={`text-muted -m-2 inline-flex items-center justify-center rounded-lg p-2 transition-[background-color,color] duration-150 ${state} ${className}`}
     >
       <Icon name={icon} size={size} strokeWidth={1.7} />

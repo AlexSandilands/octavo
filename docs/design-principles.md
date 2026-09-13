@@ -100,7 +100,10 @@ src/
   compensating padding. The selection and avatar occupy their own 44px and 36px
   tracks with 12px gaps; the heading starts on the member-text track. Compact
   rows retain the notes, joined date and all actions, with local field labels;
-  overflowing notes expand in place through a keyboard-accessible disclosure.
+  overflowing notes have a small icon beside their two-line preview. Hover or
+  press it to read the full text in a floating, scrollable popup without
+  changing row height. A press pins the popup for touch and keyboard use;
+  Escape or an outside press dismisses it.
 
 ### Brand skins (the per-deployment palette)
 

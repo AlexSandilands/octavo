@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import postgres from "postgres";
 import { chromium, type Page } from "playwright";
+import { checkMemberNotesPopup } from "./check-member-notes-popup.mts";
 
 const base = process.argv[2] ?? "http://localhost:3263";
 const database = process.env.DATABASE_URL;
@@ -251,24 +252,7 @@ try {
     );
   }
 
-  await page.setViewportSize({ width: 390, height: 844 });
-  const notes = row.locator('[data-member-cell="notes"]');
-  const showMore = notes.getByRole("button", { name: /show more notes/i });
-  await showMore.focus();
-  await page.keyboard.press("Enter");
-  assert.equal(
-    await notes
-      .getByRole("button", { name: /show less notes/i })
-      .getAttribute("aria-expanded"),
-    "true",
-  );
-  assert(
-    await notes
-      .innerText()
-      .then((text) => text.includes("unbroken".repeat(24))),
-  );
-  await checkLayout("expanded-notes");
-  await notes.getByRole("button", { name: /show less notes/i }).click();
+  await checkMemberNotesPopup(page, row, output);
 
   await row
     .getByRole("button", { name: `Edit ${first.name}`, exact: true })
