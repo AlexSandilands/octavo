@@ -24,7 +24,7 @@ assert.equal(story.type, "story");
 if (story.type !== "story") throw new Error("Expected Story");
 story.items[0]!.title = "Māori stories";
 story.items[0]!.description = "Supporting copy";
-assert.equal(CONTENT_VERSION, 8);
+assert.equal(CONTENT_VERSION, 9);
 assert.deepEqual(
   COVER_FONT_IDS.map((f) => fontWeights(f).length),
   [7, 9, 9],
@@ -155,5 +155,5 @@ assert(
   ),
 );
 console.log(
-  "PASS: cover weights, validation, legacy defaults, renderer parity, bold inheritance, field contexts and v8/legacy seeds",
+  "PASS: cover weights, validation, legacy defaults, renderer parity, bold inheritance, field contexts and v9/legacy seeds",
 );

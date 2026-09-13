@@ -253,6 +253,7 @@ export function EditorBlock({
             <div className="border-hair chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap shadow-[0_4px_14px_rgba(40,36,28,0.16)]">
               <MontageBlockControl
                 items={block.items}
+                caption={block.caption}
                 interval={block.interval}
                 issueId={issueId}
                 images={images}

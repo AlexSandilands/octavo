@@ -74,7 +74,7 @@ export const Img = (
 // and prints as its first image. Sizing/placement mirror Img, since a montage
 // occupies the same kind of photo slot.
 export const Mont = (
-  slides: { image: string; alt: string }[],
+  slides: { image: string; alt: string; caption?: string }[],
   opts: {
     caption?: string;
     /** Seconds between cross-fades; 0 = manual only (MONTAGE_MANUAL). */
@@ -82,10 +82,14 @@ export const Mont = (
     align?: "full" | "left" | "right";
     width?: number;
   } = {},
-): Block => ({
+): Extract<Block, { type: "montage" }> => ({
   id: id(),
   type: "montage",
-  items: slides.map((s) => ({ imageId: s.image, alt: s.alt })),
+  items: slides.map((s) => ({
+    imageId: s.image,
+    alt: s.alt,
+    caption: s.caption ?? "",
+  })),
   caption: opts.caption ?? "",
   interval: opts.interval ?? MONTAGE_DEFAULT_INTERVAL,
   align: opts.align ?? "full",

@@ -28,7 +28,7 @@ family preserves each selected run’s weight and emphasis, clamping each weight
 separately if needed; mixed regular/bold passages keep that distinction. Italic,
 underline, colour and shadow remain independent. Clear removes all inline marks.
 
-Content v8 adds optional `headlineFont`/`headlineWeight` on Story elements and
+Content v9 adds optional `headlineFont`/`headlineWeight` on Story elements and
 `fontFamily`/`fontWeight` on the validated `coverPaint` mark. Font ids and weights
 are bounded; arbitrary CSS is never stored. Clipboard HTML carries validated
 `data-cover-font-family` and `data-cover-font-weight` attributes. Typography uses

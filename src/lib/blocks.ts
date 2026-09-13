@@ -102,11 +102,11 @@ export const MONTAGE_INTERVALS: { value: number; label: string }[] = [
 ];
 
 // One slide of a montage: an uploaded image plus its own screen-reader
-// description. Alt is per image (each slide is a different photo), so it lives
-// here rather than on the block.
+// description and optional visible caption. Missing captions preserve legacy items.
 export const montageItemSchema = z.object({
   imageId: z.string().max(ID_MAX),
   alt: z.string().max(SHORT_TEXT_MAX).default(""),
+  caption: z.string().max(SHORT_TEXT_MAX).optional(),
 });
 
 export const montageBlockSchema = z.object({
@@ -253,8 +253,9 @@ export const pageSchema = z.object({
 // `image`; montage and video keep the three-value union (see docs/database.md).
 // v7: optional cover elements and independent heading/text placement. Existing
 // documents retain their layout; no stored content is rewritten.
-// v8: optional Story headline fonts/weights and selected-word font marks.
-export const CONTENT_VERSION = 8;
+// v8: optional per-image montage captions; shared captions stay until opt-in.
+// v9: optional Story headline fonts/weights and selected-word font marks.
+export const CONTENT_VERSION = 9;
 
 export const issueContentSchema = z.object({
   version: z.number().int().min(1).default(CONTENT_VERSION),
