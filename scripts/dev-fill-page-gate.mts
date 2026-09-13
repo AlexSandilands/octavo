@@ -88,7 +88,7 @@ for (const issue of issues) {
 }
 for (const [align, expectIssue] of [
   ["page-fill", 2],
-  ["page-fit", 4],
+  ["page-fit", 6],
 ] as const) {
   const found = owned.filter(
     (o) => !o.page.cover && pageAlignOf(o.block) === align,
@@ -119,8 +119,8 @@ for (const [align, expectIssue] of [
   ok(pageFillsCanvas(seeded.page), "…and pageFillsCanvas agrees it owns it");
 }
 ok(
-  owned.length === 3 && owned.filter((o) => o.page.cover).length === 1,
-  "the composed cover is the only additional page-filling image",
+  owned.length === 5 && owned.filter((o) => o.page.cover).length === 3,
+  "three composed covers accompany the two interior full-page plates",
 );
 
 // 3. Both placements are confined to the image block: the other two picture
@@ -361,8 +361,8 @@ ok(
   `mobile: every one of the ${allSections.length} sections agrees with its page on who owns it`,
 );
 ok(
-  allSections.filter(({ s }) => s.filled).length === 3,
-  "mobile: both interior plates and the composed cover drop their padding",
+  allSections.filter(({ s }) => s.filled).length === 5,
+  "mobile: both interior plates and all three composed covers drop their padding",
 );
 // The photo's page is banded either side, so the band the column draws between
 // two pages is what the photo runs between (it has no heading to be banded on).

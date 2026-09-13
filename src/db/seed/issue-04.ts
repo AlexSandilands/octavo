@@ -9,18 +9,14 @@ import {
   T,
 } from "./builders";
 
-// No. 4 — Regatta. A sailing club's season review on the modern theme, and the
+// No. 6 — Regatta. A sailing club's season review on the modern theme, and the
 // longest issue in the seed: sustained long-form across nine content pages,
 // wrapped images both sides, a wide banner, small-type results, and two
 // sponsors. Shows an issue with real page count in the flipbook.
 export const issue04 = (img: SeedImages) =>
-  mkIssue(4, "Regatta — The Season Review", "modern", "2026-01-17", [
+  mkIssue(6, "Regatta — The Season Review", "modern", "2026-06-20", [
     cover([
       H("Regatta", "The Sailing Club Annual · Season Review"),
-      Img(img.harbour, {
-        alt: "An abstract seascape: a red sun over deep blue swells beneath a pale sky.",
-        width: 70,
-      }),
       T("Nine races, one dismasting, and a champion nobody picked"),
     ]),
 

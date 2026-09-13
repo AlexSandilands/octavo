@@ -135,7 +135,8 @@ const seeds = buildIssues(
 );
 for (const issue of seeds)
   assert(issueContentSchema.safeParse(issue.content).success);
-const elements = seeds[5]!.content.pages[0]!.coverElements!;
+const elements = seeds.find((issue) => issue.title.startsWith("Kiln & Wheel"))!
+  .content.pages[0]!.coverElements!;
 assert(
   elements.some(
     (e) =>

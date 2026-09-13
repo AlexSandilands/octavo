@@ -56,7 +56,8 @@ Existing content is never rewritten. Omitted typography keeps the original
 font declarations, so publishing this feature cannot change old glyphs or
 line wrapping. Opt-in full-range aliases reuse the existing Newsreader files
 and Hanken upright file; only Hanken italic and Roboto Condensed add files.
-Seed issue 6 demonstrates all three choices; issue 5 retains the legacy page.
+Kiln & Wheel (seed issue 4) demonstrates all three choices and is the fixture
+asserted by `check-cover-fonts.mts`; issue 5 retains the legacy page.
 
 Run `scripts/check-cover-fonts.mts` for schema, renderer and in-memory seed
 invariants, and `scripts/check-cover-fonts-browser.mts <base-url>` for editing,

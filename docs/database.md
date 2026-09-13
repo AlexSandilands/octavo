@@ -93,8 +93,9 @@ fields; photos and logos have no lines and always resolve to `block`. Rendering 
 (`CoverLine`) and the editor (`CoverParagraph`) alike, so the editor, readers, thumbnails and PDF
 share one shape and switching shape never rewraps text. Bands centre on the caps (Newsreader's
 own ascent and descent are corrected for in `cover-overlay.css`). While editing, a line whose words
-fill the item exactly, or that breaks at a doubled space, bands that trailing space too. Seed issue 6's "Inside this issue" list
-uses it. `scripts/check-cover-panel-shape.mts [base-url]` checks it in memory and, with a local
+fill the item exactly, or that breaks at a doubled space, bands that trailing space too. The lead
+Story on seed issues 2, 4 and 6 and Aperture’s Details use it; their "Also inside" lists use block
+panels. `scripts/check-cover-panel-shape.mts [base-url]` checks it in memory and, with a local
 server, measures each band against its words across the editor, history, readers and print.
 
 **Content v9 — cover typography.** Optional Story `headlineFont` and `headlineWeight`
@@ -131,7 +132,7 @@ current titles and page numbers at render time; an optional cover title override
 cover prints. Logos retain both their library id and image id, so the shared image
 resolver/cleanup sees the asset and library deletion refuses active cover references. Demoting a
 cover retains its elements in ordinary flow and preserves their positions for re-enabling cover
-styling. The seed's issue 6 explicitly demonstrates the new composition; issue 5 retains the
+styling. Seed issues 2, 4 and 6 demonstrate the new composition; issue 5 retains the
 deliberate legacy page. Existing rows need no migration or rewrite.
 
 **Content v2 (issue #8) — sponsor blocks reference the `sponsors` table.** A sponsor block now
@@ -498,3 +499,18 @@ through the same path as real edited content. Keep **one deliberately legacy-sha
 string (`Traw`) and a constrained-HTML string (`Thtml`) — so the permanent v1/v2 render fallback and
 the migration converter stay under ambient coverage. When you bump `CONTENT_VERSION` again, do the
 same: update the builders to author the new shape, and leave a small, commented legacy fixture behind.
+
+### Demo cover designs
+
+The six-issue seed keeps the original covers for Boule & Bay (01), The Commons
+(03) and Marginalia (05). Aperture (02), Kiln & Wheel (04) and Regatta (06) use
+portrait Fill page illustrations, individually styled typography, linked Story
+teasers with live page numbers, Details and a reusable Logo from the seeded logo
+library. Regatta is the latest issue, featured on the library home page. All
+interiors, including the deliberate legacy page, stay unchanged.
+
+`src/db/seed/cover-elements.ts` holds the cover compositions and logo records;
+`cover-art.ts` draws their portrait artwork and transparent marks. They pass
+through the same local SVG → WebP pipeline as the other seed pictures, so seeding
+needs no image downloads or external service. The runner validates every issue
+before its atomic replacement of issues, images and their dependent logo rows.

@@ -51,6 +51,49 @@ const kiln = {
 };
 
 export const SEED_IMAGES = [
+  // Cover-only art keeps the existing interior pictures and their crops intact.
+  {
+    key: "aperture-cover",
+    width: 1280,
+    height: 1800,
+    palette: aperture,
+    style: { kind: "cover", motif: "aperture" },
+  },
+  {
+    key: "regatta-cover",
+    width: 1280,
+    height: 1800,
+    palette: regatta,
+    style: { kind: "cover", motif: "regatta" },
+  },
+  {
+    key: "kiln-cover",
+    width: 1280,
+    height: 1800,
+    palette: kiln,
+    style: { kind: "cover", motif: "kiln" },
+  },
+  {
+    key: "aperture-mark",
+    width: 240,
+    height: 240,
+    palette: aperture,
+    style: { kind: "mark", motif: "aperture" },
+  },
+  {
+    key: "regatta-mark",
+    width: 240,
+    height: 240,
+    palette: regatta,
+    style: { kind: "mark", motif: "regatta" },
+  },
+  {
+    key: "kiln-mark",
+    width: 240,
+    height: 240,
+    palette: { ...kiln, light: kiln.deep },
+    style: { kind: "mark", motif: "kiln" },
+  },
   // The Boule & Bay Gazette (pétanque club quarterly — classic theme)
   {
     key: "gravel",
@@ -85,13 +128,6 @@ export const SEED_IMAGES = [
     style: { kind: "duotone", motif: "arcs" },
   },
   // Aperture (camera club — modern theme, image-led)
-  {
-    key: "silver",
-    width: 1600,
-    height: 1000,
-    palette: aperture,
-    style: { kind: "duotone", motif: "stripes" },
-  },
   {
     key: "amber",
     width: 1600,
@@ -162,13 +198,6 @@ export const SEED_IMAGES = [
   },
   // Regatta (sailing club season review — modern theme)
   {
-    key: "harbour",
-    width: 1600,
-    height: 1000,
-    palette: regatta,
-    style: { kind: "wash" },
-  },
-  {
     key: "pennants",
     width: 1600,
     height: 640,
@@ -200,13 +229,6 @@ export const SEED_IMAGES = [
     style: { kind: "plate" },
   },
   // Kiln & Wheel (pottery guild annual — modern theme)
-  {
-    key: "glaze",
-    width: 1600,
-    height: 1000,
-    palette: kiln,
-    style: { kind: "duotone", motif: "arcs" },
-  },
   {
     key: "wheel",
     width: 1200,

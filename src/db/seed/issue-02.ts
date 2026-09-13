@@ -19,10 +19,6 @@ export const issue02 = (img: SeedImages) =>
   mkIssue(2, "Aperture — The Winter Salon", "modern", "2025-07-19", [
     cover([
       H("Aperture", "The Camera Club Quarterly · Winter Salon"),
-      Img(img.silver, {
-        alt: "Diagonal bands of charcoal, slate and one amber stripe on a pale ground.",
-        width: 70,
-      }),
       T("Forty-one prints. One wall. No apologies."),
     ]),
 
@@ -43,7 +39,7 @@ export const issue02 = (img: SeedImages) =>
     ]),
 
     // The fill-page plate (v6, #227): portrait, cropped to the canvas, alone on
-    // its page with alt text only. Issue 4 carries the fit-page counterpart.
+    // its page with alt text only. Regatta carries the fit-page counterpart.
     page([
       Img(img.salon, {
         alt: "A tall duotone study in charcoal and slate, cut by a single amber seam.",

@@ -7,7 +7,9 @@
 // levels, every text size, cover pages, sponsor blocks with and without links,
 // image wraps at a range of widths, a cross-fading montage and a fill-page plate
 // (both issue-02), a fit-page plate (issue-04) and one deliberately
-// legacy-shaped page (see issue-05).
+// legacy-shaped page (see issue-05). Issues 02, 04 and 06 have full-page
+// illustrated covers with linked stories, custom typography and library logos;
+// 01 and 05 retain their inset images; 03 keeps its text-only cover.
 // The images they reference are generated placeholder art: specs in
 // ./seed/images.ts, renderers in ./seed/art.ts — no repo binaries.
 import type { SeedIssue } from "./seed/builders";
@@ -20,13 +22,14 @@ import { issue05 } from "./seed/issue-05";
 import { withCoverElements } from "./seed/cover-elements";
 import { issue06 } from "./seed/issue-06";
 
+// File names retain their original fixture names; issue numbers set the display order.
 export function buildIssues(img: SeedImages): SeedIssue[] {
   return [
     issue01(img),
-    issue02(img),
+    withCoverElements(issue02(img), img),
     issue03(img),
-    issue04(img),
+    withCoverElements(issue06(img), img),
     issue05(img),
-    withCoverElements(issue06(img)),
+    withCoverElements(issue04(img), img),
   ];
 }
