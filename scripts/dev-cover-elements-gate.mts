@@ -1,5 +1,6 @@
 // npx tsx --tsconfig scripts/tsconfig.json scripts/dev-cover-elements-gate.mts http://localhost:3024
 import assert from "node:assert/strict";
+import { CONTENT_VERSION } from "../src/lib/blocks";
 import { checkCoverEdits } from "./cover-elements-edit-checks.mts";
 import { checkCoverReaders } from "./cover-elements-reader-checks.mts";
 import { withCoverFixture } from "./cover-elements-fixture.mts";
@@ -143,7 +144,7 @@ await withCoverFixture(base, async (fixture) => {
     const logo = elements?.at(-1);
     const story = elements?.find((e) => e.id === storyId);
     return (
-      c.version === 8 &&
+      c.version === CONTENT_VERSION &&
       elements?.length === 4 &&
       story?.type === "story" &&
       story.headlineSize === "large" &&
