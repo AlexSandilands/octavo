@@ -25,6 +25,37 @@ async function box(locator: Locator) {
   return bounds;
 }
 
+async function assertCoverTextToolIconOnly(
+  page: Page,
+  placement: "bottom" | "left",
+) {
+  await page.waitForTimeout(350);
+  const bar = editorBar(page);
+  assert.equal(await bar.getAttribute("data-bar-placement"), placement);
+  const textTool = bar.getByRole("button", { name: "Text", exact: true });
+  const [dimensions, peer] = await Promise.all([
+    textTool.evaluate((button) => {
+      const rect = button.getBoundingClientRect();
+      return {
+        text: button.textContent?.trim(),
+        width: rect.width,
+        height: rect.height,
+      };
+    }),
+    box(bar.getByRole("button", { name: "Undo", exact: true })),
+  ]);
+  assert.equal(
+    dimensions.text,
+    "",
+    "The compact Text tool shows only its icon.",
+  );
+  assert(
+    Math.abs(dimensions.width - peer.width) < 1 &&
+      Math.abs(dimensions.height - peer.height) < 1,
+    "The compact Text tool matches the other toolbar buttons.",
+  );
+}
+
 // Set once, from the bar's first render — main's toolbar grows tools over
 // time (a Logo tool, cover tools), so a literal count would go stale.
 let expectedToolCount: number | null = null;
@@ -106,6 +137,23 @@ try {
   const page = await context.newPage();
   await page.goto(`${base}/admin/issues/${iid}/edit`);
   await editorBar(page).waitFor();
+  // The cover's Text menu follows the same responsive contract as ordinary
+  // tool buttons: its label is removed in both compact row and standing modes.
+  await page.setViewportSize({ width: 900, height: 1000 });
+  await assertCoverTextToolIconOnly(page, "bottom");
+  await openTool(page);
+  await assertCoverTextToolIconOnly(page, "left");
+  await closeTool(page);
+  await assertCoverTextToolIconOnly(page, "bottom");
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.waitForTimeout(350);
+  assert.equal(
+    await editorBar(page)
+      .getByRole("button", { name: "Text", exact: true })
+      .textContent(),
+    "Text",
+    "The Text tool restores its label when the toolbar has room.",
+  );
   // Off the cover (page 1): its mandatory overlay inspector reserves its own
   // canvas width, a separate concern from the toolbar placement under test.
   await magazinePage(page, 2).click();

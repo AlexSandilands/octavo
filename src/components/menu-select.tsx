@@ -41,6 +41,7 @@ export function MenuSelect<T>({
   menuClassName = "",
   triggerLabel,
   icon,
+  iconOnly = false,
   portal = false,
   disabled = false,
   onBeforeOpen,
@@ -66,6 +67,8 @@ export function MenuSelect<T>({
   triggerLabel?: string;
   /** A mark before the trigger's label, where the control stands in for a tool. */
   icon?: ReactNode;
+  /** Show only that mark while keeping `triggerLabel` as the accessible name. */
+  iconOnly?: boolean;
   /** Escape scrolling inspectors; constrain the menu to the viewport. */
   portal?: boolean;
   disabled?: boolean;
@@ -240,12 +243,13 @@ export function MenuSelect<T>({
   );
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className={`relative ${iconOnly ? "flex-none" : ""}`}>
       <button
         ref={btnRef}
         type="button"
         disabled={disabled}
         aria-label={triggerLabel}
+        title={iconOnly ? triggerLabel : undefined}
         onPointerDown={() => {
           if (open || disabled) return;
           onBeforeOpen?.();
@@ -264,23 +268,33 @@ export function MenuSelect<T>({
             toggle();
           }
         }}
-        className={`border-hair-warm text-ink enabled:hover:border-accent enabled:hover:bg-accent-wash disabled:cursor-default disabled:opacity-40 flex cursor-pointer items-center border-[1.5px] bg-white font-sans font-medium transition-[transform,background-color,border-color] duration-150 ease-out select-none motion-safe:active:scale-[0.97] ${
+        className={`border-hair-warm text-ink enabled:hover:border-accent enabled:hover:bg-accent-wash disabled:cursor-default disabled:opacity-40 flex cursor-pointer items-center bg-white font-sans font-medium transition-[transform,background-color,border-color] duration-150 ease-out select-none motion-safe:active:scale-[0.97] ${
+          iconOnly ? "rounded-[9px] border" : "border-[1.5px]"
+        } ${
           size === "toolbar"
-            ? "h-[30px] gap-1 rounded-[6px] px-1.5 text-[12px]"
-            : `gap-2 rounded-lg px-3.5 text-sm ${size === "md" ? "h-11" : "h-10"}`
+            ? iconOnly
+              ? "h-[30px] w-[30px] justify-center rounded-[6px] text-[12px]"
+              : "h-[30px] gap-1 rounded-[6px] px-1.5 text-[12px]"
+            : iconOnly
+              ? `w-10 justify-center ${size === "md" ? "h-11" : "h-10"}`
+              : `gap-2 rounded-lg px-3.5 text-sm ${size === "md" ? "h-11" : "h-10"}`
         } ${className}`}
       >
         {icon}
-        <span className="min-w-0 truncate">
-          {label ? `${label}: ` : ""}
-          {current}
-        </span>
-        <Icon
-          name="chevronDown"
-          size={size === "toolbar" ? 12 : 14}
-          strokeWidth={1.8}
-          className={`shrink-0 ${side === "top" ? "rotate-180" : ""}`}
-        />
+        {!iconOnly && (
+          <>
+            <span className="min-w-0 truncate">
+              {label ? `${label}: ` : ""}
+              {current}
+            </span>
+            <Icon
+              name="chevronDown"
+              size={size === "toolbar" ? 12 : 14}
+              strokeWidth={1.8}
+              className={`shrink-0 ${side === "top" ? "rotate-180" : ""}`}
+            />
+          </>
+        )}
       </button>
 
       {open && (portal ? createPortal(menu, document.body) : menu)}
