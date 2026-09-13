@@ -168,7 +168,7 @@ function StoryBand({
         {actions}
       </div>
       {open && (
-        <div id={bodyId} className="space-y-3 px-3 pb-3">
+        <div id={bodyId} className="space-y-3 px-3 pt-2 pb-3">
           {children}
         </div>
       )}
