@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { coverFontStyle, clampWeight } from "@/lib/cover-fonts";
 import { CoverRichText } from "./cover-rich-text";
 import type { CoverElement, CoverSource } from "@/lib/cover-elements";
 import { previewTitle } from "@/lib/cover-elements";
@@ -79,7 +80,20 @@ export function CoverElementView({
     return (
       <>
         {(title || editing) && (
-          <Headline data-cover-copy className="cover-story-headline">
+          <Headline
+            data-cover-copy
+            className="cover-story-headline"
+            style={coverFontStyle(
+              element.headlineFont ??
+                (element.headlineWeight ? "newsreader" : undefined),
+              element.headlineWeight
+                ? clampWeight(
+                    element.headlineFont ?? "newsreader",
+                    element.headlineWeight,
+                  )
+                : undefined,
+            )}
+          >
             {copy(`${item.id}:title`, title, "Story headline")}
           </Headline>
         )}

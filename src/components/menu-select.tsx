@@ -42,6 +42,9 @@ export function MenuSelect<T>({
   triggerLabel,
   icon,
   portal = false,
+  disabled = false,
+  onBeforeOpen,
+  returnFocusOnSelect = true,
 }: {
   /** Trigger prefix — the control names itself, e.g. "Theme". */
   label: string;
@@ -65,6 +68,11 @@ export function MenuSelect<T>({
   icon?: ReactNode;
   /** Escape scrolling inspectors; constrain the menu to the viewport. */
   portal?: boolean;
+  disabled?: boolean;
+  /** Snapshot a text selection before the menu moves focus. */
+  onBeforeOpen?: () => void;
+  /** Editors can restore their selection/focus from onSelect instead. */
+  returnFocusOnSelect?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<React.CSSProperties>({});
@@ -112,6 +120,8 @@ export function MenuSelect<T>({
   }, [open]);
 
   const toggle = () => {
+    if (disabled) return;
+    if (!open) onBeforeOpen?.();
     if (!open && portal && btnRef.current) {
       const r = btnRef.current.getBoundingClientRect();
       const below = window.innerHeight - r.bottom - 12;
@@ -155,7 +165,7 @@ export function MenuSelect<T>({
 
   const choose = (next: T) => {
     onSelect(next);
-    close();
+    close(returnFocusOnSelect);
   };
 
   const onItemKeyDown = (e: React.KeyboardEvent, index: number) => {
@@ -230,7 +240,11 @@ export function MenuSelect<T>({
       <button
         ref={btnRef}
         type="button"
+        disabled={disabled}
         aria-label={triggerLabel}
+        onPointerDown={() => {
+          if (!open) onBeforeOpen?.();
+        }}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={toggle}
@@ -244,7 +258,7 @@ export function MenuSelect<T>({
             toggle();
           }
         }}
-        className={`border-hair-warm text-ink hover:border-accent hover:bg-accent-wash flex cursor-pointer items-center gap-2 rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-sm font-medium transition-[transform,background-color,border-color] duration-150 ease-out select-none motion-safe:active:scale-[0.97] ${
+        className={`border-hair-warm text-ink enabled:hover:border-accent enabled:hover:bg-accent-wash disabled:cursor-default disabled:opacity-40 flex cursor-pointer items-center gap-2 rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-sm font-medium transition-[transform,background-color,border-color] duration-150 ease-out select-none motion-safe:active:scale-[0.97] ${
           size === "md" ? "h-11" : "h-10"
         } ${className}`}
       >

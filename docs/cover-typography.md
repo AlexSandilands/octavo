@@ -1,0 +1,46 @@
+# Cover typography
+
+Cover typography offers Newsreader, Hanken Grotesk and Roboto Condensed. Fonts
+are self-hosted; [sources, licences and rebuild instructions](../src/app/fonts/README.md)
+live beside their files. Newsreader offers Extra Light 200 through Extra Bold
+800 (seven weights); Hanken Grotesk and Roboto Condensed offer Thin 100 through
+Black 900 (nine each). Every face includes genuine italics and Māori macrons.
+
+A Story's **Headline font** and **Headline weight**, beneath Headline size,
+apply to the story headlines. Supporting copy and the optional list heading
+retain their own typography. Original restores the old Newsreader/Medium 500
+appearance. Changing the font clamps any saved weight to its supported range.
+
+The floating selected-text toolbar offers the same family and weight menus.
+They require highlighted words; opening a menu retains that range, and choosing
+an option returns focus to the text. **Inherit font** removes both inline font
+and weight; **Inherit weight** removes just the weight. The current field supplies
+the inherited typography, including when editing supporting copy or a sidebar
+field. Picking a weight explicitly removes Bold from that range; toggling Bold
+then uses at least 700, preserving heavier explicit or Story weights. Changing
+family preserves each selected run’s weight and emphasis, clamping each weight
+separately if needed; mixed regular/bold passages keep that distinction. Italic,
+underline, colour and shadow remain independent. Clear removes all inline marks.
+
+Content v8 adds optional `headlineFont`/`headlineWeight` on Story elements and
+`fontFamily`/`fontWeight` on the validated `coverPaint` mark. Font ids and weights
+are bounded; arbitrary CSS is never stored. Clipboard HTML carries validated
+`data-cover-font-family` and `data-cover-font-weight` attributes. Typography uses
+the same content and local font declarations across the editor, reader, mobile,
+thumbnails and PDF. Font changes share existing undo/redo and autosave.
+
+Existing content is never rewritten. Omitted typography keeps the original
+font declarations, so publishing this feature cannot change old glyphs or
+line wrapping. Opt-in full-range aliases reuse the existing Newsreader files
+and Hanken upright file; only Hanken italic and Roboto Condensed add files.
+Seed issue 6 demonstrates all three choices; issue 5 retains the legacy page.
+
+Run `scripts/check-cover-fonts.mts` for schema, renderer and in-memory seed
+invariants, and `scripts/check-cover-fonts-browser.mts <base-url>` for editing,
+selection/keyboard menus, save/reload, clipboard and reader/print surfaces.
+The existing cover colour and cover element gates remain applicable.
+
+`check-cover-font-selection.mts` covers mixed-run family changes and partial
+selections in memory. `check-cover-bold-rendering.mts` uses Chromium with the real
+local faces to verify computed weights for both mark orders in shared reader
+output and editor markup, including Regular + Bold and the heaviest weights.

@@ -363,6 +363,11 @@ export function EditorBlock({
                 ? (field, text, label) => (
                     <CoverTextEditor
                       id={block.id}
+                      font={{
+                        family:
+                          field === "kicker" ? "hanken-grotesk" : "newsreader",
+                        weight: field === "kicker" ? 600 : 400,
+                      }}
                       maxLength={block.type === "heading" ? 300 : 8000}
                       text={text}
                       doc={block.coverPlacement?.richText?.[field]}

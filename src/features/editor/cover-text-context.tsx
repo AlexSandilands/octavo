@@ -6,9 +6,10 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import type { CoverFontContext } from "@/lib/cover-fonts";
 import type { Editor } from "@tiptap/react";
 
-type Target = { id: string; editor: Editor };
+type Target = { id: string; editor: Editor; font: CoverFontContext };
 type Value = {
   /** The text editor the floating format bar acts on, if the selected item has one. */
   target: Target | null;
@@ -47,7 +48,7 @@ export function CoverTextProvider({
   const live = (t: Target | null) =>
     Boolean(t && t.id === selectedId && !t.editor.isDestroyed);
   const target = live(focused)
-    ? focused
+    ? (registry.find((t) => t.editor === focused?.editor) ?? focused)
     : (registry.find((t) => live(t)) ?? null);
   return (
     <Context value={{ target, activate, register, unregister }}>

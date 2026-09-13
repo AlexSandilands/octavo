@@ -143,7 +143,7 @@ await withCoverFixture(base, async (fixture) => {
     const logo = elements?.at(-1);
     const story = elements?.find((e) => e.id === storyId);
     return (
-      c.version === 7 &&
+      c.version === 8 &&
       elements?.length === 4 &&
       story?.type === "story" &&
       story.headlineSize === "large" &&

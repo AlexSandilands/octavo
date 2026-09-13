@@ -1,4 +1,5 @@
 "use client";
+import { DEFAULT_FONT_CONTEXT, type CoverFontContext } from "@/lib/cover-fonts";
 import { useEffect } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import { Extension } from "@tiptap/core";
@@ -22,8 +23,10 @@ export function CoverTextEditor({
   onChange,
   placeholder,
   maxLength = 8000,
+  font = DEFAULT_FONT_CONTEXT,
 }: {
   id: string;
+  font?: CoverFontContext;
   text: string;
   doc?: CoverRichDoc;
   label: string;
@@ -71,7 +74,7 @@ export function CoverTextEditor({
         "data-placeholder": placeholder ?? label,
       },
     },
-    onFocus: ({ editor }) => activate({ id, editor }),
+    onFocus: ({ editor }) => activate({ id, editor, font }),
     onUpdate: ({ editor }) => {
       const parsed = coverRichDocSchema.safeParse(
         JSON.parse(JSON.stringify(editor.getJSON())),
@@ -79,12 +82,13 @@ export function CoverTextEditor({
       if (parsed.success) onChange(coverDocPlain(parsed.data), parsed.data);
     },
   });
+  const { family, weight } = font;
   // Known to the format bar from creation, so it can act before the first focus.
   useEffect(() => {
     if (!editor) return;
-    register({ id, editor });
+    register({ id, editor, font: { family, weight } });
     return () => unregister(editor);
-  }, [editor, id, register, unregister]);
+  }, [editor, id, register, unregister, family, weight]);
   // Sidebar edits and history can change a field without remounting the element.
   useEffect(() => {
     if (!editor) return;

@@ -136,7 +136,7 @@ the row's left edge, opened from the swatch, so the browser's picker opens over 
 than off the edge of the screen.
 
 Cover text uses an inline-only Tiptap editor on the page and in detail fields. Formatting for the
-selected words — bold, italic, underline, a colour and a shadow — is a floating bar over the selected
+selected words — font family and named weight, bold, italic, underline, a colour and a shadow — is a floating bar over the selected
 item (`CoverTextToolbar`), the same split the body-text blocks make on ordinary pages; whole-item
 appearance stays in the inspector. The bar finds its editor through `CoverTextProvider`: the focused
 editor, else the selected item's first text field. `cover-rich-text.ts` bounds and validates
@@ -150,6 +150,9 @@ renders story lists, issue details and logos across the editor, reader, thumbnai
 `story` element covers every cover list: an optional list heading (blank by default, ghosted
 "Inside this issue" in the inspector), one to six linked or free-standing stories, and a stored
 `headlineSize` stepping the headline from 18px to 36px (the description stays at body size).
+Optional `headlineFont` and `headlineWeight` choose a default for its headlines;
+selected words can override it. Full-range fonts use separate self-hosted aliases
+so legacy pages retain their appearance; see [cover typography](cover-typography.md).
 `coverSources` derives section titles and page numbers from live headings;
 only an explicitly authored cover title overrides that reference. Logos use the ordinary ImageMap
 and asset reference traversal, with an additional library deletion guard. Heading/text blocks

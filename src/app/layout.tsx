@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import { coverFontVariables } from "./cover-fonts";
 import { BrandingProvider } from "@/components/branding";
 import { getSettings } from "@/server/settings";
 import { env } from "@/lib/env";
@@ -98,7 +99,7 @@ export default async function RootLayout({
     <html
       lang="en"
       data-brand={env.NEXT_PUBLIC_BRAND}
-      className={`${newsreader.variable} ${hanken.variable} ${plexMono.variable}`}
+      className={`${newsreader.variable} ${hanken.variable} ${plexMono.variable} ${coverFontVariables}`}
     >
       <body>
         {/* The branding text for the two client surfaces that have no server

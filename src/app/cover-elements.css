@@ -190,7 +190,8 @@
   height: 0;
 }
 .cover-text-editor strong {
-  font-weight: 700;
+  --cover-bold-weight: 700;
+  font-weight: max(700, var(--cover-font-weight, 700));
 }
 
 .cover-issue-details .cover-rich-editor,

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { coverFontSchema, coverWeightSchema, clampWeight } from "./cover-fonts";
 import { coverAppearanceSchema } from "./cover-appearance";
 import { coverRichFieldsSchema } from "./cover-rich-text";
 import type { Page } from "./blocks";
@@ -81,31 +82,42 @@ export const COVER_HEADLINE_SIZES = [
   "large",
   "display",
 ] as const;
-export const coverElementSchema = z.discriminatedUnion("type", [
-  z.object({
-    ...base,
-    type: z.literal("story"),
-    /** The optional list heading ("Inside this issue"); empty prints nothing. */
-    title: z.string().max(300).default(""),
-    items: z.array(coverStorySchema).min(1).max(MAX_COVER_PREVIEWS),
-    showPageNumbers: z.boolean().default(false),
-    headlineSize: z.enum(COVER_HEADLINE_SIZES).default("list"),
-  }),
-  z.object({
-    ...base,
-    type: z.literal("details"),
-    showNumber: z.boolean().default(true),
-    text: z.string().max(150).default(""),
-  }),
-  z.object({
-    ...base,
-    type: z.literal("logo"),
-    logoId: z.string().max(64).optional(),
-    imageId: z.string().max(64).optional(),
-    alt: z.string().max(300).default(""),
-    size: z.number().int().min(40).max(240).default(100),
-  }),
-]);
+export const coverElementSchema = z
+  .discriminatedUnion("type", [
+    z.object({
+      ...base,
+      type: z.literal("story"),
+      /** The optional list heading ("Inside this issue"); empty prints nothing. */
+      title: z.string().max(300).default(""),
+      items: z.array(coverStorySchema).min(1).max(MAX_COVER_PREVIEWS),
+      showPageNumbers: z.boolean().default(false),
+      headlineSize: z.enum(COVER_HEADLINE_SIZES).default("list"),
+      headlineFont: coverFontSchema.optional(),
+      headlineWeight: coverWeightSchema.optional(),
+    }),
+    z.object({
+      ...base,
+      type: z.literal("details"),
+      showNumber: z.boolean().default(true),
+      text: z.string().max(150).default(""),
+    }),
+    z.object({
+      ...base,
+      type: z.literal("logo"),
+      logoId: z.string().max(64).optional(),
+      imageId: z.string().max(64).optional(),
+      alt: z.string().max(300).default(""),
+      size: z.number().int().min(40).max(240).default(100),
+    }),
+  ])
+  .refine(
+    (e) =>
+      e.type !== "story" ||
+      !e.headlineWeight ||
+      clampWeight(e.headlineFont ?? "newsreader", e.headlineWeight) ===
+        e.headlineWeight,
+    "Weight is not supported by this headline font",
+  );
 export type CoverElement = z.infer<typeof coverElementSchema>;
 export type CoverElementType = CoverElement["type"];
 export type CoverStory = z.infer<typeof coverStorySchema>;

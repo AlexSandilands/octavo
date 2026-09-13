@@ -76,3 +76,28 @@ from `fonts.gstatic.com` using next's own Chrome/104 user agent, then compared):
 - outlines match after decomposition except for three control points (`6`, `đ`,
   `₫`) that differ by 1 unit out of 2000 em — instancer rounding, well under a
   pixel at any size the magazine sets.
+
+## Cover typography (issue #283)
+
+`src/app/cover-fonts.ts` declares separate full-range cover aliases. Choosing a
+cover font or weight opts into them; the original Newsreader 400–600 and Hanken
+400–700 declarations remain unchanged, including their historical bold/italic
+fallbacks. Newsreader reuses the exact existing upright/italic files (opsz 16),
+and Hanken reuses the exact existing upright file. Nothing is fetched at build
+or read time. All added faces are SIL OFL 1.1; Hanken uses the existing licence,
+and Roboto Condensed has `OFL-roboto-condensed.txt`.
+
+| Added file                      | Source                                                                                                                            | Range           |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| `hanken-grotesk-italic.woff2`   | [Hanken v12 italic TTF](https://fonts.gstatic.com/s/hankengrotesk/v12/ieVl2YZDLWuGJpnzaiwFXS9tYtpY59WxDCs5cvI.ttf)                | 100–900 italic  |
+| `roboto-condensed-roman.woff2`  | [Roboto Condensed v31 upright TTF](https://fonts.gstatic.com/s/robotocondensed/v31/ieVl2ZhZI2eCN5jzbjEETS9weq8-59WxDCs5cvI.ttf)   | 100–900 upright |
+| `roboto-condensed-italic.woff2` | [Roboto Condensed v31 italic TTF](https://fonts.gstatic.com/s/robotocondensed/v31/ieVj2ZhZI2eCN5jzbjEETS9weq8-19e7CAk8YvJEeg.ttf) | 100–900 italic  |
+
+Rebuild each added file with the `pyftsubset` recipe above against its linked TTF;
+these fonts have only the `wght` axis, so do not run the Newsreader opsz step.
+Sources were retrieved 2026-09-13. The added files were checked with FontTools:
+every face retains its full weight axis and `ĀāĒēĪīŌōŪū` in its Unicode cmap.
+The editor exposes standard 100-step positions: seven Newsreader weights
+(200–800), nine Hanken Grotesk weights and nine Roboto Condensed weights
+(100–900), each with genuine upright and italic outlines. The variable fonts
+support intermediate values, but the controls deliberately offer named weights.

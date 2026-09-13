@@ -5,6 +5,7 @@ import { useCoverText } from "./cover-text-context";
 import { ColorSwatches } from "./cover-color-picker";
 import { Segments } from "./cover-segments";
 import { SHADOW_OPTIONS } from "./cover-shadow-control";
+import { CoverSelectedFont } from "./cover-selected-font";
 import { CAP_NUDGE, TbBtn } from "./rich-text-editor";
 
 // The floating bar above a selected cover item, for the words inside it: bold,
@@ -68,10 +69,13 @@ export function CoverTextToolbar({
   return (
     <div
       ref={root}
+      onClick={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
       role="group"
       aria-label="Selected text formatting"
       className="border-hair chrome-unscaled absolute bottom-full left-0 z-30 mb-2 flex flex-col gap-1.5 rounded-[8px] border bg-white p-1.5 shadow-[0_4px_14px_rgba(40,36,28,0.16)]"
     >
+      <CoverSelectedFont editor={editor} font={target.font} />
       <div className="flex items-center gap-1.5 whitespace-nowrap">
         <div className="border-hair flex overflow-hidden rounded-[6px] border">
           <TbBtn
