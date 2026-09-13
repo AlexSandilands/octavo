@@ -19,6 +19,7 @@ export function CoverFontMenus({
   family,
   weight,
   effectiveFamily,
+  effectiveWeight,
   onFamily,
   onWeight,
   inline = false,
@@ -28,6 +29,7 @@ export function CoverFontMenus({
   family?: CoverFont | null;
   weight?: CoverWeight | null;
   effectiveFamily: CoverFont;
+  effectiveWeight?: CoverWeight;
   onFamily: (font: CoverFont | undefined) => void;
   onWeight: (weight: CoverWeight | undefined) => void;
   inline?: boolean;
@@ -52,12 +54,10 @@ export function CoverFontMenus({
           ariaLabel={fontLabel}
           triggerLabel={fontLabel}
           current={
-            family
-              ? inline
-                ? SHORT_FONT_NAMES[family]
-                : COVER_FONTS[family].label
-              : inline
-                ? "Font"
+            inline
+              ? SHORT_FONT_NAMES[effectiveFamily]
+              : family
+                ? COVER_FONTS[family].label
                 : "Original (Newsreader)"
           }
           value={family ?? undefined}
@@ -94,12 +94,13 @@ export function CoverFontMenus({
           ariaLabel={weightName}
           triggerLabel={weightName}
           current={
-            weight
-              ? inline
-                ? weightLabel(weight).replace(/ \d+$/, "")
-                : weightLabel(weight)
-              : inline
-                ? "Weight"
+            inline
+              ? weightLabel(effectiveWeight ?? weight ?? 400).replace(
+                  / \d+$/,
+                  "",
+                )
+              : weight
+                ? weightLabel(weight)
                 : "Original (Medium 500)"
           }
           value={weight ?? undefined}

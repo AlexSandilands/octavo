@@ -108,7 +108,11 @@ await withCoverFixture(
         (n) =>
           n.type === "text" &&
           n.text.includes("Spring") &&
-          n.marks?.some((m) => m.type === "bold"),
+          n.marks?.some(
+            (m) =>
+              m.type === "bold" ||
+              (m.type === "coverPaint" && (m.attrs.fontWeight ?? 0) >= 700),
+          ),
       ),
     );
     assert(
@@ -143,7 +147,10 @@ await withCoverFixture(
 
     await page.reload();
     await textbox.waitFor();
-    assert.equal(await textbox.locator("strong").innerText(), "Spring");
+    assert.equal(
+      await textbox.locator('[data-cover-font-weight="700"]').innerText(),
+      "Spring",
+    );
     assert.equal(
       await frame.evaluate((e) => getComputedStyle(e).backgroundColor),
       "rgb(29, 77, 62)",
@@ -228,8 +235,12 @@ await withCoverFixture(
         await heading.evaluate((e) => getComputedStyle(e).backgroundColor),
         "rgb(22, 56, 82)",
       );
-      const painted = heading.locator("strong u span");
+      const painted = heading.locator("u span");
       assert.equal(await painted.innerText(), "Spring");
+      assert.equal(
+        await painted.evaluate((e) => getComputedStyle(e).fontWeight),
+        "700",
+      );
       assert.equal(
         await painted.evaluate((e) => getComputedStyle(e).fontStyle),
         "italic",
@@ -267,9 +278,7 @@ await withCoverFixture(
       const cover = page.locator("section.cover-composition").first();
       await cover.locator(".cover-grid-mobile").waitFor();
       assert.equal(
-        await cover
-          .locator('[data-cover-entry="masthead"] strong u span')
-          .innerText(),
+        await cover.locator('[data-cover-entry="masthead"] u span').innerText(),
         "Spring",
       );
       for (let i = 0; i < 4; i++)
@@ -295,9 +304,7 @@ await withCoverFixture(
       .first();
     await thumb.waitFor();
     assert.equal(
-      await thumb
-        .locator('[data-cover-entry="masthead"] strong u span')
-        .innerText(),
+      await thumb.locator('[data-cover-entry="masthead"] u span').innerText(),
       "Spring",
     );
     assert.deepEqual((await stored()).pages, savedCover.pages);

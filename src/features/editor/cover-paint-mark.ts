@@ -72,7 +72,10 @@ export const CoverPaint = Mark.create({
       a.shadow
         ? `text-shadow:${shadowCss(a.shadow, a.shadowColor ?? "ink")}`
         : "",
-      a.fontStyle ? `font-style:${a.fontStyle}` : "",
+      // A literal italic style also parses as StarterKit's italic mark.
+      a.fontStyle
+        ? `--cover-run-font-style:${a.fontStyle};font-style:var(--cover-run-font-style)`
+        : "",
       a.fontFamily
         ? `font-family:${COVER_FONTS[coverFontSchema.parse(a.fontFamily)].css}`
         : "",

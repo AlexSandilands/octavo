@@ -4,7 +4,11 @@ import { EditorState, TextSelection } from "@tiptap/pm/state";
 import StarterKit from "@tiptap/starter-kit";
 import { CoverPaint } from "../src/features/editor/cover-paint-mark";
 import { Underline } from "../src/features/editor/rich-text-marks";
-import { changeCoverSelectionFamily } from "../src/features/editor/cover-font-selection";
+import {
+  changeCoverSelectionFamily,
+  changeCoverSelectionWeight,
+  selectedCoverFont,
+} from "../src/features/editor/cover-font-selection";
 
 import {
   coverSelectionIsBold,
@@ -90,7 +94,13 @@ reset.doc.nodesBetween(start, end, (node) => {
   assert.equal(attrs.fontWeight, null);
 });
 const empty = EditorState.create({ doc }).tr;
-assert(!changeCoverSelectionFamily(empty, "roboto-condensed", 400));
+assert(changeCoverSelectionFamily(empty, "roboto-condensed", 400));
+assert(empty.doc.eq(doc));
+assert.equal(
+  paint.isInSet(empty.storedMarks!)!.attrs.fontFamily,
+  "roboto-condensed",
+);
+assert.equal(paint.isInSet(empty.storedMarks!)!.attrs.fontWeight, 400);
 assert.equal(empty.steps.length, 0);
 console.log(
   "PASS: mixed-run font changes retain weights/emphasis/paint, clamp per run, respect partial selection and reset safely",
@@ -139,4 +149,56 @@ assert.equal(paint.isInSet(typing.storedMarks!)!.attrs.color, "green");
 assert(schema.marks.underline!.isInSet(typing.storedMarks!));
 console.log(
   "PASS: mixed-weight Bold state, partial-range toggles, heavy-run preservation and caret-only typing marks",
+);
+
+const cursorFonts = caret.tr;
+assert.equal(
+  selectedCoverFont(cursorFonts, font).effectiveFamily,
+  "hanken-grotesk",
+);
+assert.equal(selectedCoverFont(cursorFonts, font).effectiveWeight, 900);
+assert(changeCoverSelectionFamily(cursorFonts, "newsreader", font.weight));
+assert.equal(selectedCoverFont(cursorFonts, font).effectiveWeight, 800);
+assert(changeCoverSelectionWeight(cursorFonts, 400, font));
+assert.equal(
+  selectedCoverFont(cursorFonts, font).effectiveFamily,
+  "newsreader",
+);
+assert.equal(selectedCoverFont(cursorFonts, font).effectiveWeight, 400);
+assert(cursorFonts.doc.eq(doc));
+assert.equal(
+  paint.isInSet(cursorFonts.storedMarks!)!.attrs.fontStyle,
+  "italic",
+);
+assert(schema.marks.underline!.isInSet(cursorFonts.storedMarks!));
+const inserted = cursorFonts.insertText(" NEW ");
+const insertedRuns: { text: string; weight: unknown }[] = [];
+inserted.doc.descendants((node) => {
+  if (node.isText)
+    insertedRuns.push({
+      text: node.text!,
+      weight: paint.isInSet(node.marks)?.attrs.fontWeight,
+    });
+});
+assert(insertedRuns.some((r) => r.text === " NEW " && r.weight === 400));
+assert(insertedRuns.some((r) => r.text === "eavy" && r.weight === 900));
+const inherit = caret.tr;
+assert(changeCoverSelectionWeight(inherit, null, font));
+assert.equal(
+  selectedCoverFont(inherit, font).effectiveFamily,
+  "hanken-grotesk",
+);
+assert.equal(selectedCoverFont(inherit, font).effectiveWeight, 500);
+assert(changeCoverSelectionFamily(inherit, null, font.weight));
+assert.equal(selectedCoverFont(inherit, font).effectiveFamily, "newsreader");
+assert.equal(selectedCoverFont(inherit, font).effectiveWeight, 500);
+assert(inherit.doc.eq(doc));
+const cleared = caret.tr.setStoredMarks([]);
+assert.equal(
+  selectedCoverFont(cleared, font).effectiveWeight,
+  500,
+  "explicitly cleared typing marks override cursor document marks",
+);
+console.log(
+  "PASS: caret family/weight chaining, effective defaults, reset and insertion preserve existing text",
 );

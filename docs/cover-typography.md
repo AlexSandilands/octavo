@@ -18,8 +18,11 @@ appearance. Changing the font clamps any saved weight to its supported range.
 The floating selected-text toolbar offers the same family and weight choices
 in compact 30px selectors on the same row as Bold, Italic and Underline.
 The inspector retains its full-size controls.
-They require highlighted words; opening a menu retains that range, and choosing
-an option returns focus to the text. **Inherit font** removes both inline font
+They show the effective font and weight at the cursor, including inherited values.
+With highlighted words, a choice formats that range; with only a caret, it sets
+the font for future typing without changing existing words. Opening a menu retains
+the selection and pending typing marks, and choosing returns focus to the text.
+**Inherit font** removes both inline font
 and weight; **Inherit weight** removes just the weight. The current field supplies
 the inherited typography, including when editing supporting copy or a sidebar
 field. Bold lights up when every selected run has an effective weight of at
@@ -48,6 +51,8 @@ Seed issue 6 demonstrates all three choices; issue 5 retains the legacy page.
 Run `scripts/check-cover-fonts.mts` for schema, renderer and in-memory seed
 invariants, and `scripts/check-cover-fonts-browser.mts <base-url>` for editing,
 selection/keyboard menus, save/reload, clipboard and reader/print surfaces.
+`scripts/check-cover-font-caret-browser.mts <base-url>` verifies fonts before
+first typing, cursor tracking, pending styles, selection formatting and persistence.
 The existing cover colour and cover element gates remain applicable.
 
 `check-cover-font-selection.mts` covers mixed-run family changes and partial

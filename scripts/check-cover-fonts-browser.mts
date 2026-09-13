@@ -285,24 +285,12 @@ await withCoverFixture(base, async (f) => {
   await choose(bar, "Selected text font", "Hanken Grotesk");
   await choose(bar, "Selected text weight", "Black 900");
   await page.keyboard.press("ArrowRight");
-  await page.waitForFunction(
-    () =>
-      document.querySelector<HTMLButtonElement>(
-        '[aria-label="Selected text font"]',
-      )?.disabled,
-  );
-  assert.equal(
-    await bar
-      .getByRole("button", { name: "Selected text font", exact: true })
-      .isDisabled(),
-    true,
-  );
-  assert.equal(
-    await bar
-      .getByRole("button", { name: "Selected text weight", exact: true })
-      .isDisabled(),
-    true,
-  );
+  for (const name of ["Selected text font", "Selected text weight"]) {
+    assert.equal(
+      await bar.getByRole("button", { name, exact: true }).isEnabled(),
+      true,
+    );
+  }
 
   await waitSaved(
     (c) =>
