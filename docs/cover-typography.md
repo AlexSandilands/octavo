@@ -17,7 +17,9 @@ appearance. Changing the font clamps any saved weight to its supported range.
 
 The floating selected-text toolbar offers the same family and weight choices
 in compact 30px selectors on the same row as Bold, Italic and Underline.
-The inspector retains its full-size controls.
+The inspector retains its full-size controls. Cover editing uses `pre-wrap`
+instead of Tiptap’s `break-spaces`, so spaces at soft wraps do not push
+right-aligned words inward; authored spaces and line breaks are preserved.
 They show the effective font and weight at the cursor, including inherited values.
 With highlighted words, a choice formats that range; with only a caret, it sets
 the font for future typing without changing existing words. Opening a menu retains
@@ -53,6 +55,8 @@ invariants, and `scripts/check-cover-fonts-browser.mts <base-url>` for editing,
 selection/keyboard menus, save/reload, clipboard and reader/print surfaces.
 `scripts/check-cover-font-caret-browser.mts <base-url>` verifies fonts before
 first typing, cursor tracking, pending styles, selection formatting and persistence.
+`scripts/check-cover-right-alignment.mts <base-url>` checks wrapped line endings
+in the editor, reader and both print themes.
 The existing cover colour and cover element gates remain applicable.
 
 `check-cover-font-selection.mts` covers mixed-run family changes and partial

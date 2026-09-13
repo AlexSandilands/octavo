@@ -171,6 +171,11 @@
   width: calc(var(--cover-logo-size) + 36px);
 }
 
+/* Override Tiptap’s later break-spaces rule: wrap gaps must not offset aligned lines. */
+.cover-text-editor.ProseMirror {
+  white-space: pre-wrap;
+}
+
 .cover-text-editor p {
   margin: 0;
 }
