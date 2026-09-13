@@ -1,4 +1,5 @@
 import { coverItems, placementOf, reorderCover } from "@/lib/cover-order";
+import { blockEditHistoryGroup } from "./block-edit-history";
 import { useState } from "react";
 import {
   makeCoverElement,
@@ -200,7 +201,7 @@ export function useEditorPages(content: IssueContent) {
       return;
     // One stream per block *and* field, so a typing run, a size nudge and a
     // width drag each fold into their own step rather than into each other.
-    commit(`${id}:${Object.keys(patch).sort().join(",")}`);
+    commit(blockEditHistoryGroup(block, patch));
     editPage((p) => ({
       ...p,
       blocks: p.blocks.map((b) => (b.id === id ? mergeBlock(b, patch) : b)),

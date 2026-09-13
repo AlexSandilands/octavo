@@ -23,6 +23,9 @@ Carried forward from the original spec — these are settled:
   sponsors entirely from the UI; the developer owns only infrastructure (Railway, R2,
   domain, email) and should rarely touch it. Favour boring, managed choices.
 - **Blocks JSON is the source of truth.** HTML views and the PDF are derived artifacts.
+- **Montage captions belong to images** (#280): captions change with the displayed photo,
+  while screen-reader descriptions remain separate. Legacy shared captions need an explicit
+  author conversion; rotating images never change the block's height.
 - **Audience:** ~1,000 members, older, phone-heavy. Readability and simplicity beat
   features; WCAG AA is a requirement, not a nice-to-have.
 

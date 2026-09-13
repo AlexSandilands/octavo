@@ -1,10 +1,9 @@
-// Dev-only: validates the content v4 montage block (issue #95) *in memory* —
+// Dev-only: validates montage compatibility and per-image captions (#95, #280) *in memory* —
 // no database, no storage, no dev server. It builds the seed issues with fake
 // image ids and asserts, through the same zod schema the save path runs:
 //
 //   - every seeded issue still validates and stamps CONTENT_VERSION,
-//   - the seed authors exactly one montage, on the camera-club issue, in the
-//     new shape (3 slides, per-slide alt text, an interval, a caption),
+//   - the seed authors per-image captions and one deliberate legacy montage,
 //   - collectImageIds reaches into montage slides, so the readers can resolve
 //     them (a montage whose ids were missed renders as an empty frame),
 //   - the deliberate legacy fixture (a plain string + a constrained-HTML string
@@ -12,14 +11,22 @@
 //   - a version-3 document — the additive-bump guarantee — still parses and
 //     keeps its stored version.
 //
-// This is the seed check for the v4 bump: `npm run db:seed` wipes every
+// This is the seed check for the v8 bump: `npm run db:seed` wipes every
 // authored issue, so it must never be run to verify a content-model change.
-// Run: npx tsx scripts/dev-montage-gate.mts
+// Run: npx tsx --tsconfig scripts/tsconfig.json scripts/dev-montage-gate.mts
 import {
   CONTENT_VERSION,
   issueContentSchema,
   type Block,
 } from "../src/lib/blocks";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { blockEditHistoryGroup } from "../src/features/editor/block-edit-history";
+import { BlockView } from "../src/features/blocks/block-view";
+import { resolveMontageSlides } from "../src/features/blocks/montage";
+import { MontageCaption } from "../src/features/blocks/montage-caption";
+import { getTheme } from "../src/features/blocks/themes/registry";
+import { montageItemSchema } from "../src/lib/blocks";
 import { collectImageIds } from "../src/lib/images";
 import { buildIssues } from "../src/db/seed-data";
 import { SEED_IMAGES, type SeedImages } from "../src/db/seed/images";
@@ -53,7 +60,7 @@ for (const issue of issues) {
   );
 }
 
-// 2. Exactly one montage, on the camera-club issue, in the v4 shape.
+// 2. A current montage on the camera-club issue, plus one legacy fixture.
 type Montage = Extract<Block, { type: "montage" }>;
 const montages: { issue: number; block: Montage }[] = [];
 for (const issue of issues) {
@@ -66,8 +73,8 @@ for (const issue of issues) {
   }
 }
 ok(
-  montages.length === 1,
-  `seed authors exactly one montage (got ${montages.length})`,
+  montages.length === 2,
+  `seed authors a current and a legacy montage (got ${montages.length})`,
 );
 const found = montages[0]!;
 ok(found.issue === 2, `the montage lives on issue 2 (got ${found.issue})`);
@@ -84,7 +91,16 @@ ok(
 );
 ok(m.interval === 5, `interval is the 5-second default (got ${m.interval})`);
 ok(m.align === "full" && m.width === 100, "placement defaults to full width");
-ok(m.caption.trim().length > 0, "the montage carries a caption");
+ok(m.caption === "", "new montage does not use a shared caption");
+ok(m.items[0]?.caption?.trim(), "first image carries its own caption");
+ok(m.items[1]?.caption?.trim(), "second image carries a different caption");
+ok(m.items[2]?.caption === "", "third image deliberately has no caption");
+const legacyMontage = montages.find((entry) => entry.issue === 5)!.block;
+ok(legacyMontage.caption.trim(), "legacy seed retains its shared caption");
+ok(
+  legacyMontage.items.every((item) => !("caption" in item)),
+  "legacy items keep their original shape",
+);
 
 // 3. The slides are reachable by the image resolver the readers use.
 const ids = collectImageIds(issues[1]!.content);
@@ -146,4 +162,157 @@ ok(
   "…and keeps its stored version (no silent rewrite)",
 );
 
+// 7. The additive v8 schema keeps v7 montage items and shared caption untouched.
+const legacyDocument = {
+  version: 7,
+  pages: [{ id: "legacy", blocks: [legacyMontage] }],
+};
+const parsedLegacy = issueContentSchema.parse(legacyDocument);
+ok(
+  JSON.stringify(parsedLegacy.pages[0]!.blocks[0]) ===
+    JSON.stringify(legacyMontage),
+  "v7 montage survives parsing without an item rewrite",
+);
+ok(parsedLegacy.version === 7, "v7 document keeps its stored version");
+ok(
+  montageItemSchema.safeParse({ imageId: "i", caption: "c".repeat(300) })
+    .success,
+  "300-character item caption accepted",
+);
+ok(
+  !montageItemSchema.safeParse({ imageId: "i", caption: "c".repeat(301) })
+    .success,
+  "oversized item caption rejected",
+);
+ok(
+  !montageItemSchema.safeParse({ imageId: "i", caption: 7 }).success,
+  "non-string item caption rejected",
+);
+const images = Object.fromEntries(
+  m.items.map((item, index) => [
+    item.imageId,
+    { url: `/montage-${index}.webp`, width: 600, height: 400 },
+  ]),
+);
+const slides = resolveMontageSlides(m.items, images);
+ok(
+  slides[0]?.caption === m.items[0]?.caption,
+  "image resolution preserves captions with their image",
+);
+ok(
+  resolveMontageSlides(m.items, {
+    [m.items[1]!.imageId]: images[m.items[1]!.imageId]!,
+  })[0]?.caption === m.items[1]?.caption,
+  "missing images never misalign their surviving captions",
+);
+for (const themeId of ["classic", "modern"] as const) {
+  const staticMarkup = renderToStaticMarkup(
+    createElement(MontageCaption, { slides, themeId }),
+  );
+  ok(
+    staticMarkup.includes('data-montage-caption-active="true"') &&
+      staticMarkup.includes(m.items[0]!.caption!),
+    `${themeId} deterministic caption renderer uses first image`,
+  );
+  const editor = renderToStaticMarkup(
+    createElement(BlockView, {
+      block: { ...m, items: [] },
+      images: {},
+      theme: getTheme(themeId),
+      edit: { onChange: () => undefined },
+    }),
+  );
+  ok(
+    !editor.includes("contenteditable") &&
+      !editor.includes("Caption (optional)"),
+    `${themeId} montage has no shared inline caption editor`,
+  );
+  const blank = renderToStaticMarkup(
+    createElement(MontageCaption, { slides, themeId, index: 2 }),
+  );
+  ok(
+    blank.includes("visibility:hidden") &&
+      !blank.includes('data-montage-caption-active="true"'),
+    `${themeId} blank image hides the full caption including theme decoration`,
+  );
+  const next = renderToStaticMarkup(
+    createElement(MontageCaption, { slides, themeId, index: 1 }),
+  );
+  ok(
+    next.includes(
+      `data-montage-caption-active="true" aria-hidden="false" class="col-start-1 row-start-1 ">${m.items[1]!.caption}</span>`,
+    ),
+    `${themeId} active index selects the matching caption`,
+  );
+  const shared = renderToStaticMarkup(
+    createElement(MontageCaption, {
+      slides,
+      themeId,
+      caption: "Preserved shared caption",
+      index: 2,
+    }),
+  );
+  ok(
+    shared.includes("Preserved shared caption") &&
+      !shared.includes(m.items[0]!.caption!),
+    `${themeId} legacy shared caption remains authoritative until conversion`,
+  );
+}
+ok(
+  renderToStaticMarkup(
+    createElement(MontageCaption, {
+      slides: slides.map((slide) => ({ ...slide, caption: "  " })),
+    }),
+  ) === "",
+  "all blank captions reserve no caption space",
+);
+// 8. Caption typing groups per image and field; structural edits stand alone.
+const editItem = (index: number, field: "alt" | "caption", value: string) => ({
+  items: m.items.map((item, i) =>
+    i === index ? { ...item, [field]: value } : item,
+  ),
+});
+const firstCaption = blockEditHistoryGroup(
+  m,
+  editItem(0, "caption", "First edit"),
+);
+ok(
+  firstCaption ===
+    blockEditHistoryGroup(m, editItem(0, "caption", "Continued typing")),
+  "typing one image caption folds into one undo step",
+);
+ok(
+  firstCaption !==
+    blockEditHistoryGroup(m, editItem(1, "caption", "Other image")),
+  "different image captions have separate undo steps",
+);
+ok(
+  firstCaption !==
+    blockEditHistoryGroup(m, editItem(0, "alt", "Visual description")),
+  "caption and description have separate undo steps",
+);
+ok(
+  blockEditHistoryGroup(m, {
+    items: [m.items[1]!, m.items[0]!, m.items[2]!],
+  }) === undefined,
+  "reordering montage images creates its own undo step",
+);
+ok(
+  blockEditHistoryGroup(m, { items: m.items.slice(1) }) === undefined,
+  "removing a montage image creates its own undo step",
+);
+ok(
+  blockEditHistoryGroup(m, { items: [...m.items, m.items[0]!] }) === undefined,
+  "adding a montage image creates its own undo step",
+);
+ok(
+  blockEditHistoryGroup(legacyMontage, {
+    items: legacyMontage.items.map((item) => ({
+      ...item,
+      caption: legacyMontage.caption,
+    })),
+    caption: "",
+  }) === undefined,
+  "legacy conversion creates one independent undo step",
+);
 console.log("\nall checks passed");

@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { DialogShell } from "@/components/dialog-shell";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
+import { DialogShell } from "@/components/dialog-shell";
 import { Button, IconButton } from "@/components/ui";
 import {
   MAX_MONTAGE_IMAGES,
@@ -11,9 +11,10 @@ import {
 } from "@/lib/blocks";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import { MenuSelect, type MenuSelectItem } from "@/components/menu-select";
+import { MontageRow } from "./montage-row";
 
 // The montage block's settings panel (issue #95): the slide list — add, remove,
-// reorder, per-slide alt text — plus the cross-fade interval. Modelled on the
+// reorder, per-image captions and alt text — plus the cross-fade interval. Modelled on the
 // sponsor dialog (same modal shell, same colocated upload) because it is the
 // same job: a block whose content is too big for a floating toolbar.
 //
@@ -27,6 +28,8 @@ import { MenuSelect, type MenuSelectItem } from "@/components/menu-select";
 export function MontageDialog({
   items,
   interval,
+  caption,
+  onUseItemCaptions,
   issueId,
   images,
   onChangeItems,
@@ -36,6 +39,8 @@ export function MontageDialog({
 }: {
   items: MontageItem[];
   interval: number;
+  caption: string;
+  onUseItemCaptions: () => void;
   issueId: string;
   images: ImageMap;
   onChangeItems: (items: MontageItem[]) => void;
@@ -44,6 +49,12 @@ export function MontageDialog({
   onClose: () => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const latest = useRef({ items, onChangeItems });
+  useEffect(() => {
+    latest.current = { items, onChangeItems };
+  }, [items, onChangeItems]);
+  const hasSharedCaption = !!caption.trim();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -86,7 +97,7 @@ export function MontageDialog({
           width: data.width,
           height: data.height,
         });
-        added.push({ imageId: data.imageId, alt: "" });
+        added.push({ imageId: data.imageId, alt: "", caption: "" });
       }
       if (files.length > room) {
         setError(`A montage holds at most ${MAX_MONTAGE_IMAGES} images.`);
@@ -96,7 +107,9 @@ export function MontageDialog({
     } finally {
       // Keep whatever landed before the failure — re-uploading successful
       // images to recover from one bad file would be a poor trade.
-      if (added.length > 0) onChangeItems([...items, ...added]);
+      if (added.length > 0) {
+        latest.current.onChangeItems([...latest.current.items, ...added]);
+      }
       setUploading(false);
     }
   };
@@ -116,8 +129,9 @@ export function MontageDialog({
     // stray click and pans on a drag — neither should reach it, and nor should
     // the Escape that closes this (the shell stops it).
     <DialogShell
-      panelClassName="bg-card flex max-h-[90vh] w-[560px] flex-col rounded-[10px] shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
+      panelClassName="bg-card flex max-h-[90vh] w-[672px] flex-col rounded-[10px] shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
       isolatePointerEvents
+      locked={uploading}
       onClose={onClose}
     >
       {(titleId) => (
@@ -129,7 +143,12 @@ export function MontageDialog({
             >
               Montage
             </h2>
-            <IconButton icon="close" label="Close" onClick={onClose} />
+            <IconButton
+              icon="close"
+              label="Close"
+              onClick={onClose}
+              disabled={uploading}
+            />
           </div>
 
           {/* The house dropdown, not a native <select>: a styled select still
@@ -153,7 +172,45 @@ export function MontageDialog({
             their device for reduced motion never see it move on its own.
           </p>
 
-          <div className="scrollbar-soft min-h-0 flex-1 overflow-y-auto px-8 pt-6 [--scrollbar-surface:var(--color-card)] [scrollbar-gutter:stable]">
+          <div
+            ref={listRef}
+            className="scrollbar-soft min-h-0 flex-1 overflow-y-auto px-8 pt-6 [--scrollbar-surface:var(--color-card)] [scrollbar-gutter:stable]"
+          >
+            {hasSharedCaption && (
+              <div className="border-hair bg-page mb-5 rounded-lg border p-4">
+                <p className="text-ink font-sans text-[13px] font-semibold">
+                  Shared caption
+                </p>
+                <p className="text-muted mt-2 whitespace-pre-wrap font-serif text-[15px]">
+                  {caption}
+                </p>
+                <p className="text-faint2 my-3 font-sans text-[12px]">
+                  This caption still appears with every image. Switching copies
+                  it to each image without a caption, ready for you to edit or
+                  remove.
+                </p>
+                <Button
+                  variant="secondary"
+                  disabled={items.length === 0}
+                  onClick={() => {
+                    onUseItemCaptions();
+                    requestAnimationFrame(() =>
+                      listRef.current
+                        ?.querySelector<HTMLInputElement>(
+                          "[data-montage-caption-input]",
+                        )
+                        ?.focus(),
+                    );
+                  }}
+                >
+                  Use captions per image
+                </Button>
+              </div>
+            )}
+            <p className="text-faint2 mb-4 font-sans text-[13px]">
+              Each caption appears with its image. Leave it blank to show just
+              the photo.
+            </p>
             <span className="text-faint mb-1.5 block font-sans text-[11px] font-semibold tracking-[0.14em] uppercase">
               Images ({items.length})
             </span>
@@ -165,14 +222,17 @@ export function MontageDialog({
               <ul className="space-y-2.5">
                 {items.map((item, i) => (
                   <MontageRow
-                    key={`${item.imageId}-${i}`}
+                    key={`${item.imageId}-${items.slice(0, i).filter((other) => other.imageId === item.imageId).length}`}
                     item={item}
                     index={i}
                     total={items.length}
                     image={images[item.imageId]}
-                    onAlt={(alt) =>
+                    sharedCaption={hasSharedCaption}
+                    onChange={(patch) =>
                       onChangeItems(
-                        items.map((it, j) => (j === i ? { ...it, alt } : it)),
+                        items.map((it, j) =>
+                          j === i ? { ...it, ...patch } : it,
+                        ),
                       )
                     }
                     onMove={(dir) => move(i, dir)}
@@ -227,102 +287,5 @@ export function MontageDialog({
         </>
       )}
     </DialogShell>
-  );
-}
-
-function MontageRow({
-  item,
-  index,
-  total,
-  image,
-  onAlt,
-  onMove,
-  onRemove,
-}: {
-  item: MontageItem;
-  index: number;
-  total: number;
-  image: ResolvedImage | undefined;
-  onAlt: (alt: string) => void;
-  onMove: (dir: -1 | 1) => void;
-  onRemove: () => void;
-}) {
-  const position = `image ${index + 1} of ${total}`;
-  return (
-    <li className="border-hair flex items-center gap-3 rounded-lg border bg-white p-2.5">
-      <div className="border-line bg-page flex h-14 w-20 flex-none items-center justify-center overflow-hidden rounded">
-        {image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={image.url} alt="" className="h-full w-full object-cover" />
-        ) : (
-          <span className="text-faint2 font-mono text-[9px]">MISSING</span>
-        )}
-      </div>
-      <label className="min-w-0 flex-1">
-        <span className="sr-only">Alt text for {position}</span>
-        <input
-          value={item.alt}
-          onChange={(e) => onAlt(e.target.value)}
-          maxLength={300}
-          placeholder="Describe this photo for screen readers"
-          className="border-hair focus:border-accent text-ink h-10 w-full rounded-md border bg-white px-2.5 font-sans text-[13px] outline-none"
-        />
-      </label>
-      <div className="flex flex-none items-center gap-1">
-        <RowBtn
-          icon="arrowUp"
-          label={`Move ${position} earlier`}
-          disabled={index === 0}
-          onClick={() => onMove(-1)}
-        />
-        <RowBtn
-          icon="arrowDown"
-          label={`Move ${position} later`}
-          disabled={index === total - 1}
-          onClick={() => onMove(1)}
-        />
-        <RowBtn
-          icon="trash"
-          label={`Remove ${position}`}
-          danger
-          onClick={onRemove}
-        />
-      </div>
-    </li>
-  );
-}
-
-function RowBtn({
-  icon,
-  label,
-  onClick,
-  disabled,
-  danger,
-}: {
-  icon: "arrowUp" | "arrowDown" | "trash";
-  label: string;
-  onClick: () => void;
-  disabled?: boolean;
-  danger?: boolean;
-}) {
-  // A bordered square, not a house Button and not the quiet inline IconButton —
-  // it keeps its own shape and takes only the interaction contract: the pointer,
-  // the wash its accent hover already implied, and a transition. The hovers are
-  // gated on `enabled:` so a disabled end-of-list arrow promises nothing.
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      title={label}
-      aria-label={label}
-      className={`border-hair flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border bg-white transition-[background-color,border-color,color] duration-150 disabled:cursor-default disabled:opacity-35 ${
-        danger
-          ? "text-warn enabled:hover:border-warn enabled:hover:bg-warn-soft"
-          : "text-muted enabled:hover:border-accent enabled:hover:bg-accent-wash enabled:hover:text-accent"
-      }`}
-    >
-      <Icon name={icon} size={15} strokeWidth={1.9} />
-    </button>
   );
 }

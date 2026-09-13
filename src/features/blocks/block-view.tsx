@@ -17,6 +17,7 @@ import { RichText } from "./rich-text";
 import { Editable } from "./editable";
 import { MontageStill, resolveMontageSlides } from "./montage";
 import { MontagePlayer } from "./montage-player";
+import { MontageCaption } from "./montage-caption";
 import { VideoLink, VideoStill } from "./video";
 import { VideoPlayer } from "./video-player";
 
@@ -323,36 +324,33 @@ export function BlockView({
     }
 
     case "montage": {
-      // Content v4. Same figure and caption treatment as an image block — a
-      // montage is a photo slot that happens to hold several photos — so it
-      // picks up the theme's frame for free. On the read path it cross-fades
-      // and takes prev/next from the member; everywhere else (print/PDF, the
-      // editor canvas, the library thumbnail) it renders its first slide only.
       const slides = resolveMontageSlides(block.items, images);
-      const picture =
-        slides.length === 0 ? (
-          <div className={theme.image.placeholder.box}>
-            <span className={theme.image.placeholder.label}>
-              {block.caption || "MONTAGE"}
-            </span>
-          </div>
-        ) : interactive ? (
+      if (interactive && slides.length > 0) {
+        return (
           <MontagePlayer
             slides={slides}
             intervalSeconds={block.interval}
-            label={block.caption}
+            caption={block.caption}
+            themeId={theme.id}
           />
-        ) : (
-          <MontageStill slides={slides} priority={priority} />
         );
-      const showCaption = edit || block.caption;
+      }
       return (
         <figure>
-          {picture}
-          {showCaption &&
-            theme.image.caption(
-              f((v) => ({ caption: v }), block.caption, "Caption (optional)"),
-            )}
+          {slides.length === 0 ? (
+            <div className={theme.image.placeholder.box}>
+              <span className={theme.image.placeholder.label}>
+                {block.caption || "MONTAGE"}
+              </span>
+            </div>
+          ) : (
+            <MontageStill slides={slides} priority={priority} />
+          )}
+          <MontageCaption
+            slides={slides}
+            caption={block.caption}
+            themeId={theme.id}
+          />
         </figure>
       );
     }

@@ -10,7 +10,11 @@ import type { ImageMap, ResolvedImage } from "@/lib/images";
 // therefore never renders the player: nothing hydrates, no timer starts, and
 // the printed frame is always the first slide.
 
-export type MontageSlide = { image: ResolvedImage; alt: string };
+export type MontageSlide = {
+  image: ResolvedImage;
+  alt: string;
+  caption?: string;
+};
 
 // The block's items joined to their resolved images, in authored order. An item
 // whose image no longer resolves (deleted row) is dropped rather than rendered
@@ -23,7 +27,7 @@ export function resolveMontageSlides(
   const slides: MontageSlide[] = [];
   for (const item of items) {
     const image = images?.[item.imageId];
-    if (image) slides.push({ image, alt: item.alt });
+    if (image) slides.push({ image, alt: item.alt, caption: item.caption });
   }
   return slides;
 }

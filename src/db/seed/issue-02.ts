@@ -62,31 +62,28 @@ export const issue02 = (img: SeedImages) =>
       ),
     ]),
 
-    // The montage page (content v4): three frames on a 5-second cross-fade,
-    // each with its own alt text. In the readers it cycles and takes prev/next
+    // The montage page (content v8): individual captions, including one blank,
+    // alongside separate descriptions. In the readers it cycles and takes prev/next
     // from the member; in the PDF it prints the first frame only.
     page([
       H("Three Ways with One Roll", "Portfolio", "section"),
-      Mont(
-        [
-          {
-            image: img.contact,
-            alt: "A contact sheet of charcoal and slate triangles, one frame warmed amber.",
-          },
-          {
-            image: img.latent,
-            alt: "Concentric contour rings closing on a pale centre, like an image surfacing in the developer.",
-          },
-          {
-            image: img.fixer,
-            alt: "Overlapping amber arcs on slate, the sequence settled and fixed.",
-          },
-        ],
+      Mont([
         {
-          caption:
-            "“Development”, K. Iversen — the same negative at three stages, shown in sequence.",
+          image: img.contact,
+          caption: "“Development”, K. Iversen — the first contact print.",
+          alt: "A contact sheet of charcoal and slate triangles, one frame warmed amber.",
         },
-      ),
+        {
+          image: img.latent,
+          caption:
+            "The same negative begins to emerge in the developer, one of three prints made from a single exposure.",
+          alt: "Concentric contour rings closing on a pale centre, like an image surfacing in the developer.",
+        },
+        {
+          image: img.fixer,
+          alt: "Overlapping amber arcs on slate, the sequence settled and fixed.",
+        },
+      ]),
       T(
         "Iversen printed one negative three times and hung the results side by side, which is the sort of thing that starts an argument in a supper room. The point, she says, is that a photograph is not finished when the shutter closes; it is finished when somebody decides to stop working on it, and that decision is the picture.",
       ),
