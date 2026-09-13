@@ -43,6 +43,8 @@ type ButtonProps = {
   onClick?: () => void;
   onMouseDown?: MouseEventHandler<HTMLButtonElement>;
   "aria-pressed"?: boolean;
+  "aria-expanded"?: boolean;
+  "aria-controls"?: string;
   type?: "button" | "submit";
   disabled?: boolean;
   /** Nothing left to do here, but the control stays reachable: it looks and
@@ -79,6 +81,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       onClick,
       onMouseDown,
       "aria-pressed": ariaPressed,
+      "aria-expanded": ariaExpanded,
+      "aria-controls": ariaControls,
       type = "button",
       disabled = false,
       unavailable = false,
@@ -149,6 +153,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         onClick={inert ? undefined : onClick}
         onMouseDown={inert ? undefined : onMouseDown}
         aria-pressed={ariaPressed}
+        aria-expanded={ariaExpanded}
+        aria-controls={ariaControls}
         disabled={isDisabled}
         aria-disabled={unavailable || undefined}
         aria-label={ariaLabel}
@@ -171,13 +177,14 @@ export const IconButton = forwardRef<
     icon: IconName;
     /** Accessible name — an icon alone says nothing. */
     label: string;
+    title?: string;
     onClick?: () => void;
     size?: number;
     disabled?: boolean;
     className?: string;
   }
 >(function IconButton(
-  { icon, label, onClick, size = 22, disabled = false, className = "" },
+  { icon, label, title, onClick, size = 22, disabled = false, className = "" },
   ref,
 ) {
   // Same disabled treatment as Button: dimmed, no pointer, and the hover wash
@@ -192,6 +199,7 @@ export const IconButton = forwardRef<
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
+      title={title}
       className={`text-muted -m-2 inline-flex items-center justify-center rounded-lg p-2 transition-[background-color,color] duration-150 ${state} ${className}`}
     >
       <Icon name={icon} size={size} strokeWidth={1.7} />

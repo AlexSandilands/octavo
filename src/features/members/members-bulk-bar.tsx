@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import styles from "./members-layout.module.css";
 import { Button } from "@/components/ui";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { SelectCheckbox } from "@/components/select-checkbox";
@@ -242,7 +243,7 @@ export function MembersBulkBar({
           type="button"
           onClick={selectAllMatching}
           disabled={pending || selectingAll}
-          className="text-faint hover:text-accent cursor-pointer rounded px-2 py-2 font-sans text-[14px] font-medium underline underline-offset-4 disabled:cursor-default disabled:opacity-50"
+          className="text-faint hover:text-accent min-h-11 cursor-pointer rounded px-2 py-2 font-sans text-[14px] font-medium underline underline-offset-4 disabled:cursor-default disabled:opacity-50"
         >
           {selectingAll
             ? "Selecting…"
@@ -261,12 +262,12 @@ export function MembersBulkBar({
               onClear();
             }}
             disabled={pending}
-            className="text-faint hover:text-accent cursor-pointer rounded px-2 py-2 font-sans text-[14px] font-medium underline underline-offset-4 disabled:cursor-default disabled:opacity-50"
+            className="text-faint hover:text-accent min-h-11 cursor-pointer rounded px-2 py-2 font-sans text-[14px] font-medium underline underline-offset-4 disabled:cursor-default disabled:opacity-50"
           >
             Clear
           </button>
 
-          <div className="ml-auto flex flex-wrap gap-2 py-1.5">
+          <div className={styles.bulkActions}>
             <Button
               size="sm"
               variant="secondary"

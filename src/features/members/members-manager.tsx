@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import styles from "./members-layout.module.css";
 import { ADMIN_LIST_PAGE } from "@/components/admin-list-layout";
 import { EmptyMembers } from "@/components/empty-states";
 import { MemberDialog } from "./member-dialog";
@@ -41,8 +42,8 @@ export function MembersManager({
   const close = () => setDialog(null);
 
   return (
-    <div className={ADMIN_LIST_PAGE}>
-      <div className="flex flex-none flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div className={`${ADMIN_LIST_PAGE} ${styles.page}`}>
+      <div className={styles.heading}>
         <div>
           <h1 className="text-ink font-serif text-3xl">Members</h1>
           <p className="text-faint mt-1.5 font-sans text-sm">{summary}</p>

@@ -5,7 +5,9 @@ import { Icon } from "@/components/icons";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { MemberDialog } from "./member-dialog";
 import { SelectCheckbox } from "@/components/select-checkbox";
-import { Avatar, Pill } from "@/components/ui";
+import { Avatar, IconButton, Pill } from "@/components/ui";
+import { MemberNotes } from "./member-notes-disclosure";
+import styles from "./members-layout.module.css";
 import { initials } from "@/lib/initials";
 import {
   removeMemberAction,
@@ -89,33 +91,32 @@ export function MemberRow({
   };
 
   return (
-    <div className="border-line-soft border-b py-3">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5 px-1.5">
-        <div className="flex min-w-0 basis-full items-center gap-3 sm:basis-0 sm:flex-1">
+    <div className="members-row border-line-soft border-b py-3">
+      <div className={styles.grid}>
+        <div className={styles.identity}>
           <SelectCheckbox
             checked={selected}
             onChange={(next) => onSelect(member.id, next)}
             label={`Select ${label}`}
           />
           <Avatar initials={initials(label)} />
-          <div className="min-w-0">
+          <div className={styles.identityText} data-member-cell="identity">
             <div className="text-ink font-sans text-[15px] font-semibold">
               {member.name ?? "—"}
             </div>
-            <div className="text-faint truncate font-sans text-[13px]">
+            <div className="text-faint font-sans text-[13px]">
               {member.email}
             </div>
           </div>
         </div>
 
-        <div className="text-faint basis-full pl-11 font-sans text-[13px] whitespace-pre-wrap lg:line-clamp-2 lg:w-[160px] lg:basis-auto lg:pl-0 xl:w-[220px]">
-          <span className="text-faint2 mr-2 font-semibold lg:hidden">
-            Notes
-          </span>
-          {member.notes ?? "—"}
+        <div className={styles.notes} data-member-cell="notes">
+          <span className={styles.fieldLabel}>Notes</span>
+          <MemberNotes notes={member.notes} label={label} />
         </div>
 
-        <div className="sm:w-[120px]">
+        <div data-member-cell="subscription">
+          <span className={styles.fieldLabel}>Subscription</span>
           <button
             type="button"
             onClick={toggleSubscribed}
@@ -124,13 +125,14 @@ export function MemberRow({
               member.subscribed ? "Mark as unsubscribed" : "Mark as subscribed"
             }
             aria-label={`${member.subscribed ? "Unsubscribe" : "Subscribe"} ${label}`}
-            className="cursor-pointer rounded-full transition-opacity hover:opacity-75 focus-visible:outline-2 disabled:cursor-default disabled:opacity-40"
+            className="inline-flex min-h-11 cursor-pointer items-center rounded-full transition-opacity enabled:hover:opacity-75 focus-visible:outline-2 disabled:cursor-default disabled:opacity-40"
           >
             <Pill status={member.subscribed ? "Subscribed" : "Unsubscribed"} />
           </button>
         </div>
 
-        <div className="sm:w-[112px]">
+        <div data-member-cell="role">
+          <span className={styles.fieldLabel}>Role</span>
           <button
             type="button"
             onClick={toggleAdmin}
@@ -143,7 +145,7 @@ export function MemberRow({
                   : "Make admin"
             }
             aria-label={`${member.isAdmin ? "Remove admin from" : "Make admin"} ${label}`}
-            className="text-muted hover:text-accent flex cursor-pointer items-center gap-1.5 font-sans text-[13px] font-medium disabled:cursor-default disabled:opacity-40 disabled:hover:text-current"
+            className="text-muted hover:text-accent flex min-h-11 cursor-pointer items-center gap-1.5 rounded transition-colors font-sans text-[13px] font-medium disabled:cursor-default disabled:opacity-40 disabled:hover:text-current"
           >
             <Icon
               name={member.isAdmin ? "check" : "plus"}
@@ -154,39 +156,39 @@ export function MemberRow({
           </button>
         </div>
 
-        <div className="text-faint hidden font-sans text-[13px] sm:block sm:w-[76px]">
-          {joinedLabel(member.createdAt)}
+        <div
+          className="text-faint font-sans text-[13px]"
+          data-member-cell="joined"
+        >
+          <span className={styles.fieldLabel}>Joined</span>
+          <span className="inline-flex min-h-11 items-center">
+            {joinedLabel(member.createdAt)}
+          </span>
         </div>
 
-        <div className="ml-auto flex items-center justify-end gap-2 sm:ml-0 sm:w-[58px]">
-          <button
-            type="button"
+        <div className={styles.actions} data-member-cell="actions">
+          <IconButton
+            icon="pencil"
+            size={18}
+            label={`Edit ${label}`}
+            title="Edit member details"
             onClick={() => setEditing(true)}
             disabled={pending}
-            title="Edit member details"
-            aria-label={`Edit ${label}`}
-            className="text-faint2 hover:text-accent flex cursor-pointer disabled:cursor-default disabled:opacity-30 disabled:hover:text-current"
-          >
-            <Icon name="pencil" size={18} strokeWidth={1.7} />
-          </button>
-
-          <button
-            type="button"
+          />
+          <IconButton
+            icon="close"
+            size={20}
+            label={`Remove ${label}`}
+            title={isSelf ? "You can’t remove yourself" : "Remove member"}
             onClick={remove}
             disabled={pending || isSelf}
-            title={isSelf ? "You can’t remove yourself" : "Remove member"}
-            aria-label={`Remove ${label}`}
-            className="text-faint2 hover:text-warn flex cursor-pointer justify-end disabled:cursor-default disabled:opacity-30 disabled:hover:text-current"
-          >
-            <Icon name="close" size={20} strokeWidth={1.7} />
-          </button>
+            className="enabled:hover:text-warn"
+          />
         </div>
       </div>
 
       {error && (
-        <p className="text-warn mt-1.5 pl-[6.75rem] font-sans text-[13px]">
-          {error}
-        </p>
+        <p className="text-warn mt-1.5 px-1.5 font-sans text-[13px]">{error}</p>
       )}
 
       {editing && (

@@ -93,7 +93,14 @@ src/
   always in reach. On a phone that would leave a few rows under half a screen of controls,
   so there the pane scrolls as a whole and only the search row sticks. The layers live in
   `src/components/admin-list-layout.ts`; a new list page composes them rather than
-  restating the classes.
+  restating the classes. Members uses named container queries in
+  `features/members/members-layout.module.css`: compact rows below 66rem of actual
+  list width, shared grid tracks above it. Its column headings stick inside the
+  same scrollport as the rows, so the real scrollbar gutter aligns both without
+  compensating padding. The selection and avatar occupy their own 44px and 36px
+  tracks with 12px gaps; the heading starts on the member-text track. Compact
+  rows retain the notes, joined date and all actions, with local field labels;
+  overflowing notes expand in place through a keyboard-accessible disclosure.
 
 ### Brand skins (the per-deployment palette)
 
