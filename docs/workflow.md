@@ -96,6 +96,16 @@ page turning and PDF generation using a temporary issue/admin and read-only seed
 It cleans up its own rows. The existing `dev-fill-page-gate.mts` still covers interior image-only
 placements and cover Fill/Fit rendering. Run both for cover composition changes.
 
+The Members responsive gate runs with
+`node --env-file=.env --import tsx scripts/dev-members-responsive-gate.mts <base-url>`
+against a local server and database. It checks column alignment and control bounds
+from 320px to 1920px, the table transition, a constrained content pane, 200% scaling,
+sticky headings, compact row expansion and hidden controls, notes popups (hover,
+click, touch and keyboard), selection, editing, paging, search and
+bulk actions. Screenshots go to `.data/responsive-review`; it removes its own
+scratch members and session. Run it after changing the Members layout, including
+against a production build to catch CSS ordering differences.
+
 The cover-element gate runs with `npx tsx --tsconfig scripts/tsconfig.json
 scripts/dev-cover-elements-gate.mts <base-url>`. It authors two Stories and Details through the
 toolbar's Text menu and a Logo beside it, checks references, history, independent

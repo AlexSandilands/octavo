@@ -29,7 +29,7 @@ export function AdminShell({
           this scroll pane; unanchored they stretch the document (#189). */}
       <main
         id={ADMIN_MAIN_ID}
-        className="scrollbar-soft relative flex-1 overflow-y-auto p-7 [--scrollbar-surface:var(--color-card)] [scrollbar-gutter:stable] sm:p-8"
+        className="scrollbar-soft relative min-w-0 flex-1 overflow-y-auto p-7 [--scrollbar-surface:var(--color-card)] [scrollbar-gutter:stable] sm:p-8"
       >
         <AdminScrollReset />
         {children}

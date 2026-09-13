@@ -93,7 +93,21 @@ src/
   always in reach. On a phone that would leave a few rows under half a screen of controls,
   so there the pane scrolls as a whole and only the search row sticks. The layers live in
   `src/components/admin-list-layout.ts`; a new list page composes them rather than
-  restating the classes.
+  restating the classes. Members uses named container queries in
+  `features/members/members-layout.module.css`: compact rows below 66rem of actual
+  list width, shared grid tracks above it. Its column headings stick inside the
+  same scrollport as the rows, so the real scrollbar gutter aligns both without
+  compensating padding. The selection and avatar occupy their own 44px and 36px
+  tracks with 12px gaps; the heading starts on the member-text track. Compact
+  rows start collapsed with selection, name/email, subscription and a details
+  chevron; only that chevron expands the row. Compact rows omit the avatar and
+  move subscription below the email below 32rem. Details reveal notes when
+  present, the role and admin control, joined date, and labelled Edit/Remove
+  buttons. Each row keeps its own expansion through resizing; desktop always
+  shows all columns. Overflowing notes remain a two-line preview: hover or press
+  the note text to read its full contents in a floating, scrollable popup without
+  changing row height. A press pins the popup for touch and keyboard use;
+  Escape or an outside press dismisses it.
 
 ### Brand skins (the per-deployment palette)
 
