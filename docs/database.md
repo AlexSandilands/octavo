@@ -81,7 +81,7 @@ Block = Heading | Text | Image | Montage | Video | Sponsor  // discriminated uni
 ```
 
 `version` marks which shape of the content model a document holds, so block-shape changes can
-migrate old rows deliberately. **Current version: 7.** Every string field is length-capped and the
+migrate old rows deliberately. **Current version: 8.** Every string field is length-capped and the
 page/block arrays bounded in the zod schemas, so a bad save can't persist an unbounded document.
 
 **Content v7 — optional cover elements.** `coverElements` stores a bounded array of `story`,
@@ -134,7 +134,7 @@ The bump is backward-compatible: `text` accepts a **string** (v1/v2, plain or co
 blocks stay plain strings (authored as a tagline, rendered as text — `richTextToPlain` coerces).
 
 **Content v4 (issue #95) — the `montage` block.** An ordered list of slides (`items: { imageId,
-alt }[]`) that cross-fade on a timer in the readers, carrying the image block's `caption`/`align`/
+alt, caption? }[]`) that cross-fade on a timer in the readers, carrying the image block's `caption`/`align`/
 `width` so it occupies a photo slot with identical flow rules (`blockFlowStyle` treats the two as
 one "picture block"). `interval` is whole seconds between fades, with `0` (`MONTAGE_MANUAL`) meaning
 "manual only — arrows, no autoplay"; the editor offers a preset list, the schema accepts the whole
@@ -445,6 +445,27 @@ renderers (reader/print page, library thumbnail, mobile column) agreeing on the 
 or the fit, the page-coloured bars, the dropped caption and the dropped footer. Run it with
 `npx tsx --tsconfig scripts/tsconfig.json scripts/dev-fill-page-gate.mts`, **never
 `npm run db:seed`**, which wipes every authored issue.
+
+### The v8 bump (issue #280) — optional captions on montage images
+
+Montage items add an optional `caption` (up to 300 characters), separate from `alt`.
+New montages use per-image captions; an empty caption shows no text. The existing block
+`caption` stays authoritative while nonempty, so older documents keep their shared caption
+without a rewrite. In the montage dialog, **Use captions per image** copies that shared text
+to every image without a caption and clears the block caption in one undoable edit. The
+canvas no longer offers a shared caption field. Each image starts as a compact row with a
+single-line caption beside its preview and reorder/delete controls. A chevron left of the
+preview expands the separate screen-reader description textarea, which never copies the caption.
+
+`MontageCaption` reserves the tallest caption using overlapping grid cells; changing slides
+cannot move the following content. Blank slides hide the caption and its theme decoration.
+The editor, thumbnail and PDF show the first image and its caption with that same reserve.
+Issue-02 seeds two distinct captions and one blank; issue-05 keeps one pre-v8 montage with
+its shared caption and unchanged items. `scripts/dev-montage-gate.mts` validates both in memory.
+`npx tsx --tsconfig scripts/tsconfig.json scripts/check-montage-captions-browser.mts <base-url>`
+checks authoring, history, concurrent uploads, both readers and both PDF themes using a temporary
+local issue and session; it removes its fixtures afterward.
+No SQL migration or automatic conversion is needed; new documents and resaves stamp v8.
 
 ### A version bump includes updating the seed
 

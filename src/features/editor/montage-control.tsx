@@ -19,6 +19,7 @@ import { MontageDialog } from "./montage-dialog";
 export function MontageBlockControl({
   items,
   interval,
+  caption,
   issueId,
   images,
   onChange,
@@ -26,6 +27,7 @@ export function MontageBlockControl({
 }: {
   items: MontageItem[];
   interval: number;
+  caption: string;
   issueId: string;
   images: ImageMap;
   onChange: (patch: BlockPatch) => void;
@@ -55,6 +57,16 @@ export function MontageBlockControl({
           <MontageDialog
             items={items}
             interval={interval}
+            caption={caption}
+            onUseItemCaptions={() =>
+              onChange({
+                caption: "",
+                items: items.map((item) => ({
+                  ...item,
+                  caption: item.caption?.trim() ? item.caption : caption,
+                })),
+              })
+            }
             issueId={issueId}
             images={images}
             onChangeItems={(next) => onChange({ items: next })}
