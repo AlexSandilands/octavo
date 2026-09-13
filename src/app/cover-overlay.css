@@ -22,6 +22,65 @@
   padding: 24px;
   background: var(--cover-background, var(--color-page));
 }
+/* Fit text: the item's box goes clear and each wrapped line of copy carries its
+   own band. Padding and an equal negative margin extend a band past its line
+   without moving the text, so switching shape never rewraps. The vertical pad
+   takes a line's leading (inline backgrounds cover the font's content area, at
+   least 1em) so adjacent lines join; the ink is positioned so it paints above
+   every band, including a following line's overlap. Scoped to the element that
+   owns the panel — an item, or the stacked overlay's content — so a phone
+   cover's own attributes never reach the items placed on it. */
+.cover-treatment[data-cover-panel="true"][data-cover-panel-shape="text"],
+[data-cover-panel="true"][data-cover-panel-shape="text"]
+  > .cover-overlay-layout
+  > .cover-overlay-content {
+  background: none;
+}
+:is(
+    .cover-treatment[data-cover-panel="true"][data-cover-panel-shape="text"],
+    [data-cover-panel="true"][data-cover-panel-shape="text"]
+      > .cover-overlay-layout
+      > .cover-overlay-content
+  )
+  .cover-line {
+  padding: 0.2em 12px;
+  padding-block: calc(max(0px, (1lh - 1em) / 2) + 1px);
+  margin-inline: -12px;
+  background: var(--cover-background, var(--color-page));
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+:is(
+    .cover-treatment[data-cover-panel="true"][data-cover-panel-shape="text"],
+    [data-cover-panel="true"][data-cover-panel-shape="text"]
+      > .cover-overlay-layout
+      > .cover-overlay-content
+  )
+  .cover-line-ink {
+  position: relative;
+}
+/* See CoverLineGaps: a single space may collapse at a wrap, as it does when read. */
+:is(
+    .cover-treatment[data-cover-panel="true"][data-cover-panel-shape="text"],
+    [data-cover-panel="true"][data-cover-panel-shape="text"]
+      > .cover-overlay-layout
+      > .cover-overlay-content
+  )
+  .cover-gap {
+  white-space: normal;
+}
+/* The heading's rule ornament has no lines; it takes a band of its own. */
+:is(
+    .cover-treatment[data-cover-panel="true"][data-cover-panel-shape="text"],
+    [data-cover-panel="true"][data-cover-panel-shape="text"]
+      > .cover-overlay-layout
+      > .cover-overlay-content
+  )
+  [data-cover-rule-row] {
+  width: fit-content;
+  background: var(--cover-background, var(--color-page));
+  box-shadow: 0 0 0 12px var(--cover-background, var(--color-page));
+}
 .cover-composition [data-cover-copy] {
   color: var(--cover-ink);
   text-shadow: var(--cover-shadow);

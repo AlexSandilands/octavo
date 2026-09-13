@@ -24,7 +24,7 @@ assert.equal(story.type, "story");
 if (story.type !== "story") throw new Error("Expected Story");
 story.items[0]!.title = "Māori stories";
 story.items[0]!.description = "Supporting copy";
-assert.equal(CONTENT_VERSION, 9);
+assert(CONTENT_VERSION >= 9);
 assert.deepEqual(
   COVER_FONT_IDS.map((f) => fontWeights(f).length),
   [7, 9, 9],
@@ -125,7 +125,11 @@ const styled = renderToStaticMarkup(
   createElement(CoverElementView, { element: authored, images: {} }),
 );
 assert.equal((styled.match(/--font-cover-roboto/g) ?? []).length, 1);
-assert(styled.includes('class="cover-story-description">Supporting copy'));
+assert(
+  styled.includes(
+    'class="cover-story-description"><span class="cover-line"><span class="cover-line-ink">Supporting copy',
+  ),
+);
 const seeds = buildIssues(
   Object.fromEntries(SEED_IMAGES.map((i) => [i.key, i.key])) as SeedImages,
 );

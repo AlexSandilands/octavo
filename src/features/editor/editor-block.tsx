@@ -366,6 +366,9 @@ export function EditorBlock({
                     <CoverTextEditor
                       id={block.id}
                       font={blockFontContext(field)}
+                      fitLines={
+                        appearance?.panel && appearance.panelShape === "text"
+                      }
                       maxLength={block.type === "heading" ? 300 : 8000}
                       text={text}
                       doc={block.coverPlacement?.richText?.[field]}

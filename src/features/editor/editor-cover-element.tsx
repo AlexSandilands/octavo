@@ -94,6 +94,7 @@ export function EditorCoverElement({
             <CoverTextEditor
               id={element.id}
               font={elementFontContext(element, field)}
+              fitLines={appearance.panel && appearance.panelShape === "text"}
               maxLength={
                 field.includes("description")
                   ? 600

@@ -75,6 +75,7 @@ export function PageContent({
       data-cover-style={overlay.style}
       data-cover-position={overlay.position}
       data-cover-panel={paint.panel}
+      data-cover-panel-shape={paint.panelShape}
       style={appearanceVars(paint)}
     >
       {renderBlock(background)}

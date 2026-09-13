@@ -16,8 +16,12 @@ export const coverColorSchema = z.union([
 export type CoverColor = z.infer<typeof coverColorSchema>;
 export const coverShadowSchema = z.enum(["none", "soft", "strong"]);
 export type CoverShadow = z.infer<typeof coverShadowSchema>;
+/** "block" fills the item's box; "text" hugs each wrapped line of type. */
+export const coverPanelShapeSchema = z.enum(["block", "text"]);
+export type CoverPanelShape = z.infer<typeof coverPanelShapeSchema>;
 export const coverAppearanceSchema = z.object({
   panel: z.boolean().optional(),
+  panelShape: coverPanelShapeSchema.optional(),
   background: coverColorSchema.optional(),
   text: coverColorSchema.optional(),
   shadow: coverShadowSchema.optional(),
@@ -41,6 +45,7 @@ export function resolveCoverAppearance(
 ): Required<CoverAppearance> {
   return {
     panel: style === "paper-panel" || style === "ink-panel",
+    panelShape: "block",
     background: style === "ink-panel" ? "ink" : "paper",
     text: ["dark", "dark-shadow", "paper-panel"].includes(style)
       ? "ink"

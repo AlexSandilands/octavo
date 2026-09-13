@@ -81,8 +81,19 @@ Block = Heading | Text | Image | Montage | Video | Sponsor  // discriminated uni
 ```
 
 `version` marks which shape of the content model a document holds, so block-shape changes can
-migrate old rows deliberately. **Current version: 9.** Every string field is length-capped and the
+migrate old rows deliberately. **Current version: 10.** Every string field is length-capped and the
 page/block arrays bounded in the zod schemas, so a bad save can't persist an unbounded document.
+
+**Content v10 — fitted cover panels.** `coverOverlay.appearance` and
+`coverPlacement.appearance` gain an optional `panelShape`: `block` (the panel fills the item's
+box — what an omitted value means, so existing covers render unchanged) or `text` (each wrapped
+line of copy carries its own band, stepping with the rag). It inherits like the other appearance
+fields; photos and logos have no lines and always resolve to `block`. Rendering is CSS only
+(`cover-overlay.css`): every run of cover copy sits in a `.cover-line` pair, in the reader
+(`CoverLine`) and the editor (`CoverParagraph`) alike, so the editor, readers, thumbnails and PDF
+share one shape and switching shape never rewraps text. Seed issue 6's "Inside this issue" list
+uses it. `scripts/check-cover-panel-shape.mts [base-url]` checks it in memory and, with a local
+server, measures each band against its words across the editor, history, readers and print.
 
 **Content v9 — cover typography.** Optional Story `headlineFont` and `headlineWeight`
 set headline defaults. Inline `coverPaint` gains validated `fontFamily` and
