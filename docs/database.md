@@ -253,7 +253,9 @@ All reads/writes go through [`src/server/issues.ts`](../src/server/issues.ts) (`
 The dashboard's search and filters are all in `listIssuesPage`'s WHERE, so a search sees the whole
 list rather than the served page; `deleteIssue` is `deleteIssues` of one, so the single and bulk
 deletes cannot drift apart on cleanup.
-Mutations are invoked via Server Actions in `src/app/admin/actions.ts`, which zod-validate input.
+Mutations use Server Actions in `src/app/admin/actions.ts`, except editor autosaves, which use
+`POST /api/admin/issues/[id]/save` and validation in `src/server/editor-save.ts` (#245).
+Both entry points authenticate admins and delegate database writes to the data layer.
 
 ## Asset lifecycle (issue #84)
 

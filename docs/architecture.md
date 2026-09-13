@@ -35,6 +35,7 @@ src/
       actions.ts       server actions (mutations)
       issues/[id]/edit editor (standalone full-screen)
     api/admin/images/  image upload route handler (multipart → sharp → R2)
+    api/admin/issues/[id]/save/  stable, authenticated JSON autosave endpoint
     api/admin/video-poster/  captures a YouTube poster frame into that same
                        pipeline (the app's only outbound fetch)
   components/          shared presentational UI (ui.tsx, icons.tsx, admin-shell, ...)
@@ -223,7 +224,7 @@ limits, lifecycle and reproducible browser gates: [PDF import](pdf-import.md).
 
 ```
 Editor (client state)
-  └─ debounced autosave ─▶ server action (app/admin/actions.ts, zod-validated)
+  └─ debounced autosave ─▶ POST /api/admin/issues/[id]/save (server/editor-save.ts, zod-validated)
                               └─▶ data layer (server/issues.ts) ─▶ Postgres (issues.content JSONB)
 
 Reader / library / dashboard (server components)
@@ -278,12 +279,28 @@ unsubscribe anyone. The `/unsubscribe` route sits outside the member gate by des
   table). Keep client islands at the leaves.
 - **All DB access goes through `src/server/` data-access modules** (`issues.ts`, `library.ts`, ...,
   each marked `server-only`). Never query Drizzle from a component.
-- **Mutations are Server Actions** in `src/app/admin/actions.ts`, validated with zod at the boundary
-  (ids, meta and the whole content document) so adding auth later is just a gate, not a rewrite.
+- **Mutations use Server Actions** in `src/app/admin/actions.ts`, except editor autosaves and
+  media routes. Autosave uses a stable JSON endpoint so an open editor survives a deployment
+  (#245). The route checks the admin session, origin, JSON content type and a 1 MiB body cap;
+  `server/editor-save.ts` validates the id, metadata and content before calling the data layer.
 - **Content saves are optimistically concurrent**: each save carries the `revision` it was based on
   and the DB rejects stale writes, so a second tab (or an out-of-order autosave) surfaces a visible
   conflict in the editor instead of silently overwriting newer work. The editor serialises its saves
   through one promise chain and shows save failures with a retry.
+
+The save API accepts `{ kind: "content", content, baseRevision }` or `{ kind: "meta", meta }`.
+Content success returns `{ ok: true, revision }`; metadata success returns `{ ok: true }`.
+Invalid content/input, missing issues (content saves) and conflicts return
+`{ ok: false, reason }` with HTTP 400, 404 and 409 respectively. Keep this contract compatible
+with older editor bundles. Metadata still revalidates `/admin` and does not bump the revision.
+Publishing and adopting footer settings remain Server Actions.
+
+Regression gate: after `npm run build`, run
+`node --env-file=.env --import tsx scripts/prod-editor-save-gate.mts` against a local database.
+It owns a local production server, creates/removes only its fixture rows, and cold-builds a
+second release while the first release's editor stays open. It verifies changed action IDs,
+both saves without reload, conflicts, network recovery, validation, Preview, publishing without
+email and list freshness, then runs the existing production action-refresh gate (which expects `.env.local` to exist).
 
 ## Routes
 

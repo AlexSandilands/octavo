@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Page } from "@/lib/blocks";
-import { saveIssueAction, saveMetaAction } from "@/app/admin/actions";
+import { saveIssue, saveMeta } from "./save-issue";
 import type { SaveStatus } from "./editor-header";
 import { reportEditorError } from "./report-error";
 
@@ -49,11 +49,7 @@ export function useEditorAutosave({
       try {
         const { pages, title, theme, logoId } = latestRef.current;
         if (kind !== "meta") {
-          const res = await saveIssueAction(
-            issueId,
-            { pages },
-            revisionRef.current,
-          );
+          const res = await saveIssue(issueId, { pages }, revisionRef.current);
           if (!res.ok) {
             setStatus(res.reason === "conflict" ? "conflict" : "error");
             return false;
@@ -61,7 +57,7 @@ export function useEditorAutosave({
           revisionRef.current = res.revision;
         }
         if (kind !== "content") {
-          const res = await saveMetaAction(issueId, { title, theme, logoId });
+          const res = await saveMeta(issueId, { title, theme, logoId });
           if (!res.ok) {
             setStatus("error");
             return false;
