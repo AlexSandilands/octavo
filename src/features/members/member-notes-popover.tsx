@@ -37,7 +37,7 @@ export function MemberNotesPopover({
     Object.assign(panel.current.style, {
       visibility: "visible",
       width: `${width}px`,
-      left: `${Math.max(edge, Math.min(r.right - width, window.innerWidth - width - edge))}px`,
+      left: `${Math.max(edge, Math.min(r.left, window.innerWidth - width - edge))}px`,
       ...(up
         ? { bottom: `${window.innerHeight - r.top + gap}px` }
         : { top: `${r.bottom + gap}px` }),

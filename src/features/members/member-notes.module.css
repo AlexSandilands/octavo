@@ -1,14 +1,31 @@
 .preview {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 2.75rem;
+  display: flex;
   align-items: center;
   min-height: 2.75rem;
 }
 
-/* Keep this track even when the icon is absent so clipping cannot toggle its
-   own available width as the list resizes. */
 .trigger {
-  width: 2.75rem;
-  height: 2.75rem;
-  margin: 0;
+  width: 100%;
+  height: auto;
+  min-height: 2.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  user-select: text;
+}
+
+.trigger:hover,
+.trigger:active {
+  background: transparent;
+  color: var(--color-accent);
+  transform: none;
+}
+
+.trigger:hover > span {
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
 }

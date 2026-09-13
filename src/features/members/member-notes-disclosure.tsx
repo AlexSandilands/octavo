@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { IconButton } from "@/components/ui";
+import { Button } from "@/components/ui";
 import { MemberNotesPopover } from "./member-notes-popover";
 import styles from "./member-notes.module.css";
 
@@ -13,7 +13,7 @@ export function MemberNotes({
   label: string;
 }) {
   const id = useId();
-  const text = useRef<HTMLParagraphElement>(null);
+  const text = useRef<HTMLSpanElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [mode, setMode] = useState<"hover" | "pinned" | null>(null);
@@ -41,7 +41,7 @@ export function MemberNotes({
     observer.observe(element);
     measure();
     return () => observer.disconnect();
-  }, [notes, close]);
+  }, [notes, close, overflows]);
   useEffect(() => cancelLeave, [cancelLeave]);
 
   const enter = () => {
@@ -55,21 +55,23 @@ export function MemberNotes({
     }, 160);
   };
 
+  const preview = (
+    <span
+      ref={text}
+      className="w-full min-w-0 line-clamp-2 leading-5 whitespace-pre-wrap"
+    >
+      {notes || "—"}
+    </span>
+  );
+
   return (
     <div className={`${styles.preview} text-faint font-sans text-[13px]`}>
-      <p
-        ref={text}
-        className="min-w-0 line-clamp-2 leading-5 whitespace-pre-wrap"
-      >
-        {notes || "—"}
-      </p>
-      {overflows && (
-        <IconButton
+      {overflows ? (
+        <Button
           ref={trigger}
-          icon="reader"
-          size={16}
+          variant="secondary"
           className={styles.trigger}
-          label={`Read full notes for ${label}`}
+          aria-label={`Read full notes for ${label}`}
           aria-expanded={mode !== null}
           aria-controls={mode ? id : undefined}
           onPointerEnter={(event) => {
@@ -81,7 +83,11 @@ export function MemberNotes({
             if (mode === "pinned") close(true);
             else setMode("pinned");
           }}
-        />
+        >
+          {preview}
+        </Button>
+      ) : (
+        preview
       )}
       {mode && notes && (
         <MemberNotesPopover

@@ -19,10 +19,18 @@ export async function checkMemberNotesPopup(
   await page.setViewportSize({ width: 1440, height: 900 });
   await trigger.scrollIntoViewIfNeeded();
   const height = (await row.boundingBox())!.height;
+  assert(
+    (await trigger.innerText()).startsWith("Club secretary in Wellington."),
+    "The notes text itself opens the popup",
+  );
   assert.equal(
-    await trigger.innerText(),
-    "",
-    "Notes use an icon without a text button",
+    await trigger.locator("svg").count(),
+    0,
+    "No separate notes icon",
+  );
+  assert(
+    (await trigger.locator("span").boundingBox())!.height <= 40.5,
+    "Notes preview stays within two lines",
   );
 
   await trigger.hover();
@@ -84,7 +92,7 @@ export async function checkMemberNotesPopup(
   await popup.waitFor({ state: "hidden" });
   assert(
     await trigger.evaluate((el) => el === document.activeElement),
-    "Shift+Tab returns to the notes icon",
+    "Shift+Tab returns to the notes preview",
   );
   await page.keyboard.press("Enter");
   await popup.waitFor();
@@ -134,14 +142,14 @@ export async function checkMemberNotesPopup(
     await touch.addCookies(await page.context().cookies());
     const phone = await touch.newPage();
     await phone.goto(page.url());
-    const icon = phone
+    const preview = phone
       .getByRole("button", { name: /Read full notes for/ })
       .first();
     const phonePopup = phone.locator("[data-member-notes-popup]");
-    await icon.tap();
+    await preview.tap();
     await phonePopup.waitFor();
     await withinViewport(phone, phonePopup);
-    await icon.tap();
+    await preview.tap();
     await phonePopup.waitFor({ state: "hidden" });
   } finally {
     await touch.close();
