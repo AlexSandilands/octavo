@@ -4,7 +4,10 @@ The editor's right-hand **side panel** (`src/features/editor/side-panel/`) is op
 the tool rail on the editor's right edge; its first tool is **Import PDF**. The panel
 slides in beside the canvas, takes half the editor row by default, and its left edge is
 a drag handle (also a keyboard separator: arrow keys, Home, End) with bounds that keep
-the canvas usable. The canvas re-fits to whatever is left. Inside, the PDF page sits on a
+the canvas usable. PDF import is unavailable while a cover page is showing: the rail
+button stays focusable and explains that the author should move to an interior page,
+and an open panel closes on arrival at a cover. The canvas re-fits to whatever is left.
+Inside, the PDF page sits on a
 stage of its own that mirrors the magazine canvas: laid out at the magazine's page width,
 fitted to the panel with the same margins, wheel-zoomed and dragged with the same engine
 (`useCanvasPanZoom`), and reset to the fitted view on every page change. Panning starts

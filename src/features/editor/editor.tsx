@@ -161,6 +161,13 @@ export function Editor({
   const logo = logos.find((l) => l.id === logoId)?.image ?? null;
   // Which side-panel tool is out, if any. The row ref sizes the panel.
   const [tool, setTool] = useState<EditorTool | null>(null);
+  const toolPageKey = `${page?.id ?? ""}:${page?.cover ? "cover" : "interior"}`;
+  const [previousToolPageKey, setPreviousToolPageKey] = useState(toolPageKey);
+  // Preserve an open panel across interior pages, but close it before a cover renders.
+  if (toolPageKey !== previousToolPageKey) {
+    setPreviousToolPageKey(toolPageKey);
+    if (page?.cover) setTool(null);
+  }
   const rowRef = useRef<HTMLDivElement>(null);
   const panel = usePanelWidth(rowRef);
   // The canvas column: its width, not the window's, decides how the tool bar
@@ -397,6 +404,7 @@ export function Editor({
               onToggle={(next) => setTool(tool === next ? null : next)}
               onClose={() => setTool(null)}
               pending={importer.pending}
+              cover={Boolean(page?.cover)}
               panel={panel}
               pages={pages}
               onAdd={importer.add}
