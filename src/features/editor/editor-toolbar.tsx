@@ -100,6 +100,7 @@ export function EditorToolbar({
           <CoverTextMenu
             key={b.type}
             icon={b.icon}
+            showLabel={showLabel}
             atCapacity={coverElementCount >= MAX_COVER_ELEMENTS}
             onAddBlock={onAddBlock}
             onAddCoverElement={onAddCoverElement}
@@ -165,11 +166,13 @@ export function EditorToolbar({
  *  text items. The cover items drop out at the element cap; a paragraph never does. */
 function CoverTextMenu({
   icon,
+  showLabel,
   atCapacity,
   onAddBlock,
   onAddCoverElement,
 }: {
   icon: IconName;
+  showLabel: boolean;
   atCapacity: boolean;
   onAddBlock: (type: BlockType) => void;
   onAddCoverElement: (type: CoverElementType) => void;
@@ -190,6 +193,7 @@ function CoverTextMenu({
       triggerLabel="Text"
       ariaLabel="Text"
       icon={<Icon name={icon} size={16} className="text-accent" />}
+      iconOnly={!showLabel}
       value=""
       side="top"
       portal
