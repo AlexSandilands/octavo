@@ -17,6 +17,8 @@ const PdfImportPanel = dynamic(() => import("./pdf-import/panel"), {
   ssr: false,
 });
 const PANEL_ID = "editor-side-panel";
+const PDF_COVER_DESCRIPTION =
+  "PDF import is available on interior pages. Move to another page to use it.";
 
 // The editor's right-hand side: the sliding panel and the rail that opens it.
 // The open tool hangs its actions under its rail button (the PDF panel reports
@@ -26,6 +28,7 @@ export function EditorSide({
   onToggle,
   onClose,
   pending,
+  cover,
   panel,
   pages,
   onAdd,
@@ -36,6 +39,7 @@ export function EditorSide({
   onClose: () => void;
   /** An import is landing: the rail sits out until it has. */
   pending: boolean;
+  cover: boolean;
   panel: ReturnType<typeof usePanelWidth>;
   pages: Page[];
   onAdd: ComponentProps<typeof PdfImportPanel>["onAdd"];
@@ -46,7 +50,7 @@ export function EditorSide({
     <>
       <SidePanel
         id={PANEL_ID}
-        open={tool === "pdf"}
+        open={tool === "pdf" && !cover}
         title="Import PDF"
         width={panel.width}
         min={panel.min}
@@ -62,7 +66,7 @@ export function EditorSide({
       </SidePanel>
       <div inert={pending} className="flex">
         <ToolRail
-          active={tool}
+          active={cover ? null : tool}
           panelId={PANEL_ID}
           actions={
             tool
@@ -77,6 +81,7 @@ export function EditorSide({
                 ]
               : []
           }
+          unavailable={cover ? { pdf: PDF_COVER_DESCRIPTION } : undefined}
           onToggle={onToggle}
         />
       </div>
