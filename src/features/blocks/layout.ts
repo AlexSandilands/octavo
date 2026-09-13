@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import {
   PAGE_ALIGNS,
+  isPageOwning,
   type Block,
   type Page,
   type PageAlign,
@@ -28,21 +29,19 @@ export function isPictureBlock(block: Block): block is PictureBlock {
   );
 }
 
-// A photo set to fill or fit the page (v6) owns the whole canvas — only the
-// crop differs. Covers are excluded: their title sits over the page (see
-// docs/database.md).
+// A photo set to fill or fit the page owns the canvas; cover content overlays it.
 export function pageAlignOf(block: Block): PageAlign | null {
   if (block.type !== "image") return null;
   return PAGE_ALIGNS.find((a) => a === block.align) ?? null;
 }
 
 export function isFillPage(block: Block): boolean {
-  return pageAlignOf(block) !== null;
+  return isPageOwning(block);
 }
 
 /** Whether this page is filled edge to edge by one photo. */
 export function pageFillsCanvas(page: Page | undefined): boolean {
-  return Boolean(page && !page.cover && page.blocks.some(isFillPage));
+  return Boolean(page && page.blocks.some(isFillPage));
 }
 
 // A picture block that floats, so the text after it wraps alongside. The editor
@@ -55,6 +54,15 @@ export function isFloatedPicture(block: Block): boolean {
 }
 
 export function blockFlowStyle(block: Block, cover = false): CSSProperties {
+  if (isFillPage(block)) {
+    return {
+      position: "absolute",
+      top: -PAGE_PAD,
+      left: -PAGE_PAD,
+      width: PAGE_W,
+      height: PAGE_H,
+    };
+  }
   // Cover pages never wrap text around floats: every block is centred and
   // stacked, images sized by their width and centred. The page itself is
   // vertically centred by the cover container (see the readers / editor).
@@ -65,18 +73,6 @@ export function blockFlowStyle(block: Block, cover = false): CSSProperties {
       return { ...base, width: `${width}%`, marginInline: "auto" };
     }
     return base;
-  }
-
-  // Out of flow and back over the page's margin, so the photo reaches all four
-  // edges of the canvas whatever container it is rendered in.
-  if (isFillPage(block)) {
-    return {
-      position: "absolute",
-      top: -PAGE_PAD,
-      left: -PAGE_PAD,
-      width: PAGE_W,
-      height: PAGE_H,
-    };
   }
 
   const base: CSSProperties = { marginBottom: GAP };

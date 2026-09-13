@@ -14,6 +14,7 @@ import {
 } from "drizzle-orm";
 import { db } from "@/db";
 import { sessions, users } from "@/db/schema";
+import { isUniqueViolation } from "@/lib/db-errors";
 import { likePattern } from "@/lib/like-pattern";
 import {
   ADMIN_LIST_PAGE_SIZE,
@@ -32,6 +33,7 @@ const memberColumns = {
   id: users.id,
   name: users.name,
   email: users.email,
+  notes: users.notes,
   isAdmin: users.isAdmin,
   subscribed: users.subscribed,
   createdAt: users.createdAt,
@@ -41,6 +43,7 @@ export type MemberRow = {
   id: string;
   name: string | null;
   email: string;
+  notes: string | null;
   isAdmin: boolean;
   subscribed: boolean;
   createdAt: Date;
@@ -71,6 +74,7 @@ function memberWhere(query: string, filter: MemberFilter) {
       ? or(
           ilike(users.name, likePattern(query)),
           ilike(users.email, likePattern(query)),
+          ilike(users.notes, likePattern(query)),
         )
       : undefined,
     FILTER_CONDITIONS[filter],
@@ -176,23 +180,6 @@ function chunked<T>(items: T[]): T[][] {
   return batches;
 }
 
-// True for Postgres unique-constraint violations (SQLSTATE 23505) — here, the
-// `users.email` unique index rejecting a duplicate. drizzle 1.0 wraps driver
-// errors in a DrizzleQueryError, so the SQLSTATE lives on `.cause`; walk the
-// chain rather than only checking the top-level error.
-function isUniqueViolation(err: unknown): boolean {
-  for (let e: unknown = err; e != null; e = (e as { cause?: unknown }).cause) {
-    if (
-      typeof e === "object" &&
-      "code" in e &&
-      (e as { code?: unknown }).code === "23505"
-    ) {
-      return true;
-    }
-  }
-  return false;
-}
-
 export type CreateUserResult =
   | { ok: true; member: MemberRow }
   | { ok: false; reason: "duplicate" };
@@ -201,11 +188,12 @@ export type CreateUserResult =
 export async function createUser(input: {
   email: string;
   name: string | null;
+  notes: string | null;
 }): Promise<CreateUserResult> {
   try {
     const [row] = await db
       .insert(users)
-      .values({ email: input.email, name: input.name })
+      .values({ email: input.email, name: input.name, notes: input.notes })
       .returning(memberColumns);
     if (!row) throw new Error("Failed to create user");
     return { ok: true, member: row };
@@ -219,19 +207,19 @@ export type UpdateUserResult =
   | { ok: true; member: MemberRow }
   | { ok: false; reason: "duplicate" | "missing" };
 
-// Edit a member's name and/or email in place. Email is canonicalised upstream
+// Edit a member's name, email and/or notes in place. Email is canonicalised upstream
 // (trim + lowercase) so it still matches the unique index and future sign-ins.
 // Setting the email to the row's *own* current value is a no-op for the unique
 // index (it only conflicts with *other* rows), so an unchanged email never
 // false-positives as a duplicate; only a collision with another member does.
 export async function updateUser(
   id: string,
-  input: { email: string; name: string | null },
+  input: { email: string; name: string | null; notes: string | null },
 ): Promise<UpdateUserResult> {
   try {
     const [row] = await db
       .update(users)
-      .set({ email: input.email, name: input.name })
+      .set({ email: input.email, name: input.name, notes: input.notes })
       .where(eq(users.id, id))
       .returning(memberColumns);
     if (!row) return { ok: false, reason: "missing" };

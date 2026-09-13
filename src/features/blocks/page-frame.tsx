@@ -67,6 +67,8 @@ export function PageFrame({
   settings,
   clip = true,
   cover = false,
+  coverDecoration,
+  coverMasthead,
   bleed = false,
   children,
 }: {
@@ -86,6 +88,10 @@ export function PageFrame({
   clip?: boolean;
   /** Covers keep the theme decoration but carry no running footer. */
   cover?: boolean;
+  /** Optional cover override; existing photographic covers keep decoration off. */
+  coverDecoration?: boolean;
+  /** Hides only the cover's automatic magazine name and issue number. */
+  coverMasthead?: boolean;
   /** A full-bleed page (#227): no footer, no theme decoration — dark type over a photo is unreadable. */
   bleed?: boolean;
   children: React.ReactNode;
@@ -106,8 +112,22 @@ export function PageFrame({
         clip ? "overflow-hidden" : "overflow-visible"
       } ${side === "left" ? "border-page-seam border-r" : ""}`}
     >
-      {!bleed &&
-        theme.page.decoration({ issueNo, side, magazineName: settings.name })}
+      {(cover ? (coverDecoration ?? !bleed) : !bleed) && (
+        <div
+          data-page-decoration
+          className="pointer-events-none absolute inset-0 z-10"
+        >
+          {theme.page.decoration({
+            issueNo,
+            side,
+            magazineName: settings.name,
+            // One flag, not two (issue #269): the owner's site-wide switch may
+            // veto the running head, and a cover may opt out of it (#255).
+            showMasthead:
+              settings.showRunningHead && (!cover || coverMasthead !== false),
+          })}
+        </div>
+      )}
 
       {children}
 

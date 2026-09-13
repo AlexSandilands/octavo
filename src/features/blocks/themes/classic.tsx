@@ -36,7 +36,10 @@ export const classicTheme = {
       label: "bg-page text-faint px-2 py-1 font-mono text-[11px]",
     },
     caption: (content) => (
-      <figcaption className="text-muted mt-2.5 text-center font-serif text-sm italic">
+      <figcaption
+        data-cover-copy
+        className="text-muted mt-2.5 text-center font-serif text-sm italic"
+      >
         {content}
       </figcaption>
     ),
@@ -80,13 +83,19 @@ export const classicTheme = {
   ),
 
   page: {
-    decoration: ({ issueNo, magazineName }) => (
+    hasMasthead: true,
+    decoration: ({ issueNo, magazineName, showMasthead = true }) => (
       <>
         <div className="border-page-frame pointer-events-none absolute inset-3.5 border" />
         <div className="border-page-frame-soft pointer-events-none absolute inset-[17px] border" />
-        <div className="text-faint2 pointer-events-none absolute top-5 right-3.5 left-3.5 text-center font-sans text-[8px] tracking-[0.32em] uppercase">
-          {magazineName} · No. {issueNo}
-        </div>
+        {showMasthead && (
+          <div
+            data-page-masthead
+            className="text-faint2 pointer-events-none absolute top-5 right-3.5 left-3.5 text-center font-sans text-[8px] tracking-[0.32em] uppercase"
+          >
+            {magazineName} · No. {issueNo}
+          </div>
+        )}
       </>
     ),
     // The inner hairline above runs at inset-[17px], so the page's ruled area

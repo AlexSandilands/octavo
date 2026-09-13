@@ -77,12 +77,43 @@ The durable lessons:
 | The content model (`CONTENT_VERSION`) | Update the seed to author the new shape, keep one deliberate legacy page (see `docs/database.md`)                                                                                                              |
 | Body-text alignment / hyphenation     | `npx tsx --tsconfig scripts/tsconfig.json scripts/dev-text-alignment-gate.mts <base-url>` against a local dev server — compatibility, seed, flow, keyboard controls, autosave, readers and PDF geometry (#238) |
 | The members CSV parser                | `npx tsx scripts/check-parse-members-csv.mts` — the header/delimiter cases an admin's export throws at it (#94)                                                                                                |
+| A SQLSTATE / driver-error check       | `npx tsx --tsconfig scripts/tsconfig.json scripts/check-unique-violation.mts` — drizzle wraps driver errors, so the code must be read off the `cause` chain (#271)                                             |
+| Issue numbering / the publish flow    | `npx tsx --tsconfig scripts/tsconfig.json scripts/dev-issue-number-gate.mts <base-url>` — a numberless draft, the proposal, an edited number, the refusals, delete-and-reuse, archive order, a race (#270)     |
 | Any modal dialog                      | `npx tsx scripts/dev-dialog-a11y-gate.mts <base-url>` — role/name, Escape, the focus trap and focus restore, per dialog (#130)                                                                                 |
+| Magazine editor toolbar               | `npx tsx --tsconfig scripts/tsconfig.json scripts/prod-editor-toolbar-gate.mts <base-url>` against a **production build** — both positions, page reserve and PDF panel (#259)                                  |
 | A block that can render a link        | `npx tsx --tsconfig scripts/tsconfig.json scripts/dev-thumb-anchor-gate.mts` — the thumbnail must emit no `<a>` (#166)                                                                                         |
+| The page's theme decoration / chrome  | `npx tsx --tsconfig scripts/tsconfig.json scripts/dev-running-head-gate.mts <base-url>` — the owner's running-head switch across every page surface and the PDF cache key (#269)                               |
 | The library shelf or `/archive`       | `npx tsx --tsconfig scripts/tsconfig.json scripts/dev-archive-gate.mts <base-url> <dev-log>` — the home cap, the archive's URL state, the sign-in round trip (#192)                                            |
-| An admin mutation flow / list refresh | `npx tsx --tsconfig scripts/tsconfig.json scripts/prod-action-refresh-gate.mts <base-url>` against a **production build** (`npm run build` + `next start`) (#198)                                              |
+| An admin mutation flow / list refresh | `npx tsx --tsconfig scripts/tsconfig.json scripts/prod-action-refresh-gate.mts <base-url>` against a **production build** (`npm run build` + `next start`) — and that create opens the editor (#198, #276)     |
 | New pages / inline scripts            | CSP is nonce-based in `src/proxy.ts` — pages must render dynamically; no new inline styles/scripts                                                                                                             |
 | Every change                          | `npm run lint`, `npx tsc --noEmit`, `npm run typecheck:scripts`, prettier on touched files, and a production build (plain `npm run build`; see below)                                                          |
+
+The cover overlay gate runs with `npx tsx --tsconfig scripts/tsconfig.json
+scripts/dev-cover-overlay-gate.mts [base-url]`. Without a URL it validates the schema and shared
+renderers; with a local server it also checks editor controls, undo/redo, autosave, phone sizing,
+page turning and PDF generation using a temporary issue/admin and read-only seed image references.
+It cleans up its own rows. The existing `dev-fill-page-gate.mts` still covers interior image-only
+placements and cover Fill/Fit rendering. Run both for cover composition changes.
+
+The cover-element gate runs with `npx tsx --tsconfig scripts/tsconfig.json
+scripts/dev-cover-elements-gate.mts <base-url>`. It authors two Stories and Details through the
+toolbar's Text menu and a Logo beside it, checks references, history, independent
+placement/contrast, responsive controls, mobile text sizing, thumbnails, the logo deletion guard
+and both PDF themes. It creates and removes its own local issue, admin and logo; it never
+changes existing issues. The in-memory companion is
+`scripts/check-cover-elements.mts`. The `scripts/check-cover-order-browser.mts <base-url>` gate
+covers deleting/recreating headings, pointer and keyboard dragging, shared detail/text ordering,
+undo/redo and persistence. `scripts/check-cover-drag-preview.mts <base-url>` verifies live image/panel
+displacement, cancellation, drop geometry and cross-anchor previews. Run these after changing cover
+elements or their asset paths.
+
+`scripts/check-cover-appearance.mts <base-url>` checks cover decoration defaults, toggle/history,
+independent text sizes, autosave, the floating inspector at three widths, desktop/phone readers,
+thumbnails and both PDF themes. It uses and removes its own scratch issue.
+
+`scripts/check-cover-colours.mts <base-url>` checks palette/custom panel colours, chained selected-word
+formatting, unaffected neighbouring text, independent appearance inheritance, save/reload, both PDF
+themes, thumbnails and phone reflow. Run it for changes to cover appearance or inline formatting.
 
 The alignment gate also runs in memory when its URL argument is omitted. Its browser
 pass needs `DATABASE_URL` and `AUTH_SECRET` (or `.env.local`); it creates and removes

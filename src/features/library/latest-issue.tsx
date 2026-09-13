@@ -1,3 +1,4 @@
+import { coverSources } from "@/lib/cover-elements";
 import Link from "next/link";
 import { Button, Kicker, Label } from "@/components/ui";
 import type { SiteSettings } from "@/lib/branding";
@@ -55,6 +56,7 @@ export function LatestIssue({
           {cover ? (
             <CoverThumb
               page={cover}
+              sources={coverSources(content.pages)}
               theme={theme}
               images={images}
               sponsors={sponsors}

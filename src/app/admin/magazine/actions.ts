@@ -42,8 +42,8 @@ const optionalText = (max: number) =>
 // difference. The columns stay nullable for the untouched-deployment case.
 // The two sizes are whole px within their axis (issue #216); the number field
 // is not the boundary, so this refuses the same range.
-// `pdfDownloads` is the same kind of field — the switch is always up or down —
-// so it too arrives concrete and is stored concrete (issue #162).
+// The two switches are the same kind of field — a switch is always up or down —
+// so they too arrive concrete and are stored concrete (issues #162, #269).
 const settingsSchema = z
   .object({
     magazineName: optionalText(80),
@@ -52,6 +52,7 @@ const settingsSchema = z
     footerMarkSize: footerSizeSchema(MARK_SIZE),
     footerTextSize: footerSizeSchema(TEXT_SIZE),
     footerAlign: z.enum(FOOTER_ALIGNS),
+    showRunningHead: z.boolean(),
     pdfDownloads: z.boolean(),
   })
   .strict();

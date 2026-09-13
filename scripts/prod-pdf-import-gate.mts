@@ -31,6 +31,19 @@ import {
   addedRegions,
 } from "./pdf-import-gate-support.mts";
 const number = await setup();
+async function zoomSource(page: BrowserPage) {
+  const canvas = page.locator("[data-pdf-private] canvas");
+  const before = (await canvas.boundingBox())!.width;
+  await canvas.hover();
+  await page.mouse.wheel(0, -100);
+  await page.waitForFunction(
+    (width) =>
+      document
+        .querySelector("[data-pdf-private] canvas")!
+        .getBoundingClientRect().width > width,
+    before,
+  );
+}
 async function assertPhotoOverlay(page: BrowserPage) {
   const bounds = await page
     .locator("[data-pdf-private] canvas")
@@ -155,9 +168,10 @@ try {
   await page.getByRole("button", { name: /^\d+ selected$/ }).click();
   const rows = page.locator("#pdf-import-selection li");
   assert.equal(await rows.count(), await selectedRegions(page).count());
+  await page.getByRole("button", { name: /^\d+ selected$/ }).click();
   const sourceButtons = panel(page).locator("button[data-region]");
   const beforeZoom = await sourceButtons.first().boundingBox();
-  await page.getByRole("button", { name: "Zoom in", exact: true }).click();
+  await zoomSource(page);
   const afterZoom = await sourceButtons.first().boundingBox();
   assert(beforeZoom && afterZoom && afterZoom.width > beforeZoom.width);
   await assertPhotoOverlay(page);
@@ -288,7 +302,7 @@ try {
   await openFile(page, "scripts/fixtures/pdf-import/rotated.pdf");
   assert.equal(await region(page, "Image").count(), 1);
   await assertPhotoOverlay(page);
-  await page.getByRole("button", { name: "Zoom in", exact: true }).click();
+  await zoomSource(page);
   await assertPhotoOverlay(page);
   await openFile(page, "scripts/fixtures/pdf-import/scan-only.pdf");
   await panel(page)

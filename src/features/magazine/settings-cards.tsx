@@ -15,12 +15,12 @@ import { FooterSizeField } from "./footer-size-field";
 import type { SettingsForm } from "./magazine-settings";
 
 // The settings form card on /admin/magazine. One card, because it is one form
-// with one Save: the naming fields, then the page-footer controls as a titled
-// section, then the PDF download switch as another, then the save row (passed
-// in as `footer`) closing the card — so the button visibly belongs to
-// everything above it and nothing floats between cards. Presentation only —
-// every value and setter comes from MagazineSettings, which owns the form state
-// so the preview beside it can render the same unsaved edits.
+// with one Save: the naming fields, then the page-top switch and the page-footer
+// controls as titled sections, then the PDF download switch as another, then the
+// save row (passed in as `footer`) closing the card — so the button visibly
+// belongs to everything above it and nothing floats between cards. Presentation
+// only — every value and setter comes from MagazineSettings, which owns the form
+// state so the preview beside it can render the same unsaved edits.
 //
 // The download switch is the one control here the preview can't show, since it
 // changes nothing on a page. It is still in this card rather than one of its
@@ -73,6 +73,22 @@ export function SettingsFormCard({
         maxLength={200}
         hint="One line under the club name on the library page. Never printed."
         onChange={(tagline) => onChange({ tagline })}
+      />
+
+      <div className="border-line-soft border-t pt-5">
+        <h3 className="text-ink font-serif text-lg leading-tight">Page top</h3>
+        <p className="text-muted mt-1.5 font-sans text-[13px] leading-relaxed">
+          The small magazine name and issue number the classic theme prints
+          above the page content. The page&rsquo;s borders and the rest of the
+          theme&rsquo;s decoration stay either way.
+        </p>
+      </div>
+      <SettingsToggle
+        id="running-head"
+        label="Show magazine name and issue number at the top of pages"
+        hint="Applies to every page the classic theme frames, covers included, in the reader, the editor and the PDF. A theme with no textual running head is unchanged."
+        value={form.showRunningHead}
+        onChange={(showRunningHead) => onChange({ showRunningHead })}
       />
 
       <div className="border-line-soft border-t pt-5">
@@ -130,7 +146,18 @@ export function SettingsFormCard({
           preview beside it never shows.
         </p>
       </div>
-      <PdfDownloadsToggle
+      <SettingsToggle
+        id="pdf-downloads"
+        label="Let members download issues as a PDF"
+        hint="Puts a Download PDF button beside the latest issue in the library and in the reader."
+        detail={
+          <>
+            Turn it off and the button goes from every one of those places, and
+            the download address stops working — including for a member who
+            saved it. Copies already made aren&rsquo;t deleted, so switching it
+            back on offers them again straight away.
+          </>
+        }
         value={form.pdfDownloads}
         onChange={(pdfDownloads) => onChange({ pdfDownloads })}
       />
@@ -140,16 +167,25 @@ export function SettingsFormCard({
   );
 }
 
-// The one switch on the page (issue #162). No house switch component exists, so
-// this follows the publish modal's opt-in: a bordered card that *is* the label,
-// so the whole box toggles rather than a 20px square — the p-4 box stands 50-odd
-// pixels tall, comfortably past the 44px minimum, and reads as something you
-// press. The ring lands on the box (.boxed-field) instead of floating a
-// rectangle around the inner checkbox.
-function PdfDownloadsToggle({
+// The switches on the page (issues #162, #269). No house switch component
+// exists, so this follows the publish modal's opt-in: a bordered card that *is*
+// the label, so the whole box toggles rather than a 20px square — the p-4 box
+// stands 50-odd pixels tall, comfortably past the 44px minimum, and reads as
+// something you press. The ring lands on the box (.boxed-field) instead of
+// floating a rectangle around the inner checkbox. `detail` is the optional
+// paragraph below the box, for a switch whose consequences need spelling out.
+function SettingsToggle({
+  id,
+  label,
+  hint,
+  detail,
   value,
   onChange,
 }: {
+  id: string;
+  label: string;
+  hint: string;
+  detail?: ReactNode;
   value: boolean;
   onChange: (value: boolean) => void;
 }) {
@@ -160,28 +196,24 @@ function PdfDownloadsToggle({
           type="checkbox"
           checked={value}
           onChange={(e) => onChange(e.target.checked)}
-          aria-describedby="pdf-downloads-hint"
+          aria-describedby={detail ? `${id}-hint ${id}-detail` : `${id}-hint`}
           className="accent-accent mt-0.5 h-5 w-5 flex-none"
         />
         <span className="font-sans text-[14px] leading-snug">
-          <span className="text-ink font-semibold">
-            Let members download issues as a PDF
-          </span>
-          <span className="text-muted mt-0.5 block">
-            Puts a Download PDF button beside the latest issue in the library
-            and in the reader.
+          <span className="text-ink font-semibold">{label}</span>
+          <span id={`${id}-hint`} className="text-muted mt-0.5 block">
+            {hint}
           </span>
         </span>
       </label>
-      <p
-        id="pdf-downloads-hint"
-        className="text-faint2 mt-1.5 font-sans text-[12px] leading-relaxed"
-      >
-        Turn it off and the button goes from every one of those places, and the
-        download address stops working — including for a member who saved it.
-        Copies already made aren&rsquo;t deleted, so switching it back on offers
-        them again straight away.
-      </p>
+      {detail && (
+        <p
+          id={`${id}-detail`}
+          className="text-faint2 mt-1.5 font-sans text-[12px] leading-relaxed"
+        >
+          {detail}
+        </p>
+      )}
     </div>
   );
 }

@@ -12,14 +12,25 @@ export function PublishModalFigure() {
           Publish &amp; send
         </div>
         <div className="text-ink mt-2 font-serif text-[21px] leading-tight">
-          Publish issue No. 4?
+          Publish this issue?
         </div>
         <p className="text-muted mt-1.5 font-sans text-[12.5px] leading-snug">
           This marks the issue published so members can read it.
         </p>
         <div className="border-hair mt-4 rounded-lg border-[1.5px] bg-white p-3.5">
-          <div className="flex items-start gap-2">
+          <div className="flex items-center gap-2">
             <FigureBadge n={1} />
+            <span className="text-ink font-sans text-[12.5px] font-semibold">
+              Publish as No.
+            </span>
+            <span className="border-hair text-ink rounded-md border-[1.5px] px-2.5 py-1 font-sans text-[12px] tabular-nums">
+              4
+            </span>
+          </div>
+        </div>
+        <div className="border-hair mt-2.5 rounded-lg border-[1.5px] bg-white p-3.5">
+          <div className="flex items-start gap-2">
+            <FigureBadge n={2} />
             <span className="border-accent bg-accent text-paper mt-px flex h-4 w-4 flex-none items-center justify-center rounded-[3px] border">
               <Icon name="check" size={10} strokeWidth={3} />
             </span>
@@ -28,7 +39,7 @@ export function PublishModalFigure() {
             </span>
           </div>
           <div className="mt-1.5 flex items-start gap-2 pl-6">
-            <FigureBadge n={2} />
+            <FigureBadge n={3} />
             <span className="text-muted font-sans text-[11.5px] leading-snug">
               Sends a personal &ldquo;Read issue&rdquo; link to 132 subscribed
               members.
@@ -36,7 +47,7 @@ export function PublishModalFigure() {
           </div>
         </div>
         <div className="mt-4 flex items-center justify-end gap-2">
-          <FigureBadge n={3} />
+          <FigureBadge n={4} />
           <span className="border-hair text-ink rounded-md border-[1.5px] bg-white px-3 py-1.5 font-sans text-[12px] font-semibold">
             Keep as draft
           </span>

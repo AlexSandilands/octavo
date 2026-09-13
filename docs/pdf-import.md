@@ -119,14 +119,17 @@ split safely. No intermediate layout is committed or autosaved.
 Images shrink without distortion within the normal width limits. A photo too tall at
 the minimum width gets its own `page-fit` page. Existing page-photo invariants apply,
 including omitted caption on a page-owning photo. The accepted batch is validated and
-fitted before any upload, then checked again with server-returned image dimensions.
+fitted before any upload. Image-containing batches are then paginated again from
+the original destination and unsplit selection using the stored image URLs and
+server-returned dimensions. This lets upload resizing/rounding change page breaks
+and image sizing safely; only the final pages and source mappings are committed.
 Pending imports lock destination edits and check the captured document and geometry
 before committing.
 
 Uploads are sequential through the existing authenticated `/api/admin/images` route,
 with its format sniffing, sharp processing, 12 MB cap and 30/minute limit. Successful
-uploads are cached for retry. A failed batch inserts nothing. Closing the panel
-mid-upload cancels the Add; an already-sent upload may finish as an ordinary
+uploads are cached for retry. A failed batch inserts nothing. **Cancel** stops the
+Add and unlocks the rail so the panel can close; an already-sent upload may finish as an ordinary
 issue-owned image. Storage-success/record-failure compensates through
 `sweepOrphanedObjects`. Issue delete uses the normal reference-safe asset cleanup; Undo
 does not delete images that Redo may need.
@@ -184,6 +187,7 @@ npx tsx --tsconfig scripts/tsconfig.json scripts/prod-pdf-import-gate.mts http:/
 npx tsx --tsconfig scripts/tsconfig.json scripts/prod-pdf-import-failures.mts http://localhost:3223
 npx tsx --tsconfig scripts/tsconfig.json scripts/prod-pdf-import-privacy.mts http://localhost:3223
 npx tsx --tsconfig scripts/tsconfig.json scripts/prod-pdf-import-layout-gate.mts http://localhost:3223
+npx tsx --tsconfig scripts/tsconfig.json scripts/prod-pdf-import-legacy-gate.mts http://localhost:3223
 ```
 
 The core gate checks lazy loading/CSP, the panel's resize handle and canvas re-fit, no
@@ -192,7 +196,7 @@ targets, failure atomicity, duplicate clicks, an oversized paragraph split acros
 continuation pages in order, undo/redo/added marks, reload, keyboard selection and
 split, rotation, bad-input states, an import landing after the issue is published
 mid-session, both readers and the exported PDF. The failure gate checks
-successful-upload retry reuse, closing the panel mid-upload, worker teardown on Close
+successful-upload retry reuse, cancelling and closing the panel mid-upload, worker teardown on Close
 PDF and on closing the panel, locked/page-limit/
 signature refusals, and compensation when publication races between storage and
 recording. The privacy gate requires live telemetry: a private canary stays local and a
@@ -200,6 +204,17 @@ post-close control event is delivered. It also checks cross-page reorder in the
 selection list and worker deadlines. The layout gate checks tall-photo scaling and
 page-fit conversion, theme/footer/logo geometry, persisted image decoding, and atomic
 refusal at the 200-page limit.
+
+The legacy gate (#256) starts with a saved v1 populated issue, a photo with null
+stored dimensions, legacy string text and a later authored page. Its 2401 × 1200
+PDF image becomes 2000 × 1000 through the real upload route. The occupied page is
+calibrated so the roughly 0.12px height increase crosses the fitting tolerance;
+this reproduces the former post-upload warning without mocking image geometry.
+It checks reflow, later-page preservation, source marks, atomic undo/redo,
+reload, both readers, print footer geometry and PDF export. An injected image-load
+failure after upload also checks unchanged content/history and retry without a
+duplicate image record. It produces `/tmp/pdf-import-legacy-*.png` and
+`/tmp/pdf-import-legacy-output.pdf` for visual inspection.
 
 Repository lint, app/script typechecks, touched-file formatting and the production
 build remain required. The user's browser pass on the implementation PR is still a

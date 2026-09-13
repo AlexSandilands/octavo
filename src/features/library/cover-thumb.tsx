@@ -1,10 +1,11 @@
+import type { CoverSource } from "@/lib/cover-elements";
 import type { Page } from "@/lib/blocks";
 import type { SiteSettings } from "@/lib/branding";
 import type { ImageMap } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
-import { BlockView } from "@/features/blocks/block-view";
+import { PageBlocks } from "@/features/blocks/page-blocks";
 import { resolveTheme } from "@/features/blocks/themes/registry";
-import { blockFlowStyle, pageFillsCanvas } from "@/features/blocks/layout";
+import { pageFillsCanvas } from "@/features/blocks/layout";
 import {
   PageFrame,
   ScaledPage,
@@ -29,8 +30,10 @@ export function CoverThumb({
   settings,
   width,
   priority = false,
+  sources,
 }: {
   page: Page;
+  sources?: CoverSource[];
   theme: string;
   images: ImageMap;
   /** Required, like `images`: a cover's sponsor blocks store only a `sponsorId`
@@ -59,29 +62,20 @@ export function CoverThumb({
           side="right"
           settings={settings}
           cover={page.cover}
+          coverDecoration={page.coverOverlay?.decoration}
+          coverMasthead={page.coverOverlay?.masthead}
           bleed={pageFillsCanvas(page)}
         >
-          <div
-            className={
-              page.cover
-                ? "flex min-h-full flex-col justify-center"
-                : "relative flow-root"
-            }
-          >
-            {page.blocks.map((b) => (
-              <div key={b.id} style={blockFlowStyle(b, page.cover)}>
-                <BlockView
-                  block={b}
-                  theme={resolved}
-                  images={images}
-                  sponsors={sponsors}
-                  variant={page.cover ? "cover" : undefined}
-                  priority={priority}
-                  anchors={false}
-                />
-              </div>
-            ))}
-          </div>
+          <PageBlocks
+            page={page}
+            sources={sources}
+            issueNo={issueNo}
+            theme={resolved}
+            images={images}
+            sponsors={sponsors}
+            priority={priority}
+            anchors={false}
+          />
         </PageFrame>
       </ScaledPage>
     </div>

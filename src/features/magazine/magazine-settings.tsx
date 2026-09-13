@@ -33,8 +33,9 @@ export type SettingsForm = {
   footerMarkSize: number;
   footerTextSize: number;
   footerAlign: FooterAlign;
-  /** A real boolean, not a tri-state: a switch is up or down, and the null the
-   *  column allows only ever describes a deployment nobody has saved yet. */
+  /** Real booleans, not tri-states: a switch is up or down, and the null the
+   *  columns allow only ever describes a deployment nobody has saved yet. */
+  showRunningHead: boolean;
   pdfDownloads: boolean;
 };
 
@@ -46,6 +47,7 @@ function toForm(stored: StoredSettings, defaults: SiteSettings): SettingsForm {
     footerMarkSize: stored.footerMarkSize ?? defaults.footer.markSize,
     footerTextSize: stored.footerTextSize ?? defaults.footer.textSize,
     footerAlign: stored.footerAlign ?? defaults.footer.align,
+    showRunningHead: stored.showRunningHead ?? defaults.showRunningHead,
     pdfDownloads: stored.pdfDownloads ?? defaults.pdfDownloads,
   };
 }
@@ -59,6 +61,7 @@ function toStored(form: SettingsForm): StoredSettings {
     footerMarkSize: form.footerMarkSize,
     footerTextSize: form.footerTextSize,
     footerAlign: form.footerAlign,
+    showRunningHead: form.showRunningHead,
     pdfDownloads: form.pdfDownloads,
   };
 }

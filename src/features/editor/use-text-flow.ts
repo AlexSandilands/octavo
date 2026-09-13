@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { hasCoverLayout } from "@/lib/cover-order";
 import type { Page } from "@/lib/blocks";
 import { pageFillsCanvas } from "@/features/blocks/layout";
 import { richDocBlocks } from "@/lib/rich-text-split";
@@ -33,10 +34,14 @@ export function useTextFlow({
   const [overflow, setOverflow] = useState<BlockOverflow | null>(null);
   const measured = useRef<BlockOverflow | null>(null);
 
-  // Cover pages centre their blocks instead of flowing them from the top, and
-  // have nothing to continue onto — leave them out of this entirely, and a page
-  // a photo fills has no text area to measure (see `pageFillsCanvas`).
-  const measurable = Boolean(page && !page.cover && !pageFillsCanvas(page));
+  // Full-image covers still need an overflow warning for their overlay content.
+  // A grid cover is not measured here: the inspector's layout checks name any
+  // item that runs past the margin, on one rule with some slack.
+  const measurable = Boolean(
+    page &&
+    !hasCoverLayout(page) &&
+    (page.cover ? pageFillsCanvas(page) : !pageFillsCanvas(page)),
+  );
 
   const measure = useCallback(() => {
     const el = canvasRef.current;

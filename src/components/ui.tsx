@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { forwardRef, type ReactNode } from "react";
+import { forwardRef, type ReactNode, type MouseEventHandler } from "react";
 import { Icon, type IconName } from "./icons";
 import { MagazineName } from "./branding";
 
@@ -41,6 +41,8 @@ type ButtonProps = {
   size?: "md" | "sm";
   full?: boolean;
   onClick?: () => void;
+  onMouseDown?: MouseEventHandler<HTMLButtonElement>;
+  "aria-pressed"?: boolean;
   type?: "button" | "submit";
   disabled?: boolean;
   /** Nothing left to do here, but the control stays reachable: it looks and
@@ -75,6 +77,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       size = "md",
       full = false,
       onClick,
+      onMouseDown,
+      "aria-pressed": ariaPressed,
       type = "button",
       disabled = false,
       unavailable = false,
@@ -143,6 +147,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         // Dropping the handler is what makes `unavailable` inert, for the mouse
         // and for Enter/Space alike; there is no attribute doing it.
         onClick={inert ? undefined : onClick}
+        onMouseDown={inert ? undefined : onMouseDown}
+        aria-pressed={ariaPressed}
         disabled={isDisabled}
         aria-disabled={unavailable || undefined}
         aria-label={ariaLabel}

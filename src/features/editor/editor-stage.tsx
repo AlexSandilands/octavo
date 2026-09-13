@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useEffectEvent, type RefObject } from "react";
+import { useEffect, useEffectEvent, type RefObject } from "react";
 import {
   SortableContext,
   verticalListSortingStrategy,
@@ -8,7 +8,10 @@ import {
 import type { Page } from "@/lib/blocks";
 import type { SiteSettings } from "@/lib/branding";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
+import type { LogoListItem } from "@/lib/logos";
 import type { SponsorListItem, SponsorMap } from "@/lib/sponsors";
+import type { CoverSource } from "@/lib/cover-elements";
+import { coverItems } from "@/lib/cover-order";
 import {
   PageFrame,
   ScaledPage,
@@ -17,8 +20,15 @@ import {
 } from "@/features/blocks/page-frame";
 import type { LayoutTheme } from "@/features/blocks/themes/registry";
 import { useCanvasPanZoom } from "@/features/blocks/use-canvas-pan-zoom";
-import { EditorBlock } from "./editor-block";
-import { TOOLBAR_RESERVE } from "./floating-bar";
+import { CoverOverlayControls } from "./cover-overlay-controls";
+import { coverSortingStrategy } from "./cover-sorting";
+import { EditorPageContent } from "./editor-page-content";
+import { useCoverLayoutWarnings } from "./use-cover-layout-warnings";
+import {
+  INSPECTOR_RESERVE,
+  useStageDodge,
+  type usePanelDock,
+} from "./use-panel-dock";
 import { DropPreview } from "./pdf-import/drop-preview";
 import { StageBadge } from "./stage-badge";
 import type { useEditorPages } from "./use-editor-pages";
@@ -35,6 +45,23 @@ export type StageActions = Pick<
   | "flowText"
   | "moveToNextPage"
 > & { registerImage: (imageId: string, image: ResolvedImage) => void };
+
+type PageEdits = ReturnType<typeof useEditorPages>;
+/** What a cover page brings to the stage: its inspector and its item edits. */
+export type CoverStageProps = {
+  pages: Page[];
+  sources: CoverSource[];
+  logos: LogoListItem[];
+  hasMasthead?: boolean;
+  /** Items a pointed-at layout warning is lighting up. */
+  hint: string[];
+  onHint: (ids: string[]) => void;
+  docking: ReturnType<typeof usePanelDock>;
+  updateOverlay: PageEdits["updateCoverOverlay"];
+  updateElement: PageEdits["updateCoverElement"];
+  removeElement: PageEdits["removeCoverElement"];
+  moveElement: PageEdits["moveCoverElement"];
+};
 
 // The magazine canvas: the fixed PAGE_W×PAGE_H page fitted to the stage
 // exactly as the reader fits it — a faithful, to-scale preview — with a
@@ -54,6 +81,7 @@ export function EditorStage({
   settings,
   filled,
   barStanding,
+  barReserve,
   images,
   sponsors,
   sponsorMap,
@@ -61,6 +89,7 @@ export function EditorStage({
   preview,
   onSelect,
   actions,
+  cover,
 }: {
   issueId: string;
   issueNo: number;
@@ -74,6 +103,8 @@ export function EditorStage({
   filled: boolean;
   /** The tool bar stands at the left edge, so the room for it moves there. */
   barStanding: boolean;
+  /** Space occupied by the bar on its current edge, including page clearance. */
+  barReserve: number;
   images: ImageMap;
   sponsors: SponsorListItem[];
   sponsorMap: SponsorMap;
@@ -82,10 +113,12 @@ export function EditorStage({
   preview: ReturnType<typeof usePdfDragOut>["preview"];
   onSelect: (id: string | null) => void;
   actions: StageActions;
+  /** Present while the page is a cover (or still holds cover items). */
+  cover?: CoverStageProps;
 }) {
   const padding = barStanding
-    ? { top: 40, right: 40, bottom: 40, left: TOOLBAR_RESERVE }
-    : { top: 40, right: 40, bottom: TOOLBAR_RESERVE, left: 40 };
+    ? { top: 40, right: 40, bottom: 40, left: barReserve }
+    : { top: 40, right: 40, bottom: barReserve, left: 40 };
 
   // Overflow marking + its one-action fix (issue #93): the canvas is measured
   // where it is laid out, and the split — or, for a block that can't be cut,
@@ -111,9 +144,10 @@ export function EditorStage({
   } = useCanvasPanZoom({
     contentWidth: PAGE_W,
     contentHeight: PAGE_H,
-    // The stage's own padding, the tool bar's reserve included on its side.
+    // The stage's own padding, the tool bar's reserve included on its side,
+    // and the cover inspector's column while it shows.
     fitMargin: {
-      x: padding.left + padding.right,
+      x: padding.left + padding.right + (cover ? INSPECTOR_RESERVE : 0),
       y: padding.top + padding.bottom,
     },
     // Small enough that the page still clears a standing tool bar at the
@@ -122,6 +156,15 @@ export function EditorStage({
     initialFitScale: 0.75,
     blockSelector: "[data-editor-block]",
   });
+
+  // The inspector floats over the stage; the page slides away from it only as
+  // far as the two would otherwise meet. Layout checks name the items concerned.
+  const dodge = useStageDodge(stageRef, scale, Boolean(cover));
+  const warnings = useCoverLayoutWarnings(
+    page,
+    canvasRef,
+    cover?.sources ?? [],
+  );
 
   // Reset zoom/pan to the fitted view when switching pages.
   useEffect(() => {
@@ -188,76 +231,104 @@ export function EditorStage({
       }`}
     >
       <StageBadge>Magazine</StageBadge>
-      <PageDropZone
-        panRef={panRef as RefObject<HTMLDivElement | null>}
-        className="shadow-[0_10px_30px_rgba(40,36,28,0.14)]"
+      <div
+        style={{
+          transform: `translateX(${cover?.docking.dock === "left" ? dodge : -dodge}px)`,
+        }}
+        className={
+          cover?.docking.moved
+            ? "transition-transform duration-300 ease-out motion-reduce:transition-none"
+            : undefined
+        }
       >
-        <ScaledPage scale={scale}>
-          <PageFrame
-            theme={theme}
-            w={PAGE_W}
-            h={PAGE_H}
-            issueNo={issueNo}
-            pageNo={curPage + 1}
-            logo={logo}
-            settings={settings}
-            clip={false}
-            cover={page?.cover}
-            bleed={filled}
-          >
-            <SortableContext
-              items={(page?.blocks ?? []).map((b) => b.id)}
-              strategy={verticalListSortingStrategy}
+        <PageDropZone
+          panRef={panRef as RefObject<HTMLDivElement | null>}
+          className="shadow-[0_10px_30px_rgba(40,36,28,0.14)]"
+        >
+          <ScaledPage scale={scale}>
+            <PageFrame
+              theme={theme}
+              w={PAGE_W}
+              h={PAGE_H}
+              issueNo={issueNo}
+              pageNo={curPage + 1}
+              logo={logo}
+              settings={settings}
+              clip={false}
+              cover={page?.cover}
+              coverDecoration={page?.coverOverlay?.decoration}
+              coverMasthead={page?.coverOverlay?.masthead}
+              bleed={filled}
             >
-              <div
-                ref={canvasRef}
-                className={
+              <SortableContext
+                items={(page?.cover
+                  ? coverItems(page)
+                  : (page?.blocks ?? [])
+                ).map((b) => b.id)}
+                strategy={
                   page?.cover
-                    ? "flex min-h-full flex-col justify-center"
-                    : "relative flow-root"
+                    ? coverSortingStrategy(page, scale)
+                    : verticalListSortingStrategy
                 }
               >
-                {page && page.blocks.length === 0 && !preview && (
-                  <div className="text-faint2 py-16 text-center font-serif text-sm">
-                    This page is empty. Add a block below.
-                  </div>
+                {page && (
+                  <EditorPageContent
+                    page={page}
+                    containerRef={canvasRef}
+                    sources={cover?.sources ?? []}
+                    issueNo={issueNo}
+                    issueId={issueId}
+                    theme={theme}
+                    images={images}
+                    sponsors={sponsors}
+                    sponsorMap={sponsorMap}
+                    reseed={reseed}
+                    sel={sel}
+                    hint={cover?.hint ?? []}
+                    overflow={overflow}
+                    onSelect={onSelect}
+                    onSelectElement={onSelect}
+                    updateBlock={actions.updateBlock}
+                    updateElement={cover?.updateElement ?? (() => {})}
+                    moveBlock={actions.moveBlock}
+                    removeBlock={actions.removeBlock}
+                    removeElement={cover?.removeElement ?? (() => {})}
+                    moveElement={cover?.moveElement ?? (() => {})}
+                    flow={flow}
+                    fillPage={actions.fillPage}
+                    registerImage={actions.registerImage}
+                    preview={
+                      preview
+                        ? { index: preview.index, node: dropPreview }
+                        : null
+                    }
+                  />
                 )}
-                {page?.blocks.map((b, i) => (
-                  // Remounting is how a rewrite behind an uncontrolled
-                  // editor's back (a split, an undo) lands.
-                  <Fragment key={`${b.id}:${reseed[b.id] ?? 0}`}>
-                    {preview?.index === i && dropPreview}
-                    <EditorBlock
-                      block={b}
-                      theme={theme}
-                      cover={page.cover}
-                      selected={b.id === sel}
-                      issueId={issueId}
-                      images={images}
-                      sponsors={sponsors}
-                      sponsorMap={sponsorMap}
-                      overflowAt={
-                        overflow?.id === b.id ? overflow.markerTop : undefined
-                      }
-                      fitsAlone={overflow?.fitsAlone}
-                      onSelect={() => onSelect(b.id)}
-                      onChange={(patch) => actions.updateBlock(b.id, patch)}
-                      onMove={(dir) => actions.moveBlock(b.id, dir)}
-                      onRemove={() => actions.removeBlock(b.id)}
-                      onFlow={() => flow(b.id)}
-                      onFillPage={(a) => actions.fillPage(b.id, a)}
-                      onRegisterImage={actions.registerImage}
-                    />
-                  </Fragment>
-                ))}
-                {preview &&
-                  preview.index >= (page?.blocks.length ?? 0) &&
-                  dropPreview}
-              </div>
-            </SortableContext>
-          </PageFrame>
-        </ScaledPage>
-      </PageDropZone>
+              </SortableContext>
+            </PageFrame>
+          </ScaledPage>
+        </PageDropZone>
+      </div>
+      {cover && page && (
+        <CoverOverlayControls
+          docking={cover.docking}
+          hasMasthead={cover.hasMasthead}
+          issueId={issueId}
+          onFillPage={actions.fillPage}
+          warnings={warnings}
+          page={page}
+          pages={cover.pages}
+          sources={cover.sources}
+          selectedId={sel}
+          onSelect={onSelect}
+          logos={cover.logos}
+          onRegisterImage={actions.registerImage}
+          onChange={cover.updateOverlay}
+          onUpdate={cover.updateElement}
+          onUpdateBlock={actions.updateBlock}
+          onHint={cover.onHint}
+        />
+      )}
     </div>
   );
 }

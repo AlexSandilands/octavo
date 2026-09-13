@@ -1,0 +1,200 @@
+/* A cover keeps its house type; only placement and contrast vary per element. */
+.cover-grid {
+  display: grid;
+  position: relative;
+  pointer-events: none;
+  /* Its own stacking context: items layered backward stay within the grid,
+     above a Fill/Fit photo rather than vanishing behind it. */
+  isolation: isolate;
+}
+.cover-placement-group {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  min-width: 0;
+  align-self: center;
+  align-items: center;
+}
+.cover-placement-group[data-row="top"] {
+  align-self: start;
+}
+.cover-placement-group[data-row="bottom"] {
+  align-self: end;
+}
+.cover-placement-group[data-column="left"] {
+  align-items: flex-start;
+}
+.cover-placement-group[data-column="right"] {
+  align-items: flex-end;
+}
+.cover-positioned {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  pointer-events: auto;
+  top: var(--cover-offset, 0px);
+  overflow-wrap: anywhere;
+  /* Overlapping items stack by their layer; unset layers keep source order. */
+  z-index: var(--cover-layer, auto);
+}
+.cover-positioned[data-width="narrow"] {
+  width: 31%;
+}
+.cover-positioned[data-width="medium"] {
+  width: 47%;
+}
+.cover-positioned > [data-editor-block],
+.cover-positioned > [data-reader-block] {
+  margin-bottom: 0 !important;
+}
+/* A photo's frame is the photo: the entry takes the photo's width so its panel
+   and selection box hug the picture instead of the whole column. */
+.cover-positioned[data-kind="image"] > [data-editor-block],
+.cover-positioned[data-kind="image"] > [data-reader-block] {
+  width: 100% !important;
+  margin-inline: 0 !important;
+}
+.cover-treatment[data-cover-panel="true"] {
+  padding: 18px;
+  background: var(--cover-background, var(--color-page));
+}
+.cover-positioned[data-align="center"] .cover-logo {
+  margin-inline: auto;
+}
+.cover-positioned[data-align="right"] .cover-logo {
+  margin-left: auto;
+}
+.cover-logo {
+  position: relative;
+}
+/* One headline ramp, stepped by the element's stored size; the description and
+   page line stay at body size at every step. */
+.cover-story[data-headline-size="compact"] {
+  --cover-headline: 18px;
+  --cover-headline-leading: 1.24;
+  --cover-headline-grow: 2px;
+}
+.cover-story[data-headline-size="list"] {
+  --cover-headline: 23px;
+  --cover-headline-leading: 1.18;
+  --cover-headline-grow: 5px;
+}
+.cover-story[data-headline-size="large"] {
+  --cover-headline: 28px;
+  --cover-headline-leading: 1.12;
+  --cover-headline-grow: 9px;
+}
+.cover-story[data-headline-size="display"] {
+  --cover-headline: 36px;
+  --cover-headline-leading: 1.06;
+  --cover-headline-grow: 14px;
+}
+.cover-story-headline {
+  font-family: var(--font-serif);
+  font-size: calc(var(--cover-headline, 23px) * var(--cover-text-scale, 1));
+  font-weight: 500;
+  line-height: var(--cover-headline-leading, 1.18);
+}
+.cover-story-description {
+  margin-top: 7px;
+  font-family: var(--font-sans);
+  font-size: calc(15px * var(--cover-text-scale, 1));
+  line-height: 1.45;
+  white-space: pre-line;
+}
+.cover-story-page {
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: calc(11px * var(--cover-text-scale, 1));
+  line-height: 1.4;
+}
+.cover-story-heading,
+.cover-issue-details {
+  font-family: var(--font-sans);
+  font-size: calc(12px * var(--cover-text-scale, 1));
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+.cover-story-heading {
+  margin-bottom: 18px;
+}
+.cover-story-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.cover-element-empty {
+  color: var(--cover-ink, var(--color-muted));
+  font-family: var(--font-sans);
+  font-size: calc(14px * var(--cover-text-scale, 1));
+  line-height: 1.5;
+}
+.cover-grid-mobile {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.cover-grid-mobile .cover-placement-group {
+  align-self: stretch;
+  gap: 24px;
+}
+.cover-grid-mobile .cover-positioned {
+  width: 100%;
+  top: 0;
+}
+.cover-grid-mobile .cover-story-headline {
+  font-size: calc(
+    (var(--cover-mobile-text, 19px) + var(--cover-headline-grow, 5px)) *
+      var(--cover-text-scale, 1)
+  );
+}
+.cover-grid-mobile .cover-story-description {
+  font-size: calc(var(--cover-mobile-text, 19px) * var(--cover-text-scale, 1));
+}
+.cover-grid-mobile .cover-story-page,
+.cover-grid-mobile .cover-story-heading,
+.cover-grid-mobile .cover-issue-details {
+  font-size: calc(
+    var(--cover-mobile-text, 19px) * 0.78 * var(--cover-text-scale, 1)
+  );
+}
+
+/* Marks have intrinsic bounds; contrast panels hug the mark and its padding. */
+.cover-positioned[data-logo="true"] {
+  width: var(--cover-logo-size);
+  max-width: 100%;
+}
+.cover-positioned[data-logo="true"][data-cover-panel="true"] {
+  width: calc(var(--cover-logo-size) + 36px);
+}
+
+.cover-text-editor p {
+  margin: 0;
+}
+.cover-rich-editor {
+  cursor: text;
+}
+/* ProseMirror keeps a trailing <br> in an empty paragraph, so :empty alone
+   never matches; :has() cannot nest, hence the :is() pair. */
+.cover-text-editor:is(
+    :has(> p:only-child:empty),
+    :has(> p:only-child > br:only-child)
+  )::before {
+  content: attr(data-placeholder);
+  opacity: 0.5;
+  pointer-events: none;
+  float: left;
+  height: 0;
+}
+.cover-text-editor strong {
+  font-weight: 700;
+}
+
+.cover-issue-details .cover-rich-editor,
+.cover-issue-details .cover-text-editor,
+.cover-issue-details .cover-text-editor p {
+  display: inline;
+}

@@ -1,11 +1,15 @@
+import { coverSources } from "@/lib/cover-elements";
 import { z } from "zod";
 import { ADMIN_LIST_PAGE } from "@/components/admin-list-layout";
-import { Button } from "@/components/ui";
 import { EmptyIssues } from "@/components/empty-states";
 import { coverPageOf, type Page } from "@/lib/blocks";
 import { ADMIN_LIST_QUERY_MAX } from "@/lib/list-query";
 import { pageParamSchema } from "@/lib/pagination";
-import { listIssuesPage, listIssueYears } from "@/server/issues";
+import {
+  listIssuesPage,
+  listIssueYears,
+  nextIssueNumber,
+} from "@/server/issues";
 import { resolveIssueImages } from "@/server/images";
 import { resolveIssueSponsors } from "@/server/sponsors";
 import { requireAdminOrRedirect } from "@/server/session";
@@ -13,7 +17,7 @@ import { getSettings } from "@/server/settings";
 import { CoverThumb } from "@/features/library/cover-thumb";
 import { THUMB_W } from "@/features/admin/issue-thumb";
 import { IssuesTable } from "@/features/admin/issues-table";
-import { createIssueAction } from "@/app/admin/actions";
+import { CreateIssueButton } from "@/features/admin/create-issue-button";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +49,7 @@ export default async function AdminDashboard({
   const params = paramsSchema.parse(await searchParams);
   const query = params.q.trim();
   const settings = await getSettings();
-  const [list, years] = await Promise.all([
+  const [list, years, suggestedNumber] = await Promise.all([
     listIssuesPage({
       query,
       page: params.page,
@@ -53,6 +57,7 @@ export default async function AdminDashboard({
       year: params.year,
     }),
     listIssueYears(),
+    nextIssueNumber(),
   ]);
   const issues = list.rows;
 
@@ -81,10 +86,11 @@ export default async function AdminDashboard({
       thumb: cover ? (
         <CoverThumb
           page={cover}
+          sources={coverSources(i.content.pages)}
           theme={i.theme}
           images={coverImages}
           sponsors={coverSponsors}
-          issueNo={i.number}
+          issueNo={i.number ?? suggestedNumber}
           settings={settings}
           width={THUMB_W}
         />
@@ -105,16 +111,12 @@ export default async function AdminDashboard({
             {list.draftTotal} in draft
           </p>
         </div>
-        <form action={createIssueAction} className="flex-none">
-          <Button
-            type="submit"
-            icon="plus"
-            iconPosition="left"
-            className="w-full whitespace-nowrap sm:w-auto"
-          >
-            Create new issue
-          </Button>
-        </form>
+        <CreateIssueButton
+          iconPosition="left"
+          className="w-full flex-none whitespace-nowrap sm:w-auto"
+        >
+          Create new issue
+        </CreateIssueButton>
       </div>
 
       {list.total === 0 ? (

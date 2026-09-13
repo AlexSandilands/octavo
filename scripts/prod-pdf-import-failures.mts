@@ -62,30 +62,43 @@ try {
   assert.equal(count, 3, "Retry reuses the first successful upload.");
   await page.unroute("**/api/admin/images");
   const saved = await readDocument();
-  // Navigation and closing while a selected image upload is in flight.
+  // Cancel and close while a selected image upload is in flight.
   await openFile(page);
   await region(page, "Image").click();
-  await fetch(harness + "?delayPutsMs=800", { method: "POST" });
-  const beforeCancel = await state();
+  let uploaded!: () => void, release!: () => void;
+  const responseReady = new Promise<void>((resolve) => {
+    uploaded = resolve;
+  });
+  const responseHeld = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  // Hold the response until cancellation and panel teardown complete.
+  await page.route("**/api/admin/images", async (route) => {
+    const response = await route.fetch();
+    uploaded();
+    await responseHeld;
+    await route.fulfill({ response });
+  });
   await addButton(page).click();
-  for (
-    let tries = 0;
-    tries < 100 && (await state()).counts.put === beforeCancel.counts.put;
-    tries++
-  )
-    await new Promise((r) => setTimeout(r, 20));
-  assert((await state()).counts.put > beforeCancel.counts.put);
+  await responseReady;
+  // The rail is inert during Add; the panel's Cancel unlocks it.
+  await panel(page)
+    .getByRole("button", { name: "Cancel", exact: true })
+    .click();
   await closeTool(page);
+  await panel(page).waitFor({ state: "detached" });
   await page.waitForFunction(
     () => document.querySelector('[data-import-pending="true"]') === null,
   );
-  await page.waitForTimeout(1100);
+  const responseDone = page.waitForResponse("**/api/admin/images");
+  release();
+  await responseDone;
   assert.deepEqual(
     (await readDocument()).pages,
     saved.pages,
-    "Closing the panel mid-upload cancels the Add.",
+    "Cancelling and closing mid-upload leaves the issue unchanged.",
   );
-  await fetch(harness + "?delayPutsMs=0", { method: "POST" });
+  await page.unroute("**/api/admin/images");
   await openTool(page);
   await fileInput(page).setInputFiles("scripts/fixtures/pdf-import/locked.pdf");
   await panel(page)
@@ -112,7 +125,8 @@ try {
   await page.waitForTimeout(500);
   assert.equal(closed, 1, "Closing the panel terminates the real worker.");
   // Storage succeeds while the issue is deleted under the image record insert.
-  await fetch(harness + "?delayPutsMs=600", { method: "POST" });
+  const { deleteIssue } = await import("../src/server/issues.ts");
+  await fetch(harness + "?delayPutsMs=5000", { method: "POST" });
   const beforeRecord = await state();
   const png = await sharp({
     create: { width: 10, height: 10, channels: 3, background: "white" },
@@ -132,16 +146,17 @@ try {
   )
     await new Promise((r) => setTimeout(r, 20));
   assert((await state()).counts.put > beforeRecord.counts.put);
-  await (await import("../src/server/issues.ts")).deleteIssue(iid);
+  await deleteIssue(iid);
+  const afterDelete = await state();
   assert.equal((await request).status(), 409);
   const afterRecord = await state();
-  assert.deepEqual(afterRecord.keys.sort(), beforeRecord.keys.sort());
+  assert.deepEqual(afterRecord.keys.sort(), afterDelete.keys.sort());
   assert(
-    afterRecord.counts.delete > beforeRecord.counts.delete,
+    afterRecord.counts.delete > afterDelete.counts.delete,
     "Failed DB record compensates successful storage write.",
   );
   console.log(
-    "PDF failure gate passed: retry reuse, close-mid-upload cancel, locked/signature/page limits, worker termination, concurrent deletion and compensating cleanup.",
+    "PDF failure gate passed: retry reuse, cancel/close mid-upload, locked/signature/page limits, worker termination, concurrent deletion and compensating cleanup.",
   );
 } finally {
   await fetch(harness + "?delayPutsMs=0&failPuts=0", { method: "POST" });

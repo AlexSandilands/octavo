@@ -26,6 +26,9 @@ export function collectImageIds(
 ): string[] {
   const ids = new Set<string>();
   for (const page of content.pages) {
+    for (const element of page.coverElements ?? []) {
+      if (element.type === "logo" && element.imageId) ids.add(element.imageId);
+    }
     for (const block of page.blocks) {
       if (block.type === "image" && block.imageId) ids.add(block.imageId);
       if (block.type === "montage") {

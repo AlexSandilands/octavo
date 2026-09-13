@@ -19,8 +19,7 @@
 //     ordinary page on the same code path keeps its footer,
 //   - the mobile reader (which has no pages) shows the same photo full width and
 //     uncropped,
-//   - and a cover page ignores the placement, which is why it is never offered
-//     there.
+//   - and covers honour both placements without page furniture.
 //
 // Run: npx tsx --tsconfig scripts/tsconfig.json scripts/dev-fill-page-gate.mts
 // (the --tsconfig is not optional — see the note in dev-thumb-anchor-gate.mts.)
@@ -91,10 +90,12 @@ for (const [align, expectIssue] of [
   ["page-fill", 2],
   ["page-fit", 4],
 ] as const) {
-  const found = owned.filter((o) => pageAlignOf(o.block) === align);
+  const found = owned.filter(
+    (o) => !o.page.cover && pageAlignOf(o.block) === align,
+  );
   ok(
     found.length === 1,
-    `seed authors exactly one "${align}" image (got ${found.length})`,
+    `seed authors exactly one interior "${align}" image (got ${found.length})`,
   );
   const seeded = found[0]!;
   ok(
@@ -118,8 +119,8 @@ for (const [align, expectIssue] of [
   ok(pageFillsCanvas(seeded.page), "…and pageFillsCanvas agrees it owns it");
 }
 ok(
-  owned.length === 2,
-  `and nothing else in the seed takes the page (got ${owned.length})`,
+  owned.length === 3 && owned.filter((o) => o.page.cover).length === 1,
+  "the composed cover is the only additional page-filling image",
 );
 
 // 3. Both placements are confined to the image block: the other two picture
@@ -230,6 +231,7 @@ const settings: SiteSettings = {
   org: "The Club",
   tagline: "",
   footer: DEFAULT_FOOTER_STYLE,
+  showRunningHead: true,
   pdfDownloads: false,
 };
 
@@ -359,8 +361,8 @@ ok(
   `mobile: every one of the ${allSections.length} sections agrees with its page on who owns it`,
 );
 ok(
-  allSections.filter(({ s }) => s.filled).length === 2,
-  "mobile: …and exactly the two page-owning sections drop their padding",
+  allSections.filter(({ s }) => s.filled).length === 3,
+  "mobile: both interior plates and the composed cover drop their padding",
 );
 // The photo's page is banded either side, so the band the column draws between
 // two pages is what the photo runs between (it has no heading to be banded on).
@@ -379,8 +381,7 @@ ok(
   `mobile: a photo-owned page is banded either side (${JSON.stringify(bandCheck)})`,
 );
 
-// 7. Covers ignore page-owning image placement and omit the running footer
-//    in both render paths and themes, while retaining their theme decoration.
+// 7. Covers honour full-page images and omit all page furniture.
 for (const theme of ["classic", "modern"]) {
   for (const [surface, render] of [
     ["page", framed],
@@ -394,15 +395,16 @@ for (const theme of ["classic", "modern"]) {
       };
       const label = `[${theme}/${surface}/${align}]`;
       ok(
-        !pageFillsCanvas(coverPage),
-        `${label} a cover never treats the image as owning the page`,
+        pageFillsCanvas(coverPage),
+        `${label} a cover allows its image to own the canvas`,
       );
       const coverHtml = render(coverPage, theme);
       ok(
-        !coverHtml.includes(GEOMETRY) &&
-          !coverHtml.includes("object-cover") &&
-          !coverHtml.includes("object-contain"),
-        `${label} the image keeps its ordinary centred cover treatment`,
+        coverHtml.includes(GEOMETRY) &&
+          coverHtml.includes(
+            align === "page-fill" ? "object-cover" : "object-contain",
+          ),
+        `${label} the image fills or fits the cover canvas`,
       );
       ok(
         !coverHtml.includes("data-page-footer"),
@@ -420,8 +422,8 @@ for (const theme of ["classic", "modern"]) {
         ),
       );
       ok(
-        decoration.length > 0 && coverHtml.includes(decoration),
-        `${label} the cover keeps its theme decoration`,
+        decoration.length > 0 && !coverHtml.includes(decoration),
+        `${label} the full-image cover omits its theme decoration`,
       );
     }
   }

@@ -1,6 +1,7 @@
 "use client";
 
 import type { RefObject } from "react";
+import { coverSources } from "@/lib/cover-elements";
 import type { Page } from "@/lib/blocks";
 import type { SiteSettings } from "@/lib/branding";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
@@ -76,6 +77,7 @@ export function ReaderSpread({
   const right = isCover ? undefined : pages[leftIdx + 1];
   const leftNo = leftIdx + 1;
 
+  const sources = coverSources(pages);
   if (isCover) {
     // The cover reads as a single, centred page. It still renders as the right
     // leaf of the spine-centred spread — the reader keeps the box a constant
@@ -87,6 +89,7 @@ export function ReaderSpread({
         <Plate atCover />
         <div className="flex-none [visibility:hidden]">
           <PageView
+            sources={sources}
             side="left"
             theme={theme}
             scale={scale}
@@ -98,6 +101,7 @@ export function ReaderSpread({
           />
         </div>
         <PageView
+          sources={sources}
           page={left}
           side="right"
           theme={theme}
@@ -117,6 +121,7 @@ export function ReaderSpread({
     <>
       <Plate atCover={false} />
       <PageView
+        sources={sources}
         page={left}
         side="left"
         theme={theme}
@@ -129,6 +134,7 @@ export function ReaderSpread({
         sponsors={sponsors}
       />
       <PageView
+        sources={sources}
         page={right}
         side="right"
         theme={theme}

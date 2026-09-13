@@ -157,6 +157,9 @@ export function useCanvasPanZoom(opts: PanZoomOptions) {
 
   // An effect event so the once-bound listener always zooms from current state.
   const onWheel = useEffectEvent((e: WheelEvent) => {
+    // Chrome floating over the canvas (the cover inspector) keeps the wheel
+    // for its own scrolling.
+    if ((e.target as HTMLElement).closest("[data-canvas-chrome]")) return;
     e.preventDefault();
     if (isBlocked()) return;
     const el = containerRef.current;

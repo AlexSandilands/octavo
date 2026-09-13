@@ -72,11 +72,14 @@ export type Branding = {
 
 /** Everything the owner controls at /admin/magazine, resolved for a request.
  *
- *  `pdfDownloads` is its own member rather than part of Branding or FooterStyle:
- *  it is not wording and it is not an appearance, it is whether the download is
- *  offered at all (issue #162). Nothing that draws a page reads it. */
+ *  The two switches are their own members rather than part of Branding or
+ *  FooterStyle. `showRunningHead` is page chrome — whether a theme may print its
+ *  textual running head above the content (issue #269). `pdfDownloads` is not
+ *  wording and not an appearance at all, it is whether the download is offered
+ *  (issue #162); nothing that draws a page reads it. */
 export type SiteSettings = Branding & {
   footer: FooterStyle;
+  showRunningHead: boolean;
   pdfDownloads: boolean;
 };
 
@@ -104,6 +107,10 @@ export const DEFAULT_FOOTER_STYLE: FooterStyle = {
 // the members-only check on the route is separate and fails closed.
 export const DEFAULT_PDF_DOWNLOADS = true;
 
+// Classic pages have always named the magazine and the issue above the content,
+// so `true` keeps an untouched deployment unchanged by issue #269.
+export const DEFAULT_SHOW_RUNNING_HEAD = true;
+
 /** The `settings` row as stored: every field nullable, NULL meaning "use the
  *  deployment default". This is the admin form's state as well as the database
  *  shape — the page edits nulls directly so "cleared" stays distinguishable
@@ -115,6 +122,7 @@ export type StoredSettings = {
   footerMarkSize: number | null;
   footerTextSize: number | null;
   footerAlign: FooterAlign | null;
+  showRunningHead: boolean | null;
   pdfDownloads: boolean | null;
 };
 
@@ -125,6 +133,7 @@ export const EMPTY_SETTINGS: StoredSettings = {
   footerMarkSize: null,
   footerTextSize: null,
   footerAlign: null,
+  showRunningHead: null,
   pdfDownloads: null,
 };
 
@@ -144,9 +153,10 @@ export function resolveSettings(
       textSize: stored.footerTextSize ?? defaults.footer.textSize,
       align: stored.footerAlign ?? defaults.footer.align,
     },
-    // `??`, not `||`: a stored `false` is the owner's answer, and `||` would
-    // read it as "nothing stored" and hand back the enabled default — the one
-    // value they went to the admin to change.
+    // `??`, not `||`, for both switches: a stored `false` is the owner's answer,
+    // and `||` would read it as "nothing stored" and hand back the enabled
+    // default — the one value they went to the admin to change.
+    showRunningHead: stored.showRunningHead ?? defaults.showRunningHead,
     pdfDownloads: stored.pdfDownloads ?? defaults.pdfDownloads,
   };
 }

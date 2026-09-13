@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { Icon } from "@/components/icons";
 
 // The house dropdown: a labelled pill trigger ("Theme: Classic") over a small
@@ -35,7 +36,12 @@ export function MenuSelect<T>({
   value,
   onSelect,
   size = "sm",
+  side = "bottom",
   className = "",
+  menuClassName = "",
+  triggerLabel,
+  icon,
+  portal = false,
 }: {
   /** Trigger prefix — the control names itself, e.g. "Theme". */
   label: string;
@@ -49,10 +55,20 @@ export function MenuSelect<T>({
   /** Trigger height: "sm" (40px) suits dense chrome like the editor header;
    * "md" (44px) sits beside full-size fields and meets the tap-target floor. */
   size?: "sm" | "md";
+  /** Bottom toolbars open their menus upward, clear of the viewport edge. */
+  side?: "top" | "bottom";
   /** Extra classes for the trigger — widths and placement only, as on Button. */
   className?: string;
+  menuClassName?: string;
+  triggerLabel?: string;
+  /** A mark before the trigger's label, where the control stands in for a tool. */
+  icon?: ReactNode;
+  /** Escape scrolling inspectors; constrain the menu to the viewport. */
+  portal?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState<React.CSSProperties>({});
+  const menuRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
   const itemsRef = useRef<(HTMLButtonElement | null)[]>([]);
@@ -61,7 +77,11 @@ export function MenuSelect<T>({
   useEffect(() => {
     if (!open) return;
     const onDown = (e: PointerEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+      if (
+        !rootRef.current?.contains(e.target as Node) &&
+        !menuRef.current?.contains(e.target as Node)
+      )
+        setOpen(false);
     };
     // Capture, so the menu still dismisses inside a container that stops
     // pointer events on their way up — the montage dialog stops them at its
@@ -90,6 +110,43 @@ export function MenuSelect<T>({
     if (!open) return;
     itemsRef.current[checkedRef.current]?.focus();
   }, [open]);
+
+  const toggle = () => {
+    if (!open && portal && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      const below = window.innerHeight - r.bottom - 12;
+      const above = r.top - 12;
+      const up =
+        side === "top"
+          ? above >= Math.min(300, below)
+          : below < Math.min(300, above);
+      const width = Math.min(Math.max(r.width, 230), window.innerWidth - 24);
+      setPosition({
+        position: "fixed",
+        width,
+        left: Math.max(12, Math.min(r.left, window.innerWidth - width - 12)),
+        ...(up
+          ? { bottom: window.innerHeight - r.top + 6 }
+          : { top: r.bottom + 6 }),
+        maxHeight: Math.max(80, up ? above : below),
+        overflowY: "auto",
+        zIndex: 100,
+      });
+    }
+    setOpen((v) => !v);
+  };
+  useEffect(() => {
+    if (!open || !portal) return;
+    const dismiss = (e: Event) => {
+      if (!menuRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    window.addEventListener("resize", dismiss);
+    document.addEventListener("scroll", dismiss, true);
+    return () => {
+      window.removeEventListener("resize", dismiss);
+      document.removeEventListener("scroll", dismiss, true);
+    };
+  }, [open, portal]);
 
   const close = (returnFocus = true) => {
     setOpen(false);
@@ -126,66 +183,85 @@ export function MenuSelect<T>({
     } else if (e.key === "Tab") {
       // Let focus move on naturally, but don't leave the menu hanging open
       // (nothing inside it would have focus, so Escape couldn't close it).
+      if (portal) btnRef.current?.focus();
       close(false);
     }
   };
+
+  const menu = (
+    <div
+      ref={menuRef}
+      style={portal ? position : undefined}
+      role="menu"
+      aria-label={ariaLabel}
+      className={`border-hair absolute right-0 z-30 min-w-[180px] rounded-lg border bg-white p-1 shadow-[0_8px_24px_rgba(40,36,28,0.18)] ${portal ? "" : side === "top" ? "bottom-full mb-1.5" : "top-full mt-1.5"} ${menuClassName}`}
+    >
+      {items.map((item, i) => {
+        const active = item.value === value;
+        return (
+          <button
+            key={item.key}
+            ref={(el) => {
+              itemsRef.current[i] = el;
+            }}
+            type="button"
+            role="menuitemradio"
+            aria-checked={active}
+            onClick={() => choose(item.value)}
+            onKeyDown={(e) => onItemKeyDown(e, i)}
+            className={`flex h-11 w-full cursor-pointer items-center gap-2 rounded-md px-2.5 font-sans text-sm transition-[background-color,color] duration-150 ${
+              active
+                ? "text-accent font-semibold"
+                : "text-ink hover:bg-accent-wash"
+            }`}
+          >
+            <span className="flex w-4 justify-center">
+              {active && <Icon name="check" size={15} strokeWidth={2} />}
+            </span>
+            {item.content}
+          </button>
+        );
+      })}
+    </div>
+  );
 
   return (
     <div ref={rootRef} className="relative">
       <button
         ref={btnRef}
         type="button"
+        aria-label={triggerLabel}
         aria-haspopup="menu"
         aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggle}
         onKeyDown={(e) => {
-          if (e.key === "ArrowDown" && !open) {
+          if (
+            (e.key === "ArrowDown" ||
+              (side === "top" && e.key === "ArrowUp")) &&
+            !open
+          ) {
             e.preventDefault();
-            setOpen(true);
+            toggle();
           }
         }}
         className={`border-hair-warm text-ink hover:border-accent hover:bg-accent-wash flex cursor-pointer items-center gap-2 rounded-lg border-[1.5px] bg-white px-3.5 font-sans text-sm font-medium transition-[transform,background-color,border-color] duration-150 ease-out select-none motion-safe:active:scale-[0.97] ${
           size === "md" ? "h-11" : "h-10"
         } ${className}`}
       >
-        {label}: {current}
-        <Icon name="chevronDown" size={14} strokeWidth={1.8} />
+        {icon}
+        <span className="min-w-0 truncate">
+          {label ? `${label}: ` : ""}
+          {current}
+        </span>
+        <Icon
+          name="chevronDown"
+          size={14}
+          strokeWidth={1.8}
+          className={`shrink-0 ${side === "top" ? "rotate-180" : ""}`}
+        />
       </button>
 
-      {open && (
-        <div
-          role="menu"
-          aria-label={ariaLabel}
-          className="border-hair absolute top-full right-0 z-30 mt-1.5 min-w-[180px] rounded-lg border bg-white p-1 shadow-[0_8px_24px_rgba(40,36,28,0.18)]"
-        >
-          {items.map((item, i) => {
-            const active = item.value === value;
-            return (
-              <button
-                key={item.key}
-                ref={(el) => {
-                  itemsRef.current[i] = el;
-                }}
-                type="button"
-                role="menuitemradio"
-                aria-checked={active}
-                onClick={() => choose(item.value)}
-                onKeyDown={(e) => onItemKeyDown(e, i)}
-                className={`flex h-11 w-full cursor-pointer items-center gap-2 rounded-md px-2.5 font-sans text-sm transition-[background-color,color] duration-150 ${
-                  active
-                    ? "text-accent font-semibold"
-                    : "text-ink hover:bg-accent-wash"
-                }`}
-              >
-                <span className="flex w-4 justify-center">
-                  {active && <Icon name="check" size={15} strokeWidth={2} />}
-                </span>
-                {item.content}
-              </button>
-            );
-          })}
-        </div>
-      )}
+      {open && (portal ? createPortal(menu, document.body) : menu)}
     </div>
   );
 }

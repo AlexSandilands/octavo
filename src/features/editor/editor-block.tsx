@@ -1,6 +1,9 @@
 "use client";
-
-import { useSortable } from "@dnd-kit/sortable";
+import { CoverTextEditor } from "./cover-text-editor";
+import { CoverTextToolbar } from "./cover-text-toolbar";
+import { DEFAULT_COVER_PLACEMENT, nudgeLayer } from "@/lib/cover-elements";
+import type { CoverAppearance } from "@/lib/cover-appearance";
+import { useCoverSortable } from "./use-cover-sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Icon, type IconName } from "@/components/icons";
 import { BlockView } from "@/features/blocks/block-view";
@@ -21,6 +24,7 @@ import { HeadingLevelControl } from "./heading-level-control";
 import { MontageBlockControl } from "./montage-control";
 import { VideoBlockControl } from "./video-control";
 import { SponsorPicker } from "./sponsor-picker";
+import { CoverItemTools } from "./cover-item-tools";
 import { RichTextEditor } from "./rich-text-editor";
 
 // One block in the editor canvas: the themed BlockView (editable) wrapped in the
@@ -32,6 +36,9 @@ export function EditorBlock({
   theme,
   cover,
   selected,
+  hinted = false,
+  appearance,
+  caret,
   issueId,
   images,
   sponsors,
@@ -50,6 +57,12 @@ export function EditorBlock({
   theme: LayoutTheme;
   cover?: boolean;
   selected: boolean;
+  /** A layout warning in the inspector is pointing at this block. */
+  hinted?: boolean;
+  /** What this block paints with on a cover (drives the text format bar). */
+  appearance?: Required<CoverAppearance>;
+  /** Caret colour that contrasts with what sits behind the words (covers). */
+  caret?: string;
   issueId: string;
   images: ImageMap;
   sponsors: SponsorListItem[];
@@ -75,7 +88,14 @@ export function EditorBlock({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: block.id });
+  } = useCoverSortable(
+    block.id,
+    Boolean(cover),
+    Boolean(cover && isFillPage(block)),
+  );
+  // Headings, text and photos on a cover are cover items: side tools and, for
+  // the two with words, the floating format bar.
+  const coverItem = cover && ["heading", "text", "image"].includes(block.type);
 
   // A floated (inline left/right) picture is an earlier sibling than the text
   // that wraps it, so the text block's box paints on top and swallows clicks on
@@ -85,7 +105,7 @@ export function EditorBlock({
 
   // A full-bleed photo covers the page, so its chrome moves inside the page and
   // scales from its own top edge rather than hanging off the top-left corner.
-  const bleed = !cover && isFillPage(block);
+  const bleed = isFillPage(block);
   const chromeTop = bleed
     ? "top-2 [transform-origin:top_left]"
     : "bottom-full mb-2";
@@ -100,11 +120,16 @@ export function EditorBlock({
     block.type === "text" && !cover && richDocBlocks(block.text).length > 1;
   const overflowAction = !overflowing
     ? undefined
-    : splittable
-      ? { note: "Text overflows this page", label: "Flow onto next page" }
-      : fitsAlone
-        ? { note: "Overflows this page", label: "Move to next page" }
-        : { note: "Taller than a whole page", label: undefined };
+    : cover
+      ? {
+          note: "Cover content overflows — shorten or remove blocks",
+          label: undefined,
+        }
+      : splittable
+        ? { note: "Text overflows this page", label: "Flow onto next page" }
+        : fitsAlone
+          ? { note: "Overflows this page", label: "Move to next page" }
+          : { note: "Taller than a whole page", label: undefined };
 
   return (
     <div
@@ -113,11 +138,14 @@ export function EditorBlock({
       // selectable, editable and draggable); see onPanDown in editor.tsx.
       data-editor-block
       data-block-id={block.id}
+      data-cover-sponsor={block.type === "sponsor" || undefined}
+      data-cover-background={(cover && bleed) || undefined}
       style={{
         ...blockFlowStyle(block, cover),
         ...(floated && !isDragging ? { zIndex: 5 } : {}),
-        transform: CSS.Translate.toString(transform),
-        transition,
+        caretColor: caret,
+        transform: cover ? undefined : CSS.Translate.toString(transform),
+        transition: cover ? undefined : transition,
       }}
       onClick={(e) => {
         // Keep the click from reaching the canvas, which deselects.
@@ -131,26 +159,56 @@ export function EditorBlock({
       className={`group relative cursor-pointer rounded-sm transition-[box-shadow] ${
         isDragging
           ? "z-30 [box-shadow:0_0_0_2px_var(--color-accent),0_12px_28px_rgba(40,36,28,0.22)]"
-          : selected
-            ? "[box-shadow:0_0_0_6px_var(--color-page),0_0_0_8px_var(--color-accent)]"
-            : "hover:[box-shadow:0_0_0_6px_var(--color-page),0_0_0_8px_var(--color-hair)]"
+          : hinted
+            ? "[box-shadow:0_0_0_6px_var(--color-page),0_0_0_8px_var(--color-warn)]"
+            : selected
+              ? "[box-shadow:0_0_0_6px_var(--color-page),0_0_0_8px_var(--color-accent)]"
+              : "hover:[box-shadow:0_0_0_6px_var(--color-page),0_0_0_8px_var(--color-hair)]"
       }`}
     >
-      <button
-        type="button"
-        ref={setActivatorNodeRef}
-        {...attributes}
-        {...listeners}
-        title="Drag to reorder"
-        aria-label="Drag to reorder"
-        className={`border-hair-warm absolute z-10 flex h-7 w-6 cursor-grab touch-none items-center justify-center rounded-[5px] border bg-white text-muted transition-opacity active:cursor-grabbing ${
-          bleed ? "top-2.5 left-2" : "top-1/2 -left-9 -translate-y-1/2"
-        } ${selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
-      >
-        <Icon name="grip" size={15} />
-      </button>
+      {!(cover && bleed) && (
+        <button
+          type="button"
+          ref={setActivatorNodeRef}
+          {...attributes}
+          {...listeners}
+          title="Drag to reorder"
+          aria-label="Drag to reorder"
+          className={`border-hair-warm absolute z-10 flex h-7 w-6 cursor-grab touch-none items-center justify-center rounded-[5px] border bg-white text-muted transition-opacity active:cursor-grabbing ${
+            bleed ? "top-2.5 left-2" : "top-1/2 -left-9 -translate-y-1/2"
+          } ${selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+        >
+          <Icon name="grip" size={15} />
+        </button>
+      )}
 
-      {selected && (
+      {coverItem && (
+        <CoverItemTools
+          selected={selected}
+          bleed={bleed}
+          onMove={onMove}
+          onLayer={
+            bleed
+              ? undefined
+              : (dir) =>
+                  onChange({
+                    coverPlacement: nudgeLayer(
+                      ("coverPlacement" in block && block.coverPlacement) ||
+                        DEFAULT_COVER_PLACEMENT,
+                      dir,
+                    ),
+                  })
+          }
+          onRemove={onRemove}
+        />
+      )}
+      {coverItem && selected && appearance && block.type !== "image" && (
+        <CoverTextToolbar
+          appearance={appearance}
+          italicByDefault={block.type === "text"}
+        />
+      )}
+      {selected && !coverItem && (
         <>
           {block.type === "image" ? (
             <div
@@ -171,7 +229,7 @@ export function EditorBlock({
                     align={block.align ?? "full"}
                     width={block.width ?? 100}
                     onChange={onChange}
-                    onFillPage={cover ? undefined : onFillPage}
+                    onFillPage={onFillPage}
                   />
                   <span className="bg-line h-5 w-px" />
                   <label className="flex items-center gap-1.5">
@@ -262,19 +320,26 @@ export function EditorBlock({
             </span>
           )}
           <div
-            className={`absolute z-10 flex flex-col gap-1 ${
+            className={`absolute z-10 ${
               // Bottom corner on a filled page: the top one is where the
               // block's own tool bar lands, at whatever zoom.
               bleed ? "right-2 bottom-2.5" : "top-1/2 -right-9 -translate-y-1/2"
             }`}
           >
-            <Ctrl icon="arrowUp" title="Move up" onClick={() => onMove(-1)} />
-            <Ctrl
-              icon="arrowDown"
-              title="Move down"
-              onClick={() => onMove(1)}
-            />
-            <Ctrl icon="trash" title="Delete" danger onClick={onRemove} />
+            <div
+              className="chrome-unscaled flex flex-col gap-1"
+              style={{
+                transformOrigin: bleed ? "bottom right" : "center left",
+              }}
+            >
+              <Ctrl icon="arrowUp" title="Move up" onClick={() => onMove(-1)} />
+              <Ctrl
+                icon="arrowDown"
+                title="Move down"
+                onClick={() => onMove(1)}
+              />
+              <Ctrl icon="trash" title="Delete" danger onClick={onRemove} />
+            </div>
           </div>
         </>
       )}
@@ -291,7 +356,34 @@ export function EditorBlock({
         <BlockView
           block={block}
           theme={theme}
-          edit={{ onChange }}
+          edit={{
+            onChange,
+            coverText:
+              cover && (block.type === "heading" || block.type === "text")
+                ? (field, text, label) => (
+                    <CoverTextEditor
+                      id={block.id}
+                      maxLength={block.type === "heading" ? 300 : 8000}
+                      text={text}
+                      doc={block.coverPlacement?.richText?.[field]}
+                      label={label}
+                      onChange={(value, doc) =>
+                        onChange({
+                          [field]: value,
+                          coverPlacement: {
+                            ...(block.coverPlacement ??
+                              DEFAULT_COVER_PLACEMENT),
+                            richText: {
+                              ...block.coverPlacement?.richText,
+                              [field]: doc,
+                            },
+                          },
+                        })
+                      }
+                    />
+                  )
+                : undefined,
+          }}
           images={images}
           sponsors={sponsorMap}
           variant={cover ? "cover" : undefined}

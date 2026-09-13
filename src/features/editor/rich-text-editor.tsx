@@ -264,7 +264,7 @@ function Toolbar({
 
 // Flex centres the label's line box, not its ink; these drop each family's
 // cap height onto the button's centre-line (#214). Measured at 12px.
-const CAP_NUDGE = {
+export const CAP_NUDGE = {
   sans: "translate-y-[1.7px]",
   serif: "translate-y-[2.55px]",
 } as const;
@@ -280,7 +280,7 @@ const TEXT_ALIGNS = [
   title: string;
 }[];
 
-function TbBtn({
+export function TbBtn({
   label,
   labelClass = "",
   labelFont = "sans",

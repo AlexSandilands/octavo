@@ -108,6 +108,13 @@ export function MemberRow({
           </div>
         </div>
 
+        <div className="text-faint basis-full pl-11 font-sans text-[13px] whitespace-pre-wrap lg:line-clamp-2 lg:w-[160px] lg:basis-auto lg:pl-0 xl:w-[220px]">
+          <span className="text-faint2 mr-2 font-semibold lg:hidden">
+            Notes
+          </span>
+          {member.notes ?? "—"}
+        </div>
+
         <div className="sm:w-[120px]">
           <button
             type="button"
@@ -156,7 +163,7 @@ export function MemberRow({
             type="button"
             onClick={() => setEditing(true)}
             disabled={pending}
-            title="Edit name and email"
+            title="Edit member details"
             aria-label={`Edit ${label}`}
             className="text-faint2 hover:text-accent flex cursor-pointer disabled:cursor-default disabled:opacity-30 disabled:hover:text-current"
           >
