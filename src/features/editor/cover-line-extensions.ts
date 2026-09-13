@@ -51,6 +51,34 @@ export const CoverLineGaps = Extension.create({
           init: () => false,
           apply: (tr, on) => tr.getMeta(gapsKey) ?? on,
         },
+        // The browser types a space beside a collapsing gap as a no-break space;
+        // keep the ordinary space typed. Pastes and loaded content stay as given.
+        appendTransaction: (trs, before, state) => {
+          if (
+            !gapsKey.getState(state) ||
+            !trs.some(
+              (tr) =>
+                tr.docChanged &&
+                !tr.getMeta("uiEvent") &&
+                !tr.getMeta("preventUpdate"),
+            )
+          )
+            return null;
+          const from = before.doc.content.findDiffStart(state.doc.content);
+          const to = before.doc.content.findDiffEnd(state.doc.content)?.b;
+          if (from == null || to == null) return null;
+          const tr = state.tr;
+          state.doc.nodesBetween(from, Math.max(from, to), (node, pos) => {
+            if (!node.isText) return;
+            for (const m of node.text!.matchAll(/\u00a0/g))
+              tr.replaceWith(
+                pos + m.index,
+                pos + m.index + 1,
+                state.schema.text(" ", node.marks),
+              );
+          });
+          return tr.docChanged ? tr : null;
+        },
         props: {
           decorations: (state) =>
             gapsKey.getState(state) ? gaps(state.doc) : null,

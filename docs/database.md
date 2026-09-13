@@ -91,7 +91,9 @@ line of copy carries its own band, stepping with the rag). It inherits like the 
 fields; photos and logos have no lines and always resolve to `block`. Rendering is CSS only
 (`cover-overlay.css`): every run of cover copy sits in a `.cover-line` pair, in the reader
 (`CoverLine`) and the editor (`CoverParagraph`) alike, so the editor, readers, thumbnails and PDF
-share one shape and switching shape never rewraps text. Seed issue 6's "Inside this issue" list
+share one shape and switching shape never rewraps text. Bands centre on the caps (Newsreader's
+own ascent and descent are corrected for in `cover-overlay.css`). While editing, a line whose words
+fill the item exactly, or that breaks at a doubled space, bands that trailing space too. Seed issue 6's "Inside this issue" list
 uses it. `scripts/check-cover-panel-shape.mts [base-url]` checks it in memory and, with a local
 server, measures each band against its words across the editor, history, readers and print.
 

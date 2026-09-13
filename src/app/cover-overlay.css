@@ -24,12 +24,14 @@
 }
 /* Fit text: the item's box goes clear and each wrapped line of copy carries its
    own band. Padding and an equal negative margin extend a band past its line
-   without moving the text, so switching shape never rewraps. The vertical pad
-   takes a line's leading (inline backgrounds cover the font's content area, at
-   least 1em) so adjacent lines join; the ink is positioned so it paints above
-   every band, including a following line's overlap. Scoped to the element that
-   owns the panel — an item, or the stacked overlay's content — so a phone
-   cover's own attributes never reach the items placed on it. */
+   without moving the text, so switching shape never rewraps. Vertically a band
+   centres on the caps: half a line's leading above cap height and below the
+   baseline (at least enough to hold descenders), less the room the font's own
+   ascent and descent already give, so adjacent lines join and the padding reads
+   even. The ink is positioned so it paints above every band, including a
+   following line's overlap. Scoped to the element that owns the panel — an
+   item, or the stacked overlay's content — so a phone cover's own attributes
+   never reach the items placed on it. */
 .cover-treatment[data-cover-panel="true"][data-cover-panel-shape="text"],
 [data-cover-panel="true"][data-cover-panel-shape="text"]
   > .cover-overlay-layout
@@ -44,7 +46,6 @@
   )
   .cover-line {
   padding: 0.2em 12px;
-  padding-block: calc(max(0px, (1lh - 1em) / 2) + 1px);
   margin-inline: -12px;
   background: var(--cover-background, var(--color-page));
   -webkit-box-decoration-break: clone;
@@ -80,6 +81,32 @@
   width: fit-content;
   background: var(--cover-background, var(--color-page));
   box-shadow: 0 0 0 12px var(--cover-background, var(--color-page));
+}
+@supports (padding: max(1lh, 1cap)) {
+  :is(
+      .cover-treatment[data-cover-panel="true"][data-cover-panel-shape="text"],
+      [data-cover-panel="true"][data-cover-panel-shape="text"]
+        > .cover-overlay-layout
+        > .cover-overlay-content
+    )
+    .cover-line {
+    --cover-line-pad: calc(max(0.27em, (1lh - 1cap) / 2) + 0.5px);
+    padding-top: max(
+      0px,
+      var(--cover-line-pad) - var(--cover-line-above, 0.3em)
+    );
+    padding-bottom: max(
+      0px,
+      var(--cover-line-pad) - var(--cover-line-below, 0.28em)
+    );
+  }
+}
+/* Ascent above cap height and descent, where they differ from the sans and mono
+   faces' defaults above: Newsreader sets its caps near the top of its line. */
+[data-cover-font="newsreader"],
+[data-cover-copy].font-serif {
+  --cover-line-above: 0.06em;
+  --cover-line-below: 0.27em;
 }
 .cover-composition [data-cover-copy] {
   color: var(--cover-ink);

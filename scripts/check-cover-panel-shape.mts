@@ -103,8 +103,11 @@ await mkdir(shots, { recursive: true });
 
 /** Per wrapped line of copy: the band's box and the words' box, in CSS px. */
 function lines(root: Locator) {
-  return root.evaluate((el) =>
-    [...el.querySelectorAll<HTMLElement>(".cover-line")].map((band) => {
+  return root.evaluate((el) => {
+    const edge =
+      el.getBoundingClientRect().right -
+      parseFloat(getComputedStyle(el).paddingRight);
+    return [...el.querySelectorAll<HTMLElement>(".cover-line")].map((band) => {
       const words = new Map<number, { left: number; right: number }>();
       const walker = document.createTreeWalker(band, NodeFilter.SHOW_TEXT);
       for (let node = walker.nextNode(); node; node = walker.nextNode())
@@ -124,6 +127,8 @@ function lines(root: Locator) {
         }
       const style = getComputedStyle(band);
       return {
+        edge,
+        space: parseFloat(style.fontSize) * 0.3,
         background: style.backgroundColor,
         ink: getComputedStyle(band.firstElementChild!).position,
         bands: [...band.getClientRects()].map((r) => ({
@@ -136,8 +141,8 @@ function lines(root: Locator) {
           .sort((a, b) => a[0] - b[0])
           .map(([, w]) => w),
       };
-    }),
-  );
+    });
+  });
 }
 type Lines = Awaited<ReturnType<typeof lines>>;
 const wrapped = (runs: Lines) =>
@@ -167,13 +172,16 @@ async function assertFitted(item: Locator, scale = 1) {
   bands.forEach((band, i) => {
     const words = run.words[i]!;
     const pad = 12 * scale;
+    // Known editor limit: a line whose words fill the item exactly still bands
+    // the space it breaks at (pre-wrap hangs it), about a space wide.
+    const hang = words.right >= run.edge - 1 ? run.space : 0;
     assert(
       band.left <= words.left - pad + 2 && band.left >= words.left - pad - 4,
       `left ${JSON.stringify({ band, words })}`,
     );
     assert(
       band.right >= words.right + pad - 3 &&
-        band.right <= words.right + pad + 4,
+        band.right <= words.right + pad + 4 + hang,
       `right ${JSON.stringify({ band, words })}`,
     );
     const next = bands[i + 1];
@@ -184,6 +192,36 @@ async function assertFitted(item: Locator, scale = 1) {
       );
   });
   return run.words;
+}
+/** The band's padding above the first line's caps matches that below the last
+ *  line's baseline, whatever the face's own ascent and descent. */
+async function assertEvenPadding(item: Locator, scale = 1) {
+  const pads = await item.evaluate((el) =>
+    [...el.querySelectorAll<HTMLElement>(".cover-line-ink")].map((ink) => {
+      // Zero-width probes spanning cap height to baseline.
+      const first = document.createElement("span");
+      first.style.cssText =
+        "display:inline-block;width:0;height:1cap;vertical-align:baseline";
+      const last = first.cloneNode() as HTMLSpanElement;
+      ink.prepend(first);
+      ink.append(last);
+      const rects = [...ink.parentElement!.getClientRects()];
+      const pad = {
+        text: ink.textContent!.slice(0, 24),
+        top: first.getBoundingClientRect().top - rects[0]!.top,
+        bottom: rects.at(-1)!.bottom - last.getBoundingClientRect().bottom,
+      };
+      first.remove();
+      last.remove();
+      return pad;
+    }),
+  );
+  assert(pads.length > 0);
+  for (const pad of pads)
+    assert(
+      Math.abs(pad.top - pad.bottom) <= 1.5 * scale && pad.top > 2 * scale,
+      `even padding: ${JSON.stringify(pad)}`,
+    );
 }
 async function assertBlock(item: Locator) {
   const bg = await item.evaluate((el) => getComputedStyle(el).backgroundColor);
@@ -200,8 +238,8 @@ await withCoverFixture(base, async (f) => {
   const story = makeCoverElement("story");
   assert(story.type === "story");
   story.id = "fit-story";
-  story.headlineSize = "large";
-  story.showPageNumbers = false;
+  story.headlineSize = "display";
+  story.showPageNumbers = true;
   story.items = [
     {
       id: "one",
@@ -261,12 +299,8 @@ await withCoverFixture(base, async (f) => {
   await page.evaluate(() => document.fonts.ready);
   await assertBlock(item(page, "fit-story"));
   const before = (await lines(item(page, "fit-story"))).map((r) => r.words);
-  const gapCount = () => item(page, "fit-story").locator(".cover-gap").count();
-  assert.equal(
-    await gapCount(),
-    0,
-    "a block panel leaves the editor's text alone",
-  );
+  const gaps = () => item(page, "fit-story").locator(".cover-gap").count();
+  assert.equal(await gaps(), 0, "a block panel leaves editing alone");
 
   await page.keyboard.press("Escape");
   await panel
@@ -277,10 +311,7 @@ await withCoverFixture(base, async (f) => {
   );
   for (const entry of ["fit-story", "fit-details", heading.id])
     await assertFitted(item(page, entry));
-  assert(
-    (await gapCount()) > 0,
-    "a fitted panel marks the spaces between words",
-  );
+  assert((await gaps()) > 0, "fitted lines mark the spaces between words");
   const widths = (await assertFitted(item(page, "fit-story"))).map(
     (w) => w.right - w.left,
   );
@@ -313,9 +344,16 @@ await withCoverFixture(base, async (f) => {
   await page.keyboard.type(" appeal");
   await waitSaved((c) => {
     const s = c.pages[0]!.coverElements![0]!;
-    return s.type === "story" && s.items[0]!.title.endsWith("appeal");
+    return s.type === "story" && s.items[0]!.title.endsWith(" appeal");
   });
   await assertFitted(item(page, "fit-story"));
+  // A doubled space is stored as typed, never as the no-break space the browser
+  // inserts beside a collapsing gap.
+  await page.keyboard.type("  now");
+  await waitSaved((c) => {
+    const s = c.pages[0]!.coverElements![0]!;
+    return s.type === "story" && s.items[0]!.title.endsWith(" appeal  now");
+  });
 
   // An empty field still shows its placeholder inside the new line spans.
   await page.keyboard.press("ControlOrMeta+a");
@@ -379,8 +417,10 @@ await withCoverFixture(base, async (f) => {
   const scale = await frame.evaluate(
     (el) => el.getBoundingClientRect().width / (el as HTMLElement).offsetWidth,
   );
-  for (const entry of ["fit-story", "fit-details", heading.id])
+  for (const entry of ["fit-story", "fit-details", heading.id]) {
     await assertFitted(item(page, entry), scale);
+    await assertEvenPadding(item(page, entry), scale);
+  }
   await page.screenshot({ path: `${shots}/reader.png` });
 
   // The phone cover carries the cover's own paint; an item's Block must still win.
@@ -414,8 +454,12 @@ await withCoverFixture(base, async (f) => {
       { waitUntil: "networkidle" },
     );
     await page.evaluate(() => document.fonts.ready);
-    for (const entry of ["fit-story", heading.id])
+    for (const entry of ["fit-story", heading.id]) {
       await assertFitted(page.locator(`[data-cover-entry="${entry}"]`).first());
+      await assertEvenPadding(
+        page.locator(`[data-cover-entry="${entry}"]`).first(),
+      );
+    }
     await assertBlock(page.locator('[data-cover-entry="fit-details"]').first());
     await page.screenshot({ path: `${shots}/print-${theme}.png` });
   }

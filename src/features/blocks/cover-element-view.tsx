@@ -84,6 +84,7 @@ export function CoverElementView({
           <Headline
             data-cover-copy
             className="cover-story-headline"
+            data-cover-font={element.headlineFont ?? "newsreader"}
             style={coverFontStyle(headline.family, headline.weight)}
           >
             {copy(`${item.id}:title`, title, "Story headline")}
