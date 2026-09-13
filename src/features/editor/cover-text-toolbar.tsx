@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useReducer, useRef, useState, type ReactNode } from "react";
 import { colorCss, type CoverAppearance } from "@/lib/cover-appearance";
+import { coverSelectionIsBold, toggleCoverSelectionBold } from "./cover-bold";
 import { useCoverText } from "./cover-text-context";
 import { ColorSwatches } from "./cover-color-picker";
 import { Segments } from "./cover-segments";
@@ -85,8 +86,14 @@ export function CoverTextToolbar({
             label="B"
             labelClass="font-bold"
             title="Bold"
-            active={editor.isActive("bold")}
-            onClick={() => editor.chain().focus().toggleBold().run()}
+            active={coverSelectionIsBold(editor.state, target.font)}
+            onClick={() =>
+              editor
+                .chain()
+                .focus()
+                .command(({ tr }) => toggleCoverSelectionBold(tr, target.font))
+                .run()
+            }
           />
           <TbBtn
             label="I"

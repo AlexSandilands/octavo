@@ -56,7 +56,7 @@ export function MenuSelect<T>({
   value: T;
   onSelect: (value: T) => void;
   /** Trigger height: "sm" (40px) suits dense chrome like the editor header;
-   * "md" (44px) meets the tap-target floor; "toolbar" (28px) matches text tools. */
+   * "md" (44px) meets the tap-target floor; "toolbar" (30px) matches the text-tool box. */
   size?: "sm" | "md" | "toolbar";
   /** Bottom toolbars open their menus upward, clear of the viewport edge. */
   side?: "top" | "bottom";
@@ -260,7 +260,7 @@ export function MenuSelect<T>({
         }}
         className={`border-hair-warm text-ink enabled:hover:border-accent enabled:hover:bg-accent-wash disabled:cursor-default disabled:opacity-40 flex cursor-pointer items-center border-[1.5px] bg-white font-sans font-medium transition-[transform,background-color,border-color] duration-150 ease-out select-none motion-safe:active:scale-[0.97] ${
           size === "toolbar"
-            ? "h-7 gap-1 rounded-[6px] px-1.5 text-[12px]"
+            ? "h-[30px] gap-1 rounded-[6px] px-1.5 text-[12px]"
             : `gap-2 rounded-lg px-3.5 text-sm ${size === "md" ? "h-11" : "h-10"}`
         } ${className}`}
       >

@@ -6,6 +6,11 @@ import { CoverPaint } from "../src/features/editor/cover-paint-mark";
 import { Underline } from "../src/features/editor/rich-text-marks";
 import { changeCoverSelectionFamily } from "../src/features/editor/cover-font-selection";
 
+import {
+  coverSelectionIsBold,
+  toggleCoverSelectionBold,
+} from "../src/features/editor/cover-bold";
+
 const schema = getSchema([StarterKit, CoverPaint, Underline]);
 const paint = schema.marks.coverPaint!;
 const doc = schema.node("doc", null, [
@@ -89,4 +94,49 @@ assert(!changeCoverSelectionFamily(empty, "roboto-condensed", 400));
 assert.equal(empty.steps.length, 0);
 console.log(
   "PASS: mixed-run font changes retain weights/emphasis/paint, clamp per run, respect partial selection and reset safely",
+);
+
+const font = { family: "newsreader", weight: 500 } as const;
+assert(!coverSelectionIsBold(state, font));
+const makeBold = state.tr;
+assert(toggleCoverSelectionBold(makeBold, font));
+assert(coverSelectionIsBold(makeBold, font));
+makeBold.doc.nodesBetween(start, end, (node) => {
+  if (!node.isText) return;
+  const attrs = paint.isInSet(node.marks)!.attrs;
+  assert.equal(attrs.fontWeight, node.text === "heavy" ? 900 : 700);
+  if (node.text === "heavy") {
+    assert.equal(attrs.fontStyle, "italic");
+    assert.equal(attrs.color, "green");
+    assert(schema.marks.underline!.isInSet(node.marks));
+  }
+});
+assert.equal(makeBold.doc.firstChild!.firstChild!.text, "Start ");
+assert.equal(makeBold.doc.firstChild!.firstChild!.marks.length, 0);
+const makeRegular = state.apply(makeBold).tr;
+assert(toggleCoverSelectionBold(makeRegular, font));
+assert(!coverSelectionIsBold(makeRegular, font));
+makeRegular.doc.nodesBetween(start, end, (node) => {
+  if (!node.isText) return;
+  assert.equal(paint.isInSet(node.marks)!.attrs.fontWeight, 400);
+  assert(!schema.marks.bold!.isInSet(node.marks));
+});
+let heavyPosition = 0;
+doc.descendants((node, pos) => {
+  if (node.text === "heavy") heavyPosition = pos + 1;
+});
+const caret = EditorState.create({
+  doc,
+  selection: TextSelection.create(doc, heavyPosition),
+});
+assert(coverSelectionIsBold(caret, font));
+const typing = caret.tr;
+assert(toggleCoverSelectionBold(typing, font));
+assert(typing.doc.eq(doc), "caret Bold does not rewrite existing text");
+assert(!coverSelectionIsBold(typing, font));
+assert.equal(paint.isInSet(typing.storedMarks!)!.attrs.fontWeight, 400);
+assert.equal(paint.isInSet(typing.storedMarks!)!.attrs.color, "green");
+assert(schema.marks.underline!.isInSet(typing.storedMarks!));
+console.log(
+  "PASS: mixed-weight Bold state, partial-range toggles, heavy-run preservation and caret-only typing marks",
 );

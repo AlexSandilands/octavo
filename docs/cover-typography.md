@@ -16,14 +16,18 @@ retain their own typography. Original restores the old Newsreader/Medium 500
 appearance. Changing the font clamps any saved weight to its supported range.
 
 The floating selected-text toolbar offers the same family and weight choices
-in compact 28px selectors on the same row as Bold, Italic and Underline.
+in compact 30px selectors on the same row as Bold, Italic and Underline.
 The inspector retains its full-size controls.
 They require highlighted words; opening a menu retains that range, and choosing
 an option returns focus to the text. **Inherit font** removes both inline font
 and weight; **Inherit weight** removes just the weight. The current field supplies
 the inherited typography, including when editing supporting copy or a sidebar
-field. Picking a weight explicitly removes Bold from that range; toggling Bold
-then uses at least 700, preserving heavier explicit or Story weights. Changing
+field. Bold lights up when every selected run has an effective weight of at
+least 700, including chosen and inherited heavy weights. Choosing Regular or
+Semi Bold turns it off. Clicking Bold off changes the selected words to Regular
+400; clicking it on raises them to at least 700, preserving heavier runs in a
+mixed selection. Ctrl/Cmd+B follows the same behavior. With just a caret, Bold
+affects future typing. Changing
 family preserves each selected run’s weight and emphasis, clamping each weight
 separately if needed; mixed regular/bold passages keep that distinction. Italic,
 underline, colour and shadow remain independent. Clear removes all inline marks.

@@ -89,6 +89,18 @@ await withCoverFixture(base, async (f) => {
     await page.keyboard.press("Control+Home");
     for (let i = 0; i < 4; i++) await page.keyboard.press("Shift+ArrowRight");
   };
+  const boldButton = bar.getByRole("button", { name: "Bold", exact: true });
+  const expectBold = async (active: boolean) => {
+    await page.waitForFunction(
+      (expected) =>
+        document
+          .querySelector(
+            '[aria-label="Selected text formatting"] [aria-label="Bold"]',
+          )
+          ?.getAttribute("aria-pressed") === String(expected),
+      active,
+    );
+  };
   const beforeDescription = await style(description);
   for (const [font, count, max] of [
     ["Newsreader", 4, "Extra Bold 800"],
@@ -131,8 +143,10 @@ await withCoverFixture(base, async (f) => {
   await waitSaved((c) => savedStory(c).headlineWeight === 900);
 
   await selectClub();
+  await expectBold(true); // The Story's inherited headline weight is Black900.
   await choose(bar, "Selected text font", "Hanken Grotesk");
   await choose(bar, "Selected text weight", "Regular 400");
+  await expectBold(false);
   await bar.getByRole("button", { name: "Bold", exact: true }).click();
   const regularBold = headline.locator(
     '[data-cover-font-family="hanken-grotesk"]',
@@ -141,6 +155,19 @@ await withCoverFixture(base, async (f) => {
     (await style(regularBold)).weight,
     "700",
     "Bold raises an explicitly Regular selection",
+  );
+  await expectBold(true);
+  await choose(bar, "Selected text weight", "Semi Bold 600");
+  await expectBold(false);
+  assert.equal((await style(regularBold)).weight, "600");
+  await choose(bar, "Selected text weight", "Regular 400");
+  await page.keyboard.press("Control+a");
+  await expectBold(false); // Mixed400/900 selection.
+  await boldButton.click();
+  await expectBold(true);
+  assert(
+    (await headline.innerHTML()).includes("900"),
+    "making mixed text bold retains its Black weight",
   );
   await page.keyboard.press("Control+a");
   await choose(bar, "Selected text font", "Newsreader");
@@ -185,12 +212,45 @@ await withCoverFixture(base, async (f) => {
       (n) => n.type === "text" && n.text === " stories" && !n.marks?.length,
     ),
   );
-  await bar.getByRole("button", { name: "Bold", exact: true }).click();
+  await expectBold(true);
+  await boldButton.click();
+  await expectBold(false);
   assert.equal(
     (await style(first)).weight,
-    "800",
-    "Bold must not reduce Extra Bold",
+    "400",
+    "turning off Bold lowers Extra Bold to Regular",
   );
+  assert.equal((await style(first)).style, "italic");
+  assert.equal(
+    await bar
+      .getByRole("button", { name: "Selected text weight", exact: true })
+      .innerText(),
+    "Regular",
+  );
+  await boldButton.click();
+  await expectBold(true);
+  assert.equal((await style(first)).weight, "700");
+  assert.equal(
+    await bar
+      .getByRole("button", { name: "Selected text weight", exact: true })
+      .innerText(),
+    "Bold",
+  );
+  await choose(bar, "Selected text weight", "Extra Bold 800");
+  await expectBold(true);
+  await page.keyboard.press("Control+b");
+  await expectBold(false);
+  assert.equal((await style(first)).weight, "400");
+  await page.keyboard.press("Control+b");
+  await expectBold(true);
+  assert.equal((await style(first)).weight, "700");
+  assert.equal(
+    await bar
+      .getByRole("button", { name: "Selected text weight", exact: true })
+      .innerText(),
+    "Bold",
+  );
+  await choose(bar, "Selected text weight", "Extra Bold 800");
   await bar.getByRole("button", { name: "Underline", exact: true }).click();
   await waitSaved((c) =>
     JSON.stringify(savedStory(c).placement.richText).includes('"underline"'),
@@ -305,6 +365,7 @@ await withCoverFixture(base, async (f) => {
     await page.keyboard.press("Escape");
     const boldBox = await bar
       .getByRole("button", { name: "Bold", exact: true })
+      .locator("..")
       .boundingBox();
     assert(boldBox);
     for (const name of ["Selected text font", "Selected text weight"]) {
@@ -314,10 +375,11 @@ await withCoverFixture(base, async (f) => {
       assert(box);
       assert(
         Math.abs(box.height - boldBox.height) <= 1,
-        `${name} matches existing button height`,
+        `${name} matches the full B/I/U box height`,
       );
       assert(
-        Math.abs(box.y + box.height / 2 - boldBox.y - boldBox.height / 2) <= 1,
+        Math.abs(box.y - boldBox.y) <= 1 &&
+          Math.abs(box.y + box.height - boldBox.y - boldBox.height) <= 1,
         `${name} shares existing toolbar row`,
       );
     }
