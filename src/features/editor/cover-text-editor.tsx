@@ -13,7 +13,7 @@ import {
 } from "@/lib/cover-rich-text";
 import { useCoverText } from "./cover-text-context";
 import { Underline } from "./rich-text-marks";
-import { CoverBoldShortcuts } from "./cover-bold";
+import { CoverBoldShortcuts, setCoverBoldFont } from "./cover-bold";
 import { CoverPaint } from "./cover-paint-mark";
 
 export function CoverTextEditor({
@@ -87,7 +87,7 @@ export function CoverTextEditor({
   const { family, weight } = font;
   useEffect(() => {
     if (!editor) return;
-    editor.commands.setCoverBoldContext({ family, weight });
+    setCoverBoldFont(editor, { family, weight });
   }, [editor, family, weight]);
   // Known to the format bar from creation, so it can act before the first focus.
   useEffect(() => {

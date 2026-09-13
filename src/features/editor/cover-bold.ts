@@ -1,4 +1,4 @@
-import { Extension } from "@tiptap/core";
+import { Extension, type Editor } from "@tiptap/core";
 import type { Mark } from "@tiptap/pm/model";
 import type { EditorState, Transaction } from "@tiptap/pm/state";
 import {
@@ -6,14 +6,6 @@ import {
   DEFAULT_FONT_CONTEXT,
   type CoverFontContext,
 } from "@/lib/cover-fonts";
-
-declare module "@tiptap/core" {
-  interface Commands<ReturnType> {
-    coverBoldShortcuts: {
-      setCoverBoldContext: (font: CoverFontContext) => ReturnType;
-    };
-  }
-}
 
 type SelectionState = Pick<EditorState, "selection" | "doc" | "storedMarks">;
 const paintAttrs = (marks: readonly Mark[]) =>
@@ -86,6 +78,10 @@ export function toggleCoverSelectionBold(
 
 /** Cover-only shortcut precedence; the ordinary body editor keeps its own Bold. */
 export type CoverBoldStorage = { font: CoverFontContext };
+/** The host's field context changes without remounting the editor. */
+export function setCoverBoldFont(editor: Editor, font: CoverFontContext) {
+  (editor.storage.coverBoldShortcuts as CoverBoldStorage).font = font;
+}
 export const CoverBoldShortcuts = Extension.create<
   CoverBoldStorage,
   CoverBoldStorage
@@ -97,14 +93,6 @@ export const CoverBoldShortcuts = Extension.create<
   },
   addStorage() {
     return { font: this.options.font };
-  },
-  addCommands() {
-    return {
-      setCoverBoldContext: (font) => () => {
-        this.storage.font = font;
-        return true;
-      },
-    };
   },
   addKeyboardShortcuts() {
     return {

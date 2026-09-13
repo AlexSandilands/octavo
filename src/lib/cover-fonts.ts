@@ -55,8 +55,9 @@ const WEIGHT_NAMES = [
   "Extra Bold",
   "Black",
 ];
+export const weightName = (weight: number) => WEIGHT_NAMES[weight / 100 - 1]!;
 export const weightLabel = (weight: number) =>
-  `${WEIGHT_NAMES[weight / 100 - 1]} ${weight}`;
+  `${weightName(weight)} ${weight}`;
 export function fontWeights(family: CoverFont): CoverWeight[] {
   const { min, max } = COVER_FONTS[family];
   return coverWeightSchema.options
@@ -79,26 +80,48 @@ export const DEFAULT_FONT_CONTEXT: CoverFontContext = {
   family: "newsreader",
   weight: 400,
 };
+/** A story headline's own font and weight, with the weight held to the family's range. */
+export function storyHeadlineFont(
+  element: Extract<CoverElement, { type: "story" }>,
+): { family?: CoverFont; weight?: CoverWeight } {
+  const family = element.headlineFont ?? "newsreader";
+  return {
+    // Only an explicit choice opts the headline into the full-range alias.
+    family:
+      element.headlineFont ?? (element.headlineWeight ? family : undefined),
+    weight: element.headlineWeight
+      ? clampWeight(family, element.headlineWeight)
+      : undefined,
+  };
+}
+// The inherited typography of each cover text field. These mirror the defaults
+// in cover-elements.css / the cover block styles; keep the two in step.
 export function elementFontContext(
   element: CoverElement,
   field: string,
 ): CoverFontContext {
-  if (element.type === "story" && field.endsWith(":title"))
-    return {
-      family: element.headlineFont ?? "newsreader",
-      weight: clampWeight(
-        element.headlineFont ?? "newsreader",
-        element.headlineWeight ?? 500,
-      ),
-    };
+  if (element.type === "story" && field.endsWith(":title")) {
+    const { family = "newsreader", weight = 500 } = storyHeadlineFont(element);
+    return { family, weight: clampWeight(family, weight) };
+  }
   return {
     family: "hanken-grotesk",
     weight: field.endsWith(":description") ? 400 : 600,
   };
 }
+export function blockFontContext(field: string): CoverFontContext {
+  return field === "kicker"
+    ? { family: "hanken-grotesk", weight: 600 }
+    : DEFAULT_FONT_CONTEXT;
+}
 /** A bold wrapper raises the rendered weight without changing the saved base. */
 export const coverWeightCss = (weight: number) =>
   `max(var(--cover-bold-weight, 0), ${weight})`;
+/** The bold wrapper's side of the same rule; `.cover-text-editor strong` is its CSS twin. */
+export const COVER_BOLD_STYLE = {
+  fontWeight: "max(700, var(--cover-font-weight, 700))",
+  "--cover-bold-weight": 700,
+} as CSSProperties;
 
 /** Optional only: unchanged content continues using the original font declarations. */
 export function coverFontStyle(

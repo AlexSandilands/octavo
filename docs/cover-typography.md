@@ -16,26 +16,34 @@ retain their own typography. Original restores the old Newsreader/Medium 500
 appearance. Changing the font clamps any saved weight to its supported range.
 
 The floating selected-text toolbar offers the same family and weight choices
-in compact 30px selectors on the same row as Bold, Italic and Underline.
-The inspector retains its full-size controls. Cover editing uses `pre-wrap`
-instead of Tiptap’s `break-spaces`, so spaces at soft wraps do not push
-right-aligned words inward; authored spaces and line breaks are preserved.
-They show the effective font and weight at the cursor, including inherited values.
-With highlighted words, a choice formats that range; with only a caret, it sets
-the font for future typing without changing existing words. Opening a menu retains
-the selection and pending typing marks, and choosing returns focus to the text.
-**Inherit font** removes both inline font
-and weight; **Inherit weight** removes just the weight. The current field supplies
-the inherited typography, including when editing supporting copy or a sidebar
-field. Bold lights up when every selected run has an effective weight of at
-least 700, including chosen and inherited heavy weights. Choosing Regular or
-Semi Bold turns it off. Clicking Bold off changes the selected words to Regular
-400; clicking it on raises them to at least 700, preserving heavier runs in a
-mixed selection. Ctrl/Cmd+B follows the same behavior. With just a caret, Bold
-affects future typing. Changing
-family preserves each selected run’s weight and emphasis, clamping each weight
-separately if needed; mixed regular/bold passages keep that distinction. Italic,
-underline, colour and shadow remain independent. Clear removes all inline marks.
+in compact 30px selectors on the same row as Bold, Italic and Underline; the
+inspector keeps its full-size controls. Both show the effective font and weight
+at the cursor, including inherited values. With highlighted words, a choice
+formats that range; with only a caret, it sets the font for future typing
+without changing existing words. Opening a menu keeps the selection and any
+pending typing marks, and choosing returns focus to the text.
+
+Inheritance: the current field supplies the inherited typography (a story
+headline's font and weight, Hanken for supporting copy and sidebar fields).
+**Inherit font** removes both inline font and weight; **Inherit weight** removes
+just the weight. A chosen weight is always stored with its family, so words
+that have been bolded or given a weight keep that family even if the story's
+Headline font later changes; Inherit font returns them to the story's choice.
+Changing family preserves each selected run's weight and emphasis, clamping
+each weight separately if needed, so mixed regular/bold passages keep that
+distinction.
+
+Bold lights up when every selected run has an effective weight of at least
+700, including chosen and inherited heavy weights; choosing Regular or Semi Bold
+turns it off. Clicking Bold off sets the selected words to Regular 400; clicking
+it on raises them to at least 700, preserving heavier runs in a mixed selection.
+Ctrl/Cmd+B does the same, and with just a caret Bold affects future typing.
+Italic, underline, colour and shadow remain independent. Clear removes all
+inline marks.
+
+Cover editing uses `pre-wrap` instead of Tiptap's `break-spaces`, so spaces at
+soft wraps do not push right-aligned words inward; authored spaces and line
+breaks are preserved.
 
 Content v9 adds optional `headlineFont`/`headlineWeight` on Story elements and
 `fontFamily`/`fontWeight` on the validated `coverPaint` mark. Font ids and weights

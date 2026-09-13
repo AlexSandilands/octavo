@@ -119,9 +119,13 @@ export function MenuSelect<T>({
     itemsRef.current[checkedRef.current]?.focus();
   }, [open]);
 
+  // A mouse press snapshots on pointerdown, before the button takes focus from
+  // an editor; a keyboard open has no pointerdown, so toggle snapshots instead.
+  const snapshotted = useRef(false);
   const toggle = () => {
     if (disabled) return;
-    if (!open) onBeforeOpen?.();
+    if (!open && !snapshotted.current) onBeforeOpen?.();
+    snapshotted.current = false;
     if (!open && portal && btnRef.current) {
       const r = btnRef.current.getBoundingClientRect();
       const below = window.innerHeight - r.bottom - 12;
@@ -243,7 +247,9 @@ export function MenuSelect<T>({
         disabled={disabled}
         aria-label={triggerLabel}
         onPointerDown={() => {
-          if (!open) onBeforeOpen?.();
+          if (open || disabled) return;
+          onBeforeOpen?.();
+          snapshotted.current = true;
         }}
         aria-haspopup="menu"
         aria-expanded={open}

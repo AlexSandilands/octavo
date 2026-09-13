@@ -1,12 +1,7 @@
 import { Fragment, type ReactNode, type CSSProperties } from "react";
 import { coverDocFor, type CoverRichDoc } from "@/lib/cover-rich-text";
-import { coverFontStyle } from "@/lib/cover-fonts";
+import { COVER_BOLD_STYLE, coverFontStyle } from "@/lib/cover-fonts";
 import { colorCss, shadowCss } from "@/lib/cover-appearance";
-
-const boldStyle = {
-  fontWeight: "max(700, var(--cover-font-weight, 700))",
-  "--cover-bold-weight": 700,
-} as CSSProperties;
 
 export function CoverRichText({
   text,
@@ -26,7 +21,7 @@ export function CoverRichText({
             let content: ReactNode = node.text;
             for (const mark of [...(node.marks ?? [])].reverse()) {
               if (mark.type === "bold")
-                content = <strong style={boldStyle}>{content}</strong>;
+                content = <strong style={COVER_BOLD_STYLE}>{content}</strong>;
               else if (mark.type === "italic") content = <em>{content}</em>;
               else if (mark.type === "underline") content = <u>{content}</u>;
               else if (mark.type === "coverPaint") {

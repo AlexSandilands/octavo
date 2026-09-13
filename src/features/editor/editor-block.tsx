@@ -2,6 +2,7 @@
 import { CoverTextEditor } from "./cover-text-editor";
 import { CoverTextToolbar } from "./cover-text-toolbar";
 import { DEFAULT_COVER_PLACEMENT, nudgeLayer } from "@/lib/cover-elements";
+import { blockFontContext } from "@/lib/cover-fonts";
 import type { CoverAppearance } from "@/lib/cover-appearance";
 import { useCoverSortable } from "./use-cover-sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -364,11 +365,7 @@ export function EditorBlock({
                 ? (field, text, label) => (
                     <CoverTextEditor
                       id={block.id}
-                      font={{
-                        family:
-                          field === "kicker" ? "hanken-grotesk" : "newsreader",
-                        weight: field === "kicker" ? 600 : 400,
-                      }}
+                      font={blockFontContext(field)}
                       maxLength={block.type === "heading" ? 300 : 8000}
                       text={text}
                       doc={block.coverPlacement?.richText?.[field]}

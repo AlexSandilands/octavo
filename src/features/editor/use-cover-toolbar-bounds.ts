@@ -11,7 +11,7 @@ export function useCoverToolbarBounds(
     const stage = toolbar?.closest<HTMLElement>("[data-editor-canvas-stage]");
     if (!toolbar || !stage || !active) return;
     const inspector = stage.querySelector<HTMLElement>(
-      'aside[aria-label="Cover element settings"]',
+      "[data-cover-inspector]",
     );
     const place = () => {
       const stageRect = stage.getBoundingClientRect();

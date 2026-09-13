@@ -4,6 +4,7 @@ import {
   COVER_FONT_IDS,
   coverWeightPresets,
   weightLabel,
+  weightName,
   type CoverFont,
   type CoverWeight,
 } from "@/lib/cover-fonts";
@@ -37,7 +38,7 @@ export function CoverFontMenus({
   onBeforeOpen?: () => void;
 }) {
   const fontLabel = inline ? "Selected text font" : "Headline font";
-  const weightName = inline ? "Selected text weight" : "Headline weight";
+  const weightAria = inline ? "Selected text weight" : "Headline weight";
   return (
     <div className={inline ? "flex gap-1.5" : "space-y-3"}>
       <div>
@@ -91,14 +92,11 @@ export function CoverFontMenus({
           returnFocusOnSelect={!inline}
           size={inline ? "toolbar" : "sm"}
           label=""
-          ariaLabel={weightName}
-          triggerLabel={weightName}
+          ariaLabel={weightAria}
+          triggerLabel={weightAria}
           current={
             inline
-              ? weightLabel(effectiveWeight ?? weight ?? 400).replace(
-                  / \d+$/,
-                  "",
-                )
+              ? weightName(effectiveWeight ?? weight ?? 400)
               : weight
                 ? weightLabel(weight)
                 : "Original (Medium 500)"

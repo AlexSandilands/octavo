@@ -194,6 +194,7 @@
   float: left;
   height: 0;
 }
+/* Twin of COVER_BOLD_STYLE in src/lib/cover-fonts.ts (the reader's <strong>). */
 .cover-text-editor strong {
   --cover-bold-weight: 700;
   font-weight: max(700, var(--cover-font-weight, 700));
