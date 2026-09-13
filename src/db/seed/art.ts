@@ -1,3 +1,5 @@
+import { coverArt, coverMark, type CoverMotif } from "./cover-art";
+
 // Generated placeholder art for the seed (issue #58). Every seed image is
 // rasterized from an SVG composed here — no committed binaries — so the seed is
 // fully self-contained on any machine and any deploy. The pieces are deliberate
@@ -19,6 +21,8 @@ type Palette = {
 };
 
 export type ArtStyle =
+  | { kind: "cover"; motif: CoverMotif }
+  | { kind: "mark"; motif: CoverMotif }
   | { kind: "wash" } // layered ridge landscape under a gradient sky
   | { kind: "duotone"; motif: "stripes" | "arcs" | "triangles" }
   | { kind: "field"; motif: "rings" | "dots" } // contour rings / dot falloff
@@ -288,19 +292,23 @@ export function renderArtSvg(spec: SeedArtSpec): string {
   const rnd = rngFor(spec.key);
   const { kind } = spec.style;
   const body =
-    kind === "wash"
-      ? wash(spec, rnd)
-      : kind === "plate"
-        ? plate(spec, rnd)
-        : kind === "duotone"
-          ? spec.style.motif === "stripes"
-            ? stripes(spec, rnd)
-            : spec.style.motif === "arcs"
-              ? arcs(spec, rnd)
-              : triangles(spec, rnd)
-          : spec.style.motif === "rings"
-            ? rings(spec, rnd)
-            : dots(spec, rnd);
+    kind === "cover"
+      ? coverArt(spec, spec.style.motif)
+      : kind === "mark"
+        ? coverMark(spec, spec.style.motif)
+        : kind === "wash"
+          ? wash(spec, rnd)
+          : kind === "plate"
+            ? plate(spec, rnd)
+            : kind === "duotone"
+              ? spec.style.motif === "stripes"
+                ? stripes(spec, rnd)
+                : spec.style.motif === "arcs"
+                  ? arcs(spec, rnd)
+                  : triangles(spec, rnd)
+              : spec.style.motif === "rings"
+                ? rings(spec, rnd)
+                : dots(spec, rnd);
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${spec.width}" ` +
     `height="${spec.height}" viewBox="0 0 ${spec.width} ${spec.height}">${body}</svg>`

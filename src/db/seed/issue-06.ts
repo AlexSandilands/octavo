@@ -9,12 +9,12 @@ import {
   T,
 } from "./builders";
 
-// No. 6 — Kiln & Wheel. A pottery guild annual on the modern theme with a warm
+// No. 4 — Kiln & Wheel. A pottery guild annual on the modern theme with a warm
 // terracotta palette: craft long-form, images at three different widths and
 // both wrap sides, a wide banner, and a members'-show roundup. The "maker's
-// annual" archetype, and the newest issue in the library.
+// annual" archetype.
 export const issue06 = (img: SeedImages) =>
-  mkIssue(6, "Kiln & Wheel — The Guild Annual", "modern", "2026-06-20", [
+  mkIssue(4, "Kiln & Wheel — The Guild Annual", "modern", "2026-01-17", [
     cover([
       H("Kiln & Wheel", "The Potters' Guild Annual"),
       Img(img.glaze, {

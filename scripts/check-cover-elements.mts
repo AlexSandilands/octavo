@@ -191,7 +191,34 @@ const seeds = buildIssues(
   Object.fromEntries(SEED_IMAGES.map((i) => [i.key, i.key])) as SeedImages,
 );
 seeds.forEach((i) => assert(issueContentSchema.safeParse(i.content).success));
-assert.equal(seeds[5]?.content.pages[0]?.coverElements?.length, 3);
+assert.deepEqual(
+  seeds.map((i) => i.number),
+  [1, 2, 3, 4, 5, 6],
+);
+assert.equal(seeds[5]!.title, "Regatta — The Season Review");
+for (const [index, issue] of seeds.entries()) {
+  const front = issue.content.pages[0]!;
+  if ([1, 3, 5].includes(index)) {
+    assert.equal(front.coverElements?.length, 4);
+    const sources = coverSources(issue.content.pages);
+    const mark = front.coverElements.find((e) => e.type === "logo");
+    assert(mark?.type === "logo" && mark.logoId && mark.imageId);
+    for (const element of front.coverElements) {
+      if (element.type === "story")
+        for (const item of element.items)
+          assert(sources.some((s) => s.id === item.headingId));
+    }
+  } else {
+    assert.equal(front.coverElements, undefined);
+    assert(
+      !front.blocks.some(
+        (b) =>
+          b.type === "image" &&
+          (b.align === "page-fill" || b.align === "page-fit"),
+      ),
+    );
+  }
+}
 console.log(
   "PASS: Story defaults, stored headline sizes, heading hierarchy, schema bounds, references/page numbering, logo asset traversal, demotion preservation, all anchors, shared renderer and seed compatibility",
 );

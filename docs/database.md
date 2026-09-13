@@ -498,3 +498,18 @@ through the same path as real edited content. Keep **one deliberately legacy-sha
 string (`Traw`) and a constrained-HTML string (`Thtml`) — so the permanent v1/v2 render fallback and
 the migration converter stay under ambient coverage. When you bump `CONTENT_VERSION` again, do the
 same: update the builders to author the new shape, and leave a small, commented legacy fixture behind.
+
+### Demo cover designs
+
+The six-issue seed keeps the original covers for Boule & Bay (01), The Commons
+(03) and Marginalia (05). Aperture (02), Kiln & Wheel (04) and Regatta (06) use
+portrait Fill page illustrations, individually styled typography, linked Story
+teasers with live page numbers, Details and a reusable Logo from the seeded logo
+library. Regatta is the latest issue, featured on the library home page. All
+interiors, including the deliberate legacy page, stay unchanged.
+
+`src/db/seed/cover-elements.ts` holds the cover compositions and logo records;
+`cover-art.ts` draws their portrait artwork and transparent marks. They pass
+through the same local SVG → WebP pipeline as the other seed pictures, so seeding
+needs no image downloads or external service. The runner validates every issue
+before its atomic replacement of issues, images and their dependent logo rows.

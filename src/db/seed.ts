@@ -9,6 +9,8 @@
 //
 // Run: npm run db:seed  (after `docker compose up -d` and `npm run db:migrate`)
 import sharp from "sharp";
+import { issueContentSchema } from "../lib/blocks";
+import { SEED_LOGOS } from "./seed/cover-elements";
 import {
   DEFAULT_FOOTER_STYLE,
   MARK_SIZE,
@@ -74,7 +76,7 @@ async function main() {
   const { drizzle } = await import("drizzle-orm/postgres-js");
   const { default: postgres } = await import("postgres");
   const { eq } = await import("drizzle-orm");
-  const { issues, images, settings } = await import("./schema");
+  const { issues, images, settings, logos } = await import("./schema");
   const client = postgres(url, { max: 1 });
   const db = drizzle({ client });
 
@@ -147,11 +149,20 @@ async function main() {
   };
   const rows = buildIssues(imageIds).map((issue) => ({ ...issue, ...reserve }));
 
+  for (const row of rows) issueContentSchema.parse(row.content);
+
   await db.transaction(async (tx) => {
     // Wipe (images first — they FK onto issues).
     await tx.delete(images);
     await tx.delete(issues);
     await tx.insert(images).values(imageRows);
+    await tx.insert(logos).values(
+      SEED_LOGOS.map((logo) => ({
+        id: logo.id,
+        name: logo.name,
+        imageId: imageIds[logo.imageKey],
+      })),
+    );
     await tx.insert(issues).values(rows);
   });
 
