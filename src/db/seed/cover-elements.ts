@@ -83,6 +83,7 @@ export function withCoverElements(issue: SeedIssue): SeedIssue {
                 ...contents.placement,
                 appearance: {
                   panel: true,
+                  panelShape: "text",
                   background: "green",
                   text: "paper",
                   shadow: "none",

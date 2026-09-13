@@ -12,7 +12,7 @@ export function CoverRichText({
 }) {
   const value = coverDocFor(text, doc);
   return (
-    <>
+    <CoverLine>
       {value.content.map((p, i) => (
         <Fragment key={i}>
           {i > 0 && <br />}
@@ -41,6 +41,16 @@ export function CoverRichText({
           })}
         </Fragment>
       ))}
-    </>
+    </CoverLine>
+  );
+}
+
+/** A run of cover copy. Inert unless its panel fits the text, where each wrapped
+ *  line carries its own band and the ink paints above every band (cover-overlay.css). */
+export function CoverLine({ children }: { children: ReactNode }) {
+  return (
+    <span className="cover-line">
+      <span className="cover-line-ink">{children}</span>
+    </span>
   );
 }

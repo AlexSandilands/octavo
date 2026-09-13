@@ -182,11 +182,11 @@
 .cover-rich-editor {
   cursor: text;
 }
-/* ProseMirror keeps a trailing <br> in an empty paragraph, so :empty alone
-   never matches; :has() cannot nest, hence the :is() pair. */
+/* ProseMirror keeps a trailing <br> in an empty paragraph (inside its line
+   spans), so :empty alone never matches; :has() cannot nest, hence the :is() pair. */
 .cover-text-editor:is(
-    :has(> p:only-child:empty),
-    :has(> p:only-child > br:only-child)
+    :has(> p:only-child .cover-line-ink:empty),
+    :has(> p:only-child .cover-line-ink > br:only-child)
   )::before {
   content: attr(data-placeholder);
   opacity: 0.5;

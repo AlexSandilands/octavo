@@ -194,6 +194,7 @@ export function BlockView({
             {copy("title", block.title, "Cover title")}
           </CoverTitle>
           <div
+            data-cover-rule-row
             className="mt-7 flex items-center gap-3"
             style={{
               justifyContent:
@@ -202,6 +203,9 @@ export function BlockView({
                   : block.coverPlacement?.align === "right"
                     ? "flex-end"
                     : "center",
+              // Only take effect when a fitted panel shrinks the row to its ornament.
+              marginLeft: block.coverPlacement?.align === "left" ? 0 : "auto",
+              marginRight: block.coverPlacement?.align === "right" ? 0 : "auto",
             }}
           >
             <div data-cover-rule className="h-px w-16 bg-rule" />

@@ -45,7 +45,8 @@ export function coverOverlayOf(page: Page): CoverOverlay {
   );
 }
 /** What one item paints with: its own overrides over the cover's defaults. A
- *  photo carries no type, so it takes no panel unless one is asked for. */
+ *  photo carries no type, so it takes no panel unless one is asked for; photos
+ *  and logos have no lines for a panel to fit, so theirs is always a block. */
 export function itemAppearance(
   item: CoverItem,
   page: Page,
@@ -58,6 +59,7 @@ export function itemAppearance(
       ? placement.appearance
       : { ...overlay.appearance, ...placement.appearance },
   );
+  if (item.type === "image" || item.type === "logo") paint.panelShape = "block";
   return item.type === "image" && placement.appearance?.panel === undefined
     ? { ...paint, panel: false }
     : paint;

@@ -122,6 +122,11 @@ elements or their asset paths.
 independent text sizes, autosave, the floating inspector at three widths, desktop/phone readers,
 thumbnails and both PDF themes. It uses and removes its own scratch issue.
 
+`scripts/check-cover-panel-shape.mts [base-url]` checks fitted panels (Panel shape → Fit text): each
+wrapped line's band against its words and the next line, no rewrap on switching, typing and the
+empty placeholder, item overrides, history, reload, desktop/phone readers and both PDF themes.
+Run it for changes to cover panels or the markup around cover copy.
+
 `scripts/check-cover-colours.mts <base-url>` checks palette/custom panel colours, chained selected-word
 formatting, unaffected neighbouring text, independent appearance inheritance, save/reload, both PDF
 themes, thumbnails and phone reflow. Run it for changes to cover appearance or inline formatting.

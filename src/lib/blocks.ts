@@ -255,7 +255,8 @@ export const pageSchema = z.object({
 // documents retain their layout; no stored content is rewritten.
 // v8: optional per-image montage captions; shared captions stay until opt-in.
 // v9: optional Story headline fonts/weights and selected-word font marks.
-export const CONTENT_VERSION = 9;
+// v10: optional cover `panelShape` — a panel that fits each line of text.
+export const CONTENT_VERSION = 10;
 
 export const issueContentSchema = z.object({
   version: z.number().int().min(1).default(CONTENT_VERSION),

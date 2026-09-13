@@ -53,6 +53,7 @@ export function CoverGrid({
               data-width={entry.placement.width}
               data-align={entry.placement.align}
               data-cover-panel={entry.paint.panel}
+              data-cover-panel-shape={entry.paint.panelShape}
               className="cover-positioned cover-treatment"
               style={
                 {

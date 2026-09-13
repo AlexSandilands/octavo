@@ -15,6 +15,11 @@ import { useCoverText } from "./cover-text-context";
 import { Underline } from "./rich-text-marks";
 import { CoverBoldShortcuts, setCoverBoldFont } from "./cover-bold";
 import { CoverPaint } from "./cover-paint-mark";
+import {
+  CoverLineGaps,
+  CoverParagraph,
+  setCoverLineGaps,
+} from "./cover-line-extensions";
 
 export function CoverTextEditor({
   id,
@@ -25,8 +30,11 @@ export function CoverTextEditor({
   placeholder,
   maxLength = 8000,
   font = DEFAULT_FONT_CONTEXT,
+  fitLines = false,
 }: {
   id: string;
+  /** The field's panel fits its text (see CoverLineGaps). */
+  fitLines?: boolean;
   font?: CoverFontContext;
   text: string;
   doc?: CoverRichDoc;
@@ -53,7 +61,10 @@ export function CoverTextEditor({
           ];
         },
       }),
+      CoverParagraph,
+      CoverLineGaps,
       StarterKit.configure({
+        paragraph: false,
         heading: false,
         bulletList: false,
         orderedList: false,
@@ -89,6 +100,9 @@ export function CoverTextEditor({
     if (!editor) return;
     setCoverBoldFont(editor, { family, weight });
   }, [editor, family, weight]);
+  useEffect(() => {
+    if (editor) setCoverLineGaps(editor, fitLines);
+  }, [editor, fitLines]);
   // Known to the format bar from creation, so it can act before the first focus.
   useEffect(() => {
     if (!editor) return;

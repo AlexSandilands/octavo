@@ -49,6 +49,17 @@ export function CoverAppearanceControls({
             ]}
             onChange={(v) => onChange({ ...resolved, panel: v === "panel" })}
           />
+          {resolved.panel && !panelOnly && (
+            <Segments
+              label="Panel shape"
+              value={resolved.panelShape}
+              options={[
+                { value: "block", label: "Block" },
+                { value: "text", label: "Fit text", name: "fit text" },
+              ]}
+              onChange={(panelShape) => onChange({ ...resolved, panelShape })}
+            />
+          )}
           {resolved.panel && (
             <CoverColorPicker
               label="Panel colour"

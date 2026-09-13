@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { coverFontStyle, storyHeadlineFont } from "@/lib/cover-fonts";
-import { CoverRichText } from "./cover-rich-text";
+import { CoverLine, CoverRichText } from "./cover-rich-text";
 import type { CoverElement, CoverSource } from "@/lib/cover-elements";
 import { previewTitle } from "@/lib/cover-elements";
 import type { ImageMap } from "@/lib/images";
@@ -60,10 +60,10 @@ export function CoverElementView({
     return (
       <P data-cover-copy className="cover-issue-details">
         {element.showNumber && (
-          <span>
+          <CoverLine>
             {parts[0]}
             {element.text ? " · " : ""}
-          </span>
+          </CoverLine>
         )}
         {copy("text", element.text, "Date or edition")}
       </P>
@@ -84,6 +84,7 @@ export function CoverElementView({
           <Headline
             data-cover-copy
             className="cover-story-headline"
+            data-cover-font={element.headlineFont ?? "newsreader"}
             style={coverFontStyle(headline.family, headline.weight)}
           >
             {copy(`${item.id}:title`, title, "Story headline")}
@@ -100,7 +101,7 @@ export function CoverElementView({
         )}
         {element.showPageNumbers && source && (
           <P data-cover-copy className="cover-story-page">
-            Page {source.pageNo}
+            <CoverLine>Page {source.pageNo}</CoverLine>
           </P>
         )}
       </>
