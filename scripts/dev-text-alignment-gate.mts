@@ -40,8 +40,17 @@ const paragraphs = (count: number) => ({
     () => stringToDoc(prose).content,
   ).flat(),
 });
-assert.deepEqual(textBlockSchema.parse(legacy), legacy);
-assert.equal(CONTENT_VERSION, 6, "optional alignment needs no content bump");
+const parsedLegacy = textBlockSchema.parse(legacy);
+assert.deepEqual(parsedLegacy, legacy);
+const noAlignFixture: IssueContent = {
+  version: CONTENT_VERSION,
+  pages: [{ id: "p", blocks: [parsedLegacy] }],
+};
+assert.deepEqual(
+  issueContentSchema.parse(noAlignFixture),
+  noAlignFixture,
+  "alignment is optional at the current content version — no bump needed",
+);
 for (const align of ["full", "page-fill", "centre", "", null, 1]) {
   assert.equal(textBlockSchema.safeParse({ ...legacy, align }).success, false);
 }
@@ -141,15 +150,19 @@ for (const align of aligns) {
       );
     }
     for (const edit of [undefined, { onChange: () => {} }]) {
-      const cover = renderToStaticMarkup(
-        createElement(BlockView, {
-          ...shared,
-          block,
-          variant: "cover",
-          edit,
-        }),
-      );
-      assert(cover.includes("text-center"));
+      const renderCover = (b: Block) =>
+        renderToStaticMarkup(
+          createElement(BlockView, {
+            ...shared,
+            block: b,
+            variant: "cover",
+            edit,
+          }),
+        );
+      const cover = renderCover(block);
+      // The cover ignores the block's own align (it centres via coverPlacement instead).
+      assert.equal(cover, renderCover({ ...block, align: undefined }));
+      assert(cover.includes("text-align:center"));
       assert(!cover.includes("hyphens-auto"));
     }
     const mobileCover = (b: Block) =>
