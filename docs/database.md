@@ -453,8 +453,9 @@ New montages use per-image captions; an empty caption shows no text. The existin
 `caption` stays authoritative while nonempty, so older documents keep their shared caption
 without a rewrite. In the montage dialog, **Use captions per image** copies that shared text
 to every image without a caption and clears the block caption in one undoable edit. The
-canvas no longer offers a shared caption field. Caption entry is prominent beside each image;
-a disclosure holds the separate screen-reader description, which never copies the caption.
+canvas no longer offers a shared caption field. Each image starts as a compact row with a
+single-line caption beside its preview and reorder/delete controls. A chevron left of the
+preview expands the separate screen-reader description textarea, which never copies the caption.
 
 `MontageCaption` reserves the tallest caption using overlapping grid cells; changing slides
 cannot move the following content. Blank slides hide the caption and its theme decoration.

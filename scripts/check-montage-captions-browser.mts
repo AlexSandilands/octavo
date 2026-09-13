@@ -72,6 +72,13 @@ await withCoverFixture(base, async (fixture) => {
       name: new RegExp(`Caption.*image ${i} of 3`, "i"),
     });
   assert.equal(await dialog.getAttribute("aria-modal"), "true");
+  assert.equal((await dialog.boundingBox())?.width, 672);
+  assert.equal(await caption(1).evaluate((el) => el.tagName), "INPUT");
+  assert.equal(
+    await dialog.locator('li button[aria-expanded="false"]').count(),
+    3,
+  );
+  assert.equal(await dialog.locator("textarea:visible").count(), 0);
   assert(await caption(1).isDisabled());
   await dialog
     .getByRole("button", { name: "Use captions per image", exact: true })
@@ -91,11 +98,20 @@ await withCoverFixture(base, async (fixture) => {
       montage(c).items[2]?.caption === "",
   );
   assert.equal(montage(await stored()).items[0]?.alt, "Original description 1");
-  await dialog.locator("summary").first().click();
+  const disclosure = dialog.locator("li button[aria-expanded]").first();
+  await disclosure.focus();
+  await page.keyboard.press("Enter");
+  assert.equal(await disclosure.getAttribute("aria-expanded"), "true");
+  assert.equal(
+    await dialog.locator('li button[aria-expanded="false"]').count(),
+    2,
+  );
   const alt = dialog.getByRole("textbox", {
     name: "Alt text for image 1 of 3",
     exact: true,
   });
+  assert(await alt.isVisible());
+  assert.equal(await alt.evaluate((el) => el.tagName), "TEXTAREA");
   assert.equal(await alt.inputValue(), "Original description 1");
   await alt.fill("Members stand in front of the wooden clubhouse.");
   await waitSaved(
@@ -103,7 +119,8 @@ await withCoverFixture(base, async (fixture) => {
       montage(c).items[0]?.alt ===
       "Members stand in front of the wooden clubhouse.",
   );
-  await dialog.locator("summary").first().click();
+  await disclosure.click();
+  assert(!(await alt.isVisible()));
   await page.screenshot({ path: "/tmp/octavo-montage-captions-desktop.png" });
 
   // Reordering carries both fields with the photo; the editor history restores it.
@@ -162,6 +179,18 @@ await withCoverFixture(base, async (fixture) => {
     const bounds = await dialog.boundingBox();
     assert(bounds && bounds.x >= 0 && bounds.x + bounds.width <= width);
     assert(await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth));
+    const row = caption(1).locator("xpath=ancestor::li[1]");
+    const positions = await row.evaluate((el) =>
+      [...el.querySelectorAll("button, img, input")].map((control) => {
+        const box = control.getBoundingClientRect();
+        return { x: box.x, middle: box.y + box.height / 2 };
+      }),
+    );
+    assert(
+      positions.every((pos) => Math.abs(pos.middle - positions[0]!.middle) < 1),
+      "preview, caption and controls stay in one row",
+    );
+    assert(positions[0]!.x < positions[1]!.x, "chevron is left of the preview");
     await caption(1).focus();
     await page.screenshot({
       path: `/tmp/octavo-montage-captions-${width}.png`,
@@ -196,6 +225,18 @@ await withCoverFixture(base, async (fixture) => {
   await dialog
     .getByRole("button", { name: "Remove image 4 of 4", exact: true })
     .waitFor();
+  assert.equal(
+    await dialog
+      .locator("li")
+      .last()
+      .locator("button[aria-expanded]")
+      .getAttribute("aria-expanded"),
+    "false",
+  );
+  assert.equal(
+    await dialog.locator("li").last().locator("textarea:visible").count(),
+    0,
+  );
   await waitSaved(
     (c) =>
       montage(c).items.length === 4 &&

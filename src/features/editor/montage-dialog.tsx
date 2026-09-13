@@ -129,7 +129,7 @@ export function MontageDialog({
     // stray click and pans on a drag — neither should reach it, and nor should
     // the Escape that closes this (the shell stops it).
     <DialogShell
-      panelClassName="bg-card flex max-h-[90vh] w-[560px] flex-col rounded-[10px] shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
+      panelClassName="bg-card flex max-h-[90vh] w-[672px] flex-col rounded-[10px] shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
       isolatePointerEvents
       locked={uploading}
       onClose={onClose}
@@ -196,7 +196,7 @@ export function MontageDialog({
                     onUseItemCaptions();
                     requestAnimationFrame(() =>
                       listRef.current
-                        ?.querySelector<HTMLTextAreaElement>(
+                        ?.querySelector<HTMLInputElement>(
                           "[data-montage-caption-input]",
                         )
                         ?.focus(),
