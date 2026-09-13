@@ -72,7 +72,7 @@ export function ListSearch({
         maxLength={ADMIN_LIST_QUERY_MAX}
         placeholder={placeholder}
         aria-label={ariaLabel}
-        className="text-ink flex-1 border-none bg-transparent font-sans text-[15px]"
+        className="text-ink min-w-0 flex-1 border-none bg-transparent font-sans text-[15px]"
       />
     </div>
   );

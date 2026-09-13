@@ -1,0 +1,315 @@
+.page {
+  container: members-page / inline-size;
+  min-width: 0;
+}
+
+.heading {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.toolbar {
+  flex-direction: column;
+}
+
+.toolbar > :last-child {
+  width: 100%;
+  justify-content: space-between;
+}
+
+.list {
+  container: members-list / inline-size;
+  margin-top: 0.75rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr) 2.75rem;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding-inline: 0.375rem;
+}
+
+.columns,
+.avatar,
+.wideOnly {
+  display: none;
+}
+
+.identity {
+  display: contents;
+}
+
+.identity > label {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.identityText {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.identityText > div {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:global(.members-row)[data-expanded="true"] .identityText > div {
+  overflow: visible;
+  white-space: normal;
+}
+
+.subscription {
+  grid-column: 2 / -1;
+  grid-row: 2;
+}
+
+.detailsToggle {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.detailsToggle > button {
+  width: 2.75rem;
+  height: 2.75rem;
+  margin: 0;
+}
+
+:global(.members-row)[data-expanded="true"] .detailsToggle svg {
+  transform: rotate(180deg);
+}
+
+.details {
+  display: none;
+  grid-column: 1 / -1;
+  gap: 0.75rem;
+  margin-left: 3.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-line-soft);
+}
+
+:global(.members-row)[data-expanded="true"] .details {
+  display: grid;
+}
+
+.notes {
+  grid-column: 1 / -1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.notes[data-empty="true"] {
+  display: none;
+}
+
+.fieldLabel {
+  display: block;
+  color: var(--color-faint2);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.actions {
+  display: flex;
+  grid-column: 1 / -1;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.rowAction {
+  min-height: 2.75rem;
+}
+
+.pagination > span {
+  flex-basis: 100%;
+  order: -1;
+  text-align: center;
+}
+
+.bulkActions {
+  display: flex;
+  flex: 1 0 100%;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-block: 0.375rem;
+}
+
+.bulkActions > button {
+  min-height: 2.75rem;
+}
+
+@container members-page (min-width: 36rem) {
+  .heading {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+
+  .toolbar {
+    flex-direction: row;
+  }
+
+  .toolbar > :last-child {
+    width: auto;
+    justify-content: flex-start;
+  }
+}
+
+@container members-page (min-width: 66rem) {
+  .bulkActions {
+    flex: 0 1 auto;
+    margin-left: auto;
+  }
+}
+
+@container members-list (min-width: 28rem) {
+  .pagination > span {
+    flex-basis: auto;
+    order: 0;
+  }
+}
+
+@container members-list (min-width: 28rem) {
+  .details {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container members-list (min-width: 32rem) {
+  .grid {
+    grid-template-columns: 2.75rem minmax(0, 1fr) 8.25rem 2.75rem;
+  }
+
+  .subscription {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .detailsToggle {
+    grid-column: 4;
+  }
+}
+
+@container members-list (min-width: 66rem) {
+  /* Selection and avatar have real tracks (44px and 36px); two 12px gaps
+     place the member text 104px in, without an independently padded heading. */
+  .grid {
+    grid-template-columns:
+      2.75rem 2.25rem minmax(12rem, 1.3fr) minmax(10rem, 1fr)
+      8.25rem 7rem 4.75rem 5.5rem;
+  }
+
+  .columns {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: grid;
+    padding-block: 0.625rem;
+    background: var(--color-card);
+    color: var(--color-faint2);
+    font-family: var(--font-sans);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .columns > [data-member-cell="identity"] {
+    grid-column: 3;
+  }
+
+  .identityText {
+    grid-column: 3;
+  }
+
+  .identityText > div {
+    overflow: visible;
+    white-space: normal;
+  }
+
+  .avatar {
+    display: block;
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .detailsToggle,
+  .compactOnly,
+  .roleState {
+    display: none;
+  }
+
+  .wideOnly,
+  .notes[data-empty="true"] {
+    display: block;
+  }
+
+  .details,
+  :global(.members-row)[data-expanded="true"] .details {
+    display: contents;
+  }
+
+  .grid [data-member-cell="notes"] {
+    grid-column: 4;
+    grid-row: 1;
+  }
+
+  .grid [data-member-cell="subscription"] {
+    grid-column: 5;
+    grid-row: 1;
+  }
+
+  .grid [data-member-cell="role"] {
+    grid-column: 6;
+    grid-row: 1;
+  }
+
+  .grid [data-member-cell="joined"] {
+    grid-column: 7;
+    grid-row: 1;
+  }
+
+  .grid [data-member-cell="actions"] {
+    grid-column: 8;
+    grid-row: 1;
+  }
+
+  .actions {
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+    gap: 0;
+  }
+
+  .rowAction {
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .rowAction:not(:disabled):hover {
+    background: var(--color-accent-wash);
+  }
+
+  .fieldLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}

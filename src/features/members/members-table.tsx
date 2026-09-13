@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import styles from "./members-layout.module.css";
 import { matchingMemberIdsAction } from "@/app/admin/members/actions";
 import { MemberRow } from "./member-row";
 import { MembersBulkBar } from "./members-bulk-bar";
@@ -146,7 +147,7 @@ export function MembersTable({
     // Pinned filters over scrolling rows from md up, a sticky search row on a
     // phone — see admin-list-layout.ts for the layers.
     <div className={ADMIN_LIST_TABLE}>
-      <div className={ADMIN_LIST_TOOLBAR}>
+      <div className={`${ADMIN_LIST_TOOLBAR} ${styles.toolbar}`}>
         <div className="min-w-0 flex-1">
           <ListSearch
             query={query}
@@ -178,52 +179,56 @@ export function MembersTable({
         onClear={() => setSelected(new Set())}
       />
 
-      {/* At md+ the rows reserve an 8px scrollbar gutter; matching that on
-          the header keeps every fixed-width column on the same x-coordinate.
-          The member inset clears its checkbox, avatar and their two gaps. */}
-      <div className="border-line text-faint2 mt-3 hidden flex-none items-center gap-x-3 px-1.5 pb-2.5 font-sans text-[10px] font-semibold tracking-[0.14em] uppercase sm:flex md:pr-3.5">
-        <span className="min-w-0 flex-1 pl-[104px]">Member</span>
-        <span className="hidden w-[160px] lg:block xl:w-[220px]">Notes</span>
-        <span className="w-[120px]">Subscription</span>
-        <span className="w-[112px]">Role</span>
-        <span className="w-[76px]">Joined</span>
-        <span className="w-[58px]" />
-      </div>
-
       <div className={ADMIN_LIST_ROWS}>
-        {shown.map((m) => (
-          <MemberRow
-            key={m.id}
-            member={m}
-            currentUserId={currentUserId}
-            selected={selected.has(m.id)}
-            onSelect={select}
-          />
-        ))}
+        <div className={styles.list} data-members-list>
+          {/* Header and rows share the scrollport, including its actual gutter. */}
+          <div
+            className={`${styles.grid} ${styles.columns}`}
+            data-members-header
+            aria-hidden="true"
+          >
+            <span data-member-cell="identity">Member</span>
+            <span data-member-cell="notes">Notes</span>
+            <span data-member-cell="subscription">Subscription</span>
+            <span data-member-cell="role">Role</span>
+            <span data-member-cell="joined">Joined</span>
+            <span data-member-cell="actions" />
+          </div>
+          {shown.map((m) => (
+            <MemberRow
+              key={m.id}
+              member={m}
+              currentUserId={currentUserId}
+              selected={selected.has(m.id)}
+              onSelect={select}
+            />
+          ))}
 
-        {/* The result of the search / filter, live. Mounted whatever the
+          {/* The result of the search / filter, live. Mounted whatever the
           outcome — a region that arrives together with its text is announced
           unreliably, and an admin searching for someone who isn't there needs
           to hear the nothing. Visible only when there are no rows, where it is
           also the empty state; otherwise the count is for screen readers, the
           rows themselves being the sighted answer. */}
-        <p
-          role="status"
-          aria-live="polite"
-          className={
-            shown.length === 0
-              ? "text-faint py-10 text-center font-sans text-sm"
-              : "sr-only"
-          }
-        >
-          {resultMessage}
-        </p>
+          <p
+            role="status"
+            aria-live="polite"
+            className={
+              shown.length === 0
+                ? "text-faint py-10 text-center font-sans text-sm"
+                : "sr-only"
+            }
+          >
+            {resultMessage}
+          </p>
 
-        <ListPagination
-          page={list.page}
-          pageCount={list.pageCount}
-          label="Member list pages"
-        />
+          <ListPagination
+            page={list.page}
+            pageCount={list.pageCount}
+            label="Member list pages"
+            className={styles.pagination}
+          />
+        </div>
       </div>
     </div>
   );

@@ -13,7 +13,7 @@ export function MembersToolbar({
   onAdd: () => void;
 }) {
   return (
-    <div className="flex flex-none gap-3">
+    <div className="flex flex-none flex-wrap gap-3">
       <Button
         variant="secondary"
         icon="upload"

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { Icon } from "@/components/icons";
+import { useId, useState, useTransition } from "react";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { MemberDialog } from "./member-dialog";
 import { SelectCheckbox } from "@/components/select-checkbox";
-import { Avatar, Pill } from "@/components/ui";
+import { Avatar, IconButton, Pill } from "@/components/ui";
+import { MemberDetails } from "./member-details";
+import styles from "./members-layout.module.css";
 import { initials } from "@/lib/initials";
 import {
   removeMemberAction,
@@ -23,9 +24,6 @@ const REASONS: Record<string, string> = {
   invalid: "Something went wrong. Please try again.",
 };
 
-const joinedLabel = (d: Date) =>
-  new Date(d).toLocaleDateString("en-NZ", { month: "short", year: "numeric" });
-
 export function MemberRow({
   member,
   currentUserId,
@@ -37,6 +35,8 @@ export function MemberRow({
   selected: boolean;
   onSelect: (id: string, next: boolean) => void;
 }) {
+  const [expanded, setExpanded] = useState(false);
+  const detailsId = useId();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -89,33 +89,32 @@ export function MemberRow({
   };
 
   return (
-    <div className="border-line-soft border-b py-3">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5 px-1.5">
-        <div className="flex min-w-0 basis-full items-center gap-3 sm:basis-0 sm:flex-1">
+    <div
+      className="members-row border-line-soft border-b py-3"
+      data-expanded={expanded}
+    >
+      <div className={styles.grid}>
+        <div className={styles.identity}>
           <SelectCheckbox
             checked={selected}
             onChange={(next) => onSelect(member.id, next)}
             label={`Select ${label}`}
           />
-          <Avatar initials={initials(label)} />
-          <div className="min-w-0">
+          <span className={styles.avatar}>
+            <Avatar initials={initials(label)} />
+          </span>
+          <div className={styles.identityText} data-member-cell="identity">
             <div className="text-ink font-sans text-[15px] font-semibold">
               {member.name ?? "—"}
             </div>
-            <div className="text-faint truncate font-sans text-[13px]">
+            <div className="text-faint font-sans text-[13px]">
               {member.email}
             </div>
           </div>
         </div>
 
-        <div className="text-faint basis-full pl-11 font-sans text-[13px] whitespace-pre-wrap lg:line-clamp-2 lg:w-[160px] lg:basis-auto lg:pl-0 xl:w-[220px]">
-          <span className="text-faint2 mr-2 font-semibold lg:hidden">
-            Notes
-          </span>
-          {member.notes ?? "—"}
-        </div>
-
-        <div className="sm:w-[120px]">
+        <div className={styles.subscription} data-member-cell="subscription">
+          <span className="sr-only">Subscription</span>
           <button
             type="button"
             onClick={toggleSubscribed}
@@ -124,69 +123,36 @@ export function MemberRow({
               member.subscribed ? "Mark as unsubscribed" : "Mark as subscribed"
             }
             aria-label={`${member.subscribed ? "Unsubscribe" : "Subscribe"} ${label}`}
-            className="cursor-pointer rounded-full transition-opacity hover:opacity-75 focus-visible:outline-2 disabled:cursor-default disabled:opacity-40"
+            className="inline-flex min-h-11 cursor-pointer items-center rounded-full transition-opacity enabled:hover:opacity-75 focus-visible:outline-2 disabled:cursor-default disabled:opacity-40"
           >
             <Pill status={member.subscribed ? "Subscribed" : "Unsubscribed"} />
           </button>
         </div>
 
-        <div className="sm:w-[112px]">
-          <button
-            type="button"
-            onClick={toggleAdmin}
-            disabled={pending || isSelf}
-            title={
-              isSelf
-                ? "You can’t change your own admin access"
-                : member.isAdmin
-                  ? "Remove admin access"
-                  : "Make admin"
-            }
-            aria-label={`${member.isAdmin ? "Remove admin from" : "Make admin"} ${label}`}
-            className="text-muted hover:text-accent flex cursor-pointer items-center gap-1.5 font-sans text-[13px] font-medium disabled:cursor-default disabled:opacity-40 disabled:hover:text-current"
-          >
-            <Icon
-              name={member.isAdmin ? "check" : "plus"}
-              size={15}
-              strokeWidth={1.8}
-            />
-            {member.isAdmin ? "Admin" : "Make admin"}
-          </button>
-        </div>
-
-        <div className="text-faint hidden font-sans text-[13px] sm:block sm:w-[76px]">
-          {joinedLabel(member.createdAt)}
-        </div>
-
-        <div className="ml-auto flex items-center justify-end gap-2 sm:ml-0 sm:w-[58px]">
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            disabled={pending}
-            title="Edit member details"
-            aria-label={`Edit ${label}`}
-            className="text-faint2 hover:text-accent flex cursor-pointer disabled:cursor-default disabled:opacity-30 disabled:hover:text-current"
-          >
-            <Icon name="pencil" size={18} strokeWidth={1.7} />
-          </button>
-
-          <button
-            type="button"
-            onClick={remove}
-            disabled={pending || isSelf}
-            title={isSelf ? "You can’t remove yourself" : "Remove member"}
-            aria-label={`Remove ${label}`}
-            className="text-faint2 hover:text-warn flex cursor-pointer justify-end disabled:cursor-default disabled:opacity-30 disabled:hover:text-current"
-          >
-            <Icon name="close" size={20} strokeWidth={1.7} />
-          </button>
-        </div>
+        <span className={styles.detailsToggle} data-member-details-toggle>
+          <IconButton
+            icon="chevronDown"
+            size={18}
+            label={`${expanded ? "Hide" : "Show"} details for ${label}`}
+            aria-expanded={expanded}
+            aria-controls={detailsId}
+            onClick={() => setExpanded((current) => !current)}
+          />
+        </span>
+        <MemberDetails
+          id={detailsId}
+          member={member}
+          label={label}
+          pending={pending}
+          isSelf={isSelf}
+          onToggleAdmin={toggleAdmin}
+          onEdit={() => setEditing(true)}
+          onRemove={remove}
+        />
       </div>
 
       {error && (
-        <p className="text-warn mt-1.5 pl-[6.75rem] font-sans text-[13px]">
-          {error}
-        </p>
+        <p className="text-warn mt-1.5 px-1.5 font-sans text-[13px]">{error}</p>
       )}
 
       {editing && (

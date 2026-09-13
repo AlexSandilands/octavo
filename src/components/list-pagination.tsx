@@ -29,11 +29,13 @@ export function ListPagination({
   page,
   pageCount,
   label,
+  className = "",
 }: {
   page: number;
   pageCount: number;
   /** Names the nav for screen readers, e.g. "Member list pages". */
   label: string;
+  className?: string;
 }) {
   const go = useListUrl();
 
@@ -99,7 +101,7 @@ export function ListPagination({
       ref={navRef}
       aria-label={label}
       aria-busy={pending}
-      className="mt-6 flex items-center justify-between gap-3"
+      className={`mt-6 flex flex-wrap items-center justify-between gap-3 ${className}`}
     >
       <Button
         variant="secondary"
