@@ -8,7 +8,7 @@ import {
 } from "@/features/library/archive-limits";
 import { likePattern } from "@/lib/like-pattern";
 import { pageBounds, type PagedList } from "@/lib/pagination";
-import { publishedYear, type IssueRow } from "./issues";
+import { isNumbered, publishedYear, type PublishedIssueRow } from "./issues";
 
 // Member-facing reads: the library home page and the full published archive.
 // Admin listing and all issue CRUD stay in server/issues.ts.
@@ -23,9 +23,9 @@ function asYear(value: unknown): number | null {
 
 export type LibraryHome = {
   /** The featured issue, or null before anything is published. */
-  latest: IssueRow | null;
+  latest: PublishedIssueRow | null;
   /** The capped run of back-issues shown below it. */
-  recent: IssueRow[];
+  recent: PublishedIssueRow[];
   publishedTotal: number;
   /** Earliest publication year across the catalogue — the footer's "Est." */
   estYear: number | null;
@@ -52,7 +52,7 @@ export async function getLibraryHome(): Promise<LibraryHome> {
         .orderBy(desc(issues.number))
         .limit(HOME_ARCHIVE_MAX + 1);
 
-      const [latest, ...recent] = rows;
+      const [latest, ...recent] = rows.filter(isNumbered);
       const publishedTotal = counts?.total ?? 0;
       return {
         latest: latest ?? null,
@@ -91,7 +91,7 @@ function archiveWhere(query: string, year: number | null) {
   return and(...conditions);
 }
 
-export type ArchiveList = PagedList<IssueRow> & {
+export type ArchiveList = PagedList<PublishedIssueRow> & {
   /** Published issues in the whole catalogue, whatever narrows the view. */
   total: number;
   estYear: number | null;
@@ -131,7 +131,7 @@ export async function listArchivePage(
         .offset(bounds.offset);
 
       return {
-        rows,
+        rows: rows.filter(isNumbered),
         page: bounds.page,
         pageCount: bounds.pageCount,
         matching,

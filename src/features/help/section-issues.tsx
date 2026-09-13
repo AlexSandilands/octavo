@@ -85,6 +85,17 @@ export function SectionIssues() {
         see the item, press it to select it. Use Undo to recover a removed
         element.
       </Callout>
+      <Callout title="Where the issue number comes from">
+        A draft has <strong>no number</strong> — it just says
+        &ldquo;Draft&rdquo; on the Issues screen and in the editor. The number
+        is chosen when you <strong>publish</strong>: the confirmation window
+        offers the next one in the sequence and you can type a different one,
+        which is how you&rsquo;d add an old edition you&rsquo;re digitising.
+        Drafts and trial runs you throw away cost you nothing, so your first
+        real edition can still be No. 1. Once an issue is published its number
+        is fixed — members may already have the link — but deleting a published
+        issue does free its number for the next one.
+      </Callout>
       <Callout title="Editing an issue that’s already published">
         There&rsquo;s no separate &ldquo;working copy&rdquo;. Once an issue is
         published, anything you change in the editor is saved straight into the

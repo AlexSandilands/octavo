@@ -48,7 +48,8 @@ const token = crypto.randomUUID();
 const email = `scratch-130-${userId.slice(0, 8)}@example.invalid`;
 const otherEmail = `scratch-130-other-${otherId.slice(0, 8)}@example.invalid`;
 const otherName = "Scratch Confirm Target";
-const issueNumber = 91300 + Math.floor(Math.random() * 500);
+// The scratch issue is a draft, so it carries no number (issue #270) — the one
+// it publishes under is read off the modal's own field below.
 
 // ── Probes ──────────────────────────────────────────────────────────────────
 
@@ -314,10 +315,10 @@ try {
             values (${otherId}, ${otherEmail}, ${otherName}, false, false, now())`;
   await sql`insert into sessions (session_token, user_id, expires)
             values (${token}, ${userId}, now() + interval '1 day')`;
-  await sql`insert into issues (id, number, title, theme, status, content)
-            values (${issueId}, ${issueNumber}, ${"Scratch 130"}, 'classic',
+  await sql`insert into issues (id, title, theme, status, content)
+            values (${issueId}, ${"Scratch 130"}, 'classic',
                     'draft', ${sql.json(content)})`;
-  console.log(`scratch issue ${issueId} (no. ${issueNumber}), user ${email}`);
+  console.log(`scratch draft ${issueId} (no number yet), user ${email}`);
 
   const ctx = await browser.newContext();
   await ctx.addCookies([
@@ -611,6 +612,13 @@ try {
   heading("VideoDialog");
   await page.goto(`${base}/admin/issues/${issueId}/edit`);
   await page.waitForSelector("button:has-text('Theme:')");
+  // The editor opens on page 1, which is the cover — and a cover offers the
+  // cover tools, not the Insert row. Walk the rail to page 2 the same way the
+  // montage section does.
+  await page.evaluate(() => {
+    const del = document.querySelector('[aria-label="Delete page 2"]');
+    del?.closest("div.group")?.querySelector("button")?.click();
+  });
   await page.click("button:has-text('Video')");
   const videoTrigger = page.locator("button", {
     hasText: /^Add a video link$/,
@@ -646,7 +654,7 @@ try {
   await page.waitForSelector(publishTrigger);
   await page.click(publishTrigger);
   await page.waitForSelector("[role=dialog]");
-  await checkOpenDialog(page, `Publish issue No. ${issueNumber}?`);
+  await checkOpenDialog(page, "Publish this issue?");
   await checkEscapeRestores(page, "Publish");
 
   await reopen(page, publishTrigger);
@@ -663,6 +671,16 @@ try {
   // Hold the publish server-side so the `working` phase stays on screen for the
   // assertions. Same one-shot flag as the sponsor save above: unrouting while
   // the request is still parked in the sleep aborts it.
+  // The number the modal proposed for this draft — what the result heading has
+  // to name once the publish allocates it (issue #270).
+  const issueNumber = Number(
+    await page.inputValue('[role=dialog] input[type="number"]'),
+  );
+  ok(
+    Number.isInteger(issueNumber) && issueNumber > 0,
+    `the modal proposed a number for the numberless draft (No. ${issueNumber})`,
+  );
+
   let stallPublish = true;
   const publishRoute = `**/admin/issues/${issueId}/edit`;
   await page.route(publishRoute, async (route) => {

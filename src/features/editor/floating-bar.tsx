@@ -1,9 +1,15 @@
 "use client";
 
-import type { ComponentProps, ReactNode } from "react";
+import {
+  useLayoutEffect,
+  useRef,
+  type ComponentProps,
+  type ReactNode,
+} from "react";
 
 /** Stage padding kept clear of the bar: below it, or beside it when it stands. */
 export const TOOLBAR_RESERVE = 92;
+const TOOLBAR_CLEARANCE = 34;
 
 // The pill a stage's tools float in — the editor's along the foot of the
 // canvas, the PDF panel's along the foot of its stage — and, when the stage is
@@ -14,6 +20,8 @@ export function FloatingBar({
   side,
   label,
   groupProps,
+  wrap = false,
+  onReserveChange,
   children,
 }: {
   vertical: boolean;
@@ -21,8 +29,26 @@ export function FloatingBar({
   side: "left" | "right";
   label: string;
   groupProps?: ComponentProps<"div">;
+  /** Let a manually bottom-docked bar use more than one row on a narrow stage. */
+  wrap?: boolean;
+  /** Reports the space the stage needs to keep clear on the bar's current edge. */
+  onReserveChange?: (reserve: number) => void;
   children: ReactNode;
 }) {
+  const groupRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const group = groupRef.current;
+    if (!group || !onReserveChange) return;
+    const measure = () =>
+      onReserveChange(
+        (vertical ? group.offsetWidth : group.offsetHeight) + TOOLBAR_CLEARANCE,
+      );
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(group);
+    return () => observer.disconnect();
+  }, [vertical, onReserveChange]);
+
   const enter = !vertical
     ? "starting:translate-y-6"
     : side === "left"
@@ -41,11 +67,15 @@ export function FloatingBar({
       {/* A group, not role="toolbar": that role promises arrow-key navigation
           within one tab stop, and here every button is its own tab stop. */}
       <div
+        ref={groupRef}
         role="group"
         aria-label={label}
+        data-bar-placement={vertical ? side : "bottom"}
         {...groupProps}
         className={`border-hair-warm pointer-events-auto flex items-center gap-2 rounded-[14px] border bg-white shadow-[0_8px_28px_rgba(40,36,28,0.22)] ${
-          vertical ? "flex-col px-2 py-2.5" : "max-w-full px-2.5 py-2"
+          vertical
+            ? "flex-col px-2 py-2.5"
+            : `max-w-full px-2.5 py-2 ${wrap ? "flex-wrap justify-center" : ""}`
         }`}
       >
         {children}

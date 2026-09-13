@@ -3,14 +3,16 @@
 import { useEffect, useRef, useState } from "react";
 import { DialogShell } from "@/components/dialog-shell";
 import { Button } from "@/components/ui";
+import { ISSUE_NUMBER_HINT, issueNumberSchema } from "@/lib/issue-number";
 import type { PublishResult } from "@/app/admin/actions";
+import { PublishNumber, PublishedNumber } from "./publish-number";
 
 // Confirmation dialog shown before publishing an issue. Pulled out of the editor
 // to keep that file under the 500-line limit (docs/design-principles.md).
 //
-// It owns the whole publish interaction now: the email opt-in, the "publishing…"
-// state, and the sent/failed result. `onPublish` does the actual work (flush +
-// server action) and hands back the outcome.
+// It owns the whole publish interaction now: the issue number (issue #270), the
+// email opt-in, the "publishing…" state, and the sent/failed result. `onPublish`
+// does the actual work (flush + server action) and hands back the outcome.
 //
 // The backdrop is the shell's viewport-fixed one (issue #153). It used to be
 // `absolute inset-0` against the editor root, which could then grow taller than
@@ -21,24 +23,31 @@ type Phase = "confirm" | "working" | "done";
 
 export function PublishModal({
   number,
+  suggestedNumber,
   subscriberCount,
-  alreadyPublished,
   onClose,
   onPublish,
 }: {
-  number: number;
+  /** The issue's number, or null while it is still a draft (issue #270). */
+  number: number | null;
+  /** What to propose for a draft: the next after the highest published. */
+  suggestedNumber: number;
   subscriberCount: number;
+  onClose: () => void;
+  onPublish: (sendEmail: boolean, number: number) => Promise<PublishResult>;
+}) {
   // Re-publishing an already-live issue defaults the email OFF, so a small
   // correction can't accidentally re-blast the whole list.
-  alreadyPublished: boolean;
-  onClose: () => void;
-  onPublish: (sendEmail: boolean) => Promise<PublishResult>;
-}) {
-  const [sendEmail, setSendEmail] = useState(!alreadyPublished);
+  const [sendEmail, setSendEmail] = useState(number === null);
+  const [numberDraft, setNumberDraft] = useState(
+    String(number ?? suggestedNumber),
+  );
+  const [numberError, setNumberError] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>("confirm");
   const [result, setResult] = useState<PublishResult | null>(null);
   const draftRef = useRef<HTMLButtonElement>(null);
   const doneRef = useRef<HTMLButtonElement>(null);
+  const numberRef = useRef<HTMLInputElement>(null);
 
   const canEmail = subscriberCount > 0;
   const willEmail = sendEmail && canEmail;
@@ -60,9 +69,34 @@ export function PublishModal({
     if (phase === "done") doneRef.current?.focus();
   }, [phase]);
 
+  // A refused number leaves the admin standing on Publish with nothing to
+  // press; put them in the field they have to change (issue #270).
+  useEffect(() => {
+    if (phase === "confirm" && numberError) numberRef.current?.focus();
+  }, [phase, numberError]);
+
+  // A draft is published under the typed number; a live issue keeps its own, so
+  // that field is read-only and its value never leaves this component.
   const run = async () => {
+    const parsed = issueNumberSchema.safeParse(Number(numberDraft.trim()));
+    const chosen = number ?? (parsed.success ? parsed.data : null);
+    if (chosen === null) {
+      setNumberError(ISSUE_NUMBER_HINT);
+      return;
+    }
+    setNumberError(null);
     setPhase("working");
-    const res = await onPublish(willEmail);
+    const res = await onPublish(willEmail, chosen);
+    // A number taken since this modal opened is a correctable mistake, not a
+    // failed publish: stay on the form with the next free number offered.
+    if (!res.ok && res.reason === "taken") {
+      setNumberError(
+        `No. ${chosen} is already published. No. ${res.suggested} is free.`,
+      );
+      setNumberDraft(String(res.suggested));
+      setPhase("confirm");
+      return;
+    }
     setResult(res);
     setPhase("done");
   };
@@ -81,18 +115,35 @@ export function PublishModal({
             </div>
 
             {phase === "done" ? (
-              <ResultBody titleId={titleId} number={number} result={result} />
+              <ResultBody titleId={titleId} result={result} />
             ) : (
               <>
                 <h2
                   id={titleId}
                   className="text-ink mt-3 font-serif text-[27px] leading-tight"
                 >
-                  Publish issue No. {number}?
+                  {number === null
+                    ? "Publish this issue?"
+                    : `Publish issue No. ${number} again?`}
                 </h2>
                 <p className="text-muted mt-2.5 font-sans text-[15px] leading-relaxed">
                   This marks the issue published so members can read it.
                 </p>
+
+                {number === null ? (
+                  <PublishNumber
+                    value={numberDraft}
+                    onChange={(next) => {
+                      setNumberDraft(next);
+                      setNumberError(null);
+                    }}
+                    disabled={working}
+                    error={numberError}
+                    inputRef={numberRef}
+                  />
+                ) : (
+                  <PublishedNumber number={number} />
+                )}
 
                 <label
                   className={`border-hair mt-5 flex items-start gap-3 rounded-lg border-[1.5px] bg-white p-4 ${
@@ -163,11 +214,9 @@ export function PublishModal({
 
 function ResultBody({
   titleId,
-  number,
   result,
 }: {
   titleId: string;
-  number: number;
   result: PublishResult | null;
 }) {
   if (!result || !result.ok) {
@@ -180,8 +229,7 @@ function ResultBody({
           Publish failed.
         </h2>
         <p className="text-muted mt-2.5 font-sans text-[15px] leading-relaxed">
-          Issue No. {number} couldn&rsquo;t be published. Nothing was sent — try
-          again.
+          The issue couldn&rsquo;t be published. Nothing was sent — try again.
         </p>
       </>
     );
@@ -194,7 +242,7 @@ function ResultBody({
         id={titleId}
         className="text-ink mt-3 font-serif text-[27px] leading-tight"
       >
-        Issue No. {number} is live.
+        Issue No. {result.number} is live.
       </h2>
       <p className="text-muted mt-2.5 font-sans text-[15px] leading-relaxed">
         {emailed === null
