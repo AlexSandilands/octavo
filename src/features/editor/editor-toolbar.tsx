@@ -1,9 +1,9 @@
 "use client";
 
-import { MenuSelect } from "@/components/menu-select";
+import { Icon, type IconName } from "@/components/icons";
+import { MenuSelect, type MenuSelectItem } from "@/components/menu-select";
 import type { BlockType } from "@/lib/blocks";
 import {
-  COVER_ELEMENT_LABELS,
   MAX_COVER_ELEMENTS,
   type CoverElementType,
 } from "@/lib/cover-elements";
@@ -16,12 +16,15 @@ import type { HistoryNotice } from "./use-editor-history";
 /** The block kinds a cover takes; the rest belong to interior pages. */
 const COVER_KINDS: BlockType[] = ["heading", "text", "image"];
 
+/** What the cover's Text menu offers; "" is the unset value no option carries. */
+type TextChoice = "" | "paragraph" | "story" | "details";
+
 // The editor's tool bar: undo/redo, the block-insert buttons and the cover-page
 // toggle. It floats over the foot of the canvas rather than sitting in a strip
 // above it (issue #222) — the tools sit beside the end of the page, which is
 // where an inserted block lands and where the overflow marker appears; a panned
 // page shows through around it. On a cover the insert set narrows to what a
-// cover takes and gains the cover details and a logo.
+// cover takes, Text unfolds into the cover's own text items, and a logo joins it.
 export function EditorToolbar({
   layout,
   onAddBlock,
@@ -92,53 +95,42 @@ export function EditorToolbar({
         onClick={onRedo}
       />
       <BarDivider vertical={vertical} />
-      {kinds.map((b) => (
-        <Tool
-          key={b.type}
-          icon={b.icon}
-          label={b.label}
-          hint={
-            insertDisabled
-              ? "This page is filled by a photo"
-              : `Insert a ${b.label.toLowerCase()} block`
-          }
-          iconClass="text-accent"
-          showLabel={showLabel}
-          disabled={insertDisabled}
-          onClick={() => onAddBlock(b.type)}
-        />
-      ))}
-      {coverActive && (
-        <>
-          {coverElementCount < MAX_COVER_ELEMENTS && (
-            <MenuSelect
-              label=""
-              current="Add detail"
-              triggerLabel="Add detail"
-              ariaLabel="Cover details"
-              value=""
-              side="top"
-              portal
-              items={(["teaser", "contents", "details"] as const).map(
-                (type) => ({
-                  key: type,
-                  value: type,
-                  content: COVER_ELEMENT_LABELS[type],
-                }),
-              )}
-              onSelect={(type) => onAddCoverElement(type as CoverElementType)}
-            />
-          )}
-          <Tool
-            icon="image"
-            label="Logo"
-            hint="Add a logo"
-            showLabel={showLabel}
-            iconClass="text-accent"
-            disabled={coverElementCount >= MAX_COVER_ELEMENTS}
-            onClick={() => onAddCoverElement("logo")}
+      {kinds.map((b) =>
+        coverActive && b.type === "text" ? (
+          <CoverTextMenu
+            key={b.type}
+            icon={b.icon}
+            atCapacity={coverElementCount >= MAX_COVER_ELEMENTS}
+            onAddBlock={onAddBlock}
+            onAddCoverElement={onAddCoverElement}
           />
-        </>
+        ) : (
+          <Tool
+            key={b.type}
+            icon={b.icon}
+            label={b.label}
+            hint={
+              insertDisabled
+                ? "This page is filled by a photo"
+                : `Insert a ${b.label.toLowerCase()} block`
+            }
+            iconClass="text-accent"
+            showLabel={showLabel}
+            disabled={insertDisabled}
+            onClick={() => onAddBlock(b.type)}
+          />
+        ),
+      )}
+      {coverActive && (
+        <Tool
+          icon="image"
+          label="Logo"
+          hint="Add a logo"
+          showLabel={showLabel}
+          iconClass="text-accent"
+          disabled={coverElementCount >= MAX_COVER_ELEMENTS}
+          onClick={() => onAddCoverElement("logo")}
+        />
       )}
       {/* The first page is always the cover, so it gets no toggle at all. */}
       {!coverDisabled && (
@@ -166,5 +158,46 @@ export function EditorToolbar({
         <span key={notice.n}>{notice.text}</span>
       </span>
     </FloatingBar>
+  );
+}
+
+/** On a cover, Text is a menu: an ordinary paragraph, or one of the cover's own
+ *  text items. The cover items drop out at the element cap; a paragraph never does. */
+function CoverTextMenu({
+  icon,
+  atCapacity,
+  onAddBlock,
+  onAddCoverElement,
+}: {
+  icon: IconName;
+  atCapacity: boolean;
+  onAddBlock: (type: BlockType) => void;
+  onAddCoverElement: (type: CoverElementType) => void;
+}) {
+  const items: MenuSelectItem<TextChoice>[] = [
+    { key: "paragraph", value: "paragraph", content: "Paragraph" },
+    ...(atCapacity
+      ? []
+      : ([
+          { key: "story", value: "story", content: "Story" },
+          { key: "details", value: "details", content: "Details" },
+        ] as const)),
+  ];
+  return (
+    <MenuSelect<TextChoice>
+      label=""
+      current="Text"
+      triggerLabel="Text"
+      ariaLabel="Text"
+      icon={<Icon name={icon} size={16} className="text-accent" />}
+      value=""
+      side="top"
+      portal
+      items={items}
+      onSelect={(choice) => {
+        if (choice === "paragraph") onAddBlock("text");
+        else if (choice) onAddCoverElement(choice);
+      }}
+    />
   );
 }

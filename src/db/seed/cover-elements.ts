@@ -1,6 +1,7 @@
 import {
   DEFAULT_COVER_PLACEMENT,
   makeCoverElement,
+  makeCoverStory,
   coverSources,
 } from "../../lib/cover-elements";
 import type { SeedIssue } from "./builders";
@@ -9,12 +10,12 @@ import type { SeedIssue } from "./builders";
 export function withCoverElements(issue: SeedIssue): SeedIssue {
   const front = issue.content.pages[0]!;
   const sources = coverSources(issue.content.pages);
-  const contents = makeCoverElement("contents"),
-    teaser = makeCoverElement("teaser"),
+  const contents = makeCoverElement("story"),
+    story = makeCoverElement("story"),
     details = makeCoverElement("details");
   if (
-    contents.type !== "contents" ||
-    teaser.type !== "teaser" ||
+    contents.type !== "story" ||
+    story.type !== "story" ||
     details.type !== "details"
   )
     return issue;
@@ -49,6 +50,7 @@ export function withCoverElements(issue: SeedIssue): SeedIssue {
             { ...details, text: "Winter 2026" },
             {
               ...contents,
+              title: "Inside this issue",
               placement: {
                 ...contents.placement,
                 appearance: {
@@ -58,17 +60,22 @@ export function withCoverElements(issue: SeedIssue): SeedIssue {
                   shadow: "none",
                 },
               },
-              items: sources
-                .slice(0, 2)
-                .map((s) => ({ headingId: s.id, title: "", description: "" })),
+              items: sources.slice(0, 2).map((s) => makeCoverStory(s.id)),
               showPageNumbers: true,
             },
             {
-              ...teaser,
-              headingId: sources[2]?.id,
-              description: "Stories and discoveries from a year of making.",
+              ...story,
+              headlineSize: "display",
+              items: [
+                {
+                  ...makeCoverStory(sources[2]?.id),
+                  description: "Stories and discoveries from a year of making.",
+                },
+              ],
               placement: {
-                ...teaser.placement,
+                ...story.placement,
+                column: "right",
+                align: "right",
                 style: "paper-panel",
                 width: "narrow",
               },

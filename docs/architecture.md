@@ -118,8 +118,8 @@ as backward-compatible defaults. Per-element appearance can inherit the cover or
 viewport beneath the header (growing for larger text). Interior full-page images keep their
 image-only behaviour. Content is never silently removed: on a grid cover the inspector's layout
 checks name anything that runs past the margin; legacy stacked covers keep the on-page overflow
-marker. `EditorToolbar` offers a cover-specific set on covers: Heading, Text, Image, Add detail
-(story preview, contents list, issue details), and Logo. A floating rounded inspector
+marker. `EditorToolbar` offers a cover-specific set on covers: Heading, Text — a menu of
+Paragraph, Story and Details — Image, and Logo. A floating rounded inspector
 sits over the stage on its docked side; the fit leaves room for it, the page slides away from it
 only as far as the two would otherwise meet (eased), and a page panned towards it shows through
 beneath. Its header grip drags
@@ -127,10 +127,12 @@ it to either side of the page (a plain press flips it; the side is remembered pe
 `use-panel-dock.ts`). The inspector holds whole-item settings in titled bands — Placement, Appearance,
 the item's content — plus the cover's defaults and page toggles when nothing is selected, and a
 "Needs attention" list of layout checks that name the item(s) concerned: pointing at one lights the
-item up on the page, pressing it selects it. Cover menus use viewport-constrained portals so
-inspector scrolling cannot clip their options. Colour rows are the magazine palette plus one custom
-swatch; the native colour input is a 1px anchor at the row's left edge, opened from the swatch, so
-the browser's picker opens over the row rather than off the edge of the screen.
+item up on the page, pressing it selects it. Placement is pinned above the scrolling bands and folds
+away on a press of its title; the fold is remembered per browser (`use-inspector-band.ts`). Cover
+menus use viewport-constrained portals so inspector scrolling cannot clip their options. Colour
+rows are the magazine palette plus one custom swatch; the native colour input is a 1px anchor at
+the row's left edge, opened from the swatch, so the browser's picker opens over the row rather
+than off the edge of the screen.
 
 Cover text uses an inline-only Tiptap editor on the page and in detail fields. Formatting for the
 selected words — bold, italic, underline, a colour and a shadow — is a floating bar over the selected
@@ -143,8 +145,11 @@ field documents carry only cover formatting, and stale documents never override 
 
 **Optional cover elements** are defined in `lib/cover-elements.ts`. `CoverGrid` anchors groups to
 left/centre/right and top/middle/bottom, stacking entries that share an anchor. `CoverElementView`
-renders preview lists, individual teasers, issue details and logos across the editor, reader,
-thumbnail and PDF. `coverSources` derives section titles and page numbers from live headings;
+renders story lists, issue details and logos across the editor, reader, thumbnail and PDF. One
+`story` element covers every cover list: an optional list heading (blank by default, ghosted
+"Inside this issue" in the inspector), one to six linked or free-standing stories, and a stored
+`headlineSize` stepping the headline from 18px to 36px (the description stays at body size).
+`coverSources` derives section titles and page numbers from live headings;
 only an explicitly authored cover title overrides that reference. Logos use the ordinary ImageMap
 and asset reference traversal, with an additional library deletion guard. Heading/text blocks
 can independently opt into `coverPlacement`; otherwise their original cover flow remains.

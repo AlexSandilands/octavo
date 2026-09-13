@@ -84,27 +84,34 @@ Block = Heading | Text | Image | Montage | Video | Sponsor  // discriminated uni
 migrate old rows deliberately. **Current version: 7.** Every string field is length-capped and the
 page/block arrays bounded in the zod schemas, so a bad save can't persist an unbounded document.
 
-**Content v7 — optional cover elements.** `coverElements` stores a bounded array of
-`contents`, `teaser`, `details` and `logo` elements. They are independent of the article-block
-union. Each has a row/column anchor, width, text alignment, vertical adjustment and optional
-contrast override. Optional `textSize` (`small`, `normal`, `large`, `xlarge`) scales text to
-80%, 100%, 120% or 140% independently of wrapping width; omitted means 100%. Heading, text and inline image blocks can opt into the same placement through
-`coverPlacement`, including an optional nonnegative `order` for ordering headings, text and
-cover details together within an anchor. Missing fields preserve the old cover flow; templates add no elements by default.
-`coverOverlay.appearance` and `coverPlacement.appearance` hold independent `panel`, `background`,
-`text`, `shadow` and `shadowColor` overrides. Colours are bounded palette identifiers or six-digit
-hex, never arbitrary CSS; shadows are none/soft/strong. Omitted fields resolve from the saved
-legacy style. `coverPlacement.richText` stores at most 20 keyed, bounded paragraph-only documents
-(title/kicker/text, or preview-id plus field), with bold/italic/underline and a validated colour/shadow
-mark. Plain fields are updated atomically alongside the documents. A document only renders when its
-plain text matches the current field, so source-heading renames cannot display stale words. These
-optional v7 additions keep existing rows readable without migration; normal article rich text is unchanged.
-Preview entries reference heading ids, resolving current titles and page numbers at render time;
-an optional cover title overrides only the preview. Logos retain both their library id and image
-id, so the shared image resolver/cleanup sees the asset and library deletion refuses active cover
-references. Demoting a cover retains its elements in ordinary flow and preserves their positions
-for re-enabling cover styling. The seed's issue 6 explicitly demonstrates the new composition;
-issue 5 retains the deliberate legacy page. Existing rows need no migration or rewrite.
+**Content v7 — optional cover elements.** `coverElements` stores a bounded array of `story`,
+`details` and `logo` elements. A `story` element carries an optional list heading (`title`,
+empty for none), one to six `items` and one `headlineSize` (`compact` | `list` | `large` |
+`display`, stored, never inferred). Each item has its own `id` (so a free-standing story is
+addressable), an optional `headingId` linking it to a section, a title override and a description.
+A new Story starts blank — no list heading, one empty story, the `list` headline size — and the
+editor's Text menu (Paragraph / Story / Details) is where it and the details element come from.
+They are independent of the article-block union. Each has a row/column anchor, width, text alignment,
+vertical adjustment and optional contrast override. Optional `textSize` (`small`, `normal`,
+`large`, `xlarge`) scales text to 80%, 100%, 120% or 140% independently of wrapping width; omitted
+means 100%. Heading, text and inline image blocks can opt into the same placement through
+`coverPlacement`, including an optional nonnegative `order` for ordering headings, text and cover
+details together within an anchor. Missing fields preserve the old cover flow; templates add no
+elements by default. `coverOverlay.appearance` and `coverPlacement.appearance` hold independent
+`panel`, `background`, `text`, `shadow` and `shadowColor` overrides. Colours are bounded palette
+identifiers or six-digit hex, never arbitrary CSS; shadows are none/soft/strong. Omitted fields
+resolve from the saved legacy style. `coverPlacement.richText` stores at most 20 keyed, bounded
+paragraph-only documents (title/kicker/text, or story-id plus field), with bold/italic/underline
+and a validated colour/shadow mark. Plain fields are updated atomically alongside the documents. A
+document only renders when its plain text matches the current field, so source-heading renames
+cannot display stale words. These optional v7 additions keep existing rows readable without
+migration; normal article rich text is unchanged. Linked stories reference heading ids, resolving
+current titles and page numbers at render time; an optional cover title overrides only what the
+cover prints. Logos retain both their library id and image id, so the shared image
+resolver/cleanup sees the asset and library deletion refuses active cover references. Demoting a
+cover retains its elements in ordinary flow and preserves their positions for re-enabling cover
+styling. The seed's issue 6 explicitly demonstrates the new composition; issue 5 retains the
+deliberate legacy page. Existing rows need no migration or rewrite.
 
 **Content v2 (issue #8) — sponsor blocks reference the `sponsors` table.** A sponsor block now
 carries an optional `sponsorId`; the reader/editor resolve the referenced sponsor's live

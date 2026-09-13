@@ -26,10 +26,13 @@ await withCoverFixture(
     cover.blocks = [photo, heading];
     const detail = makeCoverElement("details");
     detail.id = "pinned";
-    const story = makeCoverElement("teaser");
+    const story = makeCoverElement("story");
     story.id = "story";
-    assert(story.type === "teaser");
-    story.title = "A story at the side";
+    assert(story.type === "story");
+    story.placement = { ...story.placement, column: "right", align: "right" };
+    story.items = [
+      { id: "one", title: "A story at the side", description: "" },
+    ];
     cover.coverElements = [detail, story];
     await sql`update issues set content=${sql.json(initial)} where id=${id}`;
     await page.goto(edit);

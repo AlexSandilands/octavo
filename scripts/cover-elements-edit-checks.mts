@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import type { CoverFixture } from "./cover-elements-fixture.mts";
 
-export async function checkCoverEdits(f: CoverFixture) {
+export async function checkCoverEdits(f: CoverFixture, storyId: string) {
   const { page, waitSaved } = f;
   await page.setViewportSize({ width: 1440, height: 1000 });
   const canvas = page.locator("[data-page-frame]");
@@ -10,6 +10,12 @@ export async function checkCoverEdits(f: CoverFixture) {
   });
   const clickCanvas = async (name: string) =>
     canvas.getByRole("button", { name, exact: true }).click();
+  // Its name follows the heading it links to, which these checks rename; the id doesn't.
+  const clickStory = async () =>
+    canvas
+      .locator(`[data-cover-element="${storyId}"]`)
+      .getByRole("button", { name: /^Edit Story/ })
+      .click();
   const close = async () => page.getByRole("button", { name: "Done" }).click();
   const logoSize = (c: Awaited<ReturnType<CoverFixture["stored"]>>) => {
     const logo = c.pages[0]?.coverElements?.find((e) => e.type === "logo");
@@ -42,7 +48,7 @@ export async function checkCoverEdits(f: CoverFixture) {
   assert.equal(await canvas.locator("[data-cover-element]").count(), 3);
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   assert.equal(await canvas.locator("[data-cover-element]").count(), 4);
-  await clickCanvas("Edit Story preview");
+  await clickStory();
   await panel.getByRole("checkbox", { name: "Use cover appearance" }).uncheck();
   await panel
     .getByRole("button", { name: "Background: panel", exact: true })
@@ -50,15 +56,17 @@ export async function checkCoverEdits(f: CoverFixture) {
   await panel
     .getByRole("button", { name: "Panel colour: Charcoal", exact: true })
     .click();
-  const teaser = canvas.locator('[data-cover-entry][data-cover-panel="true"]');
-  assert.equal(await teaser.count(), 1);
+  const panelled = canvas.locator(
+    '[data-cover-entry][data-cover-panel="true"]',
+  );
+  assert.equal(await panelled.count(), 1);
   assert.equal(
     await canvas
       .locator('[data-block-id="masthead"] [data-cover-copy]')
       .last()
       .evaluate((el) => getComputedStyle(el).textShadow !== "none"),
     true,
-    "teaser override leaves main heading treatment unchanged",
+    "story override leaves main heading treatment unchanged",
   );
   await panel.getByRole("checkbox", { name: "Use cover appearance" }).check();
   await close();
@@ -83,7 +91,7 @@ export async function checkCoverEdits(f: CoverFixture) {
     .getByRole("button", { name: "Delete", exact: true })
     .click();
   await page.getByRole("button", { name: "1", exact: true }).click();
-  await clickCanvas("Edit Story preview");
+  await clickStory();
   await panel.getByText(/links to a section that no longer exists/).waitFor();
   await close();
   await page.getByRole("button", { name: "Undo", exact: true }).click();

@@ -256,7 +256,12 @@ export async function browserPass(base: string, cover: Page) {
       "55%",
     );
     await page.getByRole("button", { name: "Undo", exact: true }).click();
+    // On a cover the Text tool is a menu; Paragraph inserts the ordinary block.
     await page.getByRole("button", { name: "Text", exact: true }).click();
+    await page
+      .getByRole("menu", { name: "Text", exact: true })
+      .getByRole("menuitemradio", { name: "Paragraph", exact: true })
+      .click();
     assert.equal(await canvas.locator("[data-block-id]").count(), 4);
     await page.getByRole("button", { name: "Undo", exact: true }).click();
     await openCoverLayout();
@@ -330,7 +335,7 @@ export async function browserPass(base: string, cover: Page) {
     console.log("Checking tablet controls");
     await page.setViewportSize({ width: 1024, height: 900 });
     await openCoverLayout();
-    for (const name of [/^Background: panel$/, /^Add detail$/, /^Logo$/]) {
+    for (const name of [/^Background: panel$/, /^Text$/, /^Logo$/]) {
       const bounds = await page.getByRole("button", { name }).boundingBox();
       assert(bounds && bounds.x >= 0 && bounds.x + bounds.width <= 1024);
     }

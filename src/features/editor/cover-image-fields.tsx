@@ -7,6 +7,7 @@ import { Segments } from "./cover-segments";
 import { CoverPlacementControls } from "./cover-placement-controls";
 import { CoverAppearanceControls } from "./cover-appearance-controls";
 import { ImageBlockControl } from "./image-upload";
+import type { InspectorBand } from "./use-inspector-band";
 
 const SIZES = [
   { value: "33", label: "S", name: "small" },
@@ -24,17 +25,19 @@ type Props = {
   onRegisterImage: (id: string, image: ResolvedImage) => void;
 };
 
-/** How a cover photo sits: normal / fill / fit, then size and position. Pinned above the scroll. */
+/** How a cover photo sits: normal / fill / fit, then size and position. Pinned
+ *  above the scroll, and folded away by the same shared band as a text item's. */
 export function CoverImagePlacement({
   block,
   page,
   onChange,
   onFillPage,
-}: Props) {
+  band,
+}: Props & { band: InspectorBand }) {
   if (!block.imageId) return null;
   const owned = isFillPage(block);
   return (
-    <InspectorSection title="Placement">
+    <InspectorSection title="Placement" collapsible={band}>
       <Segments
         label="Placement"
         value={owned ? (block.align as PageAlign) : "normal"}
