@@ -26,6 +26,7 @@
 // Run: npx tsx scripts/dev-dialog-a11y-gate.mts <base-url>
 import postgres from "postgres";
 import { chromium, type Page } from "playwright";
+import { expandMember } from "./check-member-disclosure.mts";
 
 process.loadEnvFile?.(".env.local");
 const base = process.argv[2];
@@ -359,6 +360,11 @@ try {
   await page.goto(`${base}/admin/members?q=scratch-130`);
   await page.waitForSelector(`text=${email}`);
   const editLabel = `Edit ${email}`;
+  await expandMember(
+    page
+      .locator(".members-row")
+      .filter({ has: page.locator(`button[aria-label="${editLabel}"]`) }),
+  );
   await page.click(`button[aria-label="${editLabel}"]`);
   await page.waitForSelector("[role=dialog]");
   await checkOpenDialog(page, "Edit member");
@@ -402,6 +408,11 @@ try {
   await page.goto(`${base}/admin/members?q=scratch-130-other`);
   await page.waitForSelector(`text=${otherEmail}`);
   const removeLabel = `Remove ${otherName}`;
+  await expandMember(
+    page
+      .locator(".members-row")
+      .filter({ has: page.locator(`button[aria-label="${removeLabel}"]`) }),
+  );
   await page.click(`button[aria-label="${removeLabel}"]`);
   await page.waitForSelector("[role=dialog]");
   // Asserted before the Tab lap below moves focus off it.

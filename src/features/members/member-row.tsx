@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { Icon } from "@/components/icons";
+import { useId, useState, useTransition } from "react";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { MemberDialog } from "./member-dialog";
 import { SelectCheckbox } from "@/components/select-checkbox";
 import { Avatar, IconButton, Pill } from "@/components/ui";
-import { MemberNotes } from "./member-notes-disclosure";
+import { MemberDetails } from "./member-details";
 import styles from "./members-layout.module.css";
 import { initials } from "@/lib/initials";
 import {
@@ -25,9 +24,6 @@ const REASONS: Record<string, string> = {
   invalid: "Something went wrong. Please try again.",
 };
 
-const joinedLabel = (d: Date) =>
-  new Date(d).toLocaleDateString("en-NZ", { month: "short", year: "numeric" });
-
 export function MemberRow({
   member,
   currentUserId,
@@ -39,6 +35,8 @@ export function MemberRow({
   selected: boolean;
   onSelect: (id: string, next: boolean) => void;
 }) {
+  const [expanded, setExpanded] = useState(false);
+  const detailsId = useId();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -91,7 +89,10 @@ export function MemberRow({
   };
 
   return (
-    <div className="members-row border-line-soft border-b py-3">
+    <div
+      className="members-row border-line-soft border-b py-3"
+      data-expanded={expanded}
+    >
       <div className={styles.grid}>
         <div className={styles.identity}>
           <SelectCheckbox
@@ -99,7 +100,9 @@ export function MemberRow({
             onChange={(next) => onSelect(member.id, next)}
             label={`Select ${label}`}
           />
-          <Avatar initials={initials(label)} />
+          <span className={styles.avatar}>
+            <Avatar initials={initials(label)} />
+          </span>
           <div className={styles.identityText} data-member-cell="identity">
             <div className="text-ink font-sans text-[15px] font-semibold">
               {member.name ?? "—"}
@@ -110,13 +113,8 @@ export function MemberRow({
           </div>
         </div>
 
-        <div className={styles.notes} data-member-cell="notes">
-          <span className={styles.fieldLabel}>Notes</span>
-          <MemberNotes notes={member.notes} label={label} />
-        </div>
-
-        <div data-member-cell="subscription">
-          <span className={styles.fieldLabel}>Subscription</span>
+        <div className={styles.subscription} data-member-cell="subscription">
+          <span className="sr-only">Subscription</span>
           <button
             type="button"
             onClick={toggleSubscribed}
@@ -131,60 +129,26 @@ export function MemberRow({
           </button>
         </div>
 
-        <div data-member-cell="role">
-          <span className={styles.fieldLabel}>Role</span>
-          <button
-            type="button"
-            onClick={toggleAdmin}
-            disabled={pending || isSelf}
-            title={
-              isSelf
-                ? "You can’t change your own admin access"
-                : member.isAdmin
-                  ? "Remove admin access"
-                  : "Make admin"
-            }
-            aria-label={`${member.isAdmin ? "Remove admin from" : "Make admin"} ${label}`}
-            className="text-muted hover:text-accent flex min-h-11 cursor-pointer items-center gap-1.5 rounded transition-colors font-sans text-[13px] font-medium disabled:cursor-default disabled:opacity-40 disabled:hover:text-current"
-          >
-            <Icon
-              name={member.isAdmin ? "check" : "plus"}
-              size={15}
-              strokeWidth={1.8}
-            />
-            {member.isAdmin ? "Admin" : "Make admin"}
-          </button>
-        </div>
-
-        <div
-          className="text-faint font-sans text-[13px]"
-          data-member-cell="joined"
-        >
-          <span className={styles.fieldLabel}>Joined</span>
-          <span className="inline-flex min-h-11 items-center">
-            {joinedLabel(member.createdAt)}
-          </span>
-        </div>
-
-        <div className={styles.actions} data-member-cell="actions">
+        <span className={styles.detailsToggle} data-member-details-toggle>
           <IconButton
-            icon="pencil"
+            icon="chevronDown"
             size={18}
-            label={`Edit ${label}`}
-            title="Edit member details"
-            onClick={() => setEditing(true)}
-            disabled={pending}
+            label={`${expanded ? "Hide" : "Show"} details for ${label}`}
+            aria-expanded={expanded}
+            aria-controls={detailsId}
+            onClick={() => setExpanded((current) => !current)}
           />
-          <IconButton
-            icon="close"
-            size={20}
-            label={`Remove ${label}`}
-            title={isSelf ? "You can’t remove yourself" : "Remove member"}
-            onClick={remove}
-            disabled={pending || isSelf}
-            className="enabled:hover:text-warn"
-          />
-        </div>
+        </span>
+        <MemberDetails
+          id={detailsId}
+          member={member}
+          label={label}
+          pending={pending}
+          isSelf={isSelf}
+          onToggleAdmin={toggleAdmin}
+          onEdit={() => setEditing(true)}
+          onRemove={remove}
+        />
       </div>
 
       {error && (

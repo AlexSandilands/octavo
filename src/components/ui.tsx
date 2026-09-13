@@ -189,13 +189,25 @@ export const IconButton = forwardRef<
     /** Accessible name — an icon alone says nothing. */
     label: string;
     title?: string;
+    "aria-expanded"?: boolean;
+    "aria-controls"?: string;
     onClick?: () => void;
     size?: number;
     disabled?: boolean;
     className?: string;
   }
 >(function IconButton(
-  { icon, label, title, onClick, size = 22, disabled = false, className = "" },
+  {
+    icon,
+    label,
+    title,
+    onClick,
+    "aria-expanded": ariaExpanded,
+    "aria-controls": ariaControls,
+    size = 22,
+    disabled = false,
+    className = "",
+  },
   ref,
 ) {
   // Same disabled treatment as Button: dimmed, no pointer, and the hover wash
@@ -210,6 +222,8 @@ export const IconButton = forwardRef<
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
+      aria-expanded={ariaExpanded}
+      aria-controls={ariaControls}
       title={title}
       className={`text-muted -m-2 inline-flex items-center justify-center rounded-lg p-2 transition-[background-color,color] duration-150 ${state} ${className}`}
     >

@@ -99,10 +99,13 @@ src/
   same scrollport as the rows, so the real scrollbar gutter aligns both without
   compensating padding. The selection and avatar occupy their own 44px and 36px
   tracks with 12px gaps; the heading starts on the member-text track. Compact
-  rows retain the notes, joined date and all actions, with local field labels;
-  overflowing notes use their two-line text preview as the hover, click and
-  keyboard target, with a subtle hover underline and focus ring. The full text
-  opens in a floating, scrollable popup without
+  rows start collapsed with selection, name/email, subscription and a details
+  chevron; only that chevron expands the row. Compact rows omit the avatar and
+  move subscription below the email below 32rem. Details reveal notes when
+  present, the role and admin control, joined date, and labelled Edit/Remove
+  buttons. Each row keeps its own expansion through resizing; desktop always
+  shows all columns. Overflowing notes remain a two-line preview: hover or press
+  the note text to read its full contents in a floating, scrollable popup without
   changing row height. A press pins the popup for touch and keyboard use;
   Escape or an outside press dismisses it.
 

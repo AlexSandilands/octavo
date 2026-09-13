@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import type { Locator, Page } from "playwright";
+import { expandMember } from "./check-member-disclosure.mts";
 
 async function withinViewport(page: Page, popup: Locator) {
   const box = await popup.boundingBox();
@@ -100,13 +101,14 @@ export async function checkMemberNotesPopup(
   await popup.waitFor({ state: "hidden" });
   assert(
     await row
-      .locator('[data-member-cell="subscription"] button')
+      .locator('[data-member-cell="role"] button')
       .evaluate((el) => el === document.activeElement),
     "Tab continues to the next row control",
   );
 
   for (const width of [320, 390, 1024, 1440]) {
     await page.setViewportSize({ width, height: 600 });
+    await expandMember(row);
     await trigger.scrollIntoViewIfNeeded();
     const before = (await row.boundingBox())!.height;
     await trigger.click();
@@ -142,6 +144,11 @@ export async function checkMemberNotesPopup(
     await touch.addCookies(await page.context().cookies());
     const phone = await touch.newPage();
     await phone.goto(page.url());
+    await phone
+      .locator(".members-row")
+      .first()
+      .getByRole("button", { name: /^Show details for / })
+      .tap();
     const preview = phone
       .getByRole("button", { name: /Read full notes for/ })
       .first();

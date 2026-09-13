@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import postgres from "postgres";
 import { chromium, type Page } from "playwright";
+import { checkMemberDisclosure } from "./check-member-disclosure.mts";
 import { checkMemberNotesPopup } from "./check-member-notes-popup.mts";
 
 const base = process.argv[2] ?? "http://localhost:3263";
@@ -252,6 +253,11 @@ try {
     );
   }
 
+  await checkMemberDisclosure(page, row, output);
+  for (const width of [320, 640, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await checkLayout(`expanded-${width}`);
+  }
   await checkMemberNotesPopup(page, row, output);
 
   await row

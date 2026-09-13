@@ -16,6 +16,7 @@ import { chromium, type BrowserContext } from "playwright";
 import postgres from "postgres";
 import { randomUUID } from "node:crypto";
 import { emptyIssueContent } from "../src/lib/blocks.ts";
+import { expandMember } from "./check-member-disclosure.mts";
 
 process.loadEnvFile?.(".env.local");
 const base = process.argv[2] ?? "http://localhost:3000";
@@ -66,6 +67,12 @@ async function trial(
   const page = await ctx.newPage();
   await page.goto(`${base}${path}`);
   const rowButton = `button[aria-label="${deleteLabel}"]`;
+  await page.waitForSelector(rowButton, { state: "attached" });
+  if (path.startsWith("/admin/members")) {
+    await expandMember(
+      page.locator(".members-row").filter({ has: page.locator(rowButton) }),
+    );
+  }
   await page.waitForSelector(rowButton);
   await page.click(rowButton);
   await page.waitForSelector("[role=dialog]");
