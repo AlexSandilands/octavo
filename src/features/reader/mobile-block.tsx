@@ -13,6 +13,7 @@ import { isFillPage } from "@/features/blocks/layout";
 import { RichText } from "@/features/blocks/rich-text";
 import { resolveMontageSlides } from "@/features/blocks/montage";
 import { MontagePlayer } from "@/features/blocks/montage-player";
+import { MontageCaption } from "@/features/blocks/montage-caption";
 import { VideoPlayer } from "@/features/blocks/video-player";
 
 // One block as the mobile reader draws it. Split out of mobile-reader.tsx, which
@@ -188,36 +189,34 @@ export function MobileBlock({
       );
     }
     case "montage": {
-      // Content v4. Placed exactly like the image block above, with the same
-      // cross-fade widget the flipbook uses. Its timer only runs while the block
-      // is scrolled into view — the whole issue is one mounted column here.
       const slides = resolveMontageSlides(block.items, images);
+      if (slides.length > 0) {
+        return (
+          <MontagePlayer
+            slides={slides}
+            intervalSeconds={block.interval}
+            caption={block.caption}
+            mobileFontSize={Math.max(12, m - 5)}
+            {...pictureFigure(block.width, cover)}
+          />
+        );
+      }
       return (
         <figure {...pictureFigure(block.width, cover)}>
-          {slides.length > 0 ? (
-            <MontagePlayer
-              slides={slides}
-              intervalSeconds={block.interval}
-              label={block.caption}
-            />
-          ) : (
-            <div className="photo-fill border-placeholder-line flex h-[180px] items-center justify-center border">
-              <span className="bg-page text-faint px-2 py-1 font-mono text-[11px]">
-                {block.caption || "MONTAGE"}
-              </span>
-            </div>
-          )}
-          {block.caption && (
-            <figcaption
-              className="text-faint mt-2 font-sans"
-              style={{ fontSize: Math.max(12, m - 5), lineHeight: 1.4 }}
-            >
-              {block.caption}
-            </figcaption>
-          )}
+          <div className="photo-fill border-placeholder-line flex h-[180px] items-center justify-center border">
+            <span className="bg-page text-faint px-2 py-1 font-mono text-[11px]">
+              {block.caption || "MONTAGE"}
+            </span>
+          </div>
+          <MontageCaption
+            slides={slides}
+            caption={block.caption}
+            mobileFontSize={Math.max(12, m - 5)}
+          />
         </figure>
       );
     }
+
     case "video": {
       // Content v5. Placed exactly like the image block above, with the same
       // facade the flipbook uses: the poster and a play button, and the YouTube

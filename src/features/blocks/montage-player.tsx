@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, type CSSProperties } from "react";
 import { Icon } from "@/components/icons";
-import { MontageFrame, montageAspectRatio, type MontageSlide } from "./montage";
+import { MontageFrame, montageAspectRatio } from "./montage";
 import { useMontage } from "./use-montage";
+import { MontageCaption, type MontageCaptionProps } from "./montage-caption";
 
 // The animated montage (issue #95), rendered only on the read path — both the
 // desktop flipbook and the mobile scroll reader mount this one widget. The
@@ -38,15 +39,18 @@ import { useMontage } from "./use-montage";
 export function MontagePlayer({
   slides,
   intervalSeconds,
-  label,
-}: {
-  slides: MontageSlide[];
+  caption,
+  themeId,
+  mobileFontSize,
+  className,
+  style,
+}: MontageCaptionProps & {
   intervalSeconds: number;
-  /** The block's caption, used to name the group when there is one. */
-  label?: string;
+  className?: string;
+  style?: CSSProperties;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const { index, next, prev, interaction } = useMontage(
+  const ref = useRef<HTMLElement>(null);
+  const { index, next, prev, interaction, playing } = useMontage(
     ref,
     slides.length,
     intervalSeconds,
@@ -55,14 +59,14 @@ export function MontagePlayer({
   const many = slides.length > 1;
 
   return (
-    <div
+    <figure
       ref={ref}
       role="group"
-      aria-label={label ? `Montage: ${label}` : "Image montage"}
+      aria-label="Image montage"
       // A *named* group: EditorBlock and other ancestors use the bare `group`
       // class, and an unnamed group-hover would match those too.
-      className="group/montage relative w-full overflow-hidden"
-      style={{ aspectRatio: montageAspectRatio(slides) }}
+      className={`group/montage ${className ?? ""}`}
+      style={style}
       onKeyDown={(e) => {
         if (!many) return;
         if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
@@ -75,36 +79,49 @@ export function MontagePlayer({
       }}
       {...interaction}
     >
-      {slides.map((slide, i) => (
-        <div
-          key={`${slide.image.url}-${i}`}
-          // Only the slide on screen is announced; the rest are stacked beneath
-          // it at zero opacity and must not reach a screen reader.
-          aria-hidden={i !== index}
-          // motion-reduce drops `transition-property` entirely, so a
-          // reduced-motion reader gets an instant swap, not a faster fade.
-          className={`absolute inset-0 transition-opacity duration-700 ease-out motion-reduce:transition-none ${
-            i === index ? "opacity-100" : "opacity-0"
-          }`}
-        >
-          <MontageFrame slide={slide} priority={i === 0} />
-        </div>
-      ))}
+      <div
+        className="relative w-full overflow-hidden"
+        style={{ aspectRatio: montageAspectRatio(slides) }}
+      >
+        {slides.map((slide, i) => (
+          <div
+            key={`${slide.image.url}-${i}`}
+            // Only the slide on screen is announced; the rest are stacked beneath
+            // it at zero opacity and must not reach a screen reader.
+            aria-hidden={i !== index}
+            // motion-reduce drops `transition-property` entirely, so a
+            // reduced-motion reader gets an instant swap, not a faster fade.
+            className={`absolute inset-0 transition-opacity duration-700 ease-out motion-reduce:transition-none ${
+              i === index ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            <MontageFrame slide={slide} priority={i === 0} />
+          </div>
+        ))}
 
-      {many && (
-        <>
-          <Arrow side="left" label="Previous image" onClick={prev} />
-          <Arrow side="right" label="Next image" onClick={next} />
-          {/* Always visible — never hover-gated. It is the only thing telling a
+        {many && (
+          <>
+            <Arrow side="left" label="Previous image" onClick={prev} />
+            <Arrow side="right" label="Next image" onClick={next} />
+            {/* Always visible — never hover-gated. It is the only thing telling a
               reader the montage has more in it, so it has to be legible before
               any interaction. Sized down ~15% from the original chip. */}
-          <p className="border-hair bg-card text-ink absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border px-2.5 py-[3px] font-sans text-[10px] font-semibold tabular-nums shadow-[0_2px_10px_rgba(40,36,28,0.22)]">
-            <span className="sr-only">Image </span>
-            {index + 1} / {slides.length}
-          </p>
-        </>
-      )}
-    </div>
+            <p className="border-hair bg-card text-ink absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border px-2.5 py-[3px] font-sans text-[10px] font-semibold tabular-nums shadow-[0_2px_10px_rgba(40,36,28,0.22)]">
+              <span className="sr-only">Image </span>
+              {index + 1} / {slides.length}
+            </p>
+          </>
+        )}
+      </div>
+      <MontageCaption
+        slides={slides}
+        caption={caption}
+        themeId={themeId}
+        mobileFontSize={mobileFontSize}
+        index={index}
+        live={playing ? "off" : "polite"}
+      />
+    </figure>
   );
 }
 

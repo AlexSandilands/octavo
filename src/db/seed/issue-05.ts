@@ -3,6 +3,7 @@ import {
   H,
   Img,
   mkIssue,
+  Mont,
   page,
   type SeedImages,
   T,
@@ -74,6 +75,20 @@ export const issue05 = (img: SeedImages) =>
     // render identically to a v3 block; only the stored shape differs.
     page([
       H("From the Society's Archive", "Minutes, Recovered", "section"),
+      // Deliberate pre-v8 montage: shared caption and no item caption fields.
+      {
+        ...Mont([], {
+          caption: "An ornamental plate from the society’s archive.",
+          width: 30,
+        }),
+        items: [
+          {
+            imageId: img.plate,
+            alt: "Concentric engraved circles and radiating ticks.",
+          },
+        ],
+        type: "montage",
+      },
       Traw(
         "A note in the plain style of our earliest newsletters, found loose in the 1987 minute book: Resolved, that the society's copy of Middlemarch, missing since the spring outing, be considered not lost but at large; and that the member last seen with it be pursued by no means sterner than the raising of eyebrows at the annual dinner. Carried without dissent, one abstention.",
       ),

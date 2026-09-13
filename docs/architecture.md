@@ -97,7 +97,10 @@ Block types: `heading | text | image | montage | video | sponsor`. Defined once 
 set. It marks the render paths where a block may animate and be driven by the member; the print/PDF
 document, the editor canvas and the library thumbnail leave it off and get one deterministic frame
 with no client JS. Two blocks read it: `montage` (player vs. first slide) and `video` (a play-button
-facade vs. the poster frame plus the address in printable text).
+facade vs. the poster frame plus the address in printable text). Montage captions follow the
+active image in both readers; `MontageCaption` shares the same maximum caption-height reserve
+with the static first-image surfaces. Legacy shared captions remain until explicitly converted
+in the editor dialog; per-image captions and screen-reader descriptions are separate fields.
 
 **The desktop reader's page turn is a shaded paper curl** (issue #215), split the same way as the
 rest of the reader: `curl-model.ts` samples the turn's geometry once per flip — a hinge chain of six

@@ -117,7 +117,8 @@ const themeSchema = z
 // v13 onward: full-page cover photos, positioned cover elements and their
 // follow-ups (issue #243 and after) — each visible change to the cover
 // renderer bumped it.
-const RENDER_VERSION = 21;
+// v22: per-image montage captions and stable space for the longest caption.
+const RENDER_VERSION = 22;
 
 // Percent-encode for an RFC 8187 ext-value (the `filename*=UTF-8''…` form).
 // Only attr-char may appear bare there: ALPHA / DIGIT / "!" / "#" / "$" / "&" /
