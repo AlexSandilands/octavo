@@ -5,11 +5,9 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui";
 import { createIssueAction } from "@/app/admin/actions";
 
-// Creating a draft opens it, by a client navigation rather than the action's
-// own redirect(): Next 16.3 emits the scripts for loading/error boundaries
-// without the CSP nonce, and a server-action redirect re-renders from the root,
-// so its response carries one of those and the strict CSP in src/proxy.ts stops
-// the router applying the redirect at all (issue #276).
+// Navigates itself instead of the action calling redirect(): under this app's
+// CSP a server-action redirect never lands in a production build
+// (src/proxy.ts, #276).
 export function CreateIssueButton({
   children,
   iconPosition,
