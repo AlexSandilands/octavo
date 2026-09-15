@@ -100,6 +100,7 @@ when to use it versus migrations.
 - [Roadmap](docs/ROADMAP.md) — phase ordering, product decisions; work is tracked as GitHub issues.
 - [Workflow](docs/workflow.md) — the per-issue process, model routing, and required gates.
 - [Infrastructure](docs/infrastructure.md) — hosting components, setup order, costs.
+- [Changelog email](docs/changelog-email.md) — generate an editable release update and paste it into Proton Mail.
 
 ## Status
 
