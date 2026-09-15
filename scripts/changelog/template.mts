@@ -118,11 +118,21 @@ export function renderChangelogPage(input: ChangelogTemplateInput): string {
     catch { status.textContent = "Automatic copy was blocked. Select the email preview and copy it manually."; }
   });
 
+  // Copy while this tab still has focus, then open Proton. "noopener" would make
+  // window.open return null, so the opener is cut by hand to detect a blocked popup.
   document.querySelector("#copy-open").addEventListener("click", async () => {
-    const proton = window.open(protonUrl, "_blank", "noopener,noreferrer");
+    let copiedOk = true;
     try { await copyEmail(); }
-    catch { status.textContent = "Proton opened, but automatic copy was blocked. Select the preview and copy it manually."; }
-    if (!proton) window.location.href = protonUrl;
+    catch { copiedOk = false; }
+    const proton = window.open(protonUrl, "_blank");
+    if (proton) proton.opener = null;
+    if (!copiedOk) {
+      status.textContent = proton
+        ? "Proton opened, but automatic copy was blocked. Select the preview and copy it manually."
+        : "Automatic copy and the Proton tab were both blocked. Copy the preview manually, then use Open Proton Mail.";
+    } else if (!proton) {
+      status.textContent = "Copied, but the Proton tab was blocked. Use Open Proton Mail.";
+    }
   });
 </script>
 </body>
