@@ -32,11 +32,11 @@ import { getAdminUser } from "@/server/session";
 const importLimiter = createRateLimiter({ limit: 30, windowMs: 60_000 });
 const operationSchema = z.string().uuid();
 
+// No origin check: a browser sends no `Origin` on a same-origin GET, and this
+// one changes nothing and answers only for the admin's own operation.
 export async function GET(request: Request) {
   const admin = await getAdminUser();
-  if (!sameOrigin(request) || !admin) {
-    return refusal("forbidden", "Admin access required.", 403);
-  }
+  if (!admin) return refusal("forbidden", "Admin access required.", 403);
   const operation = operationSchema.safeParse(
     new URL(request.url).searchParams.get("operation"),
   );

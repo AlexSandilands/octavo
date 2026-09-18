@@ -46,6 +46,7 @@ import {
   issueRow,
   sponsorBlockOf,
 } from "./issue-transfer-probes.mts";
+import { checkDialog } from "./issue-transfer-dialog.mts";
 import { checkDisconnect } from "./issue-transfer-disconnect.mts";
 import {
   checkCleanupAndRecovery,
@@ -385,11 +386,21 @@ try {
 
   // ── a client that walks away ──────────────────────────────────────────────
   heading("the import survives the browser going away");
-  await checkDisconnect(ok, {
+  const committedOperationId = await checkDisconnect(ok, {
     base,
     cookie: admin.cookie,
     bundle,
     issueIds: (await issueIdsIn(bundle)) ?? [],
+  });
+  await adoptNewRows();
+
+  heading("the dialog itself, in a real browser");
+  await checkDialog(ok, {
+    base,
+    adminId: admin.id,
+    adminCookie: admin.cookie,
+    bundleFile,
+    committedOperationId,
   });
   await adoptNewRows();
 

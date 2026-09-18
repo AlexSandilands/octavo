@@ -233,7 +233,10 @@ an operation id is worth: the recorded result if `committed`, "still running" if
 first and only re-uploads when there is no record — after a dropped connection on an
 80 MB file, the question is much cheaper than the answer. A lookup only ever answers
 to the admin who started the operation. Closing the modal and importing the file again
-mints a new id: a deliberate second import.
+mints a new id: a deliberate second import. Closing it *while the archive is still
+going up* — Escape, the backdrop, or the modal unmounting — aborts the upload, so that
+second import can never be a duplicate of one left running out of sight; once the body
+has arrived the modal is locked instead, because the server finishes regardless.
 
 The modal keeps an operation id only while the outcome is genuinely unknown (a dropped
 connection, "still running"). Anything the server answered definitively starts a fresh
@@ -259,7 +262,10 @@ in `next.config.ts` still apply. Raising the limit instead would make every rout
 including unauthenticated ones, buffer larger bodies in memory.
 
 Export, plan and import all check `sameOrigin` (`src/lib/same-origin.ts`) and
-`getAdminUser()`; import is rate-limited per admin.
+`getAdminUser()`; import is rate-limited per admin. The status `GET` checks the admin
+only: a browser sends no `Origin` on a same-origin GET, so `sameOrigin` would refuse
+every real retry, and a lookup that writes nothing and answers only for the caller's
+own operation has nothing for a forged request to gain.
 
 `@zip.js/zip.js` is the one dependency, on both ends: it reads random-access from a
 `FileHandle` on the server and from a `File` through `slice` in the browser, writes,

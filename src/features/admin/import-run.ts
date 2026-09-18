@@ -18,6 +18,9 @@ export async function askStatus(
     const response = await fetch(
       `/api/admin/issues/import?operation=${encodeURIComponent(operationId)}`,
     );
+    // Only the lookup's own answers count. Anything else (a 403, a 500) says
+    // nothing about the import, and re-sending under the same id is safe.
+    if (!response.ok && response.status !== 404) return null;
     const body = (await response.json()) as ImportResponse;
     return body.ok || body.code !== "unknown-operation" ? body : null;
   } catch {

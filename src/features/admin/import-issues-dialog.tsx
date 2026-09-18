@@ -57,6 +57,14 @@ export function ImportIssuesDialog({ onClose }: { onClose: () => void }) {
     plan !== null &&
     [...plan.sponsors, ...plan.logos].some((e) => e.outcome === "ambiguous");
 
+  // Escape, the backdrop or an unmount while the archive is still going up must
+  // stop it: an upload nobody is watching would still import.
+  useEffect(() => () => runRef.current?.cancel(), []);
+  const dismiss = () => {
+    runRef.current?.cancel();
+    onClose();
+  };
+
   // The Import button goes with the result, so focus is placed on the one button
   // left rather than dropped on <body> (issue #133).
   useEffect(() => {
@@ -153,7 +161,7 @@ export function ImportIssuesDialog({ onClose }: { onClose: () => void }) {
     <DialogShell
       panelClassName="scrollbar-soft bg-card max-h-[90vh] w-[520px] max-w-full overflow-y-auto rounded-[10px] [--scrollbar-surface:var(--color-card)] [scrollbar-gutter:stable] shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
       locked={waiting}
-      onClose={onClose}
+      onClose={dismiss}
     >
       {(titleId) => (
         <>

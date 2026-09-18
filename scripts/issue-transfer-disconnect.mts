@@ -21,7 +21,7 @@ export async function checkDisconnect(
     bundle: Buffer;
     issueIds: string[];
   },
-): Promise<void> {
+): Promise<string | null> {
   const operationId = crypto.randomUUID();
   made.operations.push(operationId);
   const abort = new AbortController();
@@ -64,7 +64,7 @@ export async function checkDisconnect(
     settled !== null,
     "the import finished anyway after the client disconnected",
   );
-  if (!settled?.result) return;
+  if (!settled?.result) return null;
 
   const created = settled.result.issues[0]!.id;
   const [row] = await db
@@ -74,11 +74,12 @@ export async function checkDisconnect(
     .limit(1);
   ok(row !== undefined, "  …and its drafts are really there");
 
-  // The retry the modal makes: a plain question, no archive attached.
+  // The retry the modal makes: a plain question, no archive attached — and no
+  // Origin header, because a browser sends none on a same-origin GET.
   const asked = await fetch(
     `${context.base}/api/admin/issues/import?operation=${operationId}`,
     {
-      headers: { origin: new URL(context.base).origin, cookie: context.cookie },
+      headers: { cookie: context.cookie },
     },
   );
   const body = (await asked.json()) as ImportResponse;
@@ -96,7 +97,7 @@ export async function checkDisconnect(
   const unknown = await fetch(
     `${context.base}/api/admin/issues/import?operation=${crypto.randomUUID()}`,
     {
-      headers: { origin: new URL(context.base).origin, cookie: context.cookie },
+      headers: { cookie: context.cookie },
     },
   );
   const missing = (await unknown.json()) as ImportResponse;
@@ -106,6 +107,7 @@ export async function checkDisconnect(
       missing.code === "unknown-operation",
     "an operation the server never saw says so, so the modal uploads",
   );
+  return operationId;
 }
 
 async function waitFor<T>(
