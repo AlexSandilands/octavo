@@ -1,7 +1,7 @@
-import * as Sentry from "@sentry/nextjs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { z } from "zod";
 import {
   IMPORT_DECISIONS_HEADER,
   importRequestSchema,
@@ -17,25 +17,36 @@ import {
   BundleTooLargeError,
   writeBundleFile,
 } from "@/server/issue-transfer/archive";
-import { importBundle } from "@/server/issue-transfer/import";
+import { answer, importBundle } from "@/server/issue-transfer/import";
+import { readImport } from "@/server/issue-transfer/operations";
+import { report } from "@/server/issue-transfer/report";
 import { getAdminUser } from "@/server/session";
 
-// Import a bundle (issue #293). The zip is the raw request body and the
-// decisions ride in one bounded header, so nothing has to buffer the archive to
-// find them. The reply is newline-delimited JSON: a phase line as the server
-// moves from checking to importing, then the result — which is how the modal
-// says what is happening during a wait that can run to a minute.
+// POST imports a bundle: the zip is the raw body, the decisions ride in one
+// bounded header, and the reply is newline-delimited JSON — a phase line, then
+// the result. GET answers what an operation id is worth, so a retry after a
+// dropped connection need not re-upload the archive to find out.
 //
-// **This path is excluded from the proxy matcher** (src/proxy.ts). Next buffers
-// every proxied request body and silently truncates it at 10 MB, which would
-// hand this handler a partial archive with no error of any kind.
+// This path is excluded from the proxy matcher (src/proxy.ts).
 
-// Each import inflates, decodes and hashes what can be a quarter-gigabyte
-// archive, so throttle per admin even after the auth check — the caps make one
-// request safe, volume is the gap. Matched to the image upload route's budget,
-// which is generous enough that an admin working through a folder of exports
-// (several of them refused) never trips it.
 const importLimiter = createRateLimiter({ limit: 30, windowMs: 60_000 });
+const operationSchema = z.string().uuid();
+
+export async function GET(request: Request) {
+  const admin = await getAdminUser();
+  if (!sameOrigin(request) || !admin) {
+    return refusal("forbidden", "Admin access required.", 403);
+  }
+  const operation = operationSchema.safeParse(
+    new URL(request.url).searchParams.get("operation"),
+  );
+  if (!operation.success) {
+    return refusal("bad-request", "Something went wrong. Please try again.");
+  }
+  const state = await readImport(operation.data, admin.id);
+  const response = answer(state);
+  return Response.json(response, { status: response.ok ? 200 : 404 });
+}
 
 export async function POST(request: Request) {
   const admin = await getAdminUser();
@@ -87,7 +98,9 @@ export async function POST(request: Request) {
         413,
       );
     }
-    throw error;
+    // The body stopped arriving — the modal's own Cancel, or a dropped
+    // connection. Nothing was claimed and nothing was written.
+    return refusal("cancelled", "The upload didn’t finish.");
   }
 
   // From here the work is not tied to the request: if the browser goes away the
@@ -96,8 +109,15 @@ export async function POST(request: Request) {
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const send = (value: unknown) =>
-        controller.enqueue(encoder.encode(`${JSON.stringify(value)}\n`));
+      // Enqueueing on a cancelled stream throws; a departed reader must never
+      // be able to fail the import that is writing to it.
+      const send = (value: unknown) => {
+        try {
+          controller.enqueue(encoder.encode(`${JSON.stringify(value)}\n`));
+        } catch {
+          // nobody is listening
+        }
+      };
       try {
         send(
           await importBundle({
@@ -109,9 +129,9 @@ export async function POST(request: Request) {
           }),
         );
       } catch (error) {
-        Sentry.captureException(error, {
-          tags: { route: "admin/issues/import" },
-          extra: { adminId: admin.id, operationId: decisions.operationId },
+        report(error, {
+          route: "admin/issues/import",
+          operationId: decisions.operationId,
         });
         send({
           ok: false,
@@ -121,7 +141,11 @@ export async function POST(request: Request) {
         } satisfies ImportResponse);
       } finally {
         await rm(dir, { recursive: true, force: true }).catch(() => {});
-        controller.close();
+        try {
+          controller.close();
+        } catch {
+          // already cancelled
+        }
       }
     },
   });
