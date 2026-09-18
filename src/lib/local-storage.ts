@@ -1,5 +1,12 @@
 import "server-only";
-import { mkdir, readdir, readFile, unlink, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  readdir,
+  readFile,
+  rmdir,
+  unlink,
+  writeFile,
+} from "node:fs/promises";
 import path from "node:path";
 
 // Dev-only object storage on the local filesystem, used when R2 isn't configured
@@ -26,19 +33,41 @@ export async function putLocalObject(key: string, body: Buffer): Promise<void> {
   await writeFile(dest, body);
 }
 
+// Null means the object is not there; anything else — a permission error, a
+// broken tree — is thrown, the same distinction listLocalKeys makes and the
+// same one R2's getObject makes (NoSuchKey/404 vs everything else). A caller
+// that must not silently drop an asset (the bundle exporter) can only tell
+// "gone" from "storage didn't answer" if this layer does.
 export async function readLocalObject(key: string): Promise<Buffer | null> {
   try {
     return await readFile(resolveSafe(key));
-  } catch {
-    return null; // missing object or rejected key
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException)?.code;
+    if (code === "ENOENT" || code === "ENOTDIR") return null;
+    throw err;
   }
 }
 
 export async function deleteLocalObject(key: string): Promise<void> {
+  let dest: string;
   try {
-    await unlink(resolveSafe(key));
+    dest = resolveSafe(key);
+    await unlink(dest);
   } catch {
-    // already gone — nothing to do
+    return; // already gone, or a rejected key — nothing to do
+  }
+  await pruneEmptyDirs(path.dirname(dest));
+}
+
+// A bucket has no directories; the local fallback does, so a swept prefix would
+// otherwise leave an empty tree behind for every issue and every import.
+async function pruneEmptyDirs(dir: string): Promise<void> {
+  for (let at = dir; at.startsWith(ROOT + path.sep); at = path.dirname(at)) {
+    try {
+      await rmdir(at);
+    } catch {
+      return; // not empty, or gone
+    }
   }
 }
 

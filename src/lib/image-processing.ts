@@ -5,7 +5,7 @@ import sharp from "sharp";
 // the longest edge, strip metadata, re-encode. One format out keeps the reader
 // fast and storage predictable (design-principles §8).
 
-const MAX_EDGE = 2000; // px — generous for a full-bleed magazine page
+export const MAX_EDGE = 2000; // px — generous for a full-bleed magazine page
 const WEBP_QUALITY = 82;
 // Hard input ceiling well below sharp's ~268MP default: a byte-small but
 // pixel-dense image can't balloon memory during decode. ~50MP covers any
@@ -30,6 +30,30 @@ export type ProcessedImage = {
   height: number;
   contentType: "image/webp";
 };
+
+/**
+ * Check bytes that are already stored-shaped — an imported bundle's WebP, which
+ * is written through untouched rather than re-encoded. Returns the real format
+ * and size, or null when it does not decode at all. The probe resizes to 8px so
+ * the input is genuinely decoded (metadata alone reads only the header) without
+ * holding a full-size bitmap per image.
+ */
+export async function inspectStoredImage(
+  input: Buffer,
+): Promise<{ format: string; width: number; height: number } | null> {
+  try {
+    const options = {
+      failOn: "error",
+      limitInputPixels: MAX_INPUT_PIXELS,
+    } as const;
+    const { format, width, height } = await sharp(input, options).metadata();
+    if (!format || !width || !height) return null;
+    await sharp(input, options).resize(8, 8, { fit: "fill" }).raw().toBuffer();
+    return { format, width, height };
+  } catch {
+    return null;
+  }
+}
 
 export async function processImage(input: Buffer): Promise<ProcessedImage> {
   const pipeline = sharp(input, {

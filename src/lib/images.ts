@@ -1,4 +1,5 @@
 import type { IssueContent } from "./blocks";
+import { imageSites, siteImageId } from "./image-sites";
 
 // Image blocks store only an `imageId`. To render, the server resolves those ids
 // to public R2 URLs (+ intrinsic size) and hands the result to the renderers as
@@ -20,24 +21,15 @@ export type ImageMap = Record<string, ResolvedImage>;
 // stored poster frame, so a single resolve call still gives the renderers
 // everything a page needs. This is the only traversal that feeds the ImageMap,
 // so a block type that references an image and is missed here resolves to
-// nothing on every surface at once.
+// nothing on every surface at once — which is why the traversal itself lives in
+// image-sites.ts and is shared with the issue-transfer rewrite.
 export function collectImageIds(
   content: Pick<IssueContent, "pages">,
 ): string[] {
   const ids = new Set<string>();
-  for (const page of content.pages) {
-    for (const element of page.coverElements ?? []) {
-      if (element.type === "logo" && element.imageId) ids.add(element.imageId);
-    }
-    for (const block of page.blocks) {
-      if (block.type === "image" && block.imageId) ids.add(block.imageId);
-      if (block.type === "montage") {
-        for (const item of block.items) ids.add(item.imageId);
-      }
-      if (block.type === "video" && block.posterImageId) {
-        ids.add(block.posterImageId);
-      }
-    }
+  for (const site of imageSites(content)) {
+    const id = siteImageId(site);
+    if (id) ids.add(id);
   }
   return [...ids];
 }
