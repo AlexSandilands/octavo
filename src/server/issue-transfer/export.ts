@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { images, issues, logos, sponsors } from "@/db/schema";
 import { CONTENT_VERSION } from "@/lib/blocks";
 import { imageSites } from "@/lib/image-sites";
+import { inspectStoredImage } from "@/lib/image-processing";
 import { collectImageIds } from "@/lib/images";
 import { collectSponsorIds } from "@/lib/sponsors";
 import {
@@ -27,15 +28,10 @@ import type { ExportOmissions } from "@/lib/issue-transfer/result";
 import { getObject } from "@/lib/storage";
 import { streamZip } from "./zip";
 
-// Building a bundle. Everything is read and measured before a single byte of
-// the response is sent, for two reasons: the manifest carries each file's size
-// and hash, and an export that cannot be honoured — over the limits, or storage
-// refusing to answer — has to be refused while it is still a message on screen
-// rather than a half-written download.
-//
-// A row or object that is genuinely **absent** is left out and reported. A
-// storage **read error** fails the whole export: a temporary outage must never
-// quietly ship a bundle with holes in it.
+// Building a bundle (docs/issue-transfer.md#export). Everything is read and
+// measured before a byte of the response is sent: the manifest carries each
+// file's size and hash, and a refusal has to arrive as a message rather than a
+// half-written download.
 
 export type ExportResult =
   | { ok: false; refusal: Refusal }
@@ -46,8 +42,8 @@ export type ExportResult =
       body: ReadableStream<Uint8Array>;
     };
 
-/** An image entry: read once to measure and hash it, read again as it is sent,
- *  so only one object's bytes are ever held. */
+/** Read once to measure and hash, read again as it is sent, so only one
+ *  object's bytes are ever held. */
 type ImageEntry = { file: string; key: string; bytes: number };
 
 export async function buildExport(ids: string[]): Promise<ExportResult> {
@@ -147,9 +143,8 @@ export async function buildExport(ids: string[]): Promise<ExportResult> {
     omit("image", imageIds.size - imageRows.length);
   }
 
-  // One read per object: it is the only way to know the size and hash the
-  // manifest has to carry, and it is where "absent" and "storage did not
-  // answer" are told apart.
+  // Where "absent" (left out, reported) and "storage did not answer" (the whole
+  // export fails) are told apart.
   const imageEntries: ImageEntry[] = [];
   const manifestImages: BundleManifest["images"] = [];
   let total = documents.reduce((sum, doc) => sum + doc.body.length, 0);
@@ -178,13 +173,21 @@ export async function buildExport(ids: string[]): Promise<ExportResult> {
         ),
       };
     }
+    // `images.width`/`height` are nullable, and the importer checks the declared
+    // size against the decoded one — so a row with no recorded size takes it
+    // from the bytes rather than writing a zero the other end would refuse.
+    const size = await sizeOf(row, bytes);
+    if (!size) {
+      omit("image");
+      continue;
+    }
     const file = imageEntryPath(row.id);
     imageEntries.push({ file, key: row.key, bytes: bytes.length });
     manifestImages.push({
       id: row.id,
       file,
-      width: row.width ?? 0,
-      height: row.height ?? 0,
+      width: size.width,
+      height: size.height,
       bytes: bytes.length,
       sha256: digest(bytes),
     });
@@ -204,22 +207,19 @@ export async function buildExport(ids: string[]): Promise<ExportResult> {
       sha256: digest(doc.body),
     })),
     images: manifestImages,
-    // A library row whose artwork went missing would describe an image the
-    // bundle cannot supply, so it is left out with it.
-    sponsors: sponsorRows
-      .filter((row) => !row.logoId || present.has(row.logoId))
-      .map((row) => ({
-        id: row.id,
-        name: row.name,
-        href: row.href,
-        activeUntil: row.activeUntil?.toISOString() ?? null,
-        logoImageId: row.logoId,
-      })),
+    // A sponsor survives its artwork going missing — the name and link are what
+    // the block resolves. A logo does not: a logo is its mark.
+    sponsors: sponsorRows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      href: row.href,
+      activeUntil: row.activeUntil?.toISOString() ?? null,
+      logoImageId: row.logoId && present.has(row.logoId) ? row.logoId : null,
+    })),
     logos: logoRows
       .filter((row) => present.has(row.imageId))
       .map((row) => ({ id: row.id, name: row.name, imageId: row.imageId })),
   };
-  omit("sponsor", sponsorRows.length - manifest.sponsors.length);
   omit("logo", logoRows.length - manifest.logos.length);
   for (const kind of ["issue", "image", "sponsor", "logo"] as const) {
     if (omitted[kind] === 0) delete omitted[kind];
@@ -244,6 +244,17 @@ export async function buildExport(ids: string[]): Promise<ExportResult> {
   return { ok: true, filename: exportFilename(), omitted, body };
 }
 
+async function sizeOf(
+  row: { width: number | null; height: number | null },
+  bytes: Buffer,
+): Promise<{ width: number; height: number } | null> {
+  if (row.width && row.height) {
+    return { width: row.width, height: row.height };
+  }
+  const info = await inspectStoredImage(bytes);
+  return info ? { width: info.width, height: info.height } : null;
+}
+
 function serialise(value: unknown): Buffer {
   return Buffer.from(JSON.stringify(value), "utf8");
 }
@@ -252,8 +263,7 @@ function digest(bytes: Buffer): string {
   return createHash("sha256").update(bytes).digest("hex");
 }
 
-// Fixed and ASCII on purpose: no magazine name means no RFC 8187 ext-value and
-// no header-escaping question (unlike the PDF download, issue #138).
+// ASCII and fixed, so there is no RFC 8187 ext-value to escape (issue #138).
 function exportFilename(): string {
   return `octavo-issues-${new Date().toISOString().slice(0, 10)}.zip`;
 }

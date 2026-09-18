@@ -33,17 +33,24 @@ export async function putLocalObject(key: string, body: Buffer): Promise<void> {
   await writeFile(dest, body);
 }
 
-// Null means the object is not there; anything else — a permission error, a
-// broken tree — is thrown, the same distinction listLocalKeys makes and the
-// same one R2's getObject makes (NoSuchKey/404 vs everything else). A caller
-// that must not silently drop an asset (the bundle exporter) can only tell
-// "gone" from "storage didn't answer" if this layer does.
+// Null is "there is no such object" — a rejected key, a missing file, a path
+// that names a directory. Anything else (a permission error, a broken tree) is
+// thrown, which is the distinction R2's getObject already makes and the only
+// way a caller that must not silently drop an asset can tell the two apart.
 export async function readLocalObject(key: string): Promise<Buffer | null> {
+  let dest: string;
   try {
-    return await readFile(resolveSafe(key));
+    dest = resolveSafe(key);
+  } catch {
+    return null;
+  }
+  try {
+    return await readFile(dest);
   } catch (err) {
     const code = (err as NodeJS.ErrnoException)?.code;
-    if (code === "ENOENT" || code === "ENOTDIR") return null;
+    if (code === "ENOENT" || code === "ENOTDIR" || code === "EISDIR") {
+      return null;
+    }
     throw err;
   }
 }
