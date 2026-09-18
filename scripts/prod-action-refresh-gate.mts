@@ -4,8 +4,10 @@
 // re-render and left stale rows indefinitely. Each trial deletes a scratch row
 // through the UI and fails if the row is still on screen 8s later; the bug
 // fired on ~2/3 of trials, so a clean sweep of all twelve is a reliable
-// detector. A last trial presses "Create new issue": the redirect that used to
-// do it never landed on a production build (#276).
+// detector. 20 more trials press "Create new issue" and land in the editor:
+// the flavour where router.push() never commits under the same CSP-blocked
+// boundary script (#296) is rarer than #276's redirect(), so needs a bigger
+// sample to catch reliably.
 //
 // Run against a production server:
 //   rm -rf .next && npm run build
@@ -165,7 +167,7 @@ try {
 
   // Create — pressing the button must land in the new draft's editor (#276).
   await sample(
-    1,
+    20,
     "create then edit",
     async () => {
       const ctx = await adminContext();
@@ -191,8 +193,23 @@ try {
       ok(!!row, "the create action wrote a draft");
       const landed = page.url() === `${base}/admin/issues/${row!.id}/edit`;
       if (!landed) console.log(`  (stayed at ${page.url()})`);
+      // Back to the dashboard must still show the new draft — keyed by id,
+      // since other 'Untitled draft' rows may already be on screen.
+      let backShowsDraft = true;
+      if (landed) {
+        await page.goBack();
+        try {
+          await page.waitForSelector(
+            `a[href="/admin/issues/${row!.id}/edit"]`,
+            { timeout: 8000 },
+          );
+        } catch {
+          backShowsDraft = false;
+          console.log(`  (draft ${row!.id} missing from dashboard after Back)`);
+        }
+      }
       await ctx.close();
-      return landed && mounted;
+      return landed && mounted && backShowsDraft;
     },
     "landed in the editor",
   );
