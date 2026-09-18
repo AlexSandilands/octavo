@@ -1,5 +1,5 @@
 import "server-only";
-import { eq, sql } from "drizzle-orm";
+import { inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { images, issues, logos, sponsors } from "@/db/schema";
 import type { ImportDecision } from "@/lib/issue-transfer/decisions";
@@ -32,30 +32,16 @@ import {
   importObjectKey,
   markCommitted,
   sweepAbandonedImports,
+  type ImportState,
 } from "./operations";
 import { verifyBundle, type VerifiedBundle } from "./verify";
 
-// Importing a bundle, in the order that makes the guarantee true: **database
-// changes are atomic; object cleanup is immediate when possible and recoverable
-// afterwards when it is not.**
-//
-//   validate (writes nothing) → claim the operation → write the objects →
-//   ONE transaction inserts every row and marks the operation committed →
-//   respond.
-//
-// Anything that goes wrong after the operation is claimed deletes
-// `imports/<id>/` at once; if that fails the row stays `started` and the sweep
-// finishes the job later. Nothing here is tied to the request's abort signal:
-// once checking has begun the server finishes even if the browser has gone, so
-// a retry with the same operation id gets the recorded answer.
-//
-// No `revalidatePath`: the dashboard is force-dynamic and the modal refreshes
-// the router when the result lands, and this routine is driven in-process by
-// the gate as well as from a request.
+// Validate, claim the operation, write the objects, then one transaction for
+// every row (docs/issue-transfer.md#the-operation-record). Nothing here depends
+// on the client still being connected, or on the progress callback returning.
 
-// Imports are serialised against each other: two arriving at once must not both
-// decide to create "Acme". Transaction-scoped, so it is released by the commit
-// or the rollback and can never be left held.
+// Transaction-scoped, so two imports cannot both decide to create "Acme" and the
+// lock can never be left held.
 const IMPORT_LOCK_KEY = 293_000_001;
 
 export type ImportInput = {
@@ -70,7 +56,16 @@ export async function importBundle(
   input: ImportInput,
 ): Promise<ImportResponse> {
   await sweepAbandonedImports();
-  input.onPhase?.("checking");
+  // The callback writes to a response stream that may already have been
+  // cancelled; an import must not fail because nobody is listening.
+  const phase = (at: ImportPhase) => {
+    try {
+      input.onPhase?.(at);
+    } catch {
+      // the client has gone
+    }
+  };
+  phase("checking");
 
   const opened = await openBundle(input.file, MAX_INFLATED_BYTES);
   if (!opened.ok) {
@@ -85,7 +80,7 @@ export async function importBundle(
   }
 
   try {
-    return await runImport(input, opened.archive);
+    return await runImport(input, opened.archive, phase);
   } finally {
     await opened.archive.close().catch(() => {});
   }
@@ -94,6 +89,7 @@ export async function importBundle(
 async function runImport(
   input: ImportInput,
   archive: BundleArchive,
+  phase: (at: ImportPhase) => void,
 ): Promise<ImportResponse> {
   const verified = await verifyBundle(archive);
   if (!verified.ok) return fail(verified.refusal);
@@ -114,27 +110,9 @@ async function runImport(
   if (!planned.ok) return fail(planned.refusal);
 
   const claim = await beginImport(input.operationId, input.adminId);
-  if (claim.state === "committed") {
-    return { ok: true, result: claim.result, retried: true };
-  }
-  if (claim.state === "running") {
-    return fail(
-      refuse(
-        "still-running",
-        "This import is still going. Give it a moment, then try again.",
-      ),
-    );
-  }
-  if (claim.state === "abandoned") {
-    return fail(
-      refuse(
-        "abandoned",
-        "That import didn’t finish. Close this and choose the file again.",
-      ),
-    );
-  }
+  if (claim.state !== "started") return answer(claim);
 
-  input.onPhase?.("importing");
+  phase("importing");
   try {
     const written = await writeImages(
       archive,
@@ -147,7 +125,12 @@ async function runImport(
       result: await commit(input, verified.bundle, ids, written),
     };
   } catch (err) {
-    await abandonImport(input.operationId);
+    const cleanup = await abandonImport(input.operationId, input.adminId);
+    // The commit landed and only its acknowledgement was lost: the rows are
+    // real, the objects are the ones they point at, and this is the answer.
+    if (cleanup.outcome === "committed") {
+      return { ok: true, result: cleanup.result, retried: true };
+    }
     if (err instanceof LibraryMovedError) return fail(err.refusal);
     report(err, { operationId: input.operationId, adminId: input.adminId });
     return fail(
@@ -156,6 +139,39 @@ async function runImport(
         "The import didn’t go through, and nothing was changed. Please try again.",
       ),
     );
+  }
+}
+
+/** What a known operation id is worth, in the shape the modal reads. */
+export function answer(state: ImportState): ImportResponse {
+  switch (state.state) {
+    case "committed":
+      return { ok: true, result: state.result, retried: true };
+    case "running":
+      return fail(
+        refuse(
+          "still-running",
+          "This import is still going. Give it a moment, then try again.",
+        ),
+      );
+    case "abandoned":
+      return fail(
+        refuse(
+          "abandoned",
+          "That import didn’t finish. Close this and choose the file again.",
+        ),
+      );
+    case "not-yours":
+      return fail(
+        refuse(
+          "not-yours",
+          "Another administrator started that import. Close this and choose the file again.",
+        ),
+      );
+    case "unknown":
+      return fail(
+        refuse("unknown-operation", "There is no record of that import."),
+      );
   }
 }
 
@@ -194,9 +210,11 @@ async function writeImages(
   );
   const written = new Map<string, string>();
   for (const image of planned.images) {
-    // After the first one, so the gate can fail an import *partway through*.
+    // After the first one, so the gate can fail an import partway through.
     if (written.size > 0) throwIfInjected("objects");
-    const bytes = await archive.read(
+    // `reread`: these entries were matched against their declared size and hash
+    // during verification, so they must not spend the zip-bomb budget twice.
+    const bytes = await archive.reread(
       imageEntryPath(image.bundleId),
       sizes.get(image.bundleId) ?? 0,
     );
@@ -210,12 +228,10 @@ async function writeImages(
   return written;
 }
 
-// The one transaction. It re-reads the library under the advisory lock and
-// resolves again, because the first pass ran unlocked: another import that
-// committed in between may already have created the sponsor this one was going
-// to. Adapting is the point — that is what makes two concurrent imports of the
-// same bundle create each entry once. The one thing it cannot adapt to is a
-// library row disappearing, which would need bytes that are no longer coming.
+// Resolves a second time under the advisory lock, because the first pass ran
+// unlocked and another import may have created the same sponsor in between.
+// Adapting is what makes two concurrent imports create each entry once; the one
+// thing it cannot adapt to is a row disappearing, whose bytes never arrived.
 async function commit(
   input: { operationId: string },
   verified: VerifiedBundle,
@@ -248,18 +264,19 @@ async function commit(
       );
     }
 
-    // images.issueId → issues.id and issues.logoId → logos.id → logos.imageId →
-    // images.id is a cycle, so the rows go in dependency order and the images
-    // adopt their issue once it exists.
-    for (const image of bundle.images) {
-      const entry = sizes.get(image.bundleId)!;
-      await tx.insert(images).values({
-        id: image.id,
-        key: importObjectKey(input.operationId, image.id),
-        width: entry.width,
-        height: entry.height,
-        issueId: null,
-      });
+    // images.issueId → issues.id → logos.id → logos.imageId → images.id is a
+    // cycle, so the rows go in dependency order and the images adopt their issue
+    // afterwards. Batched: this transaction holds the global import lock.
+    for (const batch of chunk(bundle.images, INSERT_BATCH)) {
+      await tx.insert(images).values(
+        batch.map((image) => ({
+          id: image.id,
+          key: importObjectKey(input.operationId, image.id),
+          width: sizes.get(image.bundleId)!.width,
+          height: sizes.get(image.bundleId)!.height,
+          issueId: null,
+        })),
+      );
     }
     for (const logo of bundle.logos) {
       if (logo.action === "create" && logo.imageId) {
@@ -279,25 +296,30 @@ async function commit(
         activeUntil: source.activeUntil ? new Date(source.activeUntil) : null,
       });
     }
-    for (const issue of bundle.issues) {
-      // A fresh draft every time: no number, revision 0, never published.
-      await tx.insert(issues).values({
-        id: issue.id,
-        title: issue.title,
-        theme: issue.theme,
-        status: "draft",
-        content: issue.content,
-        footerMarkSize: issue.footerMarkSize,
-        footerTextSize: issue.footerTextSize,
-        logoId: issue.logoId,
-      });
+    for (const batch of chunk(bundle.issues, INSERT_BATCH)) {
+      await tx.insert(issues).values(
+        batch.map((issue) => ({
+          id: issue.id,
+          title: issue.title,
+          theme: issue.theme,
+          status: "draft" as const,
+          content: issue.content,
+          footerMarkSize: issue.footerMarkSize,
+          footerTextSize: issue.footerTextSize,
+          logoId: issue.logoId,
+        })),
+      );
     }
+    const owned = new Map<string, string[]>();
     for (const image of bundle.images) {
       if (!image.issueId) continue;
+      owned.set(image.issueId, [...(owned.get(image.issueId) ?? []), image.id]);
+    }
+    for (const [issueId, imageIds] of owned) {
       await tx
         .update(images)
-        .set({ issueId: image.issueId })
-        .where(eq(images.id, image.id));
+        .set({ issueId })
+        .where(inArray(images.id, imageIds));
     }
 
     throwIfInjected("transaction");
@@ -320,6 +342,10 @@ async function commit(
     return { result, surplus };
   });
 
+  // The rows are in. A failure from here is the lost-acknowledgement case the
+  // caller's cleanup has to recognise rather than undo.
+  throwIfInjected("post-commit");
+
   // Committed. An object the first pass uploaded for a library entry the second
   // pass found already there belongs to nothing — best-effort, like every other
   // post-commit sweep (server/asset-cleanup.ts).
@@ -327,6 +353,18 @@ async function commit(
     await deleteObject(key).catch(() => {});
   }
   return result;
+}
+
+// Postgres caps a statement's parameters at 65535; a few hundred rows of a
+// handful of columns each is comfortably inside it and one round trip.
+const INSERT_BATCH = 200;
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const batches: T[][] = [];
+  for (let at = 0; at < items.length; at += size) {
+    batches.push(items.slice(at, at + size));
+  }
+  return batches;
 }
 
 function fail(refusal: Refusal): ImportResponse {

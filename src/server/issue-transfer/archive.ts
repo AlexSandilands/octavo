@@ -3,19 +3,12 @@ import { open, type FileHandle } from "node:fs/promises";
 import { MAX_BUNDLE_ENTRIES } from "@/lib/issue-transfer/limits";
 import { zip } from "./zip";
 
-// Reading an untrusted archive. Three rules hold here and nowhere else:
-//
-//   1. an entry name is never a filesystem path — the temp file is opened by a
-//      path this process chose, and names are only ever compared as strings,
-//   2. only the names the manifest lists are read, and each must match its own
-//      path shape exactly, so `__MACOSX/…` and `../…` are simply never asked for,
-//   3. sizes are enforced *while inflating*. The central directory's
-//      `uncompressedSize` is the archive's own claim; a bounded writer that
-//      refuses past its cap is ours.
+// Reading an untrusted archive: entry names are never filesystem paths, only the
+// names the manifest lists are ever asked for, and sizes are enforced while
+// inflating rather than believed from the central directory.
 
 export class BundleTooLargeError extends Error {}
 export class EntryTooLargeError extends Error {}
-/** The whole archive inflated past its budget — what a zip bomb trips. */
 export class InflationBudgetError extends Error {}
 
 /** Stream a request body to a file, aborting the moment it outgrows the cap
@@ -46,10 +39,8 @@ export async function writeBundleFile(
   return bytes;
 }
 
-// Random access over the temp file: zip.js reads the central directory at the
-// end and then seeks to each entry, so nothing is inflated that is not asked
-// for. `init` is idempotent because zip.js may re-initialise the reader it was
-// handed, and one open handle per read would leak them.
+// `init` is idempotent: zip.js may re-initialise the reader it was handed, and
+// one open handle per read would leak them.
 class FileHandleReader extends zip.Reader<string> {
   #handle: FileHandle | null = null;
   #path: string;
@@ -77,15 +68,13 @@ class FileHandleReader extends zip.Reader<string> {
   }
 }
 
-// Counts what actually arrives rather than the size the headers declare, against
-// its own cap and the whole bundle's remaining inflation budget.
 class BoundedWriter extends zip.Writer<Buffer> {
   #chunks: Uint8Array[] = [];
   #written = 0;
   #cap: number;
   #budget: { remaining: number };
-  /** zip.js wraps whatever a writer throws, so the reason is kept here for the
-   *  caller to rethrow — the difference between "too big" and "damaged". */
+  // zip.js wraps whatever a writer throws, so the reason is kept for the caller
+  // to rethrow — the difference between "too big" and "damaged".
   failure: Error | null = null;
 
   constructor(cap: number, budget: { remaining: number }) {
@@ -115,8 +104,16 @@ class BoundedWriter extends zip.Writer<Buffer> {
 
 export type BundleArchive = {
   has(name: string): boolean;
-  /** Inflate one listed entry, refusing past `cap` or the shared budget. */
+  /** Names the archive holds more than once. A listed name among them is
+   *  refused: "first wins" is where zip parser differentials live. */
+  readonly duplicated: ReadonlySet<string>;
+  /** Inflate an entry that has not been checked yet; draws on the zip-bomb
+   *  budget shared by the whole archive. */
   read(name: string, cap: number): Promise<Buffer>;
+  /** Inflate an entry already matched against its declared size and hash. It
+   *  cannot be a bomb, so it gets its own budget rather than spending the
+   *  shared one a second time. */
+  reread(name: string, cap: number): Promise<Buffer>;
   close(): Promise<void>;
 };
 
@@ -135,19 +132,20 @@ export async function openBundle(
     await source.release();
   };
 
-  // Files only: a directory entry has no data, and the two path shapes the
-  // manifest may name are files.
   const entries = new Map<string, zip.FileEntry>();
+  const duplicated = new Set<string>();
+  let scanned = 0;
   try {
     for await (const entry of reader.getEntriesGenerator()) {
-      if (entries.size >= MAX_BUNDLE_ENTRIES) {
+      // Every entry counts towards the cap, directories and repeats included —
+      // otherwise a million of either never trips it.
+      if (++scanned > MAX_BUNDLE_ENTRIES) {
         await close();
         return { ok: false, reason: "too-many-entries" };
       }
-      // A later duplicate is ignored, so a name can only ever mean one entry.
-      if (!entry.directory && !entries.has(entry.filename)) {
-        entries.set(entry.filename, entry);
-      }
+      if (entry.directory) continue;
+      if (entries.has(entry.filename)) duplicated.add(entry.filename);
+      else entries.set(entry.filename, entry);
     }
   } catch {
     await close();
@@ -155,20 +153,28 @@ export async function openBundle(
   }
 
   const budget = { remaining: inflatedBudget };
+  const inflate = async (
+    name: string,
+    cap: number,
+    against: { remaining: number },
+  ) => {
+    const entry = entries.get(name);
+    if (!entry) throw new EntryTooLargeError();
+    const writer = new BoundedWriter(cap, against);
+    try {
+      return await entry.getData(writer);
+    } catch (err) {
+      throw writer.failure ?? err;
+    }
+  };
+
   return {
     ok: true,
     archive: {
       has: (name) => entries.has(name),
-      read: async (name, cap) => {
-        const entry = entries.get(name);
-        if (!entry) throw new EntryTooLargeError();
-        const writer = new BoundedWriter(cap, budget);
-        try {
-          return await entry.getData(writer);
-        } catch (err) {
-          throw writer.failure ?? err;
-        }
-      },
+      duplicated,
+      read: (name, cap) => inflate(name, cap, budget),
+      reread: (name, cap) => inflate(name, cap, { remaining: cap }),
       close,
     },
   };

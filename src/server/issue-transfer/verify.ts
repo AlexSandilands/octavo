@@ -13,6 +13,8 @@ import {
   MAX_MANIFEST_BYTES,
 } from "@/lib/issue-transfer/limits";
 import {
+  BUNDLE_FORMAT,
+  BUNDLE_FORMAT_VERSION,
   checkManifest,
   GENERIC_REFUSAL,
   manifestEnvelopeSchema,
@@ -26,10 +28,7 @@ import {
 import { InflationBudgetError, type BundleArchive } from "./archive";
 
 // Everything an archive can be wrong about, decided before a single row or
-// object is written. The manifest is the only entry read before any of it is
-// trusted, and every other entry is read by the name the manifest gives, capped
-// at the size it declares — so "larger than it says" is caught while inflating
-// rather than believed from the header.
+// object is written (docs/issue-transfer.md).
 
 export type VerifiedBundle = {
   manifest: BundleManifest;
@@ -60,7 +59,7 @@ export async function verifyBundle(
 }
 
 async function checkArchive(archive: BundleArchive): Promise<VerifyResult> {
-  if (!archive.has(MANIFEST_PATH)) {
+  if (!archive.has(MANIFEST_PATH) || archive.duplicated.has(MANIFEST_PATH)) {
     return { ok: false, refusal: GENERIC_REFUSAL };
   }
 
@@ -78,14 +77,13 @@ async function checkArchive(archive: BundleArchive): Promise<VerifyResult> {
     return { ok: false, refusal: GENERIC_REFUSAL };
   }
 
-  // Read the envelope first so a bundle from another tool, or a future format,
-  // says so instead of failing as "not a valid export".
+  // The envelope first, so a bundle from another tool or a future format says so
+  // instead of failing as "not a valid export".
   const envelope = manifestEnvelopeSchema.safeParse(parsed);
   if (!envelope.success) return { ok: false, refusal: GENERIC_REFUSAL };
   const { format, formatVersion } = envelope.data;
-  if (format !== "octavo-issues")
-    return { ok: false, refusal: GENERIC_REFUSAL };
-  if (formatVersion !== 1) {
+  if (format !== BUNDLE_FORMAT) return { ok: false, refusal: GENERIC_REFUSAL };
+  if (formatVersion !== BUNDLE_FORMAT_VERSION) {
     return {
       ok: false,
       refusal: refuse(
@@ -113,6 +111,9 @@ async function checkArchive(archive: BundleArchive): Promise<VerifyResult> {
   if (manifestRefusal) return { ok: false, refusal: manifestRefusal };
 
   for (const entry of [...bundle.issues, ...bundle.images]) {
+    if (archive.duplicated.has(entry.file)) {
+      return { ok: false, refusal: GENERIC_REFUSAL };
+    }
     if (!archive.has(entry.file)) {
       return {
         ok: false,
