@@ -5,6 +5,7 @@ import { Button } from "@/components/ui";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { SelectCheckbox } from "@/components/select-checkbox";
 import { ISSUES_SELECTION_MAX } from "./selection-limit";
+import { exportIssues, omissionNote } from "./export-issues";
 import { deleteIssuesAction } from "@/app/admin/actions";
 
 // The strip between the search box and the rows: the select-all control, the
@@ -58,6 +59,7 @@ export function IssuesBulkBar({
 }) {
   const [pending, startTransition] = useTransition();
   const [selectingAll, startSelectingAll] = useTransition();
+  const [exporting, setExporting] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
@@ -93,6 +95,27 @@ export function IssuesBulkBar({
           (res.missing > 0 ? `, ${res.missing} already gone.` : "."),
       );
     });
+  };
+
+  // The selection as one bundle file (issue #293). The selection survives:
+  // exporting changes nothing here, and an admin may well want to delete
+  // afterwards.
+  const download = async () => {
+    setError(null);
+    setResult(null);
+    setSelectionNote(null);
+    setExporting(true);
+    const outcome = await exportIssues(selectedIds);
+    setExporting(false);
+    if (!outcome.ok) {
+      setError(outcome.message);
+      return;
+    }
+    const missing = omissionNote(outcome.omitted);
+    setResult(
+      `${plural(count, "issue", "issues")} exported.` +
+        (missing ? ` ${missing}` : ""),
+    );
   };
 
   // Fetches ids, so it reports both outcomes on the shared line; the
@@ -213,10 +236,21 @@ export function IssuesBulkBar({
           <div className="ml-auto flex flex-wrap gap-2 py-1.5">
             <Button
               size="sm"
+              variant="secondary"
+              icon="download"
+              iconPosition="left"
+              busy={exporting}
+              disabled={pending}
+              onClick={() => void download()}
+            >
+              {exporting ? "Preparing…" : "Export selected"}
+            </Button>
+            <Button
+              size="sm"
               variant="danger"
               icon="trash"
               iconPosition="left"
-              disabled={pending}
+              disabled={pending || exporting}
               onClick={() => setConfirming(true)}
             >
               Delete selected
