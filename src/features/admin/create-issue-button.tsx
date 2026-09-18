@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { Button } from "@/components/ui";
 import { createIssueAction } from "@/app/admin/actions";
 
 // Hard-navigates itself (not router.push) — under this app's CSP a
 // client-side transition intermittently never commits in a production build
 // (src/proxy.ts, #276, #296); a real navigation isn't subject to that race.
+// The action itself still runs in a transition, so a throw (a dropped
+// connection, an expired session) reaches the admin error boundary instead
+// of stranding the button.
 export function CreateIssueButton({
   children,
   iconPosition,
@@ -16,21 +19,25 @@ export function CreateIssueButton({
   iconPosition?: "left" | "right";
   className?: string;
 }) {
-  const [pending, setPending] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const [leaving, setLeaving] = useState(false);
+  const busy = pending || leaving;
   return (
     <Button
       icon="plus"
       iconPosition={iconPosition}
-      busy={pending}
+      busy={busy}
       className={className}
-      onClick={async () => {
-        setPending(true);
-        const id = await createIssueAction();
-        // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- the router.push() this rule wants is the bug (see comment above)
-        window.location.assign(`/admin/issues/${id}/edit`);
-      }}
+      onClick={() =>
+        startTransition(async () => {
+          const id = await createIssueAction();
+          setLeaving(true);
+          // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- the router.push() this rule wants is the bug (see comment above)
+          window.location.assign(`/admin/issues/${id}/edit`);
+        })
+      }
     >
-      {pending ? "Creating…" : children}
+      {busy ? "Creating…" : children}
     </Button>
   );
 }

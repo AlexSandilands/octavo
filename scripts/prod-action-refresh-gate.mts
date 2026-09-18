@@ -4,10 +4,10 @@
 // re-render and left stale rows indefinitely. Each trial deletes a scratch row
 // through the UI and fails if the row is still on screen 8s later; the bug
 // fired on ~2/3 of trials, so a clean sweep of all twelve is a reliable
-// detector. 20 more trials press "Create new issue" and land in the editor:
-// the flavour where router.push() never commits under the same CSP-blocked
-// boundary script (#296) is rarer than #276's redirect(), so needs a bigger
-// sample to catch reliably.
+// detector. Twenty more press "Create new issue" and must land in the editor,
+// then find the draft on Back: that failure is intermittent (#276, #296), so
+// one trial proves nothing. A last case checks a failed create reaches the
+// error boundary rather than stranding the button.
 //
 // Run against a production server:
 //   rm -rf .next && npm run build
@@ -212,6 +212,37 @@ try {
       return landed && mounted && backShowsDraft;
     },
     "landed in the editor",
+  );
+
+  // A dropped create request must land in the error boundary, not strand the
+  // button on "Creating…" — and must write no draft (#296 review).
+  await sample(
+    1,
+    "failed create",
+    async () => {
+      const ctx = await adminContext();
+      const page = await ctx.newPage();
+      const since = new Date();
+      await page.route("**/admin", (route) =>
+        route.request().method() === "POST" ? route.abort() : route.continue(),
+      );
+      await page.goto(`${base}/admin`);
+      await page.click("button:has-text('Create new issue')");
+      let onErrorBoundary = true;
+      try {
+        await page.waitForSelector("text=The admin area hit a snag.", {
+          timeout: 8000,
+        });
+      } catch {
+        onErrorBoundary = false;
+      }
+      const [row] = await sql<{ n: number }[]>`select count(*)::int n
+        from issues where created_at >= ${since} and title = 'Untitled draft'`;
+      ok(row!.n === 0, "a failed create wrote no draft");
+      await ctx.close();
+      return onErrorBoundary;
+    },
+    "reached the error boundary",
   );
 
   ok(
