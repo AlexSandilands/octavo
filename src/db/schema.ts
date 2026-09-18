@@ -210,24 +210,16 @@ export const issueImportStatus = pgEnum("issue_import_status", [
   "swept",
 ]);
 
-// One row per attempt to import a bundle. It exists so two things are possible
-// that nothing else in the app needs: telling a retry after a lost response
-// apart from a deliberate second import (same `id` → the recorded `result`,
-// never a second set of drafts), and cleaning up after a failure that could not
-// clean up after itself. Every object an import writes goes under
-// `imports/<id>/`, so that prefix IS the record of its intended keys — there is
-// no per-key ledger to keep in step. A row still `started` an hour later is
-// swept: its prefix is deleted and it is marked `swept`.
-//
-// `id` is the operation id the modal mints when the admin confirms, so the
-// client can retry with it; it is validated as a uuid at the boundary.
+// One attempt to import a bundle (docs/issue-transfer.md). `set null` keeps the
+// record, and the knowledge that `imports/<id>/` needs sweeping, past a removed
+// admin.
 export const issueImports = pgTable(
   "issue_imports",
   {
     id: text("id").primaryKey(),
-    adminId: text("admin_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+    adminId: text("admin_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
     status: issueImportStatus("status").notNull().default("started"),
     result: jsonb("result").$type<ImportResult>(),
     createdAt: timestamp("created_at", { withTimezone: true })

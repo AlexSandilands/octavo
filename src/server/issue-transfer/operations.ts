@@ -7,18 +7,10 @@ import { deleteByPrefix } from "@/lib/storage";
 import { throwIfInjected } from "./fault";
 import { report } from "./report";
 
-// The durable record of an import attempt (issue #293). It exists for two
-// things nothing else in the app needs:
-//
-//   - telling a **retry** after a lost response apart from a deliberate second
-//     import. The modal mints the operation id; the same id back means "what
-//     happened?", never a second set of drafts.
-//   - **recovery**. Every object an import writes goes under `imports/<id>/`,
-//     so the prefix is the record of its intended keys. A failure deletes it at
-//     once; if even that fails the row stays `started` and the next import (or
-//     the next server start) deletes the prefix and marks it `swept`.
+// The durable record of an import attempt, and the recovery built on it
+// (docs/issue-transfer.md#the-operation-record).
 
-/** Where every object one import writes lives. The prefix IS the key list. */
+/** Where every object one import writes lives. The prefix is the key list. */
 export function importPrefix(operationId: string): string {
   return `imports/${operationId}/`;
 }
@@ -27,11 +19,36 @@ export function importObjectKey(operationId: string, imageId: string): string {
   return `${importPrefix(operationId)}${imageId}.webp`;
 }
 
-export type BeginResult =
-  | { state: "started" }
+export type ImportState =
+  | { state: "unknown" }
   | { state: "running" }
   | { state: "committed"; result: ImportResult }
-  | { state: "abandoned" };
+  | { state: "abandoned" }
+  | { state: "not-yours" };
+
+/** What this admin's operation id is currently worth. */
+export async function readImport(
+  operationId: string,
+  adminId: string,
+): Promise<ImportState> {
+  const [row] = await db
+    .select({
+      adminId: issueImports.adminId,
+      status: issueImports.status,
+      result: issueImports.result,
+    })
+    .from(issueImports)
+    .where(eq(issueImports.id, operationId))
+    .limit(1);
+  if (!row) return { state: "unknown" };
+  if (row.adminId !== adminId) return { state: "not-yours" };
+  if (row.status === "committed" && row.result) {
+    return { state: "committed", result: row.result };
+  }
+  return { state: row.status === "started" ? "running" : "abandoned" };
+}
+
+export type BeginResult = { state: "started" } | ImportState;
 
 /** Claim the operation id, or report what the last attempt under it did. */
 export async function beginImport(
@@ -43,17 +60,7 @@ export async function beginImport(
     .values({ id: operationId, adminId, status: "started" })
     .onConflictDoNothing()
     .returning({ id: issueImports.id });
-  if (row) return { state: "started" };
-
-  const [existing] = await db
-    .select({ status: issueImports.status, result: issueImports.result })
-    .from(issueImports)
-    .where(eq(issueImports.id, operationId))
-    .limit(1);
-  if (existing?.status === "committed" && existing.result) {
-    return { state: "committed", result: existing.result };
-  }
-  return { state: existing?.status === "started" ? "running" : "abandoned" };
+  return row ? { state: "started" } : readImport(operationId, adminId);
 }
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -71,18 +78,32 @@ export async function markCommitted(
     .where(eq(issueImports.id, operationId));
 }
 
+export type AbandonOutcome =
+  | { outcome: "swept" }
+  | { outcome: "stranded" }
+  | { outcome: "committed"; result: ImportResult };
+
 /**
- * Immediate cleanup after a failure: remove everything the attempt wrote and
- * close the record. If storage refuses, the row is deliberately left `started`
- * so the sweep comes back to it — the one case where cleanup is eventual.
+ * Cleanup after a failed attempt. The status is read first and only a row still
+ * `started` may have its prefix deleted: a commit whose acknowledgement was lost
+ * also lands here, and its objects are exactly the ones the new rows point at.
+ * If storage refuses, the row stays `started` so the sweep comes back to it —
+ * the one case where cleanup is eventual rather than immediate.
  */
-export async function abandonImport(operationId: string): Promise<void> {
+export async function abandonImport(
+  operationId: string,
+  adminId: string,
+): Promise<AbandonOutcome> {
+  const current = await readImport(operationId, adminId);
+  if (current.state === "committed") {
+    return { outcome: "committed", result: current.result };
+  }
   try {
     throwIfInjected("cleanup");
     await deleteByPrefix(importPrefix(operationId));
   } catch (err) {
     report(err, { stage: "cleanup", operationId });
-    return;
+    return { outcome: "stranded" };
   }
   await db
     .update(issueImports)
@@ -90,19 +111,15 @@ export async function abandonImport(operationId: string): Promise<void> {
     .where(
       and(eq(issueImports.id, operationId), eq(issueImports.status, "started")),
     );
+  return { outcome: "swept" };
 }
 
-/** An attempt still `started` this long after it began did not survive to
- *  finish. Comfortably longer than any import, so it can never catch one
- *  running on another instance. */
+// Comfortably longer than any import, so the sweep can never catch one running
+// on another instance.
 const ABANDONED_AFTER_MS = 60 * 60 * 1000;
 
-/**
- * Delete the objects of every abandoned attempt. Runs at the start of each
- * import and once at server start — deploys are frequent enough that nothing
- * lingers, and it introduces no scheduler. Never throws: it is recovery, and a
- * storage outage here must not stop the import that called it.
- */
+/** Delete the objects of every abandoned attempt. Never throws: it is recovery,
+ *  and a storage outage here must not stop the import that called it. */
 export async function sweepAbandonedImports(): Promise<number> {
   let swept = 0;
   try {
