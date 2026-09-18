@@ -16,6 +16,7 @@ import {
 import { createId } from "@/lib/id";
 import type { IssueContent } from "@/lib/blocks";
 import { MARK_SIZE, TEXT_SIZE, type FooterAlign } from "@/lib/branding";
+import type { ImportResult } from "@/lib/issue-transfer/result";
 
 // All timestamps are timestamptz: the app runs in a different timezone locally
 // than on Railway, and naive timestamps make publishedAt comparisons drift.
@@ -199,6 +200,46 @@ export const logos = pgTable(
       .defaultNow(),
   },
   (t) => [index("logos_image_id_idx").on(t.imageId)],
+);
+
+// ── Issue transfer (issue #293) ─────────────────────────────────────────────
+
+export const issueImportStatus = pgEnum("issue_import_status", [
+  "started",
+  "committed",
+  "swept",
+]);
+
+// One row per attempt to import a bundle. It exists so two things are possible
+// that nothing else in the app needs: telling a retry after a lost response
+// apart from a deliberate second import (same `id` → the recorded `result`,
+// never a second set of drafts), and cleaning up after a failure that could not
+// clean up after itself. Every object an import writes goes under
+// `imports/<id>/`, so that prefix IS the record of its intended keys — there is
+// no per-key ledger to keep in step. A row still `started` an hour later is
+// swept: its prefix is deleted and it is marked `swept`.
+//
+// `id` is the operation id the modal mints when the admin confirms, so the
+// client can retry with it; it is validated as a uuid at the boundary.
+export const issueImports = pgTable(
+  "issue_imports",
+  {
+    id: text("id").primaryKey(),
+    adminId: text("admin_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    status: issueImportStatus("status").notNull().default("started"),
+    result: jsonb("result").$type<ImportResult>(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("issue_imports_status_created_at_idx").on(t.status, t.createdAt),
+  ],
 );
 
 // ── Magazine settings (issue #105) ──────────────────────────────────────────
