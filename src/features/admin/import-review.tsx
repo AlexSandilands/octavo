@@ -4,9 +4,8 @@ import Link from "next/link";
 import type { ImportPlan, LibraryPlan } from "@/lib/issue-transfer/plan";
 import { CLEARED_LABELS, type ImportResult } from "@/lib/issue-transfer/result";
 
-// The two panels the import modal shows either side of the upload: what is
-// about to happen, and what did. Plain words — this is read by someone who has
-// never heard of a manifest.
+// The two panels either side of the upload: what is about to happen, and what
+// did. Plain words — the reader has never heard of a manifest.
 
 const count = (n: number, one: string, many: string) =>
   `${n} ${n === 1 ? one : many}`;

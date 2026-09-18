@@ -159,6 +159,9 @@ function SortableThumb({
         {...attributes}
         {...listeners}
         onClick={onSelect}
+        // The visible thumbnail is decorative and the number beside it is 9px,
+        // so the button says what it is.
+        aria-label={`Page ${index + 1}${page.cover ? " (cover)" : ""}`}
         aria-current={active ? "page" : undefined}
         className={`bg-page relative block h-[108px] w-[84px] touch-none scroll-my-3 rounded-[3px] p-2.5 text-left ${
           isDragging ? "cursor-grabbing" : "cursor-grab"

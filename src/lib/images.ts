@@ -15,14 +15,9 @@ export type ResolvedImage = {
 // imageId -> resolved R2 image.
 export type ImageMap = Record<string, ResolvedImage>;
 
-// Every imageId referenced by an issue's blocks (deduped) — image, montage and
-// video alike. Accepts any pages-holding shape so callers can resolve a subset
-// (e.g. just the covers). A montage contributes one id per slide and a video its
-// stored poster frame, so a single resolve call still gives the renderers
-// everything a page needs. This is the only traversal that feeds the ImageMap,
-// so a block type that references an image and is missed here resolves to
-// nothing on every surface at once — which is why the traversal itself lives in
-// image-sites.ts and is shared with the issue-transfer rewrite.
+// Every imageId an issue references (deduped). Accepts any pages-holding shape
+// so callers can resolve a subset, e.g. just the covers. The traversal lives in
+// image-sites.ts because the import's rewrite must walk exactly the same sites.
 export function collectImageIds(
   content: Pick<IssueContent, "pages">,
 ): string[] {

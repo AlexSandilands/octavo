@@ -1,8 +1,8 @@
 import type { ExportOmissions } from "@/lib/issue-transfer/result";
 
-// Download the selected issues as a bundle. A fetch rather than a plain link so
-// a refusal — too many issues, storage unreachable — comes back as a message
-// the bulk bar can show instead of a browser error page.
+// A fetch rather than a plain link, so a refusal comes back as a message the
+// bulk bar can show instead of a browser error page. The trade-off is memory:
+// see docs/issue-transfer.md#export.
 
 export type ExportOutcome =
   | { ok: true; omitted: ExportOmissions }

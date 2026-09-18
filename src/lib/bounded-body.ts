@@ -1,7 +1,5 @@
-// Read a request body with a hard byte cap, counted as it streams rather than
-// taken from Content-Length — a chunked request declares no length at all, and
-// a declared one is the client's claim. Used by every admin route handler that
-// takes a body; route handlers get none of the body limits Server Actions have.
+// Read a request body under a hard cap, counted as it streams: a chunked request
+// declares no length, and a declared one is the client's claim.
 export type BoundedBody =
   | { ok: true; bytes: Buffer }
   | { ok: false; reason: "too-large" | "unreadable" };

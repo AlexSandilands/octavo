@@ -4,10 +4,8 @@ import { issues, logos, sponsors } from "@/db/schema";
 import { normaliseLibraryName } from "@/lib/issue-transfer/manifest";
 import type { DestinationLibrary } from "@/lib/issue-transfer/resolve";
 
-// What an import matches a bundle against: the destination's own sponsors and
-// logos, by name. Read twice per import — once to decide what to upload, once
-// inside the commit transaction under its advisory lock, where the answer is
-// the one that counts.
+// The destination library an import matches a bundle against. Read twice: once
+// to decide what to upload, once inside the commit transaction under its lock.
 
 type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -23,10 +21,8 @@ export async function readLibrary(
   return { sponsors: sponsorRows, logos: logoRows };
 }
 
-/** Which of these titles the archive already holds, normalised the same way
- *  library names are — so the review step's warning isn't fooled by spacing or
- *  capitals. Compared in Node over one column rather than in SQL, so the one
- *  definition of "the same name" governs here too. */
+/** Which of these titles the archive already holds. Compared in Node rather
+ *  than SQL so the one definition of "the same name" governs here too. */
 export async function findExistingTitles(
   titles: string[],
 ): Promise<Set<string>> {

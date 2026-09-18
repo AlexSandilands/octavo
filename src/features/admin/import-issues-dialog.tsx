@@ -8,23 +8,28 @@ import { Button } from "@/components/ui";
 import type { ImportDecision } from "@/lib/issue-transfer/decisions";
 import type { BundleManifest } from "@/lib/issue-transfer/manifest";
 import type { ImportPlan } from "@/lib/issue-transfer/plan";
-import type { ImportPhase, ImportResult } from "@/lib/issue-transfer/result";
+import type {
+  ImportPhase,
+  ImportResponse,
+  ImportResult,
+} from "@/lib/issue-transfer/result";
 import { readBundleManifest } from "./bundle-manifest";
-import { runImport, type ImportRun } from "./import-run";
+import { askStatus, runImport, type ImportRun } from "./import-run";
 import {
   ImportOutcome,
   ImportReview,
   outcomeAnnouncement,
 } from "./import-review";
 
-// Import a bundle exported from another copy of this site (issue #293).
-//
 // Nothing is uploaded until the admin has seen what will happen: the browser
-// reads only `manifest.json` out of the chosen file, a write-free plan request
-// says which sponsors and logos are already here, and only then does the whole
-// archive go up in one request. The server re-checks every one of those answers.
+// reads only `manifest.json`, a write-free plan request says which library
+// entries are already here, and only then does the archive go up.
 
 type Stage = "choose" | "review" | "running" | "done";
+
+// Outcomes where the server's answer never reached us, so the same operation id
+// is still the right question to ask.
+const RESUMABLE = new Set(["network", "still-running"]);
 
 export function ImportIssuesDialog({ onClose }: { onClose: () => void }) {
   const router = useRouter();
@@ -37,9 +42,8 @@ export function ImportIssuesDialog({ onClose }: { onClose: () => void }) {
   const [result, setResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reading, setReading] = useState(false);
-  // Minted once per confirmed import and kept while it can still be retried, so
-  // Retry after a dropped connection asks "what happened?" rather than
-  // importing the same file twice.
+  // Kept only while the outcome is unknown, so Retry asks what happened rather
+  // than importing the same file twice.
   const [operationId, setOperationId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const doneRef = useRef<HTMLButtonElement>(null);
@@ -53,9 +57,8 @@ export function ImportIssuesDialog({ onClose }: { onClose: () => void }) {
     plan !== null &&
     [...plan.sponsors, ...plan.logos].some((e) => e.outcome === "ambiguous");
 
-  // The Import button goes with the result, taking the control the admin was
-  // standing on; focus is placed on the one button left rather than dropped on
-  // <body> (the same fix as the members import, issue #133).
+  // The Import button goes with the result, so focus is placed on the one button
+  // left rather than dropped on <body> (issue #133).
   useEffect(() => {
     if (stage === "done") doneRef.current?.focus();
   }, [stage]);
@@ -98,42 +101,52 @@ export function ImportIssuesDialog({ onClose }: { onClose: () => void }) {
     }
   };
 
-  const start = () => {
+  const settle = (response: ImportResponse) => {
+    runRef.current = null;
+    if (response.ok) {
+      setResult(response.result);
+      setStage("done");
+      router.refresh();
+      return;
+    }
+    setStage("review");
+    // Only an outcome the server never gave us is worth retrying under the same
+    // id; anything it answered definitively starts a fresh operation.
+    if (!RESUMABLE.has(response.code)) setOperationId(null);
+    if (response.code !== "cancelled") setError(response.message);
+  };
+
+  const start = async () => {
     if (!file || !manifest) return;
-    const id = operationId ?? crypto.randomUUID();
-    setOperationId(id);
-    const decisions: ImportDecision[] = manifest.issues.map((issue) => ({
-      mode: "new",
-      issueId: issue.id,
-    }));
     setError(null);
     setPhase(null);
     setUploaded(0);
+
+    // A retry asks what happened before sending the archive again — after a
+    // dropped connection on an 80 MB file that is the cheap question.
+    if (operationId) {
+      setStage("running");
+      const known = await askStatus(operationId);
+      if (known) {
+        settle(known);
+        return;
+      }
+    }
+
+    const id = operationId ?? crypto.randomUUID();
+    setOperationId(id);
     setStage("running");
     const run = runImport({
       file,
       operationId: id,
-      decisions,
+      decisions: manifest.issues.map(
+        (issue): ImportDecision => ({ mode: "new", issueId: issue.id }),
+      ),
       onProgress: setUploaded,
       onPhase: setPhase,
     });
     runRef.current = run;
-    void run.done.then((response) => {
-      runRef.current = null;
-      if (response.ok) {
-        setResult(response.result);
-        setStage("done");
-        router.refresh();
-        return;
-      }
-      setStage("review");
-      if (response.code === "cancelled") {
-        // Nothing was written, so the next attempt is a clean one.
-        setOperationId(null);
-        return;
-      }
-      setError(response.message);
-    });
+    void run.done.then(settle);
   };
 
   return (
@@ -165,8 +178,7 @@ export function ImportIssuesDialog({ onClose }: { onClose: () => void }) {
                   no issue number, and nothing is sent to members.
                 </p>
 
-                {/* A dashed drop target keeps its own shape — the same control
-                    the members CSV import uses. */}
+                {/* A dashed drop target, as the members CSV import uses. */}
                 <button
                   type="button"
                   onClick={() => inputRef.current?.click()}
@@ -200,9 +212,8 @@ export function ImportIssuesDialog({ onClose }: { onClose: () => void }) {
               </>
             )}
 
-            {/* Mounted from the moment the dialog opens, whatever has happened
-                since: a live region that arrives with its text is announced
-                unreliably, and this is the page's highest-stakes action. */}
+            {/* Always mounted: a live region that arrives with its text is
+                announced unreliably. */}
             <p
               role="status"
               aria-live="polite"
@@ -225,7 +236,7 @@ export function ImportIssuesDialog({ onClose }: { onClose: () => void }) {
             </Button>
             {stage === "review" && (
               <Button
-                onClick={start}
+                onClick={() => void start()}
                 disabled={!plan || ambiguous}
                 icon="check"
                 iconPosition="left"

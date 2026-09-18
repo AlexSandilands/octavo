@@ -1,17 +1,13 @@
 import "server-only";
 import * as zip from "@zip.js/zip.js";
 
-// zip.js, configured once for this app, plus the one writing helper.
-//
-// Workers are off everywhere: the browser side runs under a nonce CSP with
-// `worker-src 'self'`, which blocks the blob worker zip.js would otherwise
-// spawn, and the server has no reason to start one per entry.
+// zip.js, configured once, plus the one writing helper. Workers are off: the
+// nonce CSP blocks the blob worker zip.js would otherwise spawn.
 zip.configure({ useWebWorkers: false });
 
 export { zip };
 
-/** Add one entry. `store` keeps the bytes as they are (already-compressed
- *  WebP gains nothing from deflate and costs CPU on both ends). */
+/** `store` keeps the bytes as they are: WebP gains nothing from deflate. */
 export type AddEntry = (
   name: string,
   bytes: Buffer,
@@ -19,10 +15,9 @@ export type AddEntry = (
 ) => Promise<void>;
 
 /**
- * A zip as a response body, built while it is being sent. The producer only
- * ever holds one entry's bytes, so an export bounded by the transfer limits is
- * bounded in memory too; a failure part-way through errors the stream, which is
- * what stops a truncated archive from arriving as if it were whole.
+ * A zip as a response body, built while it is being sent — so only one entry's
+ * bytes are held at a time. A failure part-way through errors the stream, which
+ * is what stops a truncated archive arriving as if it were whole.
  */
 export function streamZip(
   build: (add: AddEntry) => Promise<void>,
@@ -37,8 +32,7 @@ export function streamZip(
     pending?.();
   };
 
-  // Backpressure by hand: enqueue, and if the consumer is behind, wait for the
-  // next pull before inflating anything more.
+  // Backpressure by hand: if the consumer is behind, wait for the next pull.
   const sink = new (class extends zip.Writer<void> {
     async writeUint8Array(array: Uint8Array) {
       if (cancelled) throw new Error("export cancelled");

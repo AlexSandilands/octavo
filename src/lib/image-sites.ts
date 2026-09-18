@@ -1,15 +1,12 @@
 import type { Block, IssueContent, MontageItem } from "./blocks";
 import type { CoverElement } from "./cover-elements";
 
-// The one traversal of every place a document references a stored image.
-// Collecting the ids (lib/images.ts, which feeds every renderer's ImageMap) and
-// rewriting them (issue transfer's import) are both built on it, so a new
-// image-bearing block type is in both or in neither — and because the site
-// union is discriminated, a new member breaks the rewrite's switch at compile
-// time rather than silently going unrewritten.
+// The one traversal of every place a document references a stored image, shared
+// by lib/images.ts and the import's rewrite. The union is discriminated, so a new
+// member breaks the rewrite's switch rather than going unrewritten.
 //
-// Sites hold live references into the document they were read from: a rewriter
-// clones first and mutates what it is handed.
+// Sites hold live references into the document they came from: a rewriter clones
+// first and mutates what it is handed.
 
 type ImageBlock = Extract<Block, { type: "image" }>;
 type MontageBlock = Extract<Block, { type: "montage" }>;

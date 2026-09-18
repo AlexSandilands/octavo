@@ -4,13 +4,26 @@ import {
 } from "@/lib/issue-transfer/decisions";
 import type { ImportPhase, ImportResponse } from "@/lib/issue-transfer/result";
 
-// The one upload request, driven with XMLHttpRequest rather than fetch: only
-// XHR reports how much of the body has gone, which is what lets the modal show
-// real progress on a file that can be a quarter of a gigabyte — and lets the
-// admin cancel while it is still only an upload.
-//
-// The reply is newline-delimited JSON: phase lines while the server checks and
-// imports, then the result. Read as it arrives, so the wait is narrated.
+// XMLHttpRequest rather than fetch: only XHR reports how much of the body has
+// gone, which is what lets the modal show real progress on a file that can be a
+// quarter of a gigabyte and cancel while it is still only an upload. The reply
+// is newline-delimited JSON, read as it arrives so the wait is narrated.
+
+/** What the server already knows about an operation, or null if it has no
+ *  record and the archive has to be sent after all. */
+export async function askStatus(
+  operationId: string,
+): Promise<ImportResponse | null> {
+  try {
+    const response = await fetch(
+      `/api/admin/issues/import?operation=${encodeURIComponent(operationId)}`,
+    );
+    const body = (await response.json()) as ImportResponse;
+    return body.ok || body.code !== "unknown-operation" ? body : null;
+  } catch {
+    return null;
+  }
+}
 
 export type ImportRun = {
   done: Promise<ImportResponse>;

@@ -97,9 +97,8 @@ export function IssuesBulkBar({
     });
   };
 
-  // The selection as one bundle file (issue #293). The selection survives:
-  // exporting changes nothing here, and an admin may well want to delete
-  // afterwards.
+  // The selection survives the download: exporting changes nothing, and an admin
+  // may well want to delete afterwards.
   const download = async () => {
     setError(null);
     setResult(null);

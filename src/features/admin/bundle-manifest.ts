@@ -5,16 +5,12 @@ import {
   type BundleManifest,
 } from "@/lib/issue-transfer/manifest";
 
-// Read `manifest.json` out of a chosen file — and nothing else. A bundle can be
-// a quarter of a gigabyte, so the unzip reads the archive's directory from the
-// end through `File.slice` and then only that one entry; the file itself never
-// goes into memory and nothing is uploaded until the admin confirms.
-//
-// The reader is imported here, at the moment a file is chosen, so it stays out
-// of the dashboard's bundle.
+// Read `manifest.json` out of a chosen file and nothing else: the unzip seeks to
+// the archive's directory through `File.slice`, so a quarter-gigabyte bundle
+// never goes into memory. Imported here, when a file is chosen, to stay out of
+// the dashboard's bundle.
 
-// A bundle from this site has a handful of entries per issue. Far past that and
-// this is not one, and there is no reason to keep walking its directory.
+// Far past a real bundle's entry count; no reason to keep walking.
 const MAX_SCANNED_ENTRIES = 20_000;
 
 export async function readBundleManifest(
