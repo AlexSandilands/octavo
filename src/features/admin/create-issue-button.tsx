@@ -4,12 +4,9 @@ import { useState, useTransition, type ReactNode } from "react";
 import { Button } from "@/components/ui";
 import { createIssueAction } from "@/app/admin/actions";
 
-// Hard-navigates itself (not router.push) — under this app's CSP a
-// client-side transition intermittently never commits in a production build
-// (src/proxy.ts, #276, #296); a real navigation isn't subject to that race.
-// The action itself still runs in a transition, so a throw (a dropped
-// connection, an expired session) reaches the admin error boundary instead
-// of stranding the button.
+// Hard-navigates rather than router.push(): under this app's CSP that client
+// transition sometimes never commits in a production build (src/proxy.ts, #276,
+// #296). The action stays in a transition so a throw reaches the error boundary.
 export function CreateIssueButton({
   children,
   iconPosition,
