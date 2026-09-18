@@ -233,8 +233,8 @@ an operation id is worth: the recorded result if `committed`, "still running" if
 first and only re-uploads when there is no record — after a dropped connection on an
 80 MB file, the question is much cheaper than the answer. A lookup only ever answers
 to the admin who started the operation. Closing the modal and importing the file again
-mints a new id: a deliberate second import. Closing it *while the archive is still
-going up* — Escape, the backdrop, or the modal unmounting — aborts the upload, so that
+mints a new id: a deliberate second import. Closing it _while the archive is still
+going up_ — Escape, the backdrop, or the modal unmounting — aborts the upload, so that
 second import can never be a duplicate of one left running out of sight; once the body
 has arrived the modal is locked instead, because the server finishes regardless.
 
