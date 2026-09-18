@@ -27,15 +27,15 @@ on both ends. `manifest.json` and the documents are deflated.
 
 `manifest.json` (`src/lib/issue-transfer/manifest.ts`, zod-validated and strict):
 
-| Field                     | Meaning                                                                       |
-| ------------------------- | ----------------------------------------------------------------------------- |
-| `format`, `formatVersion` | `"octavo-issues"`, `1`                                                        |
-| `exportedAt`              | ISO timestamp, informational                                                  |
-| `contentVersion`          | the exporter's `CONTENT_VERSION`                                              |
-| `issues[]`                | `{ id, file, title, bytes, sha256 }`                                          |
-| `images[]`                | `{ id, file, width, height, bytes, sha256 }`                                  |
-| `sponsors[]`              | `{ id, name, href, activeUntil, logoImageId }` for every managed sponsor used |
-| `logos[]`                 | `{ id, name, imageId }` for every logo referenced by an issue or a cover      |
+| Field                     | Meaning                                                                                                                        |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `format`, `formatVersion` | `"octavo-issues"`, `1`                                                                                                         |
+| `exportedAt`              | ISO timestamp, informational                                                                                                   |
+| `contentVersion`          | the exporter's `CONTENT_VERSION`                                                                                               |
+| `issues[]`                | `{ id, file, title, bytes, sha256 }`                                                                                           |
+| `images[]`                | `{ id, file, width, height, bytes, sha256 }`                                                                                   |
+| `sponsors[]`              | `{ id, name, href, activeUntil, logoImageId }` for every managed sponsor used (`logoImageId` is null when its artwork is gone) |
+| `logos[]`                 | `{ id, name, imageId }` for every logo referenced by an issue or a cover                                                       |
 
 Every listed file carries `bytes` and `sha256`, issues included. Ids and paths are
 unique within the manifest, each `file` must be exactly its own id's path shape, and
@@ -66,7 +66,17 @@ are told apart:
   quietly ship a bundle with holes in it.
 
 The archive is then streamed, one entry's bytes at a time, so a big export is bounded
-in memory.
+in memory **on the server**. The browser is not: the modal reads the response as a
+blob before saving it, so a 250 MB export is briefly a 250 MB object in the tab. That
+is the price of a refusal the bulk bar can show rather than a browser error page, and
+it is an admin on a desktop; if it ever bites, the fix is a hidden same-origin form
+that lets the browser stream to disk.
+
+A sponsor whose **logo object** has gone missing is still exported, with
+`logoImageId: null` — its name and link are what a sponsor block resolves. A **logo**
+goes with its image, because a logo is its mark. An `images` row with no recorded
+width or height (the columns are nullable) takes them from the bytes: writing a zero
+would make a manifest the importer refuses.
 
 ## Import
 
@@ -146,19 +156,32 @@ message; the catch-all is "This file isn't a valid issue export."
   Older versions are accepted exactly as the editor accepts them: schema defaults
   apply, and the document is stamped current on its next save.
 - Duplicate paths or ids; a listed file missing, or its size or `sha256` not matching.
+- An archive holding **two entries under one listed name** (or two `manifest.json`s).
+  Taking the first is where zip parser differentials live — the browser and the server
+  could read different manifests out of one file.
 - An image that does not decode, is not WebP, whose decoded size disagrees with the
   manifest, or that exceeds `MAX_EDGE` (2000 px) or the input-pixel cap. Verification
   runs with bounded concurrency.
 - An `issue.json` that fails **the editor save path's own rules** (`issueContentSchema`,
-  `ensureCoverFirst`, title ≤ 200, theme in `THEME_IDS`), repeats a page or block id
-  within the document, or is too big to stay savable — the save endpoint caps a
-  request at 1 MB, so an imported document has to fit under that with room for the
-  envelope.
+  `ensureCoverFirst`, `ISSUE_TITLE_MAX`, `themeIdSchema` — the same constants the save
+  path uses), repeats an id the editor addresses (a page, a block, a cover element or a
+  story item), or is too big to stay savable — the save endpoint caps a request at
+  1 MB, so an imported document has to fit under that with room for the envelope.
+
+  The version is read **before** the schema parse. A document from a newer content
+  model usually carries something this site's schema rejects outright — a block type it
+  has never seen — and would otherwise be refused as unreadable rather than as too new.
 
 Archive safety: entry names are **never used as filesystem paths**; only the names the
 manifest lists are read, and each must match its path shape exactly. Unlisted entries
 (`__MACOSX/`, anything else) are ignored and never read. Sizes are enforced **while
-inflating**, not trusted from the headers.
+inflating**, not trusted from the headers, and every entry scanned counts towards the
+entry cap — directories and repeats included.
+
+The inflation budget is a zip-bomb guard for the pass that does not yet trust the
+archive. The write pass re-reads only entries already matched against their declared
+size and hash, so it gets its own budget rather than spending the shared one twice —
+otherwise the real ceiling would be half of `MAX_INFLATED_BYTES`.
 
 ### The caps
 
@@ -200,10 +223,26 @@ server start (`src/instrumentation.ts`) — deploys are frequent enough that not
 lingers, and no scheduler is introduced. The age guard keeps it off an import in
 flight on another instance.
 
-**Retry versus re-import.** The same operation id arriving again returns the recorded
-result if `committed`, or "still running" if `started` — never a second set of drafts.
-Closing the modal and importing the file again mints a new id: a deliberate second
-import. Once checking has begun the server finishes even if the browser has gone.
+Cleanup reads the status first. A commit whose acknowledgement was lost — the rows
+are in, the driver threw anyway — also lands there, and its objects are exactly the
+ones the new rows point at, so only a row still `started` may have its prefix deleted.
+
+**Retry versus re-import.** `GET /api/admin/issues/import?operation=<id>` answers what
+an operation id is worth: the recorded result if `committed`, "still running" if
+`started`, and "no record" if the server never saw it. The modal's Retry asks that
+first and only re-uploads when there is no record — after a dropped connection on an
+80 MB file, the question is much cheaper than the answer. A lookup only ever answers
+to the admin who started the operation. Closing the modal and importing the file again
+mints a new id: a deliberate second import.
+
+The modal keeps an operation id only while the outcome is genuinely unknown (a dropped
+connection, "still running"). Anything the server answered definitively starts a fresh
+operation, so Retry can never dead-end against a record that is already closed.
+
+Once checking has begun the server finishes even if the browser has gone: the response
+stream is written through a `send` that swallows enqueue errors, and the importer
+treats its own progress callback as unsafe, so a departed reader cannot fail the
+import writing to it.
 
 ## Transport
 
@@ -239,8 +278,9 @@ The in-memory check covers the manifest and document rules, the resolution and t
 one invariant the feature rests on — that `collectImageIds` and the rewrite walk the
 same sites. The gate covers the round trip, per-use image resolution, destination-wins
 and ambiguity, concurrency, cleared references, every refusal, failure injection and
-recovery, the access checks, and the real workflow (import → editor → autosave →
-export → import). It creates its own rows and removes them.
+recovery, a client that disconnects mid-import, the access checks, and the real
+workflow — the imported draft opened in a browser, typed into, autosaved, reloaded,
+exported and imported again. It creates its own rows and removes them.
 
 For the size cases against a production build, see the header of
 `scripts/prod-issue-transfer-size.mts`.
