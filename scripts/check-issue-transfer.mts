@@ -442,6 +442,35 @@ heading("document checks");
       "invalid-document",
     "a theme this site does not have is refused",
   );
+
+  // The real shape of a newer content model: a version this site has never seen
+  // AND something in the document its schema cannot parse. The version has to be
+  // read first, or this is refused as unreadable and the admin is told to fix a
+  // file that is fine.
+  const future = bundled(everyUse()).issue;
+  future.content = {
+    ...future.content,
+    version: CONTENT_VERSION + 1,
+    pages: [
+      future.content.pages[0]!,
+      {
+        id: "p-future",
+        blocks: [{ id: "b-future", type: "timeline", entries: [] } as never],
+      },
+    ],
+  };
+  ok(
+    code(future) === "content-too-new",
+    "a document carrying a block type this site has never heard of is refused as too new, not as unreadable",
+  );
+
+  const twinElement = bundled(everyUse()).issue;
+  const elements = twinElement.content.pages[0]!.coverElements!;
+  elements[1]!.id = elements[0]!.id;
+  ok(
+    code(twinElement) === "duplicate-document-id",
+    "a document repeating a cover element id is refused",
+  );
 }
 
 console.log("\nAll issue-transfer in-memory checks passed.");

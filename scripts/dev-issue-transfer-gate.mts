@@ -13,13 +13,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { eq } from "drizzle-orm";
 import { db } from "../src/db/index.ts";
-import { images, issues, sponsors } from "../src/db/schema.ts";
-import {
-  ensureCoverFirst,
-  issueContentSchema,
-  type Block,
-  type IssueContent,
-} from "../src/lib/blocks.ts";
+import { images, sponsors } from "../src/db/schema.ts";
 import type { ImportDecision } from "../src/lib/issue-transfer/decisions.ts";
 import type { ImportResponse } from "../src/lib/issue-transfer/result.ts";
 import { collectImageIds } from "../src/lib/images.ts";
@@ -34,7 +28,6 @@ import {
   makeIssue,
   makeLogo,
   makeSponsor,
-  readZipEntries,
   rebuild,
   scratchAdmin,
   takeBaseline,
@@ -45,6 +38,15 @@ import {
   checkRealWorkflow,
   EDIT_MARKER,
 } from "./issue-transfer-access.mts";
+import {
+  blankImages,
+  coverLogoOf,
+  imageBlocks,
+  issueIdsIn,
+  issueRow,
+  sponsorBlockOf,
+} from "./issue-transfer-probes.mts";
+import { checkDisconnect } from "./issue-transfer-disconnect.mts";
 import {
   checkCleanupAndRecovery,
   checkRefusals,
@@ -175,6 +177,7 @@ try {
   };
 
   const bundle = await checkExport(ok, heading, {
+    base,
     stamp,
     sourceId,
     photo,
@@ -378,6 +381,16 @@ try {
   );
   await adoptNewRows();
 
+  // ── a client that walks away ──────────────────────────────────────────────
+  heading("the import survives the browser going away");
+  await checkDisconnect(ok, {
+    base,
+    cookie: admin.cookie,
+    bundle,
+    issueIds: (await issueIdsIn(bundle)) ?? [],
+  });
+  await adoptNewRows();
+
   // ── access ────────────────────────────────────────────────────────────────
   heading("only a signed-in admin, from this site");
   await checkAccess(ok, {
@@ -392,20 +405,24 @@ try {
 
   // ── the real workflow ─────────────────────────────────────────────────────
   heading("import → edit → autosave → export → import");
+  const textBlock = imported.content.pages[1]!.blocks[0]!;
   const reimportedId = await checkRealWorkflow(ok, {
     base,
     adminCookie: admin.cookie,
     issueId: newIssueId,
-    content: imported.content,
+    textBlockId: textBlock.id,
     exportBundle: (ids) => exportBundle(ids),
     sendBundle: (archive) => sendBundle(archive),
   });
   if (!reimportedId) throw new Error("re-import failed");
   await adoptNewRows();
+  // The editor stores body text as a rich-text document, so the words are
+  // looked for rather than compared against a string.
   const savedBlock = (await issueRow(reimportedId)).content.pages[1]!
     .blocks[0]!;
   ok(
-    savedBlock.type === "text" && savedBlock.text === EDIT_MARKER,
+    savedBlock.type === "text" &&
+      JSON.stringify(savedBlock.text).includes(EDIT_MARKER),
     "carrying the edit across",
   );
 
@@ -433,61 +450,3 @@ try {
 
 console.log(failed ? "\nFAILED" : "\nAll issue-transfer gate checks passed.");
 process.exit(failed ? 1 : 0);
-
-// ── helpers ─────────────────────────────────────────────────────────────────
-
-async function issueRow(id: string) {
-  const [row] = await db
-    .select()
-    .from(issues)
-    .where(eq(issues.id, id))
-    .limit(1);
-  if (!row) throw new Error(`no issue ${id}`);
-  return row;
-}
-
-async function issueIdsIn(archive: Buffer): Promise<string[]> {
-  const found = await readZipEntries(archive).catch(() => []);
-  const manifest = found.find((e) => e.name === "manifest.json");
-  if (!manifest) return [];
-  try {
-    const parsed = JSON.parse(manifest.bytes.toString("utf8")) as {
-      issues?: { id: string }[];
-    };
-    return (parsed.issues ?? []).map((issue) => issue.id);
-  } catch {
-    return [];
-  }
-}
-
-function coverLogoOf(content: IssueContent) {
-  const element = content.pages[0]?.coverElements?.[0];
-  return element?.type === "logo" ? element : null;
-}
-
-function imageBlocks(content: IssueContent) {
-  return content.pages
-    .flatMap((page) => page.blocks)
-    .filter(
-      (block): block is Extract<Block, { type: "image" }> =>
-        block.type === "image",
-    );
-}
-
-function sponsorBlockOf(content: IssueContent) {
-  return content.pages
-    .flatMap((page) => page.blocks)
-    .find((block) => block.type === "sponsor");
-}
-
-/** The document with every image id emptied, so two can be compared on
- *  everything else — the parse also applies the same schema defaults to both. */
-function blankImages(content: unknown): unknown {
-  const parsed = issueContentSchema.parse(content);
-  const normalised = { ...parsed, pages: ensureCoverFirst(parsed.pages) };
-  return JSON.parse(
-    JSON.stringify(normalised, (key, value: unknown) =>
-      key === "imageId" || key === "posterImageId" ? "" : value,
-    ),
-  );
-}

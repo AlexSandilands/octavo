@@ -256,6 +256,33 @@ export async function writeZip(entries: ZipEntry[]): Promise<Buffer> {
   return Buffer.from(await writer.close());
 }
 
+/**
+ * An archive holding two entries under one name. zip.js refuses to write one, so
+ * the second goes in under a name of the same length and the bytes are patched
+ * afterwards — the offsets in the headers are unchanged either way.
+ */
+export async function writeZipDuplicating(
+  entries: ZipEntry[],
+  name: string,
+  bytes: Buffer,
+): Promise<Buffer> {
+  const placeholder = `${name.slice(0, -1)}~`;
+  const archive = await writeZip([
+    ...entries,
+    { name: placeholder, bytes, store: false },
+  ]);
+  const from = Buffer.from(placeholder, "utf8");
+  const to = Buffer.from(name, "utf8");
+  for (
+    let at = archive.indexOf(from);
+    at !== -1;
+    at = archive.indexOf(from, at + 1)
+  ) {
+    to.copy(archive, at);
+  }
+  return archive;
+}
+
 /** Rebuild an archive with the manifest replaced and entries added or removed. */
 export async function rebuild(
   archive: Buffer,

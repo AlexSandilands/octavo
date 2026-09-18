@@ -20,6 +20,7 @@ import {
   readZipEntries,
   rebuild,
   writeZip,
+  writeZipDuplicating,
 } from "./issue-transfer-fixtures.mts";
 
 type Ok = (cond: unknown, msg: string) => void;
@@ -173,6 +174,19 @@ export async function checkRefusals(
         }),
       "bad-image",
     ],
+    [
+      "an archive holding two entries under one listed name",
+      async () => {
+        const manifest = await readManifest(bundle);
+        return duplicateEntry(bundle, manifest.issues[0]!.file);
+      },
+      "not-a-bundle",
+    ],
+    [
+      "an archive holding two manifests",
+      async () => duplicateEntry(bundle, "manifest.json"),
+      "not-a-bundle",
+    ],
   ];
 
   for (const [label, build, code] of cases) {
@@ -259,6 +273,25 @@ export async function checkCleanupAndRecovery(
     "  …and its record is marked swept",
   );
 
+  // A commit whose acknowledgement never came back: the rows are in, so the
+  // objects they point at must survive and the recorded result is the answer.
+  const lostAck = crypto.randomUUID();
+  const fifth = await run("post-commit", lostAck);
+  ok(
+    fifth.ok && fifth.retried === true,
+    `a lost commit acknowledgement returns the committed result${fifth.ok ? "" : `: ${fifth.message}`}`,
+  );
+  ok(
+    (await statusOf(lostAck)) === "committed",
+    "  …and the operation stays committed",
+  );
+  const kept = await objects(lostAck);
+  ok(
+    kept.length > 0,
+    `  …and its images are still in storage (${kept.length})`,
+  );
+  for (const key of kept) made.keys.push(key);
+
   if (fourth.ok) {
     const retry = await importBundle({
       file,
@@ -282,6 +315,21 @@ type ManifestShape = {
   issues: { id: string; file: string }[];
   images: { id: string; file: string; bytes: number }[];
 };
+
+// The same archive with a second, different entry under `name` — what a zip
+// parser differential would feed on.
+async function duplicateEntry(bundle: Buffer, name: string): Promise<Buffer> {
+  const entries = await readZipEntries(bundle);
+  return writeZipDuplicating(
+    entries.map((entry) => ({
+      name: entry.name,
+      bytes: entry.bytes,
+      store: entry.name.startsWith("images/"),
+    })),
+    name,
+    Buffer.from("{}", "utf8"),
+  );
+}
 
 async function readManifest(bundle: Buffer): Promise<ManifestShape> {
   const entries = await readZipEntries(bundle);

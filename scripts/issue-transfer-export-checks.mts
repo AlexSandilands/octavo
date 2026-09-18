@@ -1,9 +1,12 @@
 // The export half of the issue-transfer gate (issue #293): the archive's layout
 // and integrity, and the difference between an asset that is genuinely gone and
 // storage refusing to answer.
-import { mkdir, rm } from "node:fs/promises";
+import { chmod, mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createHash } from "node:crypto";
+import { eq } from "drizzle-orm";
+import { db } from "../src/db/index.ts";
+import { images } from "../src/db/schema.ts";
 import type { IssueContent } from "../src/lib/blocks.ts";
 import {
   makeImage,
@@ -20,6 +23,7 @@ export async function checkExport(
   ok: Ok,
   heading: (name: string) => void,
   context: {
+    base: string;
     stamp: number;
     sourceId: string;
     photo: { id: string; key: string; bytes: Buffer };
@@ -134,15 +138,79 @@ export async function checkExport(
     "the missing photo is not listed and not carried",
   );
 
-  // A directory where the object should be: the read fails rather than reporting
-  // absence, which is what a storage outage looks like from here.
-  await mkdir(path.join(uploads, orphan.key), { recursive: true });
+  // An unreadable object: storage answers with an error rather than an absence,
+  // which the export must refuse rather than quietly ship a bundle with a hole.
+  const unreadable = path.join(uploads, orphan.key);
+  await writeFile(unreadable, Buffer.from("x"));
+  await chmod(unreadable, 0o000);
   const broken = await exportBundle([orphanIssue]);
   ok(
     broken.status === 500,
     `an export fails when storage cannot answer (${broken.status})`,
   );
-  await rm(path.join(uploads, orphan.key), { recursive: true, force: true });
+  await chmod(unreadable, 0o600);
+  await rm(unreadable, { force: true });
+
+  // A directory where an object should be is an absence, not a failure — the
+  // image-serving route passes request-supplied keys through the same read.
+  await mkdir(path.join(uploads, "gate-dir-probe", "inner"), {
+    recursive: true,
+  });
+  const served = await fetch(`${context.base}/api/images/gate-dir-probe`);
+  ok(
+    served.status === 404,
+    `a key naming a directory is served as 404, not 500 (${served.status})`,
+  );
+  await rm(path.join(uploads, "gate-dir-probe"), {
+    recursive: true,
+    force: true,
+  });
+
+  // ── a photo whose row never recorded its size ─────────────────────────────
+  heading("an image row with no recorded dimensions still exports");
+  const sizeless = await makeImage(64, 48, 90);
+  await db
+    .update(images)
+    .set({ width: null, height: null })
+    .where(eq(images.id, sizeless.id));
+  const sizelessIssue = await makeIssue({
+    title: `Gate Sizeless ${context.stamp}`,
+    logoId: null,
+    content: {
+      version: context.content.version,
+      pages: [
+        { id: crypto.randomUUID(), cover: true, blocks: [] },
+        {
+          id: crypto.randomUUID(),
+          blocks: [
+            {
+              id: crypto.randomUUID(),
+              type: "image",
+              imageId: sizeless.id,
+              caption: "",
+              align: "full",
+              width: 100,
+            },
+          ],
+        },
+      ],
+    },
+  });
+  const sized = await exportBundle([sizelessIssue]);
+  ok(sized.status === 200, "it exports");
+  const sizedEntries = await readZipEntries(
+    Buffer.from(await sized.arrayBuffer()),
+  );
+  const sizedManifest = JSON.parse(
+    sizedEntries
+      .find((e) => e.name === "manifest.json")!
+      .bytes.toString("utf8"),
+  ) as { images: { width: number; height: number }[] };
+  ok(
+    sizedManifest.images[0]?.width === 64 &&
+      sizedManifest.images[0]?.height === 48,
+    `with the real size read from the bytes (${sizedManifest.images[0]?.width}×${sizedManifest.images[0]?.height})`,
+  );
 
   return bundle;
 }

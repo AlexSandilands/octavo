@@ -1,6 +1,9 @@
 // The access checks and the real-workflow round trip of the issue-transfer gate
 // (issue #293), kept out of the gate itself so both stay readable.
+import { eq } from "drizzle-orm";
 import { chromium } from "playwright";
+import { db } from "../src/db/index.ts";
+import { issues } from "../src/db/schema.ts";
 import { MAX_BUNDLE_ISSUES } from "../src/lib/issue-transfer/limits.ts";
 import { scratchMember } from "./issue-transfer-fixtures.mts";
 
@@ -74,15 +77,20 @@ export async function checkAccess(
   );
 }
 
-/** The imported draft really is editable: it opens in the editor, the autosave
- *  endpoint takes a change, and the result exports and imports again. */
+/**
+ * The imported draft really is editable, driven the way an owner drives it: the
+ * editor opens it, a body block is typed into, the autosave settles, a reload
+ * shows the text — then it exports and imports again. Posting to the save route
+ * would only prove the server accepts a document; the bug class this exists for
+ * is client-to-server.
+ */
 export async function checkRealWorkflow(
   ok: Ok,
   context: {
     base: string;
     adminCookie: string;
     issueId: string;
-    content: unknown;
+    textBlockId: string;
     exportBundle: (ids: string[]) => Promise<Response>;
     sendBundle: (archive: Buffer) => Promise<Sent & { result?: unknown }>;
   },
@@ -97,37 +105,52 @@ export async function checkRealWorkflow(
         url: context.base,
       },
     ]);
-    await page.goto(`${context.base}/admin/issues/${context.issueId}/edit`, {
-      waitUntil: "domcontentloaded",
-    });
-    await page.waitForSelector("[data-block-id]", { timeout: 60_000 });
+    const editor = `${context.base}/admin/issues/${context.issueId}/edit`;
+    const body = page.locator(
+      `[data-block-id="${context.textBlockId}"] [data-text-body]`,
+    );
+    // The canvas shows one page at a time, and the text block is on page two.
+    const open = async () => {
+      await page.goto(editor, { waitUntil: "domcontentloaded" });
+      await page.getByRole("button", { name: "Page 2", exact: true }).click();
+      await body.waitFor({ timeout: 60_000 });
+    };
+    await open();
     ok(true, "the imported draft opens in the editor");
+
+    await body.click();
+    await page.keyboard.press("ControlOrMeta+a");
+    await page.keyboard.type(EDIT_MARKER);
+    ok(
+      (await body.innerText()).includes(EDIT_MARKER),
+      "the typing reaches the block",
+    );
+
+    // The indicator flips too briefly to be a reliable signal; the stored
+    // document is the thing that has to change.
+    const stored = await waitFor(async () => {
+      const [row] = await db
+        .select({ content: issues.content, revision: issues.revision })
+        .from(issues)
+        .where(eq(issues.id, context.issueId))
+        .limit(1);
+      return row && JSON.stringify(row.content).includes(EDIT_MARKER)
+        ? row
+        : null;
+    });
+    ok(
+      stored !== null && stored.revision > 0,
+      `the autosave stored it (revision ${stored?.revision ?? "—"})`,
+    );
+
+    await open();
+    ok(
+      (await body.innerText()).includes(EDIT_MARKER),
+      "and the edit is there after a reload",
+    );
   } finally {
     await browser.close();
   }
-
-  const edited = structuredClone(context.content) as {
-    pages: { blocks: { type: string; text?: string }[] }[];
-  };
-  const block = edited.pages[1]?.blocks[0];
-  if (block?.type === "text") block.text = EDIT_MARKER;
-  const save = await fetch(
-    `${context.base}/api/admin/issues/${context.issueId}/save`,
-    {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        origin: new URL(context.base).origin,
-        cookie: context.adminCookie,
-      },
-      body: JSON.stringify({
-        kind: "content",
-        content: edited,
-        baseRevision: 0,
-      }),
-    },
-  );
-  ok(save.status === 200, "the editor's autosave endpoint accepts the change");
 
   const exported = await context.exportBundle([context.issueId]);
   ok(exported.status === 200, "the edited issue exports again");
@@ -144,3 +167,16 @@ export async function checkRealWorkflow(
 
 /** The text the workflow check writes, so the gate can look for it. */
 export const EDIT_MARKER = "Edited after import.";
+
+async function waitFor<T>(
+  probe: () => Promise<T | null | undefined>,
+  timeoutMs = 30_000,
+): Promise<T | null> {
+  const until = Date.now() + timeoutMs;
+  while (Date.now() < until) {
+    const found = await probe();
+    if (found) return found;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  return null;
+}

@@ -192,10 +192,11 @@ try {
   };
 
   // 10 MB is Next's proxy buffering limit: past it a proxied body is truncated
-  // in silence, so the first case has to clear it comfortably.
+  // in silence, so the first case has to clear it comfortably. The second sits
+  // near MAX_BUNDLE_BYTES, which is the only place a budget spent twice shows.
   for (const [label, issues, perIssue, atLeast] of [
     ["over ten megabytes", 4, 4, 10 * 1024 * 1024],
-    ["a representative upper bound", 20, 4, 50 * 1024 * 1024],
+    ["near the bundle cap", 25, 8, 180 * 1024 * 1024],
   ] as const) {
     const { archive, ids } = await buildBundle(issues, perIssue);
     console.log(`\n── ${label}: ${mb(archive.length)}, ${ids.length} issues`);
