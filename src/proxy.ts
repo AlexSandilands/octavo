@@ -158,13 +158,23 @@ export function proxy(req: NextRequest) {
   return res;
 }
 
-// Run on everything except Next's static assets and the favicon: static files
-// carry their headers from next.config.ts and need no per-request nonce, and
-// excluding them keeps this off the hot asset path. The auth gate stays scoped
-// to the gated prefixes in code (isGatedRoute), so broadening the matcher for
-// the CSP does not gate any new route.
+// Run on everything except Next's static assets, the favicon and the bundle
+// import: static files carry their headers from next.config.ts and need no
+// per-request nonce, and excluding them keeps this off the hot asset path. The
+// auth gate stays scoped to the gated prefixes in code (isGatedRoute), so
+// broadening the matcher for the CSP does not gate any new route.
+//
+// `/api/admin/issues/import` is excluded by exact path because Next buffers
+// every proxied request body and silently truncates it at 10 MB
+// (experimental.proxyClientMaxBodySize), handing the handler a partial archive
+// with no error — and raising that limit would make every route, including
+// unauthenticated ones, buffer bigger bodies in memory. Nothing is lost by the
+// exclusion: the auth gate covers `/admin/*` pages only and has never gated
+// `/api/admin/*` (getAdminUser() in the handler is the authority), the CSP
+// nonce only matters on HTML, and next.config.ts's static headers still apply.
+// The plan endpoint underneath it keeps the proxy: it takes a small JSON body.
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/admin/issues/import$|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$).*)",
   ],
 };
