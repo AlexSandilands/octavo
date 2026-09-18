@@ -82,6 +82,8 @@ let tempDir = "";
 
 await takeBaseline();
 const startCounts = await foreignCounts();
+// A site that has really imported something keeps those images under imports/.
+const startKeys = new Set(await listKeys("imports/"));
 console.log(`baseline (not ours): ${JSON.stringify(startCounts)}`);
 
 try {
@@ -434,7 +436,7 @@ try {
     `rows this run did not create are unchanged (${JSON.stringify(finalCounts)})`,
   );
   const stray = (await listKeys("imports/")).filter(
-    (key) => !made.keys.includes(key),
+    (key) => !made.keys.includes(key) && !startKeys.has(key),
   );
   ok(
     stray.length === 0,

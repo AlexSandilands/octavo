@@ -12,24 +12,21 @@ import * as Sentry from "@sentry/nextjs";
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     await import("../sentry.server.config");
-    void sweepAbandonedImports();
+    // Recovery for imports that died before they could clean up (issue #293).
+    // Not awaited, so boot never waits on it. The import stays inside this
+    // branch: that is what keeps node:fs out of the Edge bundle, and out of
+    // `next build`'s evaluation of the database client (issue #67).
+    void import("./server/issue-transfer/operations")
+      .then(({ sweepAbandonedImports }) => sweepAbandonedImports())
+      .catch((err) => {
+        console.error(
+          "Could not sweep abandoned issue imports at startup",
+          err,
+        );
+      });
   }
   if (process.env.NEXT_RUNTIME === "edge") {
     await import("../sentry.edge.config");
-  }
-}
-
-// Recovery for imports that died before they could clean up after themselves
-// (issue #293). Not awaited, so boot never waits on a database query and a
-// round of storage deletes; imported dynamically so `next build` does not
-// evaluate the database client from here (issue #67).
-async function sweepAbandonedImports() {
-  try {
-    const { sweepAbandonedImports: sweep } =
-      await import("./server/issue-transfer/operations");
-    await sweep();
-  } catch (err) {
-    console.error("Could not sweep abandoned issue imports at startup", err);
   }
 }
 
