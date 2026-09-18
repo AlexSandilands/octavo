@@ -91,8 +91,9 @@ function isGatedRoute(pathname: string): boolean {
 
 // Known Next 16 defect: the scripts Next emits for a segment's loading/error
 // boundaries carry no nonce, so this CSP blocks one per page — harmless on a
-// page load, but a server-action redirect() re-renders from the root and the
-// router then never applies it (#276), so create-issue navigates itself.
+// page load, but a client transition (redirect() re-rendering from the root,
+// or router.push() after a server action) can silently never commit (#276,
+// #296), so create-issue navigates itself with a real navigation instead.
 function buildCsp(nonce: string): string {
   return [
     "default-src 'self'",

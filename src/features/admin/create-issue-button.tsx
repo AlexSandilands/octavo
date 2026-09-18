@@ -1,13 +1,12 @@
 "use client";
 
-import { useTransition, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useTransition, type ReactNode } from "react";
 import { Button } from "@/components/ui";
 import { createIssueAction } from "@/app/admin/actions";
 
-// Navigates itself instead of the action calling redirect(): under this app's
-// CSP a server-action redirect never lands in a production build
-// (src/proxy.ts, #276).
+// Hard-navigates rather than router.push(): under this app's CSP that client
+// transition sometimes never commits in a production build (src/proxy.ts, #276,
+// #296). The action stays in a transition so a throw reaches the error boundary.
 export function CreateIssueButton({
   children,
   iconPosition,
@@ -17,22 +16,25 @@ export function CreateIssueButton({
   iconPosition?: "left" | "right";
   className?: string;
 }) {
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [leaving, setLeaving] = useState(false);
+  const busy = pending || leaving;
   return (
     <Button
       icon="plus"
       iconPosition={iconPosition}
-      busy={pending}
+      busy={busy}
       className={className}
       onClick={() =>
         startTransition(async () => {
           const id = await createIssueAction();
-          router.push(`/admin/issues/${id}/edit`);
+          setLeaving(true);
+          // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- the router.push() this rule wants is the bug (see comment above)
+          window.location.assign(`/admin/issues/${id}/edit`);
         })
       }
     >
-      {pending ? "Creating…" : children}
+      {busy ? "Creating…" : children}
     </Button>
   );
 }
