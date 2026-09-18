@@ -5,6 +5,8 @@ import { z } from "zod";
 // leave it savable — see the issue-transfer limits.
 export const SAVE_REQUEST_MAX_BYTES = 1024 * 1024;
 
+export const ISSUE_TITLE_MAX = 200;
+
 // Keep these responses compatible with already-open editors across releases.
 export const contentSaveResultSchema = z.discriminatedUnion("ok", [
   z.object({ ok: z.literal(true), revision: z.number().int().min(0) }),

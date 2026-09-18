@@ -1,8 +1,9 @@
 import { z } from "zod";
+import { ISSUE_TITLE_MAX } from "../editor-save";
 import {
+  MAX_BUNDLE_BYTES,
   MAX_BUNDLE_ENTRIES,
   MAX_BUNDLE_ISSUES,
-  MAX_BUNDLE_BYTES,
 } from "./limits";
 
 // The bundle's contract (docs/issue-transfer.md). `manifest.json` is the only
@@ -30,7 +31,7 @@ const manifestIssueSchema = z
   .object({
     id: idSchema,
     file: pathSchema,
-    title: z.string().max(200),
+    title: z.string().max(ISSUE_TITLE_MAX),
     bytes: byteCountSchema,
     sha256: sha256Schema,
   })

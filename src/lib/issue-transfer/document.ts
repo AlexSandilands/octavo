@@ -5,23 +5,19 @@ import {
   issueContentSchema,
   type IssueContent,
 } from "../blocks";
-import {
-  THEME_IDS,
-  type LayoutThemeId,
-} from "@/features/blocks/themes/registry";
+import { ISSUE_TITLE_MAX } from "../editor-save";
+import { themeIdSchema } from "@/features/blocks/themes/registry";
 import { MAX_DOCUMENT_BYTES } from "./limits";
 import { refuse, type Refusal } from "./manifest";
 
-// One bundled `issues/<id>/issue.json`. The authored fields are the editor save
-// path's own rules — the same `issueContentSchema`, `ensureCoverFirst`, title
-// cap and theme enum — so a document this accepts is one the editor can already
-// save. `number` / `status` / `publishedAt` travel for the record only: every
-// import arrives as a fresh numberless draft.
+// One bundled `issues/<id>/issue.json`: the editor save path's own rules, plus
+// the three things the stored schema does not say (see checkBundledIssue).
+// `number` / `status` / `publishedAt` travel for the record only.
 
 export const bundledIssueSchema = z
   .object({
-    title: z.string().max(200),
-    theme: z.enum(THEME_IDS as [LayoutThemeId, ...LayoutThemeId[]]),
+    title: z.string().max(ISSUE_TITLE_MAX),
+    theme: themeIdSchema,
     content: issueContentSchema,
     footerMarkSize: z.number().int().min(0).max(1000),
     footerTextSize: z.number().int().min(0).max(1000),
@@ -38,20 +34,32 @@ export type DocumentCheck =
   | { ok: true; issue: BundledIssue }
   | { ok: false; refusal: Refusal };
 
+const TOO_NEW = refuse(
+  "content-too-new",
+  "This export was made by a newer version of the site. Update this site first.",
+);
+
 /**
- * Parse and check one bundled document. Beyond the save path's rules it adds
- * the three things the stored schema does not say: an upper bound on the
- * document's own `version` (the schema has only `.min(1)`, so a newer document
- * would parse and then render wrong), page and block ids unique within the
- * document (AI-authored content gets this wrong, and the editor's history and
- * cover references key on them), and a serialised size that leaves the document
- * savable.
+ * Parse and check one bundled document. Beyond the save path's rules it adds an
+ * upper bound on the document's own `version` (the stored schema has only
+ * `.min(1)`), ids unique within the document (the editor's history and the
+ * cover's references key on them, and AI-authored content gets this wrong), and
+ * a serialised size that leaves the document savable.
  */
 export function checkBundledIssue(
   value: unknown,
   title: string,
 ): DocumentCheck {
   const named = title.trim() || "Untitled";
+
+  // Before the schema, not after: a document from a newer content model usually
+  // carries something this parse rejects — a block type, a widened enum — and
+  // would be refused as unreadable rather than as too new.
+  const declared = declaredVersion(value);
+  if (declared !== null && declared > CONTENT_VERSION) {
+    return { ok: false, refusal: TOO_NEW };
+  }
+
   const parsed = bundledIssueSchema.safeParse(value);
   if (!parsed.success) {
     return {
@@ -65,13 +73,7 @@ export function checkBundledIssue(
 
   const issue = parsed.data;
   if (issue.content.version > CONTENT_VERSION) {
-    return {
-      ok: false,
-      refusal: refuse(
-        "content-too-new",
-        "This export was made by a newer version of the site. Update this site first.",
-      ),
-    };
+    return { ok: false, refusal: TOO_NEW };
   }
 
   const content: IssueContent = {
@@ -79,15 +81,8 @@ export function checkBundledIssue(
     pages: ensureCoverFirst(issue.content.pages),
   };
 
-  const ids = new Set<string>();
-  for (const page of content.pages) {
-    if (ids.has(page.id)) return { ok: false, refusal: duplicateId(named) };
-    ids.add(page.id);
-    for (const block of page.blocks) {
-      if (ids.has(block.id)) return { ok: false, refusal: duplicateId(named) };
-      ids.add(block.id);
-    }
-  }
+  const duplicate = firstDuplicateId(content);
+  if (duplicate) return { ok: false, refusal: duplicateId(named) };
 
   const bytes = new TextEncoder().encode(JSON.stringify(content)).length;
   if (bytes > MAX_DOCUMENT_BYTES) {
@@ -103,9 +98,47 @@ export function checkBundledIssue(
   return { ok: true, issue: { ...issue, content } };
 }
 
+function declaredVersion(value: unknown): number | null {
+  const content = (value as { content?: unknown } | null)?.content;
+  const version = (content as { version?: unknown } | null)?.version;
+  return typeof version === "number" ? version : null;
+}
+
+// Pages, blocks, cover elements and the stories inside them: everything the
+// editor addresses by id.
+function firstDuplicateId(content: IssueContent): string | null {
+  const seen = new Set<string>();
+  const take = (id: string) => {
+    if (seen.has(id)) return id;
+    seen.add(id);
+    return null;
+  };
+  for (const page of content.pages) {
+    const clash =
+      take(page.id) ??
+      page.blocks.reduce<string | null>(
+        (found, b) => found ?? take(b.id),
+        null,
+      );
+    if (clash) return clash;
+    for (const element of page.coverElements ?? []) {
+      const inner =
+        take(element.id) ??
+        (element.type === "story"
+          ? element.items.reduce<string | null>(
+              (found, item) => found ?? take(item.id),
+              null,
+            )
+          : null);
+      if (inner) return inner;
+    }
+  }
+  return null;
+}
+
 function duplicateId(named: string): Refusal {
   return refuse(
     "duplicate-document-id",
-    `“${named}” has two pages or blocks with the same id, so it can’t be edited reliably.`,
+    `“${named}” uses the same id twice, so it can’t be edited reliably.`,
   );
 }

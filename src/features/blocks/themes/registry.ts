@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { classicTheme } from "./classic";
 import { modernTheme } from "./modern";
 import type { LayoutTheme } from "./types";
@@ -19,6 +20,12 @@ export type LayoutThemeId = (typeof LAYOUT_THEMES)[number]["id"];
 
 // Kept for callers/schemas that want the id list as a value.
 export const THEME_IDS = LAYOUT_THEMES.map((t) => t.id) as LayoutThemeId[];
+
+// The one zod enum for a stored theme, so every validating boundary — the
+// editor's save path, an imported document — accepts exactly this list.
+export const themeIdSchema = z.enum(
+  THEME_IDS as [LayoutThemeId, ...LayoutThemeId[]],
+);
 
 // The built-in default — the theme a fresh issue and the reader open with, and
 // what an unknown stored value degrades to. Must be one of LAYOUT_THEMES.

@@ -2,11 +2,8 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { ensureCoverFirst, issueContentSchema } from "@/lib/blocks";
-import type { SaveResult } from "@/lib/editor-save";
-import {
-  THEME_IDS,
-  type LayoutThemeId,
-} from "@/features/blocks/themes/registry";
+import { ISSUE_TITLE_MAX, type SaveResult } from "@/lib/editor-save";
+import { themeIdSchema } from "@/features/blocks/themes/registry";
 import { updateIssueContent, updateIssueMeta } from "./issues";
 
 const idSchema = z.string().uuid();
@@ -15,8 +12,8 @@ const idSchema = z.string().uuid();
 // An absent logoId leaves the mark alone; null explicitly clears it.
 const metaSchema = z
   .object({
-    title: z.string().max(200).optional(),
-    theme: z.enum(THEME_IDS as [LayoutThemeId, ...LayoutThemeId[]]).optional(),
+    title: z.string().max(ISSUE_TITLE_MAX).optional(),
+    theme: themeIdSchema.optional(),
     logoId: idSchema.nullable().optional(),
   })
   .strict();

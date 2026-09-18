@@ -11,18 +11,10 @@ import {
   type Refusal,
 } from "./manifest";
 
-// Turning a bundle into rows this site would have written itself. Pure: it is
-// handed the destination's library and a set of freshly minted ids and returns
-// what to create, which bundled images are actually needed and what it had to
-// clear — no database, no storage, so the importer can run it twice (once to
-// decide what to upload, once inside the commit transaction) and the in-memory
-// check can run it at all.
-//
-// Two rules do most of the work. **Destination wins**: a sponsor or logo whose
-// normalised name already exists is reused exactly as it is, never modified and
-// never a conflict. **Unresolved references are cleared**: an id the bundle does
-// not supply is emptied rather than carried, because two databases with a shared
-// ancestry can hold entirely different rows under the same id.
+// Turning a bundle into rows this site would have written itself, under the two
+// rules in docs/issue-transfer.md: destination wins, and unresolved references
+// are cleared. Pure, so the importer can run it twice — once to decide what to
+// upload, once inside the commit transaction.
 
 export type LibraryRow = { id: string; name: string };
 export type LogoRow = LibraryRow & { imageId: string };
@@ -34,10 +26,8 @@ export type LibraryOutcome = {
   action: "reuse" | "create";
   /** The destination row the bundle's id now means. */
   id: string;
-  /** The image row this entry points at: the destination's when a logo is
-   *  reused, the bundle's new one when either kind is created. Null for a
-   *  reused sponsor, whose artwork is read from its row at render time and is
-   *  never the destination's business to change. */
+  /** The image that row shows. Null for a reused sponsor: its artwork resolves
+   *  from the row at render time and is not ours to change. */
   imageId: string | null;
   /** The bundled image to upload, when this row is being created. */
   bundleImageId: string | null;
@@ -65,8 +55,7 @@ export type ClearedReference = {
 export type ResolvedImage = {
   bundleId: string;
   id: string;
-  /** Which new issue the row is recorded against (`images.issueId`), or null
-   *  for a library mark that no page uses. */
+  /** `images.issueId`, or null for a library mark no page uses. */
   issueId: string | null;
 };
 
@@ -82,8 +71,7 @@ export type Resolution =
   | { ok: true; bundle: ResolvedBundle }
   | { ok: false; refusal: Refusal };
 
-/** Every id an import will write, minted once so the two resolution passes and
- *  the object keys they produce agree. */
+/** Minted once, so both resolution passes and the keys they produce agree. */
 export type NewIds = {
   issues: Record<string, string>;
   images: Record<string, string>;
@@ -289,9 +277,8 @@ type LibraryMatch =
   | { ok: true; outcomes: LibraryOutcome[] }
   | { ok: false; refusal: Refusal };
 
-// One match per bundled name: none creates, one reuses, more than one refuses.
-// Ambiguity is only ever judged against names the bundle actually references —
-// a pair of duplicates elsewhere in the archive is the owner's business.
+// None creates, one reuses, more than one refuses — judged only against names
+// the bundle references, since duplicates elsewhere are the owner's business.
 function matchLibrary(
   bundled: { id: string; name: string; bundleImageId: string | null }[],
   destination: { id: string; name: string; imageId: string | null }[],

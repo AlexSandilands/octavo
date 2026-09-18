@@ -1,17 +1,20 @@
 import { z } from "zod";
+import { ISSUE_TITLE_MAX } from "../editor-save";
 import { MAX_BUNDLE_ENTRIES, MAX_BUNDLE_ISSUES } from "./limits";
 
-// The write-free look-ahead behind the modal's Review step. It is handed the
-// manifest's titles and library names — never the archive — and answers what an
-// import would do with them. A courtesy only: the import request re-derives and
-// re-checks every one of these answers server-side.
+// The write-free look-ahead behind the modal's Review step. A courtesy only:
+// the import re-derives every one of these answers from the archive.
 
 const idSchema = z.string().regex(/^[A-Za-z0-9_-]{1,64}$/);
 
 export const planRequestSchema = z
   .object({
     issues: z
-      .array(z.object({ id: idSchema, title: z.string().max(200) }).strict())
+      .array(
+        z
+          .object({ id: idSchema, title: z.string().max(ISSUE_TITLE_MAX) })
+          .strict(),
+      )
       .min(1)
       .max(MAX_BUNDLE_ISSUES),
     sponsors: z
@@ -34,8 +37,6 @@ export type LibraryPlan = {
 export type IssuePlan = {
   id: string;
   title: string;
-  /** Whether the archive already holds an issue with this title, so the review
-   *  step can say a second copy is about to appear rather than surprise anyone. */
   titleExists: boolean;
 };
 
