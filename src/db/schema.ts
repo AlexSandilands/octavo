@@ -16,6 +16,7 @@ import {
 import { createId } from "@/lib/id";
 import type { IssueContent } from "@/lib/blocks";
 import { MARK_SIZE, TEXT_SIZE, type FooterAlign } from "@/lib/branding";
+import type { ImportResult } from "@/lib/issue-transfer/result";
 
 // All timestamps are timestamptz: the app runs in a different timezone locally
 // than on Railway, and naive timestamps make publishedAt comparisons drift.
@@ -199,6 +200,38 @@ export const logos = pgTable(
       .defaultNow(),
   },
   (t) => [index("logos_image_id_idx").on(t.imageId)],
+);
+
+// ── Issue transfer (issue #293) ─────────────────────────────────────────────
+
+export const issueImportStatus = pgEnum("issue_import_status", [
+  "started",
+  "committed",
+  "swept",
+]);
+
+// One attempt to import a bundle (docs/issue-transfer.md). `set null` keeps the
+// record, and the knowledge that `imports/<id>/` needs sweeping, past a removed
+// admin.
+export const issueImports = pgTable(
+  "issue_imports",
+  {
+    id: text("id").primaryKey(),
+    adminId: text("admin_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    status: issueImportStatus("status").notNull().default("started"),
+    result: jsonb("result").$type<ImportResult>(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("issue_imports_status_created_at_idx").on(t.status, t.createdAt),
+  ],
 );
 
 // ── Magazine settings (issue #105) ──────────────────────────────────────────

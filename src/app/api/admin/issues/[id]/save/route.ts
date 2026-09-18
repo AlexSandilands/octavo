@@ -1,22 +1,12 @@
 import * as Sentry from "@sentry/nextjs";
+import { readBoundedBody } from "@/lib/bounded-body";
+import { SAVE_REQUEST_MAX_BYTES } from "@/lib/editor-save";
+import { sameOrigin } from "@/lib/same-origin";
 import { getAdminUser } from "@/server/session";
 import { saveEditorIssue } from "@/server/editor-save";
 
-// Match the previous Server Action body cap, including chunked requests.
-const MAX_BYTES = 1024 * 1024;
-
-function sameOrigin(request: Request): boolean {
-  const origin = request.headers.get("origin");
-  const host =
-    request.headers.get("x-forwarded-host") ?? request.headers.get("host");
-  if (!origin || !host) return false;
-  try {
-    const url = new URL(origin);
-    return /^https?:$/.test(url.protocol) && url.host === host;
-  } catch {
-    return false;
-  }
-}
+// The body cap, applied to chunked requests too.
+const MAX_BYTES = SAVE_REQUEST_MAX_BYTES;
 
 export async function POST(
   request: Request,
@@ -32,29 +22,17 @@ export async function POST(
     return Response.json({ ok: false }, { status: 415 });
   }
 
-  const reader = request.body?.getReader();
-  if (!reader) {
-    return Response.json({ ok: false, reason: "invalid" }, { status: 400 });
+  const body = await readBoundedBody(request, MAX_BYTES);
+  if (!body.ok) {
+    return body.reason === "too-large"
+      ? Response.json({ ok: false }, { status: 413 })
+      : Response.json({ ok: false, reason: "invalid" }, { status: 400 });
   }
   let input: unknown;
   try {
-    const chunks: Uint8Array[] = [];
-    let size = 0;
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      size += value.byteLength;
-      if (size > MAX_BYTES) {
-        await reader.cancel();
-        return Response.json({ ok: false }, { status: 413 });
-      }
-      chunks.push(value);
-    }
-    input = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    input = JSON.parse(body.bytes.toString("utf8"));
   } catch {
     return Response.json({ ok: false, reason: "invalid" }, { status: 400 });
-  } finally {
-    reader.releaseLock();
   }
 
   const { id } = await params;

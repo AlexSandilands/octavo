@@ -18,6 +18,7 @@ import { CoverThumb } from "@/features/library/cover-thumb";
 import { THUMB_W } from "@/features/admin/issue-thumb";
 import { IssuesTable } from "@/features/admin/issues-table";
 import { CreateIssueButton } from "@/features/admin/create-issue-button";
+import { ImportIssuesButton } from "@/features/admin/import-issues-button";
 
 export const dynamic = "force-dynamic";
 
@@ -111,12 +112,15 @@ export default async function AdminDashboard({
             {list.draftTotal} in draft
           </p>
         </div>
-        <CreateIssueButton
-          iconPosition="left"
-          className="w-full flex-none whitespace-nowrap sm:w-auto"
-        >
-          Create new issue
-        </CreateIssueButton>
+        <div className="flex flex-none flex-col gap-3 sm:flex-row">
+          <ImportIssuesButton className="w-full flex-none whitespace-nowrap sm:w-auto" />
+          <CreateIssueButton
+            iconPosition="left"
+            className="w-full flex-none whitespace-nowrap sm:w-auto"
+          >
+            Create new issue
+          </CreateIssueButton>
+        </div>
       </div>
 
       {list.total === 0 ? (

@@ -463,6 +463,20 @@ try {
   await reopen(page, bulkTrigger);
   await checkBackdropRestores(page, "Delete selected");
 
+  // ── 4c. ImportIssuesDialog (issue #293) ──────────────────────────────────
+  // Opened and closed without choosing a file, so nothing is uploaded and
+  // nothing is written.
+  heading("ImportIssuesDialog");
+  await page.goto(`${base}/admin`);
+  await page.waitForSelector("button:has-text('Import issues')");
+  await page.click("button:has-text('Import issues')");
+  await page.waitForSelector("[role=dialog]");
+  await checkOpenDialog(page, "Import issues");
+  await checkEscapeRestores(page, "Import issues");
+
+  await reopen(page, "button:has-text('Import issues')");
+  await checkBackdropRestores(page, "Import issues");
+
   // ── 5. SponsorDialog — including the in-flight save lock ─────────────────
   heading("SponsorDialog");
   await page.goto(`${base}/admin/sponsors`);

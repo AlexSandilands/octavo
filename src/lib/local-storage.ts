@@ -1,5 +1,12 @@
 import "server-only";
-import { mkdir, readdir, readFile, unlink, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  readdir,
+  readFile,
+  rmdir,
+  unlink,
+  writeFile,
+} from "node:fs/promises";
 import path from "node:path";
 
 // Dev-only object storage on the local filesystem, used when R2 isn't configured
@@ -26,19 +33,48 @@ export async function putLocalObject(key: string, body: Buffer): Promise<void> {
   await writeFile(dest, body);
 }
 
+// Null is "there is no such object" — a rejected key, a missing file, a path
+// that names a directory. Anything else (a permission error, a broken tree) is
+// thrown, which is the distinction R2's getObject already makes and the only
+// way a caller that must not silently drop an asset can tell the two apart.
 export async function readLocalObject(key: string): Promise<Buffer | null> {
+  let dest: string;
   try {
-    return await readFile(resolveSafe(key));
+    dest = resolveSafe(key);
   } catch {
-    return null; // missing object or rejected key
+    return null;
+  }
+  try {
+    return await readFile(dest);
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException)?.code;
+    if (code === "ENOENT" || code === "ENOTDIR" || code === "EISDIR") {
+      return null;
+    }
+    throw err;
   }
 }
 
 export async function deleteLocalObject(key: string): Promise<void> {
+  let dest: string;
   try {
-    await unlink(resolveSafe(key));
+    dest = resolveSafe(key);
+    await unlink(dest);
   } catch {
-    // already gone — nothing to do
+    return; // already gone, or a rejected key — nothing to do
+  }
+  await pruneEmptyDirs(path.dirname(dest));
+}
+
+// A bucket has no directories; the local fallback does, so a swept prefix would
+// otherwise leave an empty tree behind for every issue and every import.
+async function pruneEmptyDirs(dir: string): Promise<void> {
+  for (let at = dir; at.startsWith(ROOT + path.sep); at = path.dirname(at)) {
+    try {
+      await rmdir(at);
+    } catch {
+      return; // not empty, or gone
+    }
   }
 }
 

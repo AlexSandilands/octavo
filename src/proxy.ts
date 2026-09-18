@@ -158,13 +158,16 @@ export function proxy(req: NextRequest) {
   return res;
 }
 
-// Run on everything except Next's static assets and the favicon: static files
-// carry their headers from next.config.ts and need no per-request nonce, and
-// excluding them keeps this off the hot asset path. The auth gate stays scoped
-// to the gated prefixes in code (isGatedRoute), so broadening the matcher for
-// the CSP does not gate any new route.
+// Run on everything except Next's static assets and the favicon: they carry
+// their headers from next.config.ts and need no per-request nonce. The auth gate
+// stays scoped to the gated prefixes in code (isGatedRoute), so broadening the
+// matcher for the CSP does not gate any new route.
+//
+// `/api/admin/issues/import` is excluded by exact path: Next truncates proxied
+// request bodies at 10 MB and that handler authenticates itself. See
+// docs/issue-transfer.md#transport.
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/admin/issues/import$|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$).*)",
   ],
 };
