@@ -32,15 +32,14 @@ import { footerReserveOf } from "@/lib/branding";
 
 const idSchema = z.string().uuid();
 
-// Returns the new issue's id for the caller to navigate to — see
-// CreateIssueButton for why this doesn't redirect() itself (issue #276).
+// Returns the new issue's id; CreateIssueButton hard-navigates to it (#276,
+// #296), so no revalidatePath — the dashboard is force-dynamic.
 export async function createIssueAction(): Promise<string> {
   await requireAdmin();
   // The new issue's pages will be authored against the footer that is set right
   // now, so it starts with that as its reserve (issue #128).
   const settings = await getSettings();
   const issue = await createIssue(footerReserveOf(settings.footer));
-  revalidatePath("/admin");
   return issue.id;
 }
 
