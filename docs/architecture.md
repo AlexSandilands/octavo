@@ -370,7 +370,45 @@ second release while the first release's editor stays open. It verifies changed 
 both saves without reload, conflicts, network recovery, validation, Preview, publishing without
 email and list freshness, then runs the existing production action-refresh gate (which expects `.env.local` to exist).
 
-## Discussion (issues #301–#304)
+## Discussion (epic #298)
+
+A small community layer, built as six issues that each merged dormant, gated as a whole by
+one switch, `settings.comments_enabled` (default off, same DB → env → default chain as the
+PDF switch). The owner turns it on from `/admin/magazine`. While it is off there is no
+thread, count, bell, name section or reply email anywhere, and every member write refuses.
+Turning it off again hides everything and deletes nothing. The epic's Decisions section is
+the contract (one level of replies, plain text, no anonymous posting, members-only, never
+in the PDF or a transfer bundle).
+
+| Piece                                                                     | Where it is documented                                                 |
+| ------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Storage, the server module, posting-name rules, removed members (#299)    | `docs/database.md` → Discussion                                        |
+| Member profile: posting names, a photo each, both email toggles (#300)    | the `/profile` and `POST /api/profile/avatar` rows under Routes        |
+| The thread: button, drawer and sheet, deep links (#301)                   | below                                                                  |
+| Moderation: the reports inbox and admin email (#302)                      | the `/admin/reports` row under Routes; `docs/database.md` → Moderation |
+| Moderation in the thread (#302)                                           | below                                                                  |
+| Reply notifications: bell and opt-in email (#303)                         | below                                                                  |
+| Page tags: tag any page, chip jumps there, filter to the open page (#304) | below                                                                  |
+
+**Going live.** Deploys run the migrations, so the tables are already in place. Check that
+`APP_URL` is set on the production service: without it the reply and report emails are
+skipped (and reported to Sentry) rather than sent with links built from the request.
+Resend is already sending the publish blast, and the two discussion email streams are small
+(`docs/infrastructure.md` → costs). Then switch **Discussion** on and choose the
+removed-member policy (anonymise by default) on `/admin/magazine`. Admins need no setup:
+an account with no posting name names itself in the composer with its first post.
+
+**Gates.** `dev-discussion-gate.mts` (the thread, the admin's thread and page tags, split
+across the `discussion-gate-*.mts` sections), `dev-profile-gate.mts`, `dev-reports-gate.mts`,
+`dev-notifications-gate.mts`, the discussion and reports dialogs in
+`dev-dialog-a11y-gate.mts`, and the module checks `check-comments-module.mts`,
+`check-member-name.mts` and `check-report-moderation.mts`.
+
+**Not built (phase 2, #305).** Section tags, a filter listing which pages and sections have
+comments, per-page comment counts, and inline highlights (deferred, with the reasons, in the
+issue). #304 already delivered a picker for any page.
+
+### The thread (#301)
 
 Every published issue has a thread — top-level comments and one level of replies, plain
 text — that members read and write from the reader. They open it with one green
@@ -420,7 +458,9 @@ sign-in panel, and the list route answers 401. The library's cards carry "N
 comments" (visible comments and replies), and the admin's delete confirmations — single and
 bulk — say how many comments go with the issues. Gate: `scripts/dev-discussion-gate.mts`.
 
-**Reply notifications (issue #303).** A reply to someone else's comment writes a
+### Reply notifications (#303)
+
+A reply to someone else's comment writes a
 `notifications` row for the parent's author in the post's own transaction (never for your
 own reply; the newest 100 per member are kept, trimmed on insert, so nothing sweeps them).
 The library header (`LibraryHeader`, on `/` and `/archive`) shows a **bell** for a signed-in
@@ -451,7 +491,9 @@ without it the email is skipped and reported. The footer's **Stop reply emails**
 later has already been mailed. Gates: `scripts/dev-notifications-gate.mts` and the bell's
 walkthrough in `scripts/dev-menu-focus-gate.mts`.
 
-**The admin's thread (issue #302).** `toThreadEntries` shapes one payload per viewer. A
+### The admin's thread (#302)
+
+`toThreadEntries` shapes one payload per viewer. A
 member's is the members' rule, unchanged: hidden and deleted comments withheld, a removed
 top-level comment kept only as a bare "Comment removed" stub while it has visible replies,
 no account, no moderation state. An admin's carries every row — removed replies included —
@@ -471,7 +513,9 @@ refetches its own list. Gates: the admin section of `dev-discussion-gate.mts`
 (`discussion-gate-admin.mts`), the replayed refusals in `dev-admin-gate.mts`, the nested
 confirmation in `dev-dialog-a11y-gate.mts`.
 
-**Page tags (issue #304).** A top-level comment may tag any page of the issue — a member
+### Page tags (#304)
+
+A top-level comment may tag any page of the issue — a member
 who notices something, reads on and comments later needn't flick back to tag it (this
 brings "tag any page" forward from #305). Each reader says which pages are open
 (`src/features/reader/use-current-pages.ts`) and hands the thread a `ReaderPages`
