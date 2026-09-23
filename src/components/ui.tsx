@@ -263,9 +263,33 @@ export function Pill({ status }: { status: Status }) {
   );
 }
 
-export function Avatar({ initials }: { initials: string }) {
+// A round avatar: the photo when there is one, the initials otherwise. The alt
+// is empty and the initials hidden — wherever it is used, the name sits beside it.
+export function Avatar({
+  initials,
+  src,
+  size = "md",
+}: {
+  initials: string;
+  src?: string | null;
+  size?: "md" | "lg";
+}) {
+  const box = size === "lg" ? "h-16 w-16 text-[20px]" : "h-9 w-9 text-[13px]";
+  if (src) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- a 256px WebP in a fixed box
+      <img
+        src={src}
+        alt=""
+        className={`bg-tint ${box} flex-none rounded-full object-cover`}
+      />
+    );
+  }
   return (
-    <span className="bg-tint text-accent flex h-9 w-9 flex-none items-center justify-center rounded-full font-sans text-[13px] font-semibold">
+    <span
+      aria-hidden
+      className={`bg-tint text-accent ${box} flex flex-none items-center justify-center rounded-full font-sans font-semibold`}
+    >
       {initials}
     </span>
   );
