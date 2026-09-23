@@ -135,7 +135,8 @@ export function SectionDiscussion() {
           <strong>Clear avatar</strong> removes the picture on the name the
           comment was posted under, and <strong>Retire name</strong> takes the
           name off the member&rsquo;s list so they can&rsquo;t post under it
-          again. Comments already posted keep the name.
+          again, and they can&rsquo;t add it back from their profile. Comments
+          already posted keep the name.
         </li>
       </Bullets>
       <P>

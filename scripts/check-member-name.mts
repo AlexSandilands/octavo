@@ -1,19 +1,23 @@
 // Posting-name rules (issue #299): the shared validator in
 // src/lib/member-name.ts, then the per-account rules member-names.ts adds on
-// top — duplicates, shared names and restoring a retired one — against the
-// local database with scratch members it removes again.
+// top — duplicates, shared names, restoring a retired one, and an admin's
+// retirement that sticks — against the local database with scratch members it
+// removes again.
 // Run: npx tsx --tsconfig scripts/tsconfig.json scripts/check-member-name.mts
 import {
   checkMemberName,
   memberNameKey,
   type MemberNameOptions,
 } from "../src/lib/member-name.ts";
+import { eq } from "drizzle-orm";
 import {
   as,
+  db,
   finish,
   heading,
   names,
   ok,
+  schema,
   scratchUser,
 } from "./fixtures/discussion/harness.mts";
 
@@ -145,13 +149,16 @@ if (second.ok) {
   const removed = await names.removeName(second.name.id);
   ok(removed.ok && removed.outcome === "deleted", "an unused name is deleted");
 }
-// Retire by posting-free path: add, mark retired as an admin would, re-add.
+// A member's own retirement is what removeName does to a name with comments;
+// set here directly, so no comment is needed.
+const retireAsMember = (nameId: string) =>
+  db
+    .update(schema.memberNames)
+    .set({ retiredAt: new Date(), retiredBy: "member" })
+    .where(eq(schema.memberNames.id, nameId));
 const kept = await names.addName({ name: "Captain Alex" });
 if (kept.ok) {
-  const admin = await scratchUser({ isAdmin: true });
-  as(admin);
-  ok((await names.adminRetireName(kept.name.id)).ok, "a name is retired");
-  as(alex);
+  await retireAsMember(kept.name.id);
   const listed = await names.listMyNames();
   ok(
     !listed.some((n) => n.id === kept.name.id),
@@ -166,9 +173,7 @@ if (kept.ok) {
     restored.ok && restored.name.name === "captain ALEX",
     "…under the newly entered spelling",
   );
-  as(admin);
-  await names.adminRetireName(kept.name.id);
-  as(alex);
+  await retireAsMember(kept.name.id);
   const onto = first.ok
     ? await names.renameName({ nameId: first.name.id, name: "Captain Alex" })
     : undefined;
@@ -179,6 +184,83 @@ if (kept.ok) {
     "renaming onto one of your retired names says so",
   );
 }
+
+heading("an admin's retirement sticks");
+// A fresh member: the account above has spent most of its hourly budget.
+const admin = await scratchUser({ isAdmin: true });
+const rae = await scratchUser({ name: "Rae Check" });
+const ADMIN_RETIRED = /An admin has retired this name/;
+as(rae);
+const raeFirst = await names.addName({ name: "Rae First" });
+const barred = await names.addName({ name: "Rae Barred" });
+if (raeFirst.ok && barred.ok) {
+  as(admin);
+  ok((await names.adminRetireName(barred.name.id)).ok, "an admin retires it");
+  ok(
+    !(await names.adminRetireName(barred.name.id)).ok,
+    "…once: retiring it again is refused",
+  );
+  as(rae);
+  ok(
+    !(await names.listMyNames()).some((n) => n.id === barred.name.id),
+    "it leaves the member's picker",
+  );
+  const readd = await names.addName({ name: "rae  BARRED" });
+  ok(
+    !readd.ok && ADMIN_RETIRED.test(readd.reason),
+    "the member can't add it back",
+  );
+  const onto = await names.renameName({
+    nameId: raeFirst.name.id,
+    name: "Rae Barred",
+  });
+  ok(
+    !onto.ok && ADMIN_RETIRED.test(onto.reason),
+    "…nor rename another of their names onto it",
+  );
+  as(sam);
+  const elsewhere = await names.addName({ name: "Rae Barred" });
+  ok(elsewhere.ok, "another account may still use the same name");
+
+  as(admin);
+  const reworded = await names.adminRenameName({
+    nameId: barred.name.id,
+    name: "Rae Bee",
+  });
+  ok(
+    reworded.ok && reworded.name.name === "Rae Bee",
+    "an admin can reword a retired name",
+  );
+  const [row] = await db
+    .select()
+    .from(schema.memberNames)
+    .where(eq(schema.memberNames.id, barred.name.id));
+  ok(
+    row?.retiredAt !== null && row?.retiredBy === "admin",
+    "…and it stays retired by an admin",
+  );
+  as(rae);
+  const newWording = await names.addName({ name: "Rae Bee" });
+  ok(
+    !newWording.ok && ADMIN_RETIRED.test(newWording.reason),
+    "…the block following the new wording",
+  );
+}
+const own = await names.addName({ name: "Rae Own" });
+if (own.ok) {
+  await retireAsMember(own.name.id);
+  as(admin);
+  ok(
+    (await names.adminRetireName(own.name.id)).ok,
+    "an admin can make a member's own retirement stick",
+  );
+  as(rae);
+  const back = await names.addName({ name: "Rae Own" });
+  ok(!back.ok && ADMIN_RETIRED.test(back.reason), "…so it can't be re-added");
+}
+as(null);
+const outsider = await names.adminRetireName("x").catch(() => "threw");
+ok(outsider === "threw", "a signed-out adminRetireName throws");
 
 heading("the five-name cap");
 const cap = await scratchUser({ name: "Cap Member" });

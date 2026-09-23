@@ -2,7 +2,7 @@ import "server-only";
 import { asc, count, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { comments, images, memberNames, users } from "@/db/schema";
-import type { MemberNameView } from "@/lib/comments";
+import type { MemberNameView, NameRetiredBy } from "@/lib/comments";
 import { keyToUrl } from "@/lib/storage";
 import { sweepOrphanedObjects, takeOrphanedImages } from "./asset-cleanup";
 import { getMemberIdentity } from "./member-names";
@@ -61,6 +61,8 @@ export type AdminPostingName = {
   name: string;
   avatarUrl: string | null;
   retired: boolean;
+  /** An admin's retirement sticks; a member's own can be retired again. */
+  retiredBy: NameRetiredBy | null;
 };
 
 /** Every posting name of the given accounts, live first then retired, oldest
@@ -78,6 +80,7 @@ export async function listPostingNamesFor(
       name: memberNames.name,
       avatarKey: images.key,
       retiredAt: memberNames.retiredAt,
+      retiredBy: memberNames.retiredBy,
     })
     .from(memberNames)
     .leftJoin(images, eq(images.id, memberNames.avatarImageId))
@@ -90,6 +93,7 @@ export async function listPostingNamesFor(
       name: row.name,
       avatarUrl: row.avatarKey ? keyToUrl(row.avatarKey) : null,
       retired: row.retiredAt !== null,
+      retiredBy: row.retiredAt ? row.retiredBy : null,
     });
     byUser.set(row.userId, list);
   }

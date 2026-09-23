@@ -64,12 +64,17 @@ export function SectionMembers() {
           library) &mdash; one for each person if a couple shares an account,
           each with an optional photo. Their names show under their email on
           this list, and <strong>Posting names&hellip;</strong> in the row lets
-          you rename one, retire one so it can&rsquo;t be used again (it stays
-          on the comments already posted under it), or clear an unsuitable
-          photo. Renaming is also how you set a genuine name the site&rsquo;s
-          word filter wouldn&rsquo;t accept from the member. Members never see
-          each other&rsquo;s email addresses; you always see the account behind
-          a name.
+          you rename one, retire one so it can&rsquo;t be used again (the member
+          can&rsquo;t add it back, and it stays on the comments already posted
+          under it), or clear an unsuitable photo. A retired name can still be
+          renamed, which changes what its old comments show &mdash; but its old
+          wording is then free again, so to stop a member using an unsuitable
+          name, retire it and leave the wording as it is. A name the member
+          retired themselves offers <strong>Keep retired</strong>, which stops
+          them adding it back. Renaming is also how you set a genuine name the
+          site&rsquo;s word filter wouldn&rsquo;t accept from the member.
+          Members never see each other&rsquo;s email addresses; you always see
+          the account behind a name.
         </Step>
       </Steps>
       <Callout title="Two guard rails, so you can’t lock yourself out">

@@ -9,7 +9,7 @@ import {
   resolveReport,
   unhideComment,
 } from "@/server/comment-moderation";
-import { adminRetireName, clearAvatar } from "@/server/member-names";
+import { adminRetireName, clearAvatar } from "@/server/member-name-moderation";
 import { requireAdmin } from "@/server/session";
 
 // The reports inbox's row actions (issue #302). Arguments are attacker-typed
