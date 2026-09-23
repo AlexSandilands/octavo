@@ -4,17 +4,21 @@ import { useState, useTransition } from "react";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import type { WriteResult } from "@/lib/comments";
 import type { ThreadComment } from "@/lib/discussion-thread";
+import { ActionButton } from "./action-button";
+import { ModerationButtons, type Moderate } from "./moderation-buttons";
 import { ReportDialog } from "./report-dialog";
 
 // The small row under a comment (issue #301): Reply on top-level comments;
 // Edit and Delete on your own; Report on anyone else's. Admins get no Report —
-// their Hide and Delete arrive with #302's in-thread moderation, here.
+// they get Hide / Unhide on every comment and Delete on anyone else's (#302).
+// A hidden comment takes no reply and no edit until it is unhidden.
 export function CommentActions({
   comment,
   viewer,
   onReply,
   onEdit,
   onDelete,
+  onModerate,
 }: {
   comment: ThreadComment;
   viewer: "member" | "admin";
@@ -22,6 +26,7 @@ export function CommentActions({
   onReply?: () => void;
   onEdit: () => void;
   onDelete: () => Promise<WriteResult>;
+  onModerate: Moderate;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [reporting, setReporting] = useState(false);
@@ -39,18 +44,21 @@ export function CommentActions({
     });
 
   const about = `${comment.name}’s comment`;
+  const hidden = comment.hidden === true;
   return (
     <div className="-ml-2 flex flex-wrap items-center">
-      {onReply && (
+      {onReply && !hidden && (
         <ActionButton onClick={onReply} label={`Reply to ${about}`}>
           Reply
         </ActionButton>
       )}
       {comment.isMine && (
         <>
-          <ActionButton onClick={onEdit} label="Edit your comment">
-            Edit
-          </ActionButton>
+          {!hidden && (
+            <ActionButton onClick={onEdit} label="Edit your comment">
+              Edit
+            </ActionButton>
+          )}
           <ActionButton
             onClick={() => {
               setFailed(null);
@@ -69,6 +77,9 @@ export function CommentActions({
         >
           Report
         </ActionButton>
+      )}
+      {viewer === "admin" && (
+        <ModerationButtons comment={comment} onModerate={onModerate} />
       )}
       {confirming && (
         <ConfirmDialog
@@ -98,26 +109,5 @@ export function CommentActions({
         />
       )}
     </div>
-  );
-}
-
-function ActionButton({
-  onClick,
-  label,
-  children,
-}: {
-  onClick: () => void;
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      className="text-faint hover:text-accent hover:bg-accent-wash inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-lg px-2 font-sans text-[14px] font-semibold transition-colors"
-    >
-      {children}
-    </button>
   );
 }

@@ -1,10 +1,12 @@
 import {
   FORMER_MEMBER,
   type AdminCommentView,
+  type CommentDeletedBy,
   type CommentThread,
   type MemberCommentView,
   type MemberNameView,
 } from "./comments";
+import { memberNameKey } from "./member-name";
 
 // The thread as it travels to the reader (issue #301): one shape for member
 // and admin viewers, dates as ISO strings. Framework-free, so the route that
@@ -24,6 +26,11 @@ export type ThreadComment = {
   editedAt: string | null;
   /** Admin viewers only: the club's record of the account behind the name. */
   account?: { name: string | null } | null;
+  /** Admin viewers only (#302): the moderation state. A deleted comment's
+   *  body is already blank. */
+  hidden?: boolean;
+  deleted?: boolean;
+  deletedBy?: CommentDeletedBy | null;
 };
 
 export type RemovedStub = { id: string; removed: true; createdAt: string };
@@ -69,13 +76,29 @@ function toComment(
     createdAt: view.createdAt.toISOString(),
     editedAt: view.editedAt?.toISOString() ?? null,
   };
-  if (admin && "account" in view) comment.account = view.account;
+  if (admin && "account" in view) {
+    comment.account = view.account && { name: view.account.name };
+    comment.hidden = view.hidden;
+    comment.deleted = view.deleted;
+    comment.deletedBy = view.deletedBy;
+  }
   return comment;
 }
 
-// The admin read carries every row; it is folded to the members' rule here
-// (removed replies dropped, a removed parent kept as a stub only while it has
-// visible replies) until #302 gives admins their own treatment in the thread.
+/** The account line an admin sees under a name (#302): shown only when the
+ *  account's name differs from the posting name — a blank one always does. */
+export function accountLine(
+  comment: ThreadComment,
+): { name: string | null } | null {
+  if (!comment.account || comment.former) return null;
+  const name = comment.account.name?.trim() || null;
+  if (name && memberNameKey(name) === memberNameKey(comment.name)) return null;
+  return { name };
+}
+
+// A member gets the members' rule, already applied by listComments: removed
+// comments only as a stub, and only while they have visible replies. An admin
+// gets every row, each flagged hidden / deleted (#302), removed replies too.
 export function toThreadEntries(thread: CommentThread): ThreadEntry[] {
   if (thread.viewer === "member") {
     return thread.entries.map((entry) => ({
@@ -89,17 +112,9 @@ export function toThreadEntries(thread: CommentThread): ThreadEntry[] {
       replies: entry.replies.map((r) => toComment(r, false)),
     }));
   }
-  const entries: ThreadEntry[] = [];
-  for (const entry of thread.entries) {
-    const replies = entry.replies
-      .filter((r) => !r.removed)
-      .map((r) => toComment(r, true));
-    if (!entry.removed) {
-      entries.push({ ...toComment(entry, true), removed: false, replies });
-    } else if (replies.length > 0) {
-      const createdAt = entry.createdAt.toISOString();
-      entries.push({ id: entry.id, removed: true, createdAt, replies });
-    }
-  }
-  return entries;
+  return thread.entries.map((entry) => ({
+    ...toComment(entry, true),
+    removed: false as const,
+    replies: entry.replies.map((r) => toComment(r, true)),
+  }));
 }

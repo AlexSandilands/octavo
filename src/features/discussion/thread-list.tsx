@@ -8,6 +8,7 @@ import type {
 } from "@/lib/discussion-thread";
 import { CommentComposer, type Submit } from "./comment-composer";
 import { CommentItem } from "./comment-item";
+import type { Moderate } from "./moderation-buttons";
 import { RepliesToggle } from "./replies-toggle";
 
 /** What the list asks of the thread that owns the state. */
@@ -29,12 +30,15 @@ export type ThreadHandlers = {
   reply: (parentId: string) => Submit;
   save: (commentId: string) => (body: string) => Promise<WriteResult>;
   remove: (commentId: string) => () => Promise<WriteResult>;
+  /** An admin's Hide / Unhide / Delete (#302). */
+  moderate: (commentId: string) => Moderate;
 };
 
 // Top-level comments oldest first, each with its replies folded under a
 // "N replies" control and indented once when open (issue #301). A removed
 // comment with replies reads "Comment removed" so they still make sense;
-// members can't tell hidden from deleted.
+// members can't tell hidden from deleted. Admins get every comment, marked
+// (#302), so they never see that stub.
 export function ThreadList({
   entries,
   viewer,
@@ -78,13 +82,18 @@ export function ThreadList({
       onCancelEdit={() => h.cancelEdit(comment.id)}
       onSaveEdit={h.save(comment.id)}
       onDelete={h.remove(comment.id)}
+      onModerate={h.moderate(comment.id)}
     />
   );
 
   return (
     <ol aria-label="Comments" className="flex flex-col gap-4">
       {entries.map((entry) => {
-        const replying = !entry.removed && h.replyTo === entry.id;
+        const replying =
+          !entry.removed &&
+          !entry.hidden &&
+          !entry.deleted &&
+          h.replyTo === entry.id;
         const count = entry.replies.length;
         const open = h.isUnfolded(entry.id);
         const listId = `replies-${entry.id}`;

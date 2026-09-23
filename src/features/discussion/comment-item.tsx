@@ -6,12 +6,15 @@ import { CommentActions } from "./comment-actions";
 import { CommentEditForm } from "./comment-edit-form";
 import { CommentMeta } from "./comment-meta";
 import styles from "./discussion.module.css";
+import type { Moderate } from "./moderation-buttons";
 
 /** The DOM id a deep link (`?comment=`) scrolls to. */
 export const commentDomId = (id: string) => `comment-${id}`;
 
 // One comment or reply (issue #301): who and when, the words as plain text
 // with their line breaks, and the action row — or the edit box in its place.
+// Admins also get the removed ones (#302): a hidden comment greyed with its
+// words, a deleted one as a marked stub with nothing left to act on.
 export function CommentItem({
   comment,
   now,
@@ -23,6 +26,7 @@ export function CommentItem({
   onCancelEdit,
   onSaveEdit,
   onDelete,
+  onModerate,
 }: {
   comment: ThreadComment;
   now: number;
@@ -34,13 +38,16 @@ export function CommentItem({
   onCancelEdit: () => void;
   onSaveEdit: (body: string) => Promise<WriteResult>;
   onDelete: () => Promise<WriteResult>;
+  onModerate: Moderate;
 }) {
+  const state = comment.deleted ? "deleted" : comment.hidden ? "hidden" : null;
   return (
     <article
       id={commentDomId(comment.id)}
       tabIndex={-1}
-      aria-label={`${reply ? "Reply" : "Comment"} by ${comment.name}`}
-      className={`${styles.comment} -mx-2 px-2 py-2 focus:outline-none focus-visible:outline-2`}
+      aria-label={`${reply ? "Reply" : "Comment"} by ${comment.name}${state ? ` (${state})` : ""}`}
+      data-moderation={state ?? undefined}
+      className={`${styles.comment} -mx-2 px-2 py-2 focus:outline-none focus-visible:outline-2 ${state === "hidden" ? "bg-chip-soft" : ""}`}
     >
       <CommentMeta comment={comment} now={now} reply={reply} />
       <div className={reply ? "pl-[38px]" : "pl-[46px]"}>
@@ -51,9 +58,17 @@ export function CommentItem({
             onSave={onSaveEdit}
             onCancel={onCancelEdit}
           />
+        ) : state === "deleted" ? (
+          <p className="text-muted mt-1 pb-2 font-sans text-[15px] italic">
+            {comment.deletedBy === "author"
+              ? "Deleted by its author."
+              : "Deleted by an admin."}
+          </p>
         ) : (
           <>
-            <p className="text-body mt-1 font-sans text-[16px] leading-relaxed [overflow-wrap:anywhere] whitespace-pre-wrap">
+            <p
+              className={`${state === "hidden" ? "text-muted" : "text-body"} mt-1 font-sans text-[16px] leading-relaxed [overflow-wrap:anywhere] whitespace-pre-wrap`}
+            >
               {comment.body}
             </p>
             <CommentActions
@@ -62,6 +77,7 @@ export function CommentItem({
               onReply={onReply}
               onEdit={onEdit}
               onDelete={onDelete}
+              onModerate={onModerate}
             />
           </>
         )}
