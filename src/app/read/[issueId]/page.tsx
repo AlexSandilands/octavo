@@ -35,6 +35,12 @@ export default async function ReadPage({
     getSettings(),
   ]);
 
+  // The discussion (issue #301): nothing while it is switched off. The thread
+  // itself is fetched by the reader only when it is opened.
+  const discussion = settings.commentsEnabled
+    ? { issueNo: issue.number, signedIn: Boolean(user) }
+    : null;
+
   return (
     <>
       <ReaderMount
@@ -47,6 +53,7 @@ export default async function ReadPage({
         settings={settingsForIssue(settings, issue)}
         images={images}
         sponsors={sponsors}
+        discussion={discussion}
       />
       {/* Bottom-left stays clear of both readers' chrome (desktop dock is
           bottom-centre, mobile header is top). Decorative overlay only. */}

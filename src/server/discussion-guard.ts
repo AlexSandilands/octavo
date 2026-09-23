@@ -19,24 +19,34 @@ export const discussionLimits = {
 
 export type Refusal = { ok: false; reason: string };
 
-/** Spends one of the member's requests; a refusal once the budget is gone. */
+/** The thread's own wording for a spent posting or editing budget (#301). */
+export const POSTING_QUICKLY =
+  "You're posting quickly — try again in a few minutes.";
+
+/** Spends one of the member's requests; a refusal once the budget is gone.
+ *  `reason` replaces the generic sentence where the thread has its own. */
 export function overLimit(
   limiter: RateLimiter,
   userId: string,
+  reason?: string,
 ): Refusal | null {
   const result = limiter.check(userId);
   if (result.ok) return null;
   const minutes = Math.ceil(result.retryAfterSeconds / 60);
   return {
     ok: false,
-    reason: `You're going a little fast. Please try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`,
+    reason:
+      reason ??
+      `You're going a little fast. Please try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`,
   };
 }
+
+export const DISCUSSION_OFF = "Discussion is turned off at the moment.";
 
 /** A refusal while discussion is switched off (the shipped default). */
 export async function discussionOff(): Promise<Refusal | null> {
   if ((await getSettings()).commentsEnabled) return null;
-  return { ok: false, reason: "Discussion is switched off." };
+  return { ok: false, reason: DISCUSSION_OFF };
 }
 
 // Plain text as stored: CRLF folded to LF, every other control character

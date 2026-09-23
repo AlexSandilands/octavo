@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import type { IssueContent } from "@/lib/blocks";
 import type { SiteSettings } from "@/lib/branding";
+import type { DiscussionInfo } from "@/lib/discussion-thread";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 
@@ -35,6 +36,7 @@ export function ReaderMount({
   images,
   sponsors,
   fillDesktopHeight = false,
+  discussion = null,
 }: {
   content: IssueContent;
   issueNo: number;
@@ -48,6 +50,9 @@ export function ReaderMount({
   /** Fill a height supplied by the parent instead of claiming the viewport.
    *  Used by the admin preview, where the draft banner shares that viewport. */
   fillDesktopHeight?: boolean;
+  /** The issue's discussion (issue #301); null where there is none — switched
+   *  off, or the admin's draft preview. */
+  discussion?: DiscussionInfo | null;
 }) {
   // `null` until mounted: matchMedia isn't available during SSR, and picking the
   // wrong reader then swapping would download both bundles. The query stays live
@@ -71,6 +76,7 @@ export function ReaderMount({
       images={images}
       sponsors={sponsors}
       fillHeight={fillDesktopHeight}
+      discussion={discussion}
     />
   ) : (
     <MobileReader
@@ -80,6 +86,7 @@ export function ReaderMount({
       settings={settings}
       images={images}
       sponsors={sponsors}
+      discussion={discussion}
     />
   );
 }

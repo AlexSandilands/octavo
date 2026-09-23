@@ -14,6 +14,8 @@ export type IssueRowData = {
   title: string;
   status: IssueStatus;
   pages: number;
+  /** Comments that go with it if it is deleted (issue #301). */
+  comments: number;
   thumb: React.ReactNode;
 };
 
@@ -76,7 +78,11 @@ export function IssueRow({
           >
             Edit
           </Link>
-          <DeleteIssueButton id={issue.id} title={issue.title} />
+          <DeleteIssueButton
+            id={issue.id}
+            title={issue.title}
+            comments={issue.comments}
+          />
         </div>
       </div>
     </div>

@@ -6,7 +6,11 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { SelectCheckbox } from "@/components/select-checkbox";
 import { ISSUES_SELECTION_MAX } from "./selection-limit";
 import { exportIssues, omissionNote } from "./export-issues";
-import { deleteIssuesAction } from "@/app/admin/actions";
+import {
+  countIssueCommentsAction,
+  deleteIssuesAction,
+} from "@/app/admin/actions";
+import { commentsLabel } from "@/features/discussion/comments-label";
 
 // The strip between the search box and the rows: the select-all control, the
 // running count, and — once something is selected — the one bulk action there
@@ -63,6 +67,10 @@ export function IssuesBulkBar({
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+  // What the selection's discussions add up to, counted when Delete is pressed
+  // — the selection reaches past the served page (issue #301).
+  const [comments, setComments] = useState(0);
+  const [counting, startCounting] = useTransition();
   const [selectionNote, setSelectionNote] = useState<string | null>(null);
   const [awaitingSelection, setAwaitingSelection] = useState(false);
 
@@ -77,6 +85,15 @@ export function IssuesBulkBar({
   const overCap = matching > ISSUES_SELECTION_MAX;
   const atCap = count >= ISSUES_SELECTION_MAX;
   const narrowed = searching || filtering;
+
+  const askToDelete = () => {
+    setError(null);
+    startCounting(async () => {
+      const res = await countIssueCommentsAction(selectedIds).catch(() => null);
+      setComments(res?.ok ? res.comments : 0);
+      setConfirming(true);
+    });
+  };
 
   const remove = () => {
     setError(null);
@@ -250,7 +267,10 @@ export function IssuesBulkBar({
               icon="trash"
               iconPosition="left"
               disabled={pending || exporting}
-              onClick={() => setConfirming(true)}
+              // Not `busy`: that disables it, and the dialog must find focus
+              // still on this button to return it there.
+              unavailable={counting}
+              onClick={askToDelete}
             >
               Delete selected
             </Button>
@@ -303,6 +323,12 @@ export function IssuesBulkBar({
               This permanently removes{" "}
               {count === 1 ? "the issue and its pages" : "them and their pages"}
               , and can’t be undone.
+              {comments > 0 && (
+                <span className="text-ink mt-2.5 block font-semibold">
+                  {count === 1 ? "Its discussion goes" : "Their discussions go"}{" "}
+                  with {count === 1 ? "it" : "them"}: {commentsLabel(comments)}.
+                </span>
+              )}
               {publishedCount > 0 && (
                 <span className="text-warn mt-2.5 block font-semibold">
                   {publishedCount === count

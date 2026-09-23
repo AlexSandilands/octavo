@@ -35,6 +35,10 @@ const ICONS: Record<string, ReactNode> = {
   arrowUp: <path d="M6 15l6-6 6 6" />,
   arrowDown: <path d="M6 9l6 6 6-6" />,
   flag: <path d="M5 21V4m0 0h12l-2.5 4.5L17 13H5" />,
+  // A speech bubble — the reader's discussion (issue #301).
+  comment: (
+    <path d="M5 5h14a1 1 0 011 1v9a1 1 0 01-1 1h-8l-4 3.5V16H5a1 1 0 01-1-1V6a1 1 0 011-1z" />
+  ),
   trash: <path d="M5 7h14M9 7V5h6v2M7 7l1 12h8l1-12" />,
   pencil: <path d="M4 20h4L18.5 9.5a2 2 0 00-3-3L5 17v3zM14 7l3 3" />,
   users: (

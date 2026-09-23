@@ -3,6 +3,7 @@
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import type { IssueContent } from "@/lib/blocks";
 import type { SiteSettings } from "@/lib/branding";
+import type { DiscussionInfo } from "@/lib/discussion-thread";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 import {
@@ -13,6 +14,9 @@ import {
 } from "@/features/blocks/themes/registry";
 import { PAGE_W, PAGE_H } from "@/features/blocks/page-frame";
 import { useCanvasPanZoom } from "@/features/blocks/use-canvas-pan-zoom";
+import { DiscussionButton } from "@/features/discussion/discussion-button";
+import { DiscussionDrawer } from "@/features/discussion/discussion-drawer";
+import { useDiscussion } from "@/features/discussion/use-discussion";
 import { ReaderSpread, FLIP_MS, type Turn } from "./reader-spread";
 import { ReaderContents, buildToc } from "./reader-contents";
 import { ReaderControls } from "./reader-controls";
@@ -31,6 +35,7 @@ export function DesktopReader({
   images,
   sponsors,
   fillHeight = false,
+  discussion = null,
 }: {
   content: IssueContent;
   issueNo: number;
@@ -43,6 +48,7 @@ export function DesktopReader({
   sponsors: SponsorMap;
   /** Fill a bounded preview pane; the public reader still owns the viewport. */
   fillHeight?: boolean;
+  discussion?: DiscussionInfo | null;
 }) {
   const pages = content.pages;
   const toc = buildToc(pages);
@@ -62,6 +68,7 @@ export function DesktopReader({
   // conditional, and it costs nothing until something calls `download`; only
   // the control below is conditional.
   const pdf = useIssuePdf(issueNo, themeId);
+  const talk = useDiscussion(discussion);
 
   // Page-turn animation. `turn` holds the in-flight flip (direction + target
   // spread); the curl itself (TurnCurl) owns the Web Animations that carry it
@@ -191,12 +198,14 @@ export function DesktopReader({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
-      // Leave arrows aimed at a form control alone (e.g. the zoom slider).
+      // Leave arrows aimed at a form control alone (e.g. the zoom slider), and
+      // everything inside a dialog — the discussion drawer (issue #301).
       if (
         t &&
         (t.tagName === "INPUT" ||
           t.tagName === "TEXTAREA" ||
-          t.isContentEditable)
+          t.isContentEditable ||
+          t.closest("[role=dialog]"))
       ) {
         return;
       }
@@ -238,30 +247,34 @@ export function DesktopReader({
         fillHeight ? "h-full" : "h-screen"
       }`}
     >
-      {/* Only offer the toggle when the deployment enables more than one layout
-          theme (NEXT_PUBLIC_ISSUE_THEMES) — with a single theme there's nothing
-          to choose. */}
-      {themes.length > 1 && (
-        <div className="absolute top-3.5 right-4 z-10 flex items-center gap-2">
-          <span className="text-faint2 font-sans text-[9px] font-semibold tracking-[0.18em] uppercase">
-            Theme
-          </span>
-          <div className="bg-card border-hair flex rounded-full border p-[3px]">
-            {themes.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setThemeId(t.id)}
-                aria-pressed={themeId === t.id}
-                className={`flex min-h-[44px] items-center rounded-full px-4 font-sans text-xs font-semibold ${
-                  themeId === t.id ? "bg-accent text-paper" : "text-muted"
-                }`}
-              >
-                {t.name}
-              </button>
-            ))}
+      {/* The top-right corner: the theme toggle, offered only when the
+          deployment enables more than one layout theme
+          (NEXT_PUBLIC_ISSUE_THEMES), and the discussion button (issue #301),
+          which keeps the corner when the toggle isn't there. */}
+      <div className="absolute top-3.5 right-4 z-10 flex items-center gap-4">
+        {themes.length > 1 && (
+          <div className="flex items-center gap-2">
+            <span className="text-faint2 font-sans text-[9px] font-semibold tracking-[0.18em] uppercase">
+              Theme
+            </span>
+            <div className="bg-card border-hair flex rounded-full border p-[3px]">
+              {themes.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setThemeId(t.id)}
+                  aria-pressed={themeId === t.id}
+                  className={`flex min-h-[44px] items-center rounded-full px-4 font-sans text-xs font-semibold ${
+                    themeId === t.id ? "bg-accent text-paper" : "text-muted"
+                  }`}
+                >
+                  {t.name}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+        {talk && <DiscussionButton floating={false} onOpen={talk.show} />}
+      </div>
 
       <ReaderContents
         collapsed={collapsed}
@@ -339,6 +352,7 @@ export function DesktopReader({
         pdfState={pdf.state}
         onDownloadPdf={pdf.download}
       />
+      {talk?.open && <DiscussionDrawer talk={talk} />}
     </div>
   );
 }

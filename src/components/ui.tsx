@@ -41,9 +41,12 @@ type ButtonProps = {
   icon?: IconName;
   /** Which side the icon sits on. Defaults to trailing the label. */
   iconPosition?: "left" | "right";
-  variant?: "primary" | "secondary" | "danger";
-  /** "md" is the standalone CTA size; "sm" fits dense bars (editor header). */
-  size?: "md" | "sm";
+  /** "quiet" is a text-style button beside a primary one (the discussion's
+   * Cancel): no box until hovered. */
+  variant?: "primary" | "secondary" | "danger" | "quiet";
+  /** "md" is the standalone CTA size; "sm" fits dense bars (editor header);
+   * "compact" is 36px tall with a 44px hit area past its edges. */
+  size?: "md" | "sm" | "compact";
   full?: boolean;
   onClick?: () => void;
   onMouseDown?: MouseEventHandler<HTMLButtonElement>;
@@ -110,12 +113,15 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const sizes = {
       md: "h-12 px-5 text-[15px]",
       sm: "h-10 px-4 text-sm",
+      compact:
+        "relative h-9 px-3.5 text-[14px] before:absolute before:inset-x-0 before:-inset-y-1 before:content-['']",
     }[size];
     const rest = {
       primary: "bg-accent text-paper shadow-[0_2px_8px_rgba(29,77,62,0.25)]",
       // The house style for white buttons: a hairline on white.
       secondary: "border-[1.5px] border-hair-warm bg-white text-ink",
       danger: "bg-warn text-paper shadow-[0_2px_10px_rgba(0,0,0,0.18)]",
+      quiet: "text-muted",
     }[variant];
     const feedback = {
       primary:
@@ -126,6 +132,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         "hover:border-accent hover:bg-accent-wash active:bg-accent-wash",
       danger:
         "hover:bg-warn-strong hover:shadow-[0_4px_14px_rgba(0,0,0,0.22)] active:shadow-[0_1px_5px_rgba(0,0,0,0.18)]",
+      quiet: "hover:bg-accent-wash hover:text-ink",
     }[variant];
     // The hover/press feedback is composed in only when the button can actually
     // be pressed, so a disabled or busy one sits completely still. Gated here in
@@ -276,9 +283,14 @@ export function Avatar({
 }: {
   initials: string;
   src?: string | null;
-  size?: "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg";
 }) {
-  const box = size === "lg" ? "h-12 w-12 text-[17px]" : "h-9 w-9 text-[13px]";
+  const box = {
+    xs: "h-5 w-5 text-[9px]",
+    sm: "h-7 w-7 text-[11px]",
+    md: "h-9 w-9 text-[13px]",
+    lg: "h-12 w-12 text-[17px]",
+  }[size];
   if (src) {
     return (
       // eslint-disable-next-line @next/next/no-img-element -- a 256px WebP in a fixed box

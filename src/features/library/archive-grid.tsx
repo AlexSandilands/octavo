@@ -7,6 +7,7 @@ import type { SiteSettings } from "@/lib/branding";
 import type { ImageMap } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 import { PAGE_W, PAGE_H } from "@/features/blocks/page-frame";
+import { commentsLabel } from "@/features/discussion/comments-label";
 import { CoverThumb } from "./cover-thumb";
 
 // A curated set of muted cover tints — decorative variety for legacy issues
@@ -29,11 +30,17 @@ type ArchiveItem = {
   theme: string;
   cover?: Page;
   sources: CoverSource[];
+  /** Visible comments (issue #301); 0 — and so no line — when there are none
+   *  to show, discussion is off or the visitor is signed out. */
+  comments: number;
 };
 
 // Issue rows as shelf cards — one mapping for the home page and /archive, so
 // both draw the same card from the same columns.
-export function toArchiveItems(rows: PublishedIssueRow[]): ArchiveItem[] {
+export function toArchiveItems(
+  rows: PublishedIssueRow[],
+  comments: Record<string, number> = {},
+): ArchiveItem[] {
   return rows.map((i) => ({
     id: i.id,
     number: i.number,
@@ -42,6 +49,7 @@ export function toArchiveItems(rows: PublishedIssueRow[]): ArchiveItem[] {
     theme: i.theme,
     cover: coverPageOf(i.content),
     sources: coverSources(i.content.pages),
+    comments: comments[i.id] ?? 0,
   }));
 }
 
@@ -170,6 +178,11 @@ function ArchiveCard({
         <span className="text-faint2 inline-block font-mono text-[11px] whitespace-nowrap">
           No. {a.number}
         </span>
+        {a.comments > 0 && (
+          <span className="text-faint mt-0.5 block font-sans text-[13px]">
+            {commentsLabel(a.comments)}
+          </span>
+        )}
       </div>
     </Link>
   );

@@ -13,6 +13,7 @@ import {
 import { resolveIssueImages } from "@/server/images";
 import { resolveIssueSponsors } from "@/server/sponsors";
 import Link from "next/link";
+import { countIssueComments } from "@/server/discussion-thread";
 import { countOpenReports } from "@/server/report-inbox";
 import { requireAdminOrRedirect } from "@/server/session";
 import { getSettings } from "@/server/settings";
@@ -72,9 +73,11 @@ export default async function AdminDashboard({
   const covers = issues
     .map((i) => coverPageOf(i.content))
     .filter((p): p is Page => Boolean(p));
-  const [coverImages, coverSponsors] = await Promise.all([
+  // Each row's comments, for its delete confirmation (issue #301).
+  const [coverImages, coverSponsors, comments] = await Promise.all([
     resolveIssueImages({ pages: covers }),
     resolveIssueSponsors({ pages: covers }),
+    countIssueComments(issues.map((i) => i.id)),
   ]);
 
   // The rows are handed to a client component, which owns the selection — so
@@ -87,6 +90,7 @@ export default async function AdminDashboard({
       title: i.title,
       status: i.status,
       pages: i.content.pages.length,
+      comments: comments[i.id] ?? 0,
       thumb: cover ? (
         <CoverThumb
           page={cover}
