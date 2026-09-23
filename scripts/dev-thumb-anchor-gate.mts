@@ -97,6 +97,8 @@ const settings: SiteSettings = {
   footer: DEFAULT_FOOTER_STYLE,
   showRunningHead: true,
   pdfDownloads: false,
+  commentsEnabled: false,
+  removedMemberComments: "anonymise",
 };
 
 // Both layout themes draw the sponsor card differently (classic prints a "→",

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui";
 import {
   resolveSettings,
   type FooterAlign,
+  type RemovedMemberComments,
   type SiteSettings,
   type StoredSettings,
 } from "@/lib/branding";
@@ -37,6 +38,9 @@ export type SettingsForm = {
    *  columns allow only ever describes a deployment nobody has saved yet. */
   showRunningHead: boolean;
   pdfDownloads: boolean;
+  /** Carried through unchanged until the discussion controls land (#302). */
+  commentsEnabled: boolean;
+  removedMemberComments: RemovedMemberComments;
 };
 
 function toForm(stored: StoredSettings, defaults: SiteSettings): SettingsForm {
@@ -49,6 +53,9 @@ function toForm(stored: StoredSettings, defaults: SiteSettings): SettingsForm {
     footerAlign: stored.footerAlign ?? defaults.footer.align,
     showRunningHead: stored.showRunningHead ?? defaults.showRunningHead,
     pdfDownloads: stored.pdfDownloads ?? defaults.pdfDownloads,
+    commentsEnabled: stored.commentsEnabled ?? defaults.commentsEnabled,
+    removedMemberComments:
+      stored.removedMemberComments ?? defaults.removedMemberComments,
   };
 }
 
@@ -63,6 +70,8 @@ function toStored(form: SettingsForm): StoredSettings {
     footerAlign: form.footerAlign,
     showRunningHead: form.showRunningHead,
     pdfDownloads: form.pdfDownloads,
+    commentsEnabled: form.commentsEnabled,
+    removedMemberComments: form.removedMemberComments,
   };
 }
 

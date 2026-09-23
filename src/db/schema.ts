@@ -15,14 +15,21 @@ import {
 } from "drizzle-orm/pg-core";
 import { createId } from "@/lib/id";
 import type { IssueContent } from "@/lib/blocks";
-import { MARK_SIZE, TEXT_SIZE, type FooterAlign } from "@/lib/branding";
+import {
+  MARK_SIZE,
+  TEXT_SIZE,
+  type FooterAlign,
+  type RemovedMemberComments,
+} from "@/lib/branding";
+import type { ReportReason, ReportStatus } from "@/lib/comments";
 import type { ImportResult } from "@/lib/issue-transfer/result";
 
 // All timestamps are timestamptz: the app runs in a different timezone locally
 // than on Railway, and naive timestamps make publishedAt comparisons drift.
 
 // ── Auth.js tables (magic-link / email provider) ────────────────────────────
-// `users` doubles as the club member record (see is_admin, subscribed).
+// `users` doubles as the club member record (see is_admin, subscribed). `name`
+// is the admin's record of the member, never a posting name (`member_names`).
 
 export const users = pgTable("users", {
   id: text("id").primaryKey().$defaultFn(createId),
@@ -35,6 +42,8 @@ export const users = pgTable("users", {
   }),
   isAdmin: boolean("is_admin").notNull().default(false),
   subscribed: boolean("subscribed").notNull().default(true),
+  // Opt-in reply emails (issue #299). `subscribed` keeps meaning issue emails.
+  replyEmails: boolean("reply_emails").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -144,6 +153,10 @@ export const issues = pgTable(
   ],
 );
 
+// Every stored image, whoever owns it. `issueId` records the issue an editor
+// upload was made under; sponsor logos, library marks and member avatars
+// (`member_names.avatarImageId`) leave it null. What keeps an image alive is
+// the reference scan in src/server/asset-cleanup.ts, never this column.
 export const images = pgTable(
   "images",
   {
@@ -234,6 +247,146 @@ export const issueImports = pgTable(
   ],
 );
 
+// ── Discussion (issue #298) ─────────────────────────────────────────────────
+
+// The names an account posts under (issue #299). One account may be a
+// household, so it holds up to five unretired names (module-enforced); two
+// accounts may share a name, one account may not hold it twice — `nameKey` is
+// the normalised form (src/lib/member-name.ts) the unique index compares.
+// `badge` is honoured only while the owner is an admin (joined at read time).
+// A name with comments is retired rather than deleted, so they keep it.
+export const memberNames = pgTable(
+  "member_names",
+  {
+    id: text("id").primaryKey().$defaultFn(createId),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    nameKey: text("name_key").notNull(),
+    avatarImageId: text("avatar_image_id").references(() => images.id, {
+      onDelete: "set null",
+    }),
+    badge: boolean("badge").notNull().default(false),
+    retiredAt: timestamp("retired_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("member_names_user_id_name_key_idx").on(t.userId, t.nameKey),
+    index("member_names_name_key_idx").on(t.nameKey),
+    index("member_names_user_id_idx").on(t.userId),
+  ],
+);
+
+// One thread per issue: top-level comments and one level of replies (the
+// module refuses a reply to a reply). A null author is a removed member,
+// rendered "Former member". Hidden and deleted rows stay while they have
+// replies, as a stub; a soft delete blanks `body`. `pageId` is the authored
+// page's stable id, not its number, so renumbering never moves a tag.
+export const comments = pgTable(
+  "comments",
+  {
+    id: text("id").primaryKey().$defaultFn(createId),
+    issueId: text("issue_id")
+      .notNull()
+      .references(() => issues.id, { onDelete: "cascade" }),
+    authorId: text("author_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    authorNameId: text("author_name_id").references(() => memberNames.id, {
+      onDelete: "set null",
+    }),
+    parentId: text("parent_id").references((): AnyPgColumn => comments.id, {
+      onDelete: "cascade",
+    }),
+    body: text("body").notNull(),
+    pageId: text("page_id"),
+    hiddenAt: timestamp("hidden_at", { withTimezone: true }),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    editedAt: timestamp("edited_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("comments_issue_id_created_at_idx").on(t.issueId, t.createdAt),
+    index("comments_parent_id_idx").on(t.parentId),
+    index("comments_author_id_idx").on(t.authorId),
+    index("comments_author_name_id_idx").on(t.authorNameId),
+  ],
+);
+
+// A member's report of a comment. It outlives the comment (`set null`) and
+// snapshots it as reported, so an edit or delete by its author can't erase the
+// evidence. `reason` and `status` are app-validated text, as in `settings`.
+export const commentReports = pgTable(
+  "comment_reports",
+  {
+    id: text("id").primaryKey().$defaultFn(createId),
+    commentId: text("comment_id").references(() => comments.id, {
+      onDelete: "set null",
+    }),
+    issueId: text("issue_id")
+      .notNull()
+      .references(() => issues.id, { onDelete: "cascade" }),
+    reporterId: text("reporter_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    reason: text("reason").$type<ReportReason>().notNull(),
+    note: text("note"),
+    status: text("status").$type<ReportStatus>().notNull().default("open"),
+    resolvedBy: text("resolved_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    snapshotBody: text("snapshot_body").notNull(),
+    snapshotName: text("snapshot_name"),
+    snapshotAuthorId: text("snapshot_author_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    snapshotCreatedAt: timestamp("snapshot_created_at", { withTimezone: true }),
+    snapshotEditedAt: timestamp("snapshot_edited_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("comment_reports_comment_id_reporter_id_idx").on(
+      t.commentId,
+      t.reporterId,
+    ),
+    index("comment_reports_status_created_at_idx").on(t.status, t.createdAt),
+  ],
+);
+
+// A reply to one of your comments. The module keeps the newest 100 per
+// recipient, trimmed on insert.
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: text("id").primaryKey().$defaultFn(createId),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    commentId: text("comment_id")
+      .notNull()
+      .references(() => comments.id, { onDelete: "cascade" }),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("notifications_user_id_read_at_created_at_idx").on(
+      t.userId,
+      t.readAt,
+      t.createdAt,
+    ),
+  ],
+);
+
 // ── Magazine settings (issue #105) ──────────────────────────────────────────
 
 // The one row of owner-editable branding: the magazine's wording and the
@@ -274,6 +427,12 @@ export const settings = pgTable(
     // the downloads it has always had. A `default true` here would say the same
     // thing in the wrong place and break the table's one rule.
     pdfDownloads: boolean("pdf_downloads_enabled"),
+    // The discussion switch and the removed-member policy (issue #299), same
+    // rule: NULL is the shipped default — off, and anonymise.
+    commentsEnabled: boolean("comments_enabled"),
+    removedMemberComments: text(
+      "removed_member_comments",
+    ).$type<RemovedMemberComments>(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

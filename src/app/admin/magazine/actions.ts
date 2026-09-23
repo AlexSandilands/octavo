@@ -5,6 +5,7 @@ import { z } from "zod";
 import {
   FOOTER_ALIGNS,
   MARK_SIZE,
+  REMOVED_MEMBER_COMMENTS,
   TEXT_SIZE,
   type StoredSettings,
 } from "@/lib/branding";
@@ -54,6 +55,8 @@ const settingsSchema = z
     footerAlign: z.enum(FOOTER_ALIGNS),
     showRunningHead: z.boolean(),
     pdfDownloads: z.boolean(),
+    commentsEnabled: z.boolean(),
+    removedMemberComments: z.enum(REMOVED_MEMBER_COMMENTS),
   })
   .strict();
 
