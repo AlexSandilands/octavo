@@ -28,3 +28,8 @@ export async function requireMember() {
   if (!user) throw new Error("Member session required");
   return user;
 }
+
+// The page gate as a server action uses it (#300): the stub never redirects.
+export async function requireMemberOrRedirect() {
+  return getUserFailClosed();
+}
