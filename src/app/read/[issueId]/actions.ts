@@ -14,6 +14,7 @@ import {
 } from "@/server/comments";
 import { INVALID, cleanText, discussionOff } from "@/server/discussion-guard";
 import { publishedIssueId } from "@/server/discussion-thread";
+import { memberNameKey } from "@/lib/member-name";
 import { addName, getMemberIdentity } from "@/server/member-names";
 import { getUserFailClosed } from "@/server/session";
 
@@ -67,15 +68,23 @@ export async function postCommentAction(
   let nameId = parsed.data.nameId;
   if (!nameId) {
     // Only the very first post may bring its own name; anyone with names
-    // picks one of them.
+    // picks one of them. A name they already hold is simply used — a first
+    // post that was refused after creating it is sent again that way.
     const user = (await getUserFailClosed())!;
     const { names } = await getMemberIdentity(user.id);
-    if (names.length > 0 || newName === null) {
+    const held =
+      newName === null
+        ? undefined
+        : names.find((n) => memberNameKey(n.name) === memberNameKey(newName));
+    if (held) {
+      nameId = held.id;
+    } else if (names.length > 0 || newName === null) {
       return { ok: false, reason: "Choose one of your names to post under." };
+    } else {
+      const added = await addName({ name: newName });
+      if (!added.ok) return added;
+      nameId = added.name.id;
     }
-    const added = await addName({ name: newName });
-    if (!added.ok) return added;
-    nameId = added.name.id;
   }
   return createComment({ issueId, parentId, body, nameId });
 }

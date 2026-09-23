@@ -51,6 +51,53 @@ export async function composerStates(k: Kit, c: Cast) {
   );
   await r.ctx.close();
 
+  k.heading("composer — a first post refused after its name was made");
+  // The server refuses the comment once the name exists. Stripping the box's
+  // maxlength (as a crafted client could) makes that refusal repeatable.
+  const second = await k.member("second", { name: "Sam Second" });
+  r = await k.reader(second, c.issue.number!, { query: "?discussion=1" });
+  await k.waitThread(r.page);
+  await r.page.evaluate(() =>
+    document
+      .querySelector("#discussion-composer")
+      ?.removeAttribute("maxlength"),
+  );
+  const long = "x".repeat(2001);
+  await post(r.page, long);
+  await r.page.waitForSelector("#discussion-composer-error");
+  const refusal =
+    (await r.page.textContent("#discussion-composer-error")) ?? "";
+  k.ok(
+    refusal !== "" && !refusal.includes("Choose one of your names"),
+    `the refusal is shown (“${refusal}”)`,
+  );
+  const made =
+    await k.sql`select id from member_names where user_id = ${second.id}`;
+  k.ok(made.length === 1, "the name was created");
+  await r.page.waitForSelector("#discussion-composer-name", {
+    state: "detached",
+  });
+  k.ok(
+    (await r.page.locator("text=Posting as").count()) > 0,
+    "the composer moves on to “Posting as” it",
+  );
+  k.ok(
+    (await r.page.inputValue("#discussion-composer")) === long,
+    "the draft is still in the box",
+  );
+  const again = await post(r.page, "check-301 carried on");
+  k.ok(
+    await heard(r.page, "Your comment is posted.", again),
+    "a second submit goes through",
+  );
+  const [carried] = await k.sql`select author_name_id from comments
+    where author_id = ${second.id}`;
+  k.ok(
+    carried?.author_name_id === made[0]!.id,
+    "under the name the first try made",
+  );
+  await r.ctx.close();
+
   k.heading("composer — a refused name, an empty post");
   const newbie = await k.member("newbie");
   r = await k.reader(newbie, c.issue.number!, { query: "?discussion=1" });

@@ -59,7 +59,12 @@ export function DiscussionThread({ talk }: { talk: Discussion }) {
       nameId: newName ? null : current,
       newName,
     });
-    if (!result.ok) return result;
+    if (!result.ok) {
+      // A refused first post may still have created its name: reload so the
+      // composer moves on to "Posting as" it, keeping the draft and the reason.
+      if (newName) await thread.reload();
+      return result;
+    }
     aim({
       id: result.id,
       focus: parentId ? "comment" : "composer",
