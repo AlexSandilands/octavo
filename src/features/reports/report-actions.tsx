@@ -124,10 +124,20 @@ export function ReportActions({
           title={
             !name ? gone : stuck ? "Already retired by an admin." : undefined
           }
-          aria-label={`Retire name ${name?.name ?? by}`}
+          aria-label={
+            stuck
+              ? `Name ${name?.name ?? by} retired`
+              : name?.retired
+                ? `Keep name ${name.name} retired`
+                : `Retire name ${name?.name ?? by}`
+          }
           onClick={() => setConfirming("retire")}
         >
-          {stuck ? "Name retired" : "Retire name"}
+          {stuck
+            ? "Name retired"
+            : name?.retired
+              ? "Keep retired"
+              : "Retire name"}
         </Button>
       </div>
 

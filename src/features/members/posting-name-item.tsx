@@ -152,17 +152,23 @@ export function PostingNameItem({
               icon="minus"
               iconPosition="left"
               unavailable={pending}
-              aria-label={`Retire ${name.name}`}
+              aria-label={
+                name.retired
+                  ? `Keep ${name.name} retired`
+                  : `Retire ${name.name}`
+              }
               onClick={() =>
                 act(
                   () => adminRetireNameAction(name.id),
-                  `Retired “${name.name}”. It stays on past comments, and the member can’t add it back.`,
+                  name.retired
+                    ? `“${name.name}” stays retired: the member can’t add it back.`
+                    : `Retired “${name.name}”. It stays on past comments, and the member can’t add it back.`,
                   onRetired,
                 )
               }
               className="min-h-11"
             >
-              Retire
+              {name.retired ? "Keep retired" : "Retire"}
             </Button>
           )}
         </div>
