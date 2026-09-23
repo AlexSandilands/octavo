@@ -98,6 +98,11 @@ export function DialogShell({
         // key. A locked dialog still swallows it — refusing to close is not the
         // same as letting the page behind act on it.
         if (panel.querySelector('[role="menu"]')) return;
+        // So does an inline form that cancels itself on Escape (the
+        // discussion's edit and reply boxes): a second Escape closes the dialog.
+        if ((e.target as Element | null)?.closest?.("[data-owns-escape]")) {
+          return;
+        }
         e.preventDefault();
         e.stopPropagation();
         if (!locked) onClose();

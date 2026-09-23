@@ -4,7 +4,8 @@ import { useLayoutEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui";
 import { COMMENT_BODY_MAX, type WriteResult } from "@/lib/comments";
 
-// Editing your own comment in place (issue #301); saving marks it "(edited)".
+// Editing your own comment in place (issue #301); saving marks it "(edited)",
+// Escape or Cancel puts it back.
 export function CommentEditForm({
   id,
   initial,
@@ -49,7 +50,18 @@ export function CommentEditForm({
 
   const errorId = `${id}-error`;
   return (
-    <form onSubmit={save} noValidate className="mt-2 flex flex-col gap-2">
+    <form
+      onSubmit={save}
+      noValidate
+      className="mt-2 flex flex-col gap-2"
+      // Escape cancels the edit, not the whole discussion (see DialogShell).
+      data-owns-escape
+      onKeyDown={(e) => {
+        if (e.key !== "Escape" || pending) return;
+        e.preventDefault();
+        onCancel();
+      }}
+    >
       <label htmlFor={id} className="sr-only">
         Edit your comment
       </label>

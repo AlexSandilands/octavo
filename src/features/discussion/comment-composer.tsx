@@ -94,7 +94,18 @@ export function CommentComposer({
     .join(" ");
 
   return (
-    <form onSubmit={submit} noValidate className="flex flex-col gap-2.5">
+    <form
+      onSubmit={submit}
+      noValidate
+      className="flex flex-col gap-2.5"
+      // A reply box cancels on Escape rather than closing the discussion.
+      data-owns-escape={onCancel ? true : undefined}
+      onKeyDown={(e) => {
+        if (!onCancel || e.key !== "Escape" || pending) return;
+        e.preventDefault();
+        onCancel();
+      }}
+    >
       <label htmlFor={id} className="sr-only">
         {label}
       </label>

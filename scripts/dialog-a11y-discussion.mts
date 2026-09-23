@@ -104,6 +104,35 @@ async function closesToTrigger(
   k.ok(landed === trigger, `focus is back on “${trigger}” (${landed})`);
 }
 
+// Escape inside an inline box cancels only that box, putting focus back on
+// its comment; the drawer stays open.
+async function escapeCancels(
+  k: Kit,
+  page: Page,
+  opener: string,
+  comment: string,
+) {
+  await page.click(`[role=dialog] button[aria-label="${opener}"]`);
+  const box = page.locator("[role=dialog] form[data-owns-escape] textarea");
+  await box.waitFor();
+  await box.fill("check-301 words to throw away");
+  await page.keyboard.press("Escape");
+  await box.waitFor({ state: "detached" });
+  k.ok(true, `Escape in the “${opener}” box cancels it`);
+  await page
+    .waitForFunction(
+      (want) => document.activeElement?.getAttribute("aria-label") === want,
+      comment,
+      { timeout: 2000 },
+    )
+    .catch(() => {});
+  k.ok(
+    (await focused(page)) === comment,
+    `focus lands on the comment (${await focused(page)})`,
+  );
+  k.ok(await page.isVisible("[role=dialog]"), "the drawer is still open");
+}
+
 export async function checkDiscussionDialogs(d: Deps) {
   const browser = d.page.context().browser()!;
   const k = discussionKit({
@@ -151,6 +180,23 @@ export async function checkDiscussionDialogs(d: Deps) {
     await r.page.waitForSelector("[role=dialog] [role=dialog]");
     await checkNested(k, r.page, "Delete your comment?");
     await closesToTrigger(k, r.page, "Escape", del);
+
+    d.heading("Discussion drawer — Escape in the edit and reply boxes");
+    await escapeCancels(
+      k,
+      r.page,
+      "Edit your comment",
+      "Comment by Dee Reader",
+    );
+    await escapeCancels(
+      k,
+      r.page,
+      "Reply to Eve Author’s comment",
+      "Comment by Eve Author",
+    );
+    await r.page.keyboard.press("Escape");
+    await r.page.waitForSelector("[role=dialog]", { state: "detached" });
+    k.ok(true, "a second Escape closes the drawer");
     await r.ctx.close();
 
     d.heading("Discussion sheet — phone");
