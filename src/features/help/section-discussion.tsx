@@ -21,15 +21,16 @@ export function SectionDiscussion() {
         kept, so turning it on again brings the discussion back as it was.
       </P>
       <P>
-        Members find it in the reader. On a computer, the{" "}
-        <strong>Discussion</strong> button in the control bar at the foot of the
-        page opens a panel from the right, over the pages; on a phone, a round
-        button in the bottom corner raises it from the bottom of the screen.
-        Either way it shows how many comments there are. Members can post, reply
-        to a comment (one level deep), and edit or delete their own comments;
-        &ldquo;Posting as&rdquo; under the box picks which of their names a
-        comment goes under, and someone posting for the first time chooses their
-        name right there. The library shows how many comments each issue has.
+        Members find it in the reader behind a round green button with a speech
+        bubble on it: on a computer it sits in the top right corner and opens a
+        panel from the right, over the pages; on a phone it sits in the bottom
+        right corner and raises the discussion from the bottom of the screen.
+        Members can post, reply to a comment (one level deep — the replies fold
+        away under a &ldquo;2 replies&rdquo; button until opened), and edit or
+        delete their own comments; &ldquo;Posting as&rdquo; under the box picks
+        which of their names a comment goes under, and someone posting for the
+        first time chooses their name right there. The library shows how many
+        comments each issue has.
       </P>
       <P>
         As an admin you see the same thread, with the member account behind each
