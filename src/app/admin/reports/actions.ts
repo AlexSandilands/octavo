@@ -35,31 +35,25 @@ async function run(
 }
 
 export async function hideReportedCommentAction(commentId: unknown) {
-  await requireAdmin();
   return run(commentId, hideComment);
 }
 
 export async function unhideReportedCommentAction(commentId: unknown) {
-  await requireAdmin();
   return run(commentId, unhideComment);
 }
 
 export async function deleteReportedCommentAction(commentId: unknown) {
-  await requireAdmin();
   return run(commentId, deleteComment);
 }
 
 export async function resolveReportAction(reportId: unknown) {
-  await requireAdmin();
   return run(reportId, resolveReport);
 }
 
 export async function clearNameAvatarAction(nameId: unknown) {
-  await requireAdmin();
   return run(nameId, clearAvatar);
 }
 
 export async function retireNameAction(nameId: unknown) {
-  await requireAdmin();
   return run(nameId, adminRetireName);
 }

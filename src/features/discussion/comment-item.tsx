@@ -79,6 +79,7 @@ export function CommentItem({
             <CommentActions
               comment={comment}
               viewer={viewer}
+              reply={reply}
               onReply={onReply}
               onEdit={onEdit}
               onDelete={onDelete}

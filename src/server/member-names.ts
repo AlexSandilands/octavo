@@ -355,8 +355,9 @@ async function replaceAvatar(
   return { ok: true };
 }
 
-// Takes the id the upload route has just created (#300). Never expose it as a
-// server action that accepts an image id from the client.
+// Takes the id the upload route has just created (#300), which has already
+// spent the member's upload budget. Never expose it as a server action that
+// accepts an image id from the client.
 export async function setNameAvatar(input: {
   nameId: string;
   imageId: string;
@@ -364,8 +365,6 @@ export async function setNameAvatar(input: {
   const member = await requireMember();
   const parsed = avatarInput.safeParse(input);
   if (!parsed.success) return INVALID;
-  const limited = overLimit(discussionLimits.avatar, member.id);
-  if (limited) return limited;
   return replaceAvatar(parsed.data.nameId, member.id, parsed.data.imageId);
 }
 
@@ -373,7 +372,7 @@ export async function clearNameAvatar(nameId: string): Promise<WriteResult> {
   const member = await requireMember();
   const parsed = id.safeParse(nameId);
   if (!parsed.success) return INVALID;
-  const limited = overLimit(discussionLimits.avatar, member.id);
+  const limited = overLimit(discussionLimits.names, member.id);
   if (limited) return limited;
   return replaceAvatar(parsed.data, member.id, null);
 }
