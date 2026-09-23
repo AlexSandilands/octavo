@@ -177,3 +177,100 @@ export async function checkModerationRefused(d: Deps) {
     await f.cleanup();
   }
 }
+
+// The thread's own Hide, Unhide and Delete (#302 part 2), the same way: the
+// admin's click in the reader's discussion is captured and replayed against a
+// second comment signed out, as a member, then as the admin.
+export async function checkThreadModerationRefused(d: Deps) {
+  const { sql, adminPage: page, ok } = d;
+  const f = reportsFixtures(sql, "admin-gate-thread");
+  try {
+    const issueId = await f.issue();
+    const [issue] = await sql`select number from issues where id = ${issueId}`;
+    const reporter = await f.user(`${f.stamp} Reporter`);
+    const setUp = async (label: string, name: string) => {
+      const author = await f.user(`${f.stamp} ${label}`);
+      const nameId = await f.name(author.id, name);
+      const comment = await f.comment(
+        issueId,
+        author,
+        nameId,
+        `${label} words`,
+      );
+      // Reported, so an admin's delete keeps a stub to look at.
+      await f.report(comment, reporter.id);
+      return comment;
+    };
+    const a = await setUp("Clicked", "Ann Aye");
+    const b = await setUp("Replayed", "Ben Bee");
+    await page.goto(`${d.base}/read/${issue!.number}?discussion=1`);
+    await page.waitForSelector(`[role=dialog] #comment-${a}`, {
+      timeout: 60_000,
+    });
+
+    const column = async (col: "hidden_at" | "deleted_at") =>
+      (await sql`select ${sql(col)} as v from comments where id = ${b}`)[0]
+        ?.v ?? null;
+    const cases = [
+      {
+        label: "hide",
+        button: "Hide Ann Aye’s comment",
+        changed: async () => (await column("hidden_at")) !== null,
+      },
+      {
+        label: "unhide",
+        button: "Unhide Ann Aye’s comment",
+        changed: async () => (await column("hidden_at")) === null,
+      },
+      {
+        label: "delete",
+        button: "Delete Ann Aye’s comment",
+        confirm: "Delete comment",
+        changed: async () => (await column("deleted_at")) !== null,
+      },
+    ];
+
+    for (const c of cases) {
+      const sent = page.waitForRequest(
+        (r: Request) =>
+          r.method() === "POST" && r.headers()["next-action"] !== undefined,
+      );
+      await page.getByRole("button", { name: c.button, exact: true }).click();
+      if (c.confirm) {
+        await page
+          .locator("[role=dialog] [role=dialog]")
+          .getByRole("button", { name: c.confirm })
+          .click();
+      }
+      const request = await sent;
+      const body = request.postDataBuffer() ?? Buffer.alloc(0);
+      ok(
+        body.toString().includes(a),
+        `captured the admin's thread ${c.label} request`,
+      );
+      const captured: Captured = {
+        url: request.url(),
+        headers: await request.allHeaders(),
+        body: Buffer.from(body.toString().replaceAll(a, b)),
+      };
+      await request.response();
+      await replay(captured, undefined);
+      ok(
+        !(await c.changed()),
+        `replayed thread ${c.label} signed out: nothing changed`,
+      );
+      await replay(captured, d.memberCookie);
+      ok(
+        !(await c.changed()),
+        `replayed thread ${c.label} as a member: nothing changed`,
+      );
+      await replay(captured, d.adminCookie);
+      ok(
+        await c.changed(),
+        `replayed thread ${c.label} as the admin: it applies (a valid replay)`,
+      );
+    }
+  } finally {
+    await f.cleanup();
+  }
+}

@@ -4,8 +4,9 @@
 // delete confirmation, which open *inside* the drawer and so are checked here
 // as the topmost of two: named, focused, trapped, everything else inert (the
 // drawer included), and Escape or the backdrop closes only them, handing focus
-// back to the button in the drawer. Its own check-301 rows, removed before it
-// returns.
+// back to the button in the drawer. An admin's Delete confirmation (#302) gets
+// the same checks in the drawer and the sheet. Its own check-301 rows (or
+// GATE_PREFIX), removed before it returns.
 import type { Page } from "playwright";
 import type postgres from "postgres";
 import { discussionKit, type Kit } from "./discussion-gate-kit.mts";
@@ -144,6 +145,10 @@ export async function checkDiscussionDialogs(d: Deps) {
   try {
     const reader = await k.member("dialogs-reader", { name: "Dee Reader" });
     const readerName = await k.name(reader.id, "Dee Reader");
+    const admin = await k.member("dialogs-admin", {
+      admin: true,
+      name: "Fay Admin",
+    });
     const author = await k.member("dialogs-author", { name: "Eve Author" });
     const authorName = await k.name(author.id, "Eve Author");
     const issue = await k.issue(true, 50);
@@ -199,6 +204,33 @@ export async function checkDiscussionDialogs(d: Deps) {
     k.ok(true, "a second Escape closes the drawer");
     await r.ctx.close();
 
+    d.heading("ConfirmDialog — an admin deleting a comment, over the drawer");
+    const moderate = "Delete Eve Author’s comment";
+    r = await k.reader(admin, issue.number!, { query: "?discussion=1" });
+    await k.waitThread(r.page);
+    await r.page.click(`button[aria-label="${moderate}"]`);
+    await r.page.waitForSelector("[role=dialog] [role=dialog]");
+    await checkNested(k, r.page, "Delete this comment?");
+    await closesToTrigger(k, r.page, "Escape", moderate);
+    await r.page.click(`button[aria-label="${moderate}"]`);
+    await r.page.waitForSelector("[role=dialog] [role=dialog]");
+    await closesToTrigger(k, r.page, "backdrop", moderate);
+    await r.ctx.close();
+
+    d.heading("ConfirmDialog — an admin deleting a comment, over the sheet");
+    r = await k.reader(admin, issue.number!, {
+      width: 390,
+      height: 844,
+      query: "?discussion=1",
+    });
+    await k.waitThread(r.page);
+    await r.page.waitForTimeout(350);
+    await r.page.click(`button[aria-label="${moderate}"]`);
+    await r.page.waitForSelector("[role=dialog] [role=dialog]");
+    await checkNested(k, r.page, "Delete this comment?");
+    await closesToTrigger(k, r.page, "Escape", moderate);
+    await r.ctx.close();
+
     d.heading("Discussion sheet — phone");
     r = await k.reader(reader, issue.number!, { width: 390, height: 844 });
     const fab = "[data-discussion-button]";
@@ -221,7 +253,7 @@ export async function checkDiscussionDialogs(d: Deps) {
     await r.ctx.close();
   } finally {
     const left = await k.cleanup();
-    if (left !== 0) throw new Error(`check-301 rows left behind: ${left}`);
+    if (left !== 0) throw new Error(`${k.prefix} rows left behind: ${left}`);
     if (k.failures() > 0)
       throw new Error(`FAIL: ${k.failures()} discussion dialog check(s)`);
   }

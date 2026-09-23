@@ -414,7 +414,7 @@ async function otherViewers(k: Kit, c: Cast) {
     "and folds them again",
   );
   const img = await byA.locator("img").first().getAttribute("src");
-  k.ok(img?.includes("check-301/"), `and that name's avatar (${img})`);
+  k.ok(img?.includes(`${k.prefix}/`), `and that name's avatar (${img})`);
   await r.ctx.close();
 
   r = await k.reader(c.ada, c.issue.number!, { query: "?discussion=1" });
@@ -430,7 +430,7 @@ async function otherViewers(k: Kit, c: Cast) {
     (await r.page
       .locator('[role=dialog] button[aria-label^="Report"]')
       .count()) === 0,
-    "an admin gets no Report (their actions come with #302)",
+    "an admin gets no Report (they get Hide and Delete, #302)",
   );
   await r.ctx.close();
 
