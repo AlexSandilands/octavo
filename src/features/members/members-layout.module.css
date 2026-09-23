@@ -205,7 +205,7 @@
   .grid {
     grid-template-columns:
       2.75rem 2.25rem minmax(12rem, 1.3fr) minmax(10rem, 1fr)
-      8.25rem 7rem 4.75rem 5.5rem;
+      8.25rem 7rem 4.75rem 8.25rem;
   }
 
   .columns {

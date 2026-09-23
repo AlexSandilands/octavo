@@ -6,6 +6,7 @@ import { MemberDialog } from "./member-dialog";
 import { SelectCheckbox } from "@/components/select-checkbox";
 import { Avatar, IconButton, Pill } from "@/components/ui";
 import { MemberDetails } from "./member-details";
+import { PostingNamesDialog } from "./posting-names-dialog";
 import styles from "./members-layout.module.css";
 import { initials } from "@/lib/initials";
 import {
@@ -40,6 +41,9 @@ export function MemberRow({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [namesOpen, setNamesOpen] = useState(false);
+  const postingNames = member.postingNames ?? [];
+  const liveNames = postingNames.filter((n) => !n.retired);
   // The pending destructive action awaiting confirmation, if any.
   const [confirm, setConfirm] = useState<{
     title: string;
@@ -110,6 +114,14 @@ export function MemberRow({
             <div className="text-faint font-sans text-[13px]">
               {member.email}
             </div>
+            {liveNames.length > 0 && (
+              <div
+                className="text-muted font-sans text-[13px]"
+                data-member-posting-names
+              >
+                Posts as {liveNames.map((n) => n.name).join(", ")}
+              </div>
+            )}
           </div>
         </div>
 
@@ -147,6 +159,9 @@ export function MemberRow({
           isSelf={isSelf}
           onToggleAdmin={toggleAdmin}
           onEdit={() => setEditing(true)}
+          onPostingNames={
+            postingNames.length > 0 ? () => setNamesOpen(true) : undefined
+          }
           onRemove={remove}
         />
       </div>
@@ -157,6 +172,14 @@ export function MemberRow({
 
       {editing && (
         <MemberDialog member={member} onClose={() => setEditing(false)} />
+      )}
+
+      {namesOpen && (
+        <PostingNamesDialog
+          label={label}
+          names={postingNames}
+          onClose={() => setNamesOpen(false)}
+        />
       )}
 
       {confirm && (

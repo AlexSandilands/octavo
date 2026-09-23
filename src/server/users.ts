@@ -1,4 +1,5 @@
 import "server-only";
+import type { AdminPostingName } from "./member-profile";
 import {
   and,
   asc,
@@ -48,6 +49,8 @@ export type MemberRow = {
   isAdmin: boolean;
   subscribed: boolean;
   createdAt: Date;
+  /** Their posting names (#300), attached by the members page. */
+  postingNames?: AdminPostingName[];
 };
 
 export type MemberList = PagedList<MemberRow> & {
