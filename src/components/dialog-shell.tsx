@@ -30,6 +30,8 @@ import { useEffect, useId, useRef } from "react";
 // have given for free is done by hand instead, in `inertOutside` below (#154).
 export function DialogShell({
   panelClassName,
+  overlayClassName = OVERLAY,
+  overlayStyle,
   locked = false,
   isolatePointerEvents = false,
   onClose,
@@ -37,6 +39,11 @@ export function DialogShell({
 }: {
   /** Classes for the panel — every dialog keeps the box it already had. */
   panelClassName: string;
+  /** Replaces the centred backdrop — the reader's discussion drawer and
+   * sheet (#301) anchor their panels to an edge instead. */
+  overlayClassName?: string;
+  /** The sheet tracks the visual viewport, so its box moves with the keyboard. */
+  overlayStyle?: React.CSSProperties;
   /** An action is in flight: Escape and a backdrop press are refused, matching
    * what the dialog's own Cancel / × already do. */
   locked?: boolean;
@@ -80,6 +87,9 @@ export function DialogShell({
     const onKey = (e: KeyboardEvent) => {
       const panel = panelRef.current;
       if (!panel) return;
+      // A dialog opened from inside this one (a confirm over the discussion
+      // drawer) owns the keyboard until it closes.
+      if (panel.querySelector(DIALOG)) return;
 
       if (e.key === "Escape") {
         // An open menu owns Escape: it closes itself and hands focus back to
@@ -124,7 +134,8 @@ export function DialogShell({
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(32,32,28,0.4)] p-4"
+      className={overlayClassName}
+      style={overlayStyle}
       onPointerDown={(e) => {
         if (isolatePointerEvents) e.stopPropagation();
         // Only a press on the backdrop itself — one that started inside the
@@ -157,6 +168,8 @@ export function DialogShell({
 }
 
 const DIALOG = "[role=dialog]";
+const OVERLAY =
+  "fixed inset-0 z-50 flex items-center justify-center bg-[rgba(32,32,28,0.4)] p-4";
 
 /**
  * True modality (issue #154): everything outside the dialog is marked `inert`,

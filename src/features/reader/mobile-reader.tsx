@@ -8,6 +8,7 @@ import Link from "next/link";
 import { Icon } from "@/components/icons";
 import type { SiteSettings } from "@/lib/branding";
 import type { Block, IssueContent } from "@/lib/blocks";
+import type { DiscussionInfo } from "@/lib/discussion-thread";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 import {
@@ -16,6 +17,9 @@ import {
   FooterWordmark,
   footerTextStyle,
 } from "@/features/blocks/page-footer";
+import { DiscussionFab } from "@/features/discussion/discussion-fab";
+import { DiscussionSheet } from "@/features/discussion/discussion-sheet";
+import { useDiscussion } from "@/features/discussion/use-discussion";
 import { headingDomId, MobileBlock } from "./mobile-block";
 import { MobileCover } from "./mobile-cover";
 import { breakHeight, readerSections } from "./mobile-sections";
@@ -35,6 +39,7 @@ export function MobileReader({
   settings,
   images,
   sponsors,
+  discussion = null,
 }: {
   content: IssueContent;
   issueNo: number;
@@ -44,8 +49,11 @@ export function MobileReader({
   settings: SiteSettings;
   images: ImageMap;
   sponsors: SponsorMap;
+  /** The issue's discussion (issue #301), or null where there is none. */
+  discussion?: DiscussionInfo | null;
 }) {
   const [m, setM] = useState(19);
+  const talk = useDiscussion(discussion);
   // Unconditional — hooks always are. Whether the button that uses it renders
   // is the owner's call (issue #162); see the header below.
   const pdf = useIssuePdf(issueNo);
@@ -167,7 +175,9 @@ export function MobileReader({
         </div>
       </header>
 
-      <article className="flex-1 pb-10">
+      {/* Room at the foot for the discussion button, so it never sits over
+          the issue's last lines. */}
+      <article className={`flex-1 ${talk ? "pb-24" : "pb-10"}`}>
         {sections.map((s, i) => {
           // The front cover fills what's left of the viewport under the header
           // (and grows past it rather than clipping); other covers keep their
@@ -265,6 +275,11 @@ export function MobileReader({
           </div>
         )}
       </article>
+
+      {talk && !drawer && (
+        <DiscussionFab count={talk.count} onOpen={talk.show} />
+      )}
+      {talk?.open && <DiscussionSheet talk={talk} />}
 
       {drawer && (
         <>
