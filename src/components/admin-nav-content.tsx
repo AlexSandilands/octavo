@@ -8,8 +8,10 @@ import { AdminNavLinks } from "./admin-nav-links";
 // Shared by the desktop rail and mobile drawer; only the links track the route.
 export function AdminNavContent({
   user,
+  openReports,
 }: {
   user: { name?: string | null; email: string };
+  openReports?: number;
 }) {
   return (
     <>
@@ -28,7 +30,7 @@ export function AdminNavContent({
         <Icon name="chevronLeft" size={16} />
         View library
       </Link>
-      <AdminNavLinks />
+      <AdminNavLinks openReports={openReports} />
       <div className="border-line mt-auto border-t px-6 pt-4">
         <div className="flex items-center gap-2.5">
           <span className="bg-accent text-paper flex h-[30px] w-[30px] flex-none items-center justify-center rounded-full font-sans text-xs font-semibold">

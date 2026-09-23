@@ -6,9 +6,11 @@ import { AdminScrollReset } from "./admin-scroll-reset";
 
 export function AdminShell({
   user,
+  openReports,
   children,
 }: {
   user: { name?: string | null; email: string };
+  openReports?: number;
   children: ReactNode;
 }) {
   return (
@@ -19,11 +21,11 @@ export function AdminShell({
       {/* Desktop rail — hidden below md, where the drawer takes over. Unchanged
           from the original fixed 214px sidebar at md+. */}
       <aside className="bg-paper border-line hidden w-[214px] flex-none flex-col border-r py-6 md:flex">
-        <AdminNavContent user={user} />
+        <AdminNavContent user={user} openReports={openReports} />
       </aside>
       {/* Mobile top bar + off-canvas drawer (client island for open/close). */}
       <AdminDrawer>
-        <AdminNavContent user={user} />
+        <AdminNavContent user={user} openReports={openReports} />
       </AdminDrawer>
       {/* `relative` keeps absolute descendants (e.g. sr-only live regions) in
           this scroll pane; unanchored they stretch the document (#189). */}

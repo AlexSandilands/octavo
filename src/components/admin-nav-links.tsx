@@ -18,6 +18,7 @@ const ADMIN_NAV: {
     href: "/admin/sponsors",
     icon: "banner",
   },
+  { key: "reports", label: "Reports", href: "/admin/reports", icon: "flag" },
   {
     key: "magazine",
     label: "Magazine",
@@ -27,7 +28,9 @@ const ADMIN_NAV: {
   { key: "help", label: "Guide", href: "/admin/help", icon: "help" },
 ];
 
-export function AdminNavLinks() {
+// `openReports` badges the Reports entry (issue #302); it comes from the
+// dashboard layout, which every row action revalidates.
+export function AdminNavLinks({ openReports = 0 }: { openReports?: number }) {
   const pathname = usePathname();
   return (
     <nav className="mt-5 flex flex-col">
@@ -48,6 +51,12 @@ export function AdminNavLinks() {
           >
             <Icon name={n.icon} size={18} />
             {n.label}
+            {n.key === "reports" && openReports > 0 && (
+              <span className="bg-warn text-paper ml-auto rounded-full px-2 py-0.5 font-sans text-[12px] font-semibold tabular-nums">
+                {openReports}
+                <span className="sr-only"> open</span>
+              </span>
+            )}
           </Link>
         );
       })}
