@@ -20,7 +20,7 @@ import { useThread } from "./use-thread";
 // composer pinned below. It owns the writes: each one refetches the list, then
 // the new or changed comment is scrolled to and announced.
 export function DiscussionThread({ talk }: { talk: Discussion }) {
-  const { info, setCount } = talk;
+  const { info } = talk;
   const listRef = useRef<HTMLDivElement>(null);
   const [said, setSaid] = useState({ text: "", n: 0 });
   const announce = (text: string) => setSaid((s) => ({ text, n: s.n + 1 }));
@@ -28,11 +28,22 @@ export function DiscussionThread({ talk }: { talk: Discussion }) {
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [replyDraft, setReplyDraft] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
+  // Replies start folded; which parents are open lives only while the shell is.
+  const [unfolded, setUnfolded] = useState<ReadonlySet<string>>(new Set());
+  const unfold = (id: string) =>
+    setUnfolded((s) => (s.has(id) ? s : new Set(s).add(id)));
 
-  const onLoaded = useCallback(
-    (payload: ThreadPayload) => setCount(payload.count),
-    [setCount],
-  );
+  // A deep link to a reply opens its parent, in the same render as the list,
+  // so the reply is there to scroll to.
+  const deepLink = useRef(talk.focusComment);
+  const onLoaded = useCallback((payload: ThreadPayload) => {
+    const id = deepLink.current;
+    deepLink.current = null;
+    const parent = payload.entries.find((e) =>
+      e.replies.some((r) => r.id === id),
+    );
+    if (parent) setUnfolded((s) => new Set(s).add(parent.id));
+  }, []);
   const thread = useThread(info.issueNo, onLoaded);
   const { payload } = thread;
   const aim = useCommentTarget(payload, talk.focusComment, {
@@ -70,6 +81,8 @@ export function DiscussionThread({ talk }: { talk: Discussion }) {
       focus: parentId ? "comment" : "composer",
       highlight: false,
     });
+    // A reply you have just posted stays in view under its parent.
+    if (parentId) unfold(parentId);
     await thread.reload();
     if (parentId) {
       setReplyTo(null);
@@ -82,6 +95,21 @@ export function DiscussionThread({ talk }: { talk: Discussion }) {
   };
 
   const h: ThreadHandlers = {
+    isUnfolded: (id) => unfolded.has(id) || replyTo === id,
+    // Folding away an open reply box closes it too.
+    toggleReplies: (id) => {
+      const open = unfolded.has(id) || replyTo === id;
+      if (open && replyTo === id) {
+        setReplyTo(null);
+        setReplyDraft("");
+      }
+      setUnfolded((s) => {
+        const next = new Set(s);
+        if (open) next.delete(id);
+        else next.add(id);
+        return next;
+      });
+    },
     replyTo,
     setReplyTo: (id) => {
       setReplyTo(id);

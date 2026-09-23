@@ -75,12 +75,7 @@ export function ReportDialog({
                 Thanks — an admin will take a look.
               </p>
               <div className="mt-6 flex justify-end">
-                <Button
-                  ref={doneRef}
-                  onClick={onClose}
-                  size="sm"
-                  className="min-h-11"
-                >
+                <Button ref={doneRef} onClick={onClose} size="compact">
                   Done
                 </Button>
               </div>
@@ -140,22 +135,17 @@ export function ReportDialog({
                 onChange={(e) => setNote(e.target.value)}
                 className="text-ink border-line mt-2 w-full resize-none rounded-lg border-[1.5px] bg-white px-3.5 py-2.5 font-sans text-[16px]"
               />
-              <div className="mt-5 flex justify-end gap-3">
+              <div className="mt-5 flex justify-end gap-1">
                 <Button
-                  variant="secondary"
-                  size="sm"
-                  className="min-h-11"
+                  variant="quiet"
+                  size="compact"
+                  className="px-3"
                   onClick={onClose}
                   disabled={pending}
                 >
                   Cancel
                 </Button>
-                <Button
-                  type="submit"
-                  size="sm"
-                  className="min-h-11"
-                  busy={pending}
-                >
+                <Button type="submit" size="compact" busy={pending}>
                   {pending ? "Sending…" : "Send report"}
                 </Button>
               </div>

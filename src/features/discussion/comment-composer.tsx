@@ -5,6 +5,7 @@ import { Button } from "@/components/ui";
 import { COMMENT_BODY_MAX, type WriteResult } from "@/lib/comments";
 import type { ComposerSetup } from "@/lib/discussion-thread";
 import { checkMemberName } from "@/lib/member-name";
+import { NameField } from "@/features/profile/name-field";
 import { PostingAs } from "./posting-as";
 
 // A comment or a reply (issue #301): an auto-growing box, the posting name,
@@ -142,33 +143,44 @@ export function CommentComposer({
           {error}
         </p>
       )}
-      <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
-        <PostingAs
-          id={id}
-          setup={setup}
-          nameId={nameId}
-          onNameChange={onNameChange}
-          newName={newName}
-          onNewNameChange={(next) => {
+      {firstPost && (
+        <NameField
+          id={`${id}-name`}
+          label="Choose the name other members will see"
+          value={newName}
+          error={nameError}
+          onChange={(next) => {
             setNewName(next);
             if (nameError) setNameError(null);
           }}
-          newNameError={nameError}
-          menuSide={menuSide}
         />
-        <div className="ml-auto flex gap-2">
+      )}
+      {/* One line at any panel width: the name gives way, the buttons don't. */}
+      <div className="@container flex items-center gap-2">
+        {firstPost ? (
+          <div className="flex-1" />
+        ) : (
+          <PostingAs
+            setup={setup}
+            nameId={nameId}
+            onNameChange={onNameChange}
+            menuSide={menuSide}
+            addName={!onCancel}
+          />
+        )}
+        <div className="flex flex-none items-center gap-1">
           {onCancel && (
             <Button
-              variant="secondary"
-              size="sm"
-              className="min-h-11"
+              variant="quiet"
+              size="compact"
+              className="px-3"
               onClick={onCancel}
               disabled={pending}
             >
               Cancel
             </Button>
           )}
-          <Button type="submit" size="sm" className="min-h-11" busy={pending}>
+          <Button type="submit" size="compact" busy={pending}>
             {pending ? "Posting…" : onCancel ? "Reply" : "Post"}
           </Button>
         </div>

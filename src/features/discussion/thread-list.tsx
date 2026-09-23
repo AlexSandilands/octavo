@@ -8,9 +8,13 @@ import type {
 } from "@/lib/discussion-thread";
 import { CommentComposer, type Submit } from "./comment-composer";
 import { CommentItem } from "./comment-item";
+import { RepliesToggle } from "./replies-toggle";
 
 /** What the list asks of the thread that owns the state. */
 export type ThreadHandlers = {
+  /** Whether a parent's replies are showing (or its reply box is open). */
+  isUnfolded: (id: string) => boolean;
+  toggleReplies: (id: string) => void;
   replyTo: string | null;
   setReplyTo: (id: string | null) => void;
   replyDraft: string;
@@ -27,9 +31,10 @@ export type ThreadHandlers = {
   remove: (commentId: string) => () => Promise<WriteResult>;
 };
 
-// Top-level comments oldest first, each with its replies indented once under
-// it (issue #301). A removed comment with replies reads "Comment removed" so
-// they still make sense; members can't tell hidden from deleted.
+// Top-level comments oldest first, each with its replies folded under a
+// "N replies" control and indented once when open (issue #301). A removed
+// comment with replies reads "Comment removed" so they still make sense;
+// members can't tell hidden from deleted.
 export function ThreadList({
   entries,
   viewer,
@@ -80,6 +85,9 @@ export function ThreadList({
     <ol aria-label="Comments" className="flex flex-col gap-4">
       {entries.map((entry) => {
         const replying = !entry.removed && h.replyTo === entry.id;
+        const count = entry.replies.length;
+        const open = h.isUnfolded(entry.id);
+        const listId = `replies-${entry.id}`;
         return (
           <li key={entry.id}>
             {entry.removed ? (
@@ -89,8 +97,19 @@ export function ThreadList({
             ) : (
               item(entry, false)
             )}
-            {(entry.replies.length > 0 || replying) && (
+            {count > 0 && (
+              <div className={entry.removed ? "" : "pl-[46px]"}>
+                <RepliesToggle
+                  count={count}
+                  open={open}
+                  controls={listId}
+                  onToggle={() => h.toggleReplies(entry.id)}
+                />
+              </div>
+            )}
+            {open && (count > 0 || replying) && (
               <ol
+                id={listId}
                 aria-label={
                   entry.removed ? "Replies" : `Replies to ${entry.name}`
                 }

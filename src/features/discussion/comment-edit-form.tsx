@@ -89,17 +89,17 @@ export function CommentEditForm({
           {error}
         </p>
       )}
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-1">
         <Button
-          variant="secondary"
-          size="sm"
-          className="min-h-11"
+          variant="quiet"
+          size="compact"
+          className="px-3"
           onClick={onCancel}
           disabled={pending}
         >
           Cancel
         </Button>
-        <Button type="submit" size="sm" className="min-h-11" busy={pending}>
+        <Button type="submit" size="compact" busy={pending}>
           {pending ? "Saving…" : "Save"}
         </Button>
       </div>

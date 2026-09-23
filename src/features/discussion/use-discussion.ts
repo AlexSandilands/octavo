@@ -5,8 +5,8 @@ import { z } from "zod";
 import type { DiscussionInfo } from "@/lib/discussion-thread";
 
 // The reader's discussion state (issue #301), shared by the desktop drawer and
-// the mobile sheet: whether it is open, the count on its control, a composer
-// draft that survives closing, and the deep-linked comment.
+// the mobile sheet: whether it is open, a composer draft that survives
+// closing, and the deep-linked comment.
 //
 // Opening pushes a history entry and closing pops it, so the phone's Back
 // button (and the browser's) closes the shell rather than leaving the issue.
@@ -18,8 +18,6 @@ export type Discussion = {
   open: boolean;
   show: () => void;
   hide: () => void;
-  count: number | null;
-  setCount: (count: number) => void;
   /** A `?comment=` deep link, until the thread has scrolled to it. */
   focusComment: string | null;
   clearFocusComment: () => void;
@@ -46,7 +44,6 @@ export function useDiscussion(info: DiscussionInfo | null): Discussion | null {
   const enabled = info !== null;
   const [link] = useState(arrival);
   const [open, setOpen] = useState(enabled && link.open);
-  const [count, setCount] = useState(info?.count ?? null);
   const [focusComment, setFocusComment] = useState<string | null>(
     enabled && link.open ? link.comment : null,
   );
@@ -109,8 +106,6 @@ export function useDiscussion(info: DiscussionInfo | null): Discussion | null {
     open,
     show,
     hide,
-    count,
-    setCount,
     focusComment,
     clearFocusComment: () => setFocusComment(null),
     draft,
