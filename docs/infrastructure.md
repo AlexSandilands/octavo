@@ -73,6 +73,15 @@ Member ── Cloudflare (DNS/CDN) ── Railway (Next.js + Postgres)
    are sent by one member's request to someone else, so they never take a link's
    origin from the request, and without `APP_URL` they are skipped (and reported
    to Sentry).
+   **Origin secret** (only when Cloudflare proxies the domain): generate one with
+   `openssl rand -hex 32`, add a Cloudflare **Transform Rule** (Rules → Transform
+   Rules → Modify Request Header, all incoming requests) that sets `X-Origin-Auth` to
+   it, and set the same value as `ORIGIN_AUTH_SECRET` on Railway, **in that order**.
+   Railway's edge also answers requests sent straight to it, around Cloudflare, so
+   sign-in trusts `CF-Connecting-IP` only beside that header and refuses a request
+   without it. Set the variable before the rule exists and every sign-in is refused.
+   To rotate: point the rule at the new value, then change the variable. Without the
+   secret (the demo, which Cloudflare doesn't proxy) sign-in keys on `X-Real-IP`.
 6. **First admin** — `/admin` only admits users with `is_admin`, and only an admin
    can manage members, so bootstrap the first one from the command line:
    `railway run npm run db:admin -- you@example.com` (drop the `railway run` prefix
@@ -234,6 +243,8 @@ R2_PUBLIC_URL=           # https://images.clubmag.org (Cloudflare-proxied)
 
 EMAIL_API_KEY=           # Resend/Postmark key
 EMAIL_FROM=              # "Club Magazine <hello@clubmag.org>"
+
+ORIGIN_AUTH_SECRET=      # openssl rand -hex 32; the same value as the Cloudflare rule (step 5)
 
 SENTRY_DSN=              # Sentry project DSN (server-side). Optional — app runs fine unset.
 NEXT_PUBLIC_SENTRY_DSN=  # SAME DSN, browser copy (public ingest key; build-time inlined).

@@ -21,14 +21,15 @@ const ok = (cond: unknown, msg: string) => {
 const browser = await chromium.launch();
 
 // Sign-in allows 5 links per IP+email and 20 per IP every 15 minutes, and this
-// gate requests 8. Each context claims its own client IP through the header
-// Cloudflare sets in production (read first by clientIp in signin/actions.ts),
-// so every request is a real round trip and repeated runs never hit the limit.
+// gate requests 8. With no ORIGIN_AUTH_SECRET the limits key on X-Real-IP
+// (src/lib/client-ip.ts), which nothing overwrites in dev, so each context
+// claims its own address: every request is a real round trip and repeated runs
+// never hit the limit.
 const run = crypto.getRandomValues(new Uint8Array(2)).join(".");
 let clients = 0;
 const newClient = () =>
   browser.newContext({
-    extraHTTPHeaders: { "cf-connecting-ip": `10.${run}.${++clients}` },
+    extraHTTPHeaders: { "x-real-ip": `10.${run}.${++clients}` },
   });
 
 // The dev transport logs each link under "[auth] magic link for <email>:".

@@ -644,6 +644,14 @@ The `/signin` flow never reveals membership: known and unknown emails both land 
 `/signin/sent`, and an expired or already-used link comes back to `/signin` with a
 "request a fresh one" message, not an error dump.
 
+Requesting a link is rate-limited (5 per address and 20 in all, per client, every 15
+minutes), keyed on the client address from `src/lib/client-ip.ts`. Railway's edge answers
+direct requests as well as Cloudflare's, so a forwarded header proves nothing by itself.
+With `ORIGIN_AUTH_SECRET` set, `CF-Connecting-IP` counts only beside the matching
+`X-Origin-Auth` that a Cloudflare Transform Rule adds, and a request without it is refused
+with the rate-limited message. Without the secret (the demo, local dev) the key is
+Railway's `X-Real-IP`. `X-Forwarded-For` is never read. Check: `scripts/check-client-ip.mts`.
+
 ### Demo mode
 
 A build-time flag (`NEXT_PUBLIC_DEMO_MODE=1`, issue #50) turns the site into a public,
@@ -716,6 +724,7 @@ Local values live in `.env.local` (git-ignored); production values are set in Ra
 | `AUTH_URL`                                             | prod: yes     | Public origin Auth.js stamps into the **sign-in** magic link (e.g. `https://demo.octavo.dev`); unset, it derives from the request Host and can emit the container's internal address (`localhost:PORT`)                        |
 | `APP_URL`                                              | no (fallback) | Canonical origin for the links in the publish blast, unsubscribe and the reply/report emails — _not_ sign-in (`AUTH_URL`); the blast falls back to the request Host, the reply/report emails are skipped without it in prod    |
 | `EMAIL_API_KEY`, `EMAIL_FROM`                          | no in dev     | Resend; unset in dev = links only in console (required in prod)                                                                                                                                                                |
+| `ORIGIN_AUTH_SECRET`                                   | prod: yes     | The secret Cloudflare adds as `X-Origin-Auth` (infrastructure.md, step 5); sign-in trusts `CF-Connecting-IP` only beside it and refuses requests without it. Unset where Cloudflare doesn't proxy (the demo)                   |
 | `R2_*`                                                 | no in dev     | Object storage (required in prod)                                                                                                                                                                                              |
 
 ## What's real vs stubbed
