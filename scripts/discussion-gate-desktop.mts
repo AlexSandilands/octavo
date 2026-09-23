@@ -326,8 +326,10 @@ async function keyboardPass(k: Kit, c: Cast) {
   await page.keyboard.press("Enter");
   await k.waitThread(page);
   k.ok(
-    (await k.activeLabel(page)) === "Close discussion",
-    "focus moves into the drawer",
+    await page.evaluate(
+      () => document.activeElement?.getAttribute("role") === "dialog",
+    ),
+    "focus moves into the drawer (onto the panel, no ring on a control)",
   );
   const label = await dockLabel(page);
   await page.focus("#discussion-composer");

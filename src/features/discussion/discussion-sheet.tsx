@@ -29,7 +29,8 @@ export function DiscussionSheet({ talk }: { talk: Discussion }) {
     <DialogShell
       overlayClassName="fixed inset-x-0 z-50 flex flex-col justify-end bg-[rgba(32,32,28,0.4)]"
       overlayStyle={{ top: viewport.top, height: viewport.height }}
-      panelClassName={`${styles.sheet} bg-card flex h-[85dvh] max-h-full w-full flex-col overflow-hidden rounded-t-[16px] pb-[env(safe-area-inset-bottom)] shadow-[0_-12px_40px_rgba(0,0,0,0.25)]`}
+      panelClassName={`${styles.sheet} bg-card flex h-[85dvh] max-h-full w-full flex-col overflow-hidden rounded-t-[16px] pb-[env(safe-area-inset-bottom)] shadow-[0_-12px_40px_rgba(0,0,0,0.25)] outline-none!`}
+      initialFocus="panel"
       onClose={talk.hide}
     >
       {(titleId) => (

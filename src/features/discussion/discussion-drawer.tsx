@@ -12,7 +12,8 @@ export function DiscussionDrawer({ talk }: { talk: Discussion }) {
   return (
     <DialogShell
       overlayClassName="fixed inset-0 z-50 flex justify-end bg-[rgba(32,32,28,0.18)] p-3"
-      panelClassName={`${styles.drawer} bg-card flex h-full w-[440px] max-w-full flex-col overflow-hidden rounded-[12px] shadow-[0_24px_60px_rgba(0,0,0,0.3)]`}
+      panelClassName={`${styles.drawer} bg-card flex h-full w-[440px] max-w-full flex-col overflow-hidden rounded-[12px] shadow-[0_24px_60px_rgba(0,0,0,0.3)] outline-none!`}
+      initialFocus="panel"
       onClose={talk.hide}
     >
       {(titleId) => <DiscussionBody talk={talk} titleId={titleId} />}

@@ -84,8 +84,10 @@ export async function mobileGate(k: Kit, c: Cast) {
       "the column behind is locked",
     );
     k.ok(
-      (await k.activeLabel(page)) === "Close discussion",
-      "focus moves into the sheet",
+      await page.evaluate(
+        () => document.activeElement?.getAttribute("role") === "dialog",
+      ),
+      "focus moves into the sheet (onto the panel, no ring on a control)",
     );
     await k.shot(page, `phone-${width}-sheet`);
 

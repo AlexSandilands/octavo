@@ -34,6 +34,7 @@ export function DialogShell({
   overlayStyle,
   locked = false,
   isolatePointerEvents = false,
+  initialFocus = "first",
   onClose,
   children,
 }: {
@@ -51,6 +52,10 @@ export function DialogShell({
    * canvas deselects the current block on a stray click and pans on a drag).
    * The closing press is handled either way; this is about everything else. */
   isolatePointerEvents?: boolean;
+  /** Where focus lands on open: the first control, or the panel itself — for
+   * a panel of content (the discussion drawer and sheet, #301) where a ring on
+   * the close button would be the first thing seen after a page load. */
+  initialFocus?: "first" | "panel";
   onClose: () => void;
   children: (titleId: string) => React.ReactNode;
 }) {
@@ -73,7 +78,10 @@ export function DialogShell({
     const trigger = document.activeElement as HTMLElement | null;
     const release = inertOutside(overlayRef.current);
     const panel = panelRef.current;
-    (focusablesIn(panel)[0] ?? panel)?.focus();
+    (initialFocus === "panel"
+      ? panel
+      : (focusablesIn(panel)[0] ?? panel)
+    )?.focus();
     // Runs after React has taken the dialog out of the DOM, so the trigger is
     // focusable again. `isConnected` covers a trigger that a revalidation
     // replaced while the dialog was open — better nothing than an exception.
@@ -81,6 +89,8 @@ export function DialogShell({
       release();
       if (trigger?.isConnected) trigger.focus();
     };
+    // Mount-once by design (see above); `initialFocus` is read on open only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
