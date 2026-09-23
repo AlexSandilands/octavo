@@ -2,7 +2,7 @@ import "server-only";
 import * as Sentry from "@sentry/nextjs";
 import { inArray, isNotNull } from "drizzle-orm";
 import { db } from "@/db";
-import { images, issues, logos, sponsors } from "@/db/schema";
+import { images, issues, logos, memberNames, sponsors } from "@/db/schema";
 import { collectImageIds } from "@/lib/images";
 import { deleteByPrefix, deleteObject, usingLocalStorage } from "@/lib/storage";
 
@@ -24,10 +24,10 @@ import { deleteByPrefix, deleteObject, usingLocalStorage } from "@/lib/storage";
 // The handle drizzle hands a transaction body. The functions here take one
 // rather than `db` on purpose: a reference scan is only trustworthy inside the
 // same transaction that removed the row it is scanning on behalf of.
-type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-// Every image id that anything in the database still points at. Three places
-// can hold a reference and all three are here — an image reachable from any one
+// Every image id that anything in the database still points at. Four places
+// can hold a reference and all four are here — an image reachable from any one
 // of them is in use:
 //   - an issue's `content` block tree: image blocks, montage slides and video
 //     poster frames, which `collectImageIds` is the single traversal for (the
@@ -37,7 +37,9 @@ type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 //   - `logos.imageId`, the club's own marks (issue #92). This is the entry that
 //     must never be forgotten: `logos.imageId` CASCADEs, so deleting a mark's
 //     image would take the logo row with it and blank the running footer of
-//     every issue that had picked it.
+//     every issue that had picked it;
+//   - `member_names.avatarImageId`, a member's avatar (issue #299), which has no
+//     issue to keep it and would otherwise go at the next sweep.
 // `issues.logoId` needs no entry of its own — it names a logo, covered above.
 //
 // Deliberately a scan rather than a mirrored reference-count table: a count
@@ -68,6 +70,14 @@ export async function collectReferencedImageIds(tx: Tx): Promise<Set<string>> {
 
   const marks = await tx.select({ imageId: logos.imageId }).from(logos);
   for (const row of marks) referenced.add(row.imageId);
+
+  const avatars = await tx
+    .select({ imageId: memberNames.avatarImageId })
+    .from(memberNames)
+    .where(isNotNull(memberNames.avatarImageId));
+  for (const row of avatars) {
+    if (row.imageId) referenced.add(row.imageId);
+  }
 
   return referenced;
 }
