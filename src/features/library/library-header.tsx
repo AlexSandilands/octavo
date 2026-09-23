@@ -4,17 +4,24 @@ import { DemoBadge } from "@/components/demo-badge";
 import { SignOutButton } from "@/components/sign-out-button";
 import { Wordmark, Avatar } from "@/components/ui";
 import { initials } from "@/lib/initials";
+import { getMemberIdentity } from "@/server/member-names";
+import { getSettings } from "@/server/settings";
 
 // The chrome every member-facing library page opens with — the wordmark and
 // the account affordances. Shared by `/` and `/archive` so the two can't drift.
 // `home` links the wordmark back to the library from the pages that aren't it.
-export function LibraryHeader({
+export async function LibraryHeader({
   user,
   home = false,
 }: {
   user: Session["user"] | null;
   home?: boolean;
 }) {
+  // With discussion on, the avatar is the default posting name's (#300).
+  const { commentsEnabled } = await getSettings();
+  const identity =
+    user && commentsEnabled ? await getMemberIdentity(user.id) : null;
+  const shown = identity?.defaultName;
   return (
     <header className="border-line flex items-center justify-between gap-3 border-b pb-4">
       {home ? (
@@ -43,7 +50,18 @@ export function LibraryHeader({
               </Link>
             )}
             <SignOutButton />
-            <Avatar initials={initials(user.name?.trim() || user.email)} />
+            <Link
+              href="/profile"
+              aria-label="Your profile"
+              className="hover:bg-accent-wash -m-1 flex h-11 w-11 items-center justify-center rounded-full transition-colors"
+            >
+              <Avatar
+                initials={initials(
+                  shown?.name ?? (user.name?.trim() || user.email),
+                )}
+                src={shown?.avatarUrl}
+              />
+            </Link>
           </>
         ) : (
           <DemoBadge />

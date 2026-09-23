@@ -7,7 +7,10 @@
 // is the reference scan and the commit-then-sweep ordering, none of which a UI
 // click can distinguish. That needs Next's two module resolutions, so run it as:
 //
-//   npx tsx --tsconfig scripts/tsconfig.json scripts/dev-asset-lifecycle-gate.mts
+//   npx tsx --tsconfig scripts/tsconfig.json scripts/dev-asset-lifecycle-gate.mts [base-url]
+//
+// With a base URL it also checks member avatars (#300) through the running
+// server: a replaced photo leaves one row and one object, Remove photo none.
 //
 // SAFETY: it writes to the shared dev database. Every row it touches is one it
 // created in this run, tracked by id and removed in the finally — it never
@@ -51,6 +54,7 @@ import {
 } from "../src/server/issues";
 import { createLogo, deleteLogo } from "../src/server/logos";
 import { createSponsor, deleteSponsor } from "../src/server/sponsors";
+import { checkAvatarLifecycle } from "./avatar-lifecycle.mts";
 
 process.loadEnvFile?.(".env.local");
 
@@ -384,6 +388,14 @@ try {
       threw = true;
     }
     ok(threw, `deleteByPrefix refuses ${JSON.stringify(bad)}`);
+  }
+
+  // ── 6. Member avatars (#300) ──────────────────────────────────────────────
+  const base = process.argv[2];
+  if (base) {
+    await checkAvatarLifecycle(base, UPLOADS, made, ok);
+  } else {
+    console.log("(member avatars skipped — pass a base URL to check them)");
   }
 } catch (err) {
   failed = true;

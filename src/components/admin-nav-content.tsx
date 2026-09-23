@@ -5,12 +5,20 @@ import { Wordmark } from "./ui";
 import { Icon } from "./icons";
 import { AdminNavLinks } from "./admin-nav-links";
 
+export type AdminNavUser = {
+  name?: string | null;
+  email: string;
+  /** The default posting name and its photo while discussion is on (#300). */
+  avatarName?: string | null;
+  avatarUrl?: string | null;
+};
+
 // Shared by the desktop rail and mobile drawer; only the links track the route.
 export function AdminNavContent({
   user,
   openReports,
 }: {
-  user: { name?: string | null; email: string };
+  user: AdminNavUser;
   openReports?: number;
 }) {
   return (
@@ -32,14 +40,30 @@ export function AdminNavContent({
       </Link>
       <AdminNavLinks openReports={openReports} />
       <div className="border-line mt-auto border-t px-6 pt-4">
-        <div className="flex items-center gap-2.5">
-          <span className="bg-accent text-paper flex h-[30px] w-[30px] flex-none items-center justify-center rounded-full font-sans text-xs font-semibold">
-            {initials(user.name?.trim() || user.email)}
-          </span>
-          <div className="text-ink min-w-0 truncate font-sans text-[13px] font-semibold">
+        <Link
+          href="/profile"
+          aria-label="Your profile"
+          className="hover:bg-accent-wash -mx-2 flex min-h-11 items-center gap-2.5 rounded-lg px-2 transition-colors"
+        >
+          {user.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- a 256px WebP in a fixed box
+            <img
+              src={user.avatarUrl}
+              alt=""
+              className="bg-tint h-[30px] w-[30px] flex-none rounded-full object-cover"
+            />
+          ) : (
+            <span
+              aria-hidden
+              className="bg-accent text-paper flex h-[30px] w-[30px] flex-none items-center justify-center rounded-full font-sans text-xs font-semibold"
+            >
+              {initials(user.avatarName ?? (user.name?.trim() || user.email))}
+            </span>
+          )}
+          <span className="text-ink min-w-0 truncate font-sans text-[13px] font-semibold">
             {user.name ?? user.email}
-          </div>
-        </div>
+          </span>
+        </Link>
         <SignOutButton variant="sidebar" />
       </div>
     </>

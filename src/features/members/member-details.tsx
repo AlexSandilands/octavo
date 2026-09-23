@@ -11,6 +11,7 @@ export function MemberDetails({
   isSelf,
   onToggleAdmin,
   onEdit,
+  onPostingNames,
   onRemove,
 }: {
   id: string;
@@ -20,6 +21,8 @@ export function MemberDetails({
   isSelf: boolean;
   onToggleAdmin: () => void;
   onEdit: () => void;
+  /** Opens the posting-names dialog; absent while the member has none. */
+  onPostingNames?: () => void;
   onRemove: () => void;
 }) {
   const joined = new Date(member.createdAt).toLocaleDateString("en-NZ", {
@@ -94,6 +97,21 @@ export function MemberDetails({
         >
           <span className={styles.compactOnly}>Edit</span>
         </Button>
+        {onPostingNames && (
+          <Button
+            icon="users"
+            iconPosition="left"
+            variant="secondary"
+            size="sm"
+            aria-label={`Posting names for ${label}`}
+            title="Posting names…"
+            onClick={onPostingNames}
+            disabled={pending}
+            className={styles.rowAction}
+          >
+            <span className={styles.compactOnly}>Posting names…</span>
+          </Button>
+        )}
         <Button
           icon="close"
           iconPosition="left"

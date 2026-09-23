@@ -84,3 +84,42 @@ export async function processImage(input: Buffer): Promise<ProcessedImage> {
     contentType: "image/webp",
   };
 }
+
+export const AVATAR_EDGE = 256;
+
+// The first bytes of every format DECODABLE accepts. A cheap look at the file
+// itself before sharp sees it, so a PDF or a script never reaches the decoder.
+export function looksLikeImage(input: Buffer): boolean {
+  const at = (offset: number, text: string) =>
+    input.subarray(offset, offset + text.length).toString("latin1") === text;
+  if (input[0] === 0xff && input[1] === 0xd8 && input[2] === 0xff) return true;
+  if (at(0, "\x89PNG\r\n\x1a\n")) return true;
+  if (at(0, "GIF87a") || at(0, "GIF89a")) return true;
+  if (at(0, "RIFF") && at(8, "WEBP")) return true;
+  // AVIF/HEIF: an ISO box whose type is "ftyp", brand checked by sharp.
+  return at(4, "ftyp");
+}
+
+// A member's avatar (issue #300): the same decode and limits as processImage,
+// then a centre square crop at 256px.
+export async function processAvatar(input: Buffer): Promise<ProcessedImage> {
+  const pipeline = sharp(input, {
+    failOn: "error",
+    limitInputPixels: MAX_INPUT_PIXELS,
+  });
+  const { format } = await pipeline.metadata();
+  if (!format || !DECODABLE.has(format)) {
+    throw new UnsupportedImageError(format);
+  }
+  const { data, info } = await pipeline
+    .rotate()
+    .resize(AVATAR_EDGE, AVATAR_EDGE, { fit: "cover", position: "centre" })
+    .webp({ quality: WEBP_QUALITY })
+    .toBuffer({ resolveWithObject: true });
+  return {
+    buffer: data,
+    width: info.width,
+    height: info.height,
+    contentType: "image/webp",
+  };
+}

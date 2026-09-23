@@ -66,7 +66,7 @@ function hasSessionCookie(req: NextRequest): boolean {
   return SESSION_COOKIES.some((name) => req.cookies.has(name));
 }
 
-// The members-only prefixes the auth gate covers (`/`, `/archive`,
+// The members-only prefixes the auth gate covers (`/`, `/archive`, `/profile`,
 // `/read/:path*`, `/admin/:path*`). The one
 // carve-out is the PDF print route (`/read/[n]/print`): it carries no session
 // cookie (the generator self-fetches over localhost) and would be redirected to
@@ -84,6 +84,8 @@ function isGatedRoute(pathname: string): boolean {
   if (pathname === "/") return true;
   // The archive is the library's own back catalogue, so it follows `/`.
   if (pathname === "/archive") return true;
+  // The member's own profile (#300); /preferences redirects here.
+  if (pathname === "/profile") return true;
   if (pathname === "/read") return true;
   if (pathname.startsWith("/read/")) return !pathname.endsWith("/print");
   return false;

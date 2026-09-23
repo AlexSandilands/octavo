@@ -2,6 +2,7 @@ import { z } from "zod";
 import { MembersManager } from "@/features/members/members-manager";
 import { ADMIN_LIST_QUERY_MAX } from "@/lib/list-query";
 import { pageParamSchema } from "@/lib/pagination";
+import { listPostingNamesFor } from "@/server/member-profile";
 import { listUsers } from "@/server/users";
 import { requireAdminOrRedirect } from "@/server/session";
 
@@ -39,9 +40,16 @@ export default async function MembersPage({
     filter: params.filter,
   });
 
+  // Each row shows the names that member posts under (#300).
+  const names = await listPostingNamesFor(list.rows.map((row) => row.id));
+  const rows = list.rows.map((row) => ({
+    ...row,
+    postingNames: names.get(row.id) ?? [],
+  }));
+
   return (
     <MembersManager
-      list={list}
+      list={{ ...list, rows }}
       query={query}
       filter={params.filter}
       currentUserId={admin.id}

@@ -317,6 +317,11 @@ try {
             values (${otherId}, ${otherEmail}, ${otherName}, false, false, now())`;
   await sql`insert into sessions (session_token, user_id, expires)
             values (${token}, ${userId}, now() + interval '1 day')`;
+  // Posting names for the dialog of #300 (removed with the user, by cascade).
+  for (const name of ["Scratch Poster", "Scratch Other"]) {
+    await sql`insert into member_names (id, user_id, name, name_key)
+              values (${crypto.randomUUID()}, ${otherId}, ${name}, ${name.toLowerCase()})`;
+  }
   await sql`insert into issues (id, title, theme, status, content)
             values (${issueId}, ${"Scratch 130"}, 'classic',
                     'draft', ${sql.json(content)})`;
@@ -445,7 +450,31 @@ try {
   await reopen(page, `button[aria-label="${removeLabel}"]`);
   await checkEscapeRestores(page, removeLabel);
 
-  // ── 4a. ConfirmDialog — the members bulk removal (#302) ──────────────────
+  // ── 4a. PostingNamesDialog (issue #300) ──────────────────────────────────
+  // The second scratch member holds two posting names; the dialog is opened
+  // and closed by every exit, and nothing in it is pressed.
+  heading("PostingNamesDialog");
+  await page.goto(`${base}/admin/members?q=scratch-130-other`);
+  await page.waitForSelector(`text=${otherEmail}`);
+  const namesLabel = `Posting names for ${otherName}`;
+  const namesRow = page
+    .locator(".members-row")
+    .filter({ has: page.locator(`button[aria-label="${namesLabel}"]`) });
+  await expandMember(namesRow);
+  await page.click(`button[aria-label="${namesLabel}"]`);
+  await page.waitForSelector("[role=dialog]");
+  await checkOpenDialog(page, "Posting names");
+  await checkEscapeRestores(page, namesLabel);
+  await reopen(page, `button[aria-label="${namesLabel}"]`);
+  await checkBackdropRestores(page, namesLabel);
+  await reopen(page, `button[aria-label="${namesLabel}"]`);
+  await page.click("[role=dialog] button:has-text('Done')");
+  await page.waitForSelector("[role=dialog]", { state: "detached" });
+  ok(
+    isTrigger(await active(page), namesLabel),
+    `Done restores focus to the trigger (landed on ${await active(page)})`,
+  );
+  // ── 4b. ConfirmDialog — the members bulk removal (#302) ──────────────────
   heading("ConfirmDialog — members bulk remove");
   await page.goto(`${base}/admin/members?q=scratch-130-other`);
   await page.waitForSelector(`text=${otherEmail}`);
