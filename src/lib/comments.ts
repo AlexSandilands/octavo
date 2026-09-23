@@ -107,6 +107,9 @@ export type NotificationView = {
   issueNumber: number | null;
   issueTitle: string;
   replierName: string;
+  /** The posting name the replied-to comment went under — a shared account's
+   *  bell says whose comment it was. */
+  parentName: string;
   excerpt: string;
   createdAt: Date;
   read: boolean;

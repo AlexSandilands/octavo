@@ -1,7 +1,10 @@
 // Dev-only: proves the MenuSelect focus contract (issue #136) headless against
 // a running dev server, on the two surfaces named in the issue — the editor
 // header's theme menu (re-rendered by autosave) and the members filter (re-
-// rendered by the list refresh).
+// rendered by the list refresh) — and the same contract on the library's
+// notification bell (issue #303): names and roles as a screen reader hears
+// them, open / arrows / Home / End / Escape / Tab / outside press, and Mark all
+// read keeping focus in the menu. The bell needs comments_enabled on.
 //
 // The bug: the open-time focus effect listed `items`, which hosts rebuild with
 // `.map` on every render, so any parent re-render while the menu was open
@@ -29,6 +32,9 @@ const issueId = crypto.randomUUID();
 const token = crypto.randomUUID();
 const email = `scratch-136-${userId.slice(0, 8)}@example.invalid`;
 const issueNumber = 91360 + Math.floor(Math.random() * 500);
+// The bell's scratch rows (#303): a replier and the replied-to name.
+const replierId = crypto.randomUUID();
+const replierEmail = `check-303-menu-${replierId.slice(0, 8)}@example.invalid`;
 
 // The focused element, described the way the assertions read it: the option
 // label for a menu item, else a tag/role sketch.
@@ -61,6 +67,134 @@ const typeElsewhere = (page: Page, selector: string, value: string) =>
     },
     [selector, value] as const,
   );
+
+// ── 3. The library bell (#303) ─────────────────────────────────────────────
+const BELL = 'header button[aria-haspopup="menu"]';
+const BELL_MENU = '[role=menu][aria-label="Notifications"]';
+const focusedName = (page: Page) =>
+  page.evaluate(() => {
+    const el = document.activeElement as HTMLElement | null;
+    return (el?.getAttribute("aria-label") || el?.textContent || "").trim();
+  });
+
+async function bellWalkthrough(page: Page) {
+  const [settings] =
+    await sql`select comments_enabled from settings where id = 1`;
+  if (settings?.comments_enabled !== true) {
+    throw new Error("the bell needs comments_enabled on (the baseline)");
+  }
+  const mine = crypto.randomUUID();
+  const theirs = crypto.randomUUID();
+  await sql`insert into users (id, email, subscribed, email_verified)
+            values (${replierId}, ${replierEmail}, false, now())`;
+  await sql`insert into member_names (id, user_id, name, name_key) values
+    (${mine}, ${userId}, 'check-303 Menu', 'check-303 menu'),
+    (${theirs}, ${replierId}, 'check-303 Replier', 'check-303 replier')`;
+  const top = crypto.randomUUID();
+  await sql`insert into comments (id, issue_id, author_id, author_name_id, body)
+            values (${top}, ${issueId}, ${userId}, ${mine}, 'check-303 top')`;
+  for (const ago of ["2 minutes", "1 minute"]) {
+    const reply = crypto.randomUUID();
+    await sql`insert into comments (id, issue_id, author_id, author_name_id, parent_id, body, created_at)
+      values (${reply}, ${issueId}, ${replierId}, ${theirs}, ${top},
+        'check-303 reply', now() - ${ago}::interval)`;
+    await sql`insert into notifications (id, user_id, comment_id, created_at)
+      values (${crypto.randomUUID()}, ${userId}, ${reply}, now() - ${ago}::interval)`;
+  }
+
+  await page.goto(`${base}/`);
+  await page.waitForSelector(BELL);
+  const bell = page.locator(BELL);
+  ok(
+    (await bell.getAttribute("aria-label")) === "Notifications, 2 unread",
+    "the bell is announced as “Notifications, 2 unread”",
+  );
+  await bell.focus();
+  await page.keyboard.press("Enter");
+  await page.waitForSelector(BELL_MENU);
+  const entry = `check-303 Replier replied to your comment on Issue ${issueNumber}, 1 minute ago, unread`;
+  ok(
+    (await focusedName(page)) === entry,
+    `Enter opens it onto the newest entry (“${await focusedName(page)}”)`,
+  );
+  ok(
+    (await bell.getAttribute("aria-expanded")) === "true",
+    "aria-expanded follows",
+  );
+  const tree = await page.locator("header").ariaSnapshot();
+  console.log(tree.replace(/^/gm, "     "));
+  ok(
+    tree.includes('button "Notifications, 2 unread" [expanded]') &&
+      tree.includes('menu "Notifications"') &&
+      (tree.match(/menuitem "/g) ?? []).length === 3 &&
+      tree.includes(`menuitem "${entry}"`) &&
+      tree.includes('menuitem "Mark all read"'),
+    "a screen reader hears the bell, the menu, both entries and Mark all read",
+  );
+  await page.keyboard.press("ArrowDown");
+  ok(
+    (await focusedName(page)).includes("2 minutes ago"),
+    "ArrowDown: the older one",
+  );
+  await page.keyboard.press("ArrowDown");
+  ok((await focusedName(page)) === "Mark all read", "ArrowDown: Mark all read");
+  await page.keyboard.press("ArrowDown");
+  ok((await focusedName(page)) === entry, "ArrowDown wraps to the top");
+  await page.keyboard.press("ArrowUp");
+  ok(
+    (await focusedName(page)) === "Mark all read",
+    "ArrowUp wraps to the foot",
+  );
+  await page.keyboard.press("Home");
+  ok((await focusedName(page)) === entry, "Home: the first");
+  await page.keyboard.press("End");
+  ok((await focusedName(page)) === "Mark all read", "End: the last");
+  await page.keyboard.press("Escape");
+  ok(!(await page.isVisible(BELL_MENU)), "Escape closes it…");
+  ok(
+    (await focusedName(page)) === "Notifications, 2 unread" &&
+      (await bell.getAttribute("aria-expanded")) === "false",
+    "…and focus is back on the bell",
+  );
+  await page.keyboard.press("ArrowDown");
+  await page.waitForSelector(BELL_MENU);
+  ok((await focusedName(page)) === entry, "ArrowDown on the bell opens it too");
+  await page.keyboard.press("Tab");
+  ok(!(await page.isVisible(BELL_MENU)), "Tab closes it…");
+  ok(
+    (await focusedName(page)) === "Your profile",
+    "…and moves on (to the avatar)",
+  );
+  await bell.click();
+  await page.waitForSelector(BELL_MENU);
+  await page.mouse.click(20, 600);
+  ok(!(await page.isVisible(BELL_MENU)), "a press outside dismisses it");
+
+  await bell.focus();
+  await page.keyboard.press("Enter");
+  await page.waitForSelector(BELL_MENU);
+  await page.keyboard.press("End");
+  await page.keyboard.press("Enter");
+  await page.waitForFunction(
+    (sel) =>
+      document.querySelector(sel)?.getAttribute("aria-label") ===
+      "Notifications",
+    BELL,
+    { timeout: 30_000 },
+  );
+  ok(
+    (await page.locator("header [role=status]").textContent()) ===
+      "All notifications marked read.",
+    "Enter on Mark all read clears the count and announces it",
+  );
+  ok(
+    (await focusedName(page)) === "Mark all read" &&
+      (await page.getAttribute(`${BELL_MENU} button`, "aria-disabled")) ===
+        "true",
+    "focus stays on it, now marked unavailable",
+  );
+  await page.keyboard.press("Escape");
+}
 
 const browser = await chromium.launch();
 try {
@@ -183,7 +317,7 @@ try {
   // the server — the members-side re-render the issue names.
   await typeElsewhere(
     page,
-    "input[aria-label='Search all members by name or email']",
+    "input[aria-label^='Search all members']",
     "scratch-136",
   );
   await page.waitForURL("**/admin/members?q=scratch-136", { timeout: 15_000 });
@@ -201,13 +335,17 @@ try {
   await page.waitForURL("**filter=subscribed**", { timeout: 15_000 });
   ok(true, "Enter selected the arrowed-to filter (?filter=subscribed)");
 
+  await bellWalkthrough(page);
+
   await ctx.close();
-  console.log("\nPASS — MenuSelect keeps focus across host re-renders");
+  console.log(
+    "\nPASS — MenuSelect keeps focus across host re-renders; the bell's menu keeps the contract",
+  );
 } finally {
   await browser.close();
   await sql`delete from issues where id = ${issueId}`;
   await sql`delete from sessions where session_token = ${token}`;
-  await sql`delete from users where id = ${userId}`;
+  await sql`delete from users where id = any(${[userId, replierId]})`;
   console.log("scratch rows removed");
   await sql.end();
 }

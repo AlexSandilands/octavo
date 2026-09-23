@@ -31,6 +31,7 @@ import {
   overLimit,
 } from "./discussion-guard";
 import { notifyReply } from "./notifications";
+import { sendReplyEmail } from "./reply-alert";
 import { requireMember } from "./session";
 import { getSettings } from "./settings";
 
@@ -214,7 +215,9 @@ export async function countComments(
 type CreateInput = z.input<typeof createInput>;
 
 // Posts a comment or a reply under one of the member's live names. The name
-// and the parent are locked (FOR SHARE) so removing either can't race it.
+// and the parent are locked (FOR SHARE) so removing either can't race it. A
+// reply to someone else notifies them in the same transaction, and emails them
+// after it commits if they opted in (#303).
 export async function createComment(
   input: CreateInput,
 ): Promise<WriteResult<{ id: string }>> {
@@ -227,7 +230,7 @@ export async function createComment(
   if (limited) return limited;
   const { issueId, parentId, nameId, pageId } = parsed.data;
 
-  return db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const [issue] = await tx
       .select({ status: issues.status, content: issues.content })
       .from(issues)
@@ -285,11 +288,15 @@ export async function createComment(
       })
       .returning({ id: comments.id });
     if (!row) throw new Error("Failed to post comment");
-    if (parentAuthor && parentAuthor !== member.id) {
-      await notifyReply(tx, parentAuthor, row.id);
+    if (!parentAuthor || parentAuthor === member.id) {
+      return { ok: true as const, id: row.id, notified: false };
     }
-    return { ok: true as const, id: row.id };
+    await notifyReply(tx, parentAuthor, row.id);
+    return { ok: true as const, id: row.id, notified: true };
   });
+  if (!result.ok) return result;
+  if (result.notified) await sendReplyEmail(result.id);
+  return { ok: true, id: result.id };
 }
 
 function refuse(reason: string) {
