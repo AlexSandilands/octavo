@@ -471,19 +471,29 @@ refetches its own list. Gates: the admin section of `dev-discussion-gate.mts`
 (`discussion-gate-admin.mts`), the replayed refusals in `dev-admin-gate.mts`, the nested
 confirmation in `dev-dialog-a11y-gate.mts`.
 
-**Page tags (issue #304).** A top-level comment may tag a page the member has open. Each
-reader says which (`src/features/reader/use-current-pages.ts`) and hands the thread a
-`ReaderPages` (`src/features/discussion/page-tags.ts`): the open ids, every page's number by
-id, and a `go`. The flipbook's open pages are **both** halves of the spread, or the cover
-alone — it can't know which half is being read, so it doesn't guess; the phone's is the one
-section being read — the last whose top has passed the upper third of the viewport, or the
-last of all at the column's end — measured at most once a frame on scroll and not at all
-while the sheet is up (the column is locked). The composer offers a "Tag page 12" checkbox
-for one open page and a "Tag a page" radio group (None · Page 12 · Page 13, a real
-`fieldset`/`legend`) for a spread; off by default, then kept for the rest of the visit as a
-position (first or second page), not a page. Replies are never tagged — the action refuses a
-`pageId` with a `parentId` — and `createComment` refuses a page the issue no longer has
-("That page is no longer in this issue.").
+**Page tags (issue #304).** A top-level comment may tag any page of the issue — a member
+who notices something, reads on and comments later needn't flick back to tag it (this
+brings "tag any page" forward from #305). Each reader says which pages are open
+(`src/features/reader/use-current-pages.ts`) and hands the thread a `ReaderPages`
+(`src/features/discussion/page-tags.ts`): the open ids, every page's number and first
+heading by id, and a `go`. The flipbook's open pages are **both** halves of the spread, or
+the cover alone — it can't know which half is being read, so it doesn't guess; the phone's
+is the one section being read — the last whose top has passed the upper third of the
+viewport, or the last of all at the column's end — measured at most once a frame on scroll
+and not at all while the sheet is up (the column is locked). The composer's page pill
+(`PageTagPicker`, the house `MenuSelect` at the "Posting as" pill's compact size) reads "Tag
+a page" and opens a menu of "No page" and then every page in order — "The cover", "Page 2",
+… — each with its first heading as a hint and the open page(s) marked "open now". From page
+6 on, where the open pages would sit below the menu's first screen, they are also repeated
+under "No page" (as distinct rows, so only the one chosen is ticked); nearer the front the
+repeat would only duplicate the rows beneath it. The menu scrolls inside the panel. The
+choice goes back to "No page" after each post. The two pills sit side by side as one group
+with Post after them where the composer is at least 24rem wide (the desktop drawer), and on
+a line of their own above Post where it is narrower (phones) — chosen by width, never by
+the name's length, so the layout doesn't shift; the name truncates and the page pill has a
+fixed maximum width. Replies are never tagged — the action refuses a `pageId` with a
+`parentId` — and `createComment` refuses a page the issue no longer has ("That page is no
+longer in this issue.").
 
 The comment stores the page's **id, never its number**: page ids never move, while numbers
 are positions — an overflow split (#128/#216) inserts a page and renumbers everything after
@@ -500,10 +510,12 @@ with it; ticked, the list route is asked for `?page=` the open ids (at most two,
 and `listComments` keeps the top-level comments tagged to them, replies following their
 parent. Beside it a status line says "3 comments on this page" / "No comments on this page
 yet" — the discussion button stays count-free. The filter lives with the draft in
-`useDiscussion`, so it survives closing the shell; a change of page asks again, and an
-untagged post made under it clears it so the new comment is in view. Neither the filter nor
-the page is in the address. Gate: `discussion-gate-tags.mts` and
-`discussion-gate-tags-phone.mts`, run by `dev-discussion-gate.mts`.
+`useDiscussion`, so it survives closing the shell; a change of page asks again, and a post
+the filter would hide (untagged, or tagged to a page not open) clears it so the new comment
+is in view. Neither the filter nor the page is in the address. Gate:
+`discussion-gate-tags.mts`, `-phone.mts` and `-look.mts` (the two pills measured and
+photographed at 440, 390 and 360 with a 40-character name, and the menu on a 42-page
+issue), run by `dev-discussion-gate.mts`.
 
 ## Routes
 
