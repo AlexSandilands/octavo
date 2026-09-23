@@ -70,6 +70,9 @@ src/
                        scales, and the pure stored+defaults → effective resolver
     site-defaults.ts   the NEXT_PUBLIC_* branding fallbacks (read only by
                        server/settings.ts — nothing else may)
+    comments.ts        discussion vocabulary: limits, report reasons and the
+                       member/admin read shapes (no email, no author id)
+    member-name.ts     the posting-name rules, shared by browser and server
     env.ts             validated server env
     id.ts              id generator
   server/              server-only data access (users.ts, images.ts, ...) and auth
@@ -89,7 +92,17 @@ src/
                        issue/sponsor/logo deletes run (see database.md)
     issue-transfer/    building a bundle, reading an untrusted one, the import
                        transaction and the operation record + its recovery
-    session.ts         getSession()/getUser() — how the app reads who's signed in
+    session.ts         getSession()/getUser() — how the app reads who's signed in,
+                       and the requireAdmin()/requireMember() write gates
+    member-removal.ts  removing members: the guard rails, the removed-member
+                       comment policy and their avatars' cleanup
+    id-chunks.ts       splits a bulk id list into Postgres-sized statements
+    comments.ts        the discussion thread: viewer-shaped reads, counts and
+                       the member writes (dormant until comments_enabled)
+    comment-moderation.ts  hide/unhide/delete, reports and the reports inbox
+    member-names.ts    posting names and avatars, getMemberIdentity()
+    notifications.ts   reply notifications: create/trim, list, unread, mark read
+    discussion-guard.ts  the discussion switch, per-member rate limits, text cleaning
 scripts/               dev-only helpers (not part of the app), e.g. the headless
                        magic-link flow check (dev-auth-flow.mts)
 ```
