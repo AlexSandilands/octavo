@@ -14,6 +14,7 @@ import {
 } from "@/features/blocks/themes/registry";
 import { PAGE_W, PAGE_H } from "@/features/blocks/page-frame";
 import { useCanvasPanZoom } from "@/features/blocks/use-canvas-pan-zoom";
+import { DiscussionButton } from "@/features/discussion/discussion-button";
 import { DiscussionDrawer } from "@/features/discussion/discussion-drawer";
 import { useDiscussion } from "@/features/discussion/use-discussion";
 import { ReaderSpread, FLIP_MS, type Turn } from "./reader-spread";
@@ -246,30 +247,34 @@ export function DesktopReader({
         fillHeight ? "h-full" : "h-screen"
       }`}
     >
-      {/* Only offer the toggle when the deployment enables more than one layout
-          theme (NEXT_PUBLIC_ISSUE_THEMES) — with a single theme there's nothing
-          to choose. */}
-      {themes.length > 1 && (
-        <div className="absolute top-3.5 right-4 z-10 flex items-center gap-2">
-          <span className="text-faint2 font-sans text-[9px] font-semibold tracking-[0.18em] uppercase">
-            Theme
-          </span>
-          <div className="bg-card border-hair flex rounded-full border p-[3px]">
-            {themes.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setThemeId(t.id)}
-                aria-pressed={themeId === t.id}
-                className={`flex min-h-[44px] items-center rounded-full px-4 font-sans text-xs font-semibold ${
-                  themeId === t.id ? "bg-accent text-paper" : "text-muted"
-                }`}
-              >
-                {t.name}
-              </button>
-            ))}
+      {/* The top-right corner: the theme toggle, offered only when the
+          deployment enables more than one layout theme
+          (NEXT_PUBLIC_ISSUE_THEMES), and the discussion button (issue #301),
+          which keeps the corner when the toggle isn't there. */}
+      <div className="absolute top-3.5 right-4 z-10 flex items-center gap-4">
+        {themes.length > 1 && (
+          <div className="flex items-center gap-2">
+            <span className="text-faint2 font-sans text-[9px] font-semibold tracking-[0.18em] uppercase">
+              Theme
+            </span>
+            <div className="bg-card border-hair flex rounded-full border p-[3px]">
+              {themes.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setThemeId(t.id)}
+                  aria-pressed={themeId === t.id}
+                  className={`flex min-h-[44px] items-center rounded-full px-4 font-sans text-xs font-semibold ${
+                    themeId === t.id ? "bg-accent text-paper" : "text-muted"
+                  }`}
+                >
+                  {t.name}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+        {talk && <DiscussionButton floating={false} onOpen={talk.show} />}
+      </div>
 
       <ReaderContents
         collapsed={collapsed}
@@ -346,7 +351,6 @@ export function DesktopReader({
         pdfEnabled={settings.pdfDownloads}
         pdfState={pdf.state}
         onDownloadPdf={pdf.download}
-        discussion={talk ? { count: talk.count, onOpen: talk.show } : undefined}
       />
       {talk?.open && <DiscussionDrawer talk={talk} />}
     </div>

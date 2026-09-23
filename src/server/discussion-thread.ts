@@ -2,11 +2,7 @@ import "server-only";
 import { and, count, desc, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { comments, issues, users } from "@/db/schema";
-import {
-  threadCount,
-  toThreadEntries,
-  type ThreadPayload,
-} from "@/lib/discussion-thread";
+import { toThreadEntries, type ThreadPayload } from "@/lib/discussion-thread";
 import { listComments, type CommentViewer } from "./comments";
 import { getMemberIdentity } from "./member-names";
 import { requireAdmin } from "./session";
@@ -50,13 +46,11 @@ export async function loadThreadPayload(
     db.select({ name: users.name }).from(users).where(eq(users.id, viewer.id)),
     getSettings(),
   ]);
-  const entries = toThreadEntries(thread);
   const { names } = identity;
   const accountName = account[0]?.name ?? null;
   return {
     viewer: thread.viewer,
-    entries,
-    count: threadCount(entries),
+    entries: toThreadEntries(thread),
     composer: {
       names,
       defaultNameId:

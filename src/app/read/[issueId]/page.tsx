@@ -1,8 +1,6 @@
 import { notFound } from "next/navigation";
 import { DemoBadge } from "@/components/demo-badge";
 import { ReaderMount } from "@/features/reader/reader-mount";
-import type { DiscussionInfo } from "@/lib/discussion-thread";
-import { countComments } from "@/server/comments";
 import { getPublishedIssueByNumber } from "@/server/issues";
 import { resolveIssueImages } from "@/server/images";
 import { getLogoImage } from "@/server/logos";
@@ -37,16 +35,11 @@ export default async function ReadPage({
     getSettings(),
   ]);
 
-  // The discussion (issue #301): nothing while it is switched off, and for
-  // demo mode's signed-out visitor the control without a count. The thread
+  // The discussion (issue #301): nothing while it is switched off. The thread
   // itself is fetched by the reader only when it is opened.
-  let discussion: DiscussionInfo | null = null;
-  if (settings.commentsEnabled) {
-    const count = user
-      ? ((await countComments([issue.id]))[issue.id] ?? 0)
-      : null;
-    discussion = { issueNo: issue.number, count, signedIn: Boolean(user) };
-  }
+  const discussion = settings.commentsEnabled
+    ? { issueNo: issue.number, signedIn: Boolean(user) }
+    : null;
 
   return (
     <>

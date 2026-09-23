@@ -17,7 +17,7 @@ import {
   FooterWordmark,
   footerTextStyle,
 } from "@/features/blocks/page-footer";
-import { DiscussionFab } from "@/features/discussion/discussion-fab";
+import { DiscussionButton } from "@/features/discussion/discussion-button";
 import { DiscussionSheet } from "@/features/discussion/discussion-sheet";
 import { useDiscussion } from "@/features/discussion/use-discussion";
 import { headingDomId, MobileBlock } from "./mobile-block";
@@ -276,9 +276,7 @@ export function MobileReader({
         )}
       </article>
 
-      {talk && !drawer && (
-        <DiscussionFab count={talk.count} onOpen={talk.show} />
-      )}
+      {talk && !drawer && <DiscussionButton floating onOpen={talk.show} />}
       {talk?.open && <DiscussionSheet talk={talk} />}
 
       {drawer && (

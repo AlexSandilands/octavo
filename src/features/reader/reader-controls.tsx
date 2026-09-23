@@ -1,7 +1,6 @@
 "use client";
 
 import { Icon } from "@/components/icons";
-import { commentsLabel } from "@/features/discussion/comments-label";
 import { MIN_ZOOM, MAX_ZOOM } from "@/features/blocks/use-canvas-pan-zoom";
 import type { PdfState } from "./use-issue-pdf";
 
@@ -21,7 +20,6 @@ export function ReaderControls({
   pdfEnabled,
   pdfState,
   onDownloadPdf,
-  discussion,
 }: {
   label: string;
   onPrev: () => void;
@@ -38,9 +36,6 @@ export function ReaderControls({
   pdfEnabled: boolean;
   pdfState: PdfState;
   onDownloadPdf: () => void;
-  /** The issue's discussion (issue #301): absent while it is switched off.
-   *  A null count is demo mode's signed-out visitor, who sees none. */
-  discussion?: { count: number | null; onOpen: () => void };
 }) {
   const pdfTitle =
     pdfState === "loading"
@@ -64,27 +59,6 @@ export function ReaderControls({
         <CtrlBtn onClick={onToggleContents} title="Contents">
           <Icon name="menu" size={18} />
         </CtrlBtn>
-        {discussion && (
-          <CtrlBtn
-            onClick={discussion.onOpen}
-            title="Discussion"
-            label={
-              discussion.count === null
-                ? "Discussion"
-                : `Discussion, ${commentsLabel(discussion.count)}`
-            }
-          >
-            <Icon name="comment" size={18} />
-            {discussion.count !== null && discussion.count > 0 && (
-              <span
-                aria-hidden
-                className="bg-reader-slider text-reader-chrome absolute top-0.5 right-0.5 min-w-[18px] rounded-full px-1 text-center font-sans text-[10px] leading-[18px] font-semibold"
-              >
-                {discussion.count > 99 ? "99+" : discussion.count}
-              </span>
-            )}
-          </CtrlBtn>
-        )}
         <div className="flex items-center gap-2 pr-1 pl-1">
           <CtrlBtn onClick={onResetView} title="Fit to screen">
             <Icon name="fitScreen" size={18} />
@@ -141,23 +115,20 @@ function CtrlBtn({
   children,
   onClick,
   title,
-  label = title,
   disabled = false,
 }: {
   children: React.ReactNode;
   onClick?: () => void;
   title: string;
-  /** The accessible name, where it says more than the tooltip. */
-  label?: string;
   disabled?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
       title={title}
-      aria-label={label}
+      aria-label={title}
       disabled={disabled}
-      className="hover:bg-reader-chrome-hover relative flex h-11 w-11 items-center justify-center rounded-full disabled:cursor-default"
+      className="hover:bg-reader-chrome-hover flex h-11 w-11 items-center justify-center rounded-full disabled:cursor-default"
     >
       {children}
     </button>

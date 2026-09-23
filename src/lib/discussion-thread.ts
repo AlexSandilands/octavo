@@ -47,18 +47,11 @@ export type ComposerSetup = {
 export type ThreadPayload = {
   viewer: "member" | "admin";
   entries: ThreadEntry[];
-  /** Visible comments and replies — what the controls' badges show. */
-  count: number;
   composer: ComposerSetup;
 };
 
 /** What the reader page hands its discussion control. */
-export type DiscussionInfo = {
-  issueNo: number;
-  /** Null for a signed-out (demo) visitor, who is shown no count at all. */
-  count: number | null;
-  signedIn: boolean;
-};
+export type DiscussionInfo = { issueNo: number; signedIn: boolean };
 
 function toComment(
   view: MemberCommentView | AdminCommentView,
@@ -109,12 +102,4 @@ export function toThreadEntries(thread: CommentThread): ThreadEntry[] {
     }
   }
   return entries;
-}
-
-/** Visible comments and replies, counted as `countComments` counts them. */
-export function threadCount(entries: ThreadEntry[]): number {
-  return entries.reduce(
-    (n, entry) => n + (entry.removed ? 0 : 1) + entry.replies.length,
-    0,
-  );
 }
