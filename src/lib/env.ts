@@ -105,6 +105,14 @@ const runtimeBaseSchema = z.object({
   // Server/edge runtimes read it from here; the browser reads the same value
   // from NEXT_PUBLIC_SENTRY_DSN (a DSN is a public ingest key, not a secret).
   SENTRY_DSN: z.string().url().optional(),
+  // The secret a Cloudflare Transform Rule adds to every proxied request as
+  // X-Origin-Auth. Set, it is the only way sign-in trusts CF-Connecting-IP, and
+  // a sign-in request without it (straight to Railway) is refused. Unset on a
+  // deployment Cloudflare doesn't proxy (the demo). See src/lib/client-ip.ts.
+  ORIGIN_AUTH_SECRET: z
+    .string()
+    .min(32, "too short — generate one with: openssl rand -hex 32")
+    .optional(),
 });
 
 const runtimeSchema = runtimeBaseSchema.superRefine((vars, ctx) => {
