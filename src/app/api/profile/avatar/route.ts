@@ -7,11 +7,15 @@ import {
   processAvatar,
   UnsupportedImageError,
 } from "@/lib/image-processing";
-import { createRateLimiter } from "@/lib/rate-limit";
 import { putObject } from "@/lib/storage";
 import { sameOrigin } from "@/lib/same-origin";
 import { sweepOrphanedObjects } from "@/server/asset-cleanup";
-import { discussionOff, INVALID, overLimit } from "@/server/discussion-guard";
+import {
+  discussionLimits,
+  discussionOff,
+  INVALID,
+  overLimit,
+} from "@/server/discussion-guard";
 import { createImageRecord } from "@/server/images";
 import { getMemberIdentity, setNameAvatar } from "@/server/member-names";
 import { discardUpload } from "@/server/member-profile";
@@ -27,7 +31,6 @@ const MAX_BYTES = 5 * 1024 * 1024;
 // Multipart framing around the one file; anything past this is refused unread.
 const MAX_BODY = MAX_BYTES + 64 * 1024;
 
-const uploads = createRateLimiter({ limit: 5, windowMs: 60 * 60_000 });
 const nameParam = z.string().min(1).max(64);
 
 const refuse = (status: number, reason: string) =>
@@ -101,7 +104,7 @@ export async function POST(request: Request) {
   }
   // Spent before the body is read, so no session can stream bodies unmetered;
   // a mistaken file (a PDF, a 6 MB photo) costs one of the five.
-  const limited = overLimit(uploads, member.id);
+  const limited = overLimit(discussionLimits.avatar, member.id);
   if (limited) return refuse(429, limited.reason);
 
   const file = await fileFrom(request);

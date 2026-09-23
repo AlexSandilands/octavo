@@ -339,13 +339,15 @@ is shown and every member write refuses until an admin sets `settings.comments_e
 
 **Modules.** `src/server/comments.ts` (the thread: `listComments`, `countComments`,
 `createComment`, `editComment`, `deleteOwnComment`), `comment-moderation.ts` (hide/unhide/delete,
-`createReport`, `listReports`, `resolveReport`), `member-names.ts` (posting names and avatars,
+`createReport`, `resolveReport`), `report-inbox.ts` (`listReports`, `countOpenReports`),
+`member-names.ts` (posting names and avatars,
 `getMemberIdentity`), `notifications.ts` and `discussion-guard.ts` (the switch, rate limits and
 text cleaning). Every write calls `requireMember()` or `requireAdmin()` (`src/server/session.ts`)
 first and takes the account from the session, never from its input. Member writes answer with
 `{ ok: false, reason }` — a sentence — rather than throwing, including the per-member rate limits:
-post 10 per 10 minutes, edit 30 per 10 minutes, report 10 an hour, name changes and avatars 10
-an hour each. Member reads (`listComments` for a non-admin, `countComments`, `listNotifications`,
+post 10 per 10 minutes, edit 30 per 10 minutes, report 10 an hour, name changes (removing a
+photo included) 10 an hour, and photo uploads 5 an hour, spent by the upload route before it
+reads the file. Member reads (`listComments` for a non-admin, `countComments`, `listNotifications`,
 `countUnread`) return nothing while the switch is off; admin moderation works either way.
 
 **What members read.** A member's comment shape carries no email and no author id — `isMine` is
@@ -356,10 +358,12 @@ flagged, with the account's `users.name`. An author can't edit a hidden comment 
 must be a fresh upload — no issue behind it and nothing else (a logo, a sponsor, another name)
 already showing it.
 
-**Deleting.** The author's delete and the admin's are one rule: a comment with replies or an
-open report is soft-deleted (body blanked, `deleted_at` set), otherwise hard-deleted — decided
+**Deleting.** The author's delete: a comment with replies or an open report is soft-deleted
+(body blanked, `deleted_at` set), otherwise hard-deleted — decided
 in one transaction with the row locked, and `createComment` locks the parent `FOR SHARE`, so a
-reply landing at the same moment is never cascaded away.
+reply landing at the same moment is never cascaded away. An admin's delete follows the same
+rule except that a comment with any report, open or resolved, is always kept as a stub
+(Moderation, below).
 
 **Posting-name rules** (`src/lib/member-name.ts`, shared by the browser and the server):
 
@@ -404,8 +408,8 @@ reported comment's row disappears is its author's hard delete (no replies, no op
 inbox reads a missing row as "Deleted by its author since" and a stub by its `deleted_by`, never
 from `hidden_at`. Hiding or deleting a comment resolves every open report on it in the same
 transaction, recording `resolved_by`/`resolved_at`. `createReport` inserts with
-`on conflict do nothing … returning`, and only a new row emails the admins — after the commit,
-never failing the report. The email is throttled in-process to one per 15 minutes site-wide, and
+`on conflict do nothing … returning`, and only a new row emails the admins — once the response
+has gone (`after()`, `src/server/after-response.ts`), never failing or delaying the report. The email is throttled in-process to one per 15 minutes site-wide, and
 its link is built from `APP_URL` only: in production without it the email is skipped and Sentry
 told, never built from a member's request headers (`src/server/report-alert.ts`). The inbox reads
 through `src/server/report-inbox.ts`.

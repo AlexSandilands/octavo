@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { z } from "zod";
 import { DemoBadge } from "@/components/demo-badge";
 import { ReaderMount } from "@/features/reader/reader-mount";
 import { getPublishedIssueByNumber } from "@/server/issues";
@@ -11,17 +12,47 @@ import { settingsForIssue } from "@/lib/branding";
 
 export const dynamic = "force-dynamic";
 
+// A discussion deep link (#301) survives the sign-in redirect; nothing else
+// in the query does. Malformed values are simply dropped.
+const linkSchema = z.object({
+  discussion: z.literal("1").optional().catch(undefined),
+  comment: z
+    .string()
+    .regex(/^[\w-]{1,64}$/)
+    .optional()
+    .catch(undefined),
+});
+
+function destination(
+  issueId: string,
+  query: Record<string, string | string[] | undefined>,
+): string {
+  const link = linkSchema.parse(query);
+  const search = new URLSearchParams();
+  if (link.discussion) {
+    search.set("discussion", "1");
+    if (link.comment) search.set("comment", link.comment);
+  }
+  const tail = search.size > 0 ? `?${search}` : "";
+  return `/read/${encodeURIComponent(issueId)}${tail}`;
+}
+
 export default async function ReadPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ issueId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { issueId } = await params;
   // Members only; the destination rides along so the emailed link brings a
-  // signed-out member straight back to this issue. In demo mode the gate
-  // returns null instead of redirecting — the reader itself never reads the
-  // user, so an anonymous visitor just gets the demo chip overlaid.
-  const user = await requireMemberOrRedirect(`/read/${issueId}`);
+  // signed-out member straight back to this issue — and to its thread, when
+  // the link opened that. In demo mode the gate returns null instead of
+  // redirecting — the reader itself never reads the user, so an anonymous
+  // visitor just gets the demo chip overlaid.
+  const user = await requireMemberOrRedirect(
+    destination(issueId, await searchParams),
+  );
   const number = Number(issueId);
   const issue = Number.isFinite(number)
     ? await getPublishedIssueByNumber(number)

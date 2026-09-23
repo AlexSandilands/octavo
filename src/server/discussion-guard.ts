@@ -14,7 +14,8 @@ export const discussionLimits = {
   edit: createRateLimiter({ limit: 30, windowMs: 10 * MINUTE }),
   report: createRateLimiter({ limit: 10, windowMs: HOUR }),
   names: createRateLimiter({ limit: 10, windowMs: HOUR }),
-  avatar: createRateLimiter({ limit: 10, windowMs: HOUR }),
+  // Photo uploads, spent by the upload route before it reads the body (#300).
+  avatar: createRateLimiter({ limit: 5, windowMs: HOUR }),
 } satisfies Record<string, RateLimiter>;
 
 export type Refusal = { ok: false; reason: string };

@@ -244,13 +244,16 @@ export function MobileReader({
                 />
               )}
               {/* The page, as a chip lands on it (#304): named for its number,
-                  which the phone otherwise never shows. */}
+                  which the phone otherwise never shows — only while there is a
+                  discussion to send anyone here. */}
               <div
                 id={pageDomId(s.id)}
                 data-reader-page={s.id}
-                role="group"
-                aria-label={name ? capitalise(name) : undefined}
-                tabIndex={-1}
+                {...(talk && {
+                  role: "group",
+                  "aria-label": name ? capitalise(name) : undefined,
+                  tabIndex: -1,
+                })}
                 className="focus:outline-none focus-visible:outline-2 focus-visible:-outline-offset-2"
               >
                 {s.cover && (s.filled || hasCoverLayout(s)) ? (

@@ -326,6 +326,7 @@ for (const [label, fn] of [
   ["retire", () => names.adminRetireName("x")],
   ["clear avatar", () => names.clearAvatar("x")],
   ["list", () => inbox.listReports()],
+  ["removal impact", () => removal.removalImpact([])],
 ] as const) {
   let threw = false;
   try {
@@ -337,6 +338,7 @@ for (const [label, fn] of [
 }
 
 heading("the removal confirmation's count");
+as(admin);
 const aliceLive = await db
   .select({ id: comments.id, deletedAt: comments.deletedAt })
   .from(comments)
