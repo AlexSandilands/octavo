@@ -17,6 +17,7 @@ import {
   type IssueStatus,
 } from "@/server/issues";
 import { ISSUES_SELECTION_MAX } from "@/features/admin/selection-limit";
+import { countIssueComments } from "@/server/discussion-thread";
 import { issueNumberSchema } from "@/lib/issue-number";
 import { ADMIN_LIST_QUERY_MAX } from "@/lib/list-query";
 import { sendIssueBlast, type BlastResult } from "@/server/publish-email";
@@ -185,4 +186,17 @@ export async function deleteIssuesAction(
   revalidatePath("/admin");
   revalidatePath("/");
   return { ok: true, ...result };
+}
+
+// The bulk delete confirmation's comment count (issue #301): the selection can
+// reach past the served page, so it is counted here when the admin asks.
+export async function countIssueCommentsAction(
+  ids: unknown,
+): Promise<{ ok: true; comments: number } | { ok: false }> {
+  await requireAdmin();
+  const parsed = idsSchema.safeParse(ids);
+  if (!parsed.success) return { ok: false };
+  const counts = await countIssueComments([...new Set(parsed.data)]);
+  const comments = Object.values(counts).reduce((a, b) => a + b, 0);
+  return { ok: true, comments };
 }

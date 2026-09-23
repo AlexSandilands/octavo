@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Icon } from "@/components/icons";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { deleteIssueAction } from "@/app/admin/actions";
+import { commentsLabel } from "@/features/discussion/comments-label";
 
 // Delete one issue from the dashboard list. A client component so it can confirm
 // before firing the (irreversible) server action.
@@ -15,9 +16,12 @@ import { deleteIssueAction } from "@/app/admin/actions";
 export function DeleteIssueButton({
   id,
   title,
+  comments,
 }: {
   id: string;
   title: string;
+  /** The issue's comments, which go with it (issue #301). */
+  comments: number;
 }) {
   const [pending, startTransition] = useTransition();
   const [confirming, setConfirming] = useState(false);
@@ -59,6 +63,11 @@ export function DeleteIssueButton({
           body={
             <>
               This permanently removes the issue and cannot be undone.
+              {comments > 0 && (
+                <span className="text-ink mt-2.5 block font-semibold">
+                  Its discussion goes with it: {commentsLabel(comments)}.
+                </span>
+              )}
               {failed && (
                 <span role="alert" className="text-warn mt-2.5 block">
                   That didn’t work — the issue is still here. Please try again.

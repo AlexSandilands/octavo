@@ -5,6 +5,7 @@ import type { SiteSettings } from "@/lib/branding";
 import type { IssueContent, Page } from "@/lib/blocks";
 import type { ImageMap } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
+import { commentsLabel } from "@/features/discussion/comments-label";
 import { CoverThumb } from "./cover-thumb";
 import { DownloadPdfButton } from "./download-pdf-button";
 import { issueMonth, issueSections } from "./contents";
@@ -22,6 +23,8 @@ type LatestIssueProps = {
   sponsors: SponsorMap;
   /** The magazine's branding and PDF-download setting. */
   settings: SiteSettings;
+  /** Visible comments (issue #301); 0 shows nothing. */
+  comments: number;
 };
 
 // The library hero: the cover as a physical object on the left, and an editorial
@@ -36,6 +39,7 @@ export function LatestIssue({
   images,
   sponsors,
   settings,
+  comments,
 }: LatestIssueProps) {
   const pageCount = content.pages.length;
   const month = issueMonth(publishedAt);
@@ -90,6 +94,7 @@ export function LatestIssue({
         <div className="text-faint mt-3 font-sans text-[13px] tracking-wide">
           No. {number} · {pageCount} {pageCount === 1 ? "page" : "pages"}
           {month ? ` · ${month}` : ""}
+          {comments > 0 ? ` · ${commentsLabel(comments)}` : ""}
         </div>
 
         {shown.length > 0 && (

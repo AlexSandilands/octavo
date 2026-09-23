@@ -22,6 +22,7 @@ export function ArchiveShelf({
   images,
   sponsors,
   settings,
+  comments,
 }: {
   list: PagedList<PublishedIssueRow>;
   query: string;
@@ -30,6 +31,8 @@ export function ArchiveShelf({
   images: ImageMap;
   sponsors: SponsorMap;
   settings: SiteSettings;
+  /** Visible comments per issue id (issue #301). */
+  comments: Record<string, number>;
 }) {
   // The outcome of the search + filter in one sentence for the live region
   // below — built only from the query, the year and the whole-list match
@@ -69,7 +72,7 @@ export function ArchiveShelf({
       {list.rows.length > 0 && (
         <div className="mt-8">
           <ArchiveGrid
-            items={toArchiveItems(list.rows)}
+            items={toArchiveItems(list.rows, comments)}
             images={images}
             sponsors={sponsors}
             settings={settings}

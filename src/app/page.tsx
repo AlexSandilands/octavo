@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui";
 import { coverPageOf, type Page } from "@/lib/blocks";
+import { countComments } from "@/server/comments";
 import { getLibraryHome } from "@/server/library";
 import { resolveIssueImages } from "@/server/images";
 import { resolveIssueSponsors } from "@/server/sponsors";
@@ -12,6 +13,8 @@ import { Masthead } from "@/features/library/masthead";
 import { SiteFooter } from "@/features/library/site-footer";
 
 export const dynamic = "force-dynamic";
+
+const NO_COUNTS: Record<string, number> = {};
 
 export default async function LibraryPage() {
   const user = await requireMemberOrRedirect("/");
@@ -32,9 +35,12 @@ export default async function LibraryPage() {
   const covers = shelf
     .map((i) => coverPageOf(i.content))
     .filter((p): p is Page => Boolean(p));
-  const [coverImages, coverSponsors] = await Promise.all([
+  // Comment counts for the shelf in one grouped query (issue #301) — none for
+  // a signed-out (demo) visitor, none while discussion is off.
+  const [coverImages, coverSponsors, comments] = await Promise.all([
     resolveIssueImages({ pages: covers }),
     resolveIssueSponsors({ pages: covers }),
+    user ? countComments(shelf.map((i) => i.id)) : NO_COUNTS,
   ]);
 
   return (
@@ -65,10 +71,11 @@ export default async function LibraryPage() {
             images={coverImages}
             sponsors={coverSponsors}
             settings={settings}
+            comments={comments[latest.id] ?? 0}
           />
           {recent.length > 0 && (
             <ArchiveGrid
-              items={toArchiveItems(recent)}
+              items={toArchiveItems(recent, comments)}
               images={coverImages}
               sponsors={coverSponsors}
               settings={settings}

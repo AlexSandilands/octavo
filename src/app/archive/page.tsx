@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { coverPageOf, type Page } from "@/lib/blocks";
 import { pageParamSchema } from "@/lib/pagination";
+import { countComments } from "@/server/comments";
 import { listArchivePage, listPublishedYears } from "@/server/library";
 import { resolveIssueImages } from "@/server/images";
 import { resolveIssueSponsors } from "@/server/sponsors";
@@ -12,6 +13,8 @@ import { LibraryHeader } from "@/features/library/library-header";
 import { SiteFooter } from "@/features/library/site-footer";
 
 export const dynamic = "force-dynamic";
+
+const NO_COUNTS: Record<string, number> = {};
 
 // The view lives entirely in the URL (?q= title search, ?year=, ?page=) so a
 // refresh, a shared link and back/forward all rebuild the same shelf. The
@@ -55,9 +58,12 @@ export default async function ArchivePage({
   const covers = list.rows
     .map((i) => coverPageOf(i.content))
     .filter((p): p is Page => Boolean(p));
-  const [coverImages, coverSponsors] = await Promise.all([
+  // One grouped query for the served page's counts — none for a signed-out
+  // (demo) visitor, and none while discussion is off (countComments).
+  const [coverImages, coverSponsors, comments] = await Promise.all([
     resolveIssueImages({ pages: covers }),
     resolveIssueSponsors({ pages: covers }),
+    user ? countComments(list.rows.map((i) => i.id)) : NO_COUNTS,
   ]);
 
   return (
@@ -81,6 +87,7 @@ export default async function ArchivePage({
         images={coverImages}
         sponsors={coverSponsors}
         settings={settings}
+        comments={comments}
       />
 
       <SiteFooter
