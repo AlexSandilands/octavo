@@ -101,6 +101,7 @@ export async function checkAvatarLifecycle(
       ]);
       const page = await ctx.newPage();
       await page.goto(`${base}/profile`);
+      await page.click('button[aria-label="Edit Lifecycle Person"]');
       await page.click(
         'button[aria-label="Remove photo from Lifecycle Person"]',
       );

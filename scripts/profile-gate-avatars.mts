@@ -166,6 +166,7 @@ export async function avatarsGate(kit: ProfileKit, foreignNameId: string) {
 
   heading("avatars — through the page");
   const page = await kit.open(p, 390);
+  await page.click('button[aria-label="Edit Photo Person"]');
   const chooser = page.waitForEvent("filechooser");
   await page.click('button[aria-label="Change photo for Photo Person"]');
   await (

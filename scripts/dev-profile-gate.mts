@@ -16,6 +16,7 @@ import sharp from "sharp";
 import { chromium, type Browser, type Page } from "playwright";
 import { membersGate } from "./profile-gate-admin.mts";
 import { avatarsGate, uploader } from "./profile-gate-avatars.mts";
+import { edit, focusLabel, keyboardGate } from "./profile-gate-keyboard.mts";
 import type { Member, ProfileKit } from "./profile-gate-kit.mts";
 
 process.loadEnvFile?.(".env.local");
@@ -213,8 +214,10 @@ try {
     "a name another account uses is saved and the note announced",
   );
   ok(
-    await page.isVisible("li:has-text('Shared Name') >> text=add an initial"),
-    "the shared-name note shows beside that name",
+    await page.isVisible(
+      "li:has-text('Shared Name') >> text=Shared with another member",
+    ),
+    "the collapsed row says the name is shared",
   );
   for (const value of ["Peggy Cole", "M. Cole"]) {
     await addName(page, value);
@@ -253,19 +256,41 @@ try {
   });
   ok(posted.ok, "a comment is posted under “Robin H” (in process)");
   page = await open(browser, r);
-  await page.click('button[aria-label="Rename Robin H"]');
+  ok(
+    (await page.locator(`[id^="rename-"]`).count()) === 0,
+    "every name starts collapsed",
+  );
+  const toggleOf = (n: string) =>
+    page.locator(`li:has-text("${n}") button[aria-controls]`).first();
+  await edit(page, "Robin H");
+  await edit(page, "Spare Name");
+  ok(
+    (await toggleOf("Spare Name").getAttribute("aria-expanded")) === "true" &&
+      (await page.locator(`#rename-${used}`).count()) === 0,
+    "opening one name closes the other",
+  );
+  await page.click('button[aria-label="Done with Spare Name"]');
+  ok(
+    (await focusLabel(page)) === "Edit Spare Name",
+    "Done closes the panel and focus stays on its button",
+  );
+  await edit(page, "Robin H");
   await page.fill(`#rename-${used}`, "Robin Hartley");
   await page.keyboard.press("Enter");
   ok(
     await heard(page, "Renamed to “Robin Hartley”."),
     "rename saves and is announced",
   );
-  const focused = await page.evaluate(() =>
-    document.activeElement?.getAttribute("aria-label"),
+  await page.waitForFunction(
+    (id) => document.activeElement?.id === `rename-${id}`,
+    used,
   );
+  await page.keyboard.press("Escape");
+  const focused = await focusLabel(page);
   ok(
-    focused === "Rename Robin Hartley",
-    `focus returns to Rename (${focused})`,
+    focused === "Edit Robin Hartley" &&
+      (await page.locator(`#rename-${used}`).count()) === 0,
+    `Escape closes the panel and focus returns to Edit (${focused})`,
   );
   const listed = await thread.listComments(issueId, {
     id: r.id,
@@ -277,6 +302,7 @@ try {
     "listComments shows the renamed name on the old comment",
   );
 
+  await edit(page, "Spare Name");
   await page.click('button[aria-label="Remove Spare Name"]');
   await page.waitForSelector("[role=dialog]");
   ok(
@@ -289,6 +315,7 @@ try {
     !(await namesOf(r.id)).some((n) => n.id === spare),
     "the unused name's row is deleted",
   );
+  await edit(page, "Robin Hartley");
   await page.click('button[aria-label="Remove Robin Hartley"]');
   await page.waitForSelector("[role=dialog]");
   ok(
@@ -312,6 +339,7 @@ try {
     ).includes("Robin Hartley"),
     "the retired name is still on its comment",
   );
+  await edit(page, "Robin Hart");
   const lastRemove = page.locator('button[aria-label="Remove Robin Hart"]');
   ok(
     (await lastRemove.getAttribute("aria-disabled")) === "true",
@@ -327,8 +355,9 @@ try {
   // ── Badge ─────────────────────────────────────────────────────────────────
   heading("admin badge");
   ok(
-    (await page.locator("text=Show admin badge").count()) === 0,
-    "a member sees no badge checkbox",
+    (await page.locator("text=Show admin badge").count()) === 0 &&
+      (await page.locator("text=As an admin you can show").count()) === 0,
+    "a member sees no badge checkbox and no badge explainer",
   );
   const refusedBadge = await profileActions.setBadgeAction(keep, true);
   ok(
@@ -338,6 +367,11 @@ try {
   const adm = await member("admin", { admin: true });
   const admName = await nameRow(adm.id, "Chair Person");
   page = await open(browser, adm);
+  ok(
+    (await page.locator("text=As an admin you can show").count()) === 1,
+    "an admin gets the badge explainer once, in the intro",
+  );
+  await edit(page, "Chair Person");
   const badge = page.getByRole("checkbox", {
     name: "Show admin badge on Chair Person",
   });
@@ -351,6 +385,11 @@ try {
   const [badged] =
     await sql`select badge from member_names where id = ${admName}`;
   ok(badged?.badge === true, "the badge is stored");
+  await page.keyboard.press("Escape");
+  await page.waitForSelector(
+    "li:has-text('Chair Person') >> text=Admin badge shown",
+  );
+  ok(true, "the collapsed row says the badge is shown");
   await page.screenshot({ path: `${out}/profile-admin.png`, fullPage: true });
   await writeFile(
     `${out}/profile-admin.aria.txt`,
@@ -407,46 +446,8 @@ try {
     await sql`update settings set comments_enabled = ${settingsBefore.on} where id = 1`;
   }
 
-  // ── Keyboard-only walkthrough ─────────────────────────────────────────────
-  heading("keyboard");
-  page = await open(browser, r);
-  // Forward through the page until focus leaves <main> (Next's dev overlay
-  // and the document follow it). A field is measured by its decorated box.
-  const stops: { name: string; height: number }[] = [];
-  for (let i = 0; i < 30; i++) {
-    await page.keyboard.press("Tab");
-    const stop = await page.evaluate(() => {
-      const el = document.activeElement as HTMLElement | null;
-      if (!el || !el.closest("main")) return null;
-      const target = el.closest(".boxed-field") ?? el;
-      const name =
-        el.getAttribute("aria-label") ??
-        (el.id
-          ? document.querySelector(`label[for="${el.id}"]`)?.textContent
-          : null) ??
-        el.textContent?.trim() ??
-        "";
-      return {
-        name: `${el.tagName.toLowerCase()}[${name.slice(0, 32)}]`,
-        height: Math.round(target.getBoundingClientRect().height),
-      };
-    });
-    if (!stop) break;
-    stops.push(stop);
-  }
-  console.log(
-    `  tab order: ${stops.map((s) => `${s.name} ${s.height}px`).join(" → ")}`,
-  );
-  const small = stops.filter((s) => s.height < 44);
-  ok(
-    stops.length >= 7 && small.length === 0,
-    `every stop is reachable and at least 44px (${small.map((s) => s.name).join(", ") || "all"})`,
-  );
-  await writeFile(
-    `${out}/profile-member.aria.txt`,
-    await page.locator("main").ariaSnapshot(),
-  );
-  await page.screenshot({ path: `${out}/profile-member.png`, fullPage: true });
+  // ── Screenshots and the keyboard-only walkthrough ────────────────────────
+  await keyboardGate(kit, { named: a, single: r });
 
   // ── Admin members list and dialog ─────────────────────────────────────────
   await membersGate(kit);

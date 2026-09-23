@@ -23,6 +23,22 @@ export async function membersGate(kit: ProfileKit) {
     { name: "authjs.session-token", value: admin.token, url: base },
   ]);
   const page = await ctx.newPage();
+  // The sidebar's avatar and name are a link to the admin's own profile.
+  await page.goto(`${base}/admin/members`);
+  await page.click('aside a[aria-label="Your profile"]');
+  const landed = await page
+    .waitForURL(`${base}/profile`, { timeout: 10_000 })
+    .then(() => true)
+    .catch(() => false);
+  const box = await page
+    .goBack()
+    .then(() =>
+      page.locator('aside a[aria-label="Your profile"]').boundingBox(),
+    );
+  ok(
+    landed && box != null && box.height >= 44,
+    `the admin sidebar's profile block links to /profile at 44px (${box?.height}px)`,
+  );
   await page.goto(
     `${base}/admin/members?q=${encodeURIComponent(subject.email)}`,
   );
