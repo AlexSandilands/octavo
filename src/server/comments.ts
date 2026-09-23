@@ -14,6 +14,7 @@ import {
   COMMENT_BODY_MAX,
   FORMER_MEMBER,
   type AdminCommentView,
+  type CommentDeletedBy,
   type CommentThread,
   type MemberCommentView,
   type MemberThreadEntry,
@@ -321,10 +322,12 @@ export async function editComment(input: {
 }
 
 // Removes a comment the caller has locked FOR UPDATE: a soft delete (body
-// blanked) when it has replies or an open report, else a hard delete.
+// blanked, `by` recorded) when it has replies or an open report, else a hard
+// delete.
 export async function removeLockedComment(
   tx: Tx,
   commentId: string,
+  by: CommentDeletedBy,
 ): Promise<"soft" | "hard"> {
   const [reply] = await tx
     .select({ id: comments.id })
@@ -344,7 +347,7 @@ export async function removeLockedComment(
   if (reply || report) {
     await tx
       .update(comments)
-      .set({ body: "", deletedAt: new Date() })
+      .set({ body: "", deletedAt: new Date(), deletedBy: by })
       .where(eq(comments.id, commentId));
     return "soft";
   }
@@ -369,7 +372,7 @@ export async function deleteOwnComment(
       .where(eq(comments.id, parsed.data))
       .for("update");
     if (!row || row.authorId !== member.id) return INVALID;
-    if (!row.deletedAt) await removeLockedComment(tx, parsed.data);
+    if (!row.deletedAt) await removeLockedComment(tx, parsed.data, "author");
     return { ok: true as const };
   });
 }

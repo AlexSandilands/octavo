@@ -1,5 +1,6 @@
 import { AdminShell } from "@/components/admin-shell";
 import { getMemberIdentity } from "@/server/member-names";
+import { countOpenReports } from "@/server/report-inbox";
 import { requireAdminOrRedirect } from "@/server/session";
 import { getSettings } from "@/server/settings";
 
@@ -10,6 +11,7 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const admin = await requireAdminOrRedirect();
+  const openReports = await countOpenReports();
   // The sidebar's avatar follows the library header's rule (#300): the
   // default posting name's photo, only while discussion is on.
   const { commentsEnabled } = await getSettings();
@@ -22,5 +24,9 @@ export default async function DashboardLayout({
     avatarName: shown?.name ?? null,
     avatarUrl: shown?.avatarUrl ?? null,
   };
-  return <AdminShell user={user}>{children}</AdminShell>;
+  return (
+    <AdminShell user={user} openReports={openReports}>
+      {children}
+    </AdminShell>
+  );
 }

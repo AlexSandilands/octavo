@@ -14,7 +14,13 @@ export type AdminNavUser = {
 };
 
 // Shared by the desktop rail and mobile drawer; only the links track the route.
-export function AdminNavContent({ user }: { user: AdminNavUser }) {
+export function AdminNavContent({
+  user,
+  openReports,
+}: {
+  user: AdminNavUser;
+  openReports?: number;
+}) {
   return (
     <>
       <div className="px-6">
@@ -32,7 +38,7 @@ export function AdminNavContent({ user }: { user: AdminNavUser }) {
         <Icon name="chevronLeft" size={16} />
         View library
       </Link>
-      <AdminNavLinks />
+      <AdminNavLinks openReports={openReports} />
       <div className="border-line mt-auto border-t px-6 pt-4">
         <Link
           href="/profile"

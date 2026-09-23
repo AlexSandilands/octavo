@@ -38,7 +38,7 @@ export type SettingsForm = {
    *  columns allow only ever describes a deployment nobody has saved yet. */
   showRunningHead: boolean;
   pdfDownloads: boolean;
-  /** Carried through unchanged until the discussion controls land (#302). */
+  /** The discussion switch and the removed-member policy (#302). */
   commentsEnabled: boolean;
   removedMemberComments: RemovedMemberComments;
 };

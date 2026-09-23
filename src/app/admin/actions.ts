@@ -20,6 +20,7 @@ import { ISSUES_SELECTION_MAX } from "@/features/admin/selection-limit";
 import { issueNumberSchema } from "@/lib/issue-number";
 import { ADMIN_LIST_QUERY_MAX } from "@/lib/list-query";
 import { sendIssueBlast, type BlastResult } from "@/server/publish-email";
+import { originFromHeaders } from "@/server/site-origin";
 import { requireAdmin } from "@/server/session";
 import { getSettings } from "@/server/settings";
 import { footerReserveOf } from "@/lib/branding";
@@ -120,12 +121,6 @@ export async function publishIssueAction(
   const origin = env.APP_URL ?? originFromHeaders(await headers());
   const emailed = await sendIssueBlast(published.number, issue.title, origin);
   return { ok: true, number: published.number, emailed };
-}
-
-function originFromHeaders(h: Headers): string {
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  return `${proto}://${host}`;
 }
 
 export async function deleteIssueAction(id: string): Promise<{ ok: boolean }> {

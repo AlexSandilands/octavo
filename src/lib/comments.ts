@@ -20,6 +20,11 @@ export const REPORT_REASONS = [
 ] as const;
 export type ReportReason = (typeof REPORT_REASONS)[number];
 
+/** Who soft-deleted a comment: its author, or an admin (a moderation delete,
+ *  or a removal under the "delete" policy). */
+export const COMMENT_DELETED_BY = ["author", "admin"] as const;
+export type CommentDeletedBy = (typeof COMMENT_DELETED_BY)[number];
+
 export const REPORT_STATUSES = ["open", "resolved"] as const;
 export type ReportStatus = (typeof REPORT_STATUSES)[number];
 
@@ -112,17 +117,42 @@ export type ReportView = {
   status: ReportStatus;
   createdAt: Date;
   resolvedAt: Date | null;
+  resolvedBy: { id: string; name: string | null } | null;
   issue: { id: string; number: number | null; title: string };
-  reporter: { id: string; name: string | null } | null;
+  reporter: { id: string; name: string | null; email: string } | null;
   snapshot: {
     body: string;
     name: string | null;
-    account: { id: string; name: string | null } | null;
+    account: { id: string; name: string | null; email: string } | null;
     createdAt: Date | null;
     editedAt: Date | null;
   };
-  /** The comment now, against the snapshot: the inbox's "edited since". */
+  /** The comment now, against the snapshot: the inbox's "edited since", or
+   *  who deleted it (`comments.deleted_by`). */
   current:
-    | { state: "unchanged" | "edited"; body: string; hidden: boolean }
-    | { state: "deleted" };
+    | {
+        state: "unchanged" | "edited";
+        commentId: string;
+        body: string;
+        hidden: boolean;
+      }
+    | { state: "deleted"; by: "author" | "admin" };
+  /** The posting name the comment is under now, for Clear avatar and Retire
+   *  name; null once the comment or its name is gone. */
+  name: {
+    id: string;
+    name: string;
+    avatarUrl: string | null;
+    retired: boolean;
+  } | null;
+};
+
+export const REPORT_FILTERS = ["open", "resolved", "all"] as const;
+export type ReportFilter = (typeof REPORT_FILTERS)[number];
+
+export const REPORT_REASON_LABELS: Record<ReportReason, string> = {
+  harassment: "Harassment",
+  offensive: "Offensive",
+  spam: "Spam",
+  other: "Other",
 };

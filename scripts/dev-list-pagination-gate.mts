@@ -1,6 +1,6 @@
 // Dev-only: verifies the admin lists page server-side against a running dev
-// server — the issues dashboard and the sponsors list carry the members list's
-// control, the page lives in the URL and survives a refresh, malformed and
+// server — the issues dashboard, the sponsors list and the reports inbox carry
+// the members list's control, the page lives in the URL and survives a refresh, malformed and
 // out-of-range ?page= degrade to a real page, and a delete from a later page
 // leaves the admin on it.
 // Run: npx tsx --tsconfig scripts/tsconfig.json scripts/dev-list-pagination-gate.mts <base-url>
@@ -9,6 +9,7 @@ import postgres from "postgres";
 import { randomUUID } from "node:crypto";
 import { emptyIssueContent } from "../src/lib/blocks.ts";
 import { ADMIN_LIST_PAGE_SIZE as PAGE_SIZE } from "../src/lib/pagination.ts";
+import { reportsFixtures } from "./fixtures/reports-fixtures.mts";
 
 process.loadEnvFile?.(".env.local");
 // After the env file: the data-access module builds its client on import.
@@ -17,6 +18,7 @@ const { listSponsors, listSponsorsPage } =
 const base = process.argv[2] ?? "http://localhost:3000";
 
 const sql = postgres(process.env.DATABASE_URL!, { max: 1 });
+const reports = reportsFixtures(sql, "pages");
 const ok = (cond: unknown, msg: string) => {
   if (!cond) throw new Error(`FAIL: ${msg}`);
   console.log(`ok — ${msg}`);
@@ -314,6 +316,81 @@ try {
     `deleting from page ${sponsorPages} keeps the admin on page ${sponsorPages}`,
   );
 
+  // ── Reports inbox (issue #302) ────────────────────────────────────────────
+  // Two pages of this run's own open reports, found by the search (it covers
+  // the reporter, whose name carries the stamp), oldest last.
+  const reportIssue = await reports.issue();
+  const author = await reports.user(`${reports.stamp} Author`);
+  const reporter = await reports.user(`${reports.stamp} Reporter`);
+  const authorName = await reports.name(author.id, "Author Name");
+  const REPORTS = PAGE_SIZE + 2;
+  for (let i = 0; i < REPORTS; i++) {
+    const body = `Report body ${String(i + 1).padStart(2, "0")}`;
+    const comment = await reports.comment(
+      reportIssue,
+      author,
+      authorName,
+      body,
+    );
+    await reports.report(comment, reporter.id, { minutesAgo: REPORTS - i });
+  }
+  const reportRows = page.locator("article");
+  const inbox = `${base}/admin/reports?q=${encodeURIComponent(reports.stamp)}`;
+  await page.goto(inbox);
+  await page.waitForSelector("h1:has-text('Reports')");
+  ok(
+    (await reportRows.count()) === PAGE_SIZE &&
+      (await status("Report list pages").innerText()) === "Page 1 of 2",
+    `/admin/reports serves ${PAGE_SIZE} of ${REPORTS} matching reports, "Page 1 of 2"`,
+  );
+  await nav("Report list pages").getByText("Next").click();
+  await page.waitForURL((u) => u.searchParams.get("page") === "2");
+  await page.waitForFunction(
+    () => document.querySelectorAll("article").length === 2,
+  );
+  ok(
+    new URL(page.url()).searchParams.get("q") === reports.stamp,
+    "Next puts ?page=2 in the URL and keeps the search",
+  );
+  await page.reload();
+  ok(
+    (await status("Report list pages").innerText()) === "Page 2 of 2",
+    "?page=2 survives a refresh",
+  );
+  for (const [param, expected] of [
+    ["abc", 1],
+    ["99999", 2],
+  ] as const) {
+    await page.goto(`${inbox}&page=${param}`);
+    await page.waitForSelector("h1:has-text('Reports')");
+    ok(
+      (await status("Report list pages").innerText()) ===
+        `Page ${expected} of 2`,
+      `?page=${param} degrades to page ${expected}`,
+    );
+  }
+  await page.goto(`${inbox}&page=2`);
+  await page.waitForSelector("h1:has-text('Reports')");
+  await reportRows
+    .first()
+    .getByRole("button", { name: /^Resolve report/ })
+    .click();
+  await page.waitForFunction(
+    () => document.querySelectorAll("article").length === 1,
+  );
+  ok(
+    new URL(page.url()).searchParams.get("page") === "2",
+    "resolving from page 2 leaves the admin on page 2, one row fewer",
+  );
+  await page.getByRole("button", { name: /^Show: / }).click();
+  await page.getByRole("menuitemradio", { name: "All" }).click();
+  await page.waitForURL((u) => u.searchParams.get("filter") === "all");
+  ok(
+    !new URL(page.url()).searchParams.has("page") &&
+      (await status("Report list pages").innerText()) === "Page 1 of 2",
+    "a new filter starts from its own page 1",
+  );
+
   // ── The shared control on a single page (the members list, unchanged) ─────
   await page.goto(`${base}/admin/members?q=${encodeURIComponent(adminEmail)}`);
   await page.waitForSelector("h1:has-text('Members')");
@@ -327,6 +404,10 @@ try {
   for (const [path, label] of [
     ["/admin?page=2", "Issue list pages"],
     ["/admin/sponsors?page=2", "Sponsor list pages"],
+    [
+      `/admin/reports?q=${encodeURIComponent(reports.stamp)}&page=2`,
+      "Report list pages",
+    ],
   ] as const) {
     await page.goto(`${base}${path}`);
     await page.waitForSelector(`nav[aria-label="${label}"]`);
@@ -347,6 +428,7 @@ try {
     await sql`delete from issues where id in ${sql(issueIds)}`;
   if (sponsorIds.length > 0)
     await sql`delete from sponsors where id in ${sql(sponsorIds)}`;
+  await reports.cleanup();
   await sql`delete from sessions where session_token = ${token}`;
   await sql`delete from users where id = ${userId}`;
   await sql.end();

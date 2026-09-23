@@ -11,22 +11,24 @@ import {
 } from "@/lib/branding";
 import { SettingsCard } from "@/components/settings-card";
 import { MenuSelect, type MenuSelectItem } from "@/components/menu-select";
+import { DiscussionSettings } from "./discussion-settings";
 import { FooterSizeField } from "./footer-size-field";
 import type { SettingsForm } from "./magazine-settings";
+import { SettingsToggle } from "./settings-toggle";
 
 // The settings form card on /admin/magazine. One card, because it is one form
 // with one Save: the naming fields, then the page-top switch and the page-footer
-// controls as titled sections, then the PDF download switch as another, then the
-// save row (passed in as `footer`) closing the card — so the button visibly
+// controls as titled sections, then the PDF download switch and the discussion
+// settings as two more, then the save row (passed in as `footer`) closing the card — so the button visibly
 // belongs to everything above it and nothing floats between cards. Presentation
 // only — every value and setter comes from MagazineSettings, which owns the form
 // state so the preview beside it can render the same unsaved edits.
 //
-// The download switch is the one control here the preview can't show, since it
-// changes nothing on a page. It is still in this card rather than one of its
-// own: on a phone the split collapses to a stack, and a switch in a card below
-// the Save button would be a setting you toggle and then have to scroll back up
-// to keep. Its own titled section is the separation it needs.
+// The download switch and the discussion settings are controls the preview
+// can't show, since they change nothing on a page. They are still in this card
+// rather than ones of their own: on a phone the split collapses to a stack, and
+// a switch in a card below the Save button would be a setting you toggle and
+// then have to scroll back up to keep. Titled sections are the separation.
 
 export function SettingsFormCard({
   form,
@@ -142,8 +144,8 @@ export function SettingsFormCard({
         </h3>
         <p className="text-muted mt-1.5 font-sans text-[13px] leading-relaxed">
           Whether members may save an issue to keep. This one is about who gets
-          the file, not how a page is set — so it is the one setting here the
-          preview beside it never shows.
+          the file, not how a page is set — so the preview beside it never shows
+          it.
         </p>
       </div>
       <SettingsToggle
@@ -162,59 +164,10 @@ export function SettingsFormCard({
         onChange={(pdfDownloads) => onChange({ pdfDownloads })}
       />
 
+      <DiscussionSettings form={form} onChange={onChange} />
+
       <div className="border-line-soft border-t pt-5">{footer}</div>
     </SettingsCard>
-  );
-}
-
-// The switches on the page (issues #162, #269). No house switch component
-// exists, so this follows the publish modal's opt-in: a bordered card that *is*
-// the label, so the whole box toggles rather than a 20px square — the p-4 box
-// stands 50-odd pixels tall, comfortably past the 44px minimum, and reads as
-// something you press. The ring lands on the box (.boxed-field) instead of
-// floating a rectangle around the inner checkbox. `detail` is the optional
-// paragraph below the box, for a switch whose consequences need spelling out.
-function SettingsToggle({
-  id,
-  label,
-  hint,
-  detail,
-  value,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  hint: string;
-  detail?: ReactNode;
-  value: boolean;
-  onChange: (value: boolean) => void;
-}) {
-  return (
-    <div>
-      <label className="boxed-field border-hair flex cursor-pointer items-start gap-3 rounded-lg border-[1.5px] bg-white p-4">
-        <input
-          type="checkbox"
-          checked={value}
-          onChange={(e) => onChange(e.target.checked)}
-          aria-describedby={detail ? `${id}-hint ${id}-detail` : `${id}-hint`}
-          className="accent-accent mt-0.5 h-5 w-5 flex-none"
-        />
-        <span className="font-sans text-[14px] leading-snug">
-          <span className="text-ink font-semibold">{label}</span>
-          <span id={`${id}-hint`} className="text-muted mt-0.5 block">
-            {hint}
-          </span>
-        </span>
-      </label>
-      {detail && (
-        <p
-          id={`${id}-detail`}
-          className="text-faint2 mt-1.5 font-sans text-[12px] leading-relaxed"
-        >
-          {detail}
-        </p>
-      )}
-    </div>
   );
 }
 

@@ -1,0 +1,85 @@
+import { Bullets, Callout, GuideSection, P } from "./guide-ui";
+
+// The discussion and its moderation (issue #302): switching it on, the reports
+// inbox and its emails, and the removed-member setting.
+export function SectionDiscussion() {
+  return (
+    <GuideSection
+      id="discussion"
+      kicker="Keeping it civil"
+      title="Discussion and reports"
+    >
+      <P>
+        Each issue can have a <strong>discussion</strong> under it, where
+        members post comments and reply to one another under the names they
+        choose on their profile. It starts switched off. Turn it on under{" "}
+        <strong>Magazine details</strong> with{" "}
+        <em>Let members discuss each issue</em>, and press Save. Turning it off
+        later hides the threads, the comment counts, the reply bell and the
+        reply emails everywhere and stops anyone posting — but every comment is
+        kept, so turning it on again brings the discussion back as it was.
+      </P>
+      <P>
+        Any member can <strong>report</strong> someone else&rsquo;s comment,
+        choosing a reason and adding a note if they like. The report keeps a
+        copy of the comment exactly as it read at that moment, so editing or
+        deleting it afterwards can&rsquo;t hide what was said.
+      </P>
+      <P>
+        Reports arrive in <strong>Reports</strong> in the menu, which shows how
+        many are open; the Issues page says so too. Each one shows the comment
+        as reported, the name it was posted under and the member account behind
+        that name, and — if it has changed since — what became of it: edited
+        (with the new wording), deleted by its author, or removed by an admin.
+        Below that are the issue it was on, the reason and note, and who
+        reported it. Search covers the comment, the name and the reporter;{" "}
+        <em>Show</em> switches between open, resolved and all reports.
+      </P>
+      <P>What you can do with a report:</P>
+      <Bullets>
+        <li>
+          <strong>Hide comment</strong> takes it out of sight for members. It
+          can be undone with <strong>Unhide comment</strong>.
+        </li>
+        <li>
+          <strong>Delete comment</strong> removes it for good (you&rsquo;re
+          asked first). If people replied to it, their replies stay under
+          &ldquo;Comment removed&rdquo;. Members can&rsquo;t tell a hidden
+          comment from a deleted one.
+        </li>
+        <li>
+          Hiding or deleting also <strong>resolves every open report</strong> on
+          that comment, so three reports of one comment are dealt with at once.
+        </li>
+        <li>
+          <strong>Resolve</strong> closes the report and leaves the comment as
+          it is — for a report you&rsquo;ve looked at and decided needs nothing.
+        </li>
+        <li>
+          <strong>Clear avatar</strong> removes the picture on the name the
+          comment was posted under, and <strong>Retire name</strong> takes the
+          name off the member&rsquo;s list so they can&rsquo;t post under it
+          again. Comments already posted keep the name.
+        </li>
+      </Bullets>
+      <P>
+        Every admin gets an <strong>email</strong> when a comment is reported,
+        with the reason, the start of the comment and a button to the inbox. To
+        stop a busy day filling your inbox, at most one is sent every 15
+        minutes; the next one after a quiet spell says how many reports are
+        open. The inbox always has every report, emailed or not.
+      </P>
+      <Callout title="When you remove a member">
+        <p>
+          Under <strong>Magazine details</strong> you choose what happens to a
+          removed member&rsquo;s comments: kept, shown as &ldquo;Former
+          member&rdquo; with no name or picture (the default), or deleted. The
+          choice applies to members you remove from then on, not to anyone
+          removed before. When you remove someone on the Members page, the
+          confirmation tells you how many comments they have and which of the
+          two will happen. Their profile pictures are deleted either way.
+        </p>
+      </Callout>
+    </GuideSection>
+  );
+}
