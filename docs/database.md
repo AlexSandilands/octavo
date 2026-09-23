@@ -352,7 +352,9 @@ an hour each. Member reads (`listComments` for a non-admin, `countComments`, `li
 decided on the server; `src/lib/comments.ts` asserts it at the type level. A hidden or deleted
 top-level comment with visible replies comes back as a stub with no body and no author (hidden
 and deleted are indistinguishable), and without replies it is omitted. Admins get every row,
-flagged, with the account's `users.name`.
+flagged, with the account's `users.name`. An author can't edit a hidden comment until an admin unhides it. An avatar
+must be a fresh upload — no issue behind it and nothing else (a logo, a sponsor, another name)
+already showing it.
 
 **Deleting.** The author's delete and the admin's are one rule: a comment with replies or an
 open report is soft-deleted (body blanked, `deleted_at` set), otherwise hard-deleted — decided

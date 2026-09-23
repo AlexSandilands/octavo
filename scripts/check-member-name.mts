@@ -166,6 +166,18 @@ if (kept.ok) {
     restored.ok && restored.name.name === "captain ALEX",
     "…under the newly entered spelling",
   );
+  as(admin);
+  await names.adminRetireName(kept.name.id);
+  as(alex);
+  const onto = first.ok
+    ? await names.renameName({ nameId: first.name.id, name: "Captain Alex" })
+    : undefined;
+  ok(
+    onto &&
+      !onto.ok &&
+      onto.reason === "You retired that name. Add it again instead.",
+    "renaming onto one of your retired names says so",
+  );
 }
 
 heading("the five-name cap");

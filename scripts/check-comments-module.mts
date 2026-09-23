@@ -465,8 +465,23 @@ const replyOnHidden = await post(bob, {
   nameId: bobName,
 });
 ok(!replyOnHidden.ok, "replying to a hidden comment is refused");
+as(alice);
+const hiddenEdit = await thread.editComment({
+  commentId: loneHidden,
+  body: "rewritten under the hide",
+});
+ok(
+  !hiddenEdit.ok && hiddenEdit.reason === "That comment has been removed.",
+  "the author can't edit a hidden comment",
+);
 as(admin);
 await moderation.unhideComment(loneHidden);
+as(alice);
+ok(
+  (await thread.editComment({ commentId: loneHidden, body: "lone, revised" }))
+    .ok,
+  "…and can again once it is unhidden",
+);
 ok(
   (
     await thread.listComments(issue.id, { id: bob.id, isAdmin: false })
@@ -706,6 +721,26 @@ ok(
   survived.length === 0 && (await h.objectExists(first.key)),
   "an avatar survives the orphan sweep",
 );
+ok(
+  (await names.setNameAvatar({ nameId: avatarName, imageId: first.id })).ok,
+  "re-setting the name's own current avatar is fine",
+);
+const otherOwner = await h.scratchUser({ name: "Other Member" });
+const otherName = await nameFor(otherOwner, "Other Member");
+ok(
+  !(await names.setNameAvatar({ nameId: otherName, imageId: first.id })).ok,
+  "another name's avatar is refused",
+);
+const logoImage = await h.scratchImage();
+await db
+  .insert(schema.logos)
+  .values({ name: "check-299 logo", imageId: logoImage.id });
+ok(
+  !(await names.setNameAvatar({ nameId: otherName, imageId: logoImage.id })).ok,
+  "a logo's image is refused",
+);
+ok(await h.objectExists(logoImage.key), "…and the logo keeps its image");
+as(avatarOwner);
 ok(
   (await names.setNameAvatar({ nameId: avatarName, imageId: second.id })).ok,
   "the avatar is replaced",
