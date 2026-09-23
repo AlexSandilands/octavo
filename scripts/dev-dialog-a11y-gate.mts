@@ -27,6 +27,7 @@
 import postgres from "postgres";
 import { chromium, type Page } from "playwright";
 import { expandMember } from "./check-member-disclosure.mts";
+import { checkDiscussionDialogs } from "./dialog-a11y-discussion.mts";
 import { checkReportsDialogs } from "./dialog-a11y-reports.mts";
 
 process.loadEnvFile?.(".env.local");
@@ -494,6 +495,16 @@ try {
   await checkBackdropRestores(page, "Remove selected");
 
   await checkReportsDialogs({
+    page,
+    sql,
+    base,
+    heading,
+    checkOpenDialog,
+    checkEscapeRestores,
+    checkBackdropRestores,
+  });
+
+  await checkDiscussionDialogs({
     page,
     sql,
     base,
