@@ -292,7 +292,8 @@ function refuse(reason: string) {
   return { ok: false as const, reason };
 }
 
-// The author's own edit; marks the comment "(edited)".
+// The author's own edit; marks the comment "(edited)". A hidden comment is
+// moderated content, so it can't be rewritten until an admin unhides it.
 export async function editComment(input: {
   commentId: string;
   body: string;
@@ -311,11 +312,12 @@ export async function editComment(input: {
       and(
         eq(comments.id, parsed.data.commentId),
         eq(comments.authorId, member.id),
+        isNull(comments.hiddenAt),
         isNull(comments.deletedAt),
       ),
     )
     .returning({ id: comments.id });
-  return row ? { ok: true } : refuse("That comment can't be edited.");
+  return row ? { ok: true } : refuse("That comment has been removed.");
 }
 
 // Removes a comment the caller has locked FOR UPDATE: a soft delete (body
