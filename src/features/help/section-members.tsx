@@ -58,6 +58,19 @@ export function SectionMembers() {
           everywhere. It can&rsquo;t be undone (though you can always add them
           back fresh).
         </Step>
+        <Step n={6} title="Posting names — who a member is in the discussion">
+          Once discussion is switched on, each member picks the names they post
+          under on their own profile page (the round picture at the top of the
+          library) &mdash; one for each person if a couple shares an account,
+          each with an optional photo. Their names show under their email on
+          this list, and <strong>Posting names&hellip;</strong> in the row lets
+          you rename one, retire one so it can&rsquo;t be used again (it stays
+          on the comments already posted under it), or clear an unsuitable
+          photo. Renaming is also how you set a genuine name the site&rsquo;s
+          word filter wouldn&rsquo;t accept from the member. Members never see
+          each other&rsquo;s email addresses; you always see the account behind
+          a name.
+        </Step>
       </Steps>
       <Callout title="Two guard rails, so you can’t lock yourself out">
         The site won&rsquo;t let you remove <em>yourself</em>, and it insists
