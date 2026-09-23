@@ -1,5 +1,6 @@
 import "server-only";
 import { and, count, desc, eq, isNull, notInArray } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { db } from "@/db";
 import { comments, issues, memberNames, notifications } from "@/db/schema";
@@ -16,7 +17,8 @@ import { getSettings } from "./settings";
 
 // Reply notifications (issue #299): a reply to your comment leaves a row here
 // for the bell (#303). Only the newest MAX_NOTIFICATIONS per member are kept,
-// trimmed on insert, so nothing needs sweeping. Email is #303's.
+// trimmed on insert, so nothing needs sweeping. The opt-in email is
+// reply-alert.ts.
 
 const EXCERPT_LENGTH = 140;
 
@@ -46,9 +48,14 @@ export async function notifyReply(
 // A notification counts only while its reply is still visible.
 const replyVisible = and(isNull(comments.hiddenAt), isNull(comments.deletedAt));
 
-// The member's notifications, newest first. Empty while discussion is off.
+const parent = alias(comments, "parent");
+const parentName = alias(memberNames, "parent_name");
+
+// The member's notifications, newest first (the bell shows `limit`). Empty
+// while discussion is off.
 export async function listNotifications(
   userId: string,
+  limit = MAX_NOTIFICATIONS,
 ): Promise<NotificationView[]> {
   if (!(await getSettings()).commentsEnabled) return [];
   const rows = await db
@@ -60,6 +67,7 @@ export async function listNotifications(
       body: comments.body,
       authorId: comments.authorId,
       name: memberNames.name,
+      parentName: parentName.name,
       issueNumber: issues.number,
       issueTitle: issues.title,
     })
@@ -67,15 +75,18 @@ export async function listNotifications(
     .innerJoin(comments, eq(comments.id, notifications.commentId))
     .innerJoin(issues, eq(issues.id, comments.issueId))
     .leftJoin(memberNames, eq(memberNames.id, comments.authorNameId))
+    .leftJoin(parent, eq(parent.id, comments.parentId))
+    .leftJoin(parentName, eq(parentName.id, parent.authorNameId))
     .where(and(eq(notifications.userId, userId), replyVisible))
     .orderBy(desc(notifications.createdAt), desc(notifications.id))
-    .limit(MAX_NOTIFICATIONS);
+    .limit(Math.min(Math.max(1, limit), MAX_NOTIFICATIONS));
   return rows.map((row) => ({
     id: row.id,
     commentId: row.commentId,
     issueNumber: row.issueNumber,
     issueTitle: row.issueTitle,
     replierName: (row.authorId && row.name) || FORMER_MEMBER,
+    parentName: row.parentName ?? FORMER_MEMBER,
     excerpt: row.body.slice(0, EXCERPT_LENGTH),
     createdAt: row.createdAt,
     read: row.readAt !== null,
