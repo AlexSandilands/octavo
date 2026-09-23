@@ -23,7 +23,7 @@ import type { Discussion } from "./use-discussion";
 import { MAIN_COMPOSER, useCommentTarget } from "./use-comment-target";
 import { useThread } from "./use-thread";
 import { PageFilter } from "./page-filter";
-import { PageTagPicker } from "./page-tag-picker";
+import { PageTagPicker, choicePage } from "./page-tag-picker";
 import { pageName, type ReaderPages } from "./page-tags";
 
 const MODERATION = {
@@ -106,11 +106,7 @@ export function DiscussionThread({
     const setup = payload!.composer;
     const current =
       setup.names.find((n) => n.id === nameId)?.id ?? setup.defaultNameId;
-    const { tagSlot } = talk;
-    const pageId =
-      parentId || tagSlot === null
-        ? null
-        : (pages.open[Math.min(tagSlot, pages.open.length - 1)] ?? null);
+    const pageId = parentId ? null : choicePage(talk.tag);
     const result = await postCommentAction({
       issueNo: info.issueNo,
       parentId,
@@ -130,10 +126,13 @@ export function DiscussionThread({
       focus: parentId ? "comment" : "composer",
       highlight: false,
     });
-    // A reply you have just posted stays in view under its parent; an
-    // untagged comment would be filtered out of sight, so the filter goes.
+    // A reply you have just posted stays in view under its parent; a comment
+    // the filter would hide (not on the open pages) clears the filter.
     if (parentId) unfold(parentId);
-    const unfilter = !parentId && talk.pagesOnly && pageId === null;
+    const unfilter =
+      !parentId &&
+      talk.pagesOnly &&
+      !(pageId !== null && pages.open.includes(pageId));
     if (unfilter) talk.setPagesOnly(false);
     await thread.reload(unfilter ? null : undefined);
     if (parentId) {
@@ -141,6 +140,7 @@ export function DiscussionThread({
       setReplyDraft("");
     } else {
       talk.setDraft("");
+      talk.setTag(null);
     }
     announce(
       parentId
@@ -294,8 +294,8 @@ export function DiscussionThread({
             tag={
               <PageTagPicker
                 pages={pages}
-                slot={talk.tagSlot}
-                onChange={talk.setTagSlot}
+                choice={talk.tag}
+                onChange={talk.setTag}
               />
             }
           />

@@ -1,63 +1,97 @@
 "use client";
 
-import { useId } from "react";
+import { Icon } from "@/components/icons";
+import { MenuSelect, type MenuSelectItem } from "@/components/menu-select";
 import { capitalise, pageName, type ReaderPages } from "./page-tags";
 
-const CHOICE =
-  "text-ink flex min-h-11 w-fit cursor-pointer items-center gap-2.5 font-sans text-[15px]";
-const BOX = "accent-accent h-5 w-5 flex-none cursor-pointer";
+/** A row of the menu: "open:<id>" in the shortcut at the top, "page:<id>" in
+ *  the issue's order. Both tag the same page; only the row chosen is ticked. */
+export type TagChoice = `${"open" | "page"}:${string}`;
 
-// The composer's page tag (issue #304): with one page open, a checkbox "Tag
-// page 12"; with a spread, a radio group — none, or either page, since the
-// reader can't know which of the two is being read. Off until chosen.
+const NONE = "none";
+/** The menu's first screen shows "No page" and the pages before this one, so
+ *  open pages from here on are repeated at the top. */
+const SHORTCUT_FROM = 6;
+
+/** The page a choice tags, or null for none. */
+export const choicePage = (choice: TagChoice | null) =>
+  choice ? choice.slice(choice.indexOf(":") + 1) : null;
+
+// The composer's page tag (issue #304): a compact menu beside "Posting as"
+// listing every page — so a member can come back to one they read earlier —
+// with the page(s) open now marked, and repeated at the top when they would
+// otherwise be below the first screen, so tagging what is in front of you
+// stays one choice away. "No page" until chosen.
 export function PageTagPicker({
   pages,
-  slot,
+  choice,
   onChange,
 }: {
   pages: ReaderPages;
-  /** The chosen open page by position; null for none. */
-  slot: number | null;
-  onChange: (slot: number | null) => void;
+  choice: TagChoice | null;
+  onChange: (choice: TagChoice | null) => void;
 }) {
-  const group = useId();
-  const names = pages.open.map((id) => pageName(pages, id) ?? "this page");
-  if (names.length === 0) return null;
-  if (names.length === 1) {
-    return (
-      <label className={CHOICE}>
-        <input
-          type="checkbox"
-          checked={slot !== null}
-          onChange={(e) => onChange(e.target.checked ? 0 : null)}
-          className={BOX}
-        />
-        Tag {names[0]}
-      </label>
-    );
-  }
-  const chosen = slot === null ? null : Math.min(slot, names.length - 1);
-  const choices: [number | null, string][] = [
-    [null, "None"],
-    ...names.map((name, i): [number, string] => [i, capitalise(name)]),
+  const chosen = choicePage(choice);
+  const name = chosen ? pageName(pages, chosen) : null;
+  const row = (kind: "open" | "page", id: string): MenuSelectItem<string> => ({
+    key: `${kind}:${id}`,
+    value: `${kind}:${id}`,
+    content: <PageRow pages={pages} id={id} />,
+  });
+  const items: MenuSelectItem<string>[] = [
+    { key: NONE, value: NONE, content: <span data-page-label>No page</span> },
+    ...(pages.open.some((id) => (pages.numbers.get(id) ?? 0) >= SHORTCUT_FROM)
+      ? pages.open.map((id) => row("open", id))
+      : []),
+    ...[...pages.numbers.keys()].map((id) => row("page", id)),
   ];
   return (
-    <fieldset className="flex flex-wrap items-center gap-x-4">
-      <legend className="text-ink float-left mr-4 flex min-h-11 items-center font-sans text-[15px] font-semibold">
-        Tag a page
-      </legend>
-      {choices.map(([value, label]) => (
-        <label key={label} className={CHOICE}>
-          <input
-            type="radio"
-            name={group}
-            checked={chosen === value}
-            onChange={() => onChange(value)}
-            className={BOX}
-          />
-          {label}
-        </label>
-      ))}
-    </fieldset>
+    <div className="min-w-0 flex-none">
+      <MenuSelect
+        label=""
+        current={name ? capitalise(name) : "Tag a page"}
+        triggerLabel={name ? `Tagged to ${name}` : "Tag a page"}
+        ariaLabel="Tag a page"
+        size="compact"
+        side="top"
+        className="max-w-[9.5rem]"
+        menuClassName="scrollbar-soft w-[min(20rem,calc(100vw-3rem))] max-h-[min(22rem,55dvh)] overflow-y-auto [--scrollbar-surface:white]"
+        icon={<Icon name="doc" size={15} className="text-faint flex-none" />}
+        value={choice ?? NONE}
+        onSelect={(next) =>
+          onChange(next === NONE ? null : (next as TagChoice))
+        }
+        items={items}
+      />
+    </div>
+  );
+}
+
+// "Page 12  Opening the Season  open now": the number, the page's first
+// heading to find it by, and a mark on the page(s) the member has open.
+function PageRow({ pages, id }: { pages: ReaderPages; id: string }) {
+  const hint = pages.hints.get(id);
+  return (
+    <span className="flex min-w-0 flex-1 items-center gap-2 text-left">
+      <span data-page-label className="flex-none">
+        {capitalise(pageName(pages, id) ?? "")}
+      </span>
+      {hint && (
+        <span
+          data-page-hint
+          className="text-faint min-w-0 truncate text-[13px] font-normal"
+        >
+          {hint}
+        </span>
+      )}
+      {pages.open.includes(id) && (
+        <span
+          data-open-now
+          className="bg-tint text-accent ml-auto flex-none rounded-full px-2 py-0.5 text-[11px] font-semibold"
+        >
+          open now
+        </span>
+      )}
+    </span>
   );
 }

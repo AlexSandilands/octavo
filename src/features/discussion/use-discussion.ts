@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import type { DiscussionInfo } from "@/lib/discussion-thread";
+import type { TagChoice } from "./page-tag-picker";
 
 // The reader's discussion state (issue #301), shared by the desktop drawer and
 // the mobile sheet: whether it is open, a composer draft that survives
@@ -26,10 +27,9 @@ export type Discussion = {
   clearFocusComment: () => void;
   draft: string;
   setDraft: (draft: string) => void;
-  /** Which open page the composer tags (#304): 0 the first (or only), 1 the
-   *  second of a spread, null none. Kept across posts, pages and closings. */
-  tagSlot: number | null;
-  setTagSlot: (slot: number | null) => void;
+  /** The page the composer tags (#304), kept with the draft until it posts. */
+  tag: TagChoice | null;
+  setTag: (tag: TagChoice | null) => void;
   /** "This page only" (#304), kept across closings too. */
   pagesOnly: boolean;
   setPagesOnly: (on: boolean) => void;
@@ -70,7 +70,7 @@ export function useDiscussion(info: DiscussionInfo | null): Discussion | null {
     enabled && link.open ? link.comment : null,
   );
   const [draft, setDraft] = useState("");
-  const [tagSlot, setTagSlot] = useState<number | null>(null);
+  const [tag, setTag] = useState<TagChoice | null>(null);
   const [pagesOnly, setPagesOnly] = useState(false);
   const token = useRef("");
   const closing = useRef(false);
@@ -143,8 +143,8 @@ export function useDiscussion(info: DiscussionInfo | null): Discussion | null {
     clearFocusComment: () => setFocusComment(null),
     draft,
     setDraft,
-    tagSlot,
-    setTagSlot,
+    tag,
+    setTag,
     pagesOnly,
     setPagesOnly,
   };

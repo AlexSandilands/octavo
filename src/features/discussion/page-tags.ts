@@ -10,6 +10,8 @@ export type PageIndex = {
   numbers: ReadonlyMap<string, number>;
   /** Page 1 is a cover, so it is named "the cover". */
   coverFirst: boolean;
+  /** Each page's first heading, where it has one — a way to find it. */
+  hints: ReadonlyMap<string, string>;
 };
 
 /** What a reader tells its discussion about the pages. */
@@ -22,9 +24,21 @@ export type ReaderPages = PageIndex & {
 
 /** The index of the issue's pages as they stand now. */
 export function pageIndex(pages: Page[]): PageIndex {
+  const hints = new Map<string, string>();
+  for (const page of pages) {
+    for (const block of page.blocks) {
+      if (block.type !== "heading") continue;
+      const text = (block.title.trim() || block.kicker.trim()).split("\n")[0];
+      if (text) {
+        hints.set(page.id, text);
+        break;
+      }
+    }
+  }
   return {
     numbers: new Map(pages.map((page, i) => [page.id, i + 1])),
     coverFirst: pages[0]?.cover === true,
+    hints,
   };
 }
 

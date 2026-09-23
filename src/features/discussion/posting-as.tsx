@@ -36,7 +36,7 @@ export function PostingAs({
   if (!current) return null;
 
   return (
-    <div className="flex min-w-0 flex-1 items-center gap-1.5 font-sans text-[13px]">
+    <div className="flex min-w-0 items-center gap-1.5 font-sans text-[13px]">
       <span
         aria-hidden={names.length > 1 ? true : undefined}
         className="text-faint flex-none @max-[20rem]:sr-only"
