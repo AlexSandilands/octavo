@@ -14,13 +14,15 @@ export const commentDomId = (id: string) => `comment-${id}`;
 // One comment or reply (issue #301): who and when, the words as plain text
 // with their line breaks, and the action row — or the edit box in its place.
 // Admins also get the removed ones (#302): a hidden comment greyed with its
-// words, a deleted one as a marked stub with nothing left to act on.
+// words, a deleted one as a marked stub with nothing left to act on. A tagged
+// comment shows its page chip above the words (#304).
 export function CommentItem({
   comment,
   now,
   viewer,
   reply,
   editing,
+  tag,
   onReply,
   onEdit,
   onCancelEdit,
@@ -33,6 +35,8 @@ export function CommentItem({
   viewer: "member" | "admin";
   reply: boolean;
   editing: boolean;
+  /** The page chip, for a comment tagged to a page. */
+  tag?: React.ReactNode;
   onReply?: () => void;
   onEdit: () => void;
   onCancelEdit: () => void;
@@ -66,6 +70,7 @@ export function CommentItem({
           </p>
         ) : (
           <>
+            {tag && <div className="mt-0.5">{tag}</div>}
             <p
               className={`${state === "hidden" ? "text-muted" : "text-body"} mt-1 font-sans text-[16px] leading-relaxed [overflow-wrap:anywhere] whitespace-pre-wrap`}
             >

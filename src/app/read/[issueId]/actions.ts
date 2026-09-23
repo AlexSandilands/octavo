@@ -35,8 +35,14 @@ const postInput = z
     nameId: id.nullable(),
     /** A first posting name, created with the post (no names yet). */
     newName: z.string().max(200).nullable(),
+    /** The open page a top-level comment is tagged to (#304). Optional, so
+     *  a page loaded before tags still posts. */
+    pageId: id.nullish(),
   })
-  .strict();
+  .strict()
+  .refine((input) => !(input.parentId && input.pageId), {
+    message: "Replies are not tagged to a page.",
+  });
 
 // Signed out (an expired session) or switched off, as a sentence.
 async function gate(): Promise<{ ok: false; reason: string } | null> {
@@ -56,7 +62,7 @@ export async function postCommentAction(
   if (refused) return refused;
   const parsed = postInput.safeParse(input);
   if (!parsed.success) return INVALID;
-  const { issueNo, parentId, body, newName } = parsed.data;
+  const { issueNo, parentId, body, newName, pageId } = parsed.data;
   if (cleanText(body) === "") {
     return { ok: false, reason: "Write something first." };
   }
@@ -86,7 +92,7 @@ export async function postCommentAction(
       nameId = added.name.id;
     }
   }
-  return createComment({ issueId, parentId, body, nameId });
+  return createComment({ issueId, parentId, body, nameId, pageId });
 }
 
 export async function editCommentAction(

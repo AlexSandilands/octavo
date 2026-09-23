@@ -22,6 +22,8 @@ export type ThreadComment = {
   isMine: boolean;
   /** A removed member's comment: "Former member", no avatar. */
   former: boolean;
+  /** The page it is tagged to (#304): the page's id, never its number. */
+  pageId: string | null;
   createdAt: string;
   editedAt: string | null;
   /** Admin viewers only: the club's record of the account behind the name. */
@@ -73,6 +75,7 @@ function toComment(
     isMine: view.isMine,
     // Reserved for this, so no living member can post under it.
     former: view.name === FORMER_MEMBER,
+    pageId: view.pageId,
     createdAt: view.createdAt.toISOString(),
     editedAt: view.editedAt?.toISOString() ?? null,
   };

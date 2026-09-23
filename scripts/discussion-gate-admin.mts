@@ -23,12 +23,13 @@ type Row = {
   badge: boolean | null;
   avatar_key: string | null;
   is_admin: boolean | null;
+  page_id: string | null;
 };
 
 const rowsOf = (k: Kit, issueId: string) => k.sql<Row[]>`
   select c.id, c.parent_id, c.body, c.hidden_at, c.deleted_at, c.deleted_by,
     c.created_at, c.edited_at, c.author_id, n.name, n.badge,
-    i.key as avatar_key, u.is_admin
+    i.key as avatar_key, u.is_admin, c.page_id
   from comments c
   left join member_names n on n.id = c.author_name_id
   left join images i on i.id = n.avatar_image_id
@@ -53,6 +54,7 @@ async function memberRule(k: Kit, issueId: string, viewerId: string) {
       badge: name !== null && r.badge === true && r.is_admin === true,
       isMine: r.author_id === viewerId,
       former: name === null,
+      pageId: r.page_id,
       createdAt: r.created_at.toISOString(),
       editedAt: r.edited_at?.toISOString() ?? null,
     };

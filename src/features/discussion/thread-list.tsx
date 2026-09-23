@@ -9,6 +9,8 @@ import type {
 import { CommentComposer, type Submit } from "./comment-composer";
 import { CommentItem } from "./comment-item";
 import type { Moderate } from "./moderation-buttons";
+import { PageChip } from "./page-chip";
+import type { ReaderPages } from "./page-tags";
 import { RepliesToggle } from "./replies-toggle";
 
 /** What the list asks of the thread that owns the state. */
@@ -27,6 +29,9 @@ export type ThreadHandlers = {
   cancelEdit: (commentId: string) => void;
   nameId: string | null;
   setNameId: (id: string) => void;
+  /** The reader's pages, for the chips (#304). */
+  pages: ReaderPages;
+  goToPage: (pageId: string) => void;
   reply: (parentId: string) => Submit;
   save: (commentId: string) => (body: string) => Promise<WriteResult>;
   remove: (commentId: string) => () => Promise<WriteResult>;
@@ -45,17 +50,22 @@ export function ThreadList({
   setup,
   now,
   h,
+  filtered,
 }: {
   entries: ThreadEntry[];
   viewer: "member" | "admin";
   setup: ComposerSetup;
   now: number;
   h: ThreadHandlers;
+  /** Narrowed to the open pages (#304). */
+  filtered: boolean;
 }) {
   if (entries.length === 0) {
     return (
       <p className="text-muted py-10 text-center font-sans text-[16px]">
-        No comments yet. Start the discussion below.
+        {filtered
+          ? "Untick the box above to see the whole discussion."
+          : "No comments yet. Start the discussion below."}
       </p>
     );
   }
@@ -67,6 +77,11 @@ export function ThreadList({
       viewer={viewer}
       reply={reply}
       editing={h.editing === comment.id}
+      tag={
+        comment.pageId && (
+          <PageChip pageId={comment.pageId} pages={h.pages} onGo={h.goToPage} />
+        )
+      }
       onReply={
         reply
           ? undefined

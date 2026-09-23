@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { DialogShell } from "@/components/dialog-shell";
 import { DiscussionBody } from "./discussion-body";
+import type { ReaderPages } from "./page-tags";
 import type { Discussion } from "./use-discussion";
 import { useSheetSwipe } from "./use-sheet-swipe";
 import { useVisualViewport } from "./use-visual-viewport";
@@ -12,7 +13,13 @@ import styles from "./discussion.module.css";
 // 85% of the screen, as a real dialog. Its box follows the visual viewport, so
 // with the keyboard up it shrinks and the composer stays in view; the column
 // behind is locked while it is open.
-export function DiscussionSheet({ talk }: { talk: Discussion }) {
+export function DiscussionSheet({
+  talk,
+  pages,
+}: {
+  talk: Discussion;
+  pages: ReaderPages;
+}) {
   const viewport = useVisualViewport();
   const swipe = useSheetSwipe(talk.hide);
 
@@ -36,6 +43,7 @@ export function DiscussionSheet({ talk }: { talk: Discussion }) {
       {(titleId) => (
         <DiscussionBody
           talk={talk}
+          pages={pages}
           titleId={titleId}
           grip={
             <div

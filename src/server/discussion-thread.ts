@@ -34,13 +34,15 @@ async function lastUsedNameId(userId: string): Promise<string | null> {
   return row?.nameId ?? null;
 }
 
-/** The thread shaped for the signed-in viewer, with their composer set-up. */
+/** The thread shaped for the signed-in viewer, with their composer set-up;
+ *  `pageIds` narrows it to the comments tagged to those pages (#304). */
 export async function loadThreadPayload(
   issueId: string,
   viewer: NonNullable<CommentViewer>,
+  opts: { pageIds?: string[] } = {},
 ): Promise<ThreadPayload> {
   const [thread, identity, lastUsed, account, settings] = await Promise.all([
-    listComments(issueId, viewer),
+    listComments(issueId, viewer, opts),
     getMemberIdentity(viewer.id),
     lastUsedNameId(viewer.id),
     db.select({ name: users.name }).from(users).where(eq(users.id, viewer.id)),

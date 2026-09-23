@@ -1,9 +1,9 @@
 import { Bullets, Callout, GuideSection, P } from "./guide-ui";
 
-// The discussion and its moderation (issues #301, #302, #303): switching it on,
-// where members find it, the reply bell and emails they receive, moderating
-// from the thread, the reports inbox and its emails, and the removed-member
-// setting.
+// The discussion and its moderation (issues #301–#304): switching it on,
+// where members find it, page tags, the reply bell and emails they receive,
+// moderating from the thread, the reports inbox and its emails, and the
+// removed-member setting.
 export function SectionDiscussion() {
   return (
     <GuideSection
@@ -32,6 +32,21 @@ export function SectionDiscussion() {
         which of their names a comment goes under, and someone posting for the
         first time chooses their name right there. The library shows how many
         comments each issue has.
+      </P>
+      <P>
+        A comment can also say <strong>which page</strong> it is about. Beside
+        the member&rsquo;s name under the box, <em>Tag a page</em> opens a list
+        of every page in the issue, each with its first heading so it is easy to
+        find, and the page they have open marked <em>open now</em> — so they can
+        tag the page in front of them or one they read earlier. The comment then
+        shows a small <em>Page 12</em> button that takes anyone reading it to
+        that page — on a computer the discussion stays open beside it, on a
+        phone it closes onto the page. <em>This page only</em>, at the top of
+        the discussion, shows just the comments on the open page and says how
+        many there are. The button follows the page, not its number: if you add
+        or split pages in the editor after a comment was posted, it still names
+        the right page, and if you delete the page it reads{" "}
+        <em>Page removed</em> — the comment itself is kept.
       </P>
       <P>
         When someone replies to a member&rsquo;s comment, the member sees it on

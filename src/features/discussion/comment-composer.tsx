@@ -31,6 +31,7 @@ export function CommentComposer({
   onCancel,
   menuSide = "bottom",
   autoFocus = false,
+  tag,
 }: {
   id: string;
   label: string;
@@ -44,6 +45,8 @@ export function CommentComposer({
   onCancel?: () => void;
   menuSide?: "top" | "bottom";
   autoFocus?: boolean;
+  /** The main box's page pill (#304), beside "Posting as". */
+  tag?: React.ReactNode;
 }) {
   const box = useRef<HTMLTextAreaElement>(null);
   const [pending, startTransition] = useTransition();
@@ -155,34 +158,42 @@ export function CommentComposer({
           }}
         />
       )}
-      {/* One line at any panel width: the name gives way, the buttons don't. */}
-      <div className="@container flex items-center gap-2">
-        {firstPost ? (
-          <div className="flex-1" />
-        ) : (
-          <PostingAs
-            setup={setup}
-            nameId={nameId}
-            onNameChange={onNameChange}
-            menuSide={menuSide}
-            addName={!onCancel}
-          />
-        )}
-        <div className="flex flex-none items-center gap-1">
-          {onCancel && (
-            <Button
-              variant="quiet"
-              size="compact"
-              className="px-3"
-              onClick={onCancel}
-              disabled={pending}
-            >
-              Cancel
+      {/* The name gives way, the buttons don't. The main box adds the page
+          pill beside the name; where the panel is too narrow for both pills
+          and the buttons (a phone), the pills take a line of their own, so
+          the layout never depends on how long the name is. */}
+      <div className="@container">
+        <div
+          className={`flex gap-2 ${tag ? "flex-col @min-[24rem]:flex-row @min-[24rem]:items-center" : "items-center"}`}
+        >
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            {!firstPost && (
+              <PostingAs
+                setup={setup}
+                nameId={nameId}
+                onNameChange={onNameChange}
+                menuSide={menuSide}
+                addName={!onCancel}
+              />
+            )}
+            {tag}
+          </div>
+          <div className="ml-auto flex flex-none items-center gap-1">
+            {onCancel && (
+              <Button
+                variant="quiet"
+                size="compact"
+                className="px-3"
+                onClick={onCancel}
+                disabled={pending}
+              >
+                Cancel
+              </Button>
+            )}
+            <Button type="submit" size="compact" busy={pending}>
+              {pending ? "Posting…" : onCancel ? "Reply" : "Post"}
             </Button>
-          )}
-          <Button type="submit" size="compact" busy={pending}>
-            {pending ? "Posting…" : onCancel ? "Reply" : "Post"}
-          </Button>
+          </div>
         </div>
       </div>
     </form>
