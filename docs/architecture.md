@@ -124,6 +124,8 @@ src/
     notifications.ts   reply notifications: create/trim, list, unread, mark read
     reply-alert.ts     the opt-in reply email: who is owed one, and the transport
     reply-email.ts     the reply email (template only)
+    after-response.ts  runs the reply and report emails once the response has
+                       gone, so a slow mail provider never holds up a post
     discussion-guard.ts  the discussion switch, per-member rate limits, text cleaning
     discussion-thread.ts  the reader's thread payload (with the composer's
                        names) and the comment counts the delete confirmations quote
@@ -473,7 +475,7 @@ refreshes the server render. A reply since hidden or deleted neither counts nor 
 
 ```
 createComment (reply) ─ tx: insert comment ▸ notifyReply (not your own) ─ commit
-                      └▶ sendReplyEmail (reply-alert.ts) — never throws into the post
+                      └▶ after the response: sendReplyEmail (reply-alert.ts) — never throws
                            discussion on? parent's author opted in (reply_emails)? not you?
                            ▸ mintMagicLink(email, /read/N?discussion=1&comment=<reply>)
                            ▸ replies-purpose unsubscribe token (link + List-Unsubscribe)

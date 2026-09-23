@@ -8,7 +8,7 @@ import {
   adminRenameName,
   adminRetireName,
   clearAvatar,
-} from "@/server/member-names";
+} from "@/server/member-name-moderation";
 import { getAdminUser } from "@/server/session";
 
 // The admin's moderation of a member's posting names (issue #300): rename,

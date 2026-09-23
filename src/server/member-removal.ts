@@ -22,6 +22,7 @@ import {
   type Tx,
 } from "./asset-cleanup";
 import { chunked } from "./id-chunks";
+import { requireAdmin } from "./session";
 
 // Removing members from the club (the `users` table). Split from users.ts when
 // discussion gave removal a second job (issue #299): what happens to the
@@ -108,6 +109,7 @@ async function prepareRemoval(
 export async function removalImpact(
   userIds: string[],
 ): Promise<{ comments: number; policy: RemovedMemberComments }> {
+  await requireAdmin();
   const ids = [...new Set(userIds)];
   return db.transaction(
     async (tx) => {

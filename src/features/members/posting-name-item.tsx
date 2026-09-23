@@ -11,9 +11,10 @@ import {
 import type { AdminPostingName } from "@/server/member-profile";
 import { NameField } from "@/features/profile/name-field";
 
-// One of a member's posting names in the admin's dialog. A live name can be
-// renamed (every rule but the profanity filter) or retired; any name with a
-// photo can have it cleared.
+// One of a member's posting names in the admin's dialog. Any name can be
+// renamed (every rule but the profanity filter) — a retired one for what its
+// old comments show — and retired, unless an admin already has; any name with
+// a photo can have it cleared.
 export function PostingNameItem({
   name,
   announce,
@@ -74,7 +75,7 @@ export function PostingNameItem({
           {name.name}
           {name.retired && (
             <span className="text-faint ml-2 font-sans text-[13px] font-medium">
-              Retired
+              {name.retiredBy === "admin" ? "Retired by an admin" : "Retired"}
             </span>
           )}
         </span>
@@ -109,24 +110,22 @@ export function PostingNameItem({
         </form>
       ) : (
         <div className="mt-3 flex flex-wrap gap-2 pl-12">
-          {!name.retired && (
-            <Button
-              ref={renameButton}
-              variant="secondary"
-              size="sm"
-              icon="pencil"
-              iconPosition="left"
-              unavailable={pending}
-              aria-label={`Rename ${name.name}`}
-              onClick={() => {
-                setValue(name.name);
-                setRenaming(true);
-              }}
-              className="min-h-11"
-            >
-              Rename
-            </Button>
-          )}
+          <Button
+            ref={renameButton}
+            variant="secondary"
+            size="sm"
+            icon="pencil"
+            iconPosition="left"
+            unavailable={pending}
+            aria-label={`Rename ${name.name}`}
+            onClick={() => {
+              setValue(name.name);
+              setRenaming(true);
+            }}
+            className="min-h-11"
+          >
+            Rename
+          </Button>
           {name.avatarUrl && (
             <Button
               variant="secondary"
@@ -146,24 +145,30 @@ export function PostingNameItem({
               Clear photo
             </Button>
           )}
-          {!name.retired && (
+          {name.retiredBy !== "admin" && (
             <Button
               variant="secondary"
               size="sm"
               icon="minus"
               iconPosition="left"
               unavailable={pending}
-              aria-label={`Retire ${name.name}`}
+              aria-label={
+                name.retired
+                  ? `Keep ${name.name} retired`
+                  : `Retire ${name.name}`
+              }
               onClick={() =>
                 act(
                   () => adminRetireNameAction(name.id),
-                  `Retired “${name.name}”. It stays on past comments.`,
+                  name.retired
+                    ? `“${name.name}” stays retired: the member can’t add it back.`
+                    : `Retired “${name.name}”. It stays on past comments, and the member can’t add it back.`,
                   onRetired,
                 )
               }
               className="min-h-11"
             >
-              Retire
+              {name.retired ? "Keep retired" : "Retire"}
             </Button>
           )}
         </div>

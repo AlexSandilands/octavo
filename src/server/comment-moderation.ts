@@ -10,6 +10,7 @@ import {
   REPORT_REASONS,
   type WriteResult,
 } from "@/lib/comments";
+import { afterResponse } from "./after-response";
 import type { Tx } from "./asset-cleanup";
 import { removeLockedComment } from "./comments";
 import {
@@ -132,7 +133,8 @@ const THANKS = { ok: true } as const;
 // Files a report, snapshotting the comment as it reads now. It always thanks
 // the reporter — for their own comment, a removed one, or a second report of
 // the same comment it quietly writes nothing. Only a new row emails the
-// admins, after the commit, and a failed email never reaches the reporter.
+// admins, once the response has gone, and a failed email never reaches the
+// reporter.
 export async function createReport(input: {
   commentId: string;
   reason: string;
@@ -193,12 +195,14 @@ export async function createReport(input: {
     return row ?? null;
   });
   if (inserted) {
-    try {
-      await notifyAdminsOfReport(inserted.id);
-    } catch (err) {
-      console.error("[report] admin email failed", err);
-      Sentry.captureException(err, { tags: { stage: "report-email" } });
-    }
+    await afterResponse(async () => {
+      try {
+        await notifyAdminsOfReport(inserted.id);
+      } catch (err) {
+        console.error("[report] admin email failed", err);
+        Sentry.captureException(err, { tags: { stage: "report-email" } });
+      }
+    });
   }
   return THANKS;
 }

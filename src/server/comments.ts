@@ -21,6 +21,7 @@ import {
   type WriteResult,
 } from "@/lib/comments";
 import { keyToUrl } from "@/lib/storage";
+import { afterResponse } from "./after-response";
 import type { Tx } from "./asset-cleanup";
 import {
   INVALID,
@@ -217,7 +218,7 @@ type CreateInput = z.input<typeof createInput>;
 // Posts a comment or a reply under one of the member's live names. The name
 // and the parent are locked (FOR SHARE) so removing either can't race it. A
 // reply to someone else notifies them in the same transaction, and emails them
-// after it commits if they opted in (#303).
+// once the response has gone if they opted in (#303).
 export async function createComment(
   input: CreateInput,
 ): Promise<WriteResult<{ id: string }>> {
@@ -295,7 +296,7 @@ export async function createComment(
     return { ok: true as const, id: row.id, notified: true };
   });
   if (!result.ok) return result;
-  if (result.notified) await sendReplyEmail(result.id);
+  if (result.notified) await afterResponse(() => sendReplyEmail(result.id));
   return { ok: true, id: result.id };
 }
 

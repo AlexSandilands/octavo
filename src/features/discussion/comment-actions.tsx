@@ -15,6 +15,7 @@ import { ReportDialog } from "./report-dialog";
 export function CommentActions({
   comment,
   viewer,
+  reply,
   onReply,
   onEdit,
   onDelete,
@@ -22,6 +23,8 @@ export function CommentActions({
 }: {
   comment: ThreadComment;
   viewer: "member" | "admin";
+  /** A reply, which has no replies of its own to leave behind. */
+  reply: boolean;
   /** Absent on replies: there is no replying to a reply. */
   onReply?: () => void;
   onEdit: () => void;
@@ -86,8 +89,8 @@ export function CommentActions({
           title="Delete your comment?"
           body={
             <>
-              It’s removed for everyone and can’t be undone. Any replies stay,
-              under “Comment removed”.
+              It’s removed for everyone and can’t be undone.
+              {!reply && " Any replies stay, under “Comment removed”."}
               {failed && (
                 <span role="alert" className="text-warn mt-2.5 block">
                   {failed}

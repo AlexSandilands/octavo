@@ -15,7 +15,11 @@ register("./session-hooks.mjs", import.meta.url);
 export const { actAs } = await import("./session-stub.mts");
 export const { db } = await import("../../../src/db/index.ts");
 export const schema = await import("../../../src/db/schema.ts");
-export const names = await import("../../../src/server/member-names.ts");
+// Posting names and their admin moderation, as one module.
+export const names = {
+  ...(await import("../../../src/server/member-names.ts")),
+  ...(await import("../../../src/server/member-name-moderation.ts")),
+};
 export const thread = await import("../../../src/server/comments.ts");
 export const moderation =
   await import("../../../src/server/comment-moderation.ts");

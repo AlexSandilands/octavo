@@ -23,6 +23,7 @@ import {
 } from "@/lib/branding";
 import type {
   CommentDeletedBy,
+  NameRetiredBy,
   ReportReason,
   ReportStatus,
 } from "@/lib/comments";
@@ -259,6 +260,8 @@ export const issueImports = pgTable(
 // the normalised form (src/lib/member-name.ts) the unique index compares.
 // `badge` is honoured only while the owner is an admin (joined at read time).
 // A name with comments is retired rather than deleted, so they keep it.
+// `retiredBy` says who retired it (`member` | `admin`, app-validated): the
+// member may add their own retired name again, never one an admin retired.
 export const memberNames = pgTable(
   "member_names",
   {
@@ -273,6 +276,7 @@ export const memberNames = pgTable(
     }),
     badge: boolean("badge").notNull().default(false),
     retiredAt: timestamp("retired_at", { withTimezone: true }),
+    retiredBy: text("retired_by").$type<NameRetiredBy>(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
