@@ -395,7 +395,17 @@ before the cascade, orphaned in the same transaction and swept from storage afte
 Reports keep their snapshot (the reporter and snapshot account go null). The policy applies at
 removal time only, never retroactively.
 
-Verified by `scripts/check-member-name.mts` and `scripts/check-comments-module.mts`.
+**Moderation (issue #302).** Hiding or deleting a comment resolves every open report on it in
+the same transaction, recording `resolved_by`/`resolved_at`. An admin's delete of a comment that
+has any report keeps the row — body blanked, `deleted_at` set **and** `hidden_at` set — so the
+inbox can say "Removed by an admin since" rather than "Deleted by its author since"; an
+unreported comment follows the author's rule above. `createReport` inserts with
+`on conflict do nothing … returning`, and only a new row emails the admins — after the commit,
+never failing the report. The email is throttled in-process to one per 15 minutes site-wide
+(`src/server/report-alert.ts`). The inbox reads through `src/server/report-inbox.ts`.
+
+Verified by `scripts/check-member-name.mts`, `scripts/check-comments-module.mts` and
+`scripts/check-report-moderation.mts`.
 
 ## Changing the schema
 
