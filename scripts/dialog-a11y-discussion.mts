@@ -153,7 +153,7 @@ export async function checkDiscussionDialogs(d: Deps) {
 
     d.heading("Discussion drawer — desktop");
     let r = await k.reader(reader, issue.number!);
-    const dock = 'button[title="Discussion"]';
+    const dock = "[data-discussion-button]";
     await r.page.click(dock);
     await k.waitThread(r.page);
     await d.checkOpenDialog(r.page, title);
@@ -201,7 +201,7 @@ export async function checkDiscussionDialogs(d: Deps) {
 
     d.heading("Discussion sheet — phone");
     r = await k.reader(reader, issue.number!, { width: 390, height: 844 });
-    const fab = 'button[aria-label^="Discussion"]';
+    const fab = "[data-discussion-button]";
     await r.page.click(fab);
     await k.waitThread(r.page);
     await d.checkOpenDialog(r.page, title);

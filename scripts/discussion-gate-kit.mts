@@ -15,6 +15,63 @@ export type Issue = { id: string; number: number | null };
 
 export type Kit = ReturnType<typeof discussionKit>;
 
+/** The green speech-bubble button on either reader. */
+export const OPEN_BUTTON = "[data-discussion-button]";
+
+/** The button's name and what it shows: just "Discussion", no count. */
+export async function buttonFace(page: Page) {
+  return page.locator(OPEN_BUTTON).evaluate((b) => ({
+    label: b.getAttribute("aria-label"),
+    text: b.textContent?.trim() ?? "",
+    badges: b.querySelectorAll("span").length,
+  }));
+}
+
+// Desktop: 56px, beside the Theme toggle when there is one, else in the
+// reader's top-right corner.
+export async function desktopPlacement(k: Kit, page: Page) {
+  const p = await page.evaluate((sel) => {
+    const b = document.querySelector(sel)!.getBoundingClientRect();
+    const label = [...document.querySelectorAll("span")].find(
+      (s) => s.textContent === "Theme",
+    );
+    const t = label?.parentElement?.getBoundingClientRect();
+    return {
+      b: {
+        left: b.left,
+        right: b.right,
+        top: b.top,
+        w: b.width,
+        h: b.height,
+        mid: b.top + b.height / 2,
+      },
+      vw: window.innerWidth,
+      theme: t ? { right: t.right, mid: t.top + t.height / 2 } : null,
+    };
+  }, OPEN_BUTTON);
+  k.ok(
+    Math.round(p.b.w) === 56 && Math.round(p.b.h) === 56,
+    `the desktop button is 56px (${p.b.w}×${p.b.h})`,
+  );
+  k.ok(
+    p.vw - p.b.right <= 24 && p.b.top <= 24,
+    `it sits in the top-right corner (${Math.round(p.vw - p.b.right)}px from the right, ${Math.round(p.b.top)}px down)`,
+  );
+  if (p.theme) {
+    k.ok(
+      p.b.left > p.theme.right &&
+        p.b.left - p.theme.right <= 24 &&
+        Math.abs(p.b.mid - p.theme.mid) < 4,
+      "right beside the Theme toggle, centred on it",
+    );
+  } else {
+    k.ok(
+      true,
+      "(no Theme toggle on this server: the button keeps the corner alone)",
+    );
+  }
+}
+
 export function discussionKit(opts: {
   sql: Sql;
   base: string;

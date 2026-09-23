@@ -1,152 +1,26 @@
-// dev-discussion-gate.mts, the rest (issue #301): the first post that brings
-// its own name, a refused name, the rate limit, deep links, the off switch
-// (with and without a settings row), drafts, the print route, the counts on
-// the library cards and in the admin's delete confirmations, and demo mode's
-// signed-out visitor.
+// dev-discussion-gate.mts, the rest (issue #301): deep links (a reply's too),
+// the off switch (with and without a settings row), drafts, the print route,
+// and demo mode's signed-out visitor.
 import { createHash } from "node:crypto";
 import type { Page } from "playwright";
-import type { Issue, Kit, Member } from "./discussion-gate-kit.mts";
+import {
+  OPEN_BUTTON,
+  buttonFace,
+  desktopPlacement,
+  type Issue,
+  type Kit,
+  type Member,
+} from "./discussion-gate-kit.mts";
 import type { Cast } from "./discussion-gate-desktop.mts";
 import { heard, post } from "./discussion-gate-desktop.mts";
 
-export async function composerStates(k: Kit, c: Cast) {
-  k.heading("composer — a first post brings its own name");
-  const bob = await k.member("bob", { name: "Bob Newcomer" });
-  let r = await k.reader(bob, c.issue.number!, { query: "?discussion=1" });
-  await k.waitThread(r.page);
-  const field = r.page.locator("#discussion-composer-name");
-  k.ok(
-    (await r.page
-      .locator("label[for=discussion-composer-name]")
-      .textContent()) === "Choose the name other members will see",
-    "with no names, the composer asks for one",
-  );
-  k.ok(
-    (await field.inputValue()) === "Bob Newcomer",
-    "suggested from users.name",
-  );
-  const before = await post(r.page, "check-301 my first post");
-  k.ok(
-    await heard(r.page, "Your comment is posted.", before),
-    "the first post goes through",
-  );
-  const names =
-    await k.sql`select id, name from member_names where user_id = ${bob.id}`;
-  k.ok(
-    names.length === 1 && names[0]!.name === "Bob Newcomer",
-    "and creates that name",
-  );
-  k.ok(
-    await r.page
-      .locator('article[aria-label="Comment by Bob Newcomer"]')
-      .isVisible(),
-    "the comment shows under it",
-  );
-  k.ok(
-    (await r.page.locator("text=Posting as").count()) > 0 &&
-      (await r.page
-        .locator('a:has-text("Add a name")')
-        .getAttribute("href")) === "/profile",
-    "the composer now reads “Posting as” with an Add a name link",
-  );
-  await r.ctx.close();
-
-  k.heading("composer — a first post refused after its name was made");
-  // The server refuses the comment once the name exists. Stripping the box's
-  // maxlength (as a crafted client could) makes that refusal repeatable.
-  const second = await k.member("second", { name: "Sam Second" });
-  r = await k.reader(second, c.issue.number!, { query: "?discussion=1" });
-  await k.waitThread(r.page);
-  await r.page.evaluate(() =>
-    document
-      .querySelector("#discussion-composer")
-      ?.removeAttribute("maxlength"),
-  );
-  const long = "x".repeat(2001);
-  await post(r.page, long);
-  await r.page.waitForSelector("#discussion-composer-error");
-  const refusal =
-    (await r.page.textContent("#discussion-composer-error")) ?? "";
-  k.ok(
-    refusal !== "" && !refusal.includes("Choose one of your names"),
-    `the refusal is shown (“${refusal}”)`,
-  );
-  const made =
-    await k.sql`select id from member_names where user_id = ${second.id}`;
-  k.ok(made.length === 1, "the name was created");
-  await r.page.waitForSelector("#discussion-composer-name", {
-    state: "detached",
-  });
-  k.ok(
-    (await r.page.locator("text=Posting as").count()) > 0,
-    "the composer moves on to “Posting as” it",
-  );
-  k.ok(
-    (await r.page.inputValue("#discussion-composer")) === long,
-    "the draft is still in the box",
-  );
-  const again = await post(r.page, "check-301 carried on");
-  k.ok(
-    await heard(r.page, "Your comment is posted.", again),
-    "a second submit goes through",
-  );
-  const [carried] = await k.sql`select author_name_id from comments
-    where author_id = ${second.id}`;
-  k.ok(
-    carried?.author_name_id === made[0]!.id,
-    "under the name the first try made",
-  );
-  await r.ctx.close();
-
-  k.heading("composer — a refused name, an empty post");
-  const newbie = await k.member("newbie");
-  r = await k.reader(newbie, c.issue.number!, { query: "?discussion=1" });
-  await k.waitThread(r.page);
-  await r.page.click("form:has(#discussion-composer) button[type=submit]");
-  k.ok(
-    (await r.page.locator("#discussion-composer-error").textContent()) ===
-      "Write something first.",
-    "an empty post is refused inline",
-  );
-  await r.page.fill("#discussion-composer-name", "Admin");
-  await post(r.page, "check-301 should not post");
-  await r.page.waitForSelector("#discussion-composer-name-error");
-  k.ok(
-    (await r.page.textContent("#discussion-composer-name-error")) ===
-      "That name is reserved. Choose another.",
-    "a refused name shows the validator's reason",
-  );
-  const [none] =
-    await k.sql`select count(*)::int as n from comments where author_id = ${newbie.id}`;
-  k.ok(none?.n === 0, "and nothing is posted");
-  await r.ctx.close();
-
-  k.heading("composer — the rate limit");
-  const fast = await k.member("fast", { name: "Fast Poster" });
-  await k.name(fast.id, "Fast Poster");
-  r = await k.reader(fast, c.issue.number!, { query: "?discussion=1" });
-  await k.waitThread(r.page);
-  for (let i = 0; i < 10; i++) {
-    await post(r.page, `check-301 quick ${i}`);
-    await r.page.waitForFunction(
-      () =>
-        (document.querySelector("#discussion-composer") as HTMLTextAreaElement)
-          ?.value === "",
-      undefined,
-      { timeout: 15_000 },
-    );
-  }
-  await post(r.page, "check-301 one too many");
-  await r.page.waitForSelector("#discussion-composer-error");
-  k.ok(
-    (await r.page.textContent("#discussion-composer-error")) ===
-      "You're posting quickly — try again in a few minutes.",
-    "the eleventh post in ten minutes is slowed down, in words",
-  );
-  await r.ctx.close();
-}
-
-export async function deepLinks(k: Kit, c: Cast, target: string, gone: string) {
+export async function deepLinks(
+  k: Kit,
+  c: Cast,
+  target: string,
+  gone: string,
+  reply: string,
+) {
   for (const width of [1280, 390]) {
     k.heading(`deep links — ${width}px`);
     let r = await k.reader(c.carol, c.issue.number!, {
@@ -194,6 +68,43 @@ export async function deepLinks(k: Kit, c: Cast, target: string, gone: string) {
 
     r = await k.reader(c.carol, c.issue.number!, {
       width,
+      query: `?discussion=1&comment=${reply}`,
+    });
+    await k.waitThread(r.page);
+    await r.page
+      .waitForFunction(
+        (id) => document.activeElement?.id === `comment-${id}`,
+        reply,
+        { timeout: 10_000 },
+      )
+      .catch(() => {});
+    const parentToggle = r.page.locator(
+      `li:has(> article#comment-${target}) > div > button[aria-expanded]`,
+    );
+    k.ok(
+      (await parentToggle.getAttribute("aria-expanded")) === "true",
+      "a link to a reply opens its parent's replies",
+    );
+    k.ok(
+      (await r.page.evaluate(() => document.activeElement?.id)) ===
+        `comment-${reply}` &&
+        (await r.page.getAttribute(`#comment-${reply}`, "data-highlight")) ===
+          "true",
+      "and scrolls to, focuses and lights up the reply",
+    );
+    if (width < 768) {
+      await r.page.waitForTimeout(3000);
+      await r.page.evaluate(() =>
+        document
+          .querySelector("[role=dialog] .overflow-y-auto")
+          ?.scrollTo(0, 0),
+      );
+      await k.shot(r.page, "phone-replies-folded-and-open");
+    }
+    await r.ctx.close();
+
+    r = await k.reader(c.carol, c.issue.number!, {
+      width,
       query: `?discussion=1&comment=${gone}`,
     });
     await k.waitThread(r.page);
@@ -210,9 +121,7 @@ export async function deepLinks(k: Kit, c: Cast, target: string, gone: string) {
 }
 
 async function controls(page: Page) {
-  return page
-    .locator('button[title="Discussion"], button[aria-label^="Discussion"]')
-    .count();
+  return page.locator(OPEN_BUTTON).count();
 }
 
 export async function offSwitch(k: Kit, c: Cast, draft: Issue) {
@@ -302,12 +211,13 @@ export async function demoGate(k: Kit, c: Cast) {
   k.heading("demo mode — the signed-out visitor");
   const n = c.issue.number!;
   let r = await k.reader(null, n);
-  const control = r.page.locator('button[title="Discussion"]');
+  const control = r.page.locator(OPEN_BUTTON);
+  const face = await buttonFace(r.page);
   k.ok(
-    (await control.getAttribute("aria-label")) === "Discussion",
-    "the dock control carries no count",
+    face.label === "Discussion" && face.text === "" && face.badges === 0,
+    "the button carries no count",
   );
-  k.ok((await control.locator("span").count()) === 0, "and no badge");
+  await desktopPlacement(k, r.page);
   await control.click();
   await r.page.waitForSelector("text=Discussion is for members.");
   const link = r.page.locator(
@@ -336,8 +246,10 @@ export async function demoGate(k: Kit, c: Cast) {
     query: "?discussion=1",
   });
   await r.page.waitForSelector("text=Discussion is for members.");
-  const fab = r.page.locator('button[aria-label="Discussion"]');
-  k.ok((await fab.count()) === 1, "the phone button carries no count either");
+  k.ok(
+    (await buttonFace(r.page)).text === "",
+    "the phone button carries no count either",
+  );
   k.ok(r.listCalls() === 0, "the deep link fetched nothing");
   await k.shot(r.page, "demo-phone");
   await r.ctx.close();

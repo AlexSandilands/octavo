@@ -2,7 +2,14 @@
 // by keyboard, every write, posting as each of two names, the admin's read,
 // the badge, the first post that brings its own name, and the rate limit.
 import type { Page } from "playwright";
-import type { Issue, Kit, Member } from "./discussion-gate-kit.mts";
+import {
+  OPEN_BUTTON,
+  buttonFace,
+  desktopPlacement,
+  type Issue,
+  type Kit,
+  type Member,
+} from "./discussion-gate-kit.mts";
 
 export type Cast = {
   issue: Issue;
@@ -77,9 +84,21 @@ export async function desktopGate(k: Kit, c: Cast) {
   );
   await page.waitForTimeout(800);
   k.ok(listCalls() === 0, "the thread is not fetched until it is opened");
-  const trigger = page.locator('button[title="Discussion"]');
-  const label = await trigger.getAttribute("aria-label");
-  k.ok(label === "Discussion, 1 comment", `the dock control is “${label}”`);
+  const trigger = page.locator(OPEN_BUTTON);
+  const face = await buttonFace(page);
+  k.ok(
+    face.label === "Discussion" && face.text === "" && face.badges === 0,
+    `the button is named “${face.label}”, with no count on it`,
+  );
+  await desktopPlacement(k, page);
+  k.ok(
+    (await page.locator('[aria-label="Zoom page"]').count()) === 1 &&
+      (await page
+        .locator('button[title="Discussion"]:not([data-discussion-button])')
+        .count()) === 0,
+    "the dock at the foot no longer carries a discussion control",
+  );
+  await k.shot(page, "desktop-reader");
   const spreadBefore = await spreadBox(page);
   await trigger.click();
   await k.waitThread(page);
@@ -113,6 +132,7 @@ export async function desktopGate(k: Kit, c: Cast) {
     ),
     "the reader behind the drawer is inert",
   );
+  await page.waitForTimeout(400); // the drawer's entrance
   await k.shot(page, "desktop-drawer");
 
   k.heading("desktop — what a member sees");
@@ -173,12 +193,6 @@ export async function desktopGate(k: Kit, c: Cast) {
   );
   k.ok(
     (await page
-      .locator('button[title="Discussion"]')
-      .getAttribute("aria-label")) === "Discussion, 3 comments",
-    "the dock's count follows the posts",
-  );
-  k.ok(
-    (await page
       .locator(
         'article[aria-label="Comment by Alice Reader"] button[aria-label^="Report"]',
       )
@@ -202,6 +216,14 @@ export async function desktopGate(k: Kit, c: Cast) {
   );
   const reply = page.locator('article[aria-label="Reply by Alice Reader"]');
   k.ok(await reply.isVisible(), "the reply sits indented under Ada's comment");
+  const adaToggle = page.locator(
+    'li:has(> article[aria-label="Comment by Ada Editor"]) > div > button[aria-expanded]',
+  );
+  k.ok(
+    (await adaToggle.getAttribute("aria-expanded")) === "true" &&
+      (await adaToggle.textContent())?.trim() === "1 reply",
+    "posting a reply opens its parent's replies (“1 reply”), and they stay open",
+  );
   k.ok(
     (await reply.locator('button[aria-label^="Reply to"]').count()) === 0,
     "replying to a reply is not offered",
@@ -282,7 +304,7 @@ export async function desktopGate(k: Kit, c: Cast) {
   await page.waitForSelector("[role=dialog]", { state: "detached" });
   k.ok(
     (await k.activeLabel(page)).startsWith("Discussion"),
-    "closing puts focus back on the dock control",
+    "closing puts focus back on the button",
   );
   await ctx.close();
 
@@ -357,6 +379,37 @@ async function otherViewers(k: Kit, c: Cast) {
   k.ok(
     await byA.isVisible(),
     "another member sees the comment under “A. Reader”",
+  );
+  const adaEntry = r.page.locator(
+    'li:has(> article[aria-label="Comment by Ada Editor"])',
+  );
+  const toggle = adaEntry.locator("> div > button[aria-expanded]");
+  const replies = await k.sql`select count(*)::int as n from comments
+    where parent_id = ${c.adaComment} and deleted_at is null and hidden_at is null`;
+  const n = replies[0]!.n as number;
+  k.ok(
+    (await toggle.textContent())?.trim() ===
+      `${n} ${n === 1 ? "reply" : "replies"}` &&
+      (await toggle.getAttribute("aria-expanded")) === "false",
+    `replies start folded under “${(await toggle.textContent())?.trim()}”`,
+  );
+  k.ok(
+    (await adaEntry.locator('article[aria-label^="Reply by"]').count()) === 0,
+    "none of them is shown",
+  );
+  const tb = await toggle.boundingBox();
+  k.ok(tb && tb.height >= 44, `the toggle is a 44px target (${tb?.height})`);
+  await toggle.click();
+  k.ok(
+    (await toggle.getAttribute("aria-expanded")) === "true" &&
+      (await adaEntry.locator('article[aria-label^="Reply by"]').count()) === n,
+    "the toggle opens them",
+  );
+  await toggle.click();
+  k.ok(
+    (await toggle.getAttribute("aria-expanded")) === "false" &&
+      (await adaEntry.locator('article[aria-label^="Reply by"]').count()) === 0,
+    "and folds them again",
   );
   const img = await byA.locator("img").first().getAttribute("src");
   k.ok(img?.includes("check-301/"), `and that name's avatar (${img})`);

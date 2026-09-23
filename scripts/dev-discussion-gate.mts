@@ -25,12 +25,8 @@ import { countsGate } from "./discussion-gate-counts.mts";
 import { desktopGate, type Cast } from "./discussion-gate-desktop.mts";
 import { discussionKit } from "./discussion-gate-kit.mts";
 import { mobileGate } from "./discussion-gate-mobile.mts";
-import {
-  composerStates,
-  deepLinks,
-  demoGate,
-  offSwitch,
-} from "./discussion-gate-states.mts";
+import { composerStates } from "./discussion-gate-composer.mts";
+import { deepLinks, demoGate, offSwitch } from "./discussion-gate-states.mts";
 
 for (const file of [".env.local", ".env"]) {
   try {
@@ -119,7 +115,14 @@ try {
     );
     const gone = await k.comment(p.id, carol, carolName, "check-301 soon gone");
     await sql`delete from comments where id = ${gone}`;
-    await deepLinks(k, cast, target, gone);
+    const linkedReply = await k.comment(
+      p.id,
+      alice,
+      aliceNames[0],
+      "check-301 a linked reply",
+      { parentId: target, ago: "10 minutes" },
+    );
+    await deepLinks(k, cast, target, gone, linkedReply);
 
     const draft = await k.issue(false);
     await offSwitch(k, cast, draft);

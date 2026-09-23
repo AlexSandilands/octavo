@@ -2,11 +2,11 @@
 // the bottom sheet at 390×844 and 360×740 — every way out (close, Escape,
 // Back, swipe), the locked column, posting with the keyboard up.
 import type { Page } from "playwright";
-import type { Kit } from "./discussion-gate-kit.mts";
+import { OPEN_BUTTON, buttonFace, type Kit } from "./discussion-gate-kit.mts";
 import type { Cast } from "./discussion-gate-desktop.mts";
 import { heard, post } from "./discussion-gate-desktop.mts";
 
-const fab = 'button[aria-label^="Discussion"]';
+const fab = OPEN_BUTTON;
 
 async function openSheet(k: Kit, page: Page) {
   await page.click(fab);
@@ -49,11 +49,10 @@ export async function mobileGate(k: Kit, c: Cast) {
         b.x > width / 2,
       "it sits bottom-right, clear of the edges",
     );
+    const face = await buttonFace(page);
     k.ok(
-      /^Discussion, \d+ comments?$/.test(
-        (await button.getAttribute("aria-label")) ?? "",
-      ),
-      `it is named with the count (“${await button.getAttribute("aria-label")}”)`,
+      face.label === "Discussion" && face.text === "" && face.badges === 0,
+      `it is named “${face.label}”, with no count on it`,
     );
     await page.waitForTimeout(500);
     k.ok(listCalls() === 0, "nothing is fetched before the sheet opens");
