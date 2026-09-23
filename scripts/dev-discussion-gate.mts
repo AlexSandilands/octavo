@@ -21,6 +21,7 @@ import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import postgres from "postgres";
 import { chromium } from "playwright";
+import { addressGate } from "./discussion-gate-address.mts";
 import { countsGate } from "./discussion-gate-counts.mts";
 import { desktopGate, type Cast } from "./discussion-gate-desktop.mts";
 import { discussionKit } from "./discussion-gate-kit.mts";
@@ -123,6 +124,7 @@ try {
       { parentId: target, ago: "10 minutes" },
     );
     await deepLinks(k, cast, target, gone, linkedReply);
+    await addressGate(k, cast, target);
 
     const draft = await k.issue(false);
     await offSwitch(k, cast, draft);

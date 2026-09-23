@@ -35,8 +35,9 @@ export async function deepLinks(
     await r.page.goBack();
     await r.page.waitForSelector("[role=dialog]", { state: "detached" });
     k.ok(
-      r.page.url().endsWith("?discussion=1"),
-      "Back closes it and stays on the issue",
+      new URL(r.page.url()).pathname === `/read/${c.issue.number}` &&
+        new URL(r.page.url()).search === "",
+      "Back closes it, stays on the issue, and clears the address",
     );
     await r.ctx.close();
 
