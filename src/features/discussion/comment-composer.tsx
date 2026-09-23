@@ -31,6 +31,7 @@ export function CommentComposer({
   onCancel,
   menuSide = "bottom",
   autoFocus = false,
+  tag,
 }: {
   id: string;
   label: string;
@@ -44,6 +45,8 @@ export function CommentComposer({
   onCancel?: () => void;
   menuSide?: "top" | "bottom";
   autoFocus?: boolean;
+  /** The main box's page tag (#304), above the Post row. */
+  tag?: React.ReactNode;
 }) {
   const box = useRef<HTMLTextAreaElement>(null);
   const [pending, startTransition] = useTransition();
@@ -155,6 +158,7 @@ export function CommentComposer({
           }}
         />
       )}
+      {tag}
       {/* One line at any panel width: the name gives way, the buttons don't. */}
       <div className="@container flex items-center gap-2">
         {firstPost ? (

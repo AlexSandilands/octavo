@@ -6,7 +6,7 @@ import type { DiscussionInfo } from "@/lib/discussion-thread";
 
 // The reader's discussion state (issue #301), shared by the desktop drawer and
 // the mobile sheet: whether it is open, a composer draft that survives
-// closing, and the deep-linked comment.
+// closing, the deep-linked comment, and the page-tag choices (#304).
 //
 // The address mirrors the state: open reads `?discussion=1` (with `&comment=`
 // when a link opened it that way), closed reads neither, and any other query
@@ -26,6 +26,13 @@ export type Discussion = {
   clearFocusComment: () => void;
   draft: string;
   setDraft: (draft: string) => void;
+  /** Which open page the composer tags (#304): 0 the first (or only), 1 the
+   *  second of a spread, null none. Kept across posts, pages and closings. */
+  tagSlot: number | null;
+  setTagSlot: (slot: number | null) => void;
+  /** "This page only" (#304), kept across closings too. */
+  pagesOnly: boolean;
+  setPagesOnly: (on: boolean) => void;
 };
 
 const KEY = "__discussion";
@@ -63,6 +70,8 @@ export function useDiscussion(info: DiscussionInfo | null): Discussion | null {
     enabled && link.open ? link.comment : null,
   );
   const [draft, setDraft] = useState("");
+  const [tagSlot, setTagSlot] = useState<number | null>(null);
+  const [pagesOnly, setPagesOnly] = useState(false);
   const token = useRef("");
   const closing = useRef(false);
 
@@ -134,5 +143,9 @@ export function useDiscussion(info: DiscussionInfo | null): Discussion | null {
     clearFocusComment: () => setFocusComment(null),
     draft,
     setDraft,
+    tagSlot,
+    setTagSlot,
+    pagesOnly,
+    setPagesOnly,
   };
 }

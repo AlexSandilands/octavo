@@ -22,6 +22,9 @@ import { ThreadList, type ThreadHandlers } from "./thread-list";
 import type { Discussion } from "./use-discussion";
 import { MAIN_COMPOSER, useCommentTarget } from "./use-comment-target";
 import { useThread } from "./use-thread";
+import { PageFilter } from "./page-filter";
+import { PageTagPicker } from "./page-tag-picker";
+import { pageName, type ReaderPages } from "./page-tags";
 
 const MODERATION = {
   hide: [hideCommentAction, "Comment hidden from members."],
@@ -34,8 +37,15 @@ const MODERATION = {
 
 // The thread inside either shell (issue #301): the list scrolling above, the
 // composer pinned below. It owns the writes: each one refetches the list, then
-// the new or changed comment is scrolled to and announced.
-export function DiscussionThread({ talk }: { talk: Discussion }) {
+// the new or changed comment is scrolled to and announced. The reader's open
+// pages (#304) feed the composer's tag, the chips and "This page only".
+export function DiscussionThread({
+  talk,
+  pages,
+}: {
+  talk: Discussion;
+  pages: ReaderPages;
+}) {
   const { info } = talk;
   const listRef = useRef<HTMLDivElement>(null);
   const [said, setSaid] = useState({ text: "", n: 0 });
@@ -60,8 +70,13 @@ export function DiscussionThread({ talk }: { talk: Discussion }) {
     );
     if (parent) setUnfolded((s) => new Set(s).add(parent.id));
   }, []);
-  const thread = useThread(info.issueNo, onLoaded);
+  const narrowed = talk.pagesOnly ? pages.open : null;
+  const thread = useThread(info.issueNo, narrowed, onLoaded);
   const { payload } = thread;
+  const shown =
+    payload && thread.filter === (narrowed?.join(",") ?? "")
+      ? payload.entries.filter((e) => !e.removed).length
+      : null;
   const aim = useCommentTarget(payload, talk.focusComment, {
     list: listRef,
     announce,
@@ -91,12 +106,18 @@ export function DiscussionThread({ talk }: { talk: Discussion }) {
     const setup = payload!.composer;
     const current =
       setup.names.find((n) => n.id === nameId)?.id ?? setup.defaultNameId;
+    const { tagSlot } = talk;
+    const pageId =
+      parentId || tagSlot === null
+        ? null
+        : (pages.open[Math.min(tagSlot, pages.open.length - 1)] ?? null);
     const result = await postCommentAction({
       issueNo: info.issueNo,
       parentId,
       body,
       nameId: newName ? null : current,
       newName,
+      pageId,
     });
     if (!result.ok) {
       // A refused first post may still have created its name: reload so the
@@ -109,17 +130,34 @@ export function DiscussionThread({ talk }: { talk: Discussion }) {
       focus: parentId ? "comment" : "composer",
       highlight: false,
     });
-    // A reply you have just posted stays in view under its parent.
+    // A reply you have just posted stays in view under its parent; an
+    // untagged comment would be filtered out of sight, so the filter goes.
     if (parentId) unfold(parentId);
-    await thread.reload();
+    const unfilter = !parentId && talk.pagesOnly && pageId === null;
+    if (unfilter) talk.setPagesOnly(false);
+    await thread.reload(unfilter ? null : undefined);
     if (parentId) {
       setReplyTo(null);
       setReplyDraft("");
     } else {
       talk.setDraft("");
     }
-    announce(parentId ? "Your reply is posted." : "Your comment is posted.");
+    announce(
+      parentId
+        ? "Your reply is posted."
+        : unfilter
+          ? "Your comment is posted. Showing every comment."
+          : "Your comment is posted.",
+    );
     return result;
+  };
+
+  // Desktop turns the flipbook behind the drawer, which stays open; on a
+  // phone the sheet closes and the column scrolls there.
+  const goToPage = (pageId: string) => {
+    pages.go(pageId);
+    const name = pageName(pages, pageId);
+    if (name) announce(`Now showing ${name}.`);
   };
 
   const h: ThreadHandlers = {
@@ -158,6 +196,8 @@ export function DiscussionThread({ talk }: { talk: Discussion }) {
     },
     nameId,
     setNameId,
+    pages,
+    goToPage,
     reply: (parentId) => (body, newName) => post(parentId, body, newName),
     save: (id) => async (body) => {
       const result = await editCommentAction(id, body);
@@ -195,6 +235,16 @@ export function DiscussionThread({ talk }: { talk: Discussion }) {
         ref={listRef}
         className="scrollbar-soft min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4 [--scrollbar-surface:var(--color-card)] [scrollbar-gutter:stable]"
       >
+        {/* Heads the list and scrolls with it, so a short sheet with the
+            keyboard up spends its height on the box. */}
+        {pages.open.length > 0 && (
+          <PageFilter
+            spread={pages.open.length > 1}
+            on={talk.pagesOnly}
+            onChange={talk.setPagesOnly}
+            count={shown}
+          />
+        )}
         {payload ? (
           <ThreadList
             entries={payload.entries}
@@ -202,6 +252,7 @@ export function DiscussionThread({ talk }: { talk: Discussion }) {
             setup={payload.composer}
             now={thread.loadedAt}
             h={h}
+            filtered={thread.filter !== ""}
           />
         ) : thread.error ? (
           <div className="py-10 text-center">
@@ -240,6 +291,13 @@ export function DiscussionThread({ talk }: { talk: Discussion }) {
             onNameChange={setNameId}
             onSubmit={(body, newName) => post(null, body, newName)}
             menuSide="top"
+            tag={
+              <PageTagPicker
+                pages={pages}
+                slot={talk.tagSlot}
+                onChange={talk.setTagSlot}
+              />
+            }
           />
         </div>
       )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import type { IssueContent } from "@/lib/blocks";
 import type { SiteSettings } from "@/lib/branding";
 import type { DiscussionInfo } from "@/lib/discussion-thread";
@@ -16,10 +16,12 @@ import { PAGE_W, PAGE_H } from "@/features/blocks/page-frame";
 import { useCanvasPanZoom } from "@/features/blocks/use-canvas-pan-zoom";
 import { DiscussionButton } from "@/features/discussion/discussion-button";
 import { DiscussionDrawer } from "@/features/discussion/discussion-drawer";
+import { pageIndex, type ReaderPages } from "@/features/discussion/page-tags";
 import { useDiscussion } from "@/features/discussion/use-discussion";
 import { ReaderSpread, FLIP_MS, type Turn } from "./reader-spread";
 import { ReaderContents, buildToc } from "./reader-contents";
 import { ReaderControls } from "./reader-controls";
+import { spreadPages } from "./use-current-pages";
 import { useIssuePdf } from "./use-issue-pdf";
 
 // The page-turn strip inside each outer edge of the spread, as a fraction of the
@@ -69,6 +71,7 @@ export function DesktopReader({
   // the control below is conditional.
   const pdf = useIssuePdf(issueNo, themeId);
   const talk = useDiscussion(discussion);
+  const index = useMemo(() => pageIndex(pages), [pages]);
 
   // Page-turn animation. `turn` holds the in-flight flip (direction + target
   // spread); the curl itself (TurnCurl) owns the Web Animations that carry it
@@ -149,6 +152,16 @@ export function DesktopReader({
       : `${leftNo} / ${n}`;
   const viewOf = (page: number) => (page <= 1 ? 0 : Math.ceil((page - 1) / 2));
   const go = (page: number) => setSpread(viewOf(page));
+  // The discussion's view of the pages (#304): a chip flips the book behind
+  // the drawer, which stays open.
+  const readerPages: ReaderPages = {
+    open: spreadPages(pages, spread),
+    ...index,
+    go: (pageId) => {
+      const page = index.numbers.get(pageId);
+      if (page) go(page);
+    },
+  };
 
   // The cover reads as a single, centred page rather than the right leaf of a
   // blank spread. The spread box stays a constant 2·PAGE_W (so the curl geometry
@@ -352,7 +365,7 @@ export function DesktopReader({
         pdfState={pdf.state}
         onDownloadPdf={pdf.download}
       />
-      {talk?.open && <DiscussionDrawer talk={talk} />}
+      {talk?.open && <DiscussionDrawer talk={talk} pages={readerPages} />}
     </div>
   );
 }

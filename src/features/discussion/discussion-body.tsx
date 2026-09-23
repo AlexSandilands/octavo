@@ -2,6 +2,7 @@
 
 import { Button, IconButton } from "@/components/ui";
 import { DiscussionThread } from "./discussion-thread";
+import type { ReaderPages } from "./page-tags";
 import type { Discussion } from "./use-discussion";
 
 // What both shells hold (issue #301): the heading and close button, then the
@@ -9,10 +10,12 @@ import type { Discussion } from "./use-discussion";
 // about the thread is fetched for them.
 export function DiscussionBody({
   talk,
+  pages,
   titleId,
   grip,
 }: {
   talk: Discussion;
+  pages: ReaderPages;
   titleId: string;
   /** The sheet's swipe handle, above the heading. */
   grip?: React.ReactNode;
@@ -37,7 +40,7 @@ export function DiscussionBody({
         />
       </div>
       {signedIn ? (
-        <DiscussionThread talk={talk} />
+        <DiscussionThread talk={talk} pages={pages} />
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center gap-5 px-6 py-10 text-center">
           <p className="text-ink font-serif text-[22px] leading-snug">

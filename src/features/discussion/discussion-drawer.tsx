@@ -2,13 +2,20 @@
 
 import { DialogShell } from "@/components/dialog-shell";
 import { DiscussionBody } from "./discussion-body";
+import type { ReaderPages } from "./page-tags";
 import type { Discussion } from "./use-discussion";
 import styles from "./discussion.module.css";
 
 // The desktop shell (issue #301): a drawer floating in from the right over the
 // flipbook — the contents rail's twin — as a real dialog. It lies over the
 // stage rather than beside it, so the spread never moves or resizes.
-export function DiscussionDrawer({ talk }: { talk: Discussion }) {
+export function DiscussionDrawer({
+  talk,
+  pages,
+}: {
+  talk: Discussion;
+  pages: ReaderPages;
+}) {
   return (
     <DialogShell
       overlayClassName="fixed inset-0 z-50 flex justify-end bg-[rgba(32,32,28,0.18)] p-3"
@@ -16,7 +23,9 @@ export function DiscussionDrawer({ talk }: { talk: Discussion }) {
       initialFocus="panel"
       onClose={talk.hide}
     >
-      {(titleId) => <DiscussionBody talk={talk} titleId={titleId} />}
+      {(titleId) => (
+        <DiscussionBody talk={talk} pages={pages} titleId={titleId} />
+      )}
     </DialogShell>
   );
 }

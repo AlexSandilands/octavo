@@ -3,7 +3,7 @@
 import { coverSources } from "@/lib/cover-elements";
 import { hasCoverLayout } from "@/lib/cover-order";
 import { CoverElementView } from "@/features/blocks/cover-element-view";
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
 import type { SiteSettings } from "@/lib/branding";
@@ -19,10 +19,17 @@ import {
 } from "@/features/blocks/page-footer";
 import { DiscussionButton } from "@/features/discussion/discussion-button";
 import { DiscussionSheet } from "@/features/discussion/discussion-sheet";
+import {
+  capitalise,
+  pageIndex,
+  pageName,
+  type ReaderPages,
+} from "@/features/discussion/page-tags";
 import { useDiscussion } from "@/features/discussion/use-discussion";
 import { headingDomId, MobileBlock } from "./mobile-block";
 import { MobileCover } from "./mobile-cover";
 import { breakHeight, readerSections } from "./mobile-sections";
+import { pageDomId, pageSection, useCurrentPages } from "./use-current-pages";
 import { useIssuePdf } from "./use-issue-pdf";
 
 // Header height, shared with the front cover's min-height below (#235).
@@ -80,12 +87,9 @@ export function MobileReader({
     };
   }, [drawer]);
 
-  // Jump to a heading from the contents drawer. Headings carry ids derived
-  // from their block id (see MobileBlock) and are focused after the scroll so
-  // screen-reader/keyboard users land where the page did.
-  const goToHeading = (blockId: string) => {
-    setDrawer(false);
-    const el = document.getElementById(headingDomId(blockId));
+  // Scrolls to a heading or a page's section and focuses it, so screen-reader
+  // and keyboard users land where the page did.
+  const land = (el: HTMLElement | null) => {
     if (!el) return;
     const reduceMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
@@ -96,6 +100,39 @@ export function MobileReader({
     });
     el.focus({ preventScroll: true });
   };
+
+  // Jump to a heading from the contents drawer. Headings carry ids derived
+  // from their block id (see MobileBlock).
+  const goToHeading = (blockId: string) => {
+    setDrawer(false);
+    land(document.getElementById(headingDomId(blockId)));
+  };
+
+  // The discussion's view of the pages (#304): the section being read, frozen
+  // while the sheet is up (and untracked with no discussion). A chip closes
+  // the sheet first; the landing waits for it to go — the column unlocked,
+  // focus handed back to its button — and a frame more, for the browser to
+  // finish restoring the scroll of the history entry the close went back to.
+  const open = useCurrentPages(!talk || talk.open, m);
+  const index = useMemo(() => pageIndex(content.pages), [content.pages]);
+  const landing = useRef<string | null>(null);
+  const readerPages: ReaderPages = {
+    open,
+    ...index,
+    go: (pageId) => {
+      landing.current = pageId;
+      talk?.hide();
+    },
+  };
+  useEffect(() => {
+    const pageId = landing.current;
+    if (talk?.open || !pageId) return;
+    landing.current = null;
+    const frame = requestAnimationFrame(() =>
+      land(pageSection(content.pages, pageId)),
+    );
+    return () => cancelAnimationFrame(frame);
+  }, [talk?.open, content.pages]);
 
   const sections = readerSections(content.pages);
   const sources = coverSources(content.pages);
@@ -193,6 +230,7 @@ export function MobileReader({
               cover={s.cover}
             />
           ));
+          const name = pageName(index, s.id);
           return (
             <Fragment key={s.id}>
               {/* The page break: a band of canvas between two sheets of page. A
@@ -205,55 +243,67 @@ export function MobileReader({
                   style={{ height: breakHeight(m) }}
                 />
               )}
-              {s.cover && (s.filled || hasCoverLayout(s)) ? (
-                <MobileCover
-                  page={s}
-                  sources={sources}
-                  issueNo={issueNo}
-                  images={images}
-                  sponsors={sponsors}
-                  m={m}
-                  minHeight={
-                    front ? `calc(100dvh - ${HEADER_HEIGHT}px)` : "100dvh"
-                  }
-                />
-              ) : (
-                <section
-                  style={
-                    front
-                      ? { minHeight: `calc(100dvh - ${HEADER_HEIGHT}px)` }
-                      : undefined
-                  }
-                  // The space under the break is the next page's own top padding;
-                  // a page owned by a photo has none, so the photo runs from the
-                  // break above it to the one below.
-                  className={[
-                    "px-5",
-                    !s.filled && !s.cover && (i === 0 || s.divided) && "pt-6",
-                    !s.filled &&
-                      (i === sections.length - 1 || sections[i + 1]?.divided) &&
-                      "pb-8",
-                    s.cover && "py-8 text-center",
-                    front && "flex flex-col justify-center",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                >
-                  {/* One flex child, so centring the cover leaves the blocks' own
+              {/* The page, as a chip lands on it (#304): named for its number,
+                  which the phone otherwise never shows. */}
+              <div
+                id={pageDomId(s.id)}
+                data-reader-page={s.id}
+                role="group"
+                aria-label={name ? capitalise(name) : undefined}
+                tabIndex={-1}
+                className="focus:outline-none focus-visible:outline-2 focus-visible:-outline-offset-2"
+              >
+                {s.cover && (s.filled || hasCoverLayout(s)) ? (
+                  <MobileCover
+                    page={s}
+                    sources={sources}
+                    issueNo={issueNo}
+                    images={images}
+                    sponsors={sponsors}
+                    m={m}
+                    minHeight={
+                      front ? `calc(100dvh - ${HEADER_HEIGHT}px)` : "100dvh"
+                    }
+                  />
+                ) : (
+                  <section
+                    style={
+                      front
+                        ? { minHeight: `calc(100dvh - ${HEADER_HEIGHT}px)` }
+                        : undefined
+                    }
+                    // The space under the break is the next page's own top padding;
+                    // a page owned by a photo has none, so the photo runs from the
+                    // break above it to the one below.
+                    className={[
+                      "px-5",
+                      !s.filled && !s.cover && (i === 0 || s.divided) && "pt-6",
+                      !s.filled &&
+                        (i === sections.length - 1 ||
+                          sections[i + 1]?.divided) &&
+                        "pb-8",
+                      s.cover && "py-8 text-center",
+                      front && "flex flex-col justify-center",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                  >
+                    {/* One flex child, so centring the cover leaves the blocks' own
                     collapsed margins alone. */}
-                  {front ? <div>{body}</div> : body}
-                  {s.coverElements?.map((element) => (
-                    <div className="my-6" key={element.id}>
-                      <CoverElementView
-                        element={element}
-                        sources={sources}
-                        issueNo={issueNo}
-                        images={images}
-                      />
-                    </div>
-                  ))}
-                </section>
-              )}
+                    {front ? <div>{body}</div> : body}
+                    {s.coverElements?.map((element) => (
+                      <div className="my-6" key={element.id}>
+                        <CoverElementView
+                          element={element}
+                          sources={sources}
+                          issueNo={issueNo}
+                          images={images}
+                        />
+                      </div>
+                    ))}
+                  </section>
+                )}
+              </div>
             </Fragment>
           );
         })}
@@ -277,7 +327,7 @@ export function MobileReader({
       </article>
 
       {talk && !drawer && <DiscussionButton floating onOpen={talk.show} />}
-      {talk?.open && <DiscussionSheet talk={talk} />}
+      {talk?.open && <DiscussionSheet talk={talk} pages={readerPages} />}
 
       {drawer && (
         <>
