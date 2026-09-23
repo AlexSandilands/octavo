@@ -1,7 +1,8 @@
 import { Bullets, Callout, GuideSection, P } from "./guide-ui";
 
-// The discussion and its moderation (issue #302): switching it on, the reports
-// inbox and its emails, and the removed-member setting.
+// The discussion and its moderation (issues #301, #302): switching it on, where
+// members find it, the reports inbox and its emails, and the removed-member
+// setting.
 export function SectionDiscussion() {
   return (
     <GuideSection
@@ -18,6 +19,23 @@ export function SectionDiscussion() {
         later hides the threads, the comment counts, the reply bell and the
         reply emails everywhere and stops anyone posting — but every comment is
         kept, so turning it on again brings the discussion back as it was.
+      </P>
+      <P>
+        Members find it in the reader. On a computer, the{" "}
+        <strong>Discussion</strong> button in the control bar at the foot of the
+        page opens a panel from the right, over the pages; on a phone, a round
+        button in the bottom corner raises it from the bottom of the screen.
+        Either way it shows how many comments there are. Members can post, reply
+        to a comment (one level deep), and edit or delete their own comments;
+        &ldquo;Posting as&rdquo; under the box picks which of their names a
+        comment goes under, and someone posting for the first time chooses their
+        name right there. The library shows how many comments each issue has.
+      </P>
+      <P>
+        As an admin you see the same thread, with the member account behind each
+        name written under it. Deleting an issue deletes its discussion too —
+        the confirmation says how many comments go with it. Discussion never
+        appears in the PDF.
       </P>
       <P>
         Any member can <strong>report</strong> someone else&rsquo;s comment,
