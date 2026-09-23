@@ -13,6 +13,7 @@ import { isUniqueViolation } from "@/lib/db-errors";
 import { checkMemberName, type MemberNameCheck } from "@/lib/member-name";
 import { keyToUrl } from "@/lib/storage";
 import {
+  collectReferencedImageIds,
   sweepOrphanedObjects,
   takeOrphanedImages,
   type Tx,
@@ -187,7 +188,7 @@ async function writeName(
   nameId: string,
   ownerId: string,
   check: Extract<MemberNameCheck, { ok: true }>,
-  duplicate: string,
+  messages: { duplicate: string; retired: string },
 ): Promise<NameResult> {
   try {
     const [row] = await db
@@ -203,8 +204,19 @@ async function writeName(
       .returning({ id: memberNames.id });
     if (!row) return INVALID;
   } catch (err) {
-    if (isUniqueViolation(err)) return { ok: false, reason: duplicate };
-    throw err;
+    if (!isUniqueViolation(err)) throw err;
+    // The clash may be a retired name, which isn't on the picker to see.
+    const [clash] = await db
+      .select({ retiredAt: memberNames.retiredAt })
+      .from(memberNames)
+      .where(
+        and(
+          eq(memberNames.userId, ownerId),
+          eq(memberNames.nameKey, check.key),
+        ),
+      );
+    const reason = clash?.retiredAt ? messages.retired : messages.duplicate;
+    return { ok: false, reason };
   }
   return answer(nameId, ownerId, check.key);
 }
@@ -227,7 +239,10 @@ export async function renameName(input: {
     accountName: account?.name,
   });
   if (!check.ok) return check;
-  return writeName(parsed.data.nameId, member.id, check, ALREADY);
+  return writeName(parsed.data.nameId, member.id, check, {
+    duplicate: ALREADY,
+    retired: "You retired that name. Add it again instead.",
+  });
 }
 
 // Deletes an unused name, retires one with comments (they keep showing it).
@@ -315,13 +330,15 @@ async function replaceAvatar(
       )
       .for("update");
     if (!name) return null;
-    if (imageId) {
-      // Only an upload with no issue behind it can become an avatar.
+    if (imageId && imageId !== name.avatar) {
+      // Only a fresh upload can become an avatar: no issue behind it and
+      // nothing (a logo, a sponsor, another name) already showing it.
       const [image] = await tx
         .select({ issueId: images.issueId })
         .from(images)
         .where(eq(images.id, imageId));
       if (!image || image.issueId !== null) return null;
+      if ((await collectReferencedImageIds(tx)).has(imageId)) return null;
     }
     await tx
       .update(memberNames)
@@ -338,6 +355,8 @@ async function replaceAvatar(
   return { ok: true };
 }
 
+// Takes the id the upload route has just created (#300). Never expose it as a
+// server action that accepts an image id from the client.
 export async function setNameAvatar(input: {
   nameId: string;
   imageId: string;
@@ -402,12 +421,10 @@ export async function adminRenameName(input: {
     skipProfanity: true,
   });
   if (!check.ok) return check;
-  return writeName(
-    parsed.data.nameId,
-    owner.userId,
-    check,
-    "That member already has this name.",
-  );
+  return writeName(parsed.data.nameId, owner.userId, check, {
+    duplicate: "That member already has this name.",
+    retired: "That member has retired this name. They can add it again.",
+  });
 }
 
 // Retired, never deleted: the name stays on the comments posted under it.
