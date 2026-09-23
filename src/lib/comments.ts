@@ -112,17 +112,42 @@ export type ReportView = {
   status: ReportStatus;
   createdAt: Date;
   resolvedAt: Date | null;
+  resolvedBy: { id: string; name: string | null } | null;
   issue: { id: string; number: number | null; title: string };
-  reporter: { id: string; name: string | null } | null;
+  reporter: { id: string; name: string | null; email: string } | null;
   snapshot: {
     body: string;
     name: string | null;
-    account: { id: string; name: string | null } | null;
+    account: { id: string; name: string | null; email: string } | null;
     createdAt: Date | null;
     editedAt: Date | null;
   };
-  /** The comment now, against the snapshot: the inbox's "edited since". */
+  /** The comment now, against the snapshot: the inbox's "edited since". An
+   *  admin's delete leaves the row hidden, which is how `by` knows. */
   current:
-    | { state: "unchanged" | "edited"; body: string; hidden: boolean }
-    | { state: "deleted" };
+    | {
+        state: "unchanged" | "edited";
+        commentId: string;
+        body: string;
+        hidden: boolean;
+      }
+    | { state: "deleted"; by: "author" | "admin" };
+  /** The posting name the comment is under now, for Clear avatar and Retire
+   *  name; null once the comment or its name is gone. */
+  name: {
+    id: string;
+    name: string;
+    avatarUrl: string | null;
+    retired: boolean;
+  } | null;
+};
+
+export const REPORT_FILTERS = ["open", "resolved", "all"] as const;
+export type ReportFilter = (typeof REPORT_FILTERS)[number];
+
+export const REPORT_REASON_LABELS: Record<ReportReason, string> = {
+  harassment: "Harassment",
+  offensive: "Offensive",
+  spam: "Spam",
+  other: "Other",
 };

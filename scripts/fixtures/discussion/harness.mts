@@ -20,6 +20,8 @@ export const thread = await import("../../../src/server/comments.ts");
 export const moderation =
   await import("../../../src/server/comment-moderation.ts");
 export const notices = await import("../../../src/server/notifications.ts");
+export const inbox = await import("../../../src/server/report-inbox.ts");
+export const alert = await import("../../../src/server/report-alert.ts");
 export const removal = await import("../../../src/server/member-removal.ts");
 export const assets = await import("../../../src/server/asset-cleanup.ts");
 export const storage = await import("../../../src/lib/storage.ts");
@@ -41,13 +43,18 @@ export const heading = (name: string) =>
 
 const created = { users: [] as string[], issues: [] as string[] };
 const tag = randomUUID().slice(0, 8);
+// Every scratch row carries the prefix; a check names its own issue's.
+let prefix = "check-299";
+export function scratchPrefix(value: string) {
+  prefix = value;
+}
 
 export type Scratch = { id: string; email: string; isAdmin: boolean };
 
 export async function scratchUser(
   opts: { name?: string | null; isAdmin?: boolean } = {},
 ): Promise<Scratch> {
-  const email = `check-299-${tag}-${created.users.length}@example.invalid`;
+  const email = `${prefix}-${tag}-${created.users.length}@example.invalid`;
   const [row] = await db
     .insert(users)
     .values({
@@ -72,7 +79,7 @@ export async function scratchIssue(published = true) {
   const [row] = await db
     .insert(issues)
     .values({
-      title: `check-299 ${tag}`,
+      title: `${prefix} ${tag}`,
       content,
       status: published ? "published" : "draft",
       number: published ? Number(max!.n) + 5000 + created.issues.length : null,
@@ -85,7 +92,7 @@ export async function scratchIssue(published = true) {
 
 // A stored image with no issue, as an avatar upload will be (#300).
 export async function scratchImage() {
-  const key = `check-299/${tag}/${randomUUID()}.webp`;
+  const key = `${prefix}/${tag}/${randomUUID()}.webp`;
   await storage.putObject(key, Buffer.from("avatar"), "image/webp");
   const [row] = await db
     .insert(images)
@@ -137,7 +144,7 @@ export async function finish() {
   }
   const leftovers = await db
     .delete(images)
-    .where(sql`${images.key} like ${`check-299/${tag}/%`}`)
+    .where(sql`${images.key} like ${`${prefix}/${tag}/%`}`)
     .returning({ key: images.key });
   for (const { key } of leftovers) await storage.deleteObject(key);
   await restoreSettings();
