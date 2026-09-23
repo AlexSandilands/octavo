@@ -1,5 +1,4 @@
 import "server-only";
-import { createHash, randomBytes } from "node:crypto";
 import * as Sentry from "@sentry/nextjs";
 import { Resend } from "resend";
 import { db } from "@/db";
@@ -7,12 +6,12 @@ import { verificationTokens } from "@/db/schema";
 import { env } from "@/lib/env";
 import { tallyChunks, type BlastResult, type PreparedEmail } from "@/lib/blast";
 import type { Branding } from "@/lib/branding";
-import { safeNextPath } from "@/lib/next-path";
 import {
   issueEmailSubject,
   renderIssueEmailHtml,
   renderIssueEmailText,
 } from "./issue-email";
+import { mintMagicLink, type MagicLink } from "./magic-link";
 import { listSubscribedRecipients, type Recipient } from "./recipients";
 import { getSettings } from "./settings";
 import { signUnsubscribeToken } from "./unsubscribe-token";
@@ -20,39 +19,8 @@ import { signUnsubscribeToken } from "./unsubscribe-token";
 export type { BlastResult } from "@/lib/blast";
 
 // The publish → email blast. On publish, every subscribed member gets a
-// personal email whose "Read issue" button is their own magic link.
-//
-// Security: the magic link is a single-use sign-in credential and MUST be
-// produced by the exact mechanism Auth.js uses for the sign-in email, or the
-// callback route won't accept it. Auth.js's email flow (see
-// @auth/core/lib/actions/signin/send-token.js) is:
-//   1. token   = randomString(32)                     — the raw value in the URL
-//   2. stored  = sha256hex(`${token}${secret}`)       — what lands in the DB
-//   3. url     = `${origin}/api/auth/callback/resend?callbackUrl=…&token=<raw>&email=<id>`
-// On click, the callback recomputes sha256hex(`${rawToken}${secret}`) and calls
-// the adapter's useVerificationToken, which deletes the row as it reads it —
-// that delete-on-read is what makes the link single-use. We replicate exactly
-// that here, with the SAME secret the callback uses (`provider.secret ??
-// options.secret`, which for our config is env.AUTH_SECRET — see auth.ts), so
-// our links are indistinguishable from ones Auth.js minted.
-//
-// Coupling note: if the deployment ever moves to AUTH_SECRET rotation (an
-// array of secrets), revisit this — the callback would hash against the array
-// and these links would need to match.
-
-// Match the Resend provider's maxAge (24h) so a blast link is no longer-lived
-// than a sign-in link. If it lapses before a member opens it, they aren't
-// stuck: the reader gate sends them to /signin, they request a fresh link, and
-// land back on the issue — one extra tap, no dead end.
-const MAGIC_LINK_MAX_AGE_SECONDS = 24 * 60 * 60;
-
-// Auth.js's createHash is web-crypto SHA-256 hex; node's createHash produces
-// the identical digest for the same input.
-function hashVerificationToken(rawToken: string): string {
-  return createHash("sha256")
-    .update(`${rawToken}${env.AUTH_SECRET}`)
-    .digest("hex");
-}
+// personal email whose "Read issue" button is their own magic link, minted by
+// the shared helper (magic-link.ts) that also signs the reply email's button.
 
 // Build one member's email and the DB row that backs its magic link. Returns
 // the row to insert (hashed token) and the ready-to-send message (raw token in
@@ -64,29 +32,19 @@ function prepare(
   origin: string,
   branding: Branding,
 ): {
-  tokenRow: { identifier: string; token: string; expires: Date };
+  tokenRow: MagicLink["tokenRow"];
   email: PreparedEmail;
   readUrl: string;
   unsubscribeUrl: string;
 } {
-  const rawToken = randomBytes(32).toString("hex");
-  const expires = new Date(Date.now() + MAGIC_LINK_MAX_AGE_SECONDS * 1000);
-
-  // Where the link lands after sign-in. Fixed to the published issue and run
-  // through the same same-origin guard the sign-in ?next uses — belt-and-braces
-  // against ever emitting an off-site callbackUrl.
-  const readPath = safeNextPath(`/read/${issueNumber}`);
-  const params = new URLSearchParams({
-    callbackUrl: readPath,
-    token: rawToken,
-    email: recipient.email,
-  });
-  const readUrl = `${origin}/api/auth/callback/resend?${params}`;
+  // Lands on the published issue once signed in.
+  const link = mintMagicLink(recipient.email, `/read/${issueNumber}`, origin);
+  const readUrl = link.url;
 
   // One signed token per recipient, reused for both the in-body link (the
   // interactive /unsubscribe confirm page) and the RFC 8058 one-click header
   // URL below — same authorisation, two surfaces.
-  const unsubscribeToken = signUnsubscribeToken(recipient.id);
+  const unsubscribeToken = signUnsubscribeToken(recipient.id, "issues");
   const unsubscribeUrl = `${origin}/unsubscribe?token=${unsubscribeToken}`;
 
   // RFC 8058 one-click unsubscribe. Gmail/Yahoo require these on bulk mail;
@@ -103,11 +61,7 @@ function prepare(
   };
 
   return {
-    tokenRow: {
-      identifier: recipient.email,
-      token: hashVerificationToken(rawToken),
-      expires,
-    },
+    tokenRow: link.tokenRow,
     email: {
       to: recipient.email,
       subject: issueEmailSubject(branding.name, issueNumber, issueTitle),
