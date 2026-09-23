@@ -19,7 +19,7 @@ import { requireMember } from "@/server/session";
 
 // A member's avatar upload (issue #300) — the first upload a non-admin can
 // make, so every check runs before the bytes are decoded: session, origin,
-// the switch, the name's owner, size, a look at the bytes, then a budget.
+// the switch, the name's owner, a budget, then size and a look at the bytes.
 // Only then is the photo cropped, stored and recorded, and the image row is
 // handed to setNameAvatar here, never by an id from the client.
 
@@ -99,6 +99,10 @@ export async function POST(request: Request) {
   if (!nameId.success || !names.some((n) => n.id === nameId.data)) {
     return refuse(400, INVALID.reason);
   }
+  // Spent before the body is read, so no session can stream bodies unmetered;
+  // a mistaken file (a PDF, a 6 MB photo) costs one of the five.
+  const limited = overLimit(uploads, member.id);
+  if (limited) return refuse(429, limited.reason);
 
   const file = await fileFrom(request);
   if (file === "large") return refuse(413, TOO_LARGE);
@@ -106,9 +110,6 @@ export async function POST(request: Request) {
   if (file.size > MAX_BYTES) return refuse(413, TOO_LARGE);
   const input = Buffer.from(await file.arrayBuffer());
   if (!looksLikeImage(input)) return refuse(415, NOT_AN_IMAGE);
-
-  const limited = overLimit(uploads, member.id);
-  if (limited) return refuse(429, limited.reason);
 
   let processed;
   try {

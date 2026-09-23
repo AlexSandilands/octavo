@@ -148,6 +148,13 @@ export async function avatarsGate(kit: ProfileKit, foreignNameId: string) {
     sixthUpload.reason.includes("going a little fast"),
     "with the slow-down sentence",
   );
+  // The budget is spent before the body is read: a spent member's 6 MB body
+  // is turned away as 429, never read far enough to be judged too large.
+  const spent = await upload(limit, limitName, six);
+  ok(
+    spent.status === 429,
+    `once spent, even an oversized body is refused unread (${spent.status})`,
+  );
   const [limitRow] = await sql<{ n: number }[]>`
     select count(*)::int as n from images i join member_names n on n.avatar_image_id = i.id
     where n.user_id = ${limit.id}`;
