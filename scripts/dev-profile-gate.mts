@@ -175,6 +175,8 @@ try {
     (await avatarLink.getAttribute("href")) === "/profile",
     "the header avatar links to /profile, named “Your profile”",
   );
+  // The header streams in: attached while still in Next's hidden holder, it has no box yet.
+  await avatarLink.waitFor({ state: "visible" });
   const box = await avatarLink.boundingBox();
   ok(
     box && box.width >= 44 && box.height >= 44,

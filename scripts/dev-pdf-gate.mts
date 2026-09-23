@@ -29,6 +29,11 @@
 // Run: npx tsx scripts/dev-pdf-gate.mts <base-url>
 import { createHash, randomUUID } from "node:crypto";
 import postgres from "postgres";
+import {
+  issueContentSchema,
+  type Block,
+  type IssueContent,
+} from "../src/lib/blocks.ts";
 
 process.loadEnvFile?.(".env.local");
 const [base] = process.argv.slice(2);
@@ -277,25 +282,26 @@ const rendered = (html: string) => html.includes("pdf-page");
   const NAME = "Gate Sponsor 180";
   const RENAMED = "Gate Sponsor 180 (renamed)";
 
-  const page = (blocks: Record<string, string>[]) => ({
-    id: String(randomUUID()),
-    blocks,
-  });
+  // Typed and parsed as the editor's save is, so a block-shape change fails
+  // here (typecheck:scripts, then the schema) rather than deep in a renderer.
+  const page = (blocks: Block[]) => ({ id: randomUUID(), blocks });
   const cover = { ...page([]), cover: true };
-  const contentWith = {
-    version: 5,
-    pages: [
-      cover,
-      page([{ id: randomUUID(), type: "sponsor", sponsorId, name: "" }]),
-    ],
-  };
-  const contentWithout = {
-    version: 5,
-    pages: [
-      cover,
-      page([{ id: randomUUID(), type: "heading", text: "No sponsors here" }]),
-    ],
-  };
+  const content = (blocks: Block[]) =>
+    issueContentSchema.parse({
+      version: 5,
+      pages: [cover, page(blocks)],
+    } satisfies IssueContent);
+  const contentWith = content([
+    { id: randomUUID(), type: "sponsor", sponsorId, name: "" },
+  ]);
+  const contentWithout = content([
+    {
+      id: randomUUID(),
+      type: "heading",
+      kicker: "",
+      title: "No sponsors here",
+    },
+  ]);
 
   // React renders the attributes in source order, but read the tag rather than a
   // fixed string so a reordering (or a second meta) can't quietly pass.

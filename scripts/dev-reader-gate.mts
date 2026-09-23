@@ -3,6 +3,7 @@
 // and the member header. Requires member@example.com (dev-auth-check.mts)
 // and a published issue number 3 (the seed provides it).
 // Run: npx tsx scripts/dev-reader-gate.mts <base-url> <dev-log-path>
+// Off port 3000, start the server with AUTH_URL=<base-url>: magic links land on AUTH_URL.
 import { readFile } from "node:fs/promises";
 import { chromium, type Page } from "playwright";
 import postgres from "postgres";
@@ -18,6 +19,17 @@ const ok = (cond: unknown, msg: string) => {
 };
 
 const browser = await chromium.launch();
+
+// Sign-in allows 5 links per IP+email and 20 per IP every 15 minutes, and this
+// gate requests 8. Each context claims its own client IP through the header
+// Cloudflare sets in production (read first by clientIp in signin/actions.ts),
+// so every request is a real round trip and repeated runs never hit the limit.
+const run = crypto.getRandomValues(new Uint8Array(2)).join(".");
+let clients = 0;
+const newClient = () =>
+  browser.newContext({
+    extraHTTPHeaders: { "cf-connecting-ip": `10.${run}.${++clients}` },
+  });
 
 // The dev transport logs each link under "[auth] magic link for <email>:".
 // Wait for a link newer than `after` so parallel/prior runs can't confuse us.
@@ -43,7 +55,7 @@ async function requestLink(page: Page, email: string) {
 let linkCount = 0;
 
 // 1. Signed out, straight to an issue → /signin carries the destination.
-const ctx = await browser.newContext();
+const ctx = await newClient();
 const page = await ctx.newPage();
 await page.goto(`${base}/read/3`);
 await page.waitForURL("**/signin?next=%2Fread%2F3");
@@ -180,7 +192,7 @@ const evilVectors = [
   "/%2F%2Fevil.example",
 ];
 for (const evil of evilVectors) {
-  const c = await browser.newContext();
+  const c = await newClient();
   const p = await c.newPage();
   await p.goto(`${base}/signin?next=${encodeURIComponent(evil)}`);
   await requestLink(p, "member@example.com");
