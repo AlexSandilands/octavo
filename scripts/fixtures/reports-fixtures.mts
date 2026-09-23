@@ -6,7 +6,10 @@ import { randomUUID } from "node:crypto";
 import type { BrowserContext } from "playwright";
 import type postgres from "postgres";
 import { emptyIssueContent } from "../../src/lib/blocks.ts";
-import { deleteObject, putObject } from "../../src/lib/storage.ts";
+
+// Storage is loaded only when a gate stores an object: it imports
+// "server-only", which resolves only under scripts/tsconfig.json.
+const storage = () => import("../../src/lib/storage.ts");
 
 type Sql = postgres.Sql;
 
@@ -15,7 +18,7 @@ export function reportsFixtures(sql: Sql, label: string) {
   const made = {
     users: [] as string[],
     issues: [] as string[],
-    images: [] as { id: string; key: string }[],
+    images: [] as { id: string; key: string; stored: boolean }[],
     sessions: [] as string[],
   };
 
@@ -59,15 +62,19 @@ export function reportsFixtures(sql: Sql, label: string) {
     return id;
   }
 
-  // An uploaded picture with no issue, as an avatar is: a stored object too,
-  // so a gate can prove removal takes it out of storage.
-  async function avatar() {
+  // An uploaded picture with no issue, as an avatar is — with a stored object
+  // unless the gate only needs the row, so it can prove removal deletes it.
+  async function avatar({ stored = true } = {}) {
     const id = randomUUID();
     const key = `check-302/${stamp}/${id}.webp`;
-    await putObject(key, Buffer.from("avatar"), "image/webp");
+    if (stored) {
+      await (
+        await storage()
+      ).putObject(key, Buffer.from("avatar"), "image/webp");
+    }
     await sql`insert into images (id, key, width, height)
       values (${id}, ${key}, 1, 1)`;
-    made.images.push({ id, key });
+    made.images.push({ id, key, stored });
     return { id, key };
   }
 
@@ -123,7 +130,9 @@ export function reportsFixtures(sql: Sql, label: string) {
     }
     for (const image of made.images) {
       await sql`delete from images where id = ${image.id}`;
-      await deleteObject(image.key).catch(() => {});
+      if (image.stored) {
+        await (await storage()).deleteObject(image.key).catch(() => {});
+      }
     }
   }
 

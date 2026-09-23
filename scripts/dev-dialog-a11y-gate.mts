@@ -27,6 +27,7 @@
 import postgres from "postgres";
 import { chromium, type Page } from "playwright";
 import { expandMember } from "./check-member-disclosure.mts";
+import { checkReportsDialogs } from "./dialog-a11y-reports.mts";
 
 process.loadEnvFile?.(".env.local");
 const base = process.argv[2];
@@ -425,10 +426,53 @@ try {
     "initial focus is the safe Cancel button, never Confirm",
   );
   await checkOpenDialog(page, `Remove ${otherName}?`);
+  // The comment line (#302) arrives after the dialog opens, announced.
+  await page.waitForFunction(
+    () =>
+      document
+        .querySelector("[role=dialog] [data-removal-comments]")
+        ?.textContent?.trim() === "They haven’t posted any comments.",
+  );
+  ok(
+    (await page.getAttribute(
+      "[role=dialog] [data-removal-comments]",
+      "aria-live",
+    )) === "polite",
+    "the removal confirmation says the member has no comments, politely live",
+  );
   await checkBackdropRestores(page, removeLabel);
   // And Escape, which it never had.
   await reopen(page, `button[aria-label="${removeLabel}"]`);
   await checkEscapeRestores(page, removeLabel);
+
+  // ── 4a. ConfirmDialog — the members bulk removal (#302) ──────────────────
+  heading("ConfirmDialog — members bulk remove");
+  await page.goto(`${base}/admin/members?q=scratch-130-other`);
+  await page.waitForSelector(`text=${otherEmail}`);
+  await page.getByRole("checkbox", { name: /^Select all 1 members/ }).check();
+  await page.click("button:has-text('Remove selected')");
+  await page.waitForSelector("[role=dialog]");
+  await checkOpenDialog(page, "Remove 1 member?");
+  await page.waitForFunction(
+    () =>
+      document
+        .querySelector("[role=dialog] [data-removal-comments]")
+        ?.textContent?.trim() === "They haven’t posted any comments.",
+  );
+  ok(true, "the bulk confirmation carries the comment line too");
+  await checkEscapeRestores(page, "Remove selected");
+  await reopen(page, "button:has-text('Remove selected')");
+  await checkBackdropRestores(page, "Remove selected");
+
+  await checkReportsDialogs({
+    page,
+    sql,
+    base,
+    heading,
+    checkOpenDialog,
+    checkEscapeRestores,
+    checkBackdropRestores,
+  });
 
   // ── 4b. ConfirmDialog — the issues bulk delete ───────────────────────────
   // The same shell and the same component, but a different trigger: a bulk-bar
