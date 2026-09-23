@@ -8,6 +8,7 @@ import {
   type ReportView,
   type WriteResult,
 } from "@/lib/comments";
+import { COMMENT_SHOWN, DELETE_COMMENT } from "@/lib/moderation-copy";
 import {
   clearNameAvatarAction,
   deleteReportedCommentAction,
@@ -61,7 +62,7 @@ export function ReportActions({
             onClick={() =>
               act(
                 () => unhideReportedCommentAction(comment.commentId),
-                "Comment shown again.",
+                COMMENT_SHOWN,
               )
             }
           >
@@ -133,9 +134,9 @@ export function ReportActions({
 
       {confirming === "delete" && comment && (
         <ConfirmDialog
-          title="Delete this comment?"
-          body="Members won’t see it again, and its open reports are resolved. If it has replies they stay, under “Comment removed”. The report keeps the comment as it was reported. This can’t be undone."
-          confirmLabel="Delete comment"
+          title={DELETE_COMMENT.title}
+          body={`${DELETE_COMMENT.body} The report keeps the comment as it was reported. This can’t be undone.`}
+          confirmLabel={DELETE_COMMENT.confirm}
           onClose={() => setConfirming(null)}
           onConfirm={() =>
             act(

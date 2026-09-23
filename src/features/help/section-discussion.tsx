@@ -1,8 +1,9 @@
 import { Bullets, Callout, GuideSection, P } from "./guide-ui";
 
 // The discussion and its moderation (issues #301, #302, #303): switching it on,
-// where members find it, the reply bell and emails they receive, the reports
-// inbox and its emails, and the removed-member setting.
+// where members find it, the reply bell and emails they receive, moderating
+// from the thread, the reports inbox and its emails, and the removed-member
+// setting.
 export function SectionDiscussion() {
   return (
     <GuideSection
@@ -49,10 +50,35 @@ export function SectionDiscussion() {
         can&rsquo;t be taken back.
       </P>
       <P>
-        As an admin you see the same thread, with the member account behind each
-        name written under it. Deleting an issue deletes its discussion too —
-        the confirmation says how many comments go with it. Discussion never
-        appears in the PDF.
+        As an admin you see the same thread, and you can{" "}
+        <strong>moderate it from there</strong>. When a comment is posted under
+        a name that differs from the member&rsquo;s name on the Members page, a
+        line under it reads <em>Account:</em> and that member&rsquo;s name —
+        press it to find them on the Members page. You also see what members
+        don&rsquo;t: a hidden comment stays in your view, greyed and marked{" "}
+        <em>Hidden</em>, with its words; a deleted one is marked{" "}
+        <em>Deleted</em> and says who deleted it.
+      </P>
+      <Bullets>
+        <li>
+          <strong>Hide</strong> under any comment takes it out of sight for
+          members at once; <strong>Unhide</strong> brings it back. Nobody can
+          reply to a hidden comment, and its author can&rsquo;t edit it, until
+          it is unhidden.
+        </li>
+        <li>
+          <strong>Delete</strong> under someone else&rsquo;s comment removes it
+          for good, after asking. Replies to it stay, under &ldquo;Comment
+          removed&rdquo;. Your own comments keep the ordinary Edit and Delete.
+        </li>
+        <li>
+          Hiding or deleting in the thread resolves that comment&rsquo;s open
+          reports, exactly as it does in the reports inbox.
+        </li>
+      </Bullets>
+      <P>
+        Deleting an issue deletes its discussion too — the confirmation says how
+        many comments go with it. Discussion never appears in the PDF.
       </P>
       <P>
         Any member can <strong>report</strong> someone else&rsquo;s comment,

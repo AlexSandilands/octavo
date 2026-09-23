@@ -75,6 +75,8 @@ export type AdminCommentView = Omit<MemberCommentView, "removed"> & {
   removed: boolean;
   hidden: boolean;
   deleted: boolean;
+  /** Who deleted it, while `deleted`; null otherwise. */
+  deletedBy: CommentDeletedBy | null;
   account: { id: string; name: string | null } | null;
 };
 

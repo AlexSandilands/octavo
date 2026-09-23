@@ -1,6 +1,7 @@
 // What the halves of dev-discussion-gate.mts share (issue #301): scratch rows
 // written straight to the database — every one carries the check-301 prefix
-// and is removed by id — plus the browser helpers the sections lean on.
+// (or GATE_PREFIX, when another agent shares the database) and is removed by
+// id — plus the browser helpers the sections lean on.
 import { randomUUID } from "node:crypto";
 import sharp from "sharp";
 import type { Browser, BrowserContext, Page } from "playwright";
@@ -79,7 +80,8 @@ export function discussionKit(opts: {
   out: string;
 }) {
   const { sql, base, browser, out } = opts;
-  const stamp = `check-301-${randomUUID().slice(0, 8)}`;
+  const prefix = process.env.GATE_PREFIX ?? "check-301";
+  const stamp = `${prefix}-${randomUUID().slice(0, 8)}`;
   const made = { users: [] as string[], issues: [] as string[] };
   const objects: string[] = [];
   let failures = 0;
@@ -118,7 +120,7 @@ export function discussionKit(opts: {
     let imageId: string | null = null;
     if (o.avatar) {
       imageId = randomUUID();
-      const key = `check-301/${stamp}/${imageId}.webp`;
+      const key = `${prefix}/${stamp}/${imageId}.webp`;
       const bytes = await sharp({
         create: { width: 64, height: 64, channels: 3, background: "#b0413e" },
       })
@@ -142,7 +144,8 @@ export function discussionKit(opts: {
       select content from issues where status = 'published'
       order by number limit 1`;
     const [max] = await sql<{ n: number }[]>`
-      select coalesce(max(number), 0)::int as n from issues where title not like 'check-301-%'`;
+      select coalesce(max(number), 0)::int as n from issues
+      where title not like ${`${prefix}-%`}`;
     const number = published ? max!.n + 7000 + offset : null;
     await sql`insert into issues (id, number, title, content, status, published_at)
       values (${id}, ${number}, ${`${stamp} issue ${made.issues.length}`},
@@ -242,10 +245,11 @@ export function discussionKit(opts: {
       const s = await storage();
       for (const key of objects) await s.deleteObject(key);
     }
+    // This run's rows only: another run on the same database is not ours.
     const [left] = await sql<{ n: number }[]>`
-      select (select count(*) from users where email like 'check-301-%')
-           + (select count(*) from issues where title like 'check-301-%')
-           + (select count(*) from images where key like 'check-301/%') as n`;
+      select (select count(*) from users where email like ${`${stamp}-%`})
+           + (select count(*) from issues where title like ${`${stamp} %`})
+           + (select count(*) from images where key like ${`${prefix}/${stamp}/%`}) as n`;
     return Number(left?.n ?? 0);
   }
 
@@ -254,6 +258,7 @@ export function discussionKit(opts: {
     base,
     browser,
     out,
+    prefix,
     stamp,
     ok,
     heading,

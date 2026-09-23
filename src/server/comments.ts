@@ -69,6 +69,7 @@ const threadSelection = {
   pageId: comments.pageId,
   hiddenAt: comments.hiddenAt,
   deletedAt: comments.deletedAt,
+  deletedBy: comments.deletedBy,
   createdAt: comments.createdAt,
   editedAt: comments.editedAt,
   authorId: comments.authorId,
@@ -118,6 +119,7 @@ function adminView(row: ThreadRow, viewerId: string): AdminCommentView {
     removed: hidden || deleted,
     hidden,
     deleted,
+    deletedBy: deleted ? row.deletedBy : null,
     account: row.authorId ? { id: row.authorId, name: row.accountName } : null,
   };
 }

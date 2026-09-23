@@ -397,6 +397,8 @@ Reader (client)       ─ useDiscussion: open state + a history entry per openin
                    └─ listComments ▸ toThreadEntries ▸ { entries, composer }
   a write     ─▶ server action in app/read/[issueId]/actions.ts
                    └─ createComment / editComment / deleteOwnComment / createReport
+                 or, an admin's, in app/read/[issueId]/moderation-actions.ts
+                   └─ requireAdmin ▸ hideComment / unhideComment / deleteComment
                ─▶ refetch the list, scroll to and announce the result
 ```
 
@@ -447,6 +449,26 @@ without it the email is skipped and reported. The footer's **Stop reply emails**
 `replies` unsubscribe token, flipping only `reply_emails`. Accepted: a reply an admin hides
 later has already been mailed. Gates: `scripts/dev-notifications-gate.mts` and the bell's
 walkthrough in `scripts/dev-menu-focus-gate.mts`.
+
+**The admin's thread (issue #302).** `toThreadEntries` shapes one payload per viewer. A
+member's is the members' rule, unchanged: hidden and deleted comments withheld, a removed
+top-level comment kept only as a bare "Comment removed" stub while it has visible replies,
+no account, no moderation state. An admin's carries every row — removed replies included —
+each with `hidden`, `deleted` and `deletedBy`, plus the account's name (never the email or
+id). The thread draws a hidden comment greyed on `chip-soft` with its words and a Hidden pill,
+a deleted one as a stub marked Deleted and "Deleted by its author / an admin", and, only when
+the account's name differs from the posting name (`accountLine`, compared as name keys),
+"Account: <name>" linking to `/admin/members?q=<name>` — the members search matches names,
+so the email stays out of the address; an account with no name reads "no name on record",
+unlinked. An admin gets Hide / Unhide on every comment (it acts at once; the button flips in
+place, so focus stays on it) and Delete on anyone else's, behind a confirmation; on their own
+comment they keep the member's Edit and Delete. Those three are the server actions in
+`moderation-actions.ts`: `requireAdmin()` first, the id parsed, then the same
+`comment-moderation.ts` functions the reports inbox calls — so hiding or deleting from the
+thread resolves the comment's open reports — and no `revalidatePath`, since the thread
+refetches its own list. Gates: the admin section of `dev-discussion-gate.mts`
+(`discussion-gate-admin.mts`), the replayed refusals in `dev-admin-gate.mts`, the nested
+confirmation in `dev-dialog-a11y-gate.mts`.
 
 ## Routes
 

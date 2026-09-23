@@ -5,14 +5,16 @@
 // the badge, the rate limit, deep links (a deleted comment's too), the off
 // switch with and without a settings row, drafts, the print route, the counts
 // on the library cards and in the delete confirmations (bulk included), and
-// the lazy fetch.
+// the lazy fetch; and the admin's thread (#302) — hidden and deleted comments
+// marked, the account line, Hide / Unhide / Delete in the drawer and the sheet,
+// the member's payload held to the members' rule.
 //
 // Against a demo-mode server (NEXT_PUBLIC_DEMO_MODE=1, detected: the reader
 // answers a signed-out visitor) it runs the signed-out visitor's checks
 // instead — the control without a count, the sign-in panel, nothing fetched,
 // the list route's 401 and no counts on the library.
 //
-// Every row it makes is prefixed check-301 and removed in the finally;
+// Every row it makes is prefixed check-301 (or GATE_PREFIX) and removed in the finally;
 // `settings.comments_enabled` must be on (the baseline) and the settings row
 // is restored exactly as found. Screenshots go to .data/discussion-review.
 //
@@ -22,6 +24,7 @@ import path from "node:path";
 import postgres from "postgres";
 import { chromium } from "playwright";
 import { addressGate } from "./discussion-gate-address.mts";
+import { adminGate } from "./discussion-gate-admin.mts";
 import { countsGate } from "./discussion-gate-counts.mts";
 import { desktopGate, type Cast } from "./discussion-gate-desktop.mts";
 import { discussionKit } from "./discussion-gate-kit.mts";
@@ -104,6 +107,7 @@ try {
     await desktopGate(k, cast);
     await mobileGate(k, cast);
     await composerStates(k, cast);
+    await adminGate(k, cast);
 
     const target = await k.comment(
       p.id,

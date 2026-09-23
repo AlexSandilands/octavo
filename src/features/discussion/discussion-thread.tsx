@@ -9,12 +9,28 @@ import {
   editCommentAction,
   postCommentAction,
 } from "@/app/read/[issueId]/actions";
+import {
+  hideCommentAction,
+  moderateDeleteCommentAction,
+  unhideCommentAction,
+} from "@/app/read/[issueId]/moderation-actions";
+import { COMMENT_SHOWN } from "@/lib/moderation-copy";
 import { CommentComposer } from "./comment-composer";
+import type { ModerationAction } from "./moderation-buttons";
 import { commentDomId } from "./comment-item";
 import { ThreadList, type ThreadHandlers } from "./thread-list";
 import type { Discussion } from "./use-discussion";
 import { MAIN_COMPOSER, useCommentTarget } from "./use-comment-target";
 import { useThread } from "./use-thread";
+
+const MODERATION = {
+  hide: [hideCommentAction, "Comment hidden from members."],
+  unhide: [unhideCommentAction, COMMENT_SHOWN],
+  delete: [moderateDeleteCommentAction, "Comment deleted."],
+} as const satisfies Record<
+  ModerationAction,
+  readonly [(id: string) => Promise<WriteResult>, string]
+>;
 
 // The thread inside either shell (issue #301): the list scrolling above, the
 // composer pinned below. It owns the writes: each one refetches the list, then
@@ -52,8 +68,20 @@ export function DiscussionThread({ talk }: { talk: Discussion }) {
     onDeepLinkDone: talk.clearFocusComment,
   });
 
-  const focusLater = (id: string) =>
-    requestAnimationFrame(() => document.getElementById(id)?.focus());
+  // After a confirmation, the thread stays inert until the dialog has gone, so
+  // focus waits for that (a few frames at most).
+  const focusLater = (...ids: string[]) => {
+    let frames = 30;
+    const attempt = () => {
+      const el = ids
+        .map((id) => document.getElementById(id))
+        .find((found) => found !== null);
+      if (el?.closest("[inert]") && --frames > 0) {
+        requestAnimationFrame(attempt);
+      } else el?.focus();
+    };
+    requestAnimationFrame(attempt);
+  };
 
   const post = async (
     parentId: string | null,
@@ -146,6 +174,17 @@ export function DiscussionThread({ talk }: { talk: Discussion }) {
       await thread.reload();
       announce("Your comment is deleted.");
       focusLater(MAIN_COMPOSER);
+      return result;
+    },
+    // Hide and Unhide keep focus on the button they flip; a delete lands on
+    // the stub it leaves, or back in the box when nothing is left.
+    moderate: (id) => async (action) => {
+      const [write, done] = MODERATION[action];
+      const result = await write(id);
+      if (!result.ok) return result;
+      await thread.reload();
+      announce(done);
+      if (action === "delete") focusLater(commentDomId(id), MAIN_COMPOSER);
       return result;
     },
   };

@@ -74,8 +74,17 @@ const contrast = (a: string, b: string) => {
 };
 
 const AA = 4.5;
-// The paper-family surfaces readable text sits on across the app.
-const backgrounds = ["paper", "page", "card", "stage", "tint", "warn-soft"];
+// The paper-family surfaces readable text sits on across the app — chip-soft
+// under a hidden comment in an admin's thread (#302).
+const backgrounds = [
+  "paper",
+  "page",
+  "card",
+  "stage",
+  "tint",
+  "warn-soft",
+  "chip-soft",
+];
 
 // Check one brand's full token set (the same bar #10 audited for heritage).
 const checkBrand = (id: string, tokens: Map<string, string>) => {

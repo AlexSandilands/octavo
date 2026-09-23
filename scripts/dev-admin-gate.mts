@@ -3,8 +3,9 @@
 // server-action invocation: it captures the real createIssueAction request an
 // admin's browser sends, then replays that exact request signed out and as a
 // non-admin member, asserting no DB write happens either way.
-// Also the reports inbox's moderation actions (issue #302), replayed the same
-// way — see admin-gate-moderation.mts.
+// Also the moderation actions (issue #302) — the reports inbox's and the
+// thread's Hide / Unhide / Delete — replayed the same way; see
+// admin-gate-moderation.mts.
 // Run: npx tsx scripts/dev-admin-gate.mts <base-url> <dev-log-path>
 //
 // SAFETY: it writes to the shared dev database, and owns every row it touches.
@@ -21,7 +22,10 @@
 import { readFile } from "node:fs/promises";
 import { chromium, type BrowserContext } from "playwright";
 import postgres from "postgres";
-import { checkModerationRefused } from "./admin-gate-moderation.mts";
+import {
+  checkModerationRefused,
+  checkThreadModerationRefused,
+} from "./admin-gate-moderation.mts";
 
 process.loadEnvFile?.(".env.local");
 const [base, logPath] = process.argv.slice(2);
@@ -241,6 +245,16 @@ try {
 
   // ── Moderation actions (#302), refused the same way ───────────────────────
   await checkModerationRefused({
+    sql,
+    base,
+    adminPage,
+    memberCookie: await cookieHeader(member),
+    adminCookie: await cookieHeader(admin),
+    ok,
+  });
+
+  // ── The thread's Hide / Unhide / Delete (#302), refused the same way ─────
+  await checkThreadModerationRefused({
     sql,
     base,
     adminPage,
