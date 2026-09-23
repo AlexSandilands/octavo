@@ -7,7 +7,8 @@
 // detector. Twenty more press "Create new issue" and must land in the editor,
 // then find the draft on Back: that failure is intermittent (#276, #296), so
 // one trial proves nothing. A last case checks a failed create reaches the
-// error boundary rather than stranding the button.
+// error boundary rather than stranding the button. The reports inbox (#302)
+// runs the same trial for Resolve, Hide comment and Delete comment.
 //
 // Run against a production server:
 //   rm -rf .next && npm run build
@@ -19,11 +20,13 @@ import postgres from "postgres";
 import { randomUUID } from "node:crypto";
 import { emptyIssueContent } from "../src/lib/blocks.ts";
 import { expandMember } from "./check-member-disclosure.mts";
+import { reportsFixtures } from "./fixtures/reports-fixtures.mts";
 
 process.loadEnvFile?.(".env.local");
 const base = process.argv[2] ?? "http://localhost:3000";
 
 const sql = postgres(process.env.DATABASE_URL!, { max: 1 });
+const reports = reportsFixtures(sql, "refresh");
 const ok = (cond: unknown, msg: string) => {
   if (!cond) throw new Error(`FAIL: ${msg}`);
   console.log(`ok — ${msg}`);
@@ -165,6 +168,53 @@ try {
     );
   });
 
+  // Reports inbox (#302) — each trial reports a fresh comment and acts on it;
+  // every action takes the row out of the Open view.
+  const reportIssue = await reports.issue();
+  const author = await reports.user(`${reports.stamp} Author`);
+  const reporter = await reports.user(`${reports.stamp} Reporter`);
+  const authorName = await reports.name(author.id, "Author Name");
+  const actions = [
+    ["Resolve report of the comment by Author Name", null],
+    ["Hide comment by Author Name", null],
+    ["Delete comment by Author Name", "Delete comment"],
+  ] as const;
+  await sample(6, "report action", async (i) => {
+    const [button, confirmText] = actions[(i - 1) % actions.length]!;
+    const body = `Refresh trial ${i}`;
+    const comment = await reports.comment(
+      reportIssue,
+      author,
+      authorName,
+      body,
+    );
+    const reportId = await reports.report(comment, reporter.id);
+    const ctx = await adminContext();
+    const page = await ctx.newPage();
+    await page.goto(
+      `${base}/admin/reports?q=${encodeURIComponent(reports.stamp)}`,
+    );
+    const row = page.locator("article").filter({ hasText: body });
+    await row.getByRole("button", { name: button }).click();
+    if (confirmText) {
+      await page
+        .getByRole("dialog")
+        .getByRole("button", { name: confirmText })
+        .click();
+    }
+    let gone = true;
+    try {
+      await row.waitFor({ state: "detached", timeout: 8000 });
+    } catch {
+      gone = false;
+    }
+    const [done] =
+      await sql`select status from comment_reports where id = ${reportId}`;
+    ok(done?.status === "resolved", `the action itself committed (${button})`);
+    await ctx.close();
+    return gone;
+  });
+
   // Create — pressing the button must land in the new draft's editor (#276).
   await sample(
     20,
@@ -260,6 +310,7 @@ try {
     await sql`delete from issues where id in ${sql(issueIds)}`;
   if (memberIds.length > 0)
     await sql`delete from users where id in ${sql(memberIds)}`;
+  await reports.cleanup();
   await sql`delete from sessions where session_token = ${token}`;
   await sql`delete from users where id = ${adminId}`;
   await sql.end();

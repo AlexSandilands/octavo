@@ -2,10 +2,15 @@
 // src/server/session.ts from app code resolves to session-stub.mts, so a gate
 // can act as any member without a request. The gate's own import stays real.
 const STUB = new URL("./session-stub.mts", import.meta.url).href;
+// And @sentry/nextjs, whose functions tsx can't reach through its CJS build.
+const SENTRY_STUB = new URL("./sentry-stub.mts", import.meta.url).href;
 
 export async function resolve(specifier, context, next) {
-  const resolved = await next(specifier, context);
   const fromApp = context.parentURL?.includes("/src/") ?? false;
+  if (fromApp && specifier === "@sentry/nextjs") {
+    return { url: SENTRY_STUB, shortCircuit: true };
+  }
+  const resolved = await next(specifier, context);
   if (fromApp && resolved.url.endsWith("/src/server/session.ts")) {
     return { url: STUB, shortCircuit: true };
   }

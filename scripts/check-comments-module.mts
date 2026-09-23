@@ -43,6 +43,7 @@ const probe = (demo: boolean) => {
 
 const h = await import("./fixtures/discussion/harness.mts");
 const { as, db, ok, heading, schema, names, thread, moderation, notices } = h;
+const { inbox: reportInbox } = h;
 const { comments, notifications, commentReports, memberNames, users } = schema;
 const { eq, and, isNull } = await import("drizzle-orm");
 
@@ -78,9 +79,9 @@ const writes: Record<string, string[]> = {
   "src/server/comment-moderation.ts": [
     "deleteComment",
     "createReport",
-    "listReports",
     "resolveReport",
   ],
+  "src/server/report-inbox.ts": ["listReports", "countOpenReports"],
   "src/server/member-names.ts": [
     "listMyNames",
     "addName",
@@ -109,7 +110,9 @@ for (const [file, fns] of Object.entries(writes)) {
 }
 const setHidden = readFileSync("src/server/comment-moderation.ts", "utf8");
 ok(
-  /async function setHidden[^{]*\{\n\s*await requireAdmin\(\)/.test(setHidden),
+  /async function setHidden[^{]*\{\n\s*(const \w+ = )?await requireAdmin\(\)/.test(
+    setHidden,
+  ),
   "hideComment/unhideComment (via setHidden) call requireAdmin first",
 );
 
@@ -527,7 +530,7 @@ ok(
 );
 await thread.editComment({ commentId: reported, body: "Softened words" });
 as(admin);
-let inbox = await moderation.listReports();
+let inbox = (await reportInbox.listReports()).rows;
 let mine = inbox.find((r) => r.id === reportRows[0]!.id);
 ok(
   mine?.current.state === "edited" && mine.snapshot.body === "Original words",
@@ -545,7 +548,7 @@ ok(
   "a reported comment is soft-deleted, not hard-deleted",
 );
 as(admin);
-inbox = await moderation.listReports();
+inbox = (await reportInbox.listReports()).rows;
 mine = inbox.find((r) => r.id === reportRows[0]!.id);
 ok(
   mine?.current.state === "deleted" && mine.snapshot.body === "Original words",
@@ -553,7 +556,7 @@ ok(
 );
 ok((await moderation.resolveReport(mine!.id)).ok, "an admin resolves it");
 ok(
-  !(await moderation.listReports()).some((r) => r.id === mine!.id),
+  !(await reportInbox.listReports()).rows.some((r) => r.id === mine!.id),
   "…and it leaves the open inbox",
 );
 

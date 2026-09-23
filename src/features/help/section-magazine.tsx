@@ -56,11 +56,23 @@ export function SectionMagazine() {
           works. Some clubs would rather it that way, since a PDF can be
           forwarded to anyone once it leaves the site. It is not a permanent
           decision: copies already made are kept, so turning it back on offers
-          them again the same moment. This is the one setting on the screen the
-          preview beside it can&rsquo;t show you, because it changes nothing
-          about how a page looks.
+          them again the same moment. The preview beside it can&rsquo;t show you
+          this one, because it changes nothing about how a page looks.
         </Step>
-        <Step n={4} title="The page beside them, before you save">
+        <Step n={4} title="Discussion — switching it on, and removed members">
+          <strong>Let members discuss each issue</strong> is how the club turns
+          the discussion on; it starts off. Below it, choose what happens to a
+          member&rsquo;s comments when you remove them: kept under &ldquo;Former
+          member&rdquo;, or deleted. The preview can&rsquo;t show either. See{" "}
+          <a
+            href="#discussion"
+            className="text-accent font-medium hover:underline"
+          >
+            Discussion and reports
+          </a>{" "}
+          for what each does.
+        </Step>
+        <Step n={5} title="The page beside them, before you save">
           The picture on the right is a real magazine page, drawn by the same
           parts the reader and the PDF use, from the choices currently in the
           form — so it shows the footer you are about to have, not the one the
@@ -70,7 +82,7 @@ export function SectionMagazine() {
           are offered here only so you can look at the combination you care
           about.
         </Step>
-        <Step n={5} title="Logos — the club’s own marks">
+        <Step n={6} title="Logos — the club’s own marks">
           A small library of the club&rsquo;s marks — a crest, an emblem, a
           wordmark. Give each one a name, upload the picture once, and it is
           available to the rest of the magazine; rename it any time. Adding,
@@ -78,12 +90,13 @@ export function SectionMagazine() {
           button of its own and does not use the one above it. It&rsquo;s
           separate from Sponsors, which is for other people&rsquo;s businesses.
         </Step>
-        <Step n={6} title="Save changes — one button for the lot">
-          The wording, the page-top switch, the footer settings and the download
-          switch are one form with one button, so the whole screen commits
-          together. Until you press it nothing has changed anywhere but that
-          preview, and the line beside the button tells you which of the two you
-          are looking at. Once saved, it is live on the site immediately.
+        <Step n={7} title="Save changes — one button for the lot">
+          The wording, the page-top switch, the footer settings, the download
+          switch and the discussion settings are one form with one button, so
+          the whole screen commits together. Until you press it nothing has
+          changed anywhere but that preview, and the line beside the button
+          tells you which of the two you are looking at. Once saved, it is live
+          on the site immediately.
         </Step>
       </Steps>
       <Callout title="After you make the footer bigger">

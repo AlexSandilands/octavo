@@ -3,6 +3,8 @@
 // server-action invocation: it captures the real createIssueAction request an
 // admin's browser sends, then replays that exact request signed out and as a
 // non-admin member, asserting no DB write happens either way.
+// Also the reports inbox's moderation actions (issue #302), replayed the same
+// way — see admin-gate-moderation.mts.
 // Run: npx tsx scripts/dev-admin-gate.mts <base-url> <dev-log-path>
 //
 // SAFETY: it writes to the shared dev database, and owns every row it touches.
@@ -19,6 +21,7 @@
 import { readFile } from "node:fs/promises";
 import { chromium, type BrowserContext } from "playwright";
 import postgres from "postgres";
+import { checkModerationRefused } from "./admin-gate-moderation.mts";
 
 process.loadEnvFile?.(".env.local");
 const [base, logPath] = process.argv.slice(2);
@@ -178,9 +181,7 @@ try {
   });
   await adminPage.goto(`${base}/admin`);
   const beforeCreate = await issueIds();
-  await adminPage.click(
-    "form button[type=submit]:has-text('Create new issue')",
-  );
+  await adminPage.click("button:has-text('Create new issue')");
   await adminPage.waitForURL("**/admin/issues/*/edit");
   // The editor URL names the row the click just made — the unambiguous handle
   // that means this gate never has to guess from a title.
@@ -237,6 +238,16 @@ try {
       (replayed.length === 1 ? "" : ` — saw ${replayed.length} new issues`),
   );
   made.issues.push(replayed[0]!);
+
+  // ── Moderation actions (#302), refused the same way ───────────────────────
+  await checkModerationRefused({
+    sql,
+    base,
+    adminPage,
+    memberCookie: await cookieHeader(member),
+    adminCookie: await cookieHeader(admin),
+    ok,
+  });
 
   // ── Shell identity + sign-out ──────────────────────────────────────────────
   await adminPage.goto(`${base}/admin`);

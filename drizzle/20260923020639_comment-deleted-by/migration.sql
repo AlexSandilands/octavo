@@ -1,0 +1,1 @@
+ALTER TABLE "comments" ADD COLUMN "deleted_by" text;

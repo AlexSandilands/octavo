@@ -12,6 +12,8 @@ import {
 } from "@/server/issues";
 import { resolveIssueImages } from "@/server/images";
 import { resolveIssueSponsors } from "@/server/sponsors";
+import Link from "next/link";
+import { countOpenReports } from "@/server/report-inbox";
 import { requireAdminOrRedirect } from "@/server/session";
 import { getSettings } from "@/server/settings";
 import { CoverThumb } from "@/features/library/cover-thumb";
@@ -50,7 +52,7 @@ export default async function AdminDashboard({
   const params = paramsSchema.parse(await searchParams);
   const query = params.q.trim();
   const settings = await getSettings();
-  const [list, years, suggestedNumber] = await Promise.all([
+  const [list, years, suggestedNumber, openReports] = await Promise.all([
     listIssuesPage({
       query,
       page: params.page,
@@ -59,6 +61,7 @@ export default async function AdminDashboard({
     }),
     listIssueYears(),
     nextIssueNumber(),
+    countOpenReports(),
   ]);
   const issues = list.rows;
 
@@ -110,6 +113,17 @@ export default async function AdminDashboard({
           <p className="text-faint mt-1.5 font-sans text-sm">
             {list.total} {list.total === 1 ? "issue" : "issues"} ·{" "}
             {list.draftTotal} in draft
+            {openReports > 0 && (
+              <>
+                {" · "}
+                <Link
+                  href="/admin/reports"
+                  className="text-warn font-semibold hover:underline"
+                >
+                  {openReports} open {openReports === 1 ? "report" : "reports"}
+                </Link>
+              </>
+            )}
           </p>
         </div>
         <div className="flex flex-none flex-col gap-3 sm:flex-row">

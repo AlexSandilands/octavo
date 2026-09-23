@@ -21,7 +21,11 @@ import {
   type FooterAlign,
   type RemovedMemberComments,
 } from "@/lib/branding";
-import type { ReportReason, ReportStatus } from "@/lib/comments";
+import type {
+  CommentDeletedBy,
+  ReportReason,
+  ReportStatus,
+} from "@/lib/comments";
 import type { ImportResult } from "@/lib/issue-transfer/result";
 
 // All timestamps are timestamptz: the app runs in a different timezone locally
@@ -283,8 +287,10 @@ export const memberNames = pgTable(
 // One thread per issue: top-level comments and one level of replies (the
 // module refuses a reply to a reply). A null author is a removed member,
 // rendered "Former member". Hidden and deleted rows stay while they have
-// replies, as a stub; a soft delete blanks `body`. `pageId` is the authored
-// page's stable id, not its number, so renumbering never moves a tag.
+// replies, as a stub; a soft delete blanks `body` and records in `deletedBy`
+// whether the author or an admin did it (app-validated, as `reason` is).
+// `pageId` is the authored page's stable id, not its number, so renumbering
+// never moves a tag.
 export const comments = pgTable(
   "comments",
   {
@@ -305,6 +311,7 @@ export const comments = pgTable(
     pageId: text("page_id"),
     hiddenAt: timestamp("hidden_at", { withTimezone: true }),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    deletedBy: text("deleted_by").$type<CommentDeletedBy>(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

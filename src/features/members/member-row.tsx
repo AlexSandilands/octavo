@@ -6,6 +6,7 @@ import { MemberDialog } from "./member-dialog";
 import { SelectCheckbox } from "@/components/select-checkbox";
 import { Avatar, IconButton, Pill } from "@/components/ui";
 import { MemberDetails } from "./member-details";
+import { RemovalCommentsNote } from "./removal-comments-note";
 import styles from "./members-layout.module.css";
 import { initials } from "@/lib/initials";
 import {
@@ -43,7 +44,7 @@ export function MemberRow({
   // The pending destructive action awaiting confirmation, if any.
   const [confirm, setConfirm] = useState<{
     title: string;
-    body: string;
+    body: React.ReactNode;
     confirmLabel: string;
     confirmIcon: "trash" | "close" | "minus";
     act: () => void;
@@ -81,7 +82,12 @@ export function MemberRow({
   const remove = () => {
     setConfirm({
       title: `Remove ${label}?`,
-      body: "This revokes their access and signs them out. It can’t be undone.",
+      body: (
+        <>
+          This revokes their access and signs them out. It can’t be undone.
+          <RemovalCommentsNote ids={[member.id]} many={false} />
+        </>
+      ),
       confirmLabel: "Remove member",
       confirmIcon: "trash",
       act: () => run(() => removeMemberAction(member.id)),

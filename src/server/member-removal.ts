@@ -1,10 +1,20 @@
 import "server-only";
-import { and, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, count, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { db } from "@/db";
-import { comments, memberNames, sessions, settings, users } from "@/db/schema";
-import { REMOVED_MEMBER_COMMENTS } from "@/lib/branding";
+import {
+  commentReports,
+  comments,
+  memberNames,
+  sessions,
+  settings,
+  users,
+} from "@/db/schema";
+import {
+  REMOVED_MEMBER_COMMENTS,
+  type RemovedMemberComments,
+} from "@/lib/branding";
 import { siteDefaults } from "@/lib/site-defaults";
 import {
   sweepOrphanedObjects,
@@ -31,7 +41,9 @@ async function removedMemberPolicy(tx: Tx) {
 const reply = alias(comments, "reply");
 
 // "delete": the members' replies go, then their top-level comments — as a
-// blanked stub where someone else's reply survives, else outright. Under
+// blanked stub where someone else's reply survives, else outright. A reported
+// comment always stays as a stub, so its reports can say it was removed; every
+// stub here is marked deleted by an admin, who removed the member. Under
 // "anonymise" they stay, unattributed, and render as "Former member".
 async function deleteCommentsOf(tx: Tx, userIds: string[]) {
   // Lock their threads first, as deleteOwnComment does: a reply posted now
@@ -41,24 +53,28 @@ async function deleteCommentsOf(tx: Tx, userIds: string[]) {
     .from(comments)
     .where(and(inArray(comments.authorId, userIds), isNull(comments.parentId)))
     .for("update");
-  await tx
-    .delete(comments)
-    .where(
-      and(inArray(comments.authorId, userIds), isNotNull(comments.parentId)),
-    );
+  const reported = sql`exists (${tx
+    .select({ one: sql`1` })
+    .from(commentReports)
+    .where(eq(commentReports.commentId, comments.id))})`;
+  const stub = { body: "", deletedAt: new Date(), deletedBy: "admin" as const };
+  const replies = and(
+    inArray(comments.authorId, userIds),
+    isNotNull(comments.parentId),
+  );
+  await tx.update(comments).set(stub).where(and(replies, reported));
+  await tx.delete(comments).where(and(replies, sql`not ${reported}`));
   const hasReply = sql`exists (${tx
     .select({ one: sql`1` })
     .from(reply)
     .where(eq(reply.parentId, comments.id))})`;
+  const keep = sql`(${hasReply} or ${reported})`;
   const theirs = and(
     inArray(comments.authorId, userIds),
     isNull(comments.parentId),
   );
-  await tx
-    .update(comments)
-    .set({ body: "", deletedAt: new Date() })
-    .where(and(theirs, hasReply));
-  await tx.delete(comments).where(and(theirs, sql`not ${hasReply}`));
+  await tx.update(comments).set(stub).where(and(theirs, keep));
+  await tx.delete(comments).where(and(theirs, sql`not ${keep}`));
 }
 
 // Applies the comment policy to a batch about to be removed and hands back
@@ -85,6 +101,30 @@ async function prepareRemoval(
     .set({ authorId: null, authorNameId: null })
     .where(inArray(comments.authorId, userIds));
   return avatars.flatMap((row) => (row.imageId ? [row.imageId] : []));
+}
+
+/** What removing these members would do to their comments, for the removal
+ *  confirmation (issue #302): how many they have and the policy now. */
+export async function removalImpact(
+  userIds: string[],
+): Promise<{ comments: number; policy: RemovedMemberComments }> {
+  const ids = [...new Set(userIds)];
+  return db.transaction(
+    async (tx) => {
+      let total = 0;
+      for (const batch of chunked(ids)) {
+        const [row] = await tx
+          .select({ n: count() })
+          .from(comments)
+          .where(
+            and(inArray(comments.authorId, batch), isNull(comments.deletedAt)),
+          );
+        total += row?.n ?? 0;
+      }
+      return { comments: total, policy: await removedMemberPolicy(tx) };
+    },
+    { accessMode: "read only" },
+  );
 }
 
 export type DeleteUserResult =

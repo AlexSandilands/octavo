@@ -238,7 +238,9 @@ export type Status =
   | "Subscribed"
   | "Unsubscribed"
   | "Bounced"
-  | "Planned";
+  | "Planned"
+  | "Open"
+  | "Resolved";
 
 const PILL: Record<Status, { bg: string; ink: string; dot: string }> = {
   Published: { bg: "bg-tint", ink: "text-accent", dot: "bg-accent" },
@@ -247,6 +249,8 @@ const PILL: Record<Status, { bg: string; ink: string; dot: string }> = {
   Unsubscribed: { bg: "bg-chip", ink: "text-faint", dot: "bg-chip-dot" },
   Bounced: { bg: "bg-warn-soft", ink: "text-warn", dot: "bg-alert" },
   Planned: { bg: "bg-warn-soft", ink: "text-warn", dot: "bg-alert" },
+  Open: { bg: "bg-warn-soft", ink: "text-warn", dot: "bg-alert" },
+  Resolved: { bg: "bg-chip", ink: "text-faint", dot: "bg-chip-dot" },
 };
 
 export function Pill({ status }: { status: Status }) {
