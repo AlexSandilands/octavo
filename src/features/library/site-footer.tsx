@@ -29,7 +29,7 @@ export function SiteFooter({
         {signedIn && (
           <>
             <Link
-              href="/preferences"
+              href="/profile#email"
               className="text-muted hover:text-accent flex h-11 items-center font-sans text-sm font-medium whitespace-nowrap hover:underline"
             >
               Email preferences
