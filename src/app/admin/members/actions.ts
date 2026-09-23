@@ -5,16 +5,18 @@ import { z } from "zod";
 import {
   createUser,
   createUsers,
-  deleteUser,
-  deleteUsers,
   listMatchingUserIds,
   setAdmin,
   setSubscribed,
   setSubscribedMany,
   updateUser,
-  type BulkDeleteResult,
   type BulkSubscribeResult,
 } from "@/server/users";
+import {
+  deleteUser,
+  deleteUsers,
+  type BulkDeleteResult,
+} from "@/server/member-removal";
 import { requireAdmin } from "@/server/session";
 import { ADMIN_LIST_QUERY_MAX } from "@/lib/list-query";
 import { MEMBERS_IMPORT_MAX } from "@/features/members/import-limit";

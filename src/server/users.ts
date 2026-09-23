@@ -13,7 +13,7 @@ import {
   sql,
 } from "drizzle-orm";
 import { db } from "@/db";
-import { sessions, users } from "@/db/schema";
+import { users } from "@/db/schema";
 import { isUniqueViolation } from "@/lib/db-errors";
 import { likePattern } from "@/lib/like-pattern";
 import {
@@ -21,11 +21,12 @@ import {
   pageBounds,
   type PagedList,
 } from "@/lib/pagination";
+import { chunked } from "./id-chunks";
 
 // Server-only data access for the club member list (the `users` table). All
 // callers (server components, server actions) go through here — never query
 // Drizzle from a component. Membership = presence on this list; removing a row
-// revokes a person's ability to sign in.
+// revokes a person's ability to sign in; that path lives in member-removal.ts.
 
 // The columns the members UI needs — never `select()` the whole row, so the
 // bearer session token and email-verification timestamp stay server-side.
@@ -162,22 +163,6 @@ export async function listMatchingUserIds(opts: {
     .orderBy(desc(users.createdAt), asc(users.email))
     .limit(opts.limit);
   return rows.map((r) => r.id);
-}
-
-// A whole-club selection is thousands of ids, and Postgres binds one parameter
-// per id in an `IN` list against a hard ceiling of 65,535 per statement — so
-// the bulk writes below send their ids to the database a chunk at a time. The
-// chunks are a statement-level detail only: they all run inside the one
-// transaction that took the guard-rail locks, so the operation stays atomic and
-// the invariants are decided once for the whole selection, never per chunk.
-const ID_CHUNK = 1000;
-
-function chunked<T>(items: T[]): T[][] {
-  const batches: T[][] = [];
-  for (let i = 0; i < items.length; i += ID_CHUNK) {
-    batches.push(items.slice(i, i + ID_CHUNK));
-  }
-  return batches;
 }
 
 export type CreateUserResult =
@@ -397,119 +382,5 @@ export async function setAdmin(
       .set({ isAdmin: false })
       .where(eq(users.id, targetId));
     return { ok: true };
-  });
-}
-
-export type DeleteUserResult =
-  | { ok: true }
-  | { ok: false; reason: "self" | "last-admin" | "missing" };
-
-// Removing a member revokes their access. Guards mirror `setAdmin`: an admin
-// can't remove themselves, and removing the last admin is refused. Sessions FK
-// onto users with ON DELETE CASCADE, but we delete them explicitly too so the
-// intent — this person can no longer sign in — is legible at the call site.
-export async function deleteUser(
-  targetId: string,
-  currentUserId: string,
-): Promise<DeleteUserResult> {
-  if (targetId === currentUserId) return { ok: false, reason: "self" };
-
-  return db.transaction(async (tx) => {
-    const [target] = await tx
-      .select({ isAdmin: users.isAdmin })
-      .from(users)
-      .where(eq(users.id, targetId))
-      .limit(1);
-    if (!target) return { ok: false, reason: "missing" };
-    if (target.isAdmin) {
-      const admins = await tx
-        .select({ id: users.id })
-        .from(users)
-        .where(eq(users.isAdmin, true))
-        .for("update");
-      if (admins.length <= 1) return { ok: false, reason: "last-admin" };
-    }
-    await tx.delete(sessions).where(eq(sessions.userId, targetId));
-    await tx.delete(users).where(eq(users.id, targetId));
-    return { ok: true };
-  });
-}
-
-export type BulkDeleteResult = {
-  removed: number;
-  /** 1 if the acting admin selected their own row (always refused). */
-  skippedSelf: number;
-  /** Admins refused because removing them would leave the club with none. */
-  skippedAdmins: number;
-  /** Selected ids that were already gone (a stale table). */
-  missing: number;
-};
-
-// The members table's bulk removal. `deleteUser`'s guard rails hold here too,
-// but bulk can't be all-or-nothing about them: one protected row shouldn't sink
-// a 200-row batch an admin has just built. So the protected rows are refused
-// individually and reported back — the acting admin's own row is always
-// skipped, and if the batch would strip the last admin, *every* admin in it is
-// skipped (refusing them all beats silently choosing a survivor). Everything
-// else happens in one transaction: a mid-batch failure leaves the list as it
-// was, never half-pruned.
-//
-// A whole-club selection is sent to the database in chunks, but the guard rails
-// are not chunked: the admin lock, the lookup of who is in the selection and
-// the decision about who to spare all complete before the first row is deleted,
-// over the entire selection. So a chunk boundary can never be the moment the
-// last admin goes.
-export async function deleteUsers(
-  targetIds: string[],
-  currentUserId: string,
-): Promise<BulkDeleteResult> {
-  const ids = [...new Set(targetIds)];
-  const skippedSelf = ids.includes(currentUserId) ? 1 : 0;
-  const candidates = ids.filter((id) => id !== currentUserId);
-  if (candidates.length === 0) {
-    return { removed: 0, skippedSelf, skippedAdmins: 0, missing: 0 };
-  }
-
-  return db.transaction(async (tx) => {
-    // Lock every admin row for the transaction, as the single-row delete does:
-    // without it two concurrent batches could each count enough admins left
-    // over and between them leave zero.
-    const admins = await tx
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.isAdmin, true))
-      .for("update");
-
-    const found: { id: string; isAdmin: boolean }[] = [];
-    for (const batch of chunked(candidates)) {
-      found.push(
-        ...(await tx
-          .select({ id: users.id, isAdmin: users.isAdmin })
-          .from(users)
-          .where(inArray(users.id, batch))),
-      );
-    }
-
-    const adminsInBatch = found.filter((u) => u.isAdmin).map((u) => u.id);
-    // In practice the acting admin is an admin and is already excluded, so an
-    // admin always survives; this still catches the race where they were
-    // demoted by someone else while this batch was being assembled.
-    const wouldStripLastAdmin = admins.length - adminsInBatch.length < 1;
-    const spared = new Set<string>(wouldStripLastAdmin ? adminsInBatch : []);
-    const toDelete = found.map((u) => u.id).filter((id) => !spared.has(id));
-
-    for (const batch of chunked(toDelete)) {
-      // Sessions cascade on delete, but drop them explicitly so the intent —
-      // these people can no longer sign in — is legible here, as in deleteUser.
-      await tx.delete(sessions).where(inArray(sessions.userId, batch));
-      await tx.delete(users).where(inArray(users.id, batch));
-    }
-
-    return {
-      removed: toDelete.length,
-      skippedSelf,
-      skippedAdmins: spared.size,
-      missing: candidates.length - found.length,
-    };
   });
 }
