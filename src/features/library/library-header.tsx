@@ -4,7 +4,10 @@ import { DemoBadge } from "@/components/demo-badge";
 import { SignOutButton } from "@/components/sign-out-button";
 import { Wordmark, Avatar } from "@/components/ui";
 import { initials } from "@/lib/initials";
+import { BELL_LIMIT, toBellItems } from "./bell-items";
+import { NotificationBell } from "./notification-bell";
 import { getMemberIdentity } from "@/server/member-names";
+import { countUnread, listNotifications } from "@/server/notifications";
 import { getSettings } from "@/server/settings";
 
 // The chrome every member-facing library page opens with — the wordmark and
@@ -17,10 +20,17 @@ export async function LibraryHeader({
   user: Session["user"] | null;
   home?: boolean;
 }) {
-  // With discussion on, the avatar is the default posting name's (#300).
+  // With discussion on, the avatar is the default posting name's (#300) and
+  // the bell holds the replies to the member's comments (#303).
   const { commentsEnabled } = await getSettings();
-  const identity =
-    user && commentsEnabled ? await getMemberIdentity(user.id) : null;
+  const on = user && commentsEnabled;
+  const [identity, unread, notes] = on
+    ? await Promise.all([
+        getMemberIdentity(user.id),
+        countUnread(user.id),
+        listNotifications(user.id, BELL_LIMIT),
+      ])
+    : [null, 0, []];
   const shown = identity?.defaultName;
   return (
     <header className="border-line flex items-center justify-between gap-3 border-b pb-4">
@@ -35,7 +45,8 @@ export async function LibraryHeader({
       ) : (
         <Wordmark size={24} />
       )}
-      <nav className="flex flex-none items-center gap-3 font-sans text-sm sm:gap-4">
+      {/* Positioned: the bell's menu hangs from the nav's right edge. */}
+      <nav className="relative flex flex-none items-center gap-3 font-sans text-sm sm:gap-4">
         {/* No user only happens in demo mode (the gate redirects otherwise):
             swap the account affordances for the demo chip. */}
         {user ? (
@@ -50,6 +61,12 @@ export async function LibraryHeader({
               </Link>
             )}
             <SignOutButton />
+            {identity && (
+              <NotificationBell
+                unread={unread}
+                items={toBellItems(notes, identity.names.length > 1)}
+              />
+            )}
             <Link
               href="/profile"
               aria-label="Your profile"

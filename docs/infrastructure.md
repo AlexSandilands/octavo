@@ -68,7 +68,11 @@ Member ── Cloudflare (DNS/CDN) ── Railway (Next.js + Postgres)
    out as the container's internal address (e.g. `http://localhost:8080`, the
    assigned `PORT`) — an unclickable link. Set it to `https://…` (Railway
    terminates TLS). This is **separate from `APP_URL`**, which only governs the
-   publish-blast and unsubscribe links, not sign-in.
+   links in the other emails (the publish blast, unsubscribe, and the reply and
+   report emails), not sign-in. Set it in production: the reply and report emails
+   are sent by one member's request to someone else, so they never take a link's
+   origin from the request, and without `APP_URL` they are skipped (and reported
+   to Sentry).
 6. **First admin** — `/admin` only admits users with `is_admin`, and only an admin
    can manage members, so bootstrap the first one from the command line:
    `railway run npm run db:admin -- you@example.com` (drop the `railway run` prefix
@@ -473,6 +477,11 @@ At ~1,000 members and roughly monthly issues:
 - Email is the one cost that scales with membership. Resend free tier (3k/mo, 100/day)
   can't do a 1,000-recipient blast in one go, so budget the ~$20 Pro plan. Postmark
   (~$15/mo) is an alternative.
+- Discussion adds two small streams on the same account: **reply emails** (issue #303 —
+  one per reply, only to a member who turned them on, sent singly as the reply is
+  posted, no batching) and the **report email** to admins (#302, at most one per 15
+  minutes). At club scale that is a handful a day — negligible next to the monthly
+  blast and well inside the Pro plan's 50k.
 - Storage and bandwidth stay effectively free for a long time — R2 has no egress fees
   and issues are small (a typical issue ≈ 2–4 MB).
 - If membership grows past a few thousand, the email tier is the first thing to

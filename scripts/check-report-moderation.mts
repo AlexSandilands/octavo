@@ -11,6 +11,7 @@ const h = await import("./fixtures/discussion/harness.mts");
 h.scratchPrefix("check-302");
 const { as, db, ok, heading, schema, names, thread, moderation } = h;
 const { inbox, alert, removal } = h;
+const { emailLinkOrigin } = await import("../src/server/site-origin.ts");
 const { comments, commentReports, users } = schema;
 const { eq, inArray } = await import("drizzle-orm");
 const { getSettings } = await import("../src/server/settings.ts");
@@ -452,16 +453,16 @@ ok(
 
 heading("the report link never comes from a request header");
 ok(
-  (await alert.inboxOrigin(undefined, true)) === null,
+  (await emailLinkOrigin(undefined, true)) === null,
   "production without APP_URL: no link, so no email",
 );
 ok(
-  (await alert.inboxOrigin("https://club.example/", true)) ===
+  (await emailLinkOrigin("https://club.example/", true)) ===
     "https://club.example",
   "production with APP_URL: that address",
 );
 ok(
-  (await alert.inboxOrigin(undefined, false)) === "http://localhost:3000",
+  (await emailLinkOrigin(undefined, false)) === "http://localhost:3000",
   "outside production, outside a request: localhost",
 );
 

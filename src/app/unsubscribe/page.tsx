@@ -2,10 +2,14 @@ import { z } from "zod";
 import { Button, Label, Wordmark } from "@/components/ui";
 import { getSettings } from "@/server/settings";
 import { getRecipientById } from "@/server/recipients";
-import { verifyUnsubscribeToken } from "@/server/unsubscribe-token";
+import {
+  verifyUnsubscribeToken,
+  type UnsubscribePurpose,
+} from "@/server/unsubscribe-token";
 import { updateSubscriptionAction } from "./actions";
 
-// One-click unsubscribe, reached from a link in the new-issue email. No session
+// One-click unsubscribe, reached from a link in the new-issue email — or, for a
+// token whose purpose is `replies`, the reply email (issue #303). No session
 // required — the signed token in ?token= is the authorisation (see
 // server/unsubscribe-token.ts). This route is intentionally NOT behind any
 // member gate: the proxy's matcher covers only /, /read and /admin,
@@ -31,6 +35,34 @@ async function Frame({ children }: { children: React.ReactNode }) {
   );
 }
 
+// What the page says for each purpose (issue #303), with the emails on and off.
+// The issues wording is the page as it read before reply emails existed.
+function copyFor(purpose: UnsubscribePurpose, magazineName: string) {
+  return purpose === "replies"
+    ? {
+        onTitle: "Stop reply emails?",
+        onLead: "We’ll stop emailing",
+        onTail:
+          " when someone replies to your comments. New-issue emails aren’t affected, and the bell in the library still shows new replies.",
+        confirm: "Stop reply emails",
+        offTitle: "Reply emails are off.",
+        offLead: "We won’t email",
+        offTail:
+          " about replies to your comments any more. Changed your mind? You can turn them back on.",
+        restore: "Turn reply emails back on",
+      }
+    : {
+        onTitle: `Unsubscribe from ${magazineName}?`,
+        onLead: "We’ll stop emailing new issues to",
+        onTail: ". You can resubscribe here any time.",
+        confirm: "Unsubscribe",
+        offTitle: "You’ve been unsubscribed.",
+        offLead: "We won’t email new issues to",
+        offTail: " any more. Changed your mind? You can turn them back on.",
+        restore: "Resubscribe",
+      };
+}
+
 export default async function UnsubscribePage({
   searchParams,
 }: {
@@ -39,13 +71,13 @@ export default async function UnsubscribePage({
   const parsed = paramsSchema.safeParse(await searchParams);
   const { name: magazineName } = await getSettings();
   const token = parsed.success ? parsed.data.token : undefined;
-  const userId = token ? verifyUnsubscribeToken(token) : null;
-  const member = userId ? await getRecipientById(userId) : null;
+  const grant = token ? verifyUnsubscribeToken(token) : null;
+  const member = grant ? await getRecipientById(grant.userId) : null;
 
   // Neutral message for anything invalid: no token, a tampered/forged token, or
   // a token whose user no longer exists. Says nothing that could confirm or
   // deny an address.
-  if (!token || !member) {
+  if (!token || !grant || !member) {
     return (
       <Frame>
         <h1 className="text-ink mt-10 font-serif text-3xl leading-[1.1]">
@@ -59,43 +91,24 @@ export default async function UnsubscribePage({
     );
   }
 
-  if (member.subscribed) {
-    return (
-      <Frame>
-        <h1 className="text-ink mt-10 font-serif text-3xl leading-[1.1]">
-          Unsubscribe from {magazineName}?
-        </h1>
-        <p className="text-muted mt-4 font-sans text-[16px] leading-relaxed">
-          We&rsquo;ll stop emailing new issues to{" "}
-          <span className="text-ink font-semibold">{member.email}</span>. You
-          can resubscribe here any time.
-        </p>
-        <form className="mt-8" action={updateSubscriptionAction}>
-          <input type="hidden" name="token" value={token} />
-          <input type="hidden" name="subscribe" value="false" />
-          <Button type="submit" full>
-            Unsubscribe
-          </Button>
-        </form>
-      </Frame>
-    );
-  }
-
+  const copy = copyFor(grant.purpose, magazineName);
+  const on =
+    grant.purpose === "replies" ? member.replyEmails : member.subscribed;
   return (
     <Frame>
       <h1 className="text-ink mt-10 font-serif text-3xl leading-[1.1]">
-        You&rsquo;ve been unsubscribed.
+        {on ? copy.onTitle : copy.offTitle}
       </h1>
       <p className="text-muted mt-4 font-sans text-[16px] leading-relaxed">
-        We won&rsquo;t email new issues to{" "}
-        <span className="text-ink font-semibold">{member.email}</span> any more.
-        Changed your mind? You can turn them back on.
+        {on ? copy.onLead : copy.offLead}{" "}
+        <span className="text-ink font-semibold">{member.email}</span>
+        {on ? copy.onTail : copy.offTail}
       </p>
       <form className="mt-8" action={updateSubscriptionAction}>
         <input type="hidden" name="token" value={token} />
-        <input type="hidden" name="subscribe" value="true" />
-        <Button type="submit" variant="secondary" full>
-          Resubscribe
+        <input type="hidden" name="subscribe" value={on ? "false" : "true"} />
+        <Button type="submit" variant={on ? "primary" : "secondary"} full>
+          {on ? copy.confirm : copy.restore}
         </Button>
       </form>
     </Frame>

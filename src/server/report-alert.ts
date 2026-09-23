@@ -2,7 +2,6 @@ import "server-only";
 import * as Sentry from "@sentry/nextjs";
 import { count, eq } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import { headers } from "next/headers";
 import { Resend } from "resend";
 import { db } from "@/db";
 import { commentReports, issues, users } from "@/db/schema";
@@ -16,7 +15,7 @@ import {
   type ReportEmailParams,
 } from "./report-email";
 import { getSettings } from "./settings";
-import { originFromHeaders } from "./site-origin";
+import { emailLinkOrigin } from "./site-origin";
 
 // Tells every admin a comment was reported (issue #302). At most one email per
 // 15 minutes, site-wide and in-process (the app is one long-lived node, as
@@ -51,23 +50,6 @@ async function sendMessages(messages: Message[]): Promise<void> {
     messages.map((m) => ({ from, ...m })),
   );
   if (error) throw new Error(`Report email failed: ${error.message}`);
-}
-
-// Where the email's inbox link points. A member's request sends it and every
-// admin clicks it, so its Host header is never trusted: APP_URL, or — in
-// production without it — null, and no email. Outside production the request
-// host (or localhost) stands in.
-export async function inboxOrigin(
-  appUrl: string | undefined,
-  production: boolean,
-): Promise<string | null> {
-  if (appUrl) return appUrl.replace(/\/$/, "");
-  if (production) return null;
-  try {
-    return originFromHeaders(await headers());
-  } catch {
-    return "http://localhost:3000"; // no request in scope
-  }
 }
 
 const reporter = alias(users, "reporter");
@@ -117,7 +99,7 @@ export async function notifyAdminsOfReport(reportId: string): Promise<void> {
   // Claimed before any await, so two reports at once send one email.
   reportAlert.lastSentAt = now;
   try {
-    const origin = await inboxOrigin(
+    const origin = await emailLinkOrigin(
       env.APP_URL,
       process.env.NODE_ENV === "production",
     );

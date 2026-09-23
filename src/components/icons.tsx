@@ -39,6 +39,10 @@ const ICONS: Record<string, ReactNode> = {
   comment: (
     <path d="M5 5h14a1 1 0 011 1v9a1 1 0 01-1 1h-8l-4 3.5V16H5a1 1 0 01-1-1V6a1 1 0 011-1z" />
   ),
+  // The library's reply notifications (issue #303).
+  bell: (
+    <path d="M18 16v-5a6 6 0 10-12 0v5l-1.5 2h15L18 16zM10 20.5a2.2 2.2 0 004 0" />
+  ),
   trash: <path d="M5 7h14M9 7V5h6v2M7 7l1 12h8l1-12" />,
   pencil: <path d="M4 20h4L18.5 9.5a2 2 0 00-3-3L5 17v3zM14 7l3 3" />,
   users: (

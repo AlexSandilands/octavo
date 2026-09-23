@@ -2,6 +2,7 @@ import "server-only";
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
+import type { UnsubscribeGrant } from "./unsubscribe-token";
 
 // Data access for the mailing list — the subset of the users table the publish
 // blast and the unsubscribe flow need. Kept separate from members admin CRUD so
@@ -9,7 +10,10 @@ import { users } from "@/db/schema";
 
 export type Recipient = { id: string; email: string; name: string | null };
 
-export type RecipientState = Recipient & { subscribed: boolean };
+export type RecipientState = Recipient & {
+  subscribed: boolean;
+  replyEmails: boolean;
+};
 
 // Everyone who should receive a new-issue email. Admins are members too, so
 // they get the blast if subscribed — deliberate: the admin seeing their own
@@ -30,7 +34,7 @@ export async function countSubscribedRecipients(): Promise<number> {
 }
 
 // Used by the unsubscribe page: it greets the token's owner by address and
-// branches on whether they're currently subscribed.
+// branches on whether the token's emails are currently on.
 export async function getRecipientById(
   id: string,
 ): Promise<RecipientState | null> {
@@ -40,6 +44,7 @@ export async function getRecipientById(
       email: users.email,
       name: users.name,
       subscribed: users.subscribed,
+      replyEmails: users.replyEmails,
     })
     .from(users)
     .where(eq(users.id, id))
@@ -55,4 +60,15 @@ export async function setSubscribed(
   subscribed: boolean,
 ): Promise<void> {
   await db.update(users).set({ subscribed }).where(eq(users.id, id));
+}
+
+/** The flag an unsubscribe token's purpose controls (issue #303): new-issue
+ *  emails, or reply emails — never both. */
+export async function setEmailsFor(
+  grant: UnsubscribeGrant,
+  on: boolean,
+): Promise<void> {
+  const set =
+    grant.purpose === "replies" ? { replyEmails: on } : { subscribed: on };
+  await db.update(users).set(set).where(eq(users.id, grant.userId));
 }

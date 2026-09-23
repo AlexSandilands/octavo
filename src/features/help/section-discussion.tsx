@@ -1,8 +1,8 @@
 import { Bullets, Callout, GuideSection, P } from "./guide-ui";
 
-// The discussion and its moderation (issues #301, #302): switching it on, where
-// members find it, the reports inbox and its emails, and the removed-member
-// setting.
+// The discussion and its moderation (issues #301, #302, #303): switching it on,
+// where members find it, the reply bell and emails they receive, the reports
+// inbox and its emails, and the removed-member setting.
 export function SectionDiscussion() {
   return (
     <GuideSection
@@ -31,6 +31,22 @@ export function SectionDiscussion() {
         which of their names a comment goes under, and someone posting for the
         first time chooses their name right there. The library shows how many
         comments each issue has.
+      </P>
+      <P>
+        When someone replies to a member&rsquo;s comment, the member sees it on
+        a <strong>bell</strong> at the top of the library, beside their picture,
+        with the number of new replies on it. Pressing the bell lists the latest
+        replies (&ldquo;Ada replied to your comment on Issue 14&rdquo; — on an
+        account two people share, whose comment it was); choosing one opens the
+        issue with the discussion on that reply. Members can also ask for an{" "}
+        <strong>email</strong> for every reply, under <em>Email → Replies</em>{" "}
+        on their profile (it starts off). It quotes their comment and the start
+        of the reply, and its <em>Read the reply</em> button signs them in and
+        opens the reply — like the new-issue email, the button works once and
+        for a day. <em>Stop reply emails</em> at the bottom turns these off
+        without touching new-issue emails. Replying to yourself sends nothing,
+        and a reply you hide leaves the bell — but an email already sent
+        can&rsquo;t be taken back.
       </P>
       <P>
         As an admin you see the same thread, with the member account behind each
