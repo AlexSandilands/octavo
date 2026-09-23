@@ -1,4 +1,5 @@
 import "server-only";
+import * as Sentry from "@sentry/nextjs";
 import { count, eq } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { headers } from "next/headers";
@@ -15,6 +16,7 @@ import {
   type ReportEmailParams,
 } from "./report-email";
 import { getSettings } from "./settings";
+import { originFromHeaders } from "./site-origin";
 
 // Tells every admin a comment was reported (issue #302). At most one email per
 // 15 minutes, site-wide and in-process (the app is one long-lived node, as
@@ -51,18 +53,21 @@ async function sendMessages(messages: Message[]): Promise<void> {
   if (error) throw new Error(`Report email failed: ${error.message}`);
 }
 
-// The canonical address when configured, else the request's own host (dev),
-// else the local default outside a request.
-async function siteOrigin(): Promise<string> {
-  if (env.APP_URL) return env.APP_URL.replace(/\/$/, "");
+// Where the email's inbox link points. A member's request sends it and every
+// admin clicks it, so its Host header is never trusted: APP_URL, or — in
+// production without it — null, and no email. Outside production the request
+// host (or localhost) stands in.
+export async function inboxOrigin(
+  appUrl: string | undefined,
+  production: boolean,
+): Promise<string | null> {
+  if (appUrl) return appUrl.replace(/\/$/, "");
+  if (production) return null;
   try {
-    const h = await headers();
-    const host = h.get("x-forwarded-host") ?? h.get("host");
-    if (host) return `${h.get("x-forwarded-proto") ?? "http"}://${host}`;
+    return originFromHeaders(await headers());
   } catch {
-    // No request in scope.
+    return "http://localhost:3000"; // no request in scope
   }
-  return "http://localhost:3000";
 }
 
 const reporter = alias(users, "reporter");
@@ -112,6 +117,18 @@ export async function notifyAdminsOfReport(reportId: string): Promise<void> {
   // Claimed before any await, so two reports at once send one email.
   reportAlert.lastSentAt = now;
   try {
+    const origin = await inboxOrigin(
+      env.APP_URL,
+      process.env.NODE_ENV === "production",
+    );
+    if (!origin) {
+      reportAlert.lastSentAt = last;
+      Sentry.captureMessage("Report email skipped: APP_URL is not set", {
+        level: "error",
+        tags: { stage: "report-email" },
+      });
+      return;
+    }
     const params = await emailParams(reportId);
     const admins = await db
       .select({ email: users.email })
@@ -121,7 +138,7 @@ export async function notifyAdminsOfReport(reportId: string): Promise<void> {
     const full: ReportEmailParams = {
       ...params,
       branding: await getSettings(),
-      inboxUrl: `${await siteOrigin()}/admin/reports`,
+      inboxUrl: `${origin}/admin/reports`,
     };
     const subject = reportEmailSubject(full);
     const html = renderReportEmailHtml(full);
