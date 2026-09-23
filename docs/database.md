@@ -386,7 +386,8 @@ reply landing at the same moment is never cascaded away.
 - `anonymise` (default): the member's comments stay, with author and name cleared — "Former
   member", no avatar.
 - `delete`: their replies go, then their top-level comments — as a blank stub where someone
-  else's reply survives, otherwise outright.
+  else's reply survives, otherwise outright. A reported comment (reply or not) is always kept
+  as a stub, and every stub here is marked `deleted_by = 'admin'` (issue #302).
 
 Either way the author columns are cleared by hand before the user row goes. Left to the foreign
 keys, the user delete's set-null on `author_id` re-checks `author_name_id` after the cascade has
@@ -395,14 +396,19 @@ before the cascade, orphaned in the same transaction and swept from storage afte
 Reports keep their snapshot (the reporter and snapshot account go null). The policy applies at
 removal time only, never retroactively.
 
-**Moderation (issue #302).** Hiding or deleting a comment resolves every open report on it in
-the same transaction, recording `resolved_by`/`resolved_at`. An admin's delete of a comment that
-has any report keeps the row — body blanked, `deleted_at` set **and** `hidden_at` set — so the
-inbox can say "Removed by an admin since" rather than "Deleted by its author since"; an
-unreported comment follows the author's rule above. `createReport` inserts with
+**Moderation (issue #302).** A soft delete records who made it in `comments.deleted_by`
+(`author` | `admin`, app-validated like `reason`): `removeLockedComment` takes it from its caller —
+the author's delete passes `author`, the admin's delete and a removal under the `delete` policy
+`admin`. An admin's delete of a comment with any report keeps it as a stub, so the only way a
+reported comment's row disappears is its author's hard delete (no replies, no open report) — the
+inbox reads a missing row as "Deleted by its author since" and a stub by its `deleted_by`, never
+from `hidden_at`. Hiding or deleting a comment resolves every open report on it in the same
+transaction, recording `resolved_by`/`resolved_at`. `createReport` inserts with
 `on conflict do nothing … returning`, and only a new row emails the admins — after the commit,
-never failing the report. The email is throttled in-process to one per 15 minutes site-wide
-(`src/server/report-alert.ts`). The inbox reads through `src/server/report-inbox.ts`.
+never failing the report. The email is throttled in-process to one per 15 minutes site-wide, and
+its link is built from `APP_URL` only: in production without it the email is skipped and Sentry
+told, never built from a member's request headers (`src/server/report-alert.ts`). The inbox reads
+through `src/server/report-inbox.ts`.
 
 Verified by `scripts/check-member-name.mts`, `scripts/check-comments-module.mts` and
 `scripts/check-report-moderation.mts`.

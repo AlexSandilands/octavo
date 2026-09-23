@@ -20,6 +20,11 @@ export const REPORT_REASONS = [
 ] as const;
 export type ReportReason = (typeof REPORT_REASONS)[number];
 
+/** Who soft-deleted a comment: its author, or an admin (a moderation delete,
+ *  or a removal under the "delete" policy). */
+export const COMMENT_DELETED_BY = ["author", "admin"] as const;
+export type CommentDeletedBy = (typeof COMMENT_DELETED_BY)[number];
+
 export const REPORT_STATUSES = ["open", "resolved"] as const;
 export type ReportStatus = (typeof REPORT_STATUSES)[number];
 
@@ -122,8 +127,8 @@ export type ReportView = {
     createdAt: Date | null;
     editedAt: Date | null;
   };
-  /** The comment now, against the snapshot: the inbox's "edited since". An
-   *  admin's delete leaves the row hidden, which is how `by` knows. */
+  /** The comment now, against the snapshot: the inbox's "edited since", or
+   *  who deleted it (`comments.deleted_by`). */
   current:
     | {
         state: "unchanged" | "edited";

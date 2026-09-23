@@ -10,7 +10,11 @@ import {
   memberNames,
   users,
 } from "@/db/schema";
-import type { ReportFilter, ReportView } from "@/lib/comments";
+import type {
+  CommentDeletedBy,
+  ReportFilter,
+  ReportView,
+} from "@/lib/comments";
 import { likePattern } from "@/lib/like-pattern";
 import {
   ADMIN_LIST_PAGE_SIZE,
@@ -116,6 +120,7 @@ export async function listReports(
           commentEditedAt: comments.editedAt,
           commentHiddenAt: comments.hiddenAt,
           commentDeletedAt: comments.deletedAt,
+          commentDeletedBy: comments.deletedBy,
           nameId: memberNames.id,
           nameText: memberNames.name,
           nameRetiredAt: memberNames.retiredAt,
@@ -177,17 +182,19 @@ type Row = {
   commentEditedAt: Date | null;
   commentHiddenAt: Date | null;
   commentDeletedAt: Date | null;
+  commentDeletedBy: CommentDeletedBy | null;
   nameId: string | null;
   nameText: string | null;
   nameRetiredAt: Date | null;
   avatarKey: string | null;
 };
 
+// A reported comment is hard-deleted only by its author (an admin's delete and
+// a removal keep it as a stub), so a missing row was theirs.
 function currentState(row: Row): ReportView["current"] {
   if (row.commentId === null) return { state: "deleted", by: "author" };
   if (row.commentDeletedAt !== null) {
-    // An admin's delete of a reported comment keeps the row, hidden.
-    return { state: "deleted", by: row.commentHiddenAt ? "admin" : "author" };
+    return { state: "deleted", by: row.commentDeletedBy ?? "author" };
   }
   return {
     state: sameTime(row.commentEditedAt, row.snapshotEditedAt)

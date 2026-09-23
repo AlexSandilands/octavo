@@ -94,16 +94,15 @@ export async function unhideComment(commentId: string): Promise<WriteResult> {
 }
 
 // The author's rule — a stub while it has replies, otherwise gone — except
-// that a reported comment is always kept, blanked and hidden: its reports are
-// resolved here, and the hidden flag is how the inbox tells an admin's removal
-// from its author's.
+// that a reported comment is always kept as a stub marked deleted by an admin,
+// so its reports can say what became of it. They are resolved here.
 export async function deleteComment(commentId: string): Promise<WriteResult> {
   const admin = await requireAdmin();
   const parsed = id.safeParse(commentId);
   if (!parsed.success) return INVALID;
   return db.transaction(async (tx) => {
     const [row] = await tx
-      .select({ deletedAt: comments.deletedAt, hiddenAt: comments.hiddenAt })
+      .select({ deletedAt: comments.deletedAt })
       .from(comments)
       .where(eq(comments.id, parsed.data))
       .for("update");
@@ -119,10 +118,10 @@ export async function deleteComment(commentId: string): Promise<WriteResult> {
     if (reported) {
       await tx
         .update(comments)
-        .set({ body: "", deletedAt: now, hiddenAt: row.hiddenAt ?? now })
+        .set({ body: "", deletedAt: now, deletedBy: "admin" })
         .where(eq(comments.id, parsed.data));
     } else {
-      await removeLockedComment(tx, parsed.data);
+      await removeLockedComment(tx, parsed.data, "admin");
     }
     return { ok: true as const };
   });
