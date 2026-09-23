@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { ADMIN_MAIN_ID } from "./admin-main";
-import { AdminNavContent } from "./admin-nav-content";
+import { AdminNavContent, type AdminNavUser } from "./admin-nav-content";
 import { AdminDrawer } from "./admin-drawer";
 import { AdminScrollReset } from "./admin-scroll-reset";
 
@@ -8,7 +8,7 @@ export function AdminShell({
   user,
   children,
 }: {
-  user: { name?: string | null; email: string };
+  user: AdminNavUser;
   children: ReactNode;
 }) {
   return (
