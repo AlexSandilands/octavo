@@ -24,6 +24,7 @@ import { keyToUrl } from "@/lib/storage";
 import type { Tx } from "./asset-cleanup";
 import {
   INVALID,
+  POSTING_QUICKLY,
   cleanText,
   discussionLimits,
   discussionOff,
@@ -220,7 +221,7 @@ export async function createComment(
   if (!parsed.success) return INVALID;
   const off = await discussionOff();
   if (off) return off;
-  const limited = overLimit(discussionLimits.post, member.id);
+  const limited = overLimit(discussionLimits.post, member.id, POSTING_QUICKLY);
   if (limited) return limited;
   const { issueId, parentId, nameId, pageId } = parsed.data;
 
@@ -304,7 +305,7 @@ export async function editComment(input: {
   if (!parsed.success) return INVALID;
   const off = await discussionOff();
   if (off) return off;
-  const limited = overLimit(discussionLimits.edit, member.id);
+  const limited = overLimit(discussionLimits.edit, member.id, POSTING_QUICKLY);
   if (limited) return limited;
   const [row] = await db
     .update(comments)

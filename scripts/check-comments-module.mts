@@ -161,7 +161,7 @@ await h.withoutSettingsRow(async () => {
     nameId: carolName,
   });
   ok(
-    !noRow.ok && /switched off/.test(noRow.reason),
+    !noRow.ok && /turned off/.test(noRow.reason),
     "refused with no settings row (off is the default)",
   );
 });
@@ -684,7 +684,7 @@ for (let i = 0; i < 11; i++) {
   });
 }
 ok(
-  lastPost && !lastPost.ok && /going a little fast/.test(lastPost.reason),
+  lastPost && !lastPost.ok && /posting quickly/.test(lastPost.reason),
   "the 11th post in 10 minutes is slowed down",
 );
 as(fast);
