@@ -10,6 +10,7 @@ import {
   EMPTY_SETTINGS,
   FOOTER_ALIGNS,
   MARK_SIZE,
+  REMOVED_MEMBER_COMMENTS,
   TEXT_SIZE,
   resolveSettings,
   type SizeAxis,
@@ -38,6 +39,8 @@ const settingsSelection = {
   footerAlign: settings.footerAlign,
   showRunningHead: settings.showRunningHead,
   pdfDownloads: settings.pdfDownloads,
+  commentsEnabled: settings.commentsEnabled,
+  removedMemberComments: settings.removedMemberComments,
 };
 
 /** A footer size: whole px within its axis (issue #216). Shared with the
@@ -63,6 +66,9 @@ const storedSchema = z.object({
   // for why that direction is the deliberate one (issue #162).
   showRunningHead: z.boolean().nullable().catch(null),
   pdfDownloads: z.boolean().nullable().catch(null),
+  // Unreadable is "not configured" here too: discussion off, comments kept.
+  commentsEnabled: z.boolean().nullable().catch(null),
+  removedMemberComments: z.enum(REMOVED_MEMBER_COMMENTS).nullable().catch(null),
 });
 
 // The stored row, or all-nulls when there is none (the first-run state, and
@@ -179,6 +185,8 @@ export async function updateSettings(input: StoredSettings): Promise<void> {
     footerAlign: input.footerAlign,
     showRunningHead: input.showRunningHead,
     pdfDownloads: input.pdfDownloads,
+    commentsEnabled: input.commentsEnabled,
+    removedMemberComments: input.removedMemberComments,
     updatedAt: new Date(),
   };
   await db
@@ -199,7 +207,8 @@ export async function updateSettings(input: StoredSettings): Promise<void> {
 // there. `pdfDownloads` is absent for the same reason and must stay that way —
 // it decides who may *fetch* a PDF, not what one looks like, so folding it in
 // would rebuild every cached issue each time the owner flipped the switch
-// (issue #162). Values are joined with a NUL so no pair of fields can be
+// (issue #162). `commentsEnabled` and `removedMemberComments` stay out for the
+// same reason: comments never print (issue #299). Values are joined with a NUL so no pair of fields can be
 // rearranged into the same string.
 export function chromeFingerprint(s: SiteSettings): string {
   const material = [

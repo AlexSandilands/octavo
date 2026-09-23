@@ -76,12 +76,21 @@ export type Branding = {
  *  FooterStyle. `showRunningHead` is page chrome — whether a theme may print its
  *  textual running head above the content (issue #269). `pdfDownloads` is not
  *  wording and not an appearance at all, it is whether the download is offered
- *  (issue #162); nothing that draws a page reads it. */
+ *  (issue #162); nothing that draws a page reads it. The discussion pair
+ *  (issue #299) is the same kind: whether members may comment, and what
+ *  removing a member does to their comments. */
 export type SiteSettings = Branding & {
   footer: FooterStyle;
   showRunningHead: boolean;
   pdfDownloads: boolean;
+  commentsEnabled: boolean;
+  removedMemberComments: RemovedMemberComments;
 };
+
+// What removing a member does to their comments, applied at removal time:
+// delete them (stubbing any with replies) or keep them as "Former member".
+export const REMOVED_MEMBER_COMMENTS = ["delete", "anonymise"] as const;
+export type RemovedMemberComments = (typeof REMOVED_MEMBER_COMMENTS)[number];
 
 // The deployment defaults for the appearance group. These reproduce the
 // footer exactly as it shipped in issue #104, so a deployment that never opens
@@ -111,6 +120,14 @@ export const DEFAULT_PDF_DOWNLOADS = true;
 // so `true` keeps an untouched deployment unchanged by issue #269.
 export const DEFAULT_SHOW_RUNNING_HEAD = true;
 
+// Discussion ships off (issue #298): an admin turns it on once it is complete.
+// Unlike downloads this fails closed — a read failure also means off.
+export const DEFAULT_COMMENTS_ENABLED = false;
+
+// A removed member's words stay, unattributed, unless the owner says otherwise.
+export const DEFAULT_REMOVED_MEMBER_COMMENTS: RemovedMemberComments =
+  "anonymise";
+
 /** The `settings` row as stored: every field nullable, NULL meaning "use the
  *  deployment default". This is the admin form's state as well as the database
  *  shape — the page edits nulls directly so "cleared" stays distinguishable
@@ -124,6 +141,8 @@ export type StoredSettings = {
   footerAlign: FooterAlign | null;
   showRunningHead: boolean | null;
   pdfDownloads: boolean | null;
+  commentsEnabled: boolean | null;
+  removedMemberComments: RemovedMemberComments | null;
 };
 
 export const EMPTY_SETTINGS: StoredSettings = {
@@ -135,6 +154,8 @@ export const EMPTY_SETTINGS: StoredSettings = {
   footerAlign: null,
   showRunningHead: null,
   pdfDownloads: null,
+  commentsEnabled: null,
+  removedMemberComments: null,
 };
 
 /** Stored row + deployment defaults → the values that actually render. Pure and
@@ -158,6 +179,9 @@ export function resolveSettings(
     // default — the one value they went to the admin to change.
     showRunningHead: stored.showRunningHead ?? defaults.showRunningHead,
     pdfDownloads: stored.pdfDownloads ?? defaults.pdfDownloads,
+    commentsEnabled: stored.commentsEnabled ?? defaults.commentsEnabled,
+    removedMemberComments:
+      stored.removedMemberComments ?? defaults.removedMemberComments,
   };
 }
 

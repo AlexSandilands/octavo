@@ -134,6 +134,8 @@ for (const align of aligns) {
           footer: DEFAULT_FOOTER_STYLE,
           showRunningHead: true,
           pdfDownloads: false,
+          commentsEnabled: false,
+          removedMemberComments: "anonymise",
         },
       }),
     ].map((element) => renderToStaticMarkup(element));

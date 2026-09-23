@@ -42,6 +42,14 @@ export async function requireAdmin() {
   return user;
 }
 
+// The member counterpart for discussion writes (issue #299): any signed-in
+// member, else a throw. Demo mode's null visitor is signed out, so it fails too.
+export async function requireMember() {
+  const user = await getUserFailClosed();
+  if (!user) throw new Error("Member session required");
+  return user;
+}
+
 // The gate for /admin pages and the layout: same decisions, redirect instead
 // of throw — signed out to /signin, signed-in non-admins to the library.
 export async function requireAdminOrRedirect() {

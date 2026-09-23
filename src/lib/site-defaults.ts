@@ -1,6 +1,8 @@
 import {
+  DEFAULT_COMMENTS_ENABLED,
   DEFAULT_FOOTER_STYLE,
   DEFAULT_PDF_DOWNLOADS,
+  DEFAULT_REMOVED_MEMBER_COMMENTS,
   DEFAULT_SHOW_RUNNING_HEAD,
   type SiteSettings,
 } from "./branding";
@@ -35,4 +37,7 @@ export const siteDefaults: SiteSettings = {
   // (issue #162).
   showRunningHead: DEFAULT_SHOW_RUNNING_HEAD,
   pdfDownloads: DEFAULT_PDF_DOWNLOADS,
+  // The discussion pair follows them (issue #299): off, and anonymise.
+  commentsEnabled: DEFAULT_COMMENTS_ENABLED,
+  removedMemberComments: DEFAULT_REMOVED_MEMBER_COMMENTS,
 };

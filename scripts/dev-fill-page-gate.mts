@@ -233,6 +233,8 @@ const settings: SiteSettings = {
   footer: DEFAULT_FOOTER_STYLE,
   showRunningHead: true,
   pdfDownloads: false,
+  commentsEnabled: false,
+  removedMemberComments: "anonymise",
 };
 
 // The reader spread and the print document render exactly this pair.
