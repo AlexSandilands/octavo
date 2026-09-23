@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui";
 import { checkMemberName } from "@/lib/member-name";
 import { renameNameAction } from "@/app/profile/actions";
@@ -8,30 +8,25 @@ import type { ProfileName } from "@/server/member-profile";
 import { NameField } from "./name-field";
 import type { Announce, NameRules } from "./names-shared";
 
-// Renaming in place: the box opens on the current name, Save or Enter keeps
-// it, Cancel or Escape leaves it. Past comments follow the new name.
+// The panel's rename box: Save or Enter keeps the new name (past comments
+// follow it) and stays open; Cancel closes the panel.
 export function NameRename({
   name,
   rules,
   announce,
   onShared,
-  onDone,
+  onCancel,
 }: {
   name: ProfileName;
   rules: NameRules;
   announce: Announce;
   onShared: (nameId: string, shared: boolean) => void;
-  onDone: () => void;
+  onCancel: () => void;
 }) {
   const [value, setValue] = useState(name.name);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const input = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    input.current?.focus();
-    input.current?.select();
-  }, []);
 
   const save = (event: React.FormEvent) => {
     event.preventDefault();
@@ -41,23 +36,21 @@ export function NameRename({
       setError(check.reason);
       return;
     }
-    if (check.name === name.name) {
-      onDone();
-      return;
-    }
+    if (check.name === name.name) return;
     startTransition(async () => {
       const result = await renameNameAction(name.id, check.name);
+      // The busy Save let go of focus; hand it back to the box.
+      requestAnimationFrame(() => input.current?.focus());
       if (!result.ok) {
         setError(result.reason);
-        requestAnimationFrame(() => input.current?.focus());
         return;
       }
+      setValue(result.name.name);
       onShared(name.id, result.sharedWithAnotherMember);
       announce(
         `Renamed to “${result.name.name}”.`,
         result.sharedWithAnotherMember,
       );
-      onDone();
     });
   };
 
@@ -66,19 +59,12 @@ export function NameRename({
       <NameField
         ref={input}
         id={`rename-${name.id}`}
-        label={`New name for ${name.name}`}
-        visuallyHiddenLabel
+        label="Name"
         value={value}
         error={error}
         onChange={(next) => {
           setValue(next);
           if (error) setError(null);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") {
-            e.preventDefault();
-            onDone();
-          }
         }}
       >
         <Button type="submit" size="sm" busy={pending} className="min-h-11">
@@ -88,7 +74,7 @@ export function NameRename({
           variant="secondary"
           size="sm"
           unavailable={pending}
-          onClick={onDone}
+          onClick={onCancel}
           className="min-h-11"
         >
           Cancel

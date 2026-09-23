@@ -23,6 +23,8 @@ export function NamesSection({
 }) {
   const heading = useRef<HTMLHeadingElement>(null);
   const [message, setMessage] = useState("");
+  // One name's panel open at a time; opening another closes it.
+  const [openId, setOpenId] = useState<string | null>(null);
   // Names saved this visit that another member also uses; the note stays by them.
   const [shared, setShared] = useState<ReadonlySet<string>>(new Set());
   const rules: NameRules = { reserved, accountName };
@@ -59,6 +61,12 @@ export function NamesSection({
         which one when you post. They’re separate from the name the club holds
         for you.
       </p>
+      {isAdmin && (
+        <p className="text-muted mt-2 font-sans text-[15px] leading-relaxed">
+          As an admin you can show an Admin badge on a name’s comments. Post
+          under a name without the badge to join in as an ordinary member.
+        </p>
+      )}
 
       {names.length > 0 && (
         <ul className="mt-4">
@@ -66,6 +74,9 @@ export function NamesSection({
             <NameRow
               key={name.id}
               name={name}
+              open={openId === name.id}
+              onOpen={() => setOpenId(name.id)}
+              onClose={() => setOpenId(null)}
               isAdmin={isAdmin}
               isOnly={names.length === 1}
               shared={shared.has(name.id)}
@@ -77,13 +88,6 @@ export function NamesSection({
           ))}
         </ul>
       )}
-      {names.length === 1 && (
-        <p className="text-muted font-sans text-[14px]">
-          You need at least one name to post under, so your only name can’t be
-          removed. Add another first.
-        </p>
-      )}
-
       <AddNameForm
         count={names.length}
         suggestion={suggestion}

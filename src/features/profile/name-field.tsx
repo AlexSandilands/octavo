@@ -68,7 +68,8 @@ export const NameField = forwardRef<
             className="text-ink h-full min-w-0 flex-1 border-none bg-transparent font-sans text-[16px]"
           />
         </div>
-        {children}
+        {/* The controls wrap together, never one away from the other. */}
+        {children && <div className="flex gap-2">{children}</div>}
       </div>
       {error && (
         <p

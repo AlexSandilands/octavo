@@ -274,7 +274,7 @@ export function Avatar({
   src?: string | null;
   size?: "md" | "lg";
 }) {
-  const box = size === "lg" ? "h-16 w-16 text-[20px]" : "h-9 w-9 text-[13px]";
+  const box = size === "lg" ? "h-12 w-12 text-[17px]" : "h-9 w-9 text-[13px]";
   if (src) {
     return (
       // eslint-disable-next-line @next/next/no-img-element -- a 256px WebP in a fixed box
