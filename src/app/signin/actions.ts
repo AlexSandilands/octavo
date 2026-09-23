@@ -1,4 +1,5 @@
 "use server";
+import * as Sentry from "@sentry/nextjs";
 import { AuthError } from "next-auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -20,6 +21,10 @@ const emailSchema = z.string().trim().toLowerCase().email();
 const signinByEmail = createRateLimiter({ limit: 5, windowMs: 15 * 60_000 });
 const signinByIp = createRateLimiter({ limit: 20, windowMs: 15 * 60_000 });
 
+// Reported once per process: with no client address every sign-in shares one
+// bucket, 20 per 15 minutes for the whole site.
+let reportedNoClientIp = false;
+
 // Request a magic link. Every outcome except a malformed address lands on the
 // same "check your email" page: an unknown email throws AccessDenied (the
 // signIn callback vetoes it), and revealing that would let anyone probe who
@@ -33,6 +38,17 @@ export async function requestMagicLink(formData: FormData) {
   // emails) is throttled regardless of what was submitted. A null ip is a
   // request that went around Cloudflare; it gets the same answer.
   const ip = clientIp(await headers(), env.ORIGIN_AUTH_SECRET);
+  if (
+    ip === "unknown" &&
+    process.env.NODE_ENV === "production" &&
+    !reportedNoClientIp
+  ) {
+    reportedNoClientIp = true;
+    Sentry.captureMessage("Sign-in has no client address (X-Real-IP)", {
+      level: "warning",
+      tags: { stage: "signin" },
+    });
+  }
   if (ip === null || !signinByIp.check(ip).ok) {
     redirect(`/signin?error=rate-limited&next=${encodeURIComponent(next)}`);
   }

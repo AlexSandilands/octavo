@@ -652,7 +652,9 @@ direct requests as well as Cloudflare's, so a forwarded header proves nothing by
 With `ORIGIN_AUTH_SECRET` set, `CF-Connecting-IP` counts only beside the matching
 `X-Origin-Auth` that a Cloudflare Transform Rule adds, and a request without it is refused
 with the rate-limited message. Without the secret (the demo, local dev) the key is
-Railway's `X-Real-IP`. `X-Forwarded-For` is never read. Check: `scripts/check-client-ip.mts`.
+Railway's `X-Real-IP`. `X-Forwarded-For` is never read. The Auth.js route exports no
+`POST`, so its own sign-in endpoint can't mail a link around these limits; `signIn()`
+runs `Auth()` in-process and the emailed link is a GET. Check: `scripts/check-client-ip.mts`.
 
 ### Demo mode
 
