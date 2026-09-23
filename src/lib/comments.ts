@@ -25,6 +25,11 @@ export type ReportReason = (typeof REPORT_REASONS)[number];
 export const COMMENT_DELETED_BY = ["author", "admin"] as const;
 export type CommentDeletedBy = (typeof COMMENT_DELETED_BY)[number];
 
+/** Who retired a posting name: its member, who may add it again, or an
+ *  admin, whose retirement sticks. */
+export const NAME_RETIRED_BY = ["member", "admin"] as const;
+export type NameRetiredBy = (typeof NAME_RETIRED_BY)[number];
+
 export const REPORT_STATUSES = ["open", "resolved"] as const;
 export type ReportStatus = (typeof REPORT_STATUSES)[number];
 
@@ -149,6 +154,8 @@ export type ReportView = {
     name: string;
     avatarUrl: string | null;
     retired: boolean;
+    /** An admin's retirement sticks; a member's own can be retired again. */
+    retiredBy: NameRetiredBy | null;
   } | null;
 };
 

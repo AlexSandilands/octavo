@@ -32,18 +32,23 @@ import { getSettings } from "./settings";
 // from its input. `users.name` is the club's record and never a posting name.
 
 const ALREADY = "You already have this name.";
+const ADMIN_RETIRED =
+  "An admin has retired this name, so it can't be used again. Choose another.";
 
-const id = z.string().min(1).max(64);
+export const id = z.string().min(1).max(64);
 const nameInput = z.object({ name: z.string().max(200) }).strict();
-const renameInput = z
+export const renameInput = z
   .object({ nameId: id, name: z.string().max(200) })
   .strict();
 const avatarInput = z.object({ nameId: id, imageId: id }).strict();
 const badgeInput = z.object({ nameId: id, badge: z.boolean() }).strict();
 
-// The picker's rows: unretired, oldest first, avatar resolved, badge honoured
-// only while the account is an admin.
-async function namesOf(userId: string): Promise<MemberNameView[]> {
+// The picker's rows: unretired (or every row, `retired`), oldest first, avatar
+// resolved, badge honoured only while the account is an admin.
+async function namesOf(
+  userId: string,
+  opts: { retired?: boolean } = {},
+): Promise<MemberNameView[]> {
   const rows = await db
     .select({
       id: memberNames.id,
@@ -55,7 +60,12 @@ async function namesOf(userId: string): Promise<MemberNameView[]> {
     .from(memberNames)
     .innerJoin(users, eq(users.id, memberNames.userId))
     .leftJoin(images, eq(images.id, memberNames.avatarImageId))
-    .where(and(eq(memberNames.userId, userId), isNull(memberNames.retiredAt)))
+    .where(
+      and(
+        eq(memberNames.userId, userId),
+        opts.retired ? undefined : isNull(memberNames.retiredAt),
+      ),
+    )
     .orderBy(asc(memberNames.createdAt), asc(memberNames.id));
   return rows.map((row) => ({
     id: row.id,
@@ -78,7 +88,7 @@ export async function listMyNames(): Promise<MemberNameView[]> {
 }
 
 // The magazine and club names are reserved alongside the fixed words.
-async function reservedNames(): Promise<string[]> {
+export async function reservedNames(): Promise<string[]> {
   const settings = await getSettings();
   return [settings.name, settings.org];
 }
@@ -104,7 +114,7 @@ async function lockAccount(tx: Tx, userId: string) {
   return row ?? null;
 }
 
-type NameResult = WriteResult<{
+export type NameResult = WriteResult<{
   name: MemberNameView;
   sharedWithAnotherMember: boolean;
 }>;
@@ -114,7 +124,10 @@ async function answer(
   userId: string,
   key: string,
 ): Promise<NameResult> {
-  const name = (await namesOf(userId)).find((n) => n.id === nameId);
+  // Retired rows too: an admin may reword one.
+  const name = (await namesOf(userId, { retired: true })).find(
+    (n) => n.id === nameId,
+  );
   if (!name) return INVALID;
   return {
     ok: true,
@@ -123,8 +136,9 @@ async function answer(
   };
 }
 
-// Adds a name, or restores the account's own retired one with the same key.
-// A second live copy is refused by the (user_id, name_key) index.
+// Adds a name, or restores the account's own retired one with the same key —
+// unless an admin retired it. A second live copy is refused by the
+// (user_id, name_key) index.
 export async function addName(input: { name: string }): Promise<NameResult> {
   const member = await requireMember();
   const parsed = nameInput.safeParse(input);
@@ -148,11 +162,15 @@ export async function addName(input: { name: string }): Promise<NameResult> {
           id: memberNames.id,
           nameKey: memberNames.nameKey,
           retiredAt: memberNames.retiredAt,
+          retiredBy: memberNames.retiredBy,
         })
         .from(memberNames)
         .where(eq(memberNames.userId, member.id));
       const active = own.filter((row) => !row.retiredAt).length;
       const same = own.find((row) => row.nameKey === check.key);
+      if (same?.retiredAt && same.retiredBy === "admin") {
+        return { ok: false as const, reason: ADMIN_RETIRED };
+      }
       if (active >= MAX_ACTIVE_NAMES && !(same && !same.retiredAt)) {
         return {
           ok: false as const,
@@ -163,7 +181,7 @@ export async function addName(input: { name: string }): Promise<NameResult> {
       if (same?.retiredAt) {
         await tx
           .update(memberNames)
-          .set({ name: check.name, retiredAt: null })
+          .set({ name: check.name, retiredAt: null, retiredBy: null })
           .where(eq(memberNames.id, same.id));
         return { ok: true as const, id: same.id, key: check.key };
       }
@@ -182,13 +200,22 @@ export async function addName(input: { name: string }): Promise<NameResult> {
   }
 }
 
+type RenameMessages = {
+  duplicate: string;
+  retired: string;
+  adminRetired: string;
+};
+
 // Writes a validated name over an existing row. Past comments follow: they
-// point at the row, not a copy of the text.
-async function writeName(
+// point at the row, not a copy of the text. A member renames only live names;
+// an admin (`retired: true`) may also reword a retired one, which stays
+// retired.
+export async function writeName(
   nameId: string,
   ownerId: string,
   check: Extract<MemberNameCheck, { ok: true }>,
-  messages: { duplicate: string; retired: string },
+  messages: RenameMessages,
+  opts: { retired?: boolean } = {},
 ): Promise<NameResult> {
   try {
     const [row] = await db
@@ -198,7 +225,7 @@ async function writeName(
         and(
           eq(memberNames.id, nameId),
           eq(memberNames.userId, ownerId),
-          isNull(memberNames.retiredAt),
+          opts.retired ? undefined : isNull(memberNames.retiredAt),
         ),
       )
       .returning({ id: memberNames.id });
@@ -207,7 +234,10 @@ async function writeName(
     if (!isUniqueViolation(err)) throw err;
     // The clash may be a retired name, which isn't on the picker to see.
     const [clash] = await db
-      .select({ retiredAt: memberNames.retiredAt })
+      .select({
+        retiredAt: memberNames.retiredAt,
+        retiredBy: memberNames.retiredBy,
+      })
       .from(memberNames)
       .where(
         and(
@@ -215,7 +245,11 @@ async function writeName(
           eq(memberNames.nameKey, check.key),
         ),
       );
-    const reason = clash?.retiredAt ? messages.retired : messages.duplicate;
+    const reason = !clash?.retiredAt
+      ? messages.duplicate
+      : clash.retiredBy === "admin"
+        ? messages.adminRetired
+        : messages.retired;
     return { ok: false, reason };
   }
   return answer(nameId, ownerId, check.key);
@@ -242,6 +276,7 @@ export async function renameName(input: {
   return writeName(parsed.data.nameId, member.id, check, {
     duplicate: ALREADY,
     retired: "You retired that name. Add it again instead.",
+    adminRetired: ADMIN_RETIRED,
   });
 }
 
@@ -295,7 +330,7 @@ export async function removeName(
     if ((used?.n ?? 0) > 0) {
       await tx
         .update(memberNames)
-        .set({ retiredAt: new Date() })
+        .set({ retiredAt: new Date(), retiredBy: "member" })
         .where(eq(memberNames.id, parsed.data));
       return { outcome: "retired", keys: [] };
     }
@@ -313,7 +348,7 @@ export async function removeName(
 
 // Swaps a name's avatar (null clears it). The old image row and its object go
 // in the same step, as a replaced logo's do. `ownerId` null is the admin path.
-async function replaceAvatar(
+export async function replaceAvatar(
   nameId: string,
   ownerId: string | null,
   imageId: string | null,
@@ -398,51 +433,4 @@ export async function setNameBadge(input: {
     )
     .returning({ id: memberNames.id });
   return row ? { ok: true } : INVALID;
-}
-
-// ── Admin moderation of names ───────────────────────────────────────────────
-
-// Every rule but the profanity filter: this is how a real name the filter
-// trips gets set for a member.
-export async function adminRenameName(input: {
-  nameId: string;
-  name: string;
-}): Promise<NameResult> {
-  await requireAdmin();
-  const parsed = renameInput.safeParse(input);
-  if (!parsed.success) return INVALID;
-  const [owner] = await db
-    .select({ userId: memberNames.userId })
-    .from(memberNames)
-    .where(eq(memberNames.id, parsed.data.nameId));
-  if (!owner) return INVALID;
-  const check = checkMemberName(parsed.data.name, {
-    reserved: await reservedNames(),
-    skipProfanity: true,
-  });
-  if (!check.ok) return check;
-  return writeName(parsed.data.nameId, owner.userId, check, {
-    duplicate: "That member already has this name.",
-    retired: "That member has retired this name. They can add it again.",
-  });
-}
-
-// Retired, never deleted: the name stays on the comments posted under it.
-export async function adminRetireName(nameId: string): Promise<WriteResult> {
-  await requireAdmin();
-  const parsed = id.safeParse(nameId);
-  if (!parsed.success) return INVALID;
-  const [row] = await db
-    .update(memberNames)
-    .set({ retiredAt: new Date() })
-    .where(and(eq(memberNames.id, parsed.data), isNull(memberNames.retiredAt)))
-    .returning({ id: memberNames.id });
-  return row ? { ok: true } : INVALID;
-}
-
-export async function clearAvatar(nameId: string): Promise<WriteResult> {
-  await requireAdmin();
-  const parsed = id.safeParse(nameId);
-  if (!parsed.success) return INVALID;
-  return replaceAvatar(parsed.data, null, null);
 }

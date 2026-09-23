@@ -12,6 +12,7 @@ import {
 } from "@/db/schema";
 import type {
   CommentDeletedBy,
+  NameRetiredBy,
   ReportFilter,
   ReportView,
 } from "@/lib/comments";
@@ -124,6 +125,7 @@ export async function listReports(
           nameId: memberNames.id,
           nameText: memberNames.name,
           nameRetiredAt: memberNames.retiredAt,
+          nameRetiredBy: memberNames.retiredBy,
           avatarKey: images.key,
         })
         .from(commentReports)
@@ -186,6 +188,7 @@ type Row = {
   nameId: string | null;
   nameText: string | null;
   nameRetiredAt: Date | null;
+  nameRetiredBy: NameRetiredBy | null;
   avatarKey: string | null;
 };
 
@@ -246,6 +249,7 @@ function toView(row: Row): ReportView {
             name: row.nameText,
             avatarUrl: row.avatarKey ? keyToUrl(row.avatarKey) : null,
             retired: row.nameRetiredAt !== null,
+            retiredBy: row.nameRetiredAt ? row.nameRetiredBy : null,
           }
         : null,
   };

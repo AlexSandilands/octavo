@@ -90,6 +90,8 @@ const writes: Record<string, string[]> = {
     "setNameAvatar",
     "clearNameAvatar",
     "setNameBadge",
+  ],
+  "src/server/member-name-moderation.ts": [
     "adminRenameName",
     "adminRetireName",
     "clearAvatar",

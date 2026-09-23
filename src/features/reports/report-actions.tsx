@@ -37,6 +37,9 @@ export function ReportActions({
 
   const comment = report.current.state === "deleted" ? null : report.current;
   const name = report.name;
+  // Retired by an admin: nothing more to do. A member's own retirement can
+  // still be made to stick.
+  const stuck = name?.retiredBy === "admin";
   const by = report.snapshot.name ?? FORMER_MEMBER;
 
   const act = (write: () => Promise<WriteResult>, outcome: string) => {
@@ -117,12 +120,14 @@ export function ReportActions({
         </Button>
         <Button
           variant="secondary"
-          unavailable={pending || !name || name.retired}
-          title={!name ? gone : name.retired ? "Already retired." : undefined}
+          unavailable={pending || !name || stuck}
+          title={
+            !name ? gone : stuck ? "Already retired by an admin." : undefined
+          }
           aria-label={`Retire name ${name?.name ?? by}`}
           onClick={() => setConfirming("retire")}
         >
-          {name?.retired ? "Name retired" : "Retire name"}
+          {stuck ? "Name retired" : "Retire name"}
         </Button>
       </div>
 
@@ -161,7 +166,11 @@ export function ReportActions({
       {confirming === "retire" && name && (
         <ConfirmDialog
           title={`Retire the name “${name.name}”?`}
-          body="It comes off the member’s list of names, so they can’t post under it. Comments already posted under it keep it. The member could add it again from their profile, so if the name itself is the problem, tell them why."
+          body={
+            name.retired
+              ? "The member has already retired it. Retiring it here means they can’t add it back to their names. Comments already posted under it keep it."
+              : "It comes off the member’s list of names, so they can’t post under it, and they can’t add it back. Comments already posted under it keep it. If the name itself is the problem, tell them why."
+          }
           confirmLabel="Retire name"
           confirmIcon="minus"
           onClose={() => setConfirming(null)}
