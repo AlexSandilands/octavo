@@ -160,22 +160,24 @@ export function discussionKit(opts: {
     author: Member,
     nameId: string,
     body: string,
-    o: { parentId?: string; ago?: string } = {},
+    o: { parentId?: string; ago?: string; pageId?: string } = {},
   ) {
     const id = randomUUID();
-    await sql`insert into comments (id, issue_id, author_id, author_name_id, parent_id, body, created_at)
+    await sql`insert into comments (id, issue_id, author_id, author_name_id, parent_id, body, page_id, created_at)
       values (${id}, ${issueId}, ${author.id}, ${nameId}, ${o.parentId ?? null}, ${body},
-        now() - ${o.ago ?? "1 hour"}::interval)`;
+        ${o.pageId ?? null}, now() - ${o.ago ?? "1 hour"}::interval)`;
     return id;
   }
 
   async function context(
     who: Member | null,
     viewport = { width: 1280, height: 860 },
+    reducedMotion: "reduce" | "no-preference" = "no-preference",
   ): Promise<BrowserContext> {
     const ctx = await browser.newContext({
       viewport,
       hasTouch: viewport.width < 768,
+      reducedMotion,
     });
     if (who) {
       await ctx.addCookies([
@@ -189,10 +191,19 @@ export function discussionKit(opts: {
   async function reader(
     who: Member | null,
     number: number,
-    o: { width?: number; height?: number; query?: string } = {},
+    o: {
+      width?: number;
+      height?: number;
+      query?: string;
+      reducedMotion?: boolean;
+    } = {},
   ): Promise<{ page: Page; ctx: BrowserContext; listCalls: () => number }> {
     const width = o.width ?? 1280;
-    const ctx = await context(who, { width, height: o.height ?? 860 });
+    const ctx = await context(
+      who,
+      { width, height: o.height ?? 860 },
+      o.reducedMotion ? "reduce" : "no-preference",
+    );
     const page = await ctx.newPage();
     let calls = 0;
     page.on("request", (r) => {

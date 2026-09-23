@@ -7,7 +7,9 @@
 // on the library cards and in the delete confirmations (bulk included), and
 // the lazy fetch; and the admin's thread (#302) — hidden and deleted comments
 // marked, the account line, Hide / Unhide / Delete in the drawer and the sheet,
-// the member's payload held to the members' rule.
+// the member's payload held to the members' rule; and page tags (#304) — the
+// open page(s) on both readers, the tag controls, chips, "This page only",
+// renumbering and removed pages (discussion-gate-tags*.mts).
 //
 // Against a demo-mode server (NEXT_PUBLIC_DEMO_MODE=1, detected: the reader
 // answers a signed-out visitor) it runs the signed-out visitor's checks
@@ -31,6 +33,7 @@ import { discussionKit } from "./discussion-gate-kit.mts";
 import { mobileGate } from "./discussion-gate-mobile.mts";
 import { composerStates } from "./discussion-gate-composer.mts";
 import { deepLinks, demoGate, offSwitch } from "./discussion-gate-states.mts";
+import { tagsGate } from "./discussion-gate-tags.mts";
 
 for (const file of [".env.local", ".env"]) {
   try {
@@ -149,6 +152,22 @@ try {
     await sql`update comments set hidden_at = now() where id = ${hidden}`;
     await k.comment(r.id, alice, aliceNames[0], "check-301 on R");
     await countsGate(k, { reader: carol, admin: ada, p, q, r, empty });
+
+    // Page tags on an issue of their own, posted by members of their own (the
+    // post limit is per member).
+    const tagged = await k.issue(true, 3);
+    const tess = await k.member("tess", { name: "Tess Check" });
+    await k.name(tess.id, "Tess Tagger");
+    const tom = await k.member("tom", { name: "Tom Check" });
+    const tomName = await k.name(tom.id, "Tom Turner");
+    const [row] = await sql<{ content: { pages: { id: string }[] } }[]>`
+      select content from issues where id = ${tagged.id}`;
+    const pages = row!.content.pages.map((page) => page.id);
+    await k.comment(tagged.id, tom, tomName, "check-304 not tagged");
+    await k.comment(tagged.id, ada, adaName, "check-304 on page five", {
+      pageId: pages[4],
+    });
+    await tagsGate(k, { issue: tagged, pages, tess, tom, ada, adaName });
   }
 } finally {
   await browser.close();
