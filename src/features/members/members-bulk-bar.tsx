@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import styles from "./members-layout.module.css";
 import { Button } from "@/components/ui";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { RemovalCommentsNote } from "./removal-comments-note";
 import { SelectCheckbox } from "@/components/select-checkbox";
 import { MEMBERS_SELECTION_MAX } from "./selection-limit";
 import {
@@ -345,7 +346,13 @@ export function MembersBulkBar({
       {confirming && (
         <ConfirmDialog
           title={`Remove ${plural(count, "member", "members")}?`}
-          body="They lose access immediately and are signed out. This can’t be undone."
+          body={
+            <>
+              They lose access immediately and are signed out. This can’t be
+              undone.
+              <RemovalCommentsNote ids={selectedIds} many={count > 1} />
+            </>
+          }
           confirmLabel={`Remove ${count}`}
           confirmIcon="trash"
           onClose={() => setConfirming(false)}

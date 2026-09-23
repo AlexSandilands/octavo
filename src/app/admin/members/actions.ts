@@ -15,8 +15,10 @@ import {
 import {
   deleteUser,
   deleteUsers,
+  removalImpact,
   type BulkDeleteResult,
 } from "@/server/member-removal";
+import type { RemovedMemberComments } from "@/lib/branding";
 import { requireAdmin } from "@/server/session";
 import { ADMIN_LIST_QUERY_MAX } from "@/lib/list-query";
 import { MEMBERS_IMPORT_MAX } from "@/features/members/import-limit";
@@ -176,6 +178,23 @@ export async function removeMembersAction(
   const result = await deleteUsers(parsed.data, admin.id);
   revalidatePath("/admin/members");
   return { ok: true, ...result };
+}
+
+export type RemovalImpactResult =
+  | { ok: true; comments: number; policy: RemovedMemberComments }
+  | { ok: false };
+
+// For the removal confirmations: how many comments the members have and what
+// the removed-member setting will do with them (issue #302). The acting
+// admin's own row is left out, as removal always skips it.
+export async function removalImpactAction(
+  ids: unknown,
+): Promise<RemovalImpactResult> {
+  const admin = await requireAdmin();
+  const parsed = idsSchema.safeParse(ids);
+  if (!parsed.success) return { ok: false };
+  const others = parsed.data.filter((id) => id !== admin.id);
+  return { ok: true, ...(await removalImpact(others)) };
 }
 
 export type SetSubscribedManyResult =

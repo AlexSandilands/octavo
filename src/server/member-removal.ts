@@ -1,10 +1,13 @@
 import "server-only";
-import { and, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, count, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { db } from "@/db";
 import { comments, memberNames, sessions, settings, users } from "@/db/schema";
-import { REMOVED_MEMBER_COMMENTS } from "@/lib/branding";
+import {
+  REMOVED_MEMBER_COMMENTS,
+  type RemovedMemberComments,
+} from "@/lib/branding";
 import { siteDefaults } from "@/lib/site-defaults";
 import {
   sweepOrphanedObjects,
@@ -85,6 +88,30 @@ async function prepareRemoval(
     .set({ authorId: null, authorNameId: null })
     .where(inArray(comments.authorId, userIds));
   return avatars.flatMap((row) => (row.imageId ? [row.imageId] : []));
+}
+
+/** What removing these members would do to their comments, for the removal
+ *  confirmation (issue #302): how many they have and the policy now. */
+export async function removalImpact(
+  userIds: string[],
+): Promise<{ comments: number; policy: RemovedMemberComments }> {
+  const ids = [...new Set(userIds)];
+  return db.transaction(
+    async (tx) => {
+      let total = 0;
+      for (const batch of chunked(ids)) {
+        const [row] = await tx
+          .select({ n: count() })
+          .from(comments)
+          .where(
+            and(inArray(comments.authorId, batch), isNull(comments.deletedAt)),
+          );
+        total += row?.n ?? 0;
+      }
+      return { comments: total, policy: await removedMemberPolicy(tx) };
+    },
+    { accessMode: "read only" },
+  );
 }
 
 export type DeleteUserResult =
