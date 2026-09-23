@@ -376,7 +376,8 @@ down for anything inside a dialog.
 
 ```
 Reader page (server)  ─ settings.commentsEnabled? ─▶ DiscussionInfo { issueNo, signedIn }
-Reader (client)       ─ useDiscussion: open state + a history entry per opening (Back closes)
+Reader (client)       ─ useDiscussion: open state + a history entry per opening (Back closes),
+                         its address ?discussion=1 — native history API, no navigation
   shell opens ─▶ GET /api/issues/[number]/comments   (member-gated, no-store)
                    └─ listComments ▸ toThreadEntries ▸ { entries, composer }
   a write     ─▶ server action in app/read/[issueId]/actions.ts
@@ -388,9 +389,14 @@ Nothing about a thread is in the issue page's HTML — the list is fetched only 
 first opens and after each write, so a closed drawer costs no query. The
 composer posts under one of the account's posting names ("Posting as"), defaulting to the name
 on the member's latest comment; an account with none names itself in the composer and the name
-is created with the first post. Reports always thank the reporter. `?discussion=1` opens the
-shell on load and `&comment=<id>` scrolls to and briefly highlights that comment (the reports
-inbox links this way). Off (`comments_enabled`), on drafts and previews, on the print route and
+is created with the first post. Reports always thank the reporter. The address mirrors the shell:
+open reads `?discussion=1` — plus `&comment=<id>` when a link opened it that way — and closed,
+by any way out, reads neither, other query parameters untouched. Opening pushes one history
+entry with that address and closing pops it (an arrival already open — a deep link, a reload —
+first clears the entry it came in on), all through `window.history`, which Next's router
+follows without a navigation or a server round trip, so the reader never remounts and the
+draft survives. `?discussion=1` opens the shell on load and `&comment=<id>` scrolls to and
+briefly highlights that comment (the reports inbox links this way). Off (`comments_enabled`), on drafts and previews, on the print route and
 in the PDF there is no thread at all; demo mode's signed-out visitor gets the button and a
 sign-in panel, and the list route answers 401. The library's cards carry "N
 comments" (visible comments and replies), and the admin's delete confirmations — single and
