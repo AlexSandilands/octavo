@@ -1,5 +1,7 @@
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { Button } from "@/components/ui";
+import { getUserFailClosed } from "@/server/session";
 import { getSettings } from "@/server/settings";
 import { SignInCard } from "./card";
 import { safeNextPath } from "@/lib/next-path";
@@ -43,6 +45,11 @@ export default async function SignInPage({
   const parsed = paramsSchema.safeParse(await searchParams);
   const error = parsed.success ? parsed.data.error : "unknown";
   const next = safeNextPath(parsed.success ? parsed.data.next : undefined);
+  // A spent emailed link clicked again by a member who is still signed in (the
+  // first click signed them in) just goes where it was headed.
+  if (error === "Verification" && next !== "/" && (await getUserFailClosed())) {
+    redirect(next);
+  }
   const notice = error ? (ERROR_COPY[error] ?? GENERIC_ERROR) : null;
   const { name } = await getSettings();
 
