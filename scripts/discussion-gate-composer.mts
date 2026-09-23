@@ -146,13 +146,14 @@ export async function composerStates(k: Kit, c: Cast) {
 
 // The composer's bottom row stays one line — "Posting as", the name menu and
 // the buttons — even under a 40-character name, in a reply box on a phone.
+// The main box on a phone gives its two pills (#304) a row above Post.
 async function longNameRow(k: Kit, c: Cast) {
   const long = "Bartholomew Alexander Fitzwilliam-Smythe";
   const who = await k.member("longname", { name: "Bart Check" });
   await k.name(who.id, long);
   await k.name(who.id, "B. Smythe");
   for (const width of [1280, 360]) {
-    k.heading(`composer — one line with a 40-character name, ${width}px`);
+    k.heading(`composer — a 40-character name, ${width}px`);
     const r = await k.reader(who, c.issue.number!, {
       width,
       height: 740,
@@ -191,11 +192,15 @@ async function longNameRow(k: Kit, c: Cast) {
           heights: boxes.map((b) => Math.round(b.height)),
         };
       }, form);
+      // A phone's main box puts its two pills (#304) on a row above Post.
+      const stacked = what === "the main box" && width < 768;
       k.ok(
         row.mids.length >= 2 &&
-          Math.max(...row.mids) - Math.min(...row.mids) <= 2 &&
-          row.inside,
-        `${what}: name menu and buttons on one line, inside the panel (${row.mids.join(", ")})`,
+          row.inside &&
+          (stacked
+            ? Math.min(...row.mids.slice(1)) - row.mids[0]! >= 30
+            : Math.max(...row.mids) - Math.min(...row.mids) <= 2),
+        `${what}: ${stacked ? "the pills on a row of their own, Post beneath" : "name menu and buttons on one line"}, inside the panel (${row.mids.join(", ")})`,
       );
       k.ok(
         row.truncated,

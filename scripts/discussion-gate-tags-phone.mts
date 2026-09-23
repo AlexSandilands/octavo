@@ -1,8 +1,8 @@
-// dev-discussion-gate.mts, page tags on a phone (issue #304): the current
-// page follows the scroll and holds still while the sheet is up, the one
-// checkbox, a chip closing the sheet onto its section with focus there, and
-// "This page only" asking again after a scroll. Screen-reader names are read
-// from the accessibility tree.
+// dev-discussion-gate.mts, page tags on a phone (issue #304): the open page
+// follows the scroll (the menu's "open now" row) and holds still while the
+// sheet is up, a chip closing the sheet onto its section with focus there,
+// and "This page only" asking again after a scroll. Screen-reader names are
+// read from the accessibility tree.
 import type { Page } from "playwright";
 import type { Kit } from "./discussion-gate-kit.mts";
 import { heard, said } from "./discussion-gate-desktop.mts";
@@ -10,10 +10,14 @@ import {
   TAGS_OUT,
   chips,
   closeShell,
+  escapeMenu,
   filterState,
+  openPicker,
   openShell,
+  pick,
+  pickerRows,
   setFilter,
-  tagControl,
+  tagPill,
   tagReader,
   type TagCast,
 } from "./discussion-gate-tags.mts";
@@ -26,10 +30,14 @@ async function scrollToPage(page: Page, pageId: string) {
   await page.waitForTimeout(250);
 }
 
-const tagText = async (page: Page) => {
-  const tag = await tagControl(page);
-  return tag?.kind === "checkbox" ? tag.text : null;
-};
+/** The page(s) the menu marks open now; Escape closes the menu after. */
+async function openNow(page: Page) {
+  await openPicker(page);
+  const rows = await pickerRows(page);
+  // Escape closes the menu alone; were the sheet to go too, nothing matches.
+  if (!(await escapeMenu(page))) return "the sheet closed";
+  return [...new Set(rows.filter((r) => r.open).map((r) => r.text))].join();
+}
 
 export async function phoneTags(k: Kit, c: TagCast, tessComment: string) {
   const [, , p3, , p5] = c.pages;
@@ -40,24 +48,20 @@ export async function phoneTags(k: Kit, c: TagCast, tessComment: string) {
   const { page } = m;
   await openShell(k, page);
   k.ok(
-    (await tagText(page)) === "Tag the cover",
-    "at the top, one checkbox: “Tag the cover”",
-  );
-  k.ok(
-    (await page.locator("[role=dialog] fieldset").count()) === 0,
-    "no radio group on a phone",
+    (await openNow(page)) === "The cover",
+    "at the top, the menu marks the cover open now (and Escape leaves the sheet up)",
   );
   await closeShell(page);
   await scrollToPage(page, p3!);
   await openShell(k, page);
   k.ok(
-    (await tagText(page)) === "Tag page 3",
-    "scrolled to page 3: “Tag page 3”",
+    (await openNow(page)) === "Page 3",
+    "scrolled to page 3: page 3 is open now",
   );
   await closeShell(page);
   await scrollToPage(page, p5!);
   await openShell(k, page);
-  k.ok((await tagText(page)) === "Tag page 5", "scrolled on: “Tag page 5”");
+  k.ok((await openNow(page)) === "Page 5", "scrolled on: page 5");
   const moved = await page.evaluate(async () => {
     const from = window.scrollY;
     window.scrollTo(0, 0);
@@ -65,7 +69,7 @@ export async function phoneTags(k: Kit, c: TagCast, tessComment: string) {
     return from !== window.scrollY;
   });
   k.ok(
-    moved && (await tagText(page)) === "Tag page 5",
+    moved && (await openNow(page)) === "Page 5",
     "the column moving under the open sheet changes nothing",
   );
   await closeShell(page);
@@ -73,9 +77,9 @@ export async function phoneTags(k: Kit, c: TagCast, tessComment: string) {
 
   k.heading("tags — phone: a tagged post, and a chip that lands on its page");
   await openShell(k, page);
-  await page
-    .locator("[role=dialog] label:has-text('Tag page 5') input")
-    .check();
+  await openPicker(page);
+  await pick(page, "Page 5");
+  k.ok((await tagPill(page)).text === "Page 5", "the pill reads “Page 5”");
   await page.fill("#discussion-composer", "check-304 from a phone on page 5");
   const before = await said(page);
   await page.click("form:has(#discussion-composer) button[type=submit]");
@@ -84,10 +88,10 @@ export async function phoneTags(k: Kit, c: TagCast, tessComment: string) {
   k.ok(posted.length === 2, "its chip reads “Page 5” (beside Ada's)");
   const tree = await k.shell(page).ariaSnapshot();
   k.ok(
-    tree.includes('checkbox "Tag page 5"') &&
+    tree.includes('button "Tag a page"') &&
       tree.includes('button "Go to page 3"') &&
       tree.includes('checkbox "This page only"'),
-    "a screen reader hears “Tag page 5”, “Go to page 3”, “This page only”",
+    "a screen reader hears “Tag a page” (reset), “Go to page 3”, “This page only”",
   );
   await page.locator(`#comment-${tessComment} [data-page-chip]`).click();
   await page.waitForSelector("[role=dialog]", { state: "detached" });
@@ -129,8 +133,8 @@ export async function phoneTags(k: Kit, c: TagCast, tessComment: string) {
   k.heading("tags — phone: “This page only”, and again after a scroll");
   await openShell(k, page);
   k.ok(
-    (await tagText(page)) === "Tag page 3",
-    "the landing made page 3 the current page",
+    (await openNow(page)) === "Page 3",
+    "the landing made page 3 the open page",
   );
   await setFilter(page, true);
   let f = await filterState(page);
@@ -138,13 +142,11 @@ export async function phoneTags(k: Kit, c: TagCast, tessComment: string) {
     f.count === "1 comment on this page" && f.comments === 1,
     `ticked: “${f.count}”`,
   );
-  await page
-    .locator("[role=dialog] label:has-text('Tag page 3') input")
-    .check();
+  await openPicker(page);
+  await pick(page, "Page 3");
   await page.screenshot({ path: `${TAGS_OUT}/phone-390-filter.png` });
-  await page
-    .locator("[role=dialog] label:has-text('Tag page 3') input")
-    .uncheck();
+  await openPicker(page);
+  await pick(page, "No page");
   await closeShell(page);
   await scrollToPage(page, p5!);
   const asked = m.lists.length;

@@ -1,11 +1,12 @@
 // dev-discussion-gate.mts, page tags (issue #304): the open page(s) each
-// reader exposes, the composer's checkbox and radio group, a tagged post's
-// chip and where it goes (the drawer staying open on a computer, the sheet
-// closing onto the section on a phone), keyboard only, "This page only" with
+// reader exposes, the composer's page menu (every page, the open ones marked
+// and listed first; keyboard only), a tagged post's chip and where it goes (the drawer staying open on a computer, the sheet
+// closing onto the section on a phone), "This page only" with
 // its count and its refetch when the page changes, an overflow split
 // renumbering the chip, a deleted page's "Page removed", and a page_id the
 // issue no longer has refused through the action. The phone half lives in
-// discussion-gate-tags-phone.mts.
+// discussion-gate-tags-phone.mts, the composer's look in
+// discussion-gate-tags-look.mts.
 import { randomUUID } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
@@ -17,6 +18,7 @@ import {
   type Member,
 } from "./discussion-gate-kit.mts";
 import { heard, said } from "./discussion-gate-desktop.mts";
+import { composerLook } from "./discussion-gate-tags-look.mts";
 import { phoneTags } from "./discussion-gate-tags-phone.mts";
 
 export const TAGS_OUT = path.resolve(".data/tags-review");
@@ -59,36 +61,56 @@ export async function closeShell(page: Page) {
   await page.waitForSelector("[role=dialog]", { state: "detached" });
 }
 
-/** The composer's page tag as it stands: the checkbox, or the radio group. */
-export function tagControl(page: Page) {
-  return page.evaluate(() => {
-    const form = document
-      .querySelector("#discussion-composer")
-      ?.closest("form");
-    const fieldset = form?.querySelector("fieldset");
-    if (fieldset) {
-      return {
-        kind: "radios" as const,
-        legend: fieldset.querySelector("legend")?.textContent?.trim() ?? "",
-        choices: [...fieldset.querySelectorAll("label")].map((l) => ({
-          text: l.textContent?.trim() ?? "",
-          checked: l.querySelector("input")!.checked,
-          h: l.getBoundingClientRect().height,
-        })),
-      };
-    }
-    const box = [...(form?.querySelectorAll("label") ?? [])].find((l) =>
-      l.textContent?.trim().startsWith("Tag "),
-    );
-    return box
-      ? {
-          kind: "checkbox" as const,
-          text: box.textContent?.trim() ?? "",
-          checked: box.querySelector("input")!.checked,
-          h: box.getBoundingClientRect().height,
-        }
-      : null;
+const PILL =
+  'form:has(#discussion-composer) button[aria-haspopup=menu][aria-label^="Tag"]';
+const MENU = '[role=menu][aria-label="Tag a page"]';
+
+/** The composer's page pill: its name, its words and its box. */
+export function tagPill(page: Page) {
+  return page.locator(PILL).evaluate((b) => {
+    const r = b.getBoundingClientRect();
+    return {
+      label: b.getAttribute("aria-label"),
+      text: b.textContent?.trim() ?? "",
+      h: r.height,
+      w: r.width,
+    };
   });
+}
+
+/** Opens the page menu by pointer (or, with `keys`, from the focused pill). */
+export async function openPicker(page: Page, keys = false) {
+  if (keys) await page.keyboard.press("Enter");
+  else await page.click(PILL);
+  await page.waitForSelector(MENU);
+}
+
+/** The menu's rows: page name, heading hint, the open-now mark, ticked. */
+export function pickerRows(page: Page) {
+  return page.$$eval(`${MENU} [role=menuitemradio]`, (els) =>
+    els.map((el) => ({
+      text: el.querySelector("[data-page-label]")?.textContent?.trim() ?? "",
+      hint: el.querySelector("[data-page-hint]")?.textContent?.trim() ?? null,
+      open: el.querySelector("[data-open-now]") !== null,
+      checked: el.getAttribute("aria-checked") === "true",
+      h: el.getBoundingClientRect().height,
+    })),
+  );
+}
+
+/** Chooses a row by its page name — the last match, the in-order one. */
+export async function pick(page: Page, text: string) {
+  const rows = await pickerRows(page);
+  const at = rows.map((r) => r.text).lastIndexOf(text);
+  await page.locator(`${MENU} [role=menuitemradio]`).nth(at).click();
+  await page.waitForSelector(MENU, { state: "detached" });
+}
+
+/** Escape closes the menu alone: the shell stays open. */
+export async function escapeMenu(page: Page) {
+  await page.keyboard.press("Escape");
+  await page.waitForSelector(MENU, { state: "detached" });
+  return (await page.locator("[role=dialog]").count()) === 1;
 }
 
 /** Each chip in the thread: its words, name, and whether it can be pressed. */
@@ -149,13 +171,17 @@ async function tabTo(page: Page, match: string) {
   return false;
 }
 
-async function contentOf(k: Kit, issueId: string) {
+export async function contentOf(k: Kit, issueId: string) {
   const [row] = await k.sql<{ content: { pages: { id: string }[] } }[]>`
     select content from issues where id = ${issueId}`;
   return row!.content;
 }
 
-async function writePages(k: Kit, issueId: string, pages: { id: string }[]) {
+export async function writePages(
+  k: Kit,
+  issueId: string,
+  pages: { id: string }[],
+) {
   const content = await contentOf(k, issueId);
   await k.sql`update issues set content = ${k.sql.json({ ...content, pages } as never)}
     where id = ${issueId}`;
@@ -167,53 +193,63 @@ export async function tagsGate(k: Kit, c: TagCast) {
   const [, p2, p3, , p5] = c.pages;
   const size = { width: 1280, height: 860 };
 
-  k.heading("tags — desktop: the cover, then a spread, keyboard only");
+  k.heading("tags — desktop: the page menu, keyboard only");
   const d = await tagReader(k, c.tess, n, size);
   await openShell(k, d.page);
-  let tag = await tagControl(d.page);
+  let pill = await tagPill(d.page);
   k.ok(
-    tag?.kind === "checkbox" &&
-      tag.text === "Tag the cover" &&
-      !tag.checked &&
-      tag.h >= 44,
-    `on the cover, one checkbox “${tag && "text" in tag ? tag.text : "?"}”, off, 44px`,
+    pill.text === "Tag a page" && pill.label === "Tag a page",
+    "the composer offers a “Tag a page” pill",
   );
   let f = await filterState(d.page);
   k.ok(
     f.label === "This page only" && f.on === false && f.count === "",
     "“This page only” at the top, off, with no count",
   );
-  await closeShell(d.page);
-  await d.page.keyboard.press("ArrowRight");
-  k.ok((await dock(d.page))?.startsWith("2–3"), "turned to pages 2–3");
-  await d.page.focus(OPEN_BUTTON);
-  await d.page.keyboard.press("Enter");
-  await k.waitThread(d.page);
-  tag = await tagControl(d.page);
-  k.ok(
-    tag?.kind === "radios" &&
-      tag.legend === "Tag a page" &&
-      tag.choices.map((x) => x.text).join(" · ") === "None · Page 2 · Page 3" &&
-      tag.choices[0]!.checked &&
-      tag.choices.every((x) => x.h >= 44),
-    "on a spread, a fieldset “Tag a page”: None · Page 2 · Page 3, None chosen, 44px each",
-  );
-  f = await filterState(d.page);
-  k.ok(f.label === "These pages only", "the filter reads “These pages only”");
-
   await d.page.keyboard.press("Tab"); // off the panel, to the first control
   k.ok(await tabTo(d.page, "#discussion-composer"), "Tab reaches the box");
-  await d.page.keyboard.type("check-304 about page three");
+  await d.page.keyboard.type("check-304 about page three, read earlier");
   k.ok(
-    await tabTo(d.page, "fieldset input:checked"),
-    "Tab reaches the radio group, on None",
+    await tabTo(d.page, 'button[aria-label="Tag a page"]'),
+    "Tab reaches the page pill",
   );
-  await d.page.keyboard.press("ArrowRight");
-  await d.page.keyboard.press("ArrowRight");
-  tag = await tagControl(d.page);
+  await openPicker(d.page, true);
+  let rows = await pickerRows(d.page);
   k.ok(
-    tag?.kind === "radios" && tag.choices[2]!.checked,
-    "the arrow keys choose Page 3",
+    rows[0]?.text === "No page" &&
+      rows[0].checked &&
+      (await d.page.evaluate(
+        () => document.activeElement?.getAttribute("aria-checked") === "true",
+      )),
+    "Enter opens it on “No page”, ticked and focused",
+  );
+  k.ok(
+    rows
+      .slice(1)
+      .map((r) => r.text)
+      .join(",") ===
+      c.pages.map((_, i) => (i ? `Page ${i + 1}` : "The cover")).join(","),
+    `then every page in order (${rows.length - 1}), no repeats this near the top`,
+  );
+  k.ok(
+    rows[1]!.open &&
+      rows.filter((r) => r.open).length === 1 &&
+      rows.every((r) => r.h >= 44) &&
+      rows.filter((r) => r.hint).length >= c.pages.length - 1,
+    "the cover marked “open now”; 44px rows; headings as hints",
+  );
+  // No page, the cover, page 2, page 3.
+  for (let i = 0; i < 3; i++) await d.page.keyboard.press("ArrowDown");
+  await d.page.keyboard.press("Enter");
+  await d.page.waitForSelector(MENU, { state: "detached" });
+  pill = await tagPill(d.page);
+  k.ok(
+    pill.text === "Page 3" &&
+      pill.label === "Tagged to page 3" &&
+      (await d.page.evaluate(() =>
+        document.activeElement?.getAttribute("aria-label"),
+      )) === "Tagged to page 3",
+    "arrows and Enter choose page 3 — not open — and focus returns to the pill",
   );
   let before = await said(d.page);
   k.ok(
@@ -239,22 +275,30 @@ export async function tagsGate(k: Kit, c: TagCast) {
       mine.h >= 44,
     `its chip reads “${mine?.text}”, named “${mine?.label}”, 44px`,
   );
-  tag = await tagControl(d.page);
+  pill = await tagPill(d.page);
+  k.ok(pill.text === "Tag a page", "the pill is back to “Tag a page”");
+  await d.page.locator(`#comment-${tessComment} [data-page-chip]`).click();
   k.ok(
-    tag?.kind === "radios" && tag.choices[2]!.checked,
-    "the choice to tag stays for the next post",
+    (await dock(d.page))?.startsWith("2–3") &&
+      (await d.page.locator("[role=dialog]").count()) === 1,
+    "the chip turns from the cover to pages 2–3, the drawer open",
   );
-  await d.page
-    .locator("form:has(#discussion-composer) fieldset")
-    .scrollIntoViewIfNeeded();
-  await d.page.screenshot({ path: `${TAGS_OUT}/desktop-radios-chip.png` });
-  await closeShell(d.page);
-  await openShell(k, d.page);
-  tag = await tagControl(d.page);
+  await openPicker(d.page);
+  rows = await pickerRows(d.page);
   k.ok(
-    tag?.kind === "radios" && tag.choices[2]!.checked,
-    "and across closing and reopening",
+    rows[2]?.text === "Page 2" &&
+      rows[3]?.text === "Page 3" &&
+      rows[2].open &&
+      rows[3].open &&
+      rows.filter((r) => r.open).length === 2,
+    "on the spread both pages are marked open now",
   );
+  k.ok(
+    await escapeMenu(d.page),
+    "Escape closes the menu and leaves the drawer open",
+  );
+  f = await filterState(d.page);
+  k.ok(f.label === "These pages only", "the filter reads “These pages only”");
   await closeShell(d.page);
   await d.ctx.close();
 
@@ -277,12 +321,13 @@ export async function tagsGate(k: Kit, c: TagCast) {
       )),
     "the drawer stays open, focus on the chip",
   );
-  tag = await tagControl(t.page);
+  await openPicker(t.page);
+  const marked = (await pickerRows(t.page)).filter((r) => r.open);
   k.ok(
-    tag?.kind === "radios" &&
-      tag.choices.map((x) => x.text).join(" · ") === "None · Page 2 · Page 3",
-    "and its composer now offers pages 2 and 3",
+    marked.map((r) => r.text).join(",") === "Page 2,Page 3",
+    "its menu now marks pages 2 and 3 open",
   );
+  await escapeMenu(t.page);
 
   k.heading("tags — desktop: “These pages only”, its count, the refetch");
   const asked = t.lists.length;
@@ -395,7 +440,8 @@ export async function tagsGate(k: Kit, c: TagCast) {
     c.issue.id,
     gone.filter((p) => p.id !== doomed),
   );
-  await x.page.locator("fieldset label:nth-of-type(3) input").check();
+  await openPicker(x.page);
+  await pick(x.page, "Page 3");
   await x.page.fill("#discussion-composer", "check-304 on a page just deleted");
   await x.page.click("form:has(#discussion-composer) button[type=submit]");
   const refusal = x.page.locator(
@@ -410,4 +456,6 @@ export async function tagsGate(k: Kit, c: TagCast) {
     where body = 'check-304 on a page just deleted'`;
   k.ok(none?.n === 0, "and nothing was stored");
   await x.ctx.close();
+
+  await composerLook(k);
 }
