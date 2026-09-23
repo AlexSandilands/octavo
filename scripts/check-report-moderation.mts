@@ -12,7 +12,7 @@ h.scratchPrefix("check-302");
 const { as, db, ok, heading, schema, names, thread, moderation } = h;
 const { inbox, alert, removal } = h;
 const { comments, commentReports, users } = schema;
-const { eq } = await import("drizzle-orm");
+const { eq, inArray } = await import("drizzle-orm");
 const { getSettings } = await import("../src/server/settings.ts");
 const { reportExcerpt } = await import("../src/server/report-email.ts");
 const { sentryCaptures } =
@@ -217,8 +217,11 @@ const [kept] = await db
   .from(comments)
   .where(eq(comments.id, deleteMe));
 ok(
-  kept?.deletedAt && kept.hiddenAt && kept.body === "",
-  "the reported comment is kept blanked and hidden",
+  kept?.deletedAt &&
+    kept.deletedBy === "admin" &&
+    kept.hiddenAt === null &&
+    kept.body === "",
+  "the reported comment is kept as a stub marked deleted by an admin, not hidden",
 );
 view = await inbox.listReports({ filter: "all", query: "Delete me" });
 ok(
@@ -355,6 +358,111 @@ ok(
 ok(
   (await removal.removalImpact([bob.id])).comments === 0,
   "a member with no comments counts zero",
+);
+
+heading("who deleted it: deleted_by, never inferred");
+// An admin hides a comment with a reply, then its author deletes it: the
+// author's delete, whatever the hidden flag says.
+const gina = await h.scratchUser({ name: "Gina Check" });
+async function postAs(
+  user: Scratch,
+  name: string,
+  body: string,
+  parentId?: string,
+) {
+  as(user);
+  const added = await names.addName({ name });
+  const nameId = added.ok ? added.name.id : (await names.listMyNames())[0]!.id;
+  const r = await thread.createComment({
+    issueId: issue.id,
+    body,
+    parentId,
+    nameId,
+  });
+  if (!r.ok) throw new Error(r.reason);
+  return r.id;
+}
+const hiddenFirst = await postAs(gina, "Gina Gee", "Hidden, then deleted");
+await postAs(bob, "Bob Bee", "A reply", hiddenFirst);
+await report(carol, hiddenFirst);
+as(admin);
+await moderation.hideComment(hiddenFirst);
+as(gina);
+await thread.deleteOwnComment(hiddenFirst);
+as(admin);
+view = await inbox.listReports({
+  filter: "all",
+  query: "Hidden, then deleted",
+});
+ok(
+  view.rows[0]?.current.state === "deleted" &&
+    view.rows[0].current.by === "author",
+  "admin hides, then the author deletes: 'Deleted by its author since'",
+);
+const [authorStub] = await db
+  .select()
+  .from(comments)
+  .where(eq(comments.id, hiddenFirst));
+ok(authorStub?.deletedBy === "author", "…recorded as deleted_by author");
+
+// A removal under the delete policy keeps reported comments as admin stubs.
+const frank = await h.scratchUser({ name: "Frank Check" });
+as(frank);
+const frankName = await names.addName({ name: "Frank Eff" });
+const frankPost = async (body: string, parentId?: string) => {
+  as(frank);
+  const r = await thread.createComment({
+    issueId: issue.id,
+    body,
+    parentId,
+    nameId: frankName.ok ? frankName.name.id : "",
+  });
+  if (!r.ok) throw new Error(r.reason);
+  return r.id;
+};
+const frankTop = await frankPost("Frank on top");
+const frankReply = await frankPost("Frank replying", first);
+const frankQuiet = await frankPost("Frank unreported");
+await report(dave, frankTop);
+await report(erin, frankReply);
+await h.setSettings({ removedMemberComments: "delete" });
+ok(
+  (await removal.deleteUser(frank.id, admin.id)).ok,
+  "a member is removed under the delete policy",
+);
+await h.setSettings({ removedMemberComments: null });
+const frankRows = await db
+  .select()
+  .from(comments)
+  .where(inArray(comments.id, [frankTop, frankReply, frankQuiet]));
+ok(
+  frankRows.length === 2 &&
+    frankRows.every((c) => c.deletedBy === "admin" && c.body === ""),
+  "their reported comment and reply stay as stubs deleted by an admin; the unreported one goes",
+);
+as(admin);
+view = await inbox.listReports({ filter: "all", query: "Frank" });
+ok(
+  view.rows.length === 2 &&
+    view.rows.every(
+      (r) => r.current.state === "deleted" && r.current.by === "admin",
+    ),
+  "…and the inbox says 'Removed by an admin since'",
+);
+
+heading("the report link never comes from a request header");
+ok(
+  (await alert.inboxOrigin(undefined, true)) === null,
+  "production without APP_URL: no link, so no email",
+);
+ok(
+  (await alert.inboxOrigin("https://club.example/", true)) ===
+    "https://club.example",
+  "production with APP_URL: that address",
+);
+ok(
+  (await alert.inboxOrigin(undefined, false)) === "http://localhost:3000",
+  "outside production, outside a request: localhost",
 );
 
 heading("a fresh deployment has discussion off");
