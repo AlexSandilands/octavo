@@ -40,8 +40,9 @@ the code and applies migrations; it never replaces content).
   anything orphaned before the script existed. Seed images keep fixed keys, so
   resets never leave copies of them. If the sweep fails, run the reset again.
 
-It refuses unless `NEXT_PUBLIC_DEMO_MODE=1`, which only the demo sets, so it cannot run
-against the members' site. The bucket sweep assumes the demo bucket is the demo's
+It refuses unless `NEXT_PUBLIC_DEMO_MODE=1`, a variable set on the demo's Railway app
+service and never on the members' production service, so it cannot run against the
+members' site. The bucket sweep assumes the demo bucket is the demo's
 alone (see [infrastructure.md](infrastructure.md#demo-project-marketing-showcase)). `--yes` skips the
 prompt. Keep it a manual command: in a deployment hook it would replace edited issues
 on every deploy.
