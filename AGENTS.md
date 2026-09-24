@@ -38,6 +38,7 @@ fires the `Deploy to production` Action. See `docs/infrastructure.md#release-wor
 - `npm run dev` — local dev server
 - `npm run db:generate` / `db:migrate` / `db:seed` / `db:studio` — Drizzle workflow: migrations are committed in `drizzle/` and run on deploy (`db:push` is a local iteration convenience only; see `docs/database.md`)
 - `npm run db:admin -- you@example.com` — create/promote an admin user (first-run bootstrap; idempotent)
+- `npm run demo:reset` — demo site only: wipe everything but members and settings, reseed the six issues, sweep unreferenced storage (see `docs/demo-content.md`)
 - `npm run lint` / `npm run format` — lint / format
 - `npm run changelog` — client-facing release email since the latest tag: highlights drafted into an editable notes file, full change list beneath, Proton Mail handoff (see `docs/changelog-email.md`)
 - `npm run invoice -- invoices/<name>.yml` — client invoice PDF from a YAML config (local-only tool, data in git-ignored `invoices/`; see `docs/invoicing.md`)

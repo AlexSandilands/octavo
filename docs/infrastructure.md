@@ -188,9 +188,10 @@ fully isolated from the members' site:
    `/admin` on the demo, which stays fully gated.
 4. **Seed content from the deployed app.** Open an SSH shell in the demo project's
    **app service**, using the dashboard's **Copy SSH Command** (right-click the
-   service). Follow the [demo content refresh runbook](demo-content.md) to run
-   `npm run db:seed -- --force` inside the app, replacing the demo issues and
-   writing their generated images straight to its configured R2 bucket. `npm run db:admin -- you@example.com` in the same app shell
+   service). Follow the [demo reset runbook](demo-content.md) to run
+   `npm run demo:reset` inside the app, loading the demo issues and writing their
+   generated images straight to its configured R2 bucket — run it again whenever
+   testing has left the demo untidy. `npm run db:admin -- you@example.com` in the same app shell
    creates/promotes the owner who can sign into `/admin`.
 
 Set the usual `DATABASE_URL`, `AUTH_SECRET`, `R2_*` and `NEXT_PUBLIC_*` branding as
