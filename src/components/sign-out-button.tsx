@@ -4,11 +4,9 @@ import { useState, useTransition } from "react";
 import { signOutAction } from "@/app/signin/actions";
 import { Icon } from "./icons";
 
-// The sign-out control, shared by the library header, footer and admin sidebar.
-// signOutAction deletes the session row and clears the cookie; then a full page
-// load, because a server-action redirect or router.push() never commits under
-// this app's CSP in a production build (src/proxy.ts, #296, #335). The action
-// stays in a transition so a throw reaches the error boundary.
+// Shared by the library header, footer and admin sidebar. A full page load after
+// the action, as a server-action redirect never commits under this app's CSP in
+// production (src/proxy.ts, #335); the transition keeps the error boundary.
 export function SignOutButton({
   variant = "inline",
 }: {
@@ -31,7 +29,7 @@ export function SignOutButton({
           window.location.assign("/signin");
         })
       }
-      className={`text-muted hover:text-accent flex h-11 cursor-pointer items-center font-sans font-medium hover:underline disabled:cursor-wait ${
+      className={`text-muted hover:text-accent flex h-11 cursor-pointer items-center font-sans font-medium hover:underline disabled:cursor-wait disabled:opacity-60 ${
         sidebar ? "w-full gap-2 text-[14px]" : "text-sm whitespace-nowrap"
       }`}
     >
