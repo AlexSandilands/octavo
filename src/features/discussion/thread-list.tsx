@@ -39,7 +39,8 @@ export type ThreadHandlers = {
   moderate: (commentId: string) => Moderate;
 };
 
-// Top-level comments oldest first, each with its replies folded under a
+// Top-level comments in the order the view asks (oldest first unless the
+// member sorts otherwise), each with its replies folded under a
 // "N replies" control and indented once when open (issue #301). A removed
 // comment with replies reads "Comment removed" so they still make sense;
 // members can't tell hidden from deleted. Admins get every comment, marked
@@ -50,21 +51,24 @@ export function ThreadList({
   setup,
   now,
   h,
-  filtered,
+  query,
+  narrowed,
 }: {
   entries: ThreadEntry[];
   viewer: "member" | "admin";
   setup: ComposerSetup;
   now: number;
   h: ThreadHandlers;
-  /** Narrowed to the open pages (#304). */
-  filtered: boolean;
+  /** The search, marked in each comment's words. */
+  query: string;
+  /** A filter or search is hiding some of the thread. */
+  narrowed: boolean;
 }) {
   if (entries.length === 0) {
     return (
       <p className="text-muted py-10 text-center font-sans text-[16px]">
-        {filtered
-          ? "Untick the box above to see the whole discussion."
+        {narrowed
+          ? "Choose Show all above to see the whole discussion."
           : "No comments yet. Start the discussion below."}
       </p>
     );
@@ -77,6 +81,7 @@ export function ThreadList({
       viewer={viewer}
       reply={reply}
       editing={h.editing === comment.id}
+      query={query}
       tag={
         comment.pageId && (
           <PageChip pageId={comment.pageId} pages={h.pages} onGo={h.goToPage} />

@@ -1,8 +1,8 @@
 // dev-discussion-gate.mts, page tags (issue #304): the open page(s) each
 // reader exposes, the composer's page menu (every page, the open ones marked
 // and listed first; keyboard only), a tagged post's chip and where it goes (the drawer staying open on a computer, the sheet
-// closing onto the section on a phone), "This page only" with
-// its count and its refetch when the page changes, an overflow split
+// closing onto the section on a phone), Show → This page in the filter panel
+// with its count and its refetch when the page changes, an overflow split
 // renumbering the chip, a deleted page's "Page removed", and a page_id the
 // issue no longer has refused through the action. The phone half lives in
 // discussion-gate-tags-phone.mts, the composer's look in
@@ -20,6 +20,13 @@ import {
 import { heard, said } from "./discussion-gate-desktop.mts";
 import { composerLook } from "./discussion-gate-tags-look.mts";
 import { phoneTags } from "./discussion-gate-tags-phone.mts";
+import {
+  SHOW_MENU,
+  filterState,
+  openShow,
+  setFilter,
+  showRows,
+} from "./discussion-gate-filter-kit.mts";
 
 export const TAGS_OUT = path.resolve(".data/tags-review");
 
@@ -127,32 +134,6 @@ export function chips(page: Page) {
   );
 }
 
-export function filterState(page: Page) {
-  return page.evaluate(() => {
-    const count = document.querySelector("[role=dialog] [data-page-count]");
-    const box = count?.parentElement?.querySelector("label");
-    return {
-      label: box?.textContent?.trim() ?? null,
-      on: box?.querySelector("input")?.checked ?? null,
-      count: count?.textContent?.trim() ?? null,
-      comments: document.querySelectorAll(
-        '[role=dialog] article[aria-label^="Comment by"]',
-      ).length,
-    };
-  });
-}
-
-/** Ticks or unticks the filter and waits for the list it asks for. */
-export async function setFilter(page: Page, on: boolean) {
-  const box = page.locator("[role=dialog] label:has-text('only') input");
-  if ((await box.isChecked()) === on) return;
-  await Promise.all([
-    page.waitForResponse((r) => /\/comments/.test(r.url())),
-    box.click(),
-  ]);
-  await page.waitForTimeout(150);
-}
-
 const dock = (page: Page) =>
   page.evaluate(
     () =>
@@ -203,8 +184,8 @@ export async function tagsGate(k: Kit, c: TagCast) {
   );
   let f = await filterState(d.page);
   k.ok(
-    f.label === "This page only" && f.on === false && f.count === "",
-    "“This page only” at the top, off, with no count",
+    f.toggle === "Filter and sort comments" && !f.on && f.count === "",
+    "the funnel at the top, nothing filtered, no count",
   );
   await d.page.keyboard.press("Tab"); // off the panel, to the first control
   k.ok(await tabTo(d.page, "#discussion-composer"), "Tab reaches the box");
@@ -297,8 +278,13 @@ export async function tagsGate(k: Kit, c: TagCast) {
     await escapeMenu(d.page),
     "Escape closes the menu and leaves the drawer open",
   );
-  f = await filterState(d.page);
-  k.ok(f.label === "These pages only", "the filter reads “These pages only”");
+  await openShow(d.page);
+  k.ok(
+    (await showRows(d.page))[1] === "These pages",
+    "the Show menu offers “These pages”",
+  );
+  await d.page.keyboard.press("Escape");
+  await d.page.waitForSelector(SHOW_MENU, { state: "detached" });
   await closeShell(d.page);
   await d.ctx.close();
 
@@ -329,7 +315,7 @@ export async function tagsGate(k: Kit, c: TagCast) {
   );
   await escapeMenu(t.page);
 
-  k.heading("tags — desktop: “These pages only”, its count, the refetch");
+  k.heading("tags — desktop: Show → These pages, its count, the refetch");
   const asked = t.lists.length;
   await setFilter(t.page, true);
   f = await filterState(t.page);
@@ -337,7 +323,7 @@ export async function tagsGate(k: Kit, c: TagCast) {
     t.lists.length === asked + 1 &&
       t.lists.at(-1)!.includes(`page=${p2}`) &&
       t.lists.at(-1)!.includes(`page=${p3}`),
-    "ticking it asks the server for pages 2 and 3",
+    "choosing it asks the server for pages 2 and 3",
   );
   k.ok(
     f.on === true && f.count === "1 comment on these pages" && f.comments === 1,
@@ -362,7 +348,7 @@ export async function tagsGate(k: Kit, c: TagCast) {
   f = await filterState(t.page);
   k.ok(
     f.on === false && f.count === "" && f.comments >= 3,
-    `unticked: every comment (${f.comments}), no count`,
+    `Show → All: every comment (${f.comments}), no count`,
   );
   await closeShell(t.page);
   await t.ctx.close();

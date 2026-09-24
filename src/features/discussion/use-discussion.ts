@@ -1,13 +1,21 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import { z } from "zod";
 import type { DiscussionInfo } from "@/lib/discussion-thread";
 import type { TagChoice } from "./page-tag-picker";
+import { DEFAULT_VIEW, type ThreadView } from "./thread-view";
 
 // The reader's discussion state (issue #301), shared by the desktop drawer and
 // the mobile sheet: whether it is open, a composer draft that survives
-// closing, the deep-linked comment, and the page-tag choices (#304).
+// closing, the deep-linked comment, the page-tag choice (#304) and how the
+// thread is filtered and sorted.
 //
 // The address mirrors the state: open reads `?discussion=1` (with `&comment=`
 // when a link opened it that way), closed reads neither, and any other query
@@ -30,9 +38,9 @@ export type Discussion = {
   /** The page the composer tags (#304), kept with the draft until it posts. */
   tag: TagChoice | null;
   setTag: (tag: TagChoice | null) => void;
-  /** "This page only" (#304), kept across closings too. */
-  pagesOnly: boolean;
-  setPagesOnly: (on: boolean) => void;
+  /** The thread's filter, search and order, kept across closings too. */
+  view: ThreadView;
+  setView: Dispatch<SetStateAction<ThreadView>>;
 };
 
 const KEY = "__discussion";
@@ -71,7 +79,7 @@ export function useDiscussion(info: DiscussionInfo | null): Discussion | null {
   );
   const [draft, setDraft] = useState("");
   const [tag, setTag] = useState<TagChoice | null>(null);
-  const [pagesOnly, setPagesOnly] = useState(false);
+  const [view, setView] = useState<ThreadView>(DEFAULT_VIEW);
   const token = useRef("");
   const closing = useRef(false);
 
@@ -145,7 +153,7 @@ export function useDiscussion(info: DiscussionInfo | null): Discussion | null {
     setDraft,
     tag,
     setTag,
-    pagesOnly,
-    setPagesOnly,
+    view,
+    setView,
   };
 }

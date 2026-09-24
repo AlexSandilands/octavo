@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Page } from "@/lib/blocks";
 
 // The pages the member has open (issue #304) — what a comment can be tagged
-// to and what "This page only" narrows the thread to. By id, never number.
+// to and what Show → This page narrows the thread to. By id, never number.
 
 /** Desktop: both halves of the spread, since the reader can't know which one
  *  is being read — or the cover, which stands alone. */

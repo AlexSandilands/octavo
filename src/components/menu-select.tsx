@@ -51,6 +51,7 @@ export function MenuSelect<T>({
   portal = false,
   disabled = false,
   onBeforeOpen,
+  onOpen,
   returnFocusOnSelect = true,
 }: {
   /** Trigger prefix — the control names itself, e.g. "Theme". */
@@ -81,6 +82,9 @@ export function MenuSelect<T>({
   disabled?: boolean;
   /** Snapshot a text selection before the menu moves focus. */
   onBeforeOpen?: () => void;
+  /** The menu has opened and focused its option — e.g. to scroll it into view
+   *  inside a scrolling list, which would otherwise clip it. */
+  onOpen?: (menu: HTMLDivElement) => void;
   /** Editors can restore their selection/focus from onSelect instead. */
   returnFocusOnSelect?: boolean;
 }) {
@@ -122,11 +126,17 @@ export function MenuSelect<T>({
     );
   });
 
+  const onOpenRef = useRef(onOpen);
+  useEffect(() => {
+    onOpenRef.current = onOpen;
+  });
+
   // On open, move focus to the checked option so keyboard users land on it.
   // Only on open: from there the menu's own key handling owns focus.
   useEffect(() => {
     if (!open) return;
     itemsRef.current[checkedRef.current]?.focus();
+    if (menuRef.current) onOpenRef.current?.(menuRef.current);
   }, [open]);
 
   // An in-place menu hangs from one side of its trigger; slide it back inside

@@ -69,7 +69,7 @@ export function PageTagPicker({
 
 // "Page 12  Opening the Season  open now": the number, the page's first
 // heading to find it by, and a mark on the page(s) the member has open.
-function PageRow({ pages, id }: { pages: ReaderPages; id: string }) {
+export function PageRow({ pages, id }: { pages: ReaderPages; id: string }) {
   const hint = pages.hints.get(id);
   return (
     <span className="flex min-w-0 flex-1 items-center gap-2 text-left">
