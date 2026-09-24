@@ -129,9 +129,8 @@ export function MenuSelect<T>({
     itemsRef.current[checkedRef.current]?.focus();
   }, [open]);
 
-  // An in-place menu hangs from one side of its trigger, so a trigger near the
-  // other edge of a clipping box (the discussion panel) cut it off. Slide it
-  // back inside that box before it paints.
+  // An in-place menu hangs from one side of its trigger; slide it back inside
+  // its clipping ancestors before it paints (a pill at a panel's far edge).
   useLayoutEffect(() => {
     const menu = menuRef.current;
     if (!open || portal || !menu) return;
@@ -140,7 +139,10 @@ export function MenuSelect<T>({
     let shift = Math.min(0, right - r.right);
     // Wider than the box: keep its start in view.
     if (r.left + shift < left) shift = left - r.left;
-    if (shift) menu.style.translate = `${shift}px`;
+    // `translate` is in the menu's own px; a scaled ancestor (the editor page)
+    // makes those differ from the viewport px measured here.
+    if (shift)
+      menu.style.translate = `${(shift * menu.offsetWidth) / r.width}px`;
   }, [open, portal]);
 
   // A mouse press snapshots on pointerdown, before the button takes focus from
