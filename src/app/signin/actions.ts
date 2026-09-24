@@ -80,7 +80,9 @@ export async function requestMagicLink(formData: FormData) {
   redirect("/signin/sent");
 }
 
-// Deletes the session row and clears the cookie for this device only.
+// Deletes the session row and clears the cookie for this device only. No
+// redirect: the caller hard-navigates, since a server-action redirect never
+// commits under this app's CSP in a production build (#335).
 export async function signOutAction() {
-  await signOut({ redirectTo: "/signin" });
+  await signOut({ redirect: false });
 }
