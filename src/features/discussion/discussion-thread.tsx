@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui";
 import type { WriteResult } from "@/lib/comments";
 import type { ThreadPayload } from "@/lib/discussion-thread";
@@ -22,9 +22,19 @@ import { ThreadList, type ThreadHandlers } from "./thread-list";
 import type { Discussion } from "./use-discussion";
 import { MAIN_COMPOSER, useCommentTarget } from "./use-comment-target";
 import { useThread } from "./use-thread";
-import { PageFilter } from "./page-filter";
 import { PageTagPicker, choicePage } from "./page-tag-picker";
 import { pageName, type ReaderPages } from "./page-tags";
+import { FilterToggle, ThreadFilters, changedCount } from "./thread-filter";
+import {
+  arrange,
+  matches,
+  searchPattern,
+  viewPages,
+  viewSummary,
+  type ThreadView,
+} from "./thread-view";
+
+const FILTERS = "discussion-filters";
 
 const MODERATION = {
   hide: [hideCommentAction, "Comment hidden from members."],
@@ -38,13 +48,20 @@ const MODERATION = {
 // The thread inside either shell (issue #301): the list scrolling above, the
 // composer pinned below. It owns the writes: each one refetches the list, then
 // the new or changed comment is scrolled to and announced. The reader's open
-// pages (#304) feed the composer's tag, the chips and "This page only".
+// pages (#304) feed the composer's tag, the chips and the filter; the header's
+// funnel opens the filter, search and sort panel.
 export function DiscussionThread({
   talk,
   pages,
+  sheet,
+  header,
 }: {
   talk: Discussion;
   pages: ReaderPages;
+  /** The phone's sheet: the filters scroll with the list rather than pinned. */
+  sheet: boolean;
+  /** The shell's heading row, given the thread's own tools. */
+  header: (tools: ReactNode) => ReactNode;
 }) {
   const { info } = talk;
   const listRef = useRef<HTMLDivElement>(null);
@@ -58,6 +75,10 @@ export function DiscussionThread({
   const [unfolded, setUnfolded] = useState<ReadonlySet<string>>(new Set());
   const unfold = (id: string) =>
     setUnfolded((s) => (s.has(id) ? s : new Set(s).add(id)));
+  // Replies a search opened (a reply matched) that the member folded again.
+  const [shut, setShut] = useState<ReadonlySet<string>>(new Set());
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const toggleRef = useRef<HTMLButtonElement>(null);
 
   // A deep link to a reply opens its parent, in the same render as the list,
   // so the reply is there to scroll to.
@@ -70,13 +91,39 @@ export function DiscussionThread({
     );
     if (parent) setUnfolded((s) => new Set(s).add(parent.id));
   }, []);
-  const narrowed = talk.pagesOnly ? pages.open : null;
+  // "This page" with no page open (a phone before its first section) is all.
+  const view: ThreadView =
+    talk.view.show === "open" && pages.open.length === 0
+      ? { ...talk.view, show: "all" }
+      : talk.view;
+  const narrowed = viewPages(view.show, pages.open);
   const thread = useThread(info.issueNo, narrowed, onLoaded);
   const { payload } = thread;
-  const shown =
-    payload && thread.filter === (narrowed?.join(",") ?? "")
-      ? payload.entries.filter((e) => !e.removed).length
-      : null;
+  const arranged = payload ? arrange(payload.entries, view) : null;
+  const narrowing = view.show !== "all" || view.query.trim() !== "";
+  // The list the server sent is for the pages asked now, not a moment ago.
+  const fresh = thread.filter === (narrowed?.join(",") ?? "");
+  const summary = !narrowing
+    ? ""
+    : arranged && fresh
+      ? viewSummary(view, arranged.count, pages)
+      : thread.error
+        ? ""
+        : null;
+  const showAll = () => {
+    talk.setView((v) => ({ ...v, show: "all", query: "" }));
+    requestAnimationFrame(() => toggleRef.current?.focus());
+  };
+  // A new search opens the threads it matches afresh.
+  const changeView = (next: ThreadView) => {
+    if (next.query !== view.query) setShut(new Set());
+    talk.setView(next);
+  };
+  /** Whether the search would hide a comment with these words and name. */
+  const searchHides = (body: string, name: string) => {
+    const pattern = searchPattern(view.query);
+    return pattern !== null && !matches(pattern, { body, name });
+  };
   const aim = useCommentTarget(payload, talk.focusComment, {
     list: listRef,
     announce,
@@ -127,13 +174,16 @@ export function DiscussionThread({
       highlight: false,
     });
     // A reply you have just posted stays in view under its parent; a comment
-    // the filter would hide (not on the open pages) clears the filter.
+    // the view would hide (on another page, or not matching the search) clears
+    // the filter and the search.
     if (parentId) unfold(parentId);
+    const name =
+      newName ?? setup.names.find((n) => n.id === current)?.name ?? "";
     const unfilter =
       !parentId &&
-      talk.pagesOnly &&
-      !(pageId !== null && pages.open.includes(pageId));
-    if (unfilter) talk.setPagesOnly(false);
+      ((narrowed !== null && !(pageId !== null && narrowed.includes(pageId))) ||
+        searchHides(body, name));
+    if (unfilter) talk.setView((v) => ({ ...v, show: "all", query: "" }));
     await thread.reload(unfilter ? null : undefined);
     if (parentId) {
       setReplyTo(null);
@@ -160,21 +210,27 @@ export function DiscussionThread({
     if (name) announce(`Now showing ${name}.`);
   };
 
+  const isUnfolded = (id: string) =>
+    unfolded.has(id) ||
+    replyTo === id ||
+    (!!arranged?.unfold.has(id) && !shut.has(id));
   const h: ThreadHandlers = {
-    isUnfolded: (id) => unfolded.has(id) || replyTo === id,
+    isUnfolded,
     // Folding away an open reply box closes it too.
     toggleReplies: (id) => {
-      const open = unfolded.has(id) || replyTo === id;
+      const open = isUnfolded(id);
       if (open && replyTo === id) {
         setReplyTo(null);
         setReplyDraft("");
       }
-      setUnfolded((s) => {
+      const flip = (s: ReadonlySet<string>, add: boolean) => {
         const next = new Set(s);
-        if (open) next.delete(id);
-        else next.add(id);
+        if (add) next.add(id);
+        else next.delete(id);
         return next;
-      });
+      };
+      setUnfolded((s) => flip(s, !open));
+      setShut((s) => flip(s, open));
     },
     replyTo,
     setReplyTo: (id) => {
@@ -203,9 +259,20 @@ export function DiscussionThread({
       const result = await editCommentAction(id, body);
       if (!result.ok) return result;
       aim({ id, focus: "comment", highlight: false });
+      // An edit the search no longer finds clears it, so the comment stays.
+      const name =
+        payload?.entries
+          .flatMap((e) => (e.removed ? e.replies : [e, ...e.replies]))
+          .find((c) => c.id === id)?.name ?? "";
+      const unsearch = searchHides(body, name);
+      if (unsearch) talk.setView((v) => ({ ...v, query: "" }));
       await thread.reload();
       setEditing(null);
-      announce("Your comment is updated.");
+      announce(
+        unsearch
+          ? "Your comment is updated. Showing every comment."
+          : "Your comment is updated.",
+      );
       return result;
     },
     remove: (id) => async () => {
@@ -229,30 +296,49 @@ export function DiscussionThread({
     },
   };
 
+  const filters = (
+    <ThreadFilters
+      id={FILTERS}
+      open={filtersOpen}
+      inList={sheet}
+      view={view}
+      onChange={changeView}
+      pages={pages}
+      summary={summary}
+      onShowAll={showAll}
+    />
+  );
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      {header(
+        <FilterToggle
+          ref={toggleRef}
+          open={filtersOpen}
+          onToggle={() => {
+            // In the sheet the panel heads the list: bring it into view.
+            if (!filtersOpen && sheet) listRef.current?.scrollTo({ top: 0 });
+            setFiltersOpen(!filtersOpen);
+          }}
+          changed={changedCount(view)}
+          controls={FILTERS}
+        />,
+      )}
+      {!sheet && filters}
       <div
         ref={listRef}
         className="scrollbar-soft min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4 [--scrollbar-surface:var(--color-card)] [scrollbar-gutter:stable]"
       >
-        {/* Heads the list and scrolls with it, so a short sheet with the
-            keyboard up spends its height on the box. */}
-        {pages.open.length > 0 && (
-          <PageFilter
-            spread={pages.open.length > 1}
-            on={talk.pagesOnly}
-            onChange={talk.setPagesOnly}
-            count={shown}
-          />
-        )}
-        {payload ? (
+        {sheet && filters}
+        {payload && arranged && fresh ? (
           <ThreadList
-            entries={payload.entries}
+            entries={arranged.entries}
             viewer={payload.viewer}
             setup={payload.composer}
             now={thread.loadedAt}
             h={h}
-            filtered={thread.filter !== ""}
+            query={view.query}
+            narrowed={narrowing}
           />
         ) : thread.error ? (
           <div className="py-10 text-center">
@@ -273,7 +359,7 @@ export function DiscussionThread({
             Loading the discussion…
           </p>
         )}
-        {payload && thread.error && (
+        {payload && fresh && thread.error && (
           <p role="alert" className="text-warn mt-4 font-sans text-[14px]">
             {thread.error}
           </p>

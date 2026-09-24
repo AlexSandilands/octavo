@@ -22,16 +22,17 @@ export function DiscussionBody({
 }) {
   const { issueNo, signedIn } = talk.info;
   const next = `/read/${issueNo}?discussion=1`;
-  return (
-    <>
-      {grip}
-      <div className="border-line flex flex-none items-center justify-between gap-3 border-b py-3 pr-4 pl-5">
-        <h2
-          id={titleId}
-          className="text-ink font-serif text-[21px] leading-tight"
-        >
-          Discussion · Issue {issueNo}
-        </h2>
+  // The thread adds its filter button beside the close button.
+  const header = (tools?: React.ReactNode) => (
+    <div className="border-line flex flex-none items-center justify-between gap-3 border-b py-3 pr-4 pl-5">
+      <h2
+        id={titleId}
+        className="text-ink font-serif text-[21px] leading-tight"
+      >
+        Discussion · Issue {issueNo}
+      </h2>
+      <div className="flex flex-none items-center gap-5">
+        {tools}
         <IconButton
           icon="close"
           label="Close discussion"
@@ -39,21 +40,34 @@ export function DiscussionBody({
           className="h-11 w-11"
         />
       </div>
+    </div>
+  );
+  return (
+    <>
+      {grip}
       {signedIn ? (
-        <DiscussionThread talk={talk} pages={pages} />
+        <DiscussionThread
+          talk={talk}
+          pages={pages}
+          sheet={grip !== undefined}
+          header={header}
+        />
       ) : (
-        <div className="flex flex-1 flex-col items-center justify-center gap-5 px-6 py-10 text-center">
-          <p className="text-ink font-serif text-[22px] leading-snug">
-            Discussion is for members.
-          </p>
-          <Button
-            href={`/signin?next=${encodeURIComponent(next)}`}
-            reload
-            icon="arrowRight"
-          >
-            Sign in to join the discussion
-          </Button>
-        </div>
+        <>
+          {header()}
+          <div className="flex flex-1 flex-col items-center justify-center gap-5 px-6 py-10 text-center">
+            <p className="text-ink font-serif text-[22px] leading-snug">
+              Discussion is for members.
+            </p>
+            <Button
+              href={`/signin?next=${encodeURIComponent(next)}`}
+              reload
+              icon="arrowRight"
+            >
+              Sign in to join the discussion
+            </Button>
+          </div>
+        </>
       )}
     </>
   );

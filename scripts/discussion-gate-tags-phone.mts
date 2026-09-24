@@ -1,7 +1,7 @@
 // dev-discussion-gate.mts, page tags on a phone (issue #304): the open page
 // follows the scroll (the menu's "open now" row) and holds still while the
 // sheet is up, a chip closing the sheet onto its section with focus there,
-// and "This page only" asking again after a scroll. Screen-reader names are
+// and Show → This page asking again after a scroll. Screen-reader names are
 // read from the accessibility tree.
 import type { Page } from "playwright";
 import type { Kit } from "./discussion-gate-kit.mts";
@@ -11,16 +11,15 @@ import {
   chips,
   closeShell,
   escapeMenu,
-  filterState,
   openPicker,
   openShell,
   pick,
   pickerRows,
-  setFilter,
   tagPill,
   tagReader,
   type TagCast,
 } from "./discussion-gate-tags.mts";
+import { filterState, setFilter } from "./discussion-gate-filter-kit.mts";
 
 /** Scrolls the column so a page's section starts at the top. */
 async function scrollToPage(page: Page, pageId: string) {
@@ -90,8 +89,8 @@ export async function phoneTags(k: Kit, c: TagCast, tessComment: string) {
   k.ok(
     tree.includes('button "Tag a page"') &&
       tree.includes('button "Go to page 3"') &&
-      tree.includes('checkbox "This page only"'),
-    "a screen reader hears “Tag a page” (reset), “Go to page 3”, “This page only”",
+      tree.includes('button "Filter and sort comments"'),
+    "a screen reader hears “Tag a page” (reset), “Go to page 3”, “Filter and sort comments”",
   );
   await page.locator(`#comment-${tessComment} [data-page-chip]`).click();
   await page.waitForSelector("[role=dialog]", { state: "detached" });
@@ -130,7 +129,7 @@ export async function phoneTags(k: Kit, c: TagCast, tessComment: string) {
     "the address is the plain reader again",
   );
 
-  k.heading("tags — phone: “This page only”, and again after a scroll");
+  k.heading("tags — phone: Show → This page, and again after a scroll");
   await openShell(k, page);
   k.ok(
     (await openNow(page)) === "Page 3",
@@ -140,7 +139,7 @@ export async function phoneTags(k: Kit, c: TagCast, tessComment: string) {
   let f = await filterState(page);
   k.ok(
     f.count === "1 comment on this page" && f.comments === 1,
-    `ticked: “${f.count}”`,
+    `This page: “${f.count}”`,
   );
   await openPicker(page);
   await pick(page, "Page 3");

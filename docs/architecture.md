@@ -434,7 +434,7 @@ Reader page (server)  ─ settings.commentsEnabled? ─▶ DiscussionInfo { issu
 Reader (client)       ─ useDiscussion: open state + a history entry per opening (Back closes),
                          its address ?discussion=1 — native history API, no navigation
   shell opens ─▶ GET /api/issues/[number]/comments[?page=<id>[&page=<id>]]
-                   │  (member-gated, no-store; the pages only with "This page only")
+                   │  (member-gated, no-store; the pages only with Show → a page)
                    └─ listComments ▸ toThreadEntries ▸ { entries, composer }
   a write     ─▶ server action in app/read/[issueId]/actions.ts
                    └─ createComment / editComment / deleteOwnComment / createReport
@@ -551,17 +551,36 @@ flipbook's `go` with the drawer left open (the thread announces "Now showing pag
 a phone it closes the sheet and, once the sheet has gone and the browser has restored the
 scroll of the entry the close went back to, scrolls the page's section to the top and
 focuses it — each section is a `role="group"` named "Page 12", so a screen reader says where
-it landed. **This page only** ("These pages only" on a spread) heads the list and scrolls
-with it; ticked, the list route is asked for `?page=` the open ids (at most two, zod-checked)
-and `listComments` keeps the top-level comments tagged to them, replies following their
-parent. Beside it a status line says "3 comments on this page" / "No comments on this page
-yet" — the discussion button stays count-free. The filter lives with the draft in
-`useDiscussion`, so it survives closing the shell; a change of page asks again, and a post
-the filter would hide (untagged, or tagged to a page not open) clears it so the new comment
-is in view. Neither the filter nor the page is in the address. Gate:
+it landed.
+
+**The filter panel.** A funnel in the thread's header (beside the close button) opens a
+disclosure panel, not a menu, so it stays open while the list changes under it. In the
+drawer it is pinned between the header and the list; in the phone's sheet it heads the list
+and scrolls with it (the funnel scrolls the list to the top), so with the keyboard up the
+short sheet spends its height on the box, and Enter in the search moves focus onto the
+status line, putting the keyboard away. The panel holds a **search** (words and posting
+names, case-blind, each match marked in both; a matching reply keeps its thread and opens its
+replies), **Show** — All comments, This page ("These pages" on a spread; it follows the
+reader), My comments (the member's own, and those they replied under), or any page of the
+issue by number and first heading — and **Sort**: oldest first, newest first, most replies.
+The funnel carries the number of settings changed. Only the pages go to the server: Show →
+a page asks the list route for `?page=` the id(s) (at most two, zod-checked) and
+`listComments` keeps the top-level comments tagged to them, replies following their parent;
+the search, My comments and the order work on the list already loaded (`thread-view.ts`).
+While anything narrows the list, a status strip says what it holds — "3 comments on this
+page", "No comments by you yet", "2 comments matching “roses”" (with a search or My comments
+it counts the comments that match, replies included) — with **Show all** beside it; the
+discussion button stays count-free. The view lives with the draft in `useDiscussion`, so it
+survives closing the shell; a change of page asks again (the list shows its loading line
+until the answer for the new pages arrives), and a post the view would hide (on another
+page, or not matching the search) clears it so the new comment is in view, as an edit the
+search no longer finds clears the search. Escape in a non-empty search, or on its clear
+button, clears it rather than closing the shell. Neither the view nor the page is in the
+address. Gate:
 `discussion-gate-tags.mts`, `-phone.mts` and `-look.mts` (the two pills measured and
 photographed at 440, 390 and 360 with a 40-character name, and the menu on a 42-page
-issue), run by `dev-discussion-gate.mts`.
+issue), and `discussion-gate-filter.mts` (search, sort, My comments, a chosen page, a post
+clearing the view), run by `dev-discussion-gate.mts`.
 
 ## Routes
 

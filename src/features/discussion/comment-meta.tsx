@@ -3,6 +3,7 @@ import { Avatar, Pill } from "@/components/ui";
 import { accountLine, type ThreadComment } from "@/lib/discussion-thread";
 import { initials } from "@/lib/initials";
 import { AdminBadge } from "./admin-badge";
+import { Highlight } from "./highlight";
 import { fullDate, relativeTime } from "./relative-time";
 
 // Who wrote a comment and when (issue #301). A removed member's comment gets a
@@ -13,10 +14,13 @@ export function CommentMeta({
   comment,
   now,
   reply,
+  query = "",
 }: {
   comment: ThreadComment;
   now: number;
   reply: boolean;
+  /** The thread's search, marked in the name. */
+  query?: string;
 }) {
   const size = reply ? "sm" : "md";
   return (
@@ -38,7 +42,7 @@ export function CommentMeta({
           <span
             className={`font-semibold ${comment.former ? "text-muted italic" : "text-ink"} text-[15px]`}
           >
-            {comment.name}
+            <Highlight text={comment.name} query={query} />
           </span>
           {comment.badge && <AdminBadge />}
           <time
