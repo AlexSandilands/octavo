@@ -48,6 +48,7 @@ export function DiscussionBody({
           </p>
           <Button
             href={`/signin?next=${encodeURIComponent(next)}`}
+            reload
             icon="arrowRight"
           >
             Sign in to join the discussion

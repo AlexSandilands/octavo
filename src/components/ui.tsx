@@ -38,6 +38,9 @@ export function Label({ children }: { children: ReactNode }) {
 type ButtonProps = {
   children: ReactNode;
   href?: string;
+  /** Follow `href` with a full page load: a client transition out of some
+   *  pages never commits under this app's CSP (src/proxy.ts). */
+  reload?: boolean;
   icon?: IconName;
   /** Which side the icon sits on. Defaults to trailing the label. */
   iconPosition?: "left" | "right";
@@ -83,6 +86,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     {
       children,
       href,
+      reload = false,
       icon,
       iconPosition = "right",
       variant = "primary",
@@ -154,6 +158,12 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       </>
     );
     // A disabled link is not a real thing; only the button branch can disable.
+    if (href && reload)
+      return (
+        <a href={href} className={cls} aria-label={ariaLabel} title={title}>
+          {inner}
+        </a>
+      );
     if (href)
       return (
         <Link href={href} className={cls} aria-label={ariaLabel} title={title}>
