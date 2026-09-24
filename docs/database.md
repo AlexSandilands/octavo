@@ -13,7 +13,8 @@ npm run db:seed        # wipe + load 6 sample issues (with images) for the reade
 
 The seed **wipes all issues and images**. It refuses to run when `NODE_ENV=production` or when
 the database already holds published issues; pass `--force` (`npm run db:seed -- --force`) to
-override once you're sure.
+override once you're sure. To return the demo site to a clean state — sponsors, posting names and
+unreferenced stored objects too, members kept — use `npm run demo:reset` ([demo-content.md](demo-content.md)).
 
 The seed is **fully self-contained** (issue #58): every image is placeholder art generated at
 seed time — SVG specs in `src/db/seed/images.ts` + `art.ts`, rasterized with sharp through the
