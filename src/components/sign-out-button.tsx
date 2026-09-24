@@ -25,7 +25,7 @@ export function SignOutButton({
         startTransition(async () => {
           await signOutAction();
           setLeaving(true);
-          // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- the router.push() this rule wants is the bug (see comment above)
+          // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- the client navigation this rule wants is the bug (see comment above)
           window.location.assign("/signin");
         })
       }
