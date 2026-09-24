@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@/components/icons";
 
@@ -122,6 +128,22 @@ export function MenuSelect<T>({
     if (!open) return;
     itemsRef.current[checkedRef.current]?.focus();
   }, [open]);
+
+  // An in-place menu hangs from one side of its trigger; slide it back inside
+  // its clipping ancestors before it paints (a pill at a panel's far edge).
+  useLayoutEffect(() => {
+    const menu = menuRef.current;
+    if (!open || portal || !menu) return;
+    const r = menu.getBoundingClientRect();
+    const { left, right } = clipBox(menu);
+    let shift = Math.min(0, right - r.right);
+    // Wider than the box: keep its start in view.
+    if (r.left + shift < left) shift = left - r.left;
+    // `translate` is in the menu's own px; a scaled ancestor (the editor page)
+    // makes those differ from the viewport px measured here.
+    if (shift)
+      menu.style.translate = `${(shift * menu.offsetWidth) / r.width}px`;
+  }, [open, portal]);
 
   // A mouse press snapshots on pointerdown, before the button takes focus from
   // an editor; a keyboard open has no pointerdown, so toggle snapshots instead.
@@ -307,4 +329,19 @@ export function MenuSelect<T>({
       {open && (portal ? createPortal(menu, document.body) : menu)}
     </div>
   );
+}
+
+/** The horizontal span `el` can show in: the viewport, narrowed by every
+ *  ancestor that clips its overflow, less a small margin. */
+function clipBox(el: HTMLElement) {
+  const MARGIN = 8;
+  let left = 0;
+  let right = document.documentElement.clientWidth;
+  for (let p = el.parentElement; p; p = p.parentElement) {
+    if (getComputedStyle(p).overflowX === "visible") continue;
+    const r = p.getBoundingClientRect();
+    left = Math.max(left, r.left);
+    right = Math.min(right, r.right);
+  }
+  return { left: left + MARGIN, right: right - MARGIN };
 }
