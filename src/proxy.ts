@@ -95,8 +95,8 @@ function isGatedRoute(pathname: string): boolean {
 // boundaries carry no nonce, so this CSP blocks one per page — harmless on a
 // page load, but a client transition (redirect() re-rendering from the root,
 // or router.push() after a server action) can silently never commit (#276,
-// #296), so create-issue navigates itself with a real navigation instead, and
-// Button's `reload` does the same for links.
+// #296, #335), so create-issue and sign-out navigate themselves with a real
+// navigation instead, and Button's `reload` does the same for links.
 function buildCsp(nonce: string): string {
   return [
     "default-src 'self'",
