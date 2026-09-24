@@ -231,6 +231,10 @@ export function MobileReader({
             />
           ));
           const name = pageName(index, s.id);
+          // The page number, so a member can tag the page they are on. The
+          // cover has none, as in print.
+          const folio = name && name !== "the cover" ? capitalise(name) : null;
+          const closes = i === sections.length - 1 || sections[i + 1]?.divided;
           return (
             <Fragment key={s.id}>
               {/* The page break: a band of canvas between two sheets of page. A
@@ -243,9 +247,8 @@ export function MobileReader({
                   style={{ height: breakHeight(m) }}
                 />
               )}
-              {/* The page, as a chip lands on it (#304): named for its number,
-                  which the phone otherwise never shows — only while there is a
-                  discussion to send anyone here. */}
+              {/* The page, as a chip lands on it (#304): named for its number
+                  only while there is a discussion to send anyone here. */}
               <div
                 id={pageDomId(s.id)}
                 data-reader-page={s.id}
@@ -281,10 +284,8 @@ export function MobileReader({
                     className={[
                       "px-5",
                       !s.filled && !s.cover && (i === 0 || s.divided) && "pt-6",
-                      !s.filled &&
-                        (i === sections.length - 1 ||
-                          sections[i + 1]?.divided) &&
-                        "pb-8",
+                      // A numbered page's folio supplies its closing space.
+                      !s.filled && !folio && closes && "pb-8",
                       s.cover && "py-8 text-center",
                       front && "flex flex-col justify-center",
                     ]
@@ -305,6 +306,17 @@ export function MobileReader({
                       </div>
                     ))}
                   </section>
+                )}
+                {/* Scales with the text size. Hidden from screen readers,
+                    which hear it on the page's group while discussion is on. */}
+                {folio && (
+                  <div
+                    aria-hidden
+                    style={{ fontSize: m * 0.65 }}
+                    className={`${FOOTER_ROW_CLASS} justify-end px-5 ${closes ? "pt-4 pb-5" : "py-3"}`}
+                  >
+                    {folio}
+                  </div>
                 )}
               </div>
             </Fragment>
