@@ -4,7 +4,9 @@
 import type { Block, Page } from "../../../src/lib/blocks.ts";
 import { richTextToPlain } from "../../../src/lib/rich-text-doc.ts";
 import { blockPlain, describeFill, estimateFill, textDoc } from "./fill.ts";
+import { coverView } from "./cover-view.ts";
 import { docToMarkdown } from "./markdown.ts";
+export { coverSummary } from "./cover-view.ts";
 import { placedImageIds, type ImageInfo, type IssueContext } from "./seed.ts";
 
 /** Per-block text cap in the current-page view; `read_page` allows more. */
@@ -110,6 +112,7 @@ export function pageView(
   const page = ctx.content.pages[pageNo - 1];
   if (!page)
     return `There is no page ${pageNo}; the issue has ${ctx.content.pages.length} pages.`;
+  if (page.cover && ctx.coverTools) return coverView(ctx, pageNo, page);
   const fill = describeFill(estimateFill(page, ctx.images));
   const title = page.cover
     ? `PAGE ${pageNo} — the cover (cover editing isn't available)`
@@ -137,7 +140,7 @@ export function header(ctx: IssueContext): string {
   return [
     `ISSUE ${quote(ctx.title)} · draft · theme ${ctx.theme} · ${ctx.content.pages.length} pages`,
     `Photos uploaded but not placed: ${unplaced.length ? unplaced.map((u) => `${u.id} (${shape(u)})`).join(", ") : "none"}`,
-    `Logos: ${ctx.logoNames.join("; ") || "none"}`,
+    `Logos in the library: ${ctx.logos.map((l) => `"${l.name}"`).join("; ") || "none"}`,
     `Sponsors: ${ctx.sponsorNames.join("; ") || "none"}`,
   ].join("\n");
 }

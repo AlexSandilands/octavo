@@ -58,3 +58,5 @@ yarn-error.log*
 
 # assistant spike run output (#306)
 /scripts/spike/assistant/results/
+/scripts/spike/assistant/.cache/
+/scripts/spike/assistant/photos/

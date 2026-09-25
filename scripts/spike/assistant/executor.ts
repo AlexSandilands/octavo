@@ -21,8 +21,14 @@ import {
   usedHeight,
 } from "./fill.ts";
 import { markdownToDoc } from "./markdown.ts";
-import { pageView } from "./projection.ts";
+import { coverSummary, pageView } from "./projection.ts";
 import { issueImageIds, type IssueContext } from "./seed.ts";
+import {
+  applyCoverTool,
+  CoverRefusal,
+  coverToolsFor,
+  type CoverTool,
+} from "./cover-tools.ts";
 import { toolSchemas, type InsertItem, type ToolName } from "./tools.ts";
 
 export type ToolResult = { ok: boolean; text: string; mutated: boolean };
@@ -53,7 +59,9 @@ function editable(ctx: IssueContext, pageIdx: number): Page {
     );
   if (page.cover)
     refuse(
-      `page ${pageIdx + 1} is the cover, and cover editing isn't available yet`,
+      ctx.coverTools
+        ? `page ${pageIdx + 1} is the cover; use the cover tools for it`
+        : `page ${pageIdx + 1} is the cover, and cover editing isn't available yet`,
     );
   return page;
 }
@@ -293,7 +301,8 @@ export function executeTool(
   name: string,
   args: unknown,
 ): ToolResult {
-  if (!(name in toolSchemas))
+  const cover = coverToolsFor(ctx.coverTools).includes(name as CoverTool);
+  if (!(name in toolSchemas) && !cover)
     return {
       ok: false,
       text: `Error: there is no tool "${name}".`,
@@ -301,7 +310,9 @@ export function executeTool(
     };
   const before = structuredClone(ctx.content);
   try {
-    const text = apply(ctx, name as ToolName, args);
+    const text = cover
+      ? `${applyCoverTool(ctx, name as CoverTool, args)} The cover now has ${coverSummary(ctx)}.`
+      : apply(ctx, name as ToolName, args);
     const valid = issueContentSchema.safeParse(ctx.content);
     if (!valid.success) {
       ctx.content = before;
@@ -314,7 +325,7 @@ export function executeTool(
     return { ok: true, text, mutated: name !== "read_page" };
   } catch (e) {
     ctx.content = before;
-    if (e instanceof Refusal)
+    if (e instanceof Refusal || e instanceof CoverRefusal)
       return {
         ok: false,
         text: `Error: ${e.message}. Nothing changed.`,

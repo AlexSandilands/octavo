@@ -1,12 +1,29 @@
 // The seed issues without a database: `buildIssues` with every image id minted
 // as `img-<key>`, and each image's natural size from the seed manifest so the
 // fill estimate and the projection can describe its shape.
+import { execSync } from "node:child_process";
+import { dirname, join } from "node:path";
 import { buildIssues } from "../../../src/db/seed-data.ts";
 import { SEED_LOGOS } from "../../../src/db/seed/cover-elements.ts";
 import { SEED_IMAGES, type SeedImages } from "../../../src/db/seed/images.ts";
 import type { IssueContent } from "../../../src/lib/blocks.ts";
 
-export type ImageInfo = { id: string; width: number; height: number };
+export type ImageInfo = {
+  id: string;
+  width: number;
+  height: number;
+  /** The image's bytes on disk, for rendering pages (`view_page`). */
+  file?: string;
+};
+
+/** The main checkout (worktrees have no .data or .env.local of their own). */
+export const MAIN_CHECKOUT = dirname(
+  execSync("git rev-parse --path-format=absolute --git-common-dir")
+    .toString()
+    .trim(),
+);
+
+export type LogoInfo = { id: string; name: string; imageId: string };
 
 export type IssueContext = {
   title: string;
@@ -16,7 +33,12 @@ export type IssueContext = {
   images: Map<string, ImageInfo>;
   /** Images uploaded to the issue beyond those it places (a case's `setup`). */
   uploads: ImageInfo[];
-  logoNames: string[];
+  /** The logo library: what `add_logo` may place, by name. */
+  logos: LogoInfo[];
+  /** Branding overrides for rendering (a new club's name on the running head). */
+  settings?: { name?: string; org?: string };
+  /** Which cover tools the run offers (none = covers are read-only). */
+  coverTools?: "compose" | "style";
   sponsorNames: string[];
 };
 
@@ -28,7 +50,12 @@ export function seedIssues(): IssueContext[] {
   const images = new Map<string, ImageInfo>(
     SEED_IMAGES.map((s) => [
       `img-${s.key}`,
-      { id: `img-${s.key}`, width: s.width, height: s.height },
+      {
+        id: `img-${s.key}`,
+        width: s.width,
+        height: s.height,
+        file: join(MAIN_CHECKOUT, ".data/uploads/seed", `${s.key}.webp`),
+      },
     ]),
   );
   return buildIssues(imageIds).map((issue) => {
@@ -41,7 +68,11 @@ export function seedIssues(): IssueContext[] {
       content: issue.content,
       images,
       uploads: [],
-      logoNames: SEED_LOGOS.map((l) => l.name),
+      logos: SEED_LOGOS.map((l) => ({
+        id: l.id,
+        name: l.name,
+        imageId: `img-${l.imageKey}`,
+      })),
       sponsorNames: [...sponsors],
     };
   });

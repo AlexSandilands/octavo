@@ -1,0 +1,16 @@
+{
+  "id": "13-cover-regatta",
+  "description": "Regatta with its designer cover stripped to an empty cover page (its cover photo now unplaced, its burgee still in the logo library): compose a cover to compare with the seeded one.",
+  "issue": 5,
+  "page": 1,
+  "setup": {
+    "stripCover": true
+  },
+  "instruction": "The cover for this issue is empty. Design it so it looks like a proper magazine cover: a strong photo, the magazine's name, what's inside, and the club's mark.",
+  "expect": {
+    "preserve": "page",
+    "tools": ["set_cover_background", "set_masthead", "add_story", "add_logo"],
+    "maxCalls": 20,
+    "noOverflow": false
+  }
+}
