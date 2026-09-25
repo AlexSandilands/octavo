@@ -27,6 +27,8 @@ export interface EditMeasurer {
   textFlow(blocks: Block[], blockId: string): Promise<TextFlowMetrics | null>;
 }
 
+const MAX_LAST_LINES = 12;
+
 const plural = (n: number, one: string, many = `${one}s`) =>
   `${n} ${n === 1 ? one : many}`;
 
@@ -54,7 +56,7 @@ export function describeReport(
       (t) =>
         `[${t.id}] ${plural(t.lines, "line")}` +
         (t.lastLines.length
-          ? `, its paragraphs' last lines hold ${t.lastLines.join(", ")} word${t.lastLines.length === 1 && t.lastLines[0] === 1 ? "" : "s"}`
+          ? `, its paragraphs' last lines hold ${t.lastLines.slice(0, MAX_LAST_LINES).join(", ")}${t.lastLines.length > MAX_LAST_LINES ? ", …" : ""} word${t.lastLines.length === 1 && t.lastLines[0] === 1 ? "" : "s"}`
           : ""),
     );
     parts.push(
