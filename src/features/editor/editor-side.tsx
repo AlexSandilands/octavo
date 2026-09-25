@@ -85,6 +85,22 @@ export function EditorSide({
   });
   // Import PDF steps aside on a cover (#287); the assistant stays.
   const shown = tool === "pdf" && cover ? null : tool;
+  // An Ask opens the panel on the run (or on why it can't take one); an open
+  // panel takes the focus, as it does on opening, with Stop at hand.
+  const { askRef } = assistant;
+  useEffect(() => {
+    askRef.current = async (blockId, text) => {
+      if (shown === "assistant")
+        document.getElementById(ASSISTANT_INPUT_ID)?.focus();
+      else onToggle("assistant");
+      // The editor fetches the figure on opening; if it hasn't landed, ask.
+      const now = usage.usage ?? (await usage.refresh());
+      if (budgetSpent(chat, now)) return { ok: false, reason: "spent" };
+      return chat.send(
+        askMessage({ page: assistant.target.page, blockId, cover }, text),
+      );
+    };
+  });
   // A closing panel keeps its content while it slides out. Each opening counts,
   // so a panel reopened mid-slide still mounts afresh and takes the focus.
   const [last, setLast] = useState<EditorTool>(shown ?? "pdf");

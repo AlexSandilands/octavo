@@ -5,8 +5,11 @@
 // set_text → the overflow reported per block → split_page → fits (the real
 // measurer, off screen); autosave keeps the result; Ctrl+Z takes the whole run
 // back in one step; insert after a block; move and resize a photo; an unknown id
-// refused and reported; and both circuit-breaker conditions stop a run with
-// its edits kept. Then vision (#342, fixtures/assistant/vision-checks.mts).
+// refused and reported; the per-block Ask box (#311,
+// assistant-tools-gate-ask.mts); each circuit-breaker condition stops a run
+// with its edits kept (assistant-tools-gate-breaker.mts). Then vision (#342,
+// fixtures/assistant/vision-checks.mts), and a cover composed by a run (#313,
+// assistant-tools-gate-cover.mts).
 //
 // SAFETY: shared dev database. It mints its own admin, session, draft and one
 // photo row (a key with no file behind it); the finally deletes exactly those
@@ -27,6 +30,9 @@ import {
   type Doc,
 } from "./fixtures/assistant/tools-gate-kit.mts";
 import { visionChecks } from "./fixtures/assistant/vision-checks.mts";
+import { checkBreaker } from "./assistant-tools-gate-breaker.mts";
+import { checkAsk } from "./assistant-tools-gate-ask.mts";
+import { checkCover } from "./assistant-tools-gate-cover.mts";
 
 process.loadEnvFile?.(".env.local");
 // An optional folder for screenshots of the held canvas and the run's line.
@@ -88,19 +94,16 @@ async function checks(page: Page) {
   heading("presets");
   const tidy = page.locator(PRESET("Tidy this page"));
   ok(
-    (await tidy.getAttribute("aria-disabled")) === "true",
-    "on the cover the presets are off",
+    (await page.$(PRESET("Compose cover"))) !== null &&
+      (await tidy.count()) === 0,
+    "on the cover the panel offers Compose cover only",
   );
   await page.click('button[aria-label="Page 2"]');
-  await page.waitForFunction(
-    () =>
-      ![...document.querySelectorAll("button")]
-        .find((b) => b.textContent === "Tidy this page")
-        ?.hasAttribute("aria-disabled"),
-  );
+  await tidy.waitFor();
   ok(
-    (await tidy.getAttribute("aria-disabled")) === null,
-    "on an inside page they're on",
+    (await tidy.getAttribute("aria-disabled")) === null &&
+      (await page.$(PRESET("Compose cover"))) === null,
+    "on an inside page the four page presets, on",
   );
   await page.click(`[data-block-id="${ids.head}"]`);
   await tidy.click();
@@ -459,6 +462,8 @@ async function checks(page: Page) {
     ok,
     heading,
   });
+
+  await checkCover({ page, sql, base: base!, tag, ok, heading });
 
   console.log("\nassistant tools gate: all checks passed");
 }

@@ -77,6 +77,7 @@ export function CoverTextToolbar({
       onPointerDown={(e) => e.stopPropagation()}
       role="group"
       aria-label="Selected text formatting"
+      data-block-bar
       className="border-hair chrome-unscaled absolute bottom-full left-0 z-30 mb-2 flex w-max flex-col gap-1.5 rounded-[8px] border bg-white p-1.5 shadow-[0_4px_14px_rgba(40,36,28,0.16)]"
     >
       <div className="scrollbar-soft flex min-w-0 items-center gap-1.5 overflow-x-auto whitespace-nowrap [&>*]:shrink-0">

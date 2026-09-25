@@ -132,6 +132,10 @@ export function EditorBlock({
           ? { note: "Overflows this page", label: "Move to next page" }
           : { note: "Taller than a whole page", label: undefined };
 
+  // Not on a full-page photo or a cover's background: the tools leave those be.
+  const ask =
+    selected && onAsk && !bleed ? <AskControl onSend={onAsk} /> : null;
+
   return (
     <div
       ref={setNodeRef}
@@ -209,6 +213,7 @@ export function EditorBlock({
           italicByDefault={block.type === "text"}
         />
       )}
+      {coverItem && ask}
       {selected && !coverItem && (
         <>
           {block.type === "image" ? (

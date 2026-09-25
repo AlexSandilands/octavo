@@ -35,6 +35,16 @@ export function presetMessage(id: PresetId, target: PresetTarget): string {
   }
 }
 
+/** Sends an Ask, or says why the conversation can't take it now. */
+export type AskHandler = (blockId: string, text: string) => Promise<SendResult>;
+
+/** The Ask box's request (#311): the author's words, aimed at one block. */
+export const askMessage = (
+  target: { page: number; blockId: string; cover: boolean },
+  text: string,
+) =>
+  `About the selected ${target.cover ? "cover item" : "block"} [${target.blockId}] on page ${target.page}: ${text.trim()}`;
+
 /** A message as the author reads it: block ids are for the model. */
 export const withoutBlockIds = (text: string) =>
   text.replace(/\s*\[[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}\]/gi, "");

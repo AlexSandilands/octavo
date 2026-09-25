@@ -14,6 +14,8 @@ import type { ImageMap } from "@/lib/images";
 import { CoverElementView } from "@/features/blocks/cover-element-view";
 import { CoverItemTools } from "./cover-item-tools";
 import { CoverTextToolbar } from "./cover-text-toolbar";
+import { AskControl } from "./assistant/ask-box";
+import type { SendResult } from "./assistant/use-assistant-chat";
 
 export function EditorCoverElement({
   element,
@@ -29,6 +31,7 @@ export function EditorCoverElement({
   onMove,
   onRemove,
   overflow,
+  onAsk,
 }: {
   element: CoverElement;
   sources: CoverSource[];
@@ -45,6 +48,8 @@ export function EditorCoverElement({
   onMove: (direction: -1 | 1) => void;
   onRemove: () => void;
   overflow: boolean;
+  /** The assistant's Ask on this item (#311, #313), when it's offered. */
+  onAsk?: (text: string) => Promise<SendResult>;
 }) {
   const { setNodeRef, setActivatorNodeRef, attributes, listeners, isDragging } =
     useCoverSortable(element.id, true);
@@ -115,6 +120,7 @@ export function EditorCoverElement({
       {selected && element.type !== "logo" && (
         <CoverTextToolbar appearance={appearance} />
       )}
+      {selected && onAsk && <AskControl onSend={onAsk} />}
       <CoverItemTools
         selected={selected}
         onMove={onMove}
