@@ -50,19 +50,30 @@ const usageSchema = z.object({
 export type UsageInput = z.input<typeof usageSchema>;
 
 // Whole dollars and cents only, as typed at the command line or passed in.
+function grantAmountProblem(value: string): string | null {
+  if (value.startsWith("-")) return "The amount must be above $0.";
+  if (!/^\d+(\.\d{1,2})?$/.test(value)) {
+    return "The amount is dollars with at most two decimals, e.g. 25.50.";
+  }
+  if (Number(value) <= 0) return "The amount must be above $0.";
+  if (Number(value) > 1000) return "The amount can be at most $1,000.";
+  return null;
+}
+
 const grantSchema = z.object({
   amountUsd: z
     .union([z.number(), z.string()])
     .transform((value) => String(value).trim())
-    .refine((value) => /^\d+(\.\d{1,2})?$/.test(value), {
-      message: "The amount is dollars with at most two decimals, e.g. 25.50.",
+    .superRefine((value, ctx) => {
+      const message = grantAmountProblem(value);
+      if (message) ctx.addIssue({ code: z.ZodIssueCode.custom, message });
     })
-    .transform(Number)
-    .refine((value) => value > 0, { message: "The amount must be above $0." })
-    .refine((value) => value <= 1000, {
-      message: "The amount can be at most $1,000.",
-    }),
-  note: z.string().trim().min(1, "Say what the grant is for.").max(200),
+    .transform(Number),
+  note: z
+    .string()
+    .trim()
+    .min(1, "Say what the grant is for.")
+    .max(200, "The note can be at most 200 characters."),
 });
 export type GrantInput = z.input<typeof grantSchema>;
 

@@ -26,6 +26,14 @@ export const AI_PRICES: Readonly<Record<string, ModelPrice>> = {
     outputPerMillion: 5,
     checked: "2026-09-25",
   },
+  // AI_PROVIDER=fake (gates, the demo, fixtures): real rows at no cost.
+  fake: {
+    inputPerMillion: 0,
+    cacheReadPerMillion: 0,
+    cacheWritePerMillion: 0,
+    outputPerMillion: 0,
+    checked: "2026-09-25",
+  },
 };
 
 // A run is refused further requests once its spend passes this
@@ -41,8 +49,10 @@ export type TokenCounts = {
 
 // The price for a model id as the provider reports it: the exact key, else the
 // longest key it extends by a date snapshot (`claude-haiku-4-5-20251001`). Any
-// other suffix is a different model and gets no price.
-export function priceFor(model: string): ModelPrice | undefined {
+// other suffix is a different model and gets no price. A trailing `~` marks
+// tokens the proxy estimated, priced as the model itself.
+export function priceFor(reported: string): ModelPrice | undefined {
+  const model = reported.endsWith("~") ? reported.slice(0, -1) : reported;
   if (Object.hasOwn(AI_PRICES, model)) return AI_PRICES[model];
   const key = Object.keys(AI_PRICES)
     .filter(
