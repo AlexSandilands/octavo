@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 import {
   AI_MAX_TOOL_TEXT,
   aiToolSchemas,
@@ -72,56 +72,62 @@ export function useAssistantTools({
   });
 
   const { theme, images, sponsors, settings, logo, issueNo } = measure;
-  const measurer = useMemo(
-    () =>
-      typeof document === "undefined"
-        ? null
-        : createPageMeasurer({
-            theme,
-            images,
-            sponsors,
-            settings,
-            logo,
-            issueNo,
-          }),
-    [theme, images, sponsors, settings, logo, issueNo],
-  );
-  useEffect(() => () => measurer?.dispose(), [measurer]);
+  // A new measurer (and an empty cache) whenever the page chrome changes.
+  const measurer = useRef<ReturnType<typeof createPageMeasurer> | null>(null);
+  useEffect(() => {
+    const next = createPageMeasurer({
+      theme,
+      images,
+      sponsors,
+      settings,
+      logo,
+      issueNo,
+    });
+    measurer.current = next;
+    return () => {
+      next.dispose();
+      if (measurer.current === next) measurer.current = null;
+    };
+  }, [theme, images, sponsors, settings, logo, issueNo]);
 
-  const executor = useMemo<AssistantExecutor | null>(
-    () =>
-      measurer &&
-      createAssistantExecutor({
-        measure: measurer,
-        handle: {
-          state: () => latest.current.state,
-          apply: (next, record) =>
-            new Promise<void>((resolve) => {
-              const timer = setTimeout(resolve, RENDER_WAIT_MS);
-              waiters.current.push({
-                pages: next.pages,
-                done: () => {
-                  clearTimeout(timer);
-                  resolve();
-                },
-              });
-              latest.current.apply(next, record);
-            }),
-        },
-      }),
-    [measurer],
-  );
+  // One executor for the editor's life, so a run survives a chrome change.
+  const executor = useRef<AssistantExecutor | null>(null);
+  useEffect(() => {
+    const measured = () =>
+      measurer.current ?? Promise.reject(new Error("The editor isn't ready."));
+    executor.current ??= createAssistantExecutor({
+      measure: {
+        report: async (page) => (await measured()).report(page),
+        textFlow: async (blocks, id) => (await measured()).textFlow(blocks, id),
+      },
+      handle: {
+        state: () => latest.current.state,
+        apply: (next, record) =>
+          new Promise<void>((resolve) => {
+            const timer = setTimeout(resolve, RENDER_WAIT_MS);
+            waiters.current.push({
+              pages: next.pages,
+              done: () => {
+                clearTimeout(timer);
+                resolve();
+              },
+            });
+            latest.current.apply(next, record);
+          }),
+      },
+    });
+  }, []);
 
   return {
-    beginRun: () => executor?.beginRun(),
+    beginRun: () => executor.current?.beginRun(),
     run: async (name, input, issue) =>
-      executor
-        ? executor.run(name, input, {
+      executor.current
+        ? executor.current.run(name, input, {
             photos: new Set(issue.uploads),
             read: (args) => readPage(args, issue),
           })
         : { text: "Error: the editor isn't ready yet. Nothing changed." },
-    endRun: () => executor?.summary() ?? null,
-    breaker: () => executor?.breaker() ?? null,
+    endRun: () => executor.current?.summary() ?? null,
+    breaker: () => executor.current?.breaker() ?? null,
   };
 }
