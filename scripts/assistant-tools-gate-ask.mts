@@ -1,10 +1,14 @@
 // The per-block Ask half of dev-assistant-tools-gate.mts (#311): the pill on a
 // selected block, reached by Tab from the block's own bar; its box is a named
-// dialog; Escape closes it with focus back on the pill; Ctrl+Z typed in it
-// never reaches the editor; Send opens the panel on an ordinary run whose
-// `set_text` lands on that block, with the run's line and Undo. Absent on a
-// published issue (the `--off` panel gate checks a server with it off).
+// dialog that keeps Tab inside it; Escape closes it with focus back on the
+// pill; Ctrl+Z typed in it never reaches the editor; Send opens the panel on an
+// ordinary run whose `set_text` lands on that block, with the run's line and
+// Undo. Absent on a published issue (the `--off` panel gate checks a server
+// with it off). With the month spent and the panel never opened, nothing is
+// sent and the words stay.
 import type { Page } from "playwright";
+import type postgres from "postgres";
+import { AI_ERROR_COPY } from "../src/lib/ai-chat-contract";
 import {
   block,
   canonical,
@@ -38,6 +42,9 @@ const focused = (page: Page) =>
 
 export async function checkAsk(d: {
   page: Page;
+  sql: postgres.Sql;
+  adminId: string;
+  draftId: string;
   chat: ReturnType<typeof watchChat>;
   base: string;
   publishedId: string;
@@ -81,8 +88,22 @@ export async function checkAsk(d: {
     "Enter opens a named dialog with the focus in its labelled box",
   );
 
-  heading("Ask: Escape closes it, focus back on the pill");
+  heading("Ask: Tab stays in the box");
   await page.keyboard.type("never sent");
+  await page.keyboard.press("Tab");
+  ok((await focused(page)) === "Send", "Tab goes to Send");
+  await page.keyboard.press("Tab");
+  ok(
+    (await focused(page)) === "What should the assistant do with this block?",
+    "and Tab again comes back round to the box",
+  );
+  await page.keyboard.press("Shift+Tab");
+  ok(
+    (await focused(page)) === "Send" && (await page.$(DIALOG)) !== null,
+    "Shift+Tab goes back to Send; the box is still open",
+  );
+
+  heading("Ask: Escape closes it, focus back on the pill");
   await page.keyboard.press("Escape");
   ok((await page.$(DIALOG)) === null, "Escape closed the box");
   ok((await focused(page)) === "Ask", "and the focus is back on Ask");
@@ -169,4 +190,40 @@ export async function checkAsk(d: {
   );
   ok((await other.$("[data-ask]")) === null, "no Ask on a selected block");
   await other.close();
+
+  heading("Ask: a spent month, the panel never opened, keeps the words");
+  const spendId = crypto.randomUUID();
+  await d.sql`insert into ai_usage (id, user_id, issue_id, run_id, model,
+    provider, prompt_tokens, cache_read_tokens, cache_write_tokens,
+    completion_tokens, cost_usd) values (${spendId}, ${d.adminId},
+    ${d.draftId}, ${crypto.randomUUID()}, 'fake', 'fake', 0, 0, 0, 0, 9999)`;
+  const fresh = await page.context().newPage();
+  try {
+    let posted = 0;
+    fresh.on("request", (req) => {
+      if (req.url().endsWith("/api/admin/ai/chat")) posted++;
+    });
+    await fresh.goto(`${d.base}/admin/issues/${d.draftId}/edit`);
+    await fresh.click('button[aria-label="Page 2"]');
+    await fresh.click(`[data-block-id="${ids.story}"]`, {
+      position: { x: 200, y: 8 },
+    });
+    await fresh.click(PILL);
+    await fresh.fill(BOX, "Tighten this");
+    await fresh.keyboard.press("Enter");
+    await fresh.waitForSelector(`${DIALOG} [role="alert"]`);
+    ok(
+      (await fresh.inputValue(BOX)) === "Tighten this" && posted === 0,
+      "nothing was sent and the box keeps the words",
+    );
+    ok(
+      (await fresh.textContent(`${DIALOG} [role="alert"]`))?.includes(
+        AI_ERROR_COPY.budget_spent,
+      ),
+      "and says the month's budget is spent",
+    );
+  } finally {
+    await fresh.close();
+    await d.sql`delete from ai_usage where id = ${spendId}`;
+  }
 }

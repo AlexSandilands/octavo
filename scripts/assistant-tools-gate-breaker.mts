@@ -121,7 +121,10 @@ export async function checkBreaker(d: {
   );
   capping = false;
   await capped;
-  ok(run6.requests === 2, "the route refused the run's second request");
+  ok(
+    run6.requests === 2,
+    `the route refused the run's second request (${run6.requests} requests)`,
+  );
   await until("autosave of the capped edit", async () =>
     JSON.stringify(block(await saved(), ids.intro)).includes("Capped edit."),
   );

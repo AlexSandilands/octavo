@@ -350,6 +350,9 @@ async function checks(page: Page) {
 
   await checkAsk({
     page,
+    sql,
+    adminId,
+    draftId,
     chat,
     base: base!,
     publishedId,

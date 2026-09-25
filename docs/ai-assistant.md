@@ -185,9 +185,11 @@ client-safe.
   run. That means the same breaker, the same one-step Undo and the same line. The author's bubble drops the id, as
   the presets' does. The panel opens (or, already open, takes the focus) so the reply and the line are in view, and
   the box closes. **Escape**, or a press anywhere else, closes it without sending, and Escape hands focus back to the
-  pill without deselecting the block. The editor's Ctrl/Cmd+Z stands down while the box is open, both for text entry
-  and for the dialog. If the conversation can't take a request (full, or the month spent), the panel opens on the
-  reason and the box keeps the words. The issue text named `floating-bar.tsx`, which is the canvas's tool pill,
+  pill without deselecting the block. Tab and Shift+Tab cycle the box and Send while it's open. The editor's Ctrl/Cmd+Z
+  stands down while the box is open, both for text entry and for the dialog. If the conversation can't take a request
+  (busy, full, or the month spent), nothing is sent: the box keeps the words and says why, and the panel opens on the
+  reason. The chat's `send` reports that before any request (`SendResult`), so the panel's composer also keeps a
+  refused message rather than clearing it. The issue text named `floating-bar.tsx`, which is the canvas's tool pill,
   not the block's chrome, so the pill sits on the block instead.
 - **On a cover** the assistant stays open (Import PDF doesn't). Opening it hides the cover inspector, closing it
   brings the inspector back, and a line at the top of the panel says so.
@@ -217,7 +219,7 @@ client-safe.
   real-provider smoke test should cover it: stop mid tool call, send again, and the second request succeeds with
   `cache_read_input_tokens > 0`.
 - **Usage footer.** "US$1.21 of US$20.00 used this month" (spend rounded up to the cent, as `/admin/ai` shows it), from `GET /api/admin/ai/usage` (admin-only, 404 while off,
-  `resolveBudget()`'s figures), with a link to `/admin/ai`. It is fetched when the panel opens and after every run.
+  `resolveBudget()`'s figures), with a link to `/admin/ai`. It is fetched when the editor opens with the assistant on (so a spent month is known before the first send from either the panel or the Ask box), when the panel opens, and after every run.
 - **Accessibility.** The thread is a `role="log"` region that is `aria-busy` while a reply streams, so the finished
   reply is announced once. Opening puts focus in the composer (or on the drafts-only message), and Close hands it back
   to the rail button. "Thinking…" shows from Send until the reply has words or a tool line to show. A reply opens with
