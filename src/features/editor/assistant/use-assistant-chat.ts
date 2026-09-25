@@ -244,6 +244,11 @@ export function useAssistantChat({
     summary,
     /** The circuit-breaker's message, when it stopped the last run. */
     stuck,
+    /** The run was undone: its line goes. */
+    dismissRun: () => {
+      setSummary(null);
+      setStuck(null);
+    },
     send,
     stop,
     restart,
