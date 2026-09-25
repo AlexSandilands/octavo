@@ -17,10 +17,7 @@
   "instruction": "Tidy this page up please, it got pasted in as one lump.",
   "expect": {
     "preserve": "page",
-    "tools": [
-      "set_text",
-      "insert_blocks"
-    ],
+    "tools": ["set_text", "insert_blocks"],
     "maxCalls": 8,
     "noOverflow": true
   }

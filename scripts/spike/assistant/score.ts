@@ -22,6 +22,9 @@ export type LoggedCall = {
 export type Score = {
   pass: boolean;
   failures: string[];
+  /** Reported, not failed on. */
+  advisories: string[];
+  changedBlocks: number;
   calls: number;
   validPct: number;
   mutatingCalls: number;
@@ -59,18 +62,30 @@ function firstDiff(a: string[], b: string[]): string {
   return `word ${i}: before "…${ctx(a)}…" / after "…${ctx(b)}…" (${a.length} → ${b.length} words)`;
 }
 
-/** Whether `needle` appears in order (not necessarily contiguous) in `hay`. */
-function inOrder(
-  needle: string[],
-  hay: string[],
-): { ok: boolean; missingAt: number } {
-  let j = 0;
-  for (let i = 0; i < needle.length; i++) {
-    while (j < hay.length && hay[j] !== needle[i]) j++;
-    if (j === hay.length) return { ok: false, missingAt: i };
-    j++;
-  }
-  return { ok: true, missingAt: -1 };
+/** Words of the blocks that weren't in `before`, in document order. */
+function newBlockWords(before: IssueContent, after: IssueContent): string[] {
+  const old = new Set(before.pages.flatMap((p) => p.blocks.map((b) => b.id)));
+  return after.pages.flatMap((p) =>
+    p.blocks
+      .filter((b) => !old.has(b.id))
+      .flatMap((b) => normalizedWords(blockPlain(b))),
+  );
+}
+
+/** Blocks added, deleted or edited (moves alone don't count). */
+function changedBlocks(before: IssueContent, after: IssueContent): number {
+  const flat = (c: IssueContent) =>
+    new Map(
+      c.pages.flatMap((p) =>
+        p.blocks.map((b) => [b.id, JSON.stringify(b)] as const),
+      ),
+    );
+  const a = flat(before);
+  const b = flat(after);
+  let n = 0;
+  for (const [id, json] of a) if (b.get(id) !== json) n++;
+  for (const id of b.keys()) if (!a.has(id)) n++;
+  return n;
 }
 
 export function scoreCase(
@@ -100,15 +115,12 @@ export function scoreCase(
     const d = firstDiff(issueWords(before), issueWords(content));
     preserve = { mode: "page", ok: d === "identical", detail: d };
   } else if (c.expect.preserve === "paste") {
-    const needle = normalizedWords(c.paste ?? "");
-    const r = inOrder(needle, issueWords(content));
-    preserve = {
-      mode: "paste",
-      ok: r.ok,
-      detail: r.ok
-        ? `all ${needle.length} pasted words present in order`
-        : `pasted word ${r.missingAt} ("${needle.slice(r.missingAt, r.missingAt + 6).join(" ")}…") not found in order`,
-    };
+    // The new blocks, read in order, must say exactly what was pasted.
+    const d = firstDiff(
+      normalizedWords(c.paste ?? ""),
+      newBlockWords(before, content),
+    );
+    preserve = { mode: "paste", ok: d === "identical", detail: d };
   }
   if (!preserve.ok) failures.push(`wording: ${preserve.detail}`);
 
@@ -124,8 +136,18 @@ export function scoreCase(
   if (total > c.expect.maxCalls)
     failures.push(`${total} calls > max ${c.expect.maxCalls}`);
 
+  // Advisory, like expect.tools: reported, never failed on.
+  const changed = changedBlocks(before, content);
+  const advisories =
+    c.expect.maxChangedBlocks !== undefined &&
+    changed > c.expect.maxChangedBlocks
+      ? [`${changed} blocks changed (expected ≤ ${c.expect.maxChangedBlocks})`]
+      : [];
+
   const flow = fills.filter((f) => f.kind === "flow");
   return {
+    changedBlocks: changed,
+    advisories,
     pass: failures.length === 0,
     failures,
     calls: total,

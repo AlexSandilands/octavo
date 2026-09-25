@@ -108,7 +108,7 @@ const widthProp = int(
 const anchorProp = {
   description:
     "Where: after a block ({ blockId }) or at the top of a page ({ page }).",
-  oneOf: [
+  anyOf: [
     {
       type: "object",
       properties: { blockId: idProp },
@@ -175,7 +175,7 @@ export const toolDefinitions: {
           type: "array",
           minItems: 1,
           items: {
-            oneOf: [
+            anyOf: [
               obj(
                 {
                   kind: { const: "heading" },

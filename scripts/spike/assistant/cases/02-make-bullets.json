@@ -6,10 +6,7 @@
   "instruction": "Make these notices into a bulleted list.",
   "expect": {
     "preserve": "page",
-    "tools": [
-      "set_text",
-      "delete_block"
-    ],
+    "tools": ["set_text", "delete_block"],
     "maxCalls": 8,
     "noOverflow": true
   }

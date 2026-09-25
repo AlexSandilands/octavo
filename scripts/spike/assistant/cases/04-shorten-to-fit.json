@@ -25,14 +25,8 @@
   "instruction": "Shorten this page so it all fits on the one page. Trim the last two paragraphs rather than cutting anything above them.",
   "expect": {
     "preserve": "none",
-    "tools": [
-      "set_text"
-    ],
-    "forbiddenTools": [
-      "split_page",
-      "add_page",
-      "move_block"
-    ],
+    "tools": ["set_text"],
+    "forbiddenTools": ["split_page", "add_page", "move_block"],
     "maxCalls": 6,
     "noOverflow": true
   }

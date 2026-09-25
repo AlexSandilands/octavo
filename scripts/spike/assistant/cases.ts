@@ -54,6 +54,7 @@ export const caseSchema = z.object({
     maxCalls: z.number().int(),
     noOverflow: z.boolean(),
     noEdits: z.boolean().optional(),
+    maxChangedBlocks: z.number().int().optional(),
   }),
 });
 export type Case = z.infer<typeof caseSchema>;

@@ -232,16 +232,16 @@ for (const c of cases) {
 const k = (n: number | undefined) =>
   n === undefined ? "–" : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
 const header =
-  "| case | pass | calls (max) | valid | wording | overflow | tools missing (advisory) | time | cost | in / cache read / cache write / out tokens |";
+  "| case | pass | calls (max) | valid | wording | overflow | blocks changed | advisory | time | cost | in / cache read / cache write / out tokens |";
 const lines = [
   `### ${model} · ${stamp}`,
   "",
   header,
-  "|---|---|---|---|---|---|---|---|---|---|",
+  "|---|---|---|---|---|---|---|---|---|---|---|",
   ...rows.map(({ c, score: s, run: r }) =>
     s && r
-      ? `| ${c.id} | ${s.pass ? "✅" : "❌"} | ${s.calls} (${c.expect.maxCalls}) | ${s.validPct}% | ${s.preserve.mode === "none" ? "–" : s.preserve.ok ? "kept" : "changed"} | ${s.overflowPages.length ? `p${s.overflowPages.join(",")}` : "none"} | ${s.toolsMissing.join(", ") || "–"} | ${(r.durationMs / 1000).toFixed(0)}s | ${r.costUsd === null ? "–" : `$${r.costUsd.toFixed(3)}`} | ${k(r.usage.input_tokens)} / ${k(r.usage.cache_read_input_tokens)} / ${k(r.usage.cache_creation_input_tokens)} / ${k(r.usage.output_tokens)} |`
-      : `| ${c.id} | dry run | – | – | – | – | – | – | – | – |`,
+      ? `| ${c.id} | ${s.pass ? "✅" : "❌"} | ${s.calls} (${c.expect.maxCalls}) | ${s.validPct}% | ${s.preserve.mode === "none" ? "–" : s.preserve.ok ? "kept" : "changed"} | ${s.overflowPages.length ? `p${s.overflowPages.join(",")}` : "none"} | ${s.changedBlocks} | ${[...(s.toolsMissing.length ? [`unused: ${s.toolsMissing.join(", ")}`] : []), ...s.advisories].join("; ") || "–"} | ${(r.durationMs / 1000).toFixed(0)}s | ${r.costUsd === null ? "–" : `$${r.costUsd.toFixed(3)}`} | ${k(r.usage.input_tokens)} / ${k(r.usage.cache_read_input_tokens)} / ${k(r.usage.cache_creation_input_tokens)} / ${k(r.usage.output_tokens)} |`
+      : `| ${c.id} | dry run | – | – | – | – | – | – | – | – | – |`,
   ),
 ];
 const scored = rows.filter((r) => r.score && r.run);

@@ -17,10 +17,7 @@
   "instruction": "This article was pasted in as one block. Give it proper headings and paragraphs.",
   "expect": {
     "preserve": "page",
-    "tools": [
-      "insert_blocks",
-      "set_text"
-    ],
+    "tools": ["insert_blocks", "set_text"],
     "maxCalls": 10,
     "noOverflow": true
   }

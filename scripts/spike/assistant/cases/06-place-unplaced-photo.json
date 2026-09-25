@@ -15,9 +15,7 @@
   "instruction": "I've uploaded a tall photo of the roof fund thermometer. Put it beside the Hall Roof Fund paragraph, wrapped on the right, with the caption: The thermometer outside the hall, updated every Sunday.",
   "expect": {
     "preserve": "page",
-    "tools": [
-      "insert_blocks"
-    ],
+    "tools": ["insert_blocks"],
     "maxCalls": 8,
     "noOverflow": true
   }

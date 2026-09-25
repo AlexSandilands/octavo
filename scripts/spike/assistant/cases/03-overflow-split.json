@@ -25,9 +25,7 @@
   "instruction": "This page runs off the bottom. Sort it out without changing any of the words.",
   "expect": {
     "preserve": "page",
-    "tools": [
-      "split_page"
-    ],
+    "tools": ["split_page"],
     "maxCalls": 6,
     "noOverflow": true
   }
