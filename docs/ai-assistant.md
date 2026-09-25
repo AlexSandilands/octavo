@@ -135,7 +135,12 @@ client-safe.
 - **Provider** (`src/server/ai-provider.ts`) from `AI_PROVIDER` / `AI_MODEL` / the key. `isAssistantEnabled()`
   (`src/lib/ai.ts`) is the on/off answer, and `NEXT_PUBLIC_AI_ASSISTANT=1` mirrors it for the button. Thinking and
   effort are explicit: Anthropic runs adaptive thinking at `effort: "medium"` with `sendReasoning`, the others take
-  `reasoning: "medium"`. The boot refuses a provider with no key, and a model with no price in `src/lib/ai-pricing.ts`.
+  `reasoning: "medium"`. A model that refuses adaptive thinking takes a fixed budget instead, listed in
+  `src/lib/ai-thinking.ts` (keyed like the price table): Haiku 4.5 answers every adaptive request with a 400, so it runs
+  `{ type: "enabled", budgetTokens: 4000 }` with no effort. The boot refuses a provider with no key, a model with no price
+  in `src/lib/ai-pricing.ts`, and an Anthropic model missing from `ai-thinking.ts`; a new `AI_MODEL` is added there
+  after a smoke run (`scripts/dev-ai-smoke.mts`). Haiku's smoke run can't show cache reads: its minimum cacheable prompt
+  (4,096 tokens) is larger than the smoke's requests.
 - **Caching:** the system prompt (`src/server/ai-prompt/`, `base.md` then `vision.md` and `cover.md` when those tools
   exist) and the tool list are byte-stable, with a `cache_control` breakpoint on the system message (which covers the
   tools before it) and one on the newest message, so each request reads the conversation so far from cache. The TTL is
