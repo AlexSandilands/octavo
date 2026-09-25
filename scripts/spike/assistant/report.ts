@@ -10,6 +10,7 @@ export type Row = {
   startFill: string;
   /** Views the model took (view_page + view_photo). */
   views?: number;
+  viewBudget?: number;
   /** Interior pages the rendered DOM says overflow (the real measurer's verdict). */
   measuredOverflow?: number[] | null;
 };
@@ -25,10 +26,11 @@ export function summary(title: string, rows: Row[]): string {
     "",
     "| case | pass | calls (max) | valid | views | wording | overflow est. | overflow measured | blocks changed | advisory | time (api) | cost | in / cache read / cache write / out tokens |",
     "|---|---|---|---|---|---|---|---|---|---|---|---|---|",
-    ...rows.map(({ c, score: s, run: r, views, measuredOverflow: m }) =>
-      s && r
-        ? `| ${c.id} | ${s.pass ? "✅" : "❌"} | ${s.calls} (${c.expect.maxCalls}) | ${s.validPct}% | ${views ?? 0} | ${s.preserve.mode === "none" ? "–" : s.preserve.ok ? "kept" : "changed"}${s.pasteVerbatim === false ? " (not verbatim)" : ""} | ${s.overflowPages.length ? `p${s.overflowPages.join(",")}` : "none"} | ${m === undefined || m === null ? "–" : m.length ? `p${m.join(",")}` : "none"} | ${s.changedBlocks} | ${[...(s.toolsMissing.length ? [`unused: ${s.toolsMissing.join(", ")}`] : []), ...s.advisories].join("; ") || "–"} | ${seconds(r.durationMs)} (${seconds(r.apiMs ?? null)}) | ${r.costUsd === null ? "–" : `$${r.costUsd.toFixed(3)}`} | ${k(r.usage.input_tokens)} / ${k(r.usage.cache_read_input_tokens)} / ${k(r.usage.cache_creation_input_tokens)} / ${k(r.usage.output_tokens)} |`
-        : `| ${c.id} | dry run | – | – | – | – | – | ${m === undefined || m === null ? "–" : m.length ? `p${m.join(",")}` : "none"} | – | – | – | – | – |`,
+    ...rows.map(
+      ({ c, score: s, run: r, views, viewBudget, measuredOverflow: m }) =>
+        s && r
+          ? `| ${c.id} | ${s.pass ? "✅" : "❌"} | ${s.calls} (${c.expect.maxCalls}) | ${s.validPct}% | ${viewBudget ? `${views ?? 0} of ${viewBudget}` : "–"} | ${s.preserve.mode === "none" ? "–" : s.preserve.ok ? "kept" : "changed"}${s.pasteVerbatim === false ? " (not verbatim)" : ""} | ${s.overflowPages.length ? `p${s.overflowPages.join(",")}` : "none"} | ${m === undefined || m === null ? "–" : m.length ? `p${m.join(",")}` : "none"} | ${s.changedBlocks} | ${[...(s.toolsMissing.length ? [`unused: ${s.toolsMissing.join(", ")}`] : []), ...s.advisories].join("; ") || "–"} | ${seconds(r.durationMs)} (${seconds(r.apiMs ?? null)}) | ${r.costUsd === null ? "–" : `$${r.costUsd.toFixed(3)}`} | ${k(r.usage.input_tokens)} / ${k(r.usage.cache_read_input_tokens)} / ${k(r.usage.cache_creation_input_tokens)} / ${k(r.usage.output_tokens)} |`
+          : `| ${c.id} | dry run | – | – | – | – | – | ${m === undefined || m === null ? "–" : m.length ? `p${m.join(",")}` : "none"} | – | – | – | – | – |`,
     ),
   ];
   const scored = rows.filter((r) => r.score && r.run);

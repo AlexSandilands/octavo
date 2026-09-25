@@ -41,6 +41,8 @@ const { values } = parseArgs({
     model: { type: "string", default: "haiku" },
     case: { type: "string" },
     vision: { type: "boolean", default: false },
+    /** Override the view budget (default: the case's expect.maxViews, else 6). */
+    views: { type: "string" },
     cover: { type: "boolean", default: false },
     "cover-style": { type: "boolean", default: false },
     "dry-run": { type: "boolean", default: false },
@@ -69,7 +71,7 @@ const outDir = values.rescore
   : join(
       HERE,
       "results",
-      `${model.replace(/[^\w.-]/g, "_")}${variant ? `-${variant}` : ""}-${stamp}${values["dry-run"] ? "-dry" : ""}`,
+      `${model.replace(/[^\w.-]/g, "_")}${variant ? `-${variant}` : ""}-${stamp}-${process.pid}${values["dry-run"] ? "-dry" : ""}`,
     );
 mkdirSync(outDir, { recursive: true });
 
@@ -153,7 +155,11 @@ for (const c of cases) {
       readFileSync(join(dir, "score.json"), "utf8"),
     ) as Omit<Row, "c"> & { run: RunResult };
     const { score } = scoreDir(c, dir, saved.run);
-    const row = { ...saved, c, score };
+    const measuredOverflow = await pictures(
+      readState(dir, "state.json"),
+      join(dir, "pages"),
+    );
+    const row = { ...saved, c, score, measuredOverflow };
     writeFileSync(
       join(dir, "score.json"),
       JSON.stringify({ ...row, c: undefined, case: c.id, model }, null, 2),
@@ -183,6 +189,9 @@ for (const c of cases) {
     continue;
   }
 
+  const budget = values.vision
+    ? Number(values.views ?? c.expect.maxViews ?? VISION_BUDGET)
+    : 0;
   process.stdout.write(
     `${c.id} (${model}${variant ? ` · ${variant}` : ""}) … `,
   );
@@ -192,13 +201,21 @@ for (const c of cases) {
     systemPrompt,
     message,
     tools,
-    visionBudget: values.vision ? VISION_BUDGET : 0,
+    visionBudget: budget,
   });
   const { score, calls } = scoreDir(c, dir, run);
   const after = readState(dir, "state.json");
   const measuredOverflow = await pictures(after, join(dir, "pages"));
   const views = calls.filter((x) => (x as { image?: boolean }).image).length;
-  const row: Row = { c, score, run, startFill, views, measuredOverflow };
+  const row: Row = {
+    c,
+    score,
+    run,
+    startFill,
+    views,
+    viewBudget: budget,
+    measuredOverflow,
+  };
   writeFileSync(
     join(dir, "score.json"),
     JSON.stringify(

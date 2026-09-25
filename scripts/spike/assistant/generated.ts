@@ -3,6 +3,7 @@
 // role ("PHOTO · prize leeks on the scales") so a model with vision can tell
 // which is which. The role never reaches the projection. Real photos dropped in
 // photos/ replace the generated art, in order, and carry no label.
+import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import sharp from "sharp";
@@ -101,27 +102,66 @@ export async function generateImages(
   return out;
 }
 
-/** A simple round mark: a leaf over a spade blade, in the palette's green. */
+/**
+ * Every photo in `dir` as an unplaced upload. Ids are opaque (hashed from the
+ * case and index, uuid-shaped like production's) and the list is sorted by id,
+ * so neither the file names nor their order say what a photo shows.
+ */
+export async function loadPhotos(
+  dir: string,
+  caseId: string,
+): Promise<ImageInfo[]> {
+  const out = join(CACHE_DIR, "photos", caseId);
+  mkdirSync(out, { recursive: true });
+  const files = readdirSync(dir)
+    .filter((f) => /\.(jpe?g|png|webp)$/i.test(f))
+    .sort();
+  const photos: ImageInfo[] = [];
+  for (const [i, f] of files.entries()) {
+    const h = createHash("sha256").update(`${caseId}:${i}`).digest("hex");
+    const id = `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-a${h.slice(17, 20)}-${h.slice(20, 32)}`;
+    const file = join(out, `${id}.webp`);
+    const { data, info } = await sharp(join(dir, f))
+      .rotate()
+      .resize({
+        width: 2000,
+        height: 2000,
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      .webp({ quality: 85 })
+      .toBuffer({ resolveWithObject: true });
+    writeFileSync(file, data);
+    photos.push({ id, width: info.width, height: info.height, file });
+  }
+  return photos.sort((a, b) => a.id.localeCompare(b.id));
+}
+
+/** A simple round mark for the case's club: a leaf over a spade, or a boule and jack. */
 export async function generateLogo(
   name: string,
 ): Promise<{ logo: LogoInfo; image: ImageInfo }> {
   const dir = join(CACHE_DIR, "generated");
   mkdirSync(dir, { recursive: true });
-  const file = join(dir, "logo-spike.webp");
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
-    <circle cx="120" cy="120" r="108" fill="none" stroke="${PALETTE.light}" stroke-width="8"/>
-    <path d="M120 58 C160 70 170 112 120 150 C70 112 80 70 120 58 Z" fill="${PALETTE.mid}"/>
-    <path d="M120 70 L120 150" stroke="${PALETTE.light}" stroke-width="5"/>
-    <rect x="112" y="150" width="16" height="42" fill="${PALETTE.light}"/>
-    <path d="M96 150 L144 150 L136 170 L104 170 Z" fill="${PALETTE.light}"/>
-  </svg>`;
+  const slug = createHash("sha256").update(name).digest("hex").slice(0, 8);
+  const file = join(dir, `logo-${slug}.webp`);
+  const ring = `<circle cx="120" cy="120" r="108" fill="none" stroke="${PALETTE.light}" stroke-width="8"/>`;
+  const art = /boule|p[ée]tanque/i.test(name)
+    ? `<circle cx="104" cy="128" r="46" fill="${PALETTE.light}"/>
+       <path d="M62 116 Q104 100 146 116 M62 140 Q104 156 146 140" stroke="${PALETTE.deep}" stroke-width="4" fill="none"/>
+       <circle cx="166" cy="84" r="14" fill="${PALETTE.accent}"/>`
+    : `<path d="M120 58 C160 70 170 112 120 150 C70 112 80 70 120 58 Z" fill="${PALETTE.mid}"/>
+       <path d="M120 70 L120 150" stroke="${PALETTE.light}" stroke-width="5"/>
+       <rect x="112" y="150" width="16" height="42" fill="${PALETTE.light}"/>
+       <path d="M96 150 L144 150 L136 170 L104 170 Z" fill="${PALETTE.light}"/>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">${ring}${art}</svg>`;
   writeFileSync(
     file,
     await sharp(Buffer.from(svg)).webp({ quality: 90 }).toBuffer(),
   );
-  const imageId = "img-logo-spike";
+  const imageId = `img-logo-${slug}`;
   return {
-    logo: { id: "logo-spike", name, imageId },
+    logo: { id: `logo-${slug}`, name, imageId },
     image: { id: imageId, width: 240, height: 240, file },
   };
 }

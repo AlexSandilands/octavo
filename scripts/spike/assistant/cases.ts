@@ -7,7 +7,7 @@ import { z } from "zod";
 import { buildBlock } from "./executor.ts";
 import { CONTENT_VERSION, type Page } from "../../../src/lib/blocks.ts";
 import { createId } from "../../../src/lib/id.ts";
-import { generateImages, generateLogo } from "./generated.ts";
+import { generateImages, generateLogo, loadPhotos } from "./generated.ts";
 import {
   seedIssues,
   withSeededIds,
@@ -66,6 +66,8 @@ export const caseSchema = z.object({
         )
         .optional(),
       generatedLogo: z.object({ name: z.string() }).optional(),
+      /** A folder of real photos, loaded as unplaced uploads with opaque ids. */
+      photosDir: z.string().optional(),
       /** Empty the cover; its photos become unplaced uploads. */
       stripCover: z.boolean().optional(),
     })
@@ -79,6 +81,8 @@ export const caseSchema = z.object({
     maxCalls: z.number().int(),
     noOverflow: z.boolean(),
     noEdits: z.boolean().optional(),
+    /** Views allowed with --vision (default 6). */
+    maxViews: z.number().int().optional(),
     maxChangedBlocks: z.number().int().optional(),
   }),
 });
@@ -125,7 +129,10 @@ function buildItems(ctx: IssueContext, items: z.infer<typeof setupItem>[]) {
 
 /** A fresh issue (seed or new) with the case's setup applied. */
 export async function startingContext(c: Case): Promise<IssueContext> {
-  const generated = await generateImages(c.setup?.generatedImages ?? []);
+  const generated = [
+    ...(await generateImages(c.setup?.generatedImages ?? [])),
+    ...(c.setup?.photosDir ? await loadPhotos(c.setup.photosDir, c.id) : []),
+  ];
   const logo = c.setup?.generatedLogo
     ? await generateLogo(c.setup.generatedLogo.name)
     : null;

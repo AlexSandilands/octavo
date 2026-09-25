@@ -5,10 +5,12 @@
 // running dev server's compiled CSS and fonts (read from its /signin page).
 // Images go in as data URIs, so nothing has to exist in the database.
 import { readFileSync } from "node:fs";
+import { registerHooks } from "node:module";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { chromium, type Browser, type Page } from "playwright";
-import { PrintDocument } from "../../../src/features/reader/print-document.tsx";
 import {
   EMPTY_SETTINGS,
   resolveSettings,
@@ -17,6 +19,19 @@ import {
 import { collectImageIds, type ImageMap } from "../../../src/lib/images.ts";
 import { siteDefaults } from "../../../src/lib/site-defaults.ts";
 import type { IssueContext } from "./seed.ts";
+
+// next/image is CommonJS with its component on `exports.default`; imported from
+// ESM outside Next's bundler, the default import is the module object and React
+// refuses it. A resolve hook swaps in a shim that exports the component.
+const shim = pathToFileURL(
+  join(import.meta.dirname, "next-image-shim.mts"),
+).href;
+registerHooks({
+  resolve: (specifier, context, next) =>
+    next(specifier === "next/image" ? shim : specifier, context),
+});
+const { PrintDocument } =
+  await import("../../../src/features/reader/print-document.tsx");
 
 export const DEV_SERVER =
   process.env.SPIKE_DEV_SERVER ?? "http://localhost:3000";
