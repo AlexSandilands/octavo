@@ -107,11 +107,14 @@ export function AssistantPanel({
               onStop={chat.stop}
             />
             {usage && (
-              <p
-                data-assistant-usage
-                className="text-faint px-1 font-sans text-[13px]"
-              >
-                {usageLine(usage)}
+              <p className="text-faint flex items-baseline justify-between gap-3 px-1 font-sans text-[13px]">
+                <span data-assistant-usage>{usageLine(usage)}</span>
+                <a
+                  href="/admin/ai"
+                  className="text-accent hover:text-accent-strong font-medium hover:underline"
+                >
+                  Usage
+                </a>
               </p>
             )}
           </div>
