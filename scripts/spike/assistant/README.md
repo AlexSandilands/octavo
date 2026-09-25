@@ -1,5 +1,9 @@
 # Assistant feasibility spike (#306)
 
+> **Throwaway.** The decisions this spike led to are in [`docs/ai-assistant.md`](../../../docs/ai-assistant.md); this
+> README is the evidence behind them. The modules are lifted into `src/` by #310 and the harness becomes #315's
+> model-selection fixture; the epic's closing issue deletes `scripts/spike/`.
+
 One question, answered before #307–#315 are built: **can a Claude model do the
 epic's page-editing job through intent tools (markdown in, blocks out, never
 raw JSON), given a plain-text projection of the issue?** This directory is a
@@ -9,6 +13,10 @@ editor executor, `markdown.ts` → `src/lib/markdown-doc.ts`, `projection.ts` �
 `src/features/editor/assistant/projection.ts`.
 
 ## Running it
+
+Prerequisites: a logged-in [Claude Code](https://code.claude.com) (runs spend its subscription, not an API key), the local
+Postgres with `npm run db:seed` (for `--save-draft`), and `npm run dev` on :3000 (for `--vision` / `--review`, whose page pictures
+borrow the dev server's compiled CSS and fonts).
 
 ```sh
 # Free: build each case's starting state, projection and message, no model call
@@ -22,11 +30,15 @@ npx tsx --tsconfig scripts/tsconfig.json scripts/spike/assistant/run.mts --model
 # so it can be opened in the real editor (npm run dev, then /admin/issues/<id>/edit)
 npx tsx --tsconfig scripts/tsconfig.json scripts/spike/assistant/run.mts --model haiku --case 07 --save-draft
 
+# Real photos for the new-issue case instead of labelled generated art (any folder; never commit them)
+npx tsx --tsconfig scripts/tsconfig.json scripts/spike/assistant/run.mts --model sonnet --case 14 --vision --cover-style --photos <dir>
+
 # Re-check the fill estimator against real rendering (headless Chromium, no app)
 npx tsx --tsconfig scripts/tsconfig.json scripts/spike/assistant/calibrate.mts
 ```
 
-Output goes to `results/<model>-<timestamp>/` (git-ignored). There is one
+Output goes to `results/<model>-<timestamp>/` (git-ignored, so the result dirs, drafts and draft ids quoted below exist only on
+the machine that ran them). There is one
 folder per case with `message.txt` (exactly what the model was sent),
 `transcript.jsonl` (the full stream-json, including every tool_use and
 tool_result), `calls.jsonl` (each call as the tool server saw it: args, valid,
@@ -71,7 +83,7 @@ subscription**:
 Known gaps:
 
 - Tools arrive named `mcp__octavo__<tool>`, not `<tool>`.
-- Claude Code may add a little framing. octavo-2c measured the replaced system prompt at ~373 input tokens, so the framing is minimal.
+- Claude Code may add a little framing. The replaced system prompt measured ~373 input tokens, so the framing is minimal.
 - JSON schemas are hand-written here. The AI SDK derives them from zod: unions become `anyOf`, and the spike uses `anyOf` to match.
 - Cost is Claude Code's `total_cost_usd`, a **list-price equivalent** of what the run would cost on the API. Caching follows Claude Code's behaviour, not necessarily what the AI SDK route would configure.
 - **Fill is estimated, not measured.** Text wrapping is calibrated against real rendering in Newsreader: `calibrate.mts` puts the seed's 80 text blocks within ~1% in aggregate. The page's usable height (815px), image and float rhythm, and theme chrome come from reading the CSS, not from measuring the editor. Treat "overflows by ~2 lines" as ±a few lines. Production uses the editor's measurer (`page-metrics.ts`).
@@ -191,8 +203,8 @@ calls, which production wouldn't make. The full runs are re-scored with the curr
   the real cover schemas. With the tools on, the projection's cover view lists every item with its id, placement and paint, plus the
   linkable headings, grid, palette and fonts.
 - **New-issue cases.** `setup.newIssue` starts from a cover and one empty page. `generatedImages` is seed-renderer art with the
-  photo's role printed in a corner, so only vision can tell them apart. `photosDir` loads real photos with **opaque ids**, sorted by
-  id. `generatedLogo` adds a logo to the library, and `stripCover` empties a seed cover.
+  photo's role printed in a corner, so only vision can tell them apart. `--photos <dir>` replaces that art with real photos for cases marked `acceptsPhotos`, with **opaque ids**
+  (uuid-shaped hashes), sorted by id. `generatedLogo` adds a logo to the library, and `stripCover` empties a seed cover.
 - The prompt is assembled from `prompt.md` + `prompt-vision.md` + `prompt-cover.md` according to the flags, and saved per case. Each result dir gets
   `pages/p01.png…` of the finished issue and an **"overflow measured"** column: the rendered DOM's verdict (footer top against
   content bottom), which corresponds to the editor's real measurer. The estimate stays in the tool results.
@@ -220,8 +232,8 @@ calls, which production wouldn't make. The full runs are re-scored with the curr
 | vision + compose | 13 Regatta cover             | ✅   | 6 (20)      | 2 of 6     | kept                            | –                        | 17s  | $0.069 |
 | vision + style   | 13 Regatta cover             | ✅   | 14 (20)     | 2 of 6     | kept                            | –                        | 26s  | $0.097 |
 | vision + style   | 12 new issue (generated art) | ✅   | 39 (40)     | **6 of 6** | kept (headings added)           | none / none              | 94s  | $0.262 |
-| vision + style   | 14 new issue (Alex's photos) | ❌   | 32 (45)     | 8 of 10    | words kept, structure changed\* | none / none              | 69s  | $0.231 |
-| style, no vision | 14 new issue (Alex's photos) | ✅   | 20 (45)     | –          | kept (headings added)           | none / none              | 51s  | $0.152 |
+| vision + style   | 14 new issue (real photos)   | ❌   | 32 (45)     | 8 of 10    | words kept, structure changed\* | none / none              | 69s  | $0.231 |
+| style, no vision | 14 new issue (real photos)   | ✅   | 20 (45)     | –          | kept (headings added)           | none / none              | 51s  | $0.152 |
 
 Total for the round: about $1.10 list price. The result dirs are `results/sonnet-*-2026-09-25T02-41-09*` and `results/sonnet-*-2026-09-25T02-46-46-*`.
 Drafts in the local DB are titled "Spike · <case> · sonnet · <variant>". Files and rows created for 12/14 are listed in each case's `created.json`.
@@ -283,7 +295,7 @@ What the review turn did:
   reads the capitals as a label. A prompt line isn't enough; it needs a stronger cue (an example) or a structural check.
 - Cost: the review turn added 25–40% to a run ($0.03–0.11). The page images are the bulk of it.
 
-## Recommendation (octavo-2c, 2026-09-25)
+## Recommendation (2026-09-25)
 
 Based on 29 model runs (≈ $1.75 list price) over 11 cases, one run per case per prompt version, so read the numbers as
 indicative only.
@@ -327,7 +339,7 @@ indicative only.
    same cases become #315's fixture. Before relying on the pass rates, run each case 3× per model to measure variance (04 swung
    from 4 to 14 calls).
 
-### Round 2 additions: vision and covers (octavo-2c)
+### Round 2 additions: vision and covers
 
 9. **Vision: offer it for photos and covers; don't expect the model to check its own pages.** Across 14 runs with `view_page`
    offered, Sonnet **never looked at an interior page**. On plain edits (01/07/08) it took zero views, and results and cost were
@@ -353,7 +365,7 @@ indicative only.
     $0.23 list price in 32 calls. A single-page edit is unchanged at ~$0.02–0.05. The ~$20/month budget still covers hundreds of
     requests.
 
-### Round 3 addition: the automatic end-of-run review (octavo-2c)
+### Round 3 addition: the automatic end-of-run review
 
 13. **Include the review turn, but only for runs that touched the cover or more than one page.** Sending the changed pages
     back as a second user message cost +25–40% per run ($0.03–0.11). It fixed the one clear fault it could see: 12's p5, where two

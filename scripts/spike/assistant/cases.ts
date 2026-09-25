@@ -66,8 +66,8 @@ export const caseSchema = z.object({
         )
         .optional(),
       generatedLogo: z.object({ name: z.string() }).optional(),
-      /** A folder of real photos, loaded as unplaced uploads with opaque ids. */
-      photosDir: z.string().optional(),
+      /** `run.mts --photos <dir>` replaces generatedImages with real photos (opaque ids). */
+      acceptsPhotos: z.boolean().optional(),
       /** Empty the cover; its photos become unplaced uploads. */
       stripCover: z.boolean().optional(),
     })
@@ -128,11 +128,14 @@ function buildItems(ctx: IssueContext, items: z.infer<typeof setupItem>[]) {
 }
 
 /** A fresh issue (seed or new) with the case's setup applied. */
-export async function startingContext(c: Case): Promise<IssueContext> {
-  const generated = [
-    ...(await generateImages(c.setup?.generatedImages ?? [])),
-    ...(c.setup?.photosDir ? await loadPhotos(c.setup.photosDir, c.id) : []),
-  ];
+export async function startingContext(
+  c: Case,
+  photosDir?: string,
+): Promise<IssueContext> {
+  const generated =
+    photosDir && c.setup?.acceptsPhotos
+      ? await loadPhotos(photosDir, c.id)
+      : await generateImages(c.setup?.generatedImages ?? []);
   const logo = c.setup?.generatedLogo
     ? await generateLogo(c.setup.generatedLogo.name)
     : null;

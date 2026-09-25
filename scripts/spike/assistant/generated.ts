@@ -1,17 +1,16 @@
 // Fresh images for a case that builds a new issue (setup.generatedImages): the
 // seed's art renderer with a new palette, each labelled in one corner with its
 // role ("PHOTO · prize leeks on the scales") so a model with vision can tell
-// which is which. The role never reaches the projection. Real photos dropped in
-// photos/ replace the generated art, in order, and carry no label.
+// which is which. The role never reaches the projection. Real photos come in
+// through `run.mts --photos <dir>` instead (loadPhotos), unlabelled.
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import sharp from "sharp";
 import { renderArtSvg, type ArtStyle } from "../../../src/db/seed/art.ts";
 import type { ImageInfo, LogoInfo } from "./seed.ts";
 
 export const CACHE_DIR = join(import.meta.dirname, ".cache");
-export const PHOTOS_DIR = join(import.meta.dirname, "photos");
 
 export type GeneratedSpec = {
   id: string;
@@ -58,30 +57,9 @@ export async function generateImages(
 ): Promise<ImageInfo[]> {
   const dir = join(CACHE_DIR, "generated");
   mkdirSync(dir, { recursive: true });
-  const photos = existsSync(PHOTOS_DIR)
-    ? readdirSync(PHOTOS_DIR)
-        .filter((f) => /\.(jpe?g|png|webp)$/i.test(f))
-        .sort()
-    : [];
   const out: ImageInfo[] = [];
   for (const [i, spec] of specs.entries()) {
     const file = join(dir, `${spec.id}.webp`);
-    const photo = photos[i];
-    if (photo) {
-      const { data, info } = await sharp(join(PHOTOS_DIR, photo))
-        .rotate()
-        .resize({
-          width: 2000,
-          height: 2000,
-          fit: "inside",
-          withoutEnlargement: true,
-        })
-        .webp({ quality: 82 })
-        .toBuffer({ resolveWithObject: true });
-      writeFileSync(file, data);
-      out.push({ id: spec.id, width: info.width, height: info.height, file });
-      continue;
-    }
     // The first portrait image is the cover: a landscape wash, like the seed's covers.
     const style: ArtStyle =
       i === 0 ? { kind: "wash" } : STYLES[i % STYLES.length]!;

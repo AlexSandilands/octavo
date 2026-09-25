@@ -50,6 +50,8 @@ const { values } = parseArgs({
     "dry-run": { type: "boolean", default: false },
     "save-draft": { type: "boolean", default: false },
     rescore: { type: "string" },
+    /** A folder of real photos for cases with setup.acceptsPhotos (never committed). */
+    photos: { type: "string" },
   },
 });
 const model = values.model!;
@@ -228,7 +230,10 @@ for (const c of cases) {
     continue;
   }
   mkdirSync(dir, { recursive: true });
-  const ctx = await startingContext(c);
+  const ctx = await startingContext(
+    c,
+    values.photos ? resolve(values.photos) : undefined,
+  );
   ctx.coverTools = coverTier;
   const startFill = describeFill(
     estimateFill(ctx.content.pages[c.page - 1]!, ctx.images),
