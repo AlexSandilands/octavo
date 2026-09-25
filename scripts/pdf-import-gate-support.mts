@@ -78,8 +78,11 @@ export async function settle(page: BrowserPage) {
 
 // The panel's controls, named the way the UI names them.
 export const panel = (page: BrowserPage) => page.locator("[data-pdf-private]");
+// The page rail names its thumbs "Page 2", "Page 1 (cover)".
 export const magazinePage = (page: BrowserPage, n: number) =>
-  page.getByRole("button", { name: String(n), exact: true });
+  page.getByRole("button", {
+    name: new RegExp(`^Page ${n}( \\(cover\\))?$`),
+  });
 export const openTool = (page: BrowserPage) =>
   page.getByRole("button", { name: "Import PDF", exact: true }).click();
 /** The rail button that opened the panel is pressed while it is out; it closes it. */

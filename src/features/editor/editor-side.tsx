@@ -75,8 +75,12 @@ export function EditorSide({
   });
   // Import PDF steps aside on a cover (#287); the assistant stays.
   const shown = tool === "pdf" && cover ? null : tool;
-  // A closing panel keeps its content while it slides out.
+  // A closing panel keeps its content while it slides out. Each opening counts,
+  // so a panel reopened mid-slide still mounts afresh and takes the focus.
   const [last, setLast] = useState<EditorTool>(shown ?? "pdf");
+  const [opened, setOpened] = useState({ shown, count: 0 });
+  if (shown !== opened.shown)
+    setOpened({ shown, count: opened.count + (shown ? 1 : 0) });
   if (shown && shown !== last) setLast(shown);
   const content = shown ?? last;
   // Closing hands focus back to the tool's own rail button.
@@ -111,6 +115,7 @@ export function EditorSide({
       >
         {content === "assistant" ? (
           <AssistantPanel
+            key={opened.count}
             chat={chat}
             published={assistant.published}
             cover={cover}
