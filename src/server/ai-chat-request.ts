@@ -182,7 +182,12 @@ function describeIssues(issues: z.ZodIssue[]): string[] {
       );
       if (meant.length) return meant.flatMap((e) => describeIssues(e.issues));
     }
-    return [`${issue.path.join(".") || "(body)"}: ${issue.message}`];
+    // An enum miss quotes the value it received; name the code instead.
+    const why =
+      issue.code === z.ZodIssueCode.invalid_enum_value
+        ? "not one of the allowed values"
+        : issue.message;
+    return [`${issue.path.join(".") || "(body)"}: ${why}`];
   });
 }
 

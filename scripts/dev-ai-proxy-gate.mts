@@ -15,9 +15,16 @@
 // row for the length of one request, which is the only moment a teammate's
 // request on the same database could see the month spent.
 // Run: npx tsx scripts/dev-ai-proxy-gate.mts <base-url> [<off-base-url>] [--log <file>]
-import { readFileSync } from "node:fs";
-import { readUIMessageStream, type UIMessage, type UIMessageChunk } from "ai";
+import type { UIMessage } from "ai";
 import postgres from "postgres";
+import {
+  assemble,
+  checkLogLeak,
+  checkRecordedReplies,
+  chunksOf,
+  type GateDeps,
+  userMessage,
+} from "./ai-proxy-gate-parts.mts";
 
 process.loadEnvFile?.(".env.local");
 const args = process.argv.slice(2);
@@ -76,17 +83,6 @@ function post(
   });
 }
 
-const userMessage = (text: string, projection?: string): UIMessage => ({
-  id: crypto.randomUUID(),
-  role: "user",
-  parts: [
-    ...(projection
-      ? [{ type: "data-projection" as const, data: { text: projection } }]
-      : []),
-    { type: "text", text },
-  ],
-});
-
 async function expectError(res: Response, status: number, code: string) {
   const body = (await res.json().catch(() => null)) as {
     error?: string;
@@ -96,30 +92,6 @@ async function expectError(res: Response, status: number, code: string) {
     res.status === status && body?.code === code && !!body.error,
     `${status} ${code}: "${body?.error ?? "(no body)"}"`,
   );
-}
-
-/** The response's chunks, parsed from the SSE the way the transport does. */
-async function chunksOf(res: Response): Promise<UIMessageChunk[]> {
-  const text = await res.text();
-  return text
-    .split("\n")
-    .filter((l) => l.startsWith("data: ") && l !== "data: [DONE]")
-    .map((l) => JSON.parse(l.slice(6)) as UIMessageChunk);
-}
-
-/** The assistant message useChat would build from those chunks, continuing
- *  `last` when it's the assistant's (a tool round trip). */
-async function assemble(chunks: UIMessageChunk[], last?: UIMessage) {
-  let message: UIMessage | undefined;
-  const stream = new ReadableStream<UIMessageChunk>({
-    start(c) {
-      for (const chunk of chunks) c.enqueue(chunk);
-      c.close();
-    },
-  });
-  for await (const m of readUIMessageStream({ stream, message: last }))
-    message = m;
-  return message!;
 }
 
 const usageRows = (runId: string) =>
@@ -148,6 +120,17 @@ try {
     issueId,
     messages: [userMessage("Tidy this page.", `${tag} marker line\nPage 1`)],
   });
+  const deps: GateDeps = {
+    post: (body) => post(body, { token: tokens.a }),
+    ok,
+    heading,
+    expectError,
+    hello: () => hello(),
+    draftId,
+    newRun,
+    tag,
+    logPath,
+  };
 
   if (offBase) {
     heading("assistant off");
@@ -257,47 +240,7 @@ try {
     "too_long",
   );
 
-  heading("refusals keep content out of the log");
-  // A tool output with a key the schema doesn't know: the SDK's error message
-  // quotes the whole value, page text included.
-  const marker = `PAGE-TEXT-MARKER-${tag}`;
-  const leaky: UIMessage = {
-    id: crypto.randomUUID(),
-    role: "assistant",
-    parts: [
-      {
-        type: "tool-read_page",
-        toolCallId: "leak-1",
-        state: "output-available",
-        input: { page: 1 },
-        output: { text: `${marker} a secret draft paragraph`, extra: true },
-      },
-    ],
-  } as UIMessage;
-  await expectError(
-    await post(
-      {
-        ...hello(),
-        messages: [
-          ...hello().messages,
-          leaky,
-          userMessage(`${marker} and more`, `${marker} in the projection`),
-        ],
-      },
-      { token: tokens.a },
-    ),
-    400,
-    "bad_request",
-  );
-  if (logPath) {
-    await new Promise((r) => setTimeout(r, 500));
-    const log = readFileSync(logPath, "utf8");
-    ok(
-      log.includes("AI chat body refused") && log.includes("read_page"),
-      "the refusal is logged, naming the tool",
-    );
-    ok(!log.includes(marker), "…and none of the refused content is");
-  } else console.log("  (no --log given: log content not checked)");
+  await checkLogLeak(deps);
 
   heading("a tool round trip");
   const run = newRun();
@@ -368,32 +311,7 @@ try {
     `two ai_usage rows for the run (${rows.map((r) => r.model).join(", ")})`,
   );
 
-  heading("replaying real replies");
-  // Assistant messages as a real provider's stream built them (recorded by
-  // dev-ai-smoke.mts --record, words replaced): every key the SDK writes must
-  // come back through the body schema.
-  const recorded = JSON.parse(
-    readFileSync("scripts/fixtures/ai-assistant-replies.json", "utf8"),
-  ) as UIMessage[];
-  const replay = await post(
-    {
-      runId: newRun(),
-      issueId: draftId,
-      messages: [
-        ...recorded.flatMap((reply) => [
-          userMessage("Go on.", "projection"),
-          reply,
-        ]),
-        userMessage("And now?", "projection"),
-      ],
-    },
-    { token: tokens.a },
-  );
-  const replayed = await chunksOf(replay);
-  ok(
-    replay.status === 200 && !replayed.some((c) => c.type === "error"),
-    `${recorded.length} recorded replies are accepted and answered (${replay.status})`,
-  );
+  await checkRecordedReplies(deps);
 
   heading("failures mid-stream");
   for (const [trigger, label] of [
