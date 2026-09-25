@@ -1,9 +1,10 @@
 # AI editing assistant (design note, epic #306)
 
 An assistant in the editor that edits the issue on the author's behalf. It can tidy a page, lay out pasted articles and
-photos, compose a cover, and rewrite when asked. **Only the spend ledger and budget (#307) are built so far.** This note holds the decisions every child
-issue assumes. Read it with the epic before working any child. Each child's PR updates it to match what shipped, and the
-epic's closing issue (#344) turns it into the feature doc (the `docs/pdf-import.md` shape).
+photos, compose a cover, and rewrite when asked. **Built so far, dormant until a provider is set:** the spend ledger
+(#307) and the chat route (#308). This note holds the decisions every child issue assumes. Read it with the epic before
+working any child. Each child's PR updates it to match what shipped, and the epic's closing issue (#344) turns it into
+the feature doc (the `docs/pdf-import.md` shape).
 
 The decisions below were settled in conversation on 2026-09-22 and revised by a feasibility spike on 2026-09-25: 43
 runs on Claude Haiku 4.5 and Sonnet 5, about $3.60 list price in total. The spike's harness, cases, results tables and
@@ -58,6 +59,103 @@ evidence; this note is the conclusion.
   message or tool result, and never rewrite or trim earlier turns. Past the message cap, end the conversation; don't drop
   old turns. Newer Claude models also reject edited history when thinking is replayed. #308's real-provider smoke test must
   show `cache_read_input_tokens > 0` on the second request.
+
+#### The chat route (#308)
+
+`POST /api/admin/ai/chat` is the only server surface. The panel (#309) talks to it with `useChat` and the stock
+`DefaultChatTransport`; the constants and copy below live in `src/lib/ai-chat-contract.ts` and `src/lib/ai-tools.ts`, both
+client-safe.
+
+- **Request body** (JSON, ≤ 24 MB): `{ runId, issueId, messages }`, plus whatever `useChat` adds (`id`, `trigger`,
+  `messageId`), which the route ignores.
+  - `runId` is a uuid the panel mints per **author message**. It stays the same on every tool round trip of that run.
+  - `issueId` is the draft being edited.
+  - `messages` is `useChat`'s `UIMessage[]`, sent **whole and unmodified** every time: up to 200 messages. Never edit, trim
+    or reorder them, and **keep the `reasoning` parts** (they carry the provider's thinking signatures, and the model
+    rejects a tool turn replayed without them). Past 200 messages the panel ends the conversation. A reply the author
+    stopped can stay as it arrived: `@ai-sdk/anthropic` drops a thinking part that has no signature yet rather than send
+    it, and the smoke run confirmed that a stopped tool call closed as `output-error` replays cleanly.
+- **The projection** travels inside each author message as a data part placed **before** the author's text:
+  `sendMessage({ parts: [{ type: "data-projection", data: { text } }, { type: "text", text: request }] })`. The route turns
+  it into text for the model. Because it's part of the message, it stays in history verbatim and the cache prefix stays
+  stable. Limits: projection ≤ 60,000 chars, any text part ≤ 20,000 chars. `useChat` doesn't render data parts, so the
+  chat log shows only the author's words.
+- **The stream** is the AI SDK's UI message stream (SSE, `x-vercel-ai-ui-message-stream: v1`), which
+  `DefaultChatTransport` reads as-is. It carries text, reasoning (usually empty) and tool-call parts.
+- **Tool calls** arrive as typed parts (`tool-read_page`, …) with the input already validated against `aiToolSchemas`. The
+  panel runs them in `onToolCall`, answers with
+  `addToolOutput({ tool, toolCallId, output })`, and sets `sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls`
+  so the result goes back as the next request, same `runId`. `output` is always `AiToolOutput`: `{ text, images? }`. A
+  refusal is an ordinary output with its reason in `text`. `state: "output-error"` is kept for a crash in the executor.
+- **Images** can travel in a **tool result**. `images: [{ mediaType: "image/png" | "image/jpeg" | "image/webp", data }]`
+  (base64, no `data:` prefix, ≤ 1.5 MB each, ≤ 8 per output) reaches the model as image blocks inside the `tool_result`.
+  The route's `toModelOutput` does this, and `@ai-sdk/anthropic` sends them as `image` content in the tool result. That
+  suits `view_photo` / `view_page` (#342). The end-of-run review, which has no tool call to answer, sends its page images as
+  `file` parts (`data:` URLs, the same three types) in a user message. The route accepts no other file parts and no
+  remote URLs. At most 8 file parts per message. Checked in `@ai-sdk/anthropic` 4.0.63, whose converter turns a
+  tool result's `file` parts into `image` blocks; OpenAI and Gemini accept images in tool results too, per the AI SDK.
+- **Errors** are always `{ error, code }` JSON, where `error` is a sentence to show verbatim. Before the stream it is the
+  response body, with a 4xx/5xx status. During the stream it is the stream's error text. Either way `useChat` puts it in
+  `error.message`, and `readAiError(error.message)` returns `{ error, code }`. The codes: `unauthorised` 403,
+  `bad_request` 400, `not_found` 404 (also the whole route while the assistant is off, with an empty body), `not_draft`
+  409, `too_long` 413, `rate_limited` 429, `budget_spent` 402, `run_cap` 402, `provider_down` 502 and `provider_busy` 503.
+- **Limits:**
+  - 300 requests and 20 distinct runs per admin per 10 minutes.
+  - A run is refused once it has spent $0.50.
+  - Every request is refused once the month's budget is spent.
+
+  The `runId` comes from the client, so a new id per request would dodge the per-run cap. The runs limiter is keyed on the
+  distinct ids it has seen, which bounds that, and the monthly budget is the real ceiling.
+
+- **A conversation is full** (`too_long`) at 200 messages, 330,000 characters or 24 images. Every author message carries
+  its projection and history is append-only, so the character cap is what keeps a long conversation inside a
+  200k-token context: 330,000 characters at a cautious ~3 per token is ~110k tokens, 24 images at ~1.6k tokens is ~38k,
+  and with the prompt and tools (~5k) and the reply's allowance (32k output tokens, thinking included) that leaves
+  ~15k spare. The count covers text, reasoning, projections, tool inputs and tool outputs.
+
+**How the route is built.**
+
+- **Packages, pinned exactly:** `ai` 7.0.114, `@ai-sdk/react` 4.0.117 (#309's hook), `@ai-sdk/anthropic` 4.0.63,
+  `@ai-sdk/openai` 4.0.75, `@openrouter/ai-sdk-provider` 3.1.0 and `@ai-sdk/provider` 4.0.18 (the fake model's types).
+  AI SDK 7 renamed `system` to `instructions` and `onFinish` to `onEnd`, and moved cache token counts to
+  `usage.inputTokenDetails`; read the installed `node_modules/ai/docs` before changing anything, not memory.
+- **The body schema follows the SDK's part types** (`src/server/ai-chat-request.ts`): each part is `.strict()` but lists
+  every optional field `ai` 7.0.114 declares on it, because the stream processor writes fields the panel sends back
+  verbatim. A reasoning part gets an `id`, and with thinking display omitted it has empty text and carries its signature
+  in `providerMetadata`. The first build missed that `id` and refused every real reply that had thought. **Recheck the
+  schema on every SDK upgrade**. Part types the route refuses on purpose: `dynamic-tool`, `source-url`, `source-document`,
+  `custom` and `reasoning-file` (none arise without tools or features the assistant doesn't use), and a file's
+  `providerReference`. `dev-ai-proxy-gate` replays recorded real replies
+  (`scripts/fixtures/ai-assistant-replies.json`) to catch it. A refused body logs `AI chat body refused: <path>: <why>`
+  at debug level: zod paths and the SDK's field and tool names, never the SDK's error message, which quotes the refused
+  value. `dev-ai-proxy-gate --log <file>` checks a refused body's text stays out of the log. An author's text part is
+  capped at 20,000 characters (`bad_request`, the panel's bug); the model's text or thinking at 60,000 (`too_long`).
+- **Provider** (`src/server/ai-provider.ts`) from `AI_PROVIDER` / `AI_MODEL` / the key. `isAssistantEnabled()`
+  (`src/lib/ai.ts`) is the on/off answer, and `NEXT_PUBLIC_AI_ASSISTANT=1` mirrors it for the button. Thinking and
+  effort are explicit: Anthropic runs adaptive thinking at `effort: "medium"` with `sendReasoning`, the others take
+  `reasoning: "medium"`. The boot refuses a provider with no key, and a model with no price in `src/lib/ai-pricing.ts`.
+- **Caching:** the system prompt (`src/server/ai-prompt/`, `base.md` then `vision.md` and `cover.md` when those tools
+  exist) and the tool list are byte-stable, with a `cache_control` breakpoint on the system message (which covers the
+  tools before it) and one on the newest message, so each request reads the conversation so far from cache. The TTL is
+  the default five minutes, which is what the ledger prices cache writes at.
+- **Metering** (`src/server/ai-metering.ts`): one `ai_usage` row per request, however it ends. When the provider
+  reports usage, the row gets its uncached, cache-read, cache-write and output tokens and the model id it reported (or
+  the configured one, when the reported id has no price). With no usage (the author stopped the reply, or the stream
+  failed partway), the tokens are estimated at 3 characters each and the model is marked `~`. A request that failed
+  before anything streamed gets a zero-token `~` row. An estimate prices the whole input as uncached, so it
+  overstates what the provider bills (in the smoke run, $0.007 for a request whose neighbours cost about $0.002).
+- **Real-provider smoke** (2026-09-25, `claude-sonnet-5`, `scripts/dev-ai-smoke.mts`): every request of a
+  seven-request conversation after the first read the whole conversation so far from cache (2.1k–4.4k tokens read,
+  2 uncached). A request costs about $0.002 at this size. The conversation included a reply stopped mid-tool-call and
+  one cut off mid-stream, and each was followed by a request the model accepted. At medium effort Sonnet 5 rarely thinks on requests
+  this small (none of four runs did), so a smoke run can pass without exercising a reasoning part; the gate's fake
+  model streams one on every reply for that reason.
+- **`AI_PROVIDER=fake`** (`src/server/ai-fake-model.ts`) is deterministic and costs $0. Every reply opens with an empty,
+  signed reasoning block, as Anthropic's does. An author message gets
+  `Looking at "<the projection's first line>".` and then a `read_page({ page: 1 })` call; a tool result gets
+  `Read read_page (<n> characters back). Nothing needed changing.` Triggers in the author's text reach the failure
+  paths: `[fake:fail]`, `[fake:drop]`, `[fake:slow]` and `[fake:odd-model]`. `scripts/dev-ai-proxy-gate.mts` runs
+  against it.
 
 ### What the model reads
 
@@ -160,7 +258,8 @@ don't redesign it.
 - **Children merge to `main` one at a time, dormant.** With `AI_PROVIDER` unset the rail button is hidden and the route 404s. The
   demo and members' sites don't set it, so merged work changes nothing there except additive migrations and gated code paths.
 - **Rollout is an env change, not a merge:**
-  1. a local production build with the owner's key;
+  1. a local production build with the owner's key; `scripts/dev-ai-smoke.mts` (a handful of requests, about 2¢) checks
+     reported tokens, cache reads and a stopped run;
   2. the demo site (set `AI_PROVIDER`, small budget);
   3. the members' site (set the env var, cut a release tag).
 - If the feature has to come out, the child merges revert cleanly. The `ai_usage`/`ai_grants` tables would need a dropping

@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import { priceFor } from "./ai-pricing";
 import { BRAND_IDS, DEFAULT_BRAND, type BrandId } from "./brands";
 import { THEME_IDS } from "@/features/blocks/themes/registry";
 
@@ -42,6 +43,24 @@ const R2_KEYS = [
 
 const EMAIL_KEYS = ["EMAIL_API_KEY", "EMAIL_FROM"] as const;
 
+// The AI assistant's providers (issue #308) and the key each needs. Unset
+// AI_PROVIDER is the assistant switched off; `fake` streams canned replies.
+export const AI_PROVIDERS = [
+  "anthropic",
+  "openai",
+  "openrouter",
+  "fake",
+] as const;
+// A blank line in .env (`AI_PROVIDER=`) means unset, not an invalid value.
+const unsetIfBlank = <T extends z.ZodTypeAny>(schema: T) =>
+  z.preprocess((value) => (value === "" ? undefined : value), schema);
+export const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-5";
+const AI_KEYS = {
+  anthropic: "ANTHROPIC_API_KEY",
+  openai: "OPENAI_API_KEY",
+  openrouter: "OPENROUTER_API_KEY",
+} as const;
+
 // Build-time vars: NEXT_PUBLIC_* branding, inlined at build. Non-secret and
 // required during `next build`, so validated eagerly at import.
 const buildSchema = z.object({
@@ -75,6 +94,9 @@ const buildSchema = z.object({
         });
       }
     }),
+  // Shows the editor's assistant button (issue #308): "1" when this deploy
+  // sets AI_PROVIDER. A convenience for the client only; the route decides.
+  NEXT_PUBLIC_AI_ASSISTANT: unsetIfBlank(z.enum(["0", "1"]).optional()),
 });
 
 // Runtime vars: secrets + DATABASE_URL. Validated lazily (see below) so the
@@ -114,9 +136,46 @@ const runtimeBaseSchema = z.object({
     .optional()
     .transform((value) => (value ? Number(value) : 0))
     .pipe(z.number().max(10_000, "at most 10000")),
+  // The assistant's provider and model (issue #308); keys are secrets and
+  // never NEXT_PUBLIC_. AI_MODEL defaults to DEFAULT_ANTHROPIC_MODEL on anthropic.
+  AI_PROVIDER: unsetIfBlank(z.enum(AI_PROVIDERS).optional()),
+  AI_MODEL: unsetIfBlank(z.string().max(100).optional()),
+  ANTHROPIC_API_KEY: z.string().optional(),
+  OPENAI_API_KEY: z.string().optional(),
+  OPENROUTER_API_KEY: z.string().optional(),
 });
 
 const runtimeSchema = runtimeBaseSchema.superRefine((vars, ctx) => {
+  // A provider without its key can't answer a single request: refuse to boot,
+  // in dev too. Switching the assistant off is unsetting AI_PROVIDER.
+  const provider = vars.AI_PROVIDER;
+  if (provider && provider !== "fake" && !vars[AI_KEYS[provider]]) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message:
+        `AI_PROVIDER is "${provider}" but ${AI_KEYS[provider]} is missing. ` +
+        "Set the key, or unset AI_PROVIDER to switch the assistant off.",
+    });
+  }
+  if ((provider === "openai" || provider === "openrouter") && !vars.AI_MODEL) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `AI_PROVIDER is "${provider}", which needs AI_MODEL set.`,
+    });
+  }
+  // An unpriced model would be billed by the provider and then refused by the
+  // ledger, so it never starts.
+  const model =
+    provider === "fake"
+      ? "fake"
+      : (vars.AI_MODEL ??
+        (provider === "anthropic" ? DEFAULT_ANTHROPIC_MODEL : undefined));
+  if (model && !priceFor(model)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `AI_MODEL "${model}" has no price in src/lib/ai-pricing.ts, so its spend couldn't be metered.`,
+    });
+  }
   if (process.env.NODE_ENV !== "production") return;
   const missingR2 = R2_KEYS.filter((key) => !vars[key]);
   if (missingR2.length > 0) {
