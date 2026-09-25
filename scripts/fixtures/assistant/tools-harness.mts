@@ -1,6 +1,8 @@
 // The stand-in measurer and editor for check-ai-tools.mts (#310): fixed block
 // heights on an 800px text area, a history that records what the executor
 // hands it, the seed with opaque photo ids, and block builders.
+import { coverSources } from "../../../src/lib/cover-elements";
+import { readCoverWarnings } from "../../../src/features/editor/use-cover-layout-warnings";
 import { buildIssues } from "../../../src/db/seed-data";
 import { SEED_IMAGES, type SeedImages } from "../../../src/db/seed/images";
 import { createId } from "../../../src/lib/id";
@@ -38,6 +40,10 @@ const height = (b: Block) =>
         : 80;
 export let measured = 0;
 export const measurer: EditMeasurer = {
+  // No layout here: only the warnings a cover's data can show (broken links).
+  async cover(page, pages) {
+    return readCoverWarnings(page, coverSources(pages));
+  },
   async report(page: Page): Promise<PageReport> {
     measured++;
     if (page.cover)
@@ -95,8 +101,13 @@ const ids = Object.fromEntries(
 ) as SeedImages;
 export const issues = buildIssues(ids);
 export const photos = new Set(Object.values(ids));
+/** The logo library add_logo names from; its mark is an ordinary image id. */
+export const logos = [
+  { id: "logo-burgee", name: "Club burgee", imageId: "img-burgee" },
+];
 export const call = {
   photos,
+  logos,
   read: () => ({ text: "(read_page)" }),
   view: async () => ({ text: "(view)" }),
 };

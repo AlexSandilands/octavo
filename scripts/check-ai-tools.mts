@@ -2,7 +2,8 @@
 // executor's refusals, markdown round trips over the seed's text, one history
 // step per run with undo back to the exact pages, the photo layout defaults,
 // split_page, the overflow feedback, whole-issue validation, the
-// circuit-breaker and the run summary. The measurer is a stand-in with fixed
+// circuit-breaker and the run summary; the cover tools (#313,
+// fixtures/assistant/cover-checks.mts). The measurer is a stand-in with fixed
 // block heights (fixtures/assistant/tools-harness.mts); the real one is the
 // editor's (dev-assistant-tools-gate.mts).
 //   npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-tools.mts
@@ -15,6 +16,7 @@ import { richDocBlocks } from "../src/lib/rich-text-split";
 import * as h from "./fixtures/assistant/tools-harness.mts";
 import { createVision } from "../src/features/editor/assistant/vision";
 import type { AssistantIssue } from "../src/features/editor/assistant/issue-context";
+import { coverChecks } from "./fixtures/assistant/cover-checks.mts";
 
 const { ok, heading, docOf, issues, photos, harness } = h;
 const { textBlock, headingBlock, photo, cover, page } = h;
@@ -22,7 +24,8 @@ const { textBlock, headingBlock, photo, cover, page } = h;
 heading("the tool contract");
 ok(
   AI_TOOL_NAMES.join() ===
-    "read_page,set_text,set_heading,insert_blocks,delete_block,move_block,add_page,split_page,set_image_text,set_image_layout,view_page,view_photo",
+    "read_page,set_text,set_heading,insert_blocks,delete_block,move_block,add_page,split_page,set_image_text,set_image_layout,view_page,view_photo," +
+      "set_cover_background,clear_cover_background,set_masthead,add_story,add_details,add_logo,remove_cover_item,place_cover_item,style_cover_item,style_cover_page",
   "every tool is declared, read_page first (the cached order)",
 );
 const refused = (tool: keyof typeof aiToolSchemas, input: unknown) =>
@@ -93,7 +96,7 @@ heading("unknown ids and places are refused, nothing changes");
     [
       "insert_blocks",
       { after: { page: 1 }, blocks: [{ kind: "text", markdown: "x" }] },
-      "is the cover",
+      "is a cover; use the cover tools",
     ],
     ["add_page", { after: 9 }, "there is no page 9"],
     ["split_page", { page: 9 }, "there is no page 9"],
@@ -365,6 +368,8 @@ heading("vision: views within the run's six and the conversation's room");
     "with room for 24: six views, the 7th refused, 18 left for the review",
   );
 }
+
+await coverChecks();
 
 ok(
   h.measured > 0 && collectImageIds(issues[0]!.content).length > 0,

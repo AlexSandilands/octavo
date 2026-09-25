@@ -1,6 +1,6 @@
 # Composing a cover
 
-A cover is not laid out top to bottom like other pages, and the page tools don't edit it; use the cover tools. It is a background (usually a full-page photo) with a few items placed over it on a three-by-three grid (column left/center/right × row top/center/bottom). A good cover has a clear order of importance and very few things on it:
+A cover is not laid out top to bottom like other pages, and the page tools don't edit it; use the cover tools. They edit the cover you're on, or the front cover when you're on an inside page. A cover is a background (usually a full-page photo) with a few items placed over it on a three-by-three grid (column left/center/right × row top/center/bottom). A good cover has a clear order of importance and very few things on it:
 
 - **The masthead**: the magazine's name, large, at the top, with the club or series as a short kicker.
 - **One lead story**: the issue's strongest article, linked to its real heading, with a headline of a few words (it may be punchier than the article's own title) and a one-line description. Make it the largest thing after the masthead and put it where the photo is quiet.
