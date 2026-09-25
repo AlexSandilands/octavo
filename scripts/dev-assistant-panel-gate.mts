@@ -8,7 +8,8 @@
 // canvas's overflow marker), Stop, an inline error, the usage footer, the log's
 // announcements, a full conversation and a tablet's width.
 // With `--off`, against a server with neither variable set, it checks the
-// button, the help section and the usage route are all absent.
+// button, the help section and the usage route are all absent
+// (assistant-panel-gate-off.mts).
 //
 // SAFETY: shared dev database. It mints its own admin, session, one draft and
 // one published issue; the budget check holds one scratch ai_usage row for a
@@ -18,6 +19,7 @@ import { chromium, type Page, type Request } from "playwright";
 import postgres from "postgres";
 import { AI_ERROR_COPY } from "../src/lib/ai-chat-contract";
 import { railOrder } from "./editor-rail-gate-support.mts";
+import { checkOff } from "./assistant-panel-gate-off.mts";
 
 process.loadEnvFile?.(".env.local");
 const [base, flag] = process.argv.slice(2);
@@ -472,23 +474,8 @@ try {
   ]);
   const page = await ctx.newPage();
 
-  if (flag === "--off") {
-    heading("Off: nothing to see");
-    await openEditor(page, draftId);
-    ok((await page.$(BUTTON)) === null, "no Assistant button on the rail");
-    ok(
-      (await page.$(`${RAIL} button[aria-label="Import PDF"]`)) !== null,
-      "Import PDF still there",
-    );
-    const usage = await page.request.get(`${base}/api/admin/ai/usage`);
-    ok(usage.status() === 404, "usage route 404s");
-    await page.goto(`${base}/admin/help`);
-    ok(
-      (await page.$("#assistant")) === null,
-      "no Assistant section in the guide",
-    );
-    console.log("\nassistant panel gate (off): all checks passed");
-  } else await onChecks(page, pageCount);
+  if (flag === "--off") await checkOff({ page, base, draftId, ok, heading });
+  else await onChecks(page, pageCount);
 } finally {
   await browser.close();
   await sql`delete from ai_usage where user_id = ${adminId} or issue_id in (${draftId}, ${publishedId}) or id = ${spendId}`;
