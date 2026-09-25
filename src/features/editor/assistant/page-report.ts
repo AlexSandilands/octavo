@@ -52,13 +52,17 @@ export function describeReport(
   if (!fill || fill.kind !== "flow" || fill.overflowLines === 0) return head;
   const parts = [`${head}.`];
   if (report.text.length) {
-    const blocks = report.text.map(
-      (t) =>
-        `[${t.id}] ${plural(t.lines, "line")}` +
-        (t.lastLines.length
-          ? `, its paragraphs' last lines hold ${t.lastLines.slice(0, MAX_LAST_LINES).join(", ")}${t.lastLines.length > MAX_LAST_LINES ? ", …" : ""} word${t.lastLines.length === 1 && t.lastLines[0] === 1 ? "" : "s"}`
-          : ""),
-    );
+    const blocks = report.text.map((t) => {
+      const shown = t.lastLines.slice(0, MAX_LAST_LINES).join(", ");
+      const more = t.lastLines.length > MAX_LAST_LINES ? ", …" : "";
+      const last =
+        t.lastLines.length === 1
+          ? `, its last line holds ${plural(t.lastLines[0]!, "word")}`
+          : t.lastLines.length
+            ? `, its paragraphs' last lines hold ${shown}${more} words`
+            : "";
+      return `[${t.id}] ${plural(t.lines, "line")}${last}`;
+    });
     parts.push(
       `Text on it: ${blocks.join("; ")}. A line is freed only when a paragraph's last line empties.`,
     );

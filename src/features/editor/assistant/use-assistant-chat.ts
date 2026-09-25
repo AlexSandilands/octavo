@@ -196,6 +196,8 @@ export function useAssistantChat({
     setRunning(true);
     setSummary(null);
     setStuck(null);
+    // Before anything can end the run, so its summary is never the last run's.
+    latest.current.tools.beginRun();
     try {
       const { issue, currentPage } = await latest.current.snapshot();
       const view = projection(issue, currentPage);
@@ -205,7 +207,6 @@ export function useAssistantChat({
         endRun();
         return;
       }
-      latest.current.tools.beginRun();
       await chat.sendMessage({
         parts: [
           { type: AI_PROJECTION_PART, data: { text: view } },
