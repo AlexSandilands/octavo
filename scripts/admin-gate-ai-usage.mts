@@ -1,6 +1,7 @@
 // The assistant usage page's half of dev-admin-gate.mts (issue #314): admin
 // only, its figures against the budget arithmetic, headings and table
-// semantics, and a keyboard walk from the month picker to the table.
+// semantics, a keyboard walk from the month picker to the table, and the
+// sidebar entry that shows only while the assistant is on.
 //
 // It seeds its own ledger in February 2001, a month nothing else writes, tags
 // every row with a per-run id and deletes exactly those rows in the finally.
@@ -51,6 +52,9 @@ export async function checkAiUsagePage(d: Deps) {
     await sql`insert into ai_grants (id, amount_usd, note, created_at)
       values (${crypto.randomUUID()}, 4, ${tag}, '2001-02-10T00:00:00Z')`;
     const spent = rows.reduce((n, r) => n + r[5], 0);
+    // One ledger row per request; Tokens is all four counts.
+    const requests = rows.length;
+    const tokens = rows.reduce((n, r) => n + r[1] + r[2] + r[3] + r[4], 0);
     const allowance = Number(process.env.AI_MONTHLY_BUDGET_USD ?? 0);
     const remaining = Math.max(0, allowance + 4 - spent);
 
@@ -114,7 +118,7 @@ export async function checkAiUsagePage(d: Deps) {
     const cols = await table.locator("thead th[scope=col]").allInnerTexts();
     ok(
       cols.map((c) => c.toLowerCase()).join() ===
-        "day,runs,requests,tokens,cached reads,cost",
+        "day,runs,requests,tokens,cost",
       `column headers (${cols.join(", ")})`,
     );
     const days = await table.locator("tbody th[scope=row]").allInnerTexts();
@@ -128,11 +132,20 @@ export async function checkAiUsagePage(d: Deps) {
       `a day under a cent doesn't read as US$0.00 (${subCent.replace(/\s+/g, " ")})`,
     );
     const foot = await table.locator("tfoot tr").innerText();
+    const allTokens = tokens.toLocaleString("en-NZ");
     ok(
       foot.includes("Month total") &&
         foot.split(/\s+/).includes("3") &&
+        foot.includes(allTokens) &&
         foot.includes(usdUp(spent)),
-      `the foot counts 3 runs once each and totals ${usdUp(spent)} (${foot.replace(/\s+/g, " ")})`,
+      `the foot counts 3 runs once each, ${allTokens} tokens (all four counts) and ${usdUp(spent)} (${foot.replace(/\s+/g, " ")})`,
+    );
+
+    // ── The note under the figures ──────────────────────────────────────────
+    const note = `In February 2001 the assistant answered 3 messages, about ${usd(spent / requests)} a request. When the month’s allowance is used up, the assistant stops until the next month; the site owner can raise it.`;
+    ok(
+      (await page.getByText(note, { exact: true }).count()) === 1,
+      `the note reads as the owner asked`,
     );
 
     // ── Keyboard: month picker → table, then choose a month ────────────────
@@ -169,8 +182,9 @@ export async function checkAiUsagePage(d: Deps) {
     ok(
       (await text("dl > div"))[0]?.includes(usd(0)) &&
         (await page.locator("table").count()) === 0 &&
-        (await page.getByText("wasn’t used in March 2001").count()) === 1,
-      "an empty month shows US$0.00 and says it wasn't used",
+        (await page.getByText("wasn’t used in March 2001").count()) === 1 &&
+        (await page.getByText("No days to show.").count()) === 1,
+      "an empty month shows US$0.00, says once it wasn't used, and has no days",
     );
 
     // A month before the ledger began reads as this one, keeping the picker
@@ -187,7 +201,21 @@ export async function checkAiUsagePage(d: Deps) {
       `?month=0026-09 reads as ${thisMonth}`,
     );
 
-    // ── Linked from Magazine details while the assistant is on ─────────────
+    // ── In the sidebar, and linked from Magazine details, while it is on ────
+    const navLink = page
+      .locator("aside nav")
+      .getByRole("link", { name: "Assistant", exact: true });
+    ok(
+      (await navLink.count()) === (enabled ? 1 : 0),
+      `the sidebar has an Assistant entry only while it is on`,
+    );
+    if (enabled) {
+      ok(
+        (await navLink.getAttribute("href")) === "/admin/ai" &&
+          (await navLink.getAttribute("aria-current")) === "page",
+        "the Assistant entry goes to /admin/ai and is current there",
+      );
+    }
     await page.goto(`${base}/admin/magazine`);
     await page.getByRole("heading", { name: "Magazine details" }).waitFor();
     const link = page.locator('main a[href="/admin/ai"]');

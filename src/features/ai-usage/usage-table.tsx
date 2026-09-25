@@ -5,9 +5,8 @@ export type UsageDayRow = {
   day: string;
   requests: number;
   runs: number;
-  /** Uncached input, cache writes and output together. */
+  /** All four counts: input, cache writes, cache reads and output. */
   tokens: number;
-  cacheReadTokens: number;
   cost: number;
 };
 
@@ -31,9 +30,7 @@ export function UsageTable({
   if (rows.length === 0) {
     return (
       <p className="text-faint border-dash rounded-[10px] border border-dashed py-10 text-center font-sans text-sm">
-        {current
-          ? "The assistant hasn’t been used yet this month."
-          : `The assistant wasn’t used in ${monthName}.`}
+        {current ? "No days to show yet this month." : "No days to show."}
       </p>
     );
   }
@@ -41,10 +38,9 @@ export function UsageTable({
     (sum, r) => ({
       requests: sum.requests + r.requests,
       tokens: sum.tokens + r.tokens,
-      cacheReadTokens: sum.cacheReadTokens + r.cacheReadTokens,
       cost: sum.cost + r.cost,
     }),
-    { requests: 0, tokens: 0, cacheReadTokens: 0, cost: 0 },
+    { requests: 0, tokens: 0, cost: 0 },
   );
   return (
     // Focusable so a keyboard can scroll it sideways on a narrow screen.
@@ -54,7 +50,7 @@ export function UsageTable({
       tabIndex={0}
       className="bg-card border-line overflow-x-auto rounded-[10px] border"
     >
-      <table className="text-body w-full min-w-[560px] font-sans text-[14px]">
+      <table className="text-body w-full min-w-[480px] font-sans text-[14px]">
         <caption className="sr-only">
           Assistant use by day in {monthName}, newest first, with the
           month&rsquo;s totals at the foot
@@ -74,9 +70,6 @@ export function UsageTable({
               Tokens
             </th>
             <th scope="col" className={NUM}>
-              Cached reads
-            </th>
-            <th scope="col" className={NUM}>
               Cost
             </th>
           </tr>
@@ -90,7 +83,6 @@ export function UsageTable({
               <td className={NUM}>{formatCount(r.runs)}</td>
               <td className={NUM}>{formatCount(r.requests)}</td>
               <td className={NUM}>{formatCount(r.tokens)}</td>
-              <td className={NUM}>{formatCount(r.cacheReadTokens)}</td>
               <td className={NUM}>{formatCost(r.cost)}</td>
             </tr>
           ))}
@@ -103,7 +95,6 @@ export function UsageTable({
             <td className={NUM}>{formatCount(runs)}</td>
             <td className={NUM}>{formatCount(total.requests)}</td>
             <td className={NUM}>{formatCount(total.tokens)}</td>
-            <td className={NUM}>{formatCount(total.cacheReadTokens)}</td>
             <td className={NUM}>{formatSpend(total.cost)}</td>
           </tr>
         </tfoot>

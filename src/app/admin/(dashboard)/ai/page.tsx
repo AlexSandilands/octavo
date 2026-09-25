@@ -54,9 +54,7 @@ export default async function AiUsagePage({
       day: d.day,
       requests: d.requests,
       runs: d.runs,
-      // Cached reads have their own column; they are most of the input.
-      tokens: d.tokens - d.cacheReadTokens,
-      cacheReadTokens: d.cacheReadTokens,
+      tokens: d.tokens,
       cost: d.cost,
     }))
     .sort((a, b) => (a.day < b.day ? 1 : -1));

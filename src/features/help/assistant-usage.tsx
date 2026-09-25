@@ -16,16 +16,15 @@ export function AssistantUsageHelp() {
         >
           Assistant usage
         </Link>{" "}
-        &mdash; linked from <strong>Magazine details</strong> and from the foot
-        of the assistant&rsquo;s panel &mdash; shows what this month has cost so
-        far, what&rsquo;s left of the month&rsquo;s allowance, and a day-by-day
-        table. Choose a month at the top of the page to look back.
+        &mdash; <strong>Assistant</strong> in the sidebar, also linked from{" "}
+        <strong>Magazine details</strong> and the foot of the assistant&rsquo;s
+        panel &mdash; shows what this month has cost so far, what&rsquo;s left
+        of the month&rsquo;s allowance, and a day-by-day table. Choose a month
+        at the top of the page to look back.
       </P>
       <P>
-        The allowance is set by whoever looks after the site for the club, who
-        pays the bill and passes it on at cost. Nothing on the page changes it.
-        If the allowance runs out, the assistant stops until the next month
-        begins; to raise it, or to top up a busy month, ask them.
+        Nothing on the page changes the allowance. If it runs out, the assistant
+        stops until the next month; the site owner can raise it.
       </P>
     </>
   );
