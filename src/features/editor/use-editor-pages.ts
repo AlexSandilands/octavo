@@ -373,6 +373,11 @@ export function useEditorPages(content: IssueContent) {
       restore(next);
       return true;
     },
+    /** An assistant edit (#310); `record` is its run's one step, before its first change. */
+    applyAssistant: (next: EditorSnapshot, record: EditorSnapshot | null) => {
+      if (record) history.record(record);
+      restore(next);
+    },
     curPage,
     setCurPage,
     sel,

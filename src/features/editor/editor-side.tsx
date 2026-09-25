@@ -8,6 +8,7 @@ import {
   useAssistantChat,
   type AssistantSnapshot,
 } from "./assistant/use-assistant-chat";
+import type { AssistantTools } from "./assistant/tools";
 import { useAssistantUsage } from "./assistant/use-assistant-usage";
 import { SidePanel } from "./side-panel/side-panel";
 import {
@@ -61,6 +62,7 @@ export function EditorSide({
     issueId: string;
     published: boolean;
     snapshot: AssistantSnapshot;
+    tools: AssistantTools;
   };
 }) {
   const [toolActions, setToolActions] = useState<RailAction[]>([]);
@@ -71,6 +73,7 @@ export function EditorSide({
   const chat = useAssistantChat({
     issueId: assistant.issueId,
     snapshot: assistant.snapshot,
+    tools: assistant.tools,
     onRunEnd: () => void usage.refresh(),
   });
   // Import PDF steps aside on a cover (#287); the assistant stays.
