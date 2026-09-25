@@ -16,6 +16,18 @@
     "preserve": "paste",
     "tools": ["add_page", "insert_blocks"],
     "maxCalls": 30,
-    "noOverflow": true
+    "noOverflow": true,
+    "done": [
+      {
+        "check": "pagesAdded",
+        "min": 3
+      },
+      {
+        "check": "headings",
+        "level": "main",
+        "min": 3,
+        "new": true
+      }
+    ]
   }
 }

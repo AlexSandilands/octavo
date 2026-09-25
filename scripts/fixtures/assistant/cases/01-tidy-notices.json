@@ -26,6 +26,18 @@
     "preserve": "page",
     "tools": ["set_text", "insert_blocks"],
     "maxCalls": 8,
-    "noOverflow": true
+    "noOverflow": true,
+    "done": [
+      {
+        "check": "headings",
+        "page": 7,
+        "min": 1
+      },
+      {
+        "check": "paragraphs",
+        "page": 7,
+        "min": 4
+      }
+    ]
   }
 }

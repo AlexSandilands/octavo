@@ -16,6 +16,11 @@
     "tools": [],
     "maxCalls": 6,
     "noOverflow": false,
-    "noEdits": true
+    "noEdits": true,
+    "done": [
+      {
+        "check": "answered"
+      }
+    ]
   }
 }

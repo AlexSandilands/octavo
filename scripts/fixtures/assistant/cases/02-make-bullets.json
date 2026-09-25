@@ -15,6 +15,17 @@
     "preserve": "page",
     "tools": ["set_text", "delete_block"],
     "maxCalls": 8,
-    "noOverflow": true
+    "noOverflow": true,
+    "done": [
+      {
+        "check": "list",
+        "page": 4
+      },
+      {
+        "check": "textBlocks",
+        "page": 4,
+        "max": 1
+      }
+    ]
   }
 }

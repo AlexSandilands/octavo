@@ -12,6 +12,7 @@ import { makeBlock, type Block, type Page } from "../../../src/lib/blocks.ts";
 import { createId } from "../../../src/lib/id.ts";
 import { collectImageIds } from "../../../src/lib/images.ts";
 import { markdownToDoc } from "../../../src/lib/markdown-doc.ts";
+import { checkSchema } from "../../assistant-models/checks.mts";
 import {
   clubMark,
   generatedArt,
@@ -103,6 +104,8 @@ export const caseSchema = z.object({
     noEdits: z.boolean().optional(),
     maxViews: z.number().int().optional(),
     maxChangedBlocks: z.number().int().optional(),
+    /** What "done" looks like, checked on the final pages (checks.mts). */
+    done: z.array(checkSchema).min(1),
   }),
 });
 export type Case = z.infer<typeof caseSchema>;

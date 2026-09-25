@@ -19,6 +19,11 @@
     "preserve": "page",
     "tools": ["set_cover_background", "set_masthead", "add_story", "add_logo"],
     "maxCalls": 20,
-    "noOverflow": false
+    "noOverflow": false,
+    "done": [
+      {
+        "check": "changed"
+      }
+    ]
   }
 }

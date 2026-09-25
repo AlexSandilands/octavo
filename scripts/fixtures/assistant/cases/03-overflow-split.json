@@ -38,6 +38,11 @@
     "preserve": "page",
     "tools": ["split_page"],
     "maxCalls": 6,
-    "noOverflow": true
+    "noOverflow": true,
+    "done": [
+      {
+        "check": "changed"
+      }
+    ]
   }
 }
