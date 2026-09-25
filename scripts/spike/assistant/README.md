@@ -293,3 +293,29 @@ indicative only.
 8. **Next step when there is an API key:** swap this harness's `claude -p` call for the AI SDK route logic in-process, and the
    same cases become #315's fixture. Before relying on the pass rates, run each case 3× per model to measure variance (04 swung
    from 4 to 14 calls).
+
+### Round 2 additions: vision and covers (octavo-2c)
+
+9. **Vision: offer it for photos and covers; don't expect the model to check its own pages.** Across 14 runs with `view_page`
+   offered, Sonnet **never looked at an interior page**. On plain edits (01/07/08) it took zero views, and results and cost were
+   unchanged. Where it did look, it was worth it:
+   - **Matching photos to stories (14, real photos, opaque ids):** with `view_photo` every photo went to its story. Without it only
+     the two portraits did, from shape alone; the festoon-lights evening landed on "New players' mornings" and a gravel close-up
+     became the cover.
+   - **Covers:** it looked at the cover 2–3 times per run and moved items off the subject.
+   - If page review matters, make it a step in the run (the executor renders the touched pages once at the end and sends them
+     back), not an option the prompt suggests. Production needs a draft-capable single-page render either way. The print route is
+     published-only, so this is a #309/#310 item.
+10. **Vision didn't make the interior pages nicer.** Side by side, 14 · no-vision's interiors read better: real headlines with
+    italic standfirsts, and photos wrapped beside their text. 14 · vision swapped standfirst and headline on every article (the
+    all-caps line became the kicker and the standfirst the title) and dropped a photo mid-text. Add to the prompt: "the
+    editor's headline stays the title; a line in capitals above it is a headline, not a kicker". Layout quality comes from the
+    prompt's rules and from the pages the model actually looks at.
+11. **#313: give covers placement and basic styling.** Compose-only let the model see a collision (stories over the Regatta
+    sail) and not fix it. With `place_cover_item` / `style_cover_item` every cover was clean and readable, though plainer than the
+    seeded designer covers: no display lead, default lettering. A script can rebuild the designer cover with the same tools, so
+    the ceiling is taste, not tooling. Recommend #313 include placement, text colour, shadow and panel, and leave fonts and weights
+    to the inspector unless a later run shows the model uses them well.
+12. **Cost with vision stays small.** The whole-issue build (6 photos viewed, 5 pages laid out, cover composed and checked) cost
+    $0.23 list price in 32 calls. A single-page edit is unchanged at ~$0.02–0.05. The ~$20/month budget still covers hundreds of
+    requests.
