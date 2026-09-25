@@ -1,28 +1,58 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import type { AiError } from "@/lib/ai-chat-contract";
+import { withoutBlockIds } from "./presets";
 import { ReplyText } from "./reply-text";
 import type { AssistantMessage } from "./use-assistant-chat";
 
 type Part = AssistantMessage["parts"][number];
 
-/** A tool call as one quiet line in the thread: what the assistant looked at. */
+// Each tool as the author reads it: while it runs, and once it has.
+const TOOL_WORDS: Record<string, [doing: string, done: string]> = {
+  set_text: ["Rewriting a text block", "Rewrote a text block"],
+  set_heading: ["Changing a heading", "Changed a heading"],
+  insert_blocks: ["Adding to the page", "Added to the page"],
+  delete_block: ["Removing a block", "Removed a block"],
+  move_block: ["Moving a block", "Moved a block"],
+  add_page: ["Adding a page", "Added a page"],
+  split_page: ["Carrying text onto a new page", "Carried text onto a new page"],
+  set_image_text: ["Changing a photo's words", "Changed a photo's words"],
+  set_image_layout: ["Placing a photo", "Placed a photo"],
+};
+
+/** A tool call as one quiet line in the thread: what the assistant did. */
 function toolLine(part: Part): string | null {
-  if (part.type !== "tool-read_page") return null;
-  const page = part.input?.page;
-  if (part.state === "output-error") return `Couldn’t read page ${page}`;
-  return part.state === "output-available"
-    ? `Read page ${page}`
-    : `Reading page ${page ?? ""}…`;
+  if (!part.type.startsWith("tool-") || !("state" in part)) return null;
+  const name = part.type.slice(5);
+  const failed =
+    part.state === "output-error" ||
+    (part.state === "output-available" &&
+      (part.output as { text?: string } | undefined)?.text?.startsWith(
+        "Error:",
+      ));
+  if (name === "read_page") {
+    const page = ("input" in part ? part.input : undefined) as
+      | { page?: number }
+      | undefined;
+    const n = page?.page;
+    if (failed) return `Couldn’t read page ${n}`;
+    return part.state === "output-available"
+      ? `Read page ${n}`
+      : `Reading page ${n ?? ""}…`;
+  }
+  const words = TOOL_WORDS[name];
+  if (!words) return null;
+  if (failed) return `${words[0]} didn’t work; nothing changed`;
+  return part.state === "output-available" ? words[1] : `${words[0]}…`;
 }
 
 function Message({ message }: { message: AssistantMessage }) {
   if (message.role === "user") {
     // The projection rides in a data part the author never sees.
-    const text = message.parts
-      .map((p) => (p.type === "text" ? p.text : ""))
-      .join("");
+    const text = withoutBlockIds(
+      message.parts.map((p) => (p.type === "text" ? p.text : "")).join(""),
+    );
     return (
       <div className="bg-accent-wash text-ink self-end rounded-xl rounded-br-sm px-3.5 py-2.5 font-sans text-[15px] leading-snug whitespace-pre-wrap">
         <span className="sr-only">You: </span>
@@ -57,11 +87,14 @@ export function AssistantThread({
   busy,
   error,
   intro,
+  after,
 }: {
   messages: AssistantMessage[];
   busy: boolean;
   error: AiError | null;
   intro: string;
+  /** What the last run left: its change and Undo, or why it stopped. */
+  after?: ReactNode;
 }) {
   const log = useRef<HTMLDivElement>(null);
   const last = messages[messages.length - 1];
@@ -71,7 +104,7 @@ export function AssistantThread({
   useEffect(() => {
     const el = log.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [messages.length, tail, error]);
+  }, [messages.length, tail, error, after]);
 
   return (
     <div
@@ -92,6 +125,7 @@ export function AssistantThread({
       {busy && last?.role !== "assistant" && (
         <p className="text-faint font-sans text-[13px]">Thinking…</p>
       )}
+      {!busy && after}
       {error && (
         <p className="border-warn text-warn rounded-lg border-l-4 bg-white px-3.5 py-2.5 font-sans text-[15px] leading-snug">
           {error.error}

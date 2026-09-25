@@ -35,6 +35,8 @@ const RAIL = 'nav[aria-label="Editor panels"]';
 const BUTTON = `${RAIL} button[aria-label="Assistant"]`;
 const INPUT = "#assistant-input";
 const LOG = '[role="log"]';
+const RUN = "[data-assistant-run]";
+const PRESET = (label: string) => `button:text-is("${label}")`;
 
 type Block = { id: string; type: string; [k: string]: unknown };
 type Doc = { pages: { id: string; cover?: boolean; blocks: Block[] }[] };
@@ -128,6 +130,8 @@ async function until(what: string, test: () => Promise<boolean>, ms = 15_000) {
 
 /** Every tool output the panel sent back, in order, read off the requests. */
 const outputs: string[] = [];
+/** The author's words in each request that opened a run. */
+const asked: string[] = [];
 const seen = new Set<string>();
 let requests = 0;
 
@@ -162,11 +166,18 @@ async function checks(page: Page) {
         parts: {
           type: string;
           toolCallId?: string;
+          text?: string;
           output?: { text: string };
         }[];
       }[];
     };
     const last = body.messages.at(-1);
+    if (last?.role === "user")
+      asked.push(
+        last.parts
+          .map((p) => (p.type === "text" ? (p.text ?? "") : ""))
+          .join(""),
+      );
     if (last?.role !== "assistant") return;
     for (const part of last.parts)
       if (
@@ -182,6 +193,46 @@ async function checks(page: Page) {
   await page.waitForSelector(RAIL);
   await page.click(BUTTON);
   await page.waitForSelector(INPUT);
+
+  heading("presets");
+  const tidy = page.locator(PRESET("Tidy this page"));
+  ok(
+    (await tidy.getAttribute("aria-disabled")) === "true",
+    "on the cover the presets are off",
+  );
+  await page.click('button[aria-label="Page 2"]');
+  await page.waitForFunction(
+    () =>
+      ![...document.querySelectorAll("button")]
+        .find((b) => b.textContent === "Tidy this page")
+        ?.hasAttribute("aria-disabled"),
+  );
+  ok(
+    (await tidy.getAttribute("aria-disabled")) === null,
+    "on an inside page they're on",
+  );
+  await page.click(`[data-block-id="${ids.head}"]`);
+  await tidy.click();
+  await page.waitForFunction(
+    (sel) => document.querySelector(sel)?.getAttribute("aria-busy") === "true",
+    LOG,
+  );
+  await page.waitForFunction(
+    (sel) => document.querySelector(sel)?.getAttribute("aria-busy") === "false",
+    LOG,
+    { timeout: 60_000 },
+  );
+  ok(
+    asked.at(-1) ===
+      `Tidy the selected block [${ids.head}] on page 2: stray spaces and line breaks, punctuation, heading levels and how the blocks sit. Keep every word as it is.`,
+    "Tidy sends its fixed message for the page and the selected block",
+  );
+  const bubble = await page.textContent(`${LOG} .self-end`);
+  ok(
+    bubble?.includes("Tidy the selected block on page 2") &&
+      !bubble.includes(ids.head),
+    `the author reads it without the block id (${bubble?.replace("You: ", "")})`,
+  );
 
   heading("set_text → overflow per block → split_page → fits");
   const long = Array.from(
@@ -230,6 +281,20 @@ async function checks(page: Page) {
     where(afterSplit, ids.head) === 2 &&
       where(afterSplit, ids.next) === afterSplit.pages.length,
     "autosave kept the result, later pages renumbered",
+  );
+
+  const line = await page.textContent(RUN);
+  ok(
+    /^Changed \d+ blocks on pages 2–\d+ and added \d+ pages\s*·\s*Undo$/.test(
+      line?.trim() ?? "",
+    ),
+    `the panel says what the run changed (${line?.trim()})`,
+  );
+  const log = await page.textContent(LOG);
+  ok(
+    log?.includes("Rewrote a text block") &&
+      log.includes("Carried text onto a new page"),
+    "each edit shows as one quiet line in the thread",
   );
 
   heading("Ctrl+Z takes the whole run back");
@@ -313,6 +378,22 @@ async function checks(page: Page) {
     photo?.align === "left" && photo.width === 40,
     "the photo moved to page 3, floated left at 40%",
   );
+  ok(
+    (await page.textContent(RUN))?.includes("Changed 2 blocks on pages 2–3"),
+    "the run line counts the note and the photo",
+  );
+  await page.click(`${RUN} button:text-is("Undo")`);
+  await until(
+    "autosave of the panel's Undo",
+    async () => where(await saved(), ids.photo) === 2,
+  );
+  const back = await saved();
+  ok(
+    block(back, ids.photo)?.width === 100 &&
+      back.pages[1]!.blocks.length === content.pages[1]!.blocks.length,
+    "the panel's Undo takes the whole run back",
+  );
+  ok((await page.$(RUN)) === null, "and the run line goes");
 
   heading("the circuit-breaker");
   const run4 = await runScript(page, [
@@ -345,6 +426,13 @@ async function checks(page: Page) {
   ok(
     !JSON.stringify(block(await saved(), ids.intro)).includes("SHOULD NOT"),
     "the call after the trip never ran; the moves are kept",
+  );
+  const stopped = await page.textContent(RUN);
+  ok(
+    stopped?.includes(
+      "I got stuck, so I stopped. Everything I did is in place and can be undone in one step.",
+    ) && stopped.includes("Undo"),
+    "the panel says it got stuck, with Undo",
   );
   const reads = Array.from({ length: 42 }, () => ({
     toolName: "read_page",
