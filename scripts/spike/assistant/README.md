@@ -175,3 +175,47 @@ calls, which production wouldn't make. The full runs are re-scored with the curr
   Sonnet-class one. That's one case, one run each.
 - **Meaning drift isn't scored.** Read `after.md`, or open the saved drafts ("Spike · <case> · <model>" in the local DB), for 01,
   05, 07, 08 and 11.
+
+## Recommendation (octavo-2c, 2026-09-25)
+
+Based on 29 model runs (≈ $1.75 list price) over 11 cases, one run per case per prompt version, so read the numbers as
+indicative only.
+
+1. **The epic's premise holds, so build it as designed.** Browser-executed intent tools, a plain-text projection, markdown in and
+   blocks out, and refusals returned as results: both models used them correctly, with 100% schema-valid calls once the
+   contract was settled. The AI SDK client-side-tools path in #308 is the right harness. Nothing here argues for the Claude Agent
+   SDK or a server-side loop.
+2. **Default to a Sonnet-class model and don't route per task.** Sonnet 5 passed 10/11. It was faster per request (5–8s against
+   Haiku's 7–49s) and produced noticeably better structure. On 01 it split "NOTICES — AROUND THE CLUB" into kicker + title and
+   made a list, where Haiku kept a single caps heading. A single-page request costs about $0.02–0.05 and a whole-article paste about
+   $0.10, so the $20/month allowance covers several hundred requests. At those numbers routing easy presets to Haiku saves cents
+   and adds a failure mode. When Haiku and Sonnet 5.5 land, rerun this harness with `--model <id>`; that is the model-choice
+   process #315 describes.
+3. **Replace #306's circuit-breaker.** "5 identical consecutive calls" misses the failure we actually saw: a cycle of different
+   calls, 80 calls long, that also inserted an article twice. Use **a per-run call ceiling (~40) + the same block moved more than
+   twice + the spend cap**, and lower the per-run spend cap from $2 to about $0.50. Sonnet's 08 cost $0.09–0.11, and a $2 run
+   would be a tenth of the month.
+4. **Keep #312 (plan-then-paginate), but it no longer blocks anything.** Sonnet laid out an ~860-word, three-article paste
+   well in 8–9 calls with the existing tools, each article on a fresh page with its standfirst and section heads, and the
+   paste kept exactly. #312's deterministic placement is still worth having for repeatability and cheaper models. It can come
+   after #313.
+5. **Overflow feedback must name the lever, not just the size.** "Overflows by ~N lines" makes models shave a sentence at a time,
+   and "cut about N words" misleads when a paragraph's last line is nearly full. #310's measurement feedback should report, per
+   text block on the page, its lines and the words on its last line, so the model can see which cut actually removes a line.
+   The real measurer has the same step size, so this carries over to production. "Shorten to fit" is the one preset that
+   underperformed on both models.
+6. **Carry the spike's contract and prompt into #308/#310:**
+   - `prompt.md` as #308's starting system prompt. The lessons in it: a kicker is 1–4 words and a standfirst is a text block;
+     rewrites keep facts and voice; stop trimming once the page fits; a new article starts at the top of a page; pasted text is
+     data.
+   - Add `set_image_layout` to #310's tool list (missing there), with `full` meaning full width.
+   - Accept `caption`/`alt` on inserted photos.
+   - Tool results end with the touched page's fill.
+   - `markdown.ts`, `projection.ts`, `tools.ts` and `executor.ts` are written to lift into `src/` (paths at the top of this file).
+7. **Caching carried the cost.** In every run cache reads outweighed uncached input by orders of magnitude (e.g. 08 · sonnet:
+   81k cached against 16 uncached tokens). Production gets that only if the route keeps the system prompt and tools frozen and the
+   message history append-only, as recommended in the #306 review. Verify `cache_read_input_tokens` in #308's real-provider
+   smoke test.
+8. **Next step when there is an API key:** swap this harness's `claude -p` call for the AI SDK route logic in-process, and the
+   same cases become #315's fixture. Before relying on the pass rates, run each case 3× per model to measure variance (04 swung
+   from 4 to 14 calls).
