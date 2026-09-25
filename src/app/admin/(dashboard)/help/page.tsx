@@ -8,6 +8,8 @@ import { SectionMagazine } from "@/features/help/section-magazine";
 import { SectionPdf } from "@/features/help/section-pdf";
 import { SectionDiscussion } from "@/features/help/section-discussion";
 import { SectionTransfer } from "@/features/help/section-transfer";
+import { SectionAssistant } from "@/features/help/section-assistant";
+import { assistantEnabled } from "@/features/editor/assistant/enabled";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +27,8 @@ const CONTENTS = [
   { id: "pdf", label: "PDF downloads" },
   { id: "discussion", label: "Discussion and reports" },
   { id: "transfer", label: "Export and import issues" },
+  // Only where the deployment offers the assistant (#306).
+  ...(assistantEnabled ? [{ id: "assistant", label: "The assistant" }] : []),
 ];
 
 export default async function HelpPage() {
@@ -74,6 +78,7 @@ export default async function HelpPage() {
       <SectionPdf />
       <SectionDiscussion />
       <SectionTransfer />
+      {assistantEnabled && <SectionAssistant />}
     </div>
   );
 }

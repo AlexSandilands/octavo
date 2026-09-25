@@ -248,6 +248,10 @@ don't redesign it.
     arithmetic is in `docs/database.md` → AI assistant spend.
   - **When it runs out:** once the month's spend reaches allowance plus grants, the panel says so and the route refuses.
   - **Backstop:** the provider-side spend limit.
+  - **Where admins see it (#314):** `/admin/ai`, read-only. The month's spend, what's left and the allowance (with the
+    month's top-ups), a day-by-day table with cached reads in their own column, and `?month=YYYY-MM` for earlier months.
+    Spend rounds up to the cent and what's left rounds down, so the figures never understate spend and still add up. A
+    past month is measured against today's `AI_MONTHLY_BUDGET_USD`, since the allowance isn't recorded per month.
 - No bought credits, and no bring-your-own-key.
 - **Drafts only.** Admins only. The same 768px editor gate applies. The demo site has its own small budget.
 - **Privacy:** issue text **and photos** go to the configured provider. The club is told which provider, and can have the
