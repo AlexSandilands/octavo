@@ -53,14 +53,23 @@ export type TokenCounts = {
 // tokens the proxy estimated, priced as the model itself.
 export function priceFor(reported: string): ModelPrice | undefined {
   const model = reported.endsWith("~") ? reported.slice(0, -1) : reported;
-  if (Object.hasOwn(AI_PRICES, model)) return AI_PRICES[model];
-  const key = Object.keys(AI_PRICES)
+  return modelEntry(AI_PRICES, model);
+}
+
+/** A per-model table's entry: the exact key, else the longest key the id
+ *  extends by a date snapshot. */
+export function modelEntry<T>(
+  table: Readonly<Record<string, T>>,
+  model: string,
+): T | undefined {
+  if (Object.hasOwn(table, model)) return table[model];
+  const key = Object.keys(table)
     .filter(
       (k) =>
         model.startsWith(`${k}-`) && /^\d{8}$/.test(model.slice(k.length + 1)),
     )
     .sort((a, b) => b.length - a.length)[0];
-  return key ? AI_PRICES[key] : undefined;
+  return key ? table[key] : undefined;
 }
 
 // The request's cost in USD, rounded to the ledger's six places. Price per
