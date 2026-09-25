@@ -1,6 +1,7 @@
 {
   "id": "01-tidy-notices",
   "description": "A notices page pasted as one lump with bold run-in labels: restructure without rewording.",
+  "expectation": "The one-lump notices page becomes a heading plus separate items (paragraphs or a list), every word kept, the page still fitting.",
   "issue": 0,
   "page": 7,
   "setup": {
@@ -13,6 +14,12 @@
         }
       ]
     }
+  },
+  "estimate": {
+    "input": 4,
+    "cacheRead": 6600,
+    "cacheWrite": 7400,
+    "output": 740
   },
   "instruction": "Tidy this page up please, it got pasted in as one lump.",
   "expect": {

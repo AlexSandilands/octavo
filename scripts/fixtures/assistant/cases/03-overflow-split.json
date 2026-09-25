@@ -1,6 +1,7 @@
 {
   "id": "03-overflow-split",
   "description": "An essay page that runs off the bottom; fix without changing words.",
+  "expectation": "The page fits again with no word changed, by split_page or moving the tail onto a new page.",
   "issue": 4,
   "page": 3,
   "setup": {
@@ -25,6 +26,12 @@
         }
       ]
     }
+  },
+  "estimate": {
+    "input": 4,
+    "cacheRead": 12000,
+    "cacheWrite": 3200,
+    "output": 263
   },
   "instruction": "This page runs off the bottom. Sort it out without changing any of the words.",
   "expect": {

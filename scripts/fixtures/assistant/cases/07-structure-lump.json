@@ -1,6 +1,7 @@
 {
   "id": "07-structure-lump",
   "description": "An article pasted as one text block with its headings as plain lines: give it structure.",
+  "expectation": "The pasted article is split into headings and paragraphs from its own lines, every word kept, the page fitting.",
   "issue": 3,
   "page": 5,
   "setup": {
@@ -13,6 +14,12 @@
         }
       ]
     }
+  },
+  "estimate": {
+    "input": 4,
+    "cacheRead": 10900,
+    "cacheWrite": 2800,
+    "output": 686
   },
   "instruction": "This article was pasted in as one block. Give it proper headings and paragraphs.",
   "expect": {
