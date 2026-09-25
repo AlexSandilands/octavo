@@ -256,8 +256,21 @@ EMAIL_FROM=              # "Club Magazine <hello@clubmag.org>"
 SENTRY_DSN=              # Sentry project DSN (server-side). Optional — app runs fine unset.
 NEXT_PUBLIC_SENTRY_DSN=  # SAME DSN, browser copy (public ingest key; build-time inlined).
 
+AI_PROVIDER=             # the AI assistant: anthropic | openai | openrouter | fake. UNSET = OFF.
+AI_MODEL=                # optional on anthropic (claude-sonnet-5); required on openai/openrouter
+ANTHROPIC_API_KEY=       # the key AI_PROVIDER needs (or OPENAI_API_KEY / OPENROUTER_API_KEY). Secret.
 AI_MONTHLY_BUDGET_USD=   # the AI assistant's monthly allowance in USD (e.g. 20 or 12.50, ≤ 10000); unset = 0 (top up with ai:grant)
+NEXT_PUBLIC_AI_ASSISTANT=  # "1" shows the editor's assistant button (build-time; set with AI_PROVIDER)
 ```
+
+**The AI assistant** (epic #306, [`docs/ai-assistant.md`](ai-assistant.md)) is off unless
+`AI_PROVIDER` is set, and **unsetting `AI_PROVIDER` is the kill switch**: the chat route
+404s at once, with no redeploy (set `NEXT_PUBLIC_AI_ASSISTANT` back to unset on the next
+build to hide the button too). With a provider set, the boot refuses to start without its
+key, and refuses a model with no price in `src/lib/ai-pricing.ts` (its spend couldn't be
+metered). The key is a server secret; never give it a `NEXT_PUBLIC_` name. `fake` streams
+canned replies at no cost and is for gates and the demo. Set a spend limit at the provider
+too; it's the backstop behind the monthly budget.
 
 Both Sentry vars are optional everywhere: with them unset, `Sentry.init` is
 skipped and every capture call is a no-op, so the app boots and behaves

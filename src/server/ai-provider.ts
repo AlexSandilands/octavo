@@ -5,13 +5,11 @@ import { createOpenAI } from "@ai-sdk/openai";
 import type { SharedV4ProviderOptions } from "@ai-sdk/provider";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import type { LanguageModel } from "ai";
-import { env } from "@/lib/env";
+import { DEFAULT_ANTHROPIC_MODEL, env } from "@/lib/env";
 import { createFakeModel } from "@/server/ai-fake-model";
 
 // The model the assistant runs on, from env (#308). Thinking and effort are
 // set explicitly for every provider rather than left to their defaults.
-
-export const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-5";
 
 // Adaptive thinking at a moderate effort: the spike's runs were tuned on it.
 const REASONING = "medium";

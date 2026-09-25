@@ -1,9 +1,10 @@
 # AI editing assistant (design note, epic #306)
 
 An assistant in the editor that edits the issue on the author's behalf. It can tidy a page, lay out pasted articles and
-photos, compose a cover, and rewrite when asked. **Only the spend ledger and budget (#307) are built so far.** This note holds the decisions every child
-issue assumes. Read it with the epic before working any child. Each child's PR updates it to match what shipped, and the
-epic's closing issue (#344) turns it into the feature doc (the `docs/pdf-import.md` shape).
+photos, compose a cover, and rewrite when asked. **Built so far, dormant until a provider is set:** the spend ledger
+(#307) and the chat route (#308). This note holds the decisions every child issue assumes. Read it with the epic before
+working any child. Each child's PR updates it to match what shipped, and the epic's closing issue (#344) turns it into
+the feature doc (the `docs/pdf-import.md` shape).
 
 The decisions below were settled in conversation on 2026-09-22 and revised by a feasibility spike on 2026-09-25: 43
 runs on Claude Haiku 4.5 and Sonnet 5, about $3.60 list price in total. The spike's harness, cases, results tables and
@@ -89,7 +90,8 @@ client-safe.
   The route's `toModelOutput` does this, and `@ai-sdk/anthropic` sends them as `image` content in the tool result. That
   suits `view_photo` / `view_page` (#342). The end-of-run review, which has no tool call to answer, sends its page images as
   `file` parts (`data:` URLs, the same three types) in a user message. The route accepts no other file parts and no
-  remote URLs. At most 8 images per message and 80 per request.
+  remote URLs. At most 8 file parts per message. Checked in `@ai-sdk/anthropic` 4.0.63, whose converter turns a
+  tool result's `file` parts into `image` blocks; OpenAI and Gemini accept images in tool results too, per the AI SDK.
 - **Errors** are always `{ error, code }` JSON, where `error` is a sentence to show verbatim. Before the stream it is the
   response body, with a 4xx/5xx status. During the stream it is the stream's error text. Either way `useChat` puts it in
   `error.message`, and `readAiError(error.message)` returns `{ error, code }`. The codes: `unauthorised` 403,
@@ -102,6 +104,37 @@ client-safe.
 
   The `runId` comes from the client, so a new id per request would dodge the per-run cap. The runs limiter is keyed on the
   distinct ids it has seen, which bounds that, and the monthly budget is the real ceiling.
+
+- **A conversation is full** (`too_long`) at 200 messages, 330,000 characters or 24 images. Every author message carries
+  its projection and history is append-only, so the character cap is what keeps a long conversation inside a
+  200k-token context: 330,000 characters at a cautious ~3 per token is ~110k tokens, 24 images at ~1.6k tokens is ~38k,
+  and with the prompt and tools (~5k) and the reply's allowance (32k output tokens, thinking included) that leaves
+  ~15k spare. The count covers text, reasoning, projections, tool inputs and tool outputs.
+
+**How the route is built.**
+
+- **Packages, pinned exactly:** `ai` 7.0.114, `@ai-sdk/react` 4.0.117 (#309's hook), `@ai-sdk/anthropic` 4.0.63,
+  `@ai-sdk/openai` 4.0.75, `@openrouter/ai-sdk-provider` 3.1.0 and `@ai-sdk/provider` 4.0.18 (the fake model's types).
+  AI SDK 7 renamed `system` to `instructions` and `onFinish` to `onEnd`, and moved cache token counts to
+  `usage.inputTokenDetails`; read the installed `node_modules/ai/docs` before changing anything, not memory.
+- **Provider** (`src/server/ai-provider.ts`) from `AI_PROVIDER` / `AI_MODEL` / the key. `isAssistantEnabled()`
+  (`src/lib/ai.ts`) is the on/off answer, and `NEXT_PUBLIC_AI_ASSISTANT=1` mirrors it for the button. Thinking and
+  effort are explicit: Anthropic runs adaptive thinking at `effort: "medium"` with `sendReasoning`, the others take
+  `reasoning: "medium"`. The boot refuses a provider with no key, and a model with no price in `src/lib/ai-pricing.ts`.
+- **Caching:** the system prompt (`src/server/ai-prompt/`, `base.md` then `vision.md` and `cover.md` when those tools
+  exist) and the tool list are byte-stable, with a `cache_control` breakpoint on the system message (which covers the
+  tools before it) and one on the newest message, so each request reads the conversation so far from cache. The TTL is
+  the default five minutes, which is what the ledger prices cache writes at.
+- **Metering** (`src/server/ai-metering.ts`): one `ai_usage` row per request, however it ends. When the provider
+  reports usage, the row gets its uncached, cache-read, cache-write and output tokens and the model id it reported (or
+  the configured one, when the reported id has no price). With no usage (the author stopped the reply, or the stream
+  failed partway), the tokens are estimated at 3 characters each and the model is marked `~`. A request that failed
+  before anything streamed gets a zero-token `~` row.
+- **`AI_PROVIDER=fake`** (`src/server/ai-fake-model.ts`) is deterministic and costs $0. An author message gets
+  `Looking at "<the projection's first line>".` and then a `read_page({ page: 1 })` call; a tool result gets
+  `Read read_page (<n> characters back). Nothing needed changing.` Triggers in the author's text reach the failure
+  paths: `[fake:fail]`, `[fake:drop]`, `[fake:slow]` and `[fake:odd-model]`. `scripts/dev-ai-proxy-gate.mts` runs
+  against it.
 
 ### What the model reads
 

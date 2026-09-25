@@ -1,6 +1,7 @@
 import "server-only";
 import * as Sentry from "@sentry/nextjs";
 import type { LanguageModelUsage } from "ai";
+import { priceFor } from "@/lib/ai-pricing";
 import { recordUsage } from "@/server/ai-budget";
 
 // One ai_usage row per chat request (#308), whatever happens to the stream:
@@ -62,6 +63,17 @@ export function createMeter(input: MeterInput) {
       completionTokens: estimate(outputChars),
     });
 
+  // The id the provider reports, when it prices; else the configured one
+  // (booting checked that it prices), so the row is never refused.
+  function pricedModel(reported: string | undefined): string {
+    if (reported && priceFor(reported)) return reported;
+    if (reported)
+      console.warn(
+        `AI usage: "${reported}" has no price; recorded as "${input.modelId}".`,
+      );
+    return input.modelId;
+  }
+
   return {
     /** Counts streamed output, for the estimate. */
     onChunk(chunk: { type: string; text?: string; delta?: string }) {
@@ -72,7 +84,7 @@ export function createMeter(input: MeterInput) {
       const details = usage.inputTokenDetails;
       const cacheRead = details.cacheReadTokens ?? 0;
       const cacheWrite = details.cacheWriteTokens ?? 0;
-      await write(reportedModel || input.modelId, {
+      await write(pricedModel(reportedModel), {
         promptTokens:
           details.noCacheTokens ??
           Math.max(0, usage.inputTokens - cacheRead - cacheWrite),

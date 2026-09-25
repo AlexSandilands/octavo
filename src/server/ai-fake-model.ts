@@ -13,10 +13,12 @@ import type {
 // tool result gets a closing sentence naming what came back. "[fake:fail]" in
 // the author's message fails the request before it streams, "[fake:drop]"
 // fails it midway, so gates can reach the failure copy; "[fake:slow]" takes
-// its time.
+// its time; "[fake:odd-model]" reports a model id with no price.
 
 export const FAKE_TRIGGER_FAIL = "[fake:fail]";
 export const FAKE_TRIGGER_DROP = "[fake:drop]";
+// Reports a model id with no price, as a provider's dated or routed id might.
+export const FAKE_TRIGGER_ODD_MODEL = "[fake:odd-model]";
 // Spaces the stream out (a second a part), so a gate can hang up mid-reply.
 export const FAKE_TRIGGER_SLOW = "[fake:slow]";
 
@@ -97,7 +99,13 @@ export function createFakeModel(): LanguageModelV4 {
       const slow = said.includes(FAKE_TRIGGER_SLOW);
       const parts: LanguageModelV4StreamPart[] = [
         { type: "stream-start", warnings: [] },
-        { type: "response-metadata", id: "fake-response", modelId: "fake" },
+        {
+          type: "response-metadata",
+          id: "fake-response",
+          modelId: said.includes(FAKE_TRIGGER_ODD_MODEL)
+            ? "fake/unpriced-2026"
+            : "fake",
+        },
         { type: "text-start", id: "t1" },
         // Two deltas, so the panel sees text arrive in pieces.
         ...reply.text

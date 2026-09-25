@@ -324,6 +324,24 @@ try {
     );
   }
 
+  heading("a reported model with no price");
+  const odd = newRun();
+  await (
+    await post(
+      {
+        runId: odd,
+        issueId: draftId,
+        messages: [userMessage("[fake:odd-model] hello", "projection")],
+      },
+      { token: tokens.a },
+    )
+  ).text();
+  const oddRows = await usageRows(odd);
+  ok(
+    oddRows.length === 1 && oddRows[0]!.model === "fake",
+    `recorded against the configured model (${oddRows[0]?.model})`,
+  );
+
   heading("the author hangs up");
   const hangUp = newRun();
   const controller = new AbortController();

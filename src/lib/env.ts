@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import { priceFor } from "./ai-pricing";
 import { BRAND_IDS, DEFAULT_BRAND, type BrandId } from "./brands";
 import { THEME_IDS } from "@/features/blocks/themes/registry";
 
@@ -53,6 +54,7 @@ export const AI_PROVIDERS = [
 // A blank line in .env (`AI_PROVIDER=`) means unset, not an invalid value.
 const unsetIfBlank = <T extends z.ZodTypeAny>(schema: T) =>
   z.preprocess((value) => (value === "" ? undefined : value), schema);
+export const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-5";
 const AI_KEYS = {
   anthropic: "ANTHROPIC_API_KEY",
   openai: "OPENAI_API_KEY",
@@ -135,7 +137,7 @@ const runtimeBaseSchema = z.object({
     .transform((value) => (value ? Number(value) : 0))
     .pipe(z.number().max(10_000, "at most 10000")),
   // The assistant's provider and model (issue #308); keys are secrets and
-  // never NEXT_PUBLIC_. AI_MODEL defaults per provider in src/server/ai-provider.ts.
+  // never NEXT_PUBLIC_. AI_MODEL defaults to DEFAULT_ANTHROPIC_MODEL on anthropic.
   AI_PROVIDER: unsetIfBlank(z.enum(AI_PROVIDERS).optional()),
   AI_MODEL: unsetIfBlank(z.string().max(100).optional()),
   ANTHROPIC_API_KEY: z.string().optional(),
@@ -159,6 +161,19 @@ const runtimeSchema = runtimeBaseSchema.superRefine((vars, ctx) => {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: `AI_PROVIDER is "${provider}", which needs AI_MODEL set.`,
+    });
+  }
+  // An unpriced model would be billed by the provider and then refused by the
+  // ledger, so it never starts.
+  const model =
+    provider === "fake"
+      ? "fake"
+      : (vars.AI_MODEL ??
+        (provider === "anthropic" ? DEFAULT_ANTHROPIC_MODEL : undefined));
+  if (model && !priceFor(model)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `AI_MODEL "${model}" has no price in src/lib/ai-pricing.ts, so its spend couldn't be metered.`,
     });
   }
   if (process.env.NODE_ENV !== "production") return;
