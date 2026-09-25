@@ -1,5 +1,5 @@
 import "server-only";
-import { validateUIMessages, type UIMessage } from "ai";
+import { TypeValidationError, validateUIMessages, type UIMessage } from "ai";
 import { z } from "zod";
 import {
   AI_MAX_CONVERSATION_CHARS,
@@ -13,10 +13,17 @@ import {
 import {
   AI_IMAGE_TYPES,
   AI_MAX_IMAGE_BASE64,
+  AI_MAX_TOOL_TEXT,
   AI_TOOL_NAMES,
   type AiToolOutput,
 } from "@/lib/ai-tools";
 import type { AssistantToolSet } from "@/server/ai-chat-tools";
+
+// The model's own text and thinking may run longer than an author's message
+// (its output allows 32k tokens). Past AI_MAX_TOOL_TEXT the conversation is
+// full; the schema's hard bound only stops absurd bodies.
+const MAX_REPLY_CHARS = AI_MAX_TOOL_TEXT;
+const HARD_TEXT_BOUND = 4 * AI_MAX_TOOL_TEXT;
 
 // The chat route's body (#308): shape and size, checked before anything is
 // sent to the provider. Tool inputs and outputs are then checked against the
@@ -70,7 +77,7 @@ const partSchema = z.union([
       type: z.literal("text"),
       // Not in TextUIPart today; accepted in case the stream starts adding it.
       id: z.string().max(200).optional(),
-      text: z.string().max(AI_MAX_TEXT_CHARS),
+      text: z.string().max(HARD_TEXT_BOUND),
       state: z.enum(["streaming", "done"]).optional(),
       providerMetadata: meta,
     })
@@ -81,7 +88,7 @@ const partSchema = z.union([
     .object({
       type: z.literal("reasoning"),
       id: z.string().max(200).optional(),
-      text: z.string().max(AI_MAX_PROJECTION_CHARS),
+      text: z.string().max(HARD_TEXT_BOUND),
       state: z.enum(["streaming", "done"]).optional(),
       providerMetadata: meta,
     })
@@ -179,6 +186,30 @@ function describeIssues(issues: z.ZodIssue[]): string[] {
   });
 }
 
+// The SDK's error message embeds the refused value (a tool's output, or the
+// whole conversation), so only its context and the schema's issue paths are
+// logged, never the message.
+function describeSdkRefusal(err: unknown): string[] {
+  if (!TypeValidationError.isInstance(err))
+    return [`validateUIMessages: ${err instanceof Error ? err.name : "error"}`];
+  const { field, entityName, entityId } = err.context ?? {};
+  const where = [field, entityName, entityId].filter(Boolean).join(" ");
+  const cause = err.cause;
+  if (cause instanceof z.ZodError)
+    return describeIssues(cause.issues).map((i) => `${where}: ${i}`);
+  const issues = (cause as { issues?: unknown } | undefined)?.issues;
+  if (Array.isArray(issues))
+    return issues.map((i: { path?: unknown[]; message?: unknown }) => {
+      const path = (i.path ?? [])
+        .map((k) =>
+          typeof k === "object" && k ? (k as { key: unknown }).key : k,
+        )
+        .join(".");
+      return `${where}: ${path || "(value)"}: ${String(i.message)}`;
+    });
+  return [`${where || "(message)"}: invalid`];
+}
+
 function logRefusal(reasons: string[]) {
   console.debug(`AI chat body refused: ${reasons.slice(0, 5).join("; ")}`);
 }
@@ -205,7 +236,7 @@ export async function parseChatBody(
       tools,
     });
   } catch (err) {
-    logRefusal([err instanceof Error ? err.message : String(err)]);
+    logRefusal(describeSdkRefusal(err));
     return { ok: false, reason: "bad_request" };
   }
 
@@ -218,6 +249,14 @@ export async function parseChatBody(
       chars += m.chars;
       images += m.images;
       if (part.type === "file") files += 1;
+      if ("text" in part) {
+        // An author's message over its cap is the panel's bug; a reply over
+        // its cap means the conversation is full.
+        if (message.role === "user" && part.text.length > AI_MAX_TEXT_CHARS)
+          return { ok: false, reason: "bad_request" };
+        if (part.text.length > MAX_REPLY_CHARS)
+          return { ok: false, reason: "too_long" };
+      }
     }
     // Tool outputs are capped per output by aiToolOutputSchema.
     if (files > AI_MAX_IMAGES_PER_MESSAGE)

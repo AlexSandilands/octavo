@@ -13,7 +13,7 @@
 // first so it can be reported.
 // With --record <file> it also writes the assistant messages as the stream
 // built them, words replaced, for dev-ai-proxy-gate to replay.
-// Run: npx tsx scripts/dev-ai-smoke.mts <base-url> [--record <file>]
+// Run: npx tsx scripts/dev-ai-smoke.mts <base-url> [--record <file>] [--think]
 import { writeFileSync } from "node:fs";
 import { readUIMessageStream, type UIMessage, type UIMessageChunk } from "ai";
 import postgres from "postgres";
@@ -22,6 +22,9 @@ process.loadEnvFile?.(".env.local");
 const base = process.argv[2] ?? "";
 const recordAt = process.argv.indexOf("--record");
 const recordTo = recordAt > 0 ? process.argv[recordAt + 1] : undefined;
+// --think opens with a question that needs working out, to draw a thinking
+// block, so the second request replays a signed reasoning part.
+const think = process.argv.includes("--think");
 if (!base) throw new Error("usage: dev-ai-smoke.mts <base-url>");
 
 const sql = postgres(process.env.DATABASE_URL!, { max: 1 });
@@ -203,11 +206,21 @@ try {
   console.log("\n── two messages in one conversation");
   const history: UIMessage[] = [
     userMessage(
-      "Think it through before answering: page 2 overflows if I add a 200-word raffle notice. Which of the three pages should take it, and what would you move? One sentence; don't change anything.",
+      think
+        ? "Work it out before answering. A page holds about 30 lines of 11 words. Page 1 is 40% full, page 2 70%, page 3 55%. I want to add a 200-word raffle notice and a 120-word gate-code reminder, keeping each on one page and no page over 90%. Which page takes which, and how full is each page afterwards? One sentence with the numbers; don't change anything."
+        : "What's on page 3? Answer in one sentence; don't change anything.",
     ),
   ];
   const first = await run(history, "message 1");
   history.push(first.assistant);
+  const thought = first.assistant.parts.find(
+    (p) => p.type === "reasoning" && p.providerMetadata?.anthropic,
+  );
+  console.log(
+    thought
+      ? `    the first reply thought: a signed reasoning part (id ${thought.type === "reasoning" ? thought.id : ""}), replayed next`
+      : "    the first reply did not think",
+  );
   history.push(
     userMessage("Thanks. In one sentence, when is the harvest supper?"),
   );

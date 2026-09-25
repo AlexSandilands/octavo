@@ -123,9 +123,13 @@ client-safe.
   every optional field `ai` 7.0.114 declares on it, because the stream processor writes fields the panel sends back
   verbatim. A reasoning part gets an `id`, and with thinking display omitted it has empty text and carries its signature
   in `providerMetadata`. The first build missed that `id` and refused every real reply that had thought. **Recheck the
-  schema on every SDK upgrade**; `dev-ai-proxy-gate` replays recorded real replies
+  schema on every SDK upgrade**. Part types the route refuses on purpose: `dynamic-tool`, `source-url`, `source-document`,
+  `custom` and `reasoning-file` (none arise without tools or features the assistant doesn't use), and a file's
+  `providerReference`. `dev-ai-proxy-gate` replays recorded real replies
   (`scripts/fixtures/ai-assistant-replies.json`) to catch it. A refused body logs `AI chat body refused: <path>: <why>`
-  at debug level, never the content.
+  at debug level: zod paths and the SDK's field and tool names, never the SDK's error message, which quotes the refused
+  value. `dev-ai-proxy-gate --log <file>` checks a refused body's text stays out of the log. An author's text part is
+  capped at 20,000 characters (`bad_request`, the panel's bug); the model's text or thinking at 60,000 (`too_long`).
 - **Provider** (`src/server/ai-provider.ts`) from `AI_PROVIDER` / `AI_MODEL` / the key. `isAssistantEnabled()`
   (`src/lib/ai.ts`) is the on/off answer, and `NEXT_PUBLIC_AI_ASSISTANT=1` mirrors it for the button. Thinking and
   effort are explicit: Anthropic runs adaptive thinking at `effort: "medium"` with `sendReasoning`, the others take

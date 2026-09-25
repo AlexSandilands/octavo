@@ -5,20 +5,25 @@
 // body limits, a two-turn tool round trip read the way useChat reads it, the
 // failure copy mid-stream, the per-run cap, the monthly budget and both rate
 // limits, and that every request left an ai_usage row for its run. Pass a
-// second URL, a server with AI_PROVIDER unset, to check the route 404s there.
+// second URL, a server with AI_PROVIDER unset, to check the route 404s there,
+// and --log <file>, the server's output, to check a refused body's content
+// never reaches the log.
 //
 // SAFETY: shared dev database. It mints its own two admins, one member, one
 // draft and one published issue, and the ai_usage rows are all under run ids it
 // made; the finally deletes exactly those. The budget check holds a scratch
 // row for the length of one request, which is the only moment a teammate's
 // request on the same database could see the month spent.
-// Run: npx tsx scripts/dev-ai-proxy-gate.mts <base-url> [<off-base-url>]
+// Run: npx tsx scripts/dev-ai-proxy-gate.mts <base-url> [<off-base-url>] [--log <file>]
 import { readFileSync } from "node:fs";
 import { readUIMessageStream, type UIMessage, type UIMessageChunk } from "ai";
 import postgres from "postgres";
 
 process.loadEnvFile?.(".env.local");
-const [base, offBase] = process.argv.slice(2);
+const args = process.argv.slice(2);
+const logAt = args.indexOf("--log");
+const logPath = logAt >= 0 ? args.splice(logAt, 2)[1] : undefined;
+const [base, offBase] = args;
 if (!base) throw new Error("usage: dev-ai-proxy-gate.mts <base-url> [<off>]");
 
 const sql = postgres(process.env.DATABASE_URL!, { max: 1 });
@@ -237,6 +242,63 @@ try {
     "bad_request",
   );
 
+  // A reply over its cap fills the conversation; it isn't a bad request.
+  const longReply: UIMessage = {
+    id: crypto.randomUUID(),
+    role: "assistant",
+    parts: [{ type: "text", text: "r".repeat(60_001) }],
+  };
+  await expectError(
+    await post(
+      { ...hello(), messages: [...hello().messages, longReply] },
+      { token: tokens.a },
+    ),
+    413,
+    "too_long",
+  );
+
+  heading("refusals keep content out of the log");
+  // A tool output with a key the schema doesn't know: the SDK's error message
+  // quotes the whole value, page text included.
+  const marker = `PAGE-TEXT-MARKER-${tag}`;
+  const leaky: UIMessage = {
+    id: crypto.randomUUID(),
+    role: "assistant",
+    parts: [
+      {
+        type: "tool-read_page",
+        toolCallId: "leak-1",
+        state: "output-available",
+        input: { page: 1 },
+        output: { text: `${marker} a secret draft paragraph`, extra: true },
+      },
+    ],
+  } as UIMessage;
+  await expectError(
+    await post(
+      {
+        ...hello(),
+        messages: [
+          ...hello().messages,
+          leaky,
+          userMessage(`${marker} and more`, `${marker} in the projection`),
+        ],
+      },
+      { token: tokens.a },
+    ),
+    400,
+    "bad_request",
+  );
+  if (logPath) {
+    await new Promise((r) => setTimeout(r, 500));
+    const log = readFileSync(logPath, "utf8");
+    ok(
+      log.includes("AI chat body refused") && log.includes("read_page"),
+      "the refusal is logged, naming the tool",
+    );
+    ok(!log.includes(marker), "…and none of the refused content is");
+  } else console.log("  (no --log given: log content not checked)");
+
   heading("a tool round trip");
   const run = newRun();
   const first = await post(hello(draftId, run), { token: tokens.a });
@@ -246,6 +308,13 @@ try {
     "200, UI message stream v1",
   );
   const chunks = await chunksOf(first);
+  // Stop at once on a real provider: every check after this would spend.
+  ok(
+    chunks.some(
+      (c) => c.type === "text-delta" && c.delta.startsWith("Looking at"),
+    ),
+    "the server runs AI_PROVIDER=fake",
+  );
   const textAt = chunks.findIndex((c) => c.type === "text-delta");
   const callAt = chunks.findIndex((c) => c.type === "tool-input-available");
   ok(textAt !== -1 && callAt > textAt, "text streams, then a tool call");
