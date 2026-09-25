@@ -95,7 +95,11 @@ const ids = Object.fromEntries(
 ) as SeedImages;
 export const issues = buildIssues(ids);
 export const photos = new Set(Object.values(ids));
-export const call = { photos, read: () => ({ text: "(read_page)" }) };
+export const call = {
+  photos,
+  read: () => ({ text: "(read_page)" }),
+  view: async () => ({ text: "(view)" }),
+};
 
 export function harness(pages: Page[]) {
   let state: EditorSnapshot = { pages, curPage: 1, sel: null };

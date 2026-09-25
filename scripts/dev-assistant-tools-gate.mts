@@ -6,7 +6,7 @@
 // measurer, off screen); autosave keeps the result; Ctrl+Z takes the whole run
 // back in one step; insert after a block; move and resize a photo; an unknown id
 // refused and reported; and both circuit-breaker conditions stop a run with
-// its edits kept.
+// its edits kept. Then vision (#342, fixtures/assistant/vision-checks.mts).
 //
 // SAFETY: shared dev database. It mints its own admin, session, draft and one
 // photo row (a key with no file behind it); the finally deletes exactly those
@@ -26,6 +26,7 @@ import {
   where,
   type Doc,
 } from "./fixtures/assistant/tools-gate-kit.mts";
+import { visionChecks } from "./fixtures/assistant/vision-checks.mts";
 
 process.loadEnvFile?.(".env.local");
 // An optional folder for screenshots of the held canvas and the run's line.
@@ -449,6 +450,15 @@ async function checks(page: Page) {
       !capLog?.includes("used its share of the budget"),
     "the panel shows the breaker's message, with Undo, not the route's error",
   );
+
+  await visionChecks(page, {
+    photoId,
+    photoKey: `${tag}/photo.webp`,
+    saved,
+    runScript: (p, calls) => runScript(p, calls as never),
+    ok,
+    heading,
+  });
 
   console.log("\nassistant tools gate: all checks passed");
 }
