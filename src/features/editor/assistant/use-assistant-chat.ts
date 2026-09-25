@@ -145,14 +145,17 @@ export function useAssistantChat({
         });
       }
     },
-    onFinish: ({ message, isAbort, isError }) => {
-      const awaitingTool = message.parts.some(
-        (p) =>
-          p.type.startsWith("tool-") &&
-          "state" in p &&
-          p.state === "input-available",
-      );
-      if (isAbort || isError || stopped.current || !awaitingTool) endRun();
+    // The run goes on while a tool call awaits its answer or has one to send.
+    // A quick tool can answer before the stream finishes, so both count (#351).
+    onFinish: ({ message, messages, isAbort, isError }) => {
+      const continues =
+        message.parts.some(
+          (p) =>
+            p.type.startsWith("tool-") &&
+            "state" in p &&
+            p.state === "input-available",
+        ) || lastAssistantMessageIsCompleteWithToolCalls({ messages });
+      if (isAbort || isError || stopped.current || !continues) endRun();
     },
     onError: (error) => {
       if (readAiError(error.message).code === "too_long") setFull(true);
@@ -167,8 +170,9 @@ export function useAssistantChat({
     running || chat.status === "submitted" || chat.status === "streaming";
 
   const send = async (request: string) => {
-    const text = request.trim().slice(0, AI_MAX_TEXT_CHARS);
-    if (!text || busy || full) return;
+    // The composer holds anything longer back; the route would refuse it.
+    const text = request.trim();
+    if (!text || text.length > AI_MAX_TEXT_CHARS || busy || full) return;
     if (chat.messages.length + RUN_MESSAGES > AI_MAX_MESSAGES) {
       setFull(true);
       return;

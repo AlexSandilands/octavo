@@ -13,10 +13,16 @@ export const aiUsageSummarySchema = z.object({
 });
 export type AiUsageSummary = z.infer<typeof aiUsageSummarySchema>;
 
-const usd = (n: number, cents: boolean) =>
-  `$${cents || !Number.isInteger(n) ? n.toFixed(2) : n.toString()}`;
+// US dollars, as the provider bills and /admin/ai shows them: "US$1.23" under
+// en-NZ. Spend rounds up to the cent, so the panel never understates it.
+const money = new Intl.NumberFormat("en-NZ", {
+  style: "currency",
+  currency: "USD",
+});
+const spendUp = (usd: number) =>
+  Math.ceil(Math.round(usd * 1_000_000) / 10_000) / 100;
 
-/** "$1.20 of $20 used this month". */
+/** "US$1.21 of US$20.00 used this month". */
 export function usageLine({ spent, allowance, granted }: AiUsageSummary) {
-  return `${usd(spent, true)} of ${usd(allowance + granted, false)} used this month`;
+  return `${money.format(spendUp(spent))} of ${money.format(allowance + granted)} used this month`;
 }

@@ -6,8 +6,9 @@ import type { EditorTool } from "./tool-rail";
 export const PANEL_MIN = 340;
 /** Space kept for the page rail, the tool rail and a usable canvas. */
 const CANVAS_RESERVE = 150 + 48 + 260;
-/** A chat reads best narrow, and leaves a tablet's canvas usable (#309). */
-const ASSISTANT = { min: 300, preferred: 400 };
+/** A chat reads best narrow; on a narrow row it opens at its minimum, so the
+ *  canvas beside it keeps as much of the page as it can (#309). */
+const ASSISTANT = { min: 300, preferred: 400, canvasFloor: 520 };
 
 // The side panel's width: by default half the editor row for Import PDF (the
 // page and the panel share the space evenly) and a column for the assistant,
@@ -36,7 +37,7 @@ export function usePanelWidth(
   const min = assistant ? ASSISTANT.min : PANEL_MIN;
   const max = Math.max(min, rowWidth - CANVAS_RESERVE);
   const fallback = assistant
-    ? ASSISTANT.preferred
+    ? Math.min(ASSISTANT.preferred, rowWidth - 150 - 48 - ASSISTANT.canvasFloor)
     : Math.round((rowWidth - 150 - 48) / 2);
   const clamp = (w: number) => Math.min(max, Math.max(min, w));
   return {

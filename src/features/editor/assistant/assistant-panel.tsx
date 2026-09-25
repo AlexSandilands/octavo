@@ -9,7 +9,7 @@ import { AssistantThread } from "./assistant-thread";
 import type { useAssistantChat } from "./use-assistant-chat";
 
 const DRAFTS_ONLY =
-  "The assistant only works on drafts. Unpublish or create a new issue to use it.";
+  "The assistant only works on drafts. Start a new issue to use it.";
 const INTRO =
   "Ask about this issue: what’s on a page, or which pages are nearly full. It reads the issue but can’t change it yet.";
 const PRESETS = [

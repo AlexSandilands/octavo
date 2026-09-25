@@ -134,17 +134,19 @@ async function onChecks(page: Page, pageCount: number) {
       parts: { type: string; [k: string]: unknown }[];
     }[];
   }[] = [];
+  // Each usage fetch, as the number of chat requests sent before it.
   const usageFetches: number[] = [];
   const onRequest = (r: Request) => {
     if (r.url().endsWith("/api/admin/ai/chat")) bodies.push(r.postDataJSON());
-    if (r.url().endsWith("/api/admin/ai/usage")) usageFetches.push(Date.now());
+    if (r.url().endsWith("/api/admin/ai/usage"))
+      usageFetches.push(bodies.length);
   };
   page.on("request", onRequest);
   await page.click(BUTTON);
   await page.waitForSelector("[data-assistant-usage]");
   const before = await page.textContent("[data-assistant-usage]");
   ok(
-    /^\$\d+\.\d\d of \$5 used this month$/.test(before ?? ""),
+    /^US\$\d+\.\d\d of US\$5\.00 used this month$/.test(before ?? ""),
     `footer reads "${before}"`,
   );
   await page.fill(INPUT, "Which pages are nearly full?");
@@ -221,14 +223,18 @@ async function onChecks(page: Page, pageCount: number) {
     ),
     "one runId for the run",
   );
-  await page.waitForTimeout(500);
-  ok(usageFetches.length >= 2, "the footer refetched after the run");
+  await page.waitForTimeout(1500);
+  ok(
+    usageFetches.join() === "0,2",
+    `the run ended once: the footer fetched on opening and once after the second turn (${usageFetches.join()})`,
+  );
   const [{ spent } = { spent: 0 }] = await sql<{ spent: number }[]>`
     select coalesce(sum(cost_usd), 0)::float as spent from ai_usage
     where created_at >= date_trunc('month', now() at time zone 'utc') at time zone 'utc'`;
   ok(
     (await page.textContent("[data-assistant-usage]"))?.startsWith(
-      `$${spent.toFixed(2)} `,
+      // Spend rounds up to the cent, as /admin/ai shows it.
+      `US$${(Math.ceil(Math.round(spent * 1_000_000) / 10_000) / 100).toFixed(2)} `,
     ),
     "and shows the ledger's figure",
   );
@@ -356,16 +362,46 @@ async function onChecks(page: Page, pageCount: number) {
     "Start a new one: an empty thread, focus in the composer",
   );
 
+  heading("A long paste is held, never cut");
+  await page.fill(INPUT, "x".repeat(20_500));
+  ok(
+    (await page.inputValue(INPUT)).length === 20_500,
+    "all 20,500 characters stay in the box",
+  );
+  ok(
+    (await page.textContent("#assistant-input-count"))?.startsWith(
+      "500 characters over the 20,000 limit",
+    ),
+    "the count says how far over it is",
+  );
+  ok(await page.isDisabled('button[aria-label="Send"]'), "and Send is off");
+  await page.keyboard.press("Enter");
+  ok(
+    (await page.inputValue(INPUT)).length === 20_500,
+    "Enter doesn't send it either",
+  );
+  await page.fill(INPUT, "");
+
   heading("A tablet's width");
+  // Opened fresh on a tablet: the panel takes its minimum, the page the rest.
   await page.setViewportSize({ width: 768, height: 1024 });
+  await openEditor(page, draftId);
+  await page.click('button[aria-label="Page 2"]');
+  await page.click(BUTTON);
+  await page.waitForSelector(INPUT);
   await page.waitForTimeout(600);
   const widths = await page.evaluate(() => ({
     panel: document.querySelector("aside#editor-side-panel")!.clientWidth,
     canvas: document.querySelector("[data-editor-canvas-stage]")!.clientWidth,
+    page: Math.round(
+      document.querySelector("[data-page-frame]")!.getBoundingClientRect()
+        .width,
+    ),
   }));
+  ok(widths.panel === 300, `the panel opens at its ${widths.panel}px minimum`);
   ok(
     widths.canvas >= 250,
-    `the canvas keeps ${widths.canvas}px beside a ${widths.panel}px panel`,
+    `the canvas keeps ${widths.canvas}px, the page ${widths.page}px wide`,
   );
 
   console.log("\nassistant panel gate: all checks passed");
