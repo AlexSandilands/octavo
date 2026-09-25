@@ -18,7 +18,6 @@ import type { EditMeasurer, PageReport, TextLines } from "./page-report";
 // sit on, block heights, and for an overflowing page each text block's lines.
 
 const IMAGE_WAIT_MS = 3000;
-const MAX_LAST_LINES = 12;
 
 const settle = <T,>(promise: Promise<T>, ms: number) =>
   Promise.race([
@@ -68,7 +67,7 @@ function textLines(block: HTMLElement, id: string): TextLines | null {
     lines += measured.lines;
     lastLines.push(measured.last);
   }
-  return { id, lines, lastLines: lastLines.slice(0, MAX_LAST_LINES) };
+  return { id, lines, lastLines };
 }
 
 export function createPageMeasurer(
