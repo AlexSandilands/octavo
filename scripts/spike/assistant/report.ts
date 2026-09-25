@@ -11,6 +11,14 @@ export type Row = {
   /** Views the model took (view_page + view_photo). */
   views?: number;
   viewBudget?: number;
+  /** The review turn, when --review ran one. */
+  review?: {
+    pages: number[];
+    calls: number;
+    names: string[];
+    firstCostUsd: number | null;
+    reviewCostUsd: number | null;
+  };
   /** Interior pages the rendered DOM says overflow (the real measurer's verdict). */
   measuredOverflow?: number[] | null;
 };
@@ -33,6 +41,16 @@ export function summary(title: string, rows: Row[]): string {
           : `| ${c.id} | dry run | – | – | – | – | – | ${m === undefined || m === null ? "–" : m.length ? `p${m.join(",")}` : "none"} | – | – | – | – | – |`,
     ),
   ];
+  const reviewed = rows.filter((r) => r.review);
+  if (reviewed.length)
+    lines.push(
+      "",
+      "Review turns:",
+      ...reviewed.map(
+        ({ c, review: v }) =>
+          `- ${c.id}: shown p${v!.pages.join(", p")} · ${v!.calls} call${v!.calls === 1 ? "" : "s"}${v!.names.length ? ` (${v!.names.join(", ")})` : ""} · first turn $${v!.firstCostUsd?.toFixed(3)}, review turn $${v!.reviewCostUsd?.toFixed(3)}`,
+      ),
+    );
   const scored = rows.filter((r) => r.score && r.run);
   if (scored.length) {
     const passed = scored.filter((r) => r.score!.pass).length;

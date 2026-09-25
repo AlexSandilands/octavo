@@ -16,7 +16,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { loadCases, startingContext, userMessage, type Case } from "./cases.ts";
-import { runClaude, type RunResult } from "./claude.ts";
+import { runClaude, type RunResult, type UserBlock } from "./claude.ts";
 import { coverToolsFor } from "./cover-tools.ts";
 import { describeFill, estimateFill } from "./fill.ts";
 import { pageView, projection } from "./projection.ts";
@@ -45,6 +45,8 @@ const { values } = parseArgs({
     views: { type: "string" },
     cover: { type: "boolean", default: false },
     "cover-style": { type: "boolean", default: false },
+    /** After the first turn, send the changed pages back as images for one more turn. */
+    review: { type: "boolean", default: false },
     "dry-run": { type: "boolean", default: false },
     "save-draft": { type: "boolean", default: false },
     rescore: { type: "string" },
@@ -62,7 +64,11 @@ const cases = loadCases().filter(
 );
 if (!cases.length) throw new Error(`no case matches ${values.case}`);
 
-const variant = [values.vision && "vision", coverTier && `cover-${coverTier}`]
+const variant = [
+  values.vision && "vision",
+  coverTier && `cover-${coverTier}`,
+  values.review && "review",
+]
   .filter(Boolean)
   .join("+");
 const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
@@ -114,6 +120,60 @@ async function pictures(
     );
     return null;
   }
+}
+
+const REVIEW_PAGES = 8;
+const reviewText = readFileSync(join(HERE, "review-message.md"), "utf8").trim();
+
+/** Pages (1-based) whose content differs from `before`, or that are new; cover first. */
+function touchedPages(before: IssueContext, after: IssueContext): number[] {
+  const old = new Map(
+    before.content.pages.map((p) => [p.id, JSON.stringify(p)]),
+  );
+  return after.content.pages
+    .map((p, i) => ({
+      n: i + 1,
+      cover: !!p.cover,
+      changed: old.get(p.id) !== JSON.stringify(p),
+    }))
+    .filter((p) => p.changed)
+    .sort((a, b) => Number(b.cover) - Number(a.cover) || a.n - b.n)
+    .map((p) => p.n)
+    .slice(0, REVIEW_PAGES);
+}
+
+/** The review message: the changed pages as images, each with its measured fill. */
+async function reviewMessage(
+  dir: string,
+  shown: number[],
+): Promise<UserBlock[] | null> {
+  const before = readState(dir, "before.json");
+  const after = readState(dir, "state.json");
+  await pictures(after, join(dir, "pages-pre-review"));
+  const pages = touchedPages(before, after);
+  if (!pages.length) return null;
+  shown.push(...pages);
+  const blocks: UserBlock[] = [{ type: "text", text: reviewText }];
+  for (const n of pages) {
+    const { png, measured } = await renderer.shot(after, n);
+    const fill = after.content.pages[n - 1]!.cover
+      ? "the cover"
+      : measured && measured.overflowPx > 2
+        ? `overflows by ~${Math.ceil(measured.overflowPx / 21)} lines, measured`
+        : `fits, ~${Math.round((measured?.percent ?? 0) / 5) * 5}% full, measured`;
+    blocks.push(
+      { type: "text", text: `Page ${n} (${fill})` },
+      {
+        type: "image",
+        source: {
+          type: "base64",
+          media_type: "image/png",
+          data: png.toString("base64"),
+        },
+      },
+    );
+  }
+  return blocks;
 }
 
 const readState = (dir: string, file: string) =>
@@ -195,7 +255,9 @@ for (const c of cases) {
   process.stdout.write(
     `${c.id} (${model}${variant ? ` · ${variant}` : ""}) … `,
   );
+  const reviewed: number[] = [];
   const run = await runClaude({
+    review: values.review ? () => reviewMessage(dir, reviewed) : undefined,
     dir,
     model,
     systemPrompt,
@@ -207,7 +269,19 @@ for (const c of cases) {
   const after = readState(dir, "state.json");
   const measuredOverflow = await pictures(after, join(dir, "pages"));
   const views = calls.filter((x) => (x as { image?: boolean }).image).length;
+  const reviewCalls = run.review ? calls.slice(run.review.firstCalls) : [];
   const row: Row = {
+    ...(run.review
+      ? {
+          review: {
+            pages: reviewed,
+            calls: reviewCalls.length,
+            names: reviewCalls.map((x) => x.name),
+            firstCostUsd: run.review.firstCostUsd,
+            reviewCostUsd: run.review.reviewCostUsd,
+          },
+        }
+      : {}),
     c,
     score,
     run,
