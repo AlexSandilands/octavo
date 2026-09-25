@@ -1,0 +1,27 @@
+{
+  "id": "01-tidy-notices",
+  "description": "A notices page pasted as one lump with bold run-in labels: restructure without rewording.",
+  "issue": 0,
+  "page": 7,
+  "setup": {
+    "replacePage": {
+      "page": 7,
+      "blocks": [
+        {
+          "kind": "text",
+          "markdown": "NOTICES — AROUND THE CLUB\n\n**Twilight sessions** Tuesday twilight sessions resume from the 19th, lights permitting, and will run until the clocks change. Bring a torch for the walk back to the car park.\n**The ladder** The committee is seeking a volunteer to keep the ladder. It takes about an hour a week and a tolerance for arguments about rounding.\n**Lost property** Three left gloves, a thermos, and a single boule of unknown ownership. Unclaimed items go to the jumble stall at the end of the month.\n**Bar rota** The bar rota for October is pinned by the kettle. Anyone who has not yet done a shift is on it twice.\n**Subs** Subscriptions are due by the end of the month; the treasurer takes cash, cheques and, grudgingly, bank transfers."
+        }
+      ]
+    }
+  },
+  "instruction": "Tidy this page up please, it got pasted in as one lump.",
+  "expect": {
+    "preserve": "page",
+    "tools": [
+      "set_text",
+      "insert_blocks"
+    ],
+    "maxCalls": 8,
+    "noOverflow": true
+  }
+}

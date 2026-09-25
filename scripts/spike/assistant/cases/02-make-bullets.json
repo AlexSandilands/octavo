@@ -1,0 +1,16 @@
+{
+  "id": "02-make-bullets",
+  "description": "Four separate notice blocks into one bulleted list.",
+  "issue": 2,
+  "page": 4,
+  "instruction": "Make these notices into a bulleted list.",
+  "expect": {
+    "preserve": "page",
+    "tools": [
+      "set_text",
+      "delete_block"
+    ],
+    "maxCalls": 8,
+    "noOverflow": true
+  }
+}

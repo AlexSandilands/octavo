@@ -1,0 +1,39 @@
+{
+  "id": "04-shorten-to-fit",
+  "description": "Same overflowing page; trim the last two paragraphs until it fits on one page.",
+  "issue": 4,
+  "page": 3,
+  "setup": {
+    "appendToPage": {
+      "page": 3,
+      "blocks": [
+        {
+          "kind": "text",
+          "markdown": "There is, too, the matter of the returned book, which is never the book that left. It comes back with a bus ticket marking a page the lender never reached, a faint ring where a mug was set down in a moment of absorption, and a spine broken open at the chapter the borrower liked best. The lender, reshelving it, finds that the book now falls open there by itself, and cannot decide whether this is vandalism or a kind of recommendation. Most of us, in the end, decide it is both, and are quietly pleased."
+        },
+        {
+          "kind": "text",
+          "markdown": "The society's older members will remember the Great Atlas Affair of 1994, in which a two-volume world atlas passed through eleven households over nine years and returned, when it finally returned, with both volumes rebound in green cloth, a pressed fern in Patagonia, and a correction pencilled into the border of a country that had changed its name in the meantime. The atlas's owner has since said that she would not have it back any other way, and has lent it out again, which the committee regards as either wisdom or relapse."
+        },
+        {
+          "kind": "text",
+          "markdown": "None of which is to excuse the borrower who keeps a book for a decade and then returns it by post, unannounced, wrapped in a supermarket bag with a note that says only 'thanks, loved it'. The society debated at some length whether this counts as a return at all, or merely as a second gift travelling in the opposite direction, and resolved, by a narrow majority and after the second pot of tea, that it counts as a return but that the lender is entitled to feel slightly robbed of the grievance they had been nursing. A minority report, submitted in pencil on the back of the agenda, argued that any book returned after ten years should be treated as a new acquisition and catalogued accordingly."
+        }
+      ]
+    }
+  },
+  "instruction": "Shorten this page so it all fits on the one page. Trim the last two paragraphs rather than cutting anything above them.",
+  "expect": {
+    "preserve": "none",
+    "tools": [
+      "set_text"
+    ],
+    "forbiddenTools": [
+      "split_page",
+      "add_page",
+      "move_block"
+    ],
+    "maxCalls": 6,
+    "noOverflow": true
+  }
+}

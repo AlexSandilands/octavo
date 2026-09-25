@@ -1,0 +1,16 @@
+{
+  "id": "05-move-photo",
+  "description": "Move a wrapped photo below the second paragraph and make it full width, keeping the page fitting.",
+  "issue": 5,
+  "page": 4,
+  "instruction": "Move the tide chart photo so it sits below the second paragraph, and make it full width.",
+  "expect": {
+    "preserve": "page",
+    "tools": [
+      "move_block",
+      "set_image_layout"
+    ],
+    "maxCalls": 8,
+    "noOverflow": true
+  }
+}
