@@ -86,6 +86,23 @@ Member ── Cloudflare (DNS/CDN) ── Railway (Next.js + Postgres)
 8. **Deploy** — confirm a test magic-link email arrives, signing in works, and an
    image upload lands in R2.
 
+### AI assistant budget
+
+The AI assistant (epic #306, [ai-assistant.md](ai-assistant.md)) spends against a monthly
+budget: `AI_MONTHLY_BUDGET_USD` is the standing allowance (unset is $0), and the owner tops a
+month up with a one-off grant, beside `db:admin` and run the same way:
+
+```bash
+railway run npm run ai:grant -- 25 "Spring issue layout"   # drop `railway run` locally
+```
+
+Under `railway run` the script reads only Railway's variables (it loads `.env.local` only when
+`DATABASE_URL` isn't already set), so the budget it prints is production's. The amount is dollars and
+cents, above $0 and at most $1,000; the note (≤ 200 characters) is the
+record of what the grant was for. It counts in the current calendar month (UTC) only and prints the
+month's budget afterwards — allowance + grants − spent = remaining. Grants can't be edited or
+withdrawn from the app; the arithmetic is in [database.md](database.md#ai-assistant-spend-issue-307).
+
 ### PDF generation
 
 PDF export (issue #16) uses headless Chromium via Playwright, in the **main
@@ -238,6 +255,8 @@ EMAIL_FROM=              # "Club Magazine <hello@clubmag.org>"
 
 SENTRY_DSN=              # Sentry project DSN (server-side). Optional — app runs fine unset.
 NEXT_PUBLIC_SENTRY_DSN=  # SAME DSN, browser copy (public ingest key; build-time inlined).
+
+AI_MONTHLY_BUDGET_USD=   # the AI assistant's monthly allowance in USD (e.g. 20 or 12.50, ≤ 10000); unset = 0 (top up with ai:grant)
 ```
 
 Both Sentry vars are optional everywhere: with them unset, `Sentry.init` is

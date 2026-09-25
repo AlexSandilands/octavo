@@ -1,7 +1,7 @@
 # AI editing assistant (design note, epic #306)
 
 An assistant in the editor that edits the issue on the author's behalf. It can tidy a page, lay out pasted articles and
-photos, compose a cover, and rewrite when asked. **Nothing is built yet.** This note holds the decisions every child
+photos, compose a cover, and rewrite when asked. **Only the spend ledger and budget (#307) are built so far.** This note holds the decisions every child
 issue assumes. Read it with the epic before working any child. Each child's PR updates it to match what shipped, and the
 epic's closing issue (#344) turns it into the feature doc (the `docs/pdf-import.md` shape).
 
@@ -139,8 +139,15 @@ don't redesign it.
 ### Budget, access and privacy (unchanged from the epic)
 
 - The owner pays the bill and invoices at cost.
-  - **Allowance:** `AI_MONTHLY_BUDGET_USD` (env) is the standing monthly allowance, and `npm run ai:grant` adds a one-off top-up.
-  - **Ledger:** every request writes an `ai_usage` row.
+  - **Allowance:** `AI_MONTHLY_BUDGET_USD` (env, unset = $0) is the standing monthly allowance, and
+    `npm run ai:grant -- <usd> "<note>"` adds a one-off top-up to the current month (up to $1,000, cents allowed).
+    Months are calendar months in UTC and nothing carries over.
+  - **Ledger (built, #307):** every request writes an `ai_usage` row through `recordUsage()` in
+    `src/server/ai-budget.ts`, with uncached input, cache reads, cache writes and output counted apart and priced
+    from the table in `src/lib/ai-pricing.ts` (`claude-sonnet-5` and `claude-haiku-4-5`, checked 2026-09-25; cache
+    writes at the 5-minute rate). A model with no price is refused rather than metered at $0. `resolveBudget()`,
+    `runSpend()` and `usageByDay()` give the route, the circuit-breaker and the usage page their figures; the
+    arithmetic is in `docs/database.md` → AI assistant spend.
   - **When it runs out:** once the month's spend reaches allowance plus grants, the panel says so and the route refuses.
   - **Backstop:** the provider-side spend limit.
 - No bought credits, and no bring-your-own-key.

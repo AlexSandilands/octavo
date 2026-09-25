@@ -59,7 +59,8 @@ src/
     library/           the member-facing library: masthead, latest-issue hero,
                        the cover shelf (archive-grid), the /archive controls and
                        the header's notification bell
-  db/                  Drizzle schema, client, seed
+  db/                  Drizzle schema (schema.ts + schema-ai.ts), client, seed,
+                       and the db:admin / ai:grant scripts
   lib/                 framework-agnostic helpers
     blocks.ts          the canonical content model (zod + types)
     images.ts          ImageMap type, built on image-sites.ts
@@ -83,6 +84,8 @@ src/
     discussion-thread.ts  the thread as the reader receives it: one wire shape
                        for members and admins, and the reader's DiscussionInfo
     member-name.ts     the posting-name rules, shared by browser and server
+    ai-pricing.ts      AI model prices per million tokens (dated), the per-run
+                       cap, and pricing one request's tokens
     env.ts             validated server env
     id.ts              id generator
   server/              server-only data access (users.ts, images.ts, ...) and auth
@@ -107,6 +110,8 @@ src/
                        issue/sponsor/logo deletes run (see database.md)
     issue-transfer/    building a bundle, reading an untrusted one, the import
                        transaction and the operation record + its recovery
+    ai-budget.ts       AI spend: the usage ledger, the owner's grants, the
+                       month's budget and the daily rollup (no model calls)
     session.ts         getSession()/getUser() — how the app reads who's signed in,
                        and the requireAdmin()/requireMember() write gates
     member-removal.ts  removing members: the guard rails, the removed-member
