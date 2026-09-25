@@ -13,6 +13,7 @@
 // row for the length of one request, which is the only moment a teammate's
 // request on the same database could see the month spent.
 // Run: npx tsx scripts/dev-ai-proxy-gate.mts <base-url> [<off-base-url>]
+import { readFileSync } from "node:fs";
 import { readUIMessageStream, type UIMessage, type UIMessageChunk } from "ai";
 import postgres from "postgres";
 
@@ -256,6 +257,10 @@ try {
     said.includes(`${tag} marker line`),
     `the model saw the projection: "${said}"`,
   );
+  ok(
+    assistant.parts.some((p) => p.type === "reasoning" && p.id === "0"),
+    "the reply carries a reasoning part with an id, as a real stream does",
+  );
   const call = assistant.parts.find((p) => p.type === "tool-read_page");
   ok(
     call?.type === "tool-read_page" &&
@@ -292,6 +297,33 @@ try {
   ok(
     rows.length === 2 && rows.every((r) => r.model === "fake"),
     `two ai_usage rows for the run (${rows.map((r) => r.model).join(", ")})`,
+  );
+
+  heading("replaying real replies");
+  // Assistant messages as a real provider's stream built them (recorded by
+  // dev-ai-smoke.mts --record, words replaced): every key the SDK writes must
+  // come back through the body schema.
+  const recorded = JSON.parse(
+    readFileSync("scripts/fixtures/ai-assistant-replies.json", "utf8"),
+  ) as UIMessage[];
+  const replay = await post(
+    {
+      runId: newRun(),
+      issueId: draftId,
+      messages: [
+        ...recorded.flatMap((reply) => [
+          userMessage("Go on.", "projection"),
+          reply,
+        ]),
+        userMessage("And now?", "projection"),
+      ],
+    },
+    { token: tokens.a },
+  );
+  const replayed = await chunksOf(replay);
+  ok(
+    replay.status === 200 && !replayed.some((c) => c.type === "error"),
+    `${recorded.length} recorded replies are accepted and answered (${replay.status})`,
   );
 
   heading("failures mid-stream");

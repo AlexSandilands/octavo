@@ -1,0 +1,78 @@
+[
+  {
+    "id": "",
+    "role": "assistant",
+    "parts": [
+      {
+        "type": "step-start"
+      },
+      {
+        "type": "text",
+        "text": "(reply)",
+        "state": "done"
+      }
+    ]
+  },
+  {
+    "id": "",
+    "role": "assistant",
+    "parts": [
+      {
+        "type": "step-start"
+      },
+      {
+        "type": "text",
+        "text": "(reply)",
+        "state": "done"
+      }
+    ]
+  },
+  {
+    "id": "",
+    "role": "assistant",
+    "parts": [
+      {
+        "type": "step-start"
+      },
+      {
+        "type": "tool-read_page",
+        "toolCallId": "toolu_011sqjs4EsYCbBWwkLq5UtYL",
+        "state": "output-error",
+        "input": {
+          "page": 1
+        },
+        "errorText": "Stopped by the editor.",
+        "callProviderMetadata": {
+          "anthropic": {
+            "caller": {
+              "type": "direct"
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "",
+    "role": "assistant",
+    "parts": [
+      {
+        "type": "step-start"
+      },
+      {
+        "type": "text",
+        "text": "(reply)",
+        "state": "done"
+      }
+    ]
+  },
+  {
+    "id": "",
+    "role": "assistant",
+    "parts": [
+      {
+        "type": "step-start"
+      }
+    ]
+  }
+]

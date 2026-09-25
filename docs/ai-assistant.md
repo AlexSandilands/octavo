@@ -119,6 +119,13 @@ client-safe.
   `@ai-sdk/openai` 4.0.75, `@openrouter/ai-sdk-provider` 3.1.0 and `@ai-sdk/provider` 4.0.18 (the fake model's types).
   AI SDK 7 renamed `system` to `instructions` and `onFinish` to `onEnd`, and moved cache token counts to
   `usage.inputTokenDetails`; read the installed `node_modules/ai/docs` before changing anything, not memory.
+- **The body schema follows the SDK's part types** (`src/server/ai-chat-request.ts`): each part is `.strict()` but lists
+  every optional field `ai` 7.0.114 declares on it, because the stream processor writes fields the panel sends back
+  verbatim. A reasoning part gets an `id`, and with thinking display omitted it has empty text and carries its signature
+  in `providerMetadata`. The first build missed that `id` and refused every real reply that had thought. **Recheck the
+  schema on every SDK upgrade**; `dev-ai-proxy-gate` replays recorded real replies
+  (`scripts/fixtures/ai-assistant-replies.json`) to catch it. A refused body logs `AI chat body refused: <path>: <why>`
+  at debug level, never the content.
 - **Provider** (`src/server/ai-provider.ts`) from `AI_PROVIDER` / `AI_MODEL` / the key. `isAssistantEnabled()`
   (`src/lib/ai.ts`) is the on/off answer, and `NEXT_PUBLIC_AI_ASSISTANT=1` mirrors it for the button. Thinking and
   effort are explicit: Anthropic runs adaptive thinking at `effort: "medium"` with `sendReasoning`, the others take
@@ -136,8 +143,11 @@ client-safe.
 - **Real-provider smoke** (2026-09-25, `claude-sonnet-5`, `scripts/dev-ai-smoke.mts`): every request of a
   seven-request conversation after the first read the whole conversation so far from cache (2.1k–4.4k tokens read,
   2 uncached). A request costs about $0.002 at this size. The conversation included a reply stopped mid-tool-call and
-  one cut off mid-stream, and each was followed by a request the model accepted.
-- **`AI_PROVIDER=fake`** (`src/server/ai-fake-model.ts`) is deterministic and costs $0. An author message gets
+  one cut off mid-stream, and each was followed by a request the model accepted. At medium effort Sonnet 5 rarely thinks on requests
+  this small (none of four runs did), so a smoke run can pass without exercising a reasoning part; the gate's fake
+  model streams one on every reply for that reason.
+- **`AI_PROVIDER=fake`** (`src/server/ai-fake-model.ts`) is deterministic and costs $0. Every reply opens with an empty,
+  signed reasoning block, as Anthropic's does. An author message gets
   `Looking at "<the projection's first line>".` and then a `read_page({ page: 1 })` call; a tool result gets
   `Read read_page (<n> characters back). Nothing needed changing.` Triggers in the author's text reach the failure
   paths: `[fake:fail]`, `[fake:drop]`, `[fake:slow]` and `[fake:odd-model]`. `scripts/dev-ai-proxy-gate.mts` runs

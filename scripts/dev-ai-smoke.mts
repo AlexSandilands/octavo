@@ -11,12 +11,17 @@
 // SAFETY: shared dev database. It mints a scratch admin, session and draft and
 // deletes them, and its ai_usage rows, in the finally; the spend is printed
 // first so it can be reported.
-// Run: npx tsx scripts/dev-ai-smoke.mts <base-url>
+// With --record <file> it also writes the assistant messages as the stream
+// built them, words replaced, for dev-ai-proxy-gate to replay.
+// Run: npx tsx scripts/dev-ai-smoke.mts <base-url> [--record <file>]
+import { writeFileSync } from "node:fs";
 import { readUIMessageStream, type UIMessage, type UIMessageChunk } from "ai";
 import postgres from "postgres";
 
 process.loadEnvFile?.(".env.local");
 const base = process.argv[2] ?? "";
+const recordAt = process.argv.indexOf("--record");
+const recordTo = recordAt > 0 ? process.argv[recordAt + 1] : undefined;
 if (!base) throw new Error("usage: dev-ai-smoke.mts <base-url>");
 
 const sql = postgres(process.env.DATABASE_URL!, { max: 1 });
@@ -160,6 +165,20 @@ async function run(history: UIMessage[], label: string) {
   return { runId, assistant: assistant! };
 }
 
+/** An assistant message with its words replaced: every key, id, state and
+ *  signature kept, since the shape is what the fixture is for. */
+function scrub(m: UIMessage): UIMessage {
+  return {
+    ...m,
+    parts: m.parts.map((p) => {
+      if (p.type === "text") return { ...p, text: "(reply)" };
+      if (p.type === "tool-read_page" && p.state === "output-available")
+        return { ...p, output: { text: "(page)" } };
+      return p;
+    }),
+  } as UIMessage;
+}
+
 type Row = {
   model: string;
   prompt_tokens: number;
@@ -184,7 +203,7 @@ try {
   console.log("\n── two messages in one conversation");
   const history: UIMessage[] = [
     userMessage(
-      "What's on page 3? Answer in one sentence; don't change anything.",
+      "Think it through before answering: page 2 overflows if I add a 200-word raffle notice. Which of the three pages should take it, and what would you move? One sentence; don't change anything.",
     ),
   ];
   const first = await run(history, "message 1");
@@ -279,6 +298,13 @@ try {
     stopRows[0] !== undefined && stopRows[0].cache_read_tokens > 0,
     `after Stop: accepted, and read from cache (${stopRows[0]?.cache_read_tokens})`,
   );
+  if (recordTo) {
+    const replies = history.filter((m) => m.role === "assistant");
+    writeFileSync(recordTo, `${JSON.stringify(replies.map(scrub), null, 2)}\n`);
+    console.log(
+      `  recorded ${replies.length} assistant messages to ${recordTo}`,
+    );
+  }
   console.log("\nPASS — real-provider smoke");
 } finally {
   if (runIds.length)

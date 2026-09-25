@@ -106,6 +106,14 @@ export function createFakeModel(): LanguageModelV4 {
             ? "fake/unpriced-2026"
             : "fake",
         },
+        // Thinking as Anthropic streams it with display omitted: an empty block
+        // whose signature arrives at its end. The UI part gets this id.
+        { type: "reasoning-start", id: "0" },
+        {
+          type: "reasoning-end",
+          id: "0",
+          providerMetadata: { fake: { signature: "fake-signature" } },
+        },
         { type: "text-start", id: "t1" },
         // Two deltas, so the panel sees text arrive in pieces.
         ...reply.text

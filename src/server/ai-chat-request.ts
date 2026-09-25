@@ -22,10 +22,17 @@ import type { AssistantToolSet } from "@/server/ai-chat-tools";
 // sent to the provider. Tool inputs and outputs are then checked against the
 // tools' own zod by the SDK's validateUIMessages.
 
+// Each part mirrors its type in `ai` 7.0.114 (TextUIPart, ReasoningUIPart,
+// FileUIPart, StepStartUIPart, the tool invocation states), optional fields
+// included (bar a file's providerReference: images come as data: URLs only),
+// so `.strict()` refuses only keys the SDK never writes. Recheck
+// them when the SDK is upgraded: the stream processor adds fields the panel
+// replays verbatim (a reasoning part's `id`, for one).
 const meta = z.record(z.string(), z.unknown()).optional();
 const dataUrl = new RegExp(
   `^data:(${AI_IMAGE_TYPES.join("|").replace(/\//g, "\\/")});base64,`,
 );
+const approval = z.record(z.string(), z.unknown()).optional();
 
 const toolPartSchema = z
   .object({
@@ -33,13 +40,26 @@ const toolPartSchema = z
       AI_TOOL_NAMES.map((n) => `tool-${n}`) as [string, ...string[]],
     ),
     toolCallId: z.string().min(1).max(200),
-    state: z.enum(["input-available", "output-available", "output-error"]),
-    input: z.unknown(),
+    // Unanswered calls (streaming, available) are dropped before the model.
+    state: z.enum([
+      "input-streaming",
+      "input-available",
+      "approval-requested",
+      "approval-responded",
+      "output-available",
+      "output-error",
+      "output-denied",
+    ]),
+    input: z.unknown().optional(),
+    rawInput: z.unknown().optional(),
     output: z.unknown().optional(),
     errorText: z.string().max(AI_MAX_TEXT_CHARS).optional(),
     providerExecuted: z.boolean().optional(),
+    preliminary: z.boolean().optional(),
     callProviderMetadata: meta,
     resultProviderMetadata: meta,
+    toolMetadata: meta,
+    approval,
     title: z.string().max(200).optional(),
   })
   .strict();
@@ -48,14 +68,19 @@ const partSchema = z.union([
   z
     .object({
       type: z.literal("text"),
+      // Not in TextUIPart today; accepted in case the stream starts adding it.
+      id: z.string().max(200).optional(),
       text: z.string().max(AI_MAX_TEXT_CHARS),
       state: z.enum(["streaming", "done"]).optional(),
       providerMetadata: meta,
     })
     .strict(),
+  // With thinking display omitted, text is empty and the signature rides in
+  // providerMetadata.
   z
     .object({
       type: z.literal("reasoning"),
+      id: z.string().max(200).optional(),
       text: z.string().max(AI_MAX_PROJECTION_CHARS),
       state: z.enum(["streaming", "done"]).optional(),
       providerMetadata: meta,
@@ -139,6 +164,25 @@ function measure(part: Part): { chars: number; images: number } {
   }
 }
 
+// Why a body was refused, for the server log only: paths and zod's messages,
+// never the content. A union failure is reported from the branch whose `type`
+// matched, which is the part the client meant to send.
+function describeIssues(issues: z.ZodIssue[]): string[] {
+  return issues.flatMap((issue) => {
+    if (issue.code === z.ZodIssueCode.invalid_union) {
+      const meant = issue.unionErrors.filter(
+        (e) => !e.issues.some((i) => i.path.at(-1) === "type"),
+      );
+      if (meant.length) return meant.flatMap((e) => describeIssues(e.issues));
+    }
+    return [`${issue.path.join(".") || "(body)"}: ${issue.message}`];
+  });
+}
+
+function logRefusal(reasons: string[]) {
+  console.debug(`AI chat body refused: ${reasons.slice(0, 5).join("; ")}`);
+}
+
 export async function parseChatBody(
   raw: unknown,
   tools: AssistantToolSet,
@@ -149,7 +193,10 @@ export async function parseChatBody(
     return { ok: false, reason: "too_long" };
 
   const body = chatBodySchema.safeParse(raw);
-  if (!body.success) return { ok: false, reason: "bad_request" };
+  if (!body.success) {
+    logRefusal(describeIssues(body.error.issues));
+    return { ok: false, reason: "bad_request" };
+  }
 
   let messages: UIMessage[];
   try {
@@ -157,7 +204,8 @@ export async function parseChatBody(
       messages: body.data.messages as UIMessage[],
       tools,
     });
-  } catch {
+  } catch (err) {
+    logRefusal([err instanceof Error ? err.message : String(err)]);
     return { ok: false, reason: "bad_request" };
   }
 
