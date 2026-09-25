@@ -2,7 +2,7 @@
 
 An assistant in the editor that edits the issue on the author's behalf. It can tidy a page, lay out pasted articles and
 photos, compose a cover, and rewrite when asked. **Built so far, dormant until a provider is set:** the spend ledger
-(#307) and the chat route (#308). This note holds the decisions every child issue assumes. Read it with the epic before
+(#307), the chat route (#308) and the editor's panel, which reads but doesn't edit yet (#309). This note holds the decisions every child issue assumes. Read it with the epic before
 working any child. Each child's PR updates it to match what shipped, and the epic's closing issue (#344) turns it into
 the feature doc (the `docs/pdf-import.md` shape).
 
@@ -157,6 +157,45 @@ client-safe.
   paths: `[fake:fail]`, `[fake:drop]`, `[fake:slow]` and `[fake:odd-model]`. `scripts/dev-ai-proxy-gate.mts` runs
   against it.
 
+#### Where it appears: the editor's side panel (#309)
+
+- **The rail's second tool.** An **Assistant** button (a sparkle) sits under Import PDF on the editor's right-hand rail,
+  only when the build sets `NEXT_PUBLIC_AI_ASSISTANT=1`. It opens the same side panel Import PDF uses: slide-in,
+  drag-to-resize, the canvas re-fits beside it, Close hangs under the rail button, one panel at a time. The assistant's
+  panel defaults to **400px** (min 300) rather than half the row, and each tool remembers its own width, so a 768px
+  tablet keeps about 300px of canvas. Once there are messages, a **New conversation** action hangs under Close.
+- **On a cover** the assistant stays open (Import PDF doesn't). Opening it hides the cover inspector, closing it
+  brings the inspector back, and a line at the top of the panel says so.
+- **States.**
+  - A published issue shows one message ("The assistant only works on drafts…") and no composer.
+  - A spent month (`GET /api/admin/ai/usage` says `remaining <= 0`, or the route answers `budget_spent`) keeps the
+    thread but turns the composer off with the route's copy.
+  - A full conversation says so and offers **Start a new one**: at 200 messages, when `too_long` comes back, or when
+    the history plus the next projection would pass `AI_MAX_CONVERSATION_CHARS` less 20k of headroom for the reply.
+  - Route errors show inline in the thread, verbatim.
+- **The composer.** A growing textarea (Enter sends, Shift+Enter is a new line) and one 44px button that is Send, or
+  Stop while a reply is on its way. The row under the text is left free for #343's attach button. Above it, #310's
+  four presets show disabled, with an "Editing arrives soon" tooltip. Replies render as plain paragraphs with markdown
+  lists and bold only, never HTML.
+- **The conversation** lives above the panel (`editor-side.tsx`), so closing the panel keeps it. It ends when the editor
+  is closed. `src/features/editor/assistant/use-assistant-chat.ts` is the only file that knows `useChat`, the
+  transport and the stream's parts. A run is one author message: one `runId`, the projection as a `data-projection`
+  part before the text, and tool calls answered in `onToolCall`. **Stop** aborts the stream and closes off the reply's
+  unanswered tool calls: one still streaming is dropped, and one that arrived unanswered becomes an `output-error`
+  "Stopped by the editor.". A half-made call can't be replayed, and only that never-sent tail changes. #308's
+  real-provider smoke test should cover it: stop mid tool call, send again, and the second request succeeds with
+  `cache_read_input_tokens > 0`.
+- **Usage footer.** "$1.20 of $20 used this month", from `GET /api/admin/ai/usage` (admin-only, 404 while off,
+  `resolveBudget()`'s figures), with a link to `/admin/ai`. It is fetched when the panel opens and after every run.
+- **Accessibility.** The thread is a `role="log"` region that is `aria-busy` while a reply streams, so the finished
+  reply is announced once. Opening puts focus in the composer (or on the drafts-only message), and Close hands it back
+  to the rail button.
+- **Photos uploaded but not placed** are the issue's own `images` rows. With the flag on, the editor page also loads
+  them. With it off, the page runs exactly the queries it did before.
+- The gate is `scripts/dev-assistant-panel-gate.mts <base-url>`, against a dev server started with
+  `AI_PROVIDER=fake`, `AI_MONTHLY_BUDGET_USD=5` and `NEXT_PUBLIC_AI_ASSISTANT=1`. Run it again with `--off` against a
+  server with none of them set.
+
 ### What the model reads
 
 - **A plain-text projection, never JSON:**
@@ -166,6 +205,19 @@ client-safe.
   - with cover tools, the cover's items and the linkable interior headings.
 - `read_page(n)` reads any other page.
 - Image ids must never describe content. The spike's `img-plot-leeks` let the model choose photos "by their filenames".
+- **Built (#309):** `src/features/editor/assistant/projection.ts` (pure), lifted from the spike. Body text is shown as
+  markdown by `src/lib/markdown-doc.ts` (`docToMarkdown`; `markdownToDoc` is #310's way back), which round-trips every
+  seed text block exactly. Photos appear as their `images.id` plus "landscape 1600×1067", never a url or a file name.
+  Covers are an element list, marked read-only until #313.
+- **The fill is measured, not estimated.** `measurePageFill()` in `page-metrics.ts` reads the geometry the overflow
+  marker uses: from the text area's top to the lowest block, against the room above the running footer. Every page is
+  laid out off screen in the editor's own presentation (the Import PDF measurer's) and cached per page object
+  (`measure-fills.tsx`). The outline reads "fits, ~80% full", "overflows by ~6 lines" (lines of body text) or "a
+  full-page photo".
+- **Bounds.** The projection and a `read_page` result are each at most 60,000 characters. A text block is cut at
+  2,500 characters in the current-page view and 12,000 in `read_page`, marked `[…]`. The outline stops listing pages
+  past 24,000 characters and says `read_page` shows the rest. `scripts/check-assistant-projection.mts` checks every
+  seed issue.
 
 ### Tools
 
