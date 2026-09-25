@@ -14,6 +14,17 @@
 import assert from "node:assert/strict";
 import { chromium, type Page } from "playwright";
 import postgres from "postgres";
+import {
+  block,
+  canonical,
+  content,
+  ids,
+  photoId,
+  sentence,
+  until,
+  where,
+  type Doc,
+} from "./fixtures/assistant/tools-gate-kit.mts";
 
 process.loadEnvFile?.(".env.local");
 const [base] = process.argv.slice(2);
@@ -29,7 +40,6 @@ const tag = `assistant-tools-gate-${crypto.randomUUID().slice(0, 8)}`;
 const adminId = crypto.randomUUID();
 const token = crypto.randomUUID();
 const draftId = crypto.randomUUID();
-const photoId = crypto.randomUUID();
 
 const RAIL = 'nav[aria-label="Editor panels"]';
 const BUTTON = `${RAIL} button[aria-label="Assistant"]`;
@@ -38,98 +48,17 @@ const LOG = '[role="log"]';
 const RUN = "[data-assistant-run]";
 const PRESET = (label: string) => `button:text-is("${label}")`;
 
-type Block = { id: string; type: string; [k: string]: unknown };
-type Doc = { pages: { id: string; cover?: boolean; blocks: Block[] }[] };
-const para = (text: string) => ({
-  type: "paragraph",
-  content: [{ type: "text", text }],
-});
-const text = (id: string, paras: string[]): Block => ({
-  id,
-  type: "text",
-  text: { type: "doc", content: paras.map(para) },
-});
-const ids = {
-  cover: crypto.randomUUID(),
-  p2: crypto.randomUUID(),
-  p3: crypto.randomUUID(),
-  head: crypto.randomUUID(),
-  intro: crypto.randomUUID(),
-  photo: crypto.randomUUID(),
-  story: crypto.randomUUID(),
-  next: crypto.randomUUID(),
-};
-const sentence = "The club met on the green at dawn to rig the boats. ";
-const content: Doc = {
-  pages: [
-    { id: ids.cover, cover: true, blocks: [] },
-    {
-      id: ids.p2,
-      blocks: [
-        {
-          id: ids.head,
-          type: "heading",
-          title: "Club news",
-          kicker: "",
-          level: "main",
-        },
-        text(ids.intro, ["A short introduction to the month."]),
-        {
-          id: ids.photo,
-          type: "image",
-          imageId: photoId,
-          align: "full",
-          width: 100,
-          caption: "",
-        },
-        text(ids.story, ["The first paragraph.", "The second paragraph."]),
-      ],
-    },
-    {
-      id: ids.p3,
-      blocks: [
-        {
-          id: ids.next,
-          type: "heading",
-          title: "Next month",
-          kicker: "",
-          level: "section",
-        },
-      ],
-    },
-  ],
-};
-
-// jsonb stores keys in its own order; compare with keys sorted.
-const canonical = (value: unknown): string =>
-  JSON.stringify(value, (_, v) =>
-    v && typeof v === "object" && !Array.isArray(v)
-      ? Object.fromEntries(
-          Object.entries(v).sort(([a], [b]) => a.localeCompare(b)),
-        )
-      : v,
-  );
 const saved = async (): Promise<Doc> =>
   (
     await sql<
       { content: Doc }[]
     >`select content from issues where id = ${draftId}`
   )[0]!.content;
-const where = (doc: Doc, id: string) =>
-  doc.pages.findIndex((p) => p.blocks.some((b) => b.id === id)) + 1;
-const block = (doc: Doc, id: string) =>
-  doc.pages.flatMap((p) => p.blocks).find((b) => b.id === id);
-async function until(what: string, test: () => Promise<boolean>, ms = 15_000) {
-  const end = Date.now() + ms;
-  while (Date.now() < end) {
-    if (await test()) return;
-    await new Promise((r) => setTimeout(r, 250));
-  }
-  throw new Error(`FAIL: timed out waiting for ${what}`);
-}
-
 /** Every tool output the panel sent back, in order, read off the requests. */
 const outputs: string[] = [];
+let capping = false;
+let capRun: string | undefined;
+let capped: Promise<void> | null = null;
 /** The author's words in each request that opened a run. */
 const asked: string[] = [];
 const seen = new Set<string>();
@@ -138,10 +67,11 @@ let requests = 0;
 async function runScript(
   page: Page,
   calls: { toolName: string; input: object }[],
+  prefix = "Please",
 ) {
   const from = outputs.length;
   const sent = requests;
-  await page.fill(INPUT, `Please [fake:tools]${JSON.stringify(calls)}`);
+  await page.fill(INPUT, `${prefix} [fake:tools]${JSON.stringify(calls)}`);
   await page.keyboard.press("Enter");
   await page.waitForFunction(
     (sel) => document.querySelector(sel)?.getAttribute("aria-busy") === "true",
@@ -161,6 +91,7 @@ async function checks(page: Page) {
       return;
     requests++;
     const body = req.postDataJSON() as {
+      runId: string;
       messages: {
         role: string;
         parts: {
@@ -171,6 +102,7 @@ async function checks(page: Page) {
         }[];
       }[];
     };
+    if (capping) capRun ??= body.runId;
     const last = body.messages.at(-1);
     if (last?.role === "user")
       asked.push(
@@ -188,6 +120,18 @@ async function checks(page: Page) {
         seen.add(part.toolCallId!);
         outputs.push(part.output.text);
       }
+  });
+  // The run-cap case: once the run's first reply is streaming, the run has
+  // "spent" $0.60, so the route refuses its next request.
+  page.on("response", (res) => {
+    if (!capping || capped || !capRun) return;
+    if (!res.url().endsWith("/api/admin/ai/chat")) return;
+    capped = sql`insert into ai_usage (id, user_id, issue_id, run_id, model,
+      provider, prompt_tokens, cache_read_tokens, cache_write_tokens,
+      completion_tokens, cost_usd) values (${crypto.randomUUID()}, ${adminId},
+      ${draftId}, ${capRun}, 'fake', 'fake', 0, 0, 0, 0, 0.6)`.then(
+      () => undefined,
+    );
   });
   await page.goto(`${base}/admin/issues/${draftId}/edit`);
   await page.waitForSelector(RAIL);
@@ -452,6 +396,37 @@ async function checks(page: Page) {
   ok(
     !JSON.stringify(block(await saved(), ids.intro)).includes("SHOULD NOT"),
     "nothing after the 41st ran",
+  );
+
+  heading("the run's $0.50 cap is the third breaker");
+  capping = true;
+  const run6 = await runScript(
+    page,
+    [
+      {
+        toolName: "set_text",
+        input: { blockId: ids.intro, markdown: "Capped edit." },
+      },
+      {
+        toolName: "set_text",
+        input: { blockId: ids.intro, markdown: "SHOULD NOT HAPPEN" },
+      },
+    ],
+    "Slowly [fake:slow]",
+  );
+  capping = false;
+  await capped;
+  ok(run6.requests === 2, "the route refused the run's second request");
+  await until("autosave of the capped edit", async () =>
+    JSON.stringify(block(await saved(), ids.intro)).includes("Capped edit."),
+  );
+  const capLine = await page.textContent(RUN);
+  const capLog = await page.textContent(LOG);
+  ok(
+    capLine?.includes("I got stuck, so I stopped.") &&
+      capLine.includes("Undo") &&
+      !capLog?.includes("used its share of the budget"),
+    "the panel shows the breaker's message, with Undo, not the route's error",
   );
 
   console.log("\nassistant tools gate: all checks passed");
