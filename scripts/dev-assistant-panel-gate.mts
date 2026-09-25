@@ -3,10 +3,10 @@
 //   AI_PROVIDER=fake AI_MONTHLY_BUDGET_USD=5 NEXT_PUBLIC_AI_ASSISTANT=1 PORT=3309 npm run dev
 //   npx tsx --tsconfig scripts/tsconfig.json scripts/dev-assistant-panel-gate.mts http://localhost:3309
 // It opens and closes the panel with the mouse and the keyboard, checks focus in
-// and out, the cover inspector's hand-off, the drafts-only and budget-spent
-// states, a streamed reply with a read_page round trip (the projection's fills
-// against the canvas's own overflow marker), Stop, an inline error, the usage
-// footer, the log's announcements, a full conversation and a tablet's width.
+// and out, the rail's order, the cover inspector's hand-off, the drafts-only and
+// budget-spent states, a streamed reply with a read_page round trip (fills vs the
+// canvas's overflow marker), Stop, an inline error, the usage footer, the log's
+// announcements, a full conversation and a tablet's width.
 // With `--off`, against a server with neither variable set, it checks the
 // button, the help section and the usage route are all absent.
 //
@@ -17,6 +17,7 @@ import assert from "node:assert/strict";
 import { chromium, type Page, type Request } from "playwright";
 import postgres from "postgres";
 import { AI_ERROR_COPY } from "../src/lib/ai-chat-contract";
+import { railOrder } from "./editor-rail-gate-support.mts";
 
 process.loadEnvFile?.(".env.local");
 const [base, flag] = process.argv.slice(2);
@@ -88,6 +89,8 @@ async function onChecks(page: Page, pageCount: number) {
     return el && !el.hasAttribute("aria-hidden") && el.clientWidth > 0;
   }, PANEL);
   ok(await panelOpen(page), "a click opens the panel");
+  const rail = await railOrder(page);
+  ok(rail.endsWith("Assistant, Close panel"), `Close at the foot: ${rail}`);
   ok(
     (await focusedId(page)) === "assistant-input",
     "focus goes to the composer",
@@ -220,6 +223,8 @@ async function onChecks(page: Page, pageCount: number) {
     ),
     "the second turn arrived",
   );
+  const withChat = await railOrder(page);
+  ok(withChat.endsWith("Assistant, New conversation, Close panel"), withChat);
   ok(
     bodies.every(
       (b) =>
@@ -453,7 +458,6 @@ try {
     select coalesce(max(number), 0) + 1000 as n from issues`;
   await sql`insert into issues (id, title, theme, status, content, number, published_at)
     values (${publishedId}, ${tag}, 'classic', 'published', ${sql.json(content as never)}, ${n}, now())`;
-
   const ctx = await browser.newContext({
     viewport: { width: 1440, height: 900 },
   });

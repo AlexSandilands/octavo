@@ -168,7 +168,7 @@ client-safe.
 
 - **The rail's second tool.** An **Assistant** button (a sparkle) sits under Import PDF on the editor's right-hand rail,
   only when the build sets `NEXT_PUBLIC_AI_ASSISTANT=1`. It opens the same side panel Import PDF uses: slide-in,
-  drag-to-resize, the canvas re-fits beside it, Close hangs under the rail button, one panel at a time. The assistant's
+  drag-to-resize, the canvas re-fits beside it, Close sits at the foot of the rail under every tool, one panel at a time. The assistant's
   panel defaults to **400px** (min 300) rather than half the row, and opens at its minimum wherever 400px would leave
   the canvas under 520px. Each tool remembers its own width. On a 768px tablet that leaves about 305px of canvas, and
   the page in it is about 173px wide beside the standing tool bar. Once there are messages, a **New conversation** action hangs under Close.

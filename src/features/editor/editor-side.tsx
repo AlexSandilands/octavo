@@ -32,7 +32,7 @@ const TITLES: Record<EditorTool, string> = {
 
 // The editor's right-hand side: the sliding panel and the rail that opens it.
 // The open tool hangs its actions under its rail button (the PDF panel reports
-// its Replace once a file is open); Close is the rail's own. The assistant's
+// its Replace once a file is open); Close is the rail's own, under every tool. The assistant's
 // conversation lives here rather than in its panel, so closing the panel
 // doesn't end it.
 export function EditorSide({
@@ -135,21 +135,10 @@ export function EditorSide({
           active={shown}
           panelId={PANEL_ID}
           buttons={buttons}
-          actions={
-            shown
-              ? [
-                  {
-                    id: "close",
-                    icon: "close",
-                    label: "Close panel",
-                    onClick: close,
-                  },
-                  ...(shown === "pdf" ? toolActions : assistantActions),
-                ]
-              : []
-          }
+          actions={shown === "pdf" ? toolActions : assistantActions}
           unavailable={cover ? { pdf: PDF_COVER_DESCRIPTION } : undefined}
           onToggle={onToggle}
+          onClose={close}
         />
       </div>
     </>
