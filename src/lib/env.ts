@@ -105,6 +105,9 @@ const runtimeBaseSchema = z.object({
   // Server/edge runtimes read it from here; the browser reads the same value
   // from NEXT_PUBLIC_SENTRY_DSN (a DSN is a public ingest key, not a secret).
   SENTRY_DSN: z.string().url().optional(),
+  // The AI assistant's standing monthly allowance in USD (issue #307); grants
+  // add to it. Unset is 0 — no spend without a grant.
+  AI_MONTHLY_BUDGET_USD: z.coerce.number().nonnegative().default(0),
 });
 
 const runtimeSchema = runtimeBaseSchema.superRefine((vars, ctx) => {
@@ -133,7 +136,10 @@ type BuildEnv = z.infer<typeof buildSchema>;
 type RuntimeEnv = z.infer<typeof runtimeSchema>;
 type Env = BuildEnv & RuntimeEnv;
 
-function parse<T>(schema: z.ZodType<T>, label: string): T {
+function parse<T>(
+  schema: z.ZodType<T, z.ZodTypeDef, unknown>,
+  label: string,
+): T {
   const result = schema.safeParse(process.env);
   if (!result.success) {
     throw new Error(
