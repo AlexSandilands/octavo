@@ -154,8 +154,9 @@ client-safe.
   signed reasoning block, as Anthropic's does. An author message gets
   `Looking at "<the projection's first line>".` and then a `read_page({ page: 1 })` call; a tool result gets
   `Read read_page (<n> characters back). Nothing needed changing.` Triggers in the author's text reach the failure
-  paths: `[fake:fail]`, `[fake:drop]`, `[fake:slow]` and `[fake:odd-model]`. `scripts/dev-ai-proxy-gate.mts` runs
-  against it.
+  paths: `[fake:fail]`, `[fake:drop]`, `[fake:slow]` and `[fake:odd-model]`. `[fake:tools]` followed by a JSON array
+  of `{ toolName, input }` scripts a run instead: one call a turn (`Step n: <tool>.`), then `Done: N steps.` (#310).
+  `scripts/dev-ai-proxy-gate.mts` and `scripts/dev-assistant-tools-gate.mts` run against it.
 
 #### Where it appears: the editor's side panel (#309)
 
