@@ -292,9 +292,8 @@ don't redesign it.
   changed, added, removed or moved (a reordered page counts only the blocks that left the old order). Undo is offered while
   the pages are still as the run left them; it is the editor's own undo, one step. Each tool call shows as one quiet line
   ("Rewrote a text block", "Carried text onto a new page"; a refused one says it didn't work).
-- **A run ends** when the model's last reply asks for no more tools, or the author stops it, or it fails. AI SDK 7 finishes
-  a reply's stream after a quick tool has already answered, so "no tool call still pending" alone ended runs (and their
-  line) after the first step; `use-assistant-chat.ts` also treats "every call answered" as carrying on.
+- **A run ends** when the model's last reply asks for no more tools, or the author stops it, or it fails (the rule is in
+  the panel section above); its line is worked out then.
 - **Presets (built, #310)** above the composer: _Tidy this page_, _Make bullets_, _Rewrite for clarity_, _Shorten to fit_
   (`assistant/presets.ts`). Each sends a fixed message for the page open now and, when one is selected, its block — the
   block id rides in brackets for the model and is hidden from the author's bubble. Tidy and Make bullets say to keep every
