@@ -59,6 +59,50 @@ evidence; this note is the conclusion.
   old turns. Newer Claude models also reject edited history when thinking is replayed. #308's real-provider smoke test must
   show `cache_read_input_tokens > 0` on the second request.
 
+#### The chat route (#308)
+
+`POST /api/admin/ai/chat` is the only server surface. The panel (#309) talks to it with `useChat` and the stock
+`DefaultChatTransport`; the constants and copy below live in `src/lib/ai-chat-contract.ts` and `src/lib/ai-tools.ts`, both
+client-safe.
+
+- **Request body** (JSON, ≤ 24 MB): `{ runId, issueId, messages }`, plus whatever `useChat` adds (`id`, `trigger`,
+  `messageId`), which the route ignores.
+  - `runId` is a uuid the panel mints per **author message**. It stays the same on every tool round trip of that run.
+  - `issueId` is the draft being edited.
+  - `messages` is `useChat`'s `UIMessage[]`, sent **whole and unmodified** every time: up to 200 messages. Never edit, trim
+    or reorder them, and **keep the `reasoning` parts** (they carry the provider's thinking signatures, and the model
+    rejects a tool turn replayed without them). Past 200 messages the panel ends the conversation.
+- **The projection** travels inside each author message as a data part placed **before** the author's text:
+  `sendMessage({ parts: [{ type: "data-projection", data: { text } }, { type: "text", text: request }] })`. The route turns
+  it into text for the model. Because it's part of the message, it stays in history verbatim and the cache prefix stays
+  stable. Limits: projection ≤ 60,000 chars, any text part ≤ 20,000 chars. `useChat` doesn't render data parts, so the
+  chat log shows only the author's words.
+- **The stream** is the AI SDK's UI message stream (SSE, `x-vercel-ai-ui-message-stream: v1`), which
+  `DefaultChatTransport` reads as-is. It carries text, reasoning (usually empty) and tool-call parts.
+- **Tool calls** arrive as typed parts (`tool-read_page`, …) with the input already validated against `aiToolSchemas`. The
+  panel runs them in `onToolCall`, answers with
+  `addToolOutput({ tool, toolCallId, output })`, and sets `sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls`
+  so the result goes back as the next request, same `runId`. `output` is always `AiToolOutput`: `{ text, images? }`. A
+  refusal is an ordinary output with its reason in `text`. `state: "output-error"` is kept for a crash in the executor.
+- **Images** can travel in a **tool result**. `images: [{ mediaType: "image/png" | "image/jpeg" | "image/webp", data }]`
+  (base64, no `data:` prefix, ≤ 1.5 MB each, ≤ 8 per output) reaches the model as image blocks inside the `tool_result`.
+  The route's `toModelOutput` does this, and `@ai-sdk/anthropic` sends them as `image` content in the tool result. That
+  suits `view_photo` / `view_page` (#342). The end-of-run review, which has no tool call to answer, sends its page images as
+  `file` parts (`data:` URLs, the same three types) in a user message. The route accepts no other file parts and no
+  remote URLs. At most 8 images per message and 80 per request.
+- **Errors** are always `{ error, code }` JSON, where `error` is a sentence to show verbatim. Before the stream it is the
+  response body, with a 4xx/5xx status. During the stream it is the stream's error text. Either way `useChat` puts it in
+  `error.message`, and `readAiError(error.message)` returns `{ error, code }`. The codes: `unauthorised` 403,
+  `bad_request` 400, `not_found` 404 (also the whole route while the assistant is off, with an empty body), `not_draft`
+  409, `too_long` 413, `rate_limited` 429, `budget_spent` 402, `run_cap` 402, `provider_down` 502 and `provider_busy` 503.
+- **Limits:**
+  - 300 requests and 20 distinct runs per admin per 10 minutes.
+  - A run is refused once it has spent $0.50.
+  - Every request is refused once the month's budget is spent.
+
+  The `runId` comes from the client, so a new id per request would dodge the per-run cap. The runs limiter is keyed on the
+  distinct ids it has seen, which bounds that, and the monthly budget is the real ceiling.
+
 ### What the model reads
 
 - **A plain-text projection, never JSON:**
