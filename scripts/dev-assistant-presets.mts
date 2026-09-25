@@ -1,8 +1,9 @@
-// Dev-only: each of the assistant's four presets (#310) run once on a seed page,
-// against whatever provider the dev server has — the fake for a dry run, a real
-// model for the PR's evidence:
+// Dev-only: each of the assistant's four presets (#310) run once on a seed page.
+// SPENDS MONEY with a real provider (about $0.12 for all four on claude-sonnet-5
+// on 2026-09-25): say which you mean. `--fake` is a dry run and stops after the
+// first preset if the server turns out to be real; `--real` spends.
 //   AI_PROVIDER=anthropic AI_MONTHLY_BUDGET_USD=5 NEXT_PUBLIC_AI_ASSISTANT=1 PORT=3310 npm run dev
-//   npx tsx --tsconfig scripts/tsconfig.json scripts/dev-assistant-presets.mts http://localhost:3310 <shots-dir>
+//   npx tsx --tsconfig scripts/tsconfig.json scripts/dev-assistant-presets.mts http://localhost:3310 --real [shots-dir]
 // The pages are the spike's cases (scripts/spike/assistant/cases): Tidy on the
 // notices lump (01), Make bullets on the notices page (02), Rewrite for clarity
 // on one selected paragraph (11), Shorten to fit on the overflowing essay page
@@ -28,9 +29,11 @@ import {
 } from "../src/features/editor/assistant/presets";
 
 process.loadEnvFile?.(".env.local");
-const [base, shots = ".data/assistant-presets"] = process.argv.slice(2);
-if (!base)
-  throw new Error("usage: dev-assistant-presets.mts <url> [shots-dir]");
+const [base, mode, shots = ".data/assistant-presets"] = process.argv.slice(2);
+if (!base || (mode !== "--fake" && mode !== "--real"))
+  throw new Error(
+    "usage: dev-assistant-presets.mts <url> --fake|--real [shots-dir] (--real spends money)",
+  );
 mkdirSync(shots, { recursive: true });
 const sql = postgres(process.env.DATABASE_URL!, { max: 1 });
 const tag = `assistant-presets-${crypto.randomUUID().slice(0, 8)}`;
@@ -250,6 +253,15 @@ try {
     await sql`insert into issues (id, title, theme, status, content) values
       (${id}, ${`${tag} ${c.preset}`}, ${issues[spike.issue]!.theme}, 'draft', ${sql.json(content as never)})`;
     results.push(await runCase(page, c, id, spike.page));
+    if (mode === "--fake") {
+      const [real] = await sql<{ n: number }[]>`
+        select count(*)::int as n from ai_usage
+        where issue_id = ${id} and provider <> 'fake'`;
+      if (real!.n > 0)
+        throw new Error(
+          "--fake, but the server called a real provider; stopped after one preset",
+        );
+    }
   }
   writeFileSync(join(shots, "results.json"), JSON.stringify(results, null, 2));
   console.log(`\nscreenshots and results.json in ${shots}`);

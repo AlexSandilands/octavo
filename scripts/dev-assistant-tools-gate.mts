@@ -18,6 +18,7 @@ import {
   block,
   canonical,
   content,
+  watchChat,
   ids,
   photoId,
   sentence,
@@ -27,7 +28,10 @@ import {
 } from "./fixtures/assistant/tools-gate-kit.mts";
 
 process.loadEnvFile?.(".env.local");
-const [base] = process.argv.slice(2);
+// An optional folder for screenshots of the held canvas and the run's line.
+const [base, shots] = process.argv.slice(2);
+const shot = (page: Page, name: string) =>
+  shots ? page.screenshot({ path: `${shots}/${name}.png` }) : Promise.resolve();
 if (!base) throw new Error("usage: dev-assistant-tools-gate.mts <url>");
 const sql = postgres(process.env.DATABASE_URL!, { max: 1 });
 const ok = (cond: unknown, msg: string) => {
@@ -54,76 +58,18 @@ const saved = async (): Promise<Doc> =>
       { content: Doc }[]
     >`select content from issues where id = ${draftId}`
   )[0]!.content;
-/** Every tool output the panel sent back, in order, read off the requests. */
-const outputs: string[] = [];
 let capping = false;
-let capRun: string | undefined;
 let capped: Promise<void> | null = null;
-/** The author's words in each request that opened a run. */
-const asked: string[] = [];
-const seen = new Set<string>();
-let requests = 0;
-
-async function runScript(
-  page: Page,
-  calls: { toolName: string; input: object }[],
-  prefix = "Please",
-) {
-  const from = outputs.length;
-  const sent = requests;
-  await page.fill(INPUT, `${prefix} [fake:tools]${JSON.stringify(calls)}`);
-  await page.keyboard.press("Enter");
-  await page.waitForFunction(
-    (sel) => document.querySelector(sel)?.getAttribute("aria-busy") === "true",
-    LOG,
-  );
-  await page.waitForFunction(
-    (sel) => document.querySelector(sel)?.getAttribute("aria-busy") === "false",
-    LOG,
-    { timeout: 60_000 },
-  );
-  return { outputs: outputs.slice(from), requests: requests - sent };
-}
 
 async function checks(page: Page) {
-  page.on("request", (req) => {
-    if (!req.url().endsWith("/api/admin/ai/chat") || req.method() !== "POST")
-      return;
-    requests++;
-    const body = req.postDataJSON() as {
-      runId: string;
-      messages: {
-        role: string;
-        parts: {
-          type: string;
-          toolCallId?: string;
-          text?: string;
-          output?: { text: string };
-        }[];
-      }[];
-    };
-    if (capping) capRun ??= body.runId;
-    const last = body.messages.at(-1);
-    if (last?.role === "user")
-      asked.push(
-        last.parts
-          .map((p) => (p.type === "text" ? (p.text ?? "") : ""))
-          .join(""),
-      );
-    if (last?.role !== "assistant") return;
-    for (const part of last.parts)
-      if (
-        part.type.startsWith("tool-") &&
-        part.output &&
-        !seen.has(part.toolCallId!)
-      ) {
-        seen.add(part.toolCallId!);
-        outputs.push(part.output.text);
-      }
-  });
+  const chat = watchChat(page);
+  const { asked } = chat;
+  const runScript = (_: Page, ...args: Parameters<typeof chat.runScript>) =>
+    chat.runScript(...args);
   // The run-cap case: once the run's first reply is streaming, the run has
   // "spent" $0.60, so the route refuses its next request.
   page.on("response", (res) => {
+    const capRun = chat.runId();
     if (!capping || capped || !capRun) return;
     if (!res.url().endsWith("/api/admin/ai/chat")) return;
     capped = sql`insert into ai_usage (id, user_id, issue_id, run_id, model,
@@ -229,7 +175,7 @@ async function checks(page: Page) {
 
   const line = await page.textContent(RUN);
   ok(
-    /^Changed \d+ blocks on pages 2–\d+ and added \d+ pages\s*·\s*Undo$/.test(
+    /^Changed \d+ blocks on pages 2–\d+ and added \d+ pages\s*Undo$/.test(
       line?.trim() ?? "",
     ),
     `the panel says what the run changed (${line?.trim()})`,
@@ -338,6 +284,81 @@ async function checks(page: Page) {
     "the panel's Undo takes the whole run back",
   );
   ok((await page.$(RUN)) === null, "and the run line goes");
+
+  heading("hands off during a run; one Undo takes it back");
+  const introBefore = canonical(block(await saved(), ids.intro)?.text);
+  const storyBefore = canonical(block(await saved(), ids.story)?.text);
+  await page.fill(
+    INPUT,
+    `Slowly [fake:slow] [fake:tools]${JSON.stringify([
+      {
+        toolName: "set_text",
+        input: { blockId: ids.intro, markdown: "RUN EDIT ONE" },
+      },
+      {
+        toolName: "set_text",
+        input: { blockId: ids.intro, markdown: "RUN EDIT TWO" },
+      },
+    ])}`,
+  );
+  await page.keyboard.press("Enter");
+  await page.waitForFunction(
+    (id) =>
+      document
+        .querySelector(`[data-block-id="${id}"]`)
+        ?.textContent?.includes("RUN EDIT ONE"),
+    ids.intro,
+    { timeout: 60_000 },
+  );
+  ok(
+    (await page.textContent(
+      '[role="status"]:text("The assistant is editing")',
+    )) !== null &&
+      (await page.$eval("[data-assistant-running]", (el) =>
+        el.getAttribute("data-assistant-running"),
+      )) === "true",
+    "the canvas says the assistant is editing",
+  );
+  await shot(page, "run-in-progress");
+  // Try to type into the story and to undo, between the run's two calls.
+  await page
+    .click(`[data-block-id="${ids.story}"]`, { force: true })
+    .catch(() => {});
+  ok(
+    await page.$eval(`[data-block-id="${ids.story}"]`, (el) => {
+      const inside = el.contains(document.activeElement);
+      return Boolean(el.closest("[inert]")) && !inside;
+    }),
+    "the page is inert: a click can't put the caret in it",
+  );
+  await page.keyboard.type(" AUTHORTYPED");
+  await page.evaluate(() =>
+    (document.activeElement as HTMLElement | null)?.blur(),
+  );
+  await page.keyboard.press("Control+z");
+  await page.waitForFunction(
+    (sel) => document.querySelector(sel)?.getAttribute("aria-busy") === "false",
+    LOG,
+    { timeout: 60_000 },
+  );
+  await until("autosave of the second edit", async () =>
+    JSON.stringify(block(await saved(), ids.intro)).includes("RUN EDIT TWO"),
+  );
+  const mid = await saved();
+  ok(
+    !JSON.stringify(mid).includes("AUTHORTYPED") &&
+      canonical(block(mid, ids.story)?.text) === storyBefore,
+    "typing into the page didn't land, and Ctrl+Z didn't split the run",
+  );
+  await shot(page, "run-line-undo");
+  await page.click(`${RUN} button:text-is("Undo")`);
+  await until(
+    "autosave of the run's Undo",
+    async () =>
+      canonical(block(await saved(), ids.intro)?.text) === introBefore,
+  );
+  ok(true, "one Undo restored the pre-run text");
+  ok((await page.$(RUN)) === null, "and the run's line went with it");
 
   heading("the circuit-breaker");
   const run4 = await runScript(page, [

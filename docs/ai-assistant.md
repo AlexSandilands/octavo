@@ -289,9 +289,16 @@ don't redesign it.
 - One author message plus everything the model does in response is one run, and **one history snapshot**: Ctrl/Cmd+Z reverts
   the run. The executor records the step before the run's first real change (a refused first call records nothing).
   After the run the thread ends with one line — "Changed 3 blocks on pages 4–5 and added 1 page · Undo" — counting blocks
-  changed, added, removed or moved (a reordered page counts only the blocks that left the old order). Undo is offered while
-  the pages are still as the run left them; it is the editor's own undo, one step. Each tool call shows as one quiet line
-  ("Rewrote a text block", "Carried text onto a new page"; a refused one says it didn't work).
+  changed, added, removed or moved (a reordered page counts only the blocks that left the old order). The line and its
+  Undo (a 44px button) stand only while the run's step is the one Ctrl+Z would take: anything else recorded since and the
+  line goes. It is the editor's own undo, one step. Each tool call shows as one quiet line ("Rewrote a text block",
+  "Carried text onto a new page"; a refused one says it didn't work).
+- **Hands off during a run.** One run is one step only if nothing else lands between its edits, so while a run is under
+  way the canvas and the header are `inert` (as Import PDF's are), a note over the canvas says "The assistant is editing
+  this issue. Stop it from the panel.", and the editor's Ctrl/Cmd+Z stands down. The page rail and the panel stay live. If
+  the pages change anyway between the run's calls (a page added from the rail, say), the executor refuses the next call and
+  the run stops with "The issue changed while I was working, so I stopped. What I'd done is still in place; Ctrl+Z takes
+  back your change first, then mine." — as it already did for a change during one call's measurement.
 - **A run ends** when the model's last reply asks for no more tools, or the author stops it, or it fails (the rule is in
   the panel section above); its line is worked out then.
 - **Presets (built, #310)** above the composer: _Tidy this page_, _Make bullets_, _Rewrite for clarity_, _Shorten to fit_
