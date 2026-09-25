@@ -7,7 +7,13 @@ import { AI_MAX_TEXT_CHARS } from "@/lib/ai-chat-contract";
 // The author's side of the chat (#309): a box that grows with what is typed,
 // Enter to send and Shift+Enter for a new line, and one 44px button that sends
 // or, while a reply is on its way, stops it. The row under the text keeps its
-// left end free for the attach button and thumbnails #343 adds.
+// left end free for the attach button and thumbnails #343 adds. Nothing is ever
+// cut silently: near the route's limit a count shows, and past it Send is off
+// until the text is shortened.
+
+/** The count shows from here, so a long paste is never a surprise. */
+const COUNT_FROM = AI_MAX_TEXT_CHARS - 2_000;
+const chars = (n: number) => n.toLocaleString("en-NZ");
 export function AssistantComposer({
   inputRef,
   busy,
@@ -31,7 +37,8 @@ export function AssistantComposer({
     el.style.height = `${Math.min(el.scrollHeight + 2, 240)}px`;
   }, [value, inputRef]);
 
-  const canSend = !busy && !disabled && value.trim() !== "";
+  const over = value.length > AI_MAX_TEXT_CHARS;
+  const canSend = !busy && !disabled && !over && value.trim() !== "";
   const submit = () => {
     if (!canSend) return;
     onSend(value);
@@ -59,9 +66,12 @@ export function AssistantComposer({
         rows={2}
         value={value}
         disabled={disabled}
-        maxLength={AI_MAX_TEXT_CHARS}
         placeholder={disabled ? "" : "Ask about this issue…"}
         aria-keyshortcuts="Enter"
+        aria-invalid={over || undefined}
+        aria-describedby={
+          value.length > COUNT_FROM ? "assistant-input-count" : undefined
+        }
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => {
           if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing)
@@ -73,7 +83,21 @@ export function AssistantComposer({
       />
       <div className="flex items-center gap-2 px-2 pb-2">
         {/* #343's attach button and thumbnails go here. */}
-        <div className="min-w-0 flex-1" />
+        <div className="min-w-0 flex-1">
+          {value.length > COUNT_FROM && (
+            <p
+              id="assistant-input-count"
+              role={over ? "alert" : undefined}
+              className={`px-1.5 font-sans text-[13px] leading-snug ${
+                over ? "text-warn font-semibold" : "text-faint"
+              }`}
+            >
+              {over
+                ? `${chars(value.length - AI_MAX_TEXT_CHARS)} characters over the ${chars(AI_MAX_TEXT_CHARS)} limit. Shorten it, or send it in parts.`
+                : `${chars(value.length)} of ${chars(AI_MAX_TEXT_CHARS)} characters`}
+            </p>
+          )}
+        </div>
         {busy ? (
           <button
             type="button"

@@ -20,8 +20,8 @@ export function SectionAssistant() {
       <Bullets>
         <li>
           <strong>Drafts only.</strong> On a published issue the panel says so
-          and offers nothing else. Unpublish it, or start a new issue, to use
-          the assistant.
+          and offers nothing else; the assistant works on the next issue you
+          start.
         </li>
         <li>
           <strong>On the cover</strong> the cover settings panel steps aside
