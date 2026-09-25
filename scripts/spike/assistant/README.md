@@ -352,3 +352,16 @@ indicative only.
 12. **Cost with vision stays small.** The whole-issue build (6 photos viewed, 5 pages laid out, cover composed and checked) cost
     $0.23 list price in 32 calls. A single-page edit is unchanged at ~$0.02–0.05. The ~$20/month budget still covers hundreds of
     requests.
+
+### Round 3 addition: the automatic end-of-run review (octavo-2c)
+
+13. **Include the review turn, but only for runs that touched the cover or more than one page.** Sending the changed pages
+    back as a second user message cost +25–40% per run ($0.03–0.11). It fixed the one clear fault it could see: 12's p5, where two
+    floats crowded the text into a two-word sliver. Afterwards that page reads properly. It made a marginal tweak on 14 and
+    correctly changed nothing on 08. It missed subtler problems: 14's small issue-details line is faint over the gravel, and
+    pages left mostly empty because each article starts a fresh page. So it catches collisions, not polish. For a single-page
+    edit the cost isn't worth it; for a whole-issue build or a cover it is.
+14. **Prompt wording alone won't stop the headline/standfirst swap.** Even with an explicit line against it, 14 again put every
+    all-caps headline into the kicker and the standfirst into the title. The capitals read as a label. Fix it structurally:
+    #312's planning tool should take `headline`, `kicker?` and `standfirst?` as separate fields, with a worked example in the tool
+    description, so a swap becomes a visible field choice rather than an inference.
