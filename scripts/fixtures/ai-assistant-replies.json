@@ -1,5 +1,30 @@
 [
   {
+    "id": "fba28a41-be90-4dd2-b3ed-c938a9197a2d",
+    "role": "assistant",
+    "parts": [
+      {
+        "type": "step-start"
+      },
+      {
+        "type": "reasoning",
+        "id": "0",
+        "text": "",
+        "providerMetadata": {
+          "anthropic": {
+            "signature": "EtQDCpABCBIYAipAjkzR8vnd6KJEEHuOSyTPXbNZEEiin3nNGvpdDbA+HA0eKA/DP9juSOubmfU0CFCk3oc7jIB2m7HXUBCoRO8ThTIPY2xhdWRlLXNvbm5ldC01OABCCHRoaW5raW5nWiQ4MjU1YWQ4ZC04OTRhLTQ2MjMtOGIyMS1kMmU4YmUyYzA0MGaoAZTu2NUGEgzhV9SZ+mbY4wr0r5kaDMqpGJjc2gjPNT/pJyIwUXLxZe2fc23eOZ0Je+pkqeJOYJKitXH3RNVWvkZzcPyUQ8MdrsqxAy36jtalt7QTKvABSx2gBQD8yac2yg368otUOL+5Vgn0VckuAb3VDeo1/wFqUGWitskX2JkuLaDbod12s2wlTH6vaVsnaaGxZMoaX2R/hjkVx/pazNZqLSO5z95yJUcx6Odd8/HcHCcD2zxJblN60Z4vPkC8Py86/dseCNrMzCeH2htOijryuUjdfadchP/zSzgJiLG6T/fUkauLVb7kAmYcjkvegknLPgCnk84O8vF+RzcW1GhnT8v5+pkGdmLq/QQD0gnZ9FhNfrOYHPrUdTThu1mrb3EZtZpWtG1W4r7gQ1s8jV820+C706hw+eqv8wtmUk/pxlwDPk/EGAE="
+          }
+        },
+        "state": "done"
+      },
+      {
+        "type": "text",
+        "text": "(reply)",
+        "state": "done"
+      }
+    ]
+  },
+  {
     "id": "",
     "role": "assistant",
     "parts": [
