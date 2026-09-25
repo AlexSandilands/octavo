@@ -1,8 +1,15 @@
 {
   "id": "09-question-only",
   "description": "A question about the issue; must answer without editing.",
+  "expectation": "A plain answer naming the nearly full pages and those with room for a photo; nothing is edited.",
   "issue": 5,
   "page": 2,
+  "estimate": {
+    "input": 2,
+    "cacheRead": 4500,
+    "cacheWrite": 2000,
+    "output": 255
+  },
   "instruction": "Which pages are nearly full, and which ones have room for another photo?",
   "expect": {
     "preserve": "page",

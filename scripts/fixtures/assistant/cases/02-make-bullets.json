@@ -1,8 +1,15 @@
 {
   "id": "02-make-bullets",
   "description": "Four separate notice blocks into one bulleted list.",
+  "expectation": "The four notice blocks become one bulleted list with the same words, the emptied blocks removed.",
   "issue": 2,
   "page": 4,
+  "estimate": {
+    "input": 4,
+    "cacheRead": 11000,
+    "cacheWrite": 2700,
+    "output": 575
+  },
   "instruction": "Make these notices into a bulleted list.",
   "expect": {
     "preserve": "page",

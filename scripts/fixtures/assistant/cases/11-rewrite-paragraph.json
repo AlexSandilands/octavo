@@ -1,8 +1,15 @@
 {
   "id": "11-rewrite-paragraph",
   "description": "Rewrite one named paragraph clearer and shorter; leave the rest.",
+  "expectation": "Only the second paragraph changes: clearer and a little shorter, same facts and voice; everything else is untouched.",
   "issue": 3,
   "page": 2,
+  "estimate": {
+    "input": 4,
+    "cacheRead": 10900,
+    "cacheWrite": 2100,
+    "output": 268
+  },
   "instruction": "Rewrite the second paragraph so it's clearer and a little shorter. Leave everything else as it is.",
   "expect": {
     "preserve": "none",

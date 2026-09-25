@@ -1,6 +1,7 @@
 {
   "id": "06-place-unplaced-photo",
   "description": "Place an uploaded but unused portrait photo beside a named paragraph, with a caption.",
+  "expectation": "The uploaded portrait photo is placed beside the Hall Roof Fund paragraph, floated right, with exactly the given caption.",
   "issue": 2,
   "page": 3,
   "setup": {
@@ -11,6 +12,12 @@
         "height": 1600
       }
     ]
+  },
+  "estimate": {
+    "input": 10,
+    "cacheRead": 33600,
+    "cacheWrite": 3500,
+    "output": 1100
   },
   "instruction": "I've uploaded a tall photo of the roof fund thermometer. Put it beside the Hall Roof Fund paragraph, wrapped on the right, with the caption: The thermometer outside the hall, updated every Sunday.",
   "expect": {

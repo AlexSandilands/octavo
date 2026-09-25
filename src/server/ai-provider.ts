@@ -5,10 +5,11 @@ import { createOpenAI } from "@ai-sdk/openai";
 import type { SharedV4ProviderOptions } from "@ai-sdk/provider";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import type { LanguageModel } from "ai";
-import { DEFAULT_ANTHROPIC_MODEL, env } from "@/lib/env";
+import { AI_PROVIDERS, DEFAULT_ANTHROPIC_MODEL, env } from "@/lib/env";
 import { createFakeModel } from "@/server/ai-fake-model";
 
-// The model the assistant runs on, from env (#308). Thinking and effort are
+// The model the assistant runs on, from env (#308); the model-selection
+// fixture (#315) builds one from its flags instead. Thinking and effort are
 // set explicitly for every provider rather than left to their defaults.
 
 // Adaptive thinking at a moderate effort: the spike's runs were tuned on it.
@@ -22,19 +23,43 @@ export type AssistantModel = {
   providerOptions: SharedV4ProviderOptions;
 };
 
+export type AssistantProvider = (typeof AI_PROVIDERS)[number];
+
 /** The configured model, or null when the assistant is off. */
 export function assistantModel(): AssistantModel | null {
   const provider = env.AI_PROVIDER;
+  if (!provider) return null;
+  const keys = {
+    anthropic: env.ANTHROPIC_API_KEY,
+    openai: env.OPENAI_API_KEY,
+    openrouter: env.OPENROUTER_API_KEY,
+    fake: undefined,
+  };
+  return createAssistantModel({
+    provider,
+    modelId: env.AI_MODEL,
+    apiKey: keys[provider],
+  });
+}
+
+/** A provider's model with the assistant's settings. `modelId` is required
+ *  except on anthropic (the default) and fake. */
+export function createAssistantModel({
+  provider,
+  modelId,
+  apiKey,
+}: {
+  provider: AssistantProvider;
+  modelId?: string;
+  apiKey?: string;
+}): AssistantModel {
   switch (provider) {
-    case undefined:
-      return null;
     case "anthropic": {
-      const modelId = env.AI_MODEL ?? DEFAULT_ANTHROPIC_MODEL;
-      const anthropic = createAnthropic({ apiKey: env.ANTHROPIC_API_KEY });
+      const id = modelId ?? DEFAULT_ANTHROPIC_MODEL;
       return {
         provider,
-        modelId,
-        model: anthropic(modelId),
+        modelId: id,
+        model: createAnthropic({ apiKey })(id),
         reasoning: REASONING,
         providerOptions: {
           anthropic: {
@@ -48,23 +73,23 @@ export function assistantModel(): AssistantModel | null {
       };
     }
     case "openai": {
-      const modelId = env.AI_MODEL!;
-      const openai = createOpenAI({ apiKey: env.OPENAI_API_KEY });
+      const id = required(provider, modelId);
       return {
         provider,
-        modelId,
-        model: openai(modelId),
+        modelId: id,
+        model: createOpenAI({ apiKey })(id),
         reasoning: REASONING,
         providerOptions: { openai: { reasoningEffort: REASONING } },
       };
     }
     case "openrouter": {
-      const modelId = env.AI_MODEL!;
-      const openrouter = createOpenRouter({ apiKey: env.OPENROUTER_API_KEY });
+      const id = required(provider, modelId);
       return {
         provider,
-        modelId,
-        model: openrouter(modelId, { reasoning: { effort: REASONING } }),
+        modelId: id,
+        model: createOpenRouter({ apiKey })(id, {
+          reasoning: { effort: REASONING },
+        }),
         reasoning: REASONING,
         providerOptions: {},
       };
@@ -78,4 +103,9 @@ export function assistantModel(): AssistantModel | null {
         providerOptions: {},
       };
   }
+}
+
+function required(provider: string, modelId: string | undefined): string {
+  if (!modelId) throw new Error(`The ${provider} provider needs a model id.`);
+  return modelId;
 }
