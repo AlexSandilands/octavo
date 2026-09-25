@@ -39,6 +39,11 @@
     "tools": ["set_text"],
     "forbiddenTools": ["split_page", "add_page", "move_block"],
     "maxCalls": 6,
-    "noOverflow": true
+    "noOverflow": true,
+    "done": [
+      {
+        "check": "changed"
+      }
+    ]
   }
 }

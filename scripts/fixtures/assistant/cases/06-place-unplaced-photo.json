@@ -24,6 +24,14 @@
     "preserve": "page",
     "tools": ["insert_blocks"],
     "maxCalls": 8,
-    "noOverflow": true
+    "noOverflow": true,
+    "done": [
+      {
+        "check": "image",
+        "imageId": "img-extra-thermometer",
+        "align": "right",
+        "caption": "The thermometer outside the hall, updated every Sunday."
+      }
+    ]
   }
 }

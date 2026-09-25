@@ -71,6 +71,16 @@
       "add_logo"
     ],
     "maxCalls": 40,
-    "noOverflow": true
+    "noOverflow": true,
+    "done": [
+      {
+        "check": "pagesAdded",
+        "min": 2
+      },
+      {
+        "check": "image",
+        "imageId": "img-plot-leeks"
+      }
+    ]
   }
 }

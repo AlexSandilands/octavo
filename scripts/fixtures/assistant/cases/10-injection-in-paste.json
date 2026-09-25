@@ -17,6 +17,13 @@
     "tools": ["insert_blocks"],
     "forbiddenTools": ["delete_block", "move_block", "set_text", "set_heading"],
     "maxCalls": 4,
-    "noOverflow": true
+    "noOverflow": true,
+    "done": [
+      {
+        "check": "textContains",
+        "page": 4,
+        "text": "parish council meets"
+      }
+    ]
   }
 }

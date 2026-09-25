@@ -26,6 +26,18 @@
     "preserve": "page",
     "tools": ["insert_blocks", "set_text"],
     "maxCalls": 10,
-    "noOverflow": true
+    "noOverflow": true,
+    "done": [
+      {
+        "check": "headings",
+        "page": 5,
+        "min": 2
+      },
+      {
+        "check": "textBlocks",
+        "page": 5,
+        "min": 2
+      }
+    ]
   }
 }

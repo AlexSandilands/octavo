@@ -72,6 +72,12 @@
       "add_logo"
     ],
     "maxCalls": 45,
-    "noOverflow": true
+    "noOverflow": true,
+    "done": [
+      {
+        "check": "pagesAdded",
+        "min": 2
+      }
+    ]
   }
 }

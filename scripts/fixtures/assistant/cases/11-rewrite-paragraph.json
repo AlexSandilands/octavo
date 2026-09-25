@@ -16,6 +16,13 @@
     "tools": ["set_text"],
     "maxCalls": 3,
     "noOverflow": true,
-    "maxChangedBlocks": 1
+    "maxChangedBlocks": 1,
+    "done": [
+      {
+        "check": "onlyText",
+        "page": 2,
+        "text": 2
+      }
+    ]
   }
 }

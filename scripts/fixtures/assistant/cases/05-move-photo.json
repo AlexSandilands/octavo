@@ -15,6 +15,14 @@
     "preserve": "page",
     "tools": ["move_block", "set_image_layout"],
     "maxCalls": 8,
-    "noOverflow": true
+    "noOverflow": true,
+    "done": [
+      {
+        "check": "image",
+        "imageId": "img-chart",
+        "align": "full",
+        "afterText": 2
+      }
+    ]
   }
 }

@@ -2,7 +2,8 @@
 // final issue passes issueContentSchema AND the wording check AND no page
 // overflows (measured by the editor's own measurer) AND no edits / forbidden
 // tools where the case says so AND calls ≤ maxCalls AND the run ended on its
-// own. `expect.tools` and `maxChangedBlocks` are reported, never failed on.
+// own AND the task was done (expect.done, checks.mts). `expect.tools` and
+// `maxChangedBlocks` are reported, never failed on.
 import {
   CONTENT_VERSION,
   issueContentSchema,
@@ -13,10 +14,13 @@ import {
 import { richTextToPlain } from "../../src/lib/rich-text-doc.ts";
 import type { PageFill } from "../../src/features/editor/assistant/page-fill.ts";
 import type { Case } from "../fixtures/assistant/cases.mts";
+import { doneFailures } from "./checks.mts";
 import type { CaseRun } from "./conversation.mts";
 
 export type Score = {
   pass: boolean;
+  /** The task was done, by the case's own checks. */
+  done: boolean;
   failures: string[];
   /** Reported, not failed on. */
   advisories: string[];
@@ -172,6 +176,12 @@ export function scoreCase(
   if (calls > c.expect.maxCalls)
     failures.push(`${calls} calls > max ${c.expect.maxCalls}`);
   if (run.stopped) failures.push(`stopped: ${run.stopped}`);
+  const notDone = doneFailures(c.expect.done, {
+    before: before.pages,
+    after: after.pages,
+    reply: run.reply,
+  });
+  failures.push(...notDone);
 
   const changed = changedBlocks(before, after);
   if (
@@ -188,6 +198,7 @@ export function scoreCase(
 
   return {
     pass: failures.length === 0,
+    done: notDone.length === 0,
     failures,
     advisories,
     calls,
