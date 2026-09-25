@@ -44,7 +44,11 @@ export type StageActions = Pick<
   | "fillPage"
   | "flowText"
   | "moveToNextPage"
-> & { registerImage: (imageId: string, image: ResolvedImage) => void };
+> & {
+  registerImage: (imageId: string, image: ResolvedImage) => void;
+  /** The assistant's Ask on the selected block (#311), when it's offered. */
+  ask?: (blockId: string, text: string) => boolean;
+};
 
 type PageEdits = ReturnType<typeof useEditorPages>;
 /** What a cover page brings to the stage: its inspector and its item edits. */
@@ -303,6 +307,7 @@ export function EditorStage({
                     flow={flow}
                     fillPage={actions.fillPage}
                     registerImage={actions.registerImage}
+                    ask={actions.ask}
                     preview={
                       preview
                         ? { index: preview.index, node: dropPreview }

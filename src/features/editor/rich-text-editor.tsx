@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Icon } from "@/components/icons";
@@ -28,12 +28,15 @@ export function RichTextEditor({
   align = "left",
   selected,
   onChange,
+  afterToolbar,
 }: {
   value: RichTextValue;
   size: TextSize;
   align?: TextAlign;
   selected: boolean;
   onChange: (patch: BlockPatch) => void;
+  /** Chrome that follows the toolbar in the tab order (the assistant's Ask). */
+  afterToolbar?: ReactNode;
 }) {
   const editor = useEditor({
     immediatelyRender: false,
@@ -100,6 +103,7 @@ export function RichTextEditor({
           onChange={onChange}
         />
       )}
+      {afterToolbar}
       <div
         // While selected, show the normal text caret instead of the block's
         // pointer cursor; unselected blocks keep the pointer (click to select).
@@ -157,7 +161,10 @@ function Toolbar({
   };
 
   return (
-    <div className="border-hair chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex flex-col gap-1.5 rounded-[8px] border bg-white p-1.5 shadow-[0_4px_14px_rgba(40,36,28,0.16)]">
+    <div
+      data-block-bar
+      className="border-hair chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex flex-col gap-1.5 rounded-[8px] border bg-white p-1.5 shadow-[0_4px_14px_rgba(40,36,28,0.16)]"
+    >
       <div className="flex items-center gap-1.5 whitespace-nowrap">
         <div className="border-hair flex overflow-hidden rounded-[6px] border">
           {TEXT_SIZES.map((s) => (

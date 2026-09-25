@@ -49,9 +49,7 @@ export function AssistantPanel({
 }) {
   const input = useRef<HTMLTextAreaElement>(null);
   const notice = useRef<HTMLDivElement>(null);
-  const spent =
-    chat.error?.code === "budget_spent" ||
-    (usage !== null && usage.remaining <= 0);
+  const spent = budgetSpent(chat, usage);
   const blocked = published || spent || chat.full;
   useEffect(() => {
     if (blocked) notice.current?.focus();
@@ -157,6 +155,14 @@ export function AssistantPanel({
     </div>
   );
 }
+
+/** The month's budget is spent: nothing more can be sent. */
+export const budgetSpent = (
+  chat: Pick<ReturnType<typeof useAssistantChat>, "error">,
+  usage: AiUsageSummary | null,
+) =>
+  chat.error?.code === "budget_spent" ||
+  (usage !== null && usage.remaining <= 0);
 
 // The quick requests (#310): one tap sends a fixed message for the page open
 // now (see presets.ts). Not on a cover, where the page tools don't reach.

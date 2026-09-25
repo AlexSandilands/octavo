@@ -1,7 +1,7 @@
 import { Bullets, Callout, GuideSection, P } from "./guide-ui";
 
-// The editing assistant (epic #306): what it can do, the presets (#310), and
-// Undo. Shown only where the deployment offers it.
+// The editing assistant (epic #306): what it can do, the presets (#310), the
+// per-block Ask (#311), and Undo. Shown only where the deployment offers it.
 // #314 adds how to see what it costs at the end of this section.
 export function SectionAssistant() {
   return (
@@ -41,6 +41,14 @@ export function SectionAssistant() {
           fits. The wording will change here too.
         </li>
       </Bullets>
+      <P>
+        To ask about one block without opening the panel, select the block and
+        press <strong>Ask</strong> at its top right corner. Type what you want,
+        such as &ldquo;make this a bulleted list&rdquo;, and press Enter. The
+        panel opens to show the answer and what changed. Escape closes the box
+        without sending anything. Ask isn&rsquo;t offered on the cover or on a
+        full-page photo.
+      </P>
       <P>
         When it has finished, a line in the panel says what changed, such as
         &ldquo;Changed 3 blocks on pages 4&ndash;5&rdquo;, with an{" "}
