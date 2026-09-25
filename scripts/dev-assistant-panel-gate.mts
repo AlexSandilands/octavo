@@ -82,6 +82,11 @@ async function onChecks(page: Page, pageCount: number) {
   );
   await page.click(BUTTON);
   await page.waitForSelector(INPUT);
+  // Waited for, not read once: a cold dev compile can land mid-slide.
+  await page.waitForFunction((sel) => {
+    const el = document.querySelector(sel);
+    return el && !el.hasAttribute("aria-hidden") && el.clientWidth > 0;
+  }, PANEL);
   ok(await panelOpen(page), "a click opens the panel");
   ok(
     (await focusedId(page)) === "assistant-input",
