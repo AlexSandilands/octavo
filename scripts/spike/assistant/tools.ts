@@ -32,6 +32,8 @@ export const insertItemSchema = z.discriminatedUnion("kind", [
       imageId: blockId,
       align: align.optional(),
       width: width.optional(),
+      caption: z.string().max(300).optional(),
+      alt: z.string().max(300).optional(),
     })
     .strict(),
 ]);
@@ -167,7 +169,7 @@ export const toolDefinitions: {
   {
     name: "insert_blocks",
     description:
-      "Insert new blocks, in order, after a block or at the top of a page. Headings take a title and level; text takes markdown; images take the id of a photo uploaded to the issue.",
+      "Insert new blocks, in order, after a block or at the top of a page. Headings take a title and level; text takes markdown; images take the id of a photo uploaded to the issue, with optional align (default full), width (default 100 for full, 45 for left/right), caption and alt.",
     inputSchema: obj(
       {
         after: anchorProp,
@@ -198,6 +200,8 @@ export const toolDefinitions: {
                   imageId: str("A photo id from the issue."),
                   align: alignProp,
                   width: widthProp,
+                  caption: str("Visible caption (optional, short)."),
+                  alt: str("Alt text: what a screen reader says."),
                 },
                 ["kind", "imageId"],
               ),
@@ -245,7 +249,8 @@ export const toolDefinitions: {
   },
   {
     name: "set_image_layout",
-    description: "Re-align or resize a placed photo.",
+    description:
+      "Re-align or resize a placed photo. Setting align to full without a width makes it full width (100); setting left/right without a width keeps its width, or uses 45 if it was full width.",
     inputSchema: obj({ blockId: idProp, align: alignProp, width: widthProp }, [
       "blockId",
       "align",

@@ -60,6 +60,15 @@ function editable(ctx: IssueContext, pageIdx: number): Page {
 const fillLine = (ctx: IssueContext, pageIdx: number) =>
   `page ${pageIdx + 1}: ${describeFill(estimateFill(ctx.content.pages[pageIdx]!, ctx.images))}`;
 
+/** Width when none is given: full means full width; a float can't be 100%. */
+function floatDefault(
+  align: "full" | "left" | "right",
+  current: number,
+): number {
+  if (align === "full") return 100;
+  return current >= 100 ? 45 : current;
+}
+
 /** Build a block from an insert item. `extras` carries fields only a case's setup may set. */
 export function buildBlock(
   ctx: IssueContext,
@@ -90,9 +99,9 @@ export function buildBlock(
       ...makeBlock("image"),
       imageId: item.imageId,
       align: item.align ?? "full",
-      width: item.width ?? 100,
-      caption: extras.caption ?? "",
-      alt: "",
+      width: item.width ?? floatDefault(item.align ?? "full", 100),
+      caption: item.caption ?? extras.caption ?? "",
+      alt: item.alt ?? "",
     } as Block;
   }
   const parsed = blockSchema.safeParse(block);
@@ -269,12 +278,10 @@ function apply(ctx: IssueContext, name: ToolName, args: unknown): string {
         refuse(`block ${a.blockId} is a ${b.type}, not a photo`);
       if (isPageOwning(b))
         refuse("full-page photos can't be re-laid out by the assistant yet");
-      at.page.blocks[at.blockIdx] = {
-        ...b,
-        align: a.align,
-        width: a.width ?? (b as { width: number }).width,
-      } as Block;
-      return `Set the photo to ${a.align} ${a.width ?? (b as { width: number }).width}%. ${fillLine(ctx, at.pageIdx)}`;
+      const w =
+        a.width ?? floatDefault(a.align, (b as { width: number }).width);
+      at.page.blocks[at.blockIdx] = { ...b, align: a.align, width: w } as Block;
+      return `Set the photo to ${a.align} ${w}%. ${fillLine(ctx, at.pageIdx)}`;
     }
   }
 }
