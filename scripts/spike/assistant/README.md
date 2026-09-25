@@ -132,6 +132,24 @@ calls, which production wouldn't make. The full runs are re-scored with the curr
 | 04 · haiku  | ✅   | 4 (6)       | 100%  | –       | none     | 2              | –        | 25s (25s)  | $0.037 | 26 / 14.3k / 9.1k / 2.9k                   |
 | 04 · sonnet | ❌   | 9 (6)       | 100%  | –       | none     | 2              | –        | 24s (24s)  | $0.069 | 14 / 60.7k / 7.4k / 2.5k                   |
 
+### Final runs after the prompt change ("stop as soon as the page fits"; "each new article starts at the top of a page")
+
+| case        | pass | calls (max) | valid | wording             | overflow | blocks changed | advisory                                                                                                                                                                         | time (api)  | cost   | in / cache read / cache write / out tokens |
+| ----------- | ---- | ----------- | ----- | ------------------- | -------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------ | ------------------------------------------ |
+| 04 · haiku  | ❌   | 14 (6)      | 100%  | –                   | none     | 2              | –                                                                                                                                                                                | 118s (117s) | $0.119 | 114 / 187.3k / 19.8k / 11.6k               |
+| 04 · sonnet | ❌   | 8 (6)       | 100%  | –                   | none     | 2              | –                                                                                                                                                                                | 29s (28s)   | $0.076 | 10 / 39.8k / 8.4k / 3.2k                   |
+| 08 · sonnet | ✅   | 9 (30)      | 100%  | kept (not verbatim) | none     | 29             | paste not verbatim incl. headings: word 717: before "…committee meeting since the coach leaves the…" / after "…committee meeting since getting there and the…" (864 → 874 words) | 33s (33s)   | $0.088 | 12 / 59.4k / 8.7k / 3.8k                   |
+
+- 08 · sonnet (checked by eye): all three articles now start at the top of a page (9, 11 and 12), and the page that was already there
+  follows on 13. It took 9 calls: `add_page` ×3, one `insert_blocks` per article, a `split_page` and two moves.
+- 04 got worse on both models, and Haiku went from 4 calls to 14. The same case and prompt can land at 4 or 14 calls, so treat one
+  run per case as indicative only. Both models trimmed in small steps. At "overflows by ~1 line — cut about 20 words", Haiku cut
+  the last paragraph from 22 words to 7, but a paragraph never drops below one line, so the estimate didn't move. It then
+  trimmed the other paragraph and fitted. The hint turns lines into words at full-column width, and a whole line only
+  goes when a paragraph's _last_ line empties, so the hint can ask for cuts that don't help. The real measurer has the same
+  step size, so production feedback should name _which_ paragraph's last line is short, or offer a word count per
+  paragraph. The damage is real too: Haiku left the closing paragraph at 7 words.
+
 ## What the spike says about #306
 
 - **Intent tools work on both models.** After `caption`/`alt` were accepted on inserted photos, every tool call in the runs had
@@ -143,8 +161,8 @@ calls, which production wouldn't make. The full runs are re-scored with the curr
 - **Overflow feedback has to be in units the model can act on.** With only "overflows by ~N lines", both models shaved a sentence
   at a time on 04 (8–9 calls). With "cut about N words", Haiku finished in 4 calls. Sonnet still used 9. It reached "fits, ~100%
   full" after 6 calls, then kept trimming to get under the prompt's "over ~90% counts as full". The hint aims at _fits_, which is
-  lower than the prompt's target, so the two disagree. The estimate's own step size shows too: cutting words doesn't always remove
-  a line.
+  lower than the prompt's target, so the two disagree. The prompt was then changed to "stop as soon as the page fits". See the final
+  runs above: step size, not just wording, is the problem.
 - **Haiku thrashed on the large paste (08): 80 calls, 182s, $0.26.** It went round a cycle: move a section back to an earlier
   page → that page overflows → `split_page` → pull the next article's blocks up one at a time → overflow → split → …
   - The #306 circuit-breaker (5 _identical consecutive_ calls) would not have tripped, because the cycle never repeats a call back
