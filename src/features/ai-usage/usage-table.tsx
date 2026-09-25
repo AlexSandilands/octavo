@@ -1,4 +1,4 @@
-import { formatCount, formatDay, formatMoney, formatSpend } from "./format";
+import { formatCost, formatCount, formatDay, formatSpend } from "./format";
 
 export type UsageDayRow = {
   /** "YYYY-MM-DD", UTC. */
@@ -91,7 +91,7 @@ export function UsageTable({
               <td className={NUM}>{formatCount(r.requests)}</td>
               <td className={NUM}>{formatCount(r.tokens)}</td>
               <td className={NUM}>{formatCount(r.cacheReadTokens)}</td>
-              <td className={NUM}>{formatMoney(r.cost)}</td>
+              <td className={NUM}>{formatCost(r.cost)}</td>
             </tr>
           ))}
         </tbody>

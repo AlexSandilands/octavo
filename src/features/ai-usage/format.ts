@@ -34,8 +34,9 @@ export function formatLeft(usd: number): string {
   return money.format(Math.floor(hundredths(usd)) / 100);
 }
 
-/** An average, where a fraction of a cent must not read as "US$0.00". */
-export function formatAverage(usd: number): string {
+/** A day's cost or an average, where a fraction of a cent must not read as
+ *  "US$0.00". */
+export function formatCost(usd: number): string {
   return usd > 0 && usd < 0.005 ? "less than a cent" : money.format(usd);
 }
 

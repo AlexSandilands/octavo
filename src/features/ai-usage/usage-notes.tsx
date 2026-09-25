@@ -1,4 +1,4 @@
-import { formatAverage, formatCount } from "./format";
+import { formatCost, formatCount } from "./format";
 
 // The plain-language paragraph under the figures (#314): what a request cost
 // on average in the month shown, who pays, and how to get more.
@@ -31,7 +31,7 @@ export function UsageNotes({
             {runs === 1 ? "message" : "messages"}, which took{" "}
             {formatCount(requests)} {requests === 1 ? "request" : "requests"} to
             the AI provider &mdash; about{" "}
-            <strong>{formatAverage(spent / requests)}</strong> a request.
+            <strong>{formatCost(spent / requests)}</strong> a request.
           </>
         )}{" "}
         A <em>run</em> is one message sent to the assistant and everything it

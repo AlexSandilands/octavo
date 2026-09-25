@@ -32,12 +32,14 @@ export async function checkAiUsagePage(d: Deps) {
   const { sql, base, adminPage: page, ok } = d;
   const tag = `admin-gate-${crypto.randomUUID()}`;
   try {
-    // Two days; one run crosses midnight UTC, so the month has 2 runs, not 3.
+    // Three days; one run crosses midnight UTC, so the month has 3 runs, not
+    // 4. The last day costs under a cent.
     const rows = [
       [`${tag}-a`, 10, 50_000, 2_000, 400, 0.041, "2001-02-03T10:00:00Z"],
       [`${tag}-a`, 5, 60_000, 0, 300, 0.023, "2001-02-03T23:59:59Z"],
       [`${tag}-b`, 7, 40_000, 100, 200, 0.019, "2001-02-04T00:00:00Z"],
       [`${tag}-a`, 3, 61_000, 0, 250, 0.022, "2001-02-04T00:00:30Z"],
+      [`${tag}-c`, 1, 1_000, 0, 10, 0.004, "2001-02-05T09:00:00Z"],
     ] as const;
     for (const [run, prompt, read, write, out, cost, at] of rows) {
       await sql`insert into ai_usage (id, run_id, model, provider,
@@ -117,15 +119,20 @@ export async function checkAiUsagePage(d: Deps) {
     );
     const days = await table.locator("tbody th[scope=row]").allInnerTexts();
     ok(
-      days.length === 2 && days[0]!.includes("4 Feb"),
-      `two day rows, newest first (${days.join(", ")})`,
+      days.length === 3 && days[0]!.includes("5 Feb"),
+      `three day rows, newest first (${days.join(", ")})`,
+    );
+    const subCent = await table.locator("tbody tr").first().innerText();
+    ok(
+      subCent.includes("less than a cent"),
+      `a day under a cent doesn't read as US$0.00 (${subCent.replace(/\s+/g, " ")})`,
     );
     const foot = await table.locator("tfoot tr").innerText();
     ok(
       foot.includes("Month total") &&
-        foot.split(/\s+/).includes("2") &&
+        foot.split(/\s+/).includes("3") &&
         foot.includes(usdUp(spent)),
-      `the foot counts 2 runs once each and totals ${usdUp(spent)} (${foot.replace(/\s+/g, " ")})`,
+      `the foot counts 3 runs once each and totals ${usdUp(spent)} (${foot.replace(/\s+/g, " ")})`,
     );
 
     // ── Keyboard: month picker → table, then choose a month ────────────────
@@ -164,6 +171,20 @@ export async function checkAiUsagePage(d: Deps) {
         (await page.locator("table").count()) === 0 &&
         (await page.getByText("wasn’t used in March 2001").count()) === 1,
       "an empty month shows US$0.00 and says it wasn't used",
+    );
+
+    // A month before the ledger began reads as this one, keeping the picker
+    // short however the address was typed.
+    await page.goto(`${base}/admin/ai?month=0026-09`);
+    const thisMonth = new Intl.DateTimeFormat("en-NZ", {
+      month: "long",
+      year: "numeric",
+      timeZone: "UTC",
+    }).format(new Date());
+    await page.getByRole("heading", { name: "Day by day" }).waitFor();
+    ok(
+      (await text("main h2")).includes(thisMonth),
+      `?month=0026-09 reads as ${thisMonth}`,
     );
 
     // ── Linked from Magazine details while the assistant is on ─────────────

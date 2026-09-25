@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
 // Assistant usage (#314): the month's spend against its allowance, and the
 // month day by day. Read-only — the allowance and top-ups are made outside the
 // app. `?month=YYYY-MM` picks a month, like the admin lists' URL state; a
-// malformed or future month reads as this one.
+// malformed month, or one outside the ledger's life, reads as this one.
 const paramsSchema = z.object({ month: monthParamSchema });
 
 export default async function AiUsagePage({
@@ -32,16 +32,21 @@ export default async function AiUsagePage({
   const now = new Date();
   const thisMonth = monthOf(now);
   const asked = paramsSchema.parse(await searchParams).month;
-  const month = asked && asked <= thisMonth ? asked : thisMonth;
+  // The picker runs from the ledger's first month, and so does ?month= — an
+  // unbounded one (a typo'd 0026-09) would list thousands of months.
+  const earliest = [
+    (await firstLedgerMonth()) ?? thisMonth,
+    thisMonth,
+  ].sort()[0]!;
+  const month =
+    asked && asked >= earliest && asked <= thisMonth ? asked : thisMonth;
   const current = month === thisMonth;
 
-  const [budget, days, runs, first] = await Promise.all([
+  const [budget, days, runs] = await Promise.all([
     resolveBudget(monthStart(month)),
     usageByDay(month),
     monthRuns(month),
-    firstLedgerMonth(),
   ]);
-  const earliest = [first ?? thisMonth, month].sort()[0]!;
   const months = monthsBetween(earliest, thisMonth);
   const monthName = monthLabel(month);
   const rows = days
