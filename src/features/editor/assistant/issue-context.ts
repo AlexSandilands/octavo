@@ -15,7 +15,7 @@ export type AssistantIssue = {
   images: Record<string, PhotoShape>;
   /** Photos uploaded to this issue, placed or not (`images.issue_id`). */
   uploads: string[];
-  logos: { id: string; name: string }[];
+  logos: { id: string; name: string; imageId: string }[];
   sponsorNames: string[];
   /** Page id → the editor's measured fill; a missing page reads "not measured". */
   fills: Record<string, PageFill>;

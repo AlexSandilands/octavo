@@ -10,6 +10,7 @@ import {
 } from "@/lib/ai-tools";
 import type { EditorSnapshot } from "../use-editor-history";
 import { applyEdit, Refusal } from "./edit-tools";
+import { applyCoverTool, isCoverTool } from "./cover-tools";
 import { describeReport, type EditMeasurer } from "./page-report";
 import { clip } from "./projection-text";
 
@@ -73,6 +74,8 @@ function argumentError(name: string, error: ZodError): string {
 export type CallContext = {
   /** Photos uploaded to this issue: the only ones insert_blocks places. */
   photos: ReadonlySet<string>;
+  /** The logo library, for add_logo (#313). */
+  logos: readonly { id: string; name: string; imageId: string }[];
   /** read_page, answered from the projection's own view of the issue. */
   read: (input: unknown) => AiToolOutput;
   /** view_page / view_photo (#342): a picture, within the run's view budget. */
@@ -93,7 +96,7 @@ export function createAssistantExecutor({
   const edit = async (
     name: Exclude<AiToolName, AiReadOnlyTool>,
     input: unknown,
-    photos: ReadonlySet<string>,
+    call: CallContext,
   ): Promise<string> => {
     const before = handle.state();
     // One run is one undo step only while nothing else has changed the pages
@@ -103,11 +106,24 @@ export function createAssistantExecutor({
       return CHANGED_UNDER_RUN;
     }
     try {
-      const result = await applyEdit(
-        { pages: before.pages, photos, measure },
-        name,
-        input,
-      );
+      const { photos, logos } = call;
+      const result = isCoverTool(name)
+        ? await applyCoverTool(
+            {
+              pages: before.pages,
+              curPage: before.curPage,
+              photos,
+              logos,
+              measure,
+            },
+            name,
+            input,
+          )
+        : await applyEdit(
+            { pages: before.pages, photos, measure },
+            name,
+            input,
+          );
       const valid = issueContentSchema.safeParse({
         version: CONTENT_VERSION,
         pages: result.pages,
@@ -172,7 +188,7 @@ export function createAssistantExecutor({
     if (tool === "view_page" || tool === "view_photo")
       return call.view(tool, input);
     return {
-      text: clip(await edit(tool, input, call.photos), AI_MAX_TOOL_TEXT),
+      text: clip(await edit(tool, input, call), AI_MAX_TOOL_TEXT),
     };
   };
 
@@ -284,6 +300,24 @@ export function summarizeRun(before: Page[], after: Page[]): RunChange | null {
     // A removed block is reported on its page as it stands now.
     const index = after.findIndex((p) => p.id === b.pageId);
     pageNos.push(index >= 0 ? index + 1 : b.page);
+  }
+  // Cover items (#313) count like blocks; a cover-wide change counts once.
+  for (const [i, p] of after.entries()) {
+    const old = before.find((q) => q.id === p.id);
+    if (!old?.cover && !p.cover) continue;
+    const els = new Map((old?.coverElements ?? []).map((e) => [e.id, e]));
+    let n = 0;
+    for (const e of p.coverElements ?? []) {
+      const was = els.get(e.id);
+      if (!was || JSON.stringify(was) !== JSON.stringify(e)) n++;
+      els.delete(e.id);
+    }
+    n += els.size;
+    if (JSON.stringify(old?.coverOverlay) !== JSON.stringify(p.coverOverlay))
+      n = Math.max(n, 1);
+    if (!n) continue;
+    blocks += n;
+    pageNos.push(i + 1);
   }
   const added = after.length - before.length;
   if (!blocks && added <= 0) return null;

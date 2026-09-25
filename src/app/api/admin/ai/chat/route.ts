@@ -140,8 +140,8 @@ export async function POST(request: Request) {
     return aiErrorResponse("bad_request");
   }
   // Fixed by what's merged, never by env: one prompt, one cached prefix, and
-  // the configuration #315's fixture tests. Vision is #342's part.
-  const instructions = systemPrompt({ vision: true });
+  // the configuration #315's fixture tests. Vision is #342's part, the cover #313's.
+  const instructions = systemPrompt({ vision: true, cover: true });
 
   const meter = createMeter({
     userId: admin.id,

@@ -90,9 +90,15 @@ export function useAssistantSnapshot({
         images: now.images,
         // Every photo the editor holds for this issue; the library's marks are logos, not photos.
         uploads: Object.keys(now.images).filter((id) => !logoImages.has(id)),
-        logos: now.logos.map((l) => ({ id: l.id, name: l.name })),
+        logos: now.logos.map((l) => ({
+          id: l.id,
+          name: l.name,
+          imageId: l.imageId,
+        })),
         sponsorNames: now.sponsors.map((s) => s.name),
         fills: now.measurer ? await now.measurer.measure(now.pages) : {},
+        // The cover tools (#313), placement and style included.
+        coverTools: "style" as const,
       },
     };
   };

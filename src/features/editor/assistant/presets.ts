@@ -1,13 +1,16 @@
 // The quick requests above the composer (#310): each a fixed message aimed at
 // the page open now and, when one is selected, its block. The block id rides in
 // brackets for the model; the thread shows the author the words around it.
-// Rewrite and Shorten say that the wording may change; the other two don't.
+// Rewrite and Shorten say that the wording may change; Tidy and Make bullets
+// don't. A cover gets Compose cover instead of the four (#313).
 
 export const PRESETS = [
-  { id: "tidy", label: "Tidy this page" },
-  { id: "bullets", label: "Make bullets" },
-  { id: "rewrite", label: "Rewrite for clarity" },
-  { id: "shorten", label: "Shorten to fit" },
+  { id: "tidy", label: "Tidy this page", cover: false },
+  { id: "bullets", label: "Make bullets", cover: false },
+  { id: "rewrite", label: "Rewrite for clarity", cover: false },
+  { id: "shorten", label: "Shorten to fit", cover: false },
+  // The one preset a cover gets (#313).
+  { id: "compose", label: "Compose cover", cover: true },
 ] as const;
 export type PresetId = (typeof PRESETS)[number]["id"];
 
@@ -27,6 +30,8 @@ export function presetMessage(id: PresetId, target: PresetTarget): string {
       return `Rewrite ${where} for clarity. The wording may change; keep the facts and the voice.`;
     case "shorten":
       return `Shorten the text on ${where} until the page fits, and stop as soon as it does. The wording may change; keep the facts and the voice.`;
+    case "compose":
+      return `Compose the cover on page ${target.page}. Use the issue's strongest story as the lead and keep the current background.`;
   }
 }
 

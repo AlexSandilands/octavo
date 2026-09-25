@@ -118,6 +118,7 @@ export function useAssistantTools({
       measure: {
         report: async (page) => (await measured()).report(page),
         textFlow: async (blocks, id) => (await measured()).textFlow(blocks, id),
+        cover: async (page, pages) => (await measured()).cover(page, pages),
       },
       handle: {
         state: () => latest.current.state,
@@ -149,6 +150,7 @@ export function useAssistantTools({
       executor.current
         ? executor.current.run(name, input, {
             photos: new Set(issue.uploads),
+            logos: issue.logos,
             read: (args) => readPage(args, issue),
             view: (tool, args) =>
               vision.view(tool, args, issue, pictured.current),

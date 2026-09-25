@@ -20,8 +20,7 @@ import type { useAssistantChat } from "./use-assistant-chat";
 const DRAFTS_ONLY =
   "The assistant only works on drafts. Start a new issue to use it.";
 const INTRO =
-  "Ask it to tidy a page, turn a list into bullets, rewrite or shorten text, or place photos, or ask what’s on a page. Everything it does can be undone in one step.";
-const COVER_PRESETS = "Presets work on the inside pages, not the cover.";
+  "Ask it to tidy a page, turn a list into bullets, rewrite or shorten text, place photos or compose the cover, or ask what’s on a page. Everything it does can be undone in one step.";
 
 // The assistant's side panel (#309): every state it can be in. A published
 // issue gets one message and no composer; a spent budget keeps the thread but
@@ -160,7 +159,7 @@ export function AssistantPanel({
 }
 
 // The quick requests (#310): one tap sends a fixed message for the page open
-// now (see presets.ts). Not on a cover, where the page tools don't reach.
+// now (see presets.ts). A cover gets its own (#313).
 function Presets({
   disabled,
   cover,
@@ -170,32 +169,21 @@ function Presets({
   cover: boolean;
   onPick: (id: PresetId) => void;
 }) {
-  const off = disabled || cover;
   return (
-    <div className="group relative flex flex-wrap gap-1.5">
-      {PRESETS.map((preset) => (
+    <div className="flex flex-wrap gap-1.5">
+      {PRESETS.filter((preset) => preset.cover === cover).map((preset) => (
         <button
           key={preset.id}
           type="button"
-          aria-disabled={off || undefined}
-          aria-describedby={cover ? "assistant-presets-cover" : undefined}
+          aria-disabled={disabled || undefined}
           onClick={() => {
-            if (!off) onPick(preset.id);
+            if (!disabled) onPick(preset.id);
           }}
-          className={`border-hair-warm text-ink h-9 rounded-full border bg-white px-3 font-sans text-[13px] font-semibold ${off ? "cursor-default opacity-45" : "hover:border-accent hover:text-accent-strong"}`}
+          className={`border-hair-warm text-ink h-9 rounded-full border bg-white px-3 font-sans text-[13px] font-semibold ${disabled ? "cursor-default opacity-45" : "hover:border-accent hover:text-accent-strong"}`}
         >
           {preset.label}
         </button>
       ))}
-      {cover && (
-        <span
-          id="assistant-presets-cover"
-          role="tooltip"
-          className="bg-ink text-paper pointer-events-none absolute bottom-full left-0 z-50 mb-2 rounded-md px-3 py-2 font-sans text-xs font-medium opacity-0 shadow-md transition-opacity group-focus-within:opacity-100 group-hover:opacity-100"
-        >
-          {COVER_PRESETS}
-        </span>
-      )}
     </div>
   );
 }

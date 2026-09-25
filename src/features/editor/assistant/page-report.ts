@@ -1,5 +1,6 @@
 import type { Block, Page } from "@/lib/blocks";
 import type { TextFlowMetrics } from "../text-flow";
+import type { CoverWarning } from "../use-cover-layout-warnings";
 import { BODY_LINE_PX, describeFill, type PageFill } from "./page-fill";
 
 // What the executor learns about a page after an edit (#310), and how it's told
@@ -25,6 +26,8 @@ export interface EditMeasurer {
   report(page: Page): Promise<PageReport>;
   /** The flow split's metrics for `blockId`, laid out after `blocks`' others. */
   textFlow(blocks: Block[], blockId: string): Promise<TextFlowMetrics | null>;
+  /** A cover laid out as members see it, and the editor's layout warnings on it (#313). */
+  cover(page: Page, pages: Page[]): Promise<CoverWarning[]>;
 }
 
 const MAX_LAST_LINES = 12;
