@@ -250,6 +250,39 @@ Drafts in the local DB are titled "Spike · <case> · sonnet · <variant>". File
   text, a phrase that is also a heading, and a headline ending in "?". It now aligns the paste in order and treats short
   lines with no closing full stop as optional headings. Read failures in `after.md` before trusting them.
 
+## Round 3: an automatic end-of-run page review (`--review`, 2026-09-25)
+
+After the model's turn ends, the harness renders every page the run changed (cover first, up to 8). It sends them back as a
+**second user message in the same session**: the text of `review-message.md`, then per page "Page N (fits, ~X% full, measured)" and
+the PNG. The model gets one more turn with the same tools. There's one review round only. Transport: Claude Code's
+`--input-format stream-json`, with the second message written to stdin when the first `result` event arrives. That's the same
+shape as an AI SDK follow-up with image parts; `--resume` wasn't needed. Each result dir keeps `pages-pre-review/` beside `pages/`.
+The prompt also gained a line keeping the editor's headline as the title.
+
+| case                  | flags                          | pass             | calls (review turn)                                           | pages shown | first turn | review turn | draft                                  |
+| --------------------- | ------------------------------ | ---------------- | ------------------------------------------------------------- | ----------- | ---------- | ----------- | -------------------------------------- |
+| 14 new issue (photos) | vision (10 views), cover-style | ❌ structure\*   | 31 (1: `set_image_layout`)                                    | p1–p6       | $0.198     | $0.062      | `0a64165f-d276-4484-a1bd-5da65c68c70d` |
+| 12 new issue (art)    | vision, cover-style            | ❌ 49 calls > 40 | 49 (6: 2 × `move_block`, 3 × `set_image_layout`, `view_page`) | p1–p6       | $0.250     | $0.106      | `d195afdb-4629-453a-954a-5b881a8ae0c3` |
+| 08 large paste        | no vision tools                | ✅               | 9 (0)                                                         | p9–p11      | $0.089     | $0.030      | –                                      |
+
+Result dirs: `results/sonnet-*review-2026-09-25T03-21-07-*`. Total ≈ $0.73.
+
+What the review turn did:
+
+- **12: it fixed a real layout fault.** Page 5 had two floated photos crowding the text, with a two-word sliver beside one of them. It moved
+  the shed photo up beside the text and made the raised-beds photo a wide one at the foot. It spent its last view confirming (p5,
+  90% full). The before/after pictures show the improvement. It correctly left the cover alone. The 9 extra calls tipped it over
+  the case's 40-call cap.
+- **14: a marginal change.** It widened Joan's photo from 44% to 50% on p4, a page that stays about a third empty, and passed the
+  cover. In this run the cover's stories sit in dark panels and read well. The masthead is fair, and the small details line is
+  nearly invisible on the gravel. The review didn't flag that.
+- **08: it changed nothing, and said why.** Page 9 is full, and page 11 is half empty with no photo to place, so it suggested one. That's
+  the right answer with no vision tools.
+- \* **The new prompt line did not stop the headline swap.** In 14, every article's standfirst is again the title and its
+  ALL-CAPS headline the kicker. The paste sets each headline in capitals above a sentence-case standfirst, and the model
+  reads the capitals as a label. A prompt line isn't enough; it needs a stronger cue (an example) or a structural check.
+- Cost: the review turn added 25–40% to a run ($0.03–0.11). The page images are the bulk of it.
+
 ## Recommendation (octavo-2c, 2026-09-25)
 
 Based on 29 model runs (≈ $1.75 list price) over 11 cases, one run per case per prompt version, so read the numbers as
