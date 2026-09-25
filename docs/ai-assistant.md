@@ -72,7 +72,9 @@ client-safe.
   - `issueId` is the draft being edited.
   - `messages` is `useChat`'s `UIMessage[]`, sent **whole and unmodified** every time: up to 200 messages. Never edit, trim
     or reorder them, and **keep the `reasoning` parts** (they carry the provider's thinking signatures, and the model
-    rejects a tool turn replayed without them). Past 200 messages the panel ends the conversation.
+    rejects a tool turn replayed without them). Past 200 messages the panel ends the conversation. A reply the author
+    stopped can stay as it arrived: `@ai-sdk/anthropic` drops a thinking part that has no signature yet rather than send
+    it, and the smoke run confirmed that a stopped tool call closed as `output-error` replays cleanly.
 - **The projection** travels inside each author message as a data part placed **before** the author's text:
   `sendMessage({ parts: [{ type: "data-projection", data: { text } }, { type: "text", text: request }] })`. The route turns
   it into text for the model. Because it's part of the message, it stays in history verbatim and the cache prefix stays
@@ -129,7 +131,12 @@ client-safe.
   reports usage, the row gets its uncached, cache-read, cache-write and output tokens and the model id it reported (or
   the configured one, when the reported id has no price). With no usage (the author stopped the reply, or the stream
   failed partway), the tokens are estimated at 3 characters each and the model is marked `~`. A request that failed
-  before anything streamed gets a zero-token `~` row.
+  before anything streamed gets a zero-token `~` row. An estimate prices the whole input as uncached, so it
+  overstates what the provider bills (in the smoke run, $0.007 for a request whose neighbours cost about $0.002).
+- **Real-provider smoke** (2026-09-25, `claude-sonnet-5`, `scripts/dev-ai-smoke.mts`): every request of a
+  seven-request conversation after the first read the whole conversation so far from cache (2.1k–4.4k tokens read,
+  2 uncached). A request costs about $0.002 at this size. The conversation included a reply stopped mid-tool-call and
+  one cut off mid-stream, and each was followed by a request the model accepted.
 - **`AI_PROVIDER=fake`** (`src/server/ai-fake-model.ts`) is deterministic and costs $0. An author message gets
   `Looking at "<the projection's first line>".` and then a `read_page({ page: 1 })` call; a tool result gets
   `Read read_page (<n> characters back). Nothing needed changing.` Triggers in the author's text reach the failure
@@ -237,7 +244,8 @@ don't redesign it.
 - **Children merge to `main` one at a time, dormant.** With `AI_PROVIDER` unset the rail button is hidden and the route 404s. The
   demo and members' sites don't set it, so merged work changes nothing there except additive migrations and gated code paths.
 - **Rollout is an env change, not a merge:**
-  1. a local production build with the owner's key;
+  1. a local production build with the owner's key; `scripts/dev-ai-smoke.mts` (a handful of requests, about 2¢) checks
+     reported tokens, cache reads and a stopped run;
   2. the demo site (set `AI_PROVIDER`, small budget);
   3. the members' site (set the env var, cut a release tag).
 - If the feature has to come out, the child merges revert cleanly. The `ai_usage`/`ai_grants` tables would need a dropping
