@@ -195,6 +195,18 @@ async function onChecks(page: Page, pageCount: number) {
       second.output.text.startsWith("PAGE 1 — the cover"),
     "read_page returned page 1 in full",
   );
+  // The provider's signed, empty reasoning part goes back exactly as it came (#308).
+  const reasoning = bodies[1]!.messages
+    .at(-1)!
+    .parts.find((p) => p.type === "reasoning") as
+    | { id?: string; text: string; providerMetadata?: unknown }
+    | undefined;
+  ok(
+    reasoning?.id === "0" &&
+      reasoning.text === "" &&
+      JSON.stringify(reasoning.providerMetadata).includes("signature"),
+    "the empty reasoning part is replayed with its id and signature",
+  );
   ok(
     log.includes(
       `Read read_page (${second!.output.text.length} characters back)`,
