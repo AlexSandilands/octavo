@@ -13,7 +13,8 @@
 //   … --provider openrouter --model openai/gpt-6-sol        # needs OPENROUTER_API_KEY
 // Keys come from .env.local. Options: --case 03,08 (a subset), --repeat N,
 // --photos <dir> (real photos for cases that accept them; never commit them),
-// --yes (skip the spend question). JSON, page views and PNGs go to the
+// --yes (skip the spend question), --resume <results dir> (finish a batch that
+// stopped, reusing its saved runs). JSON, page views and PNGs go to the
 // git-ignored scripts/assistant-models/results/.
 // The next/image hook has to be registered before any app module is resolved,
 // and static imports all resolve first, so the runner is loaded after it.

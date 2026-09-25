@@ -1,5 +1,5 @@
 // The body of check-assistant-models.mts (#315); see that file for usage.
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { AI_PROVIDERS } from "../../src/lib/env.ts";
@@ -18,7 +18,7 @@ import { confirmSpend, describeEstimate, estimate } from "./cost.mts";
 import { assistantIssue, configureFor } from "./issue.mts";
 import { MeasureBrowser } from "./measure.mts";
 import { PrintRenderer } from "./render.mts";
-import { summary, verdict, type CaseResults } from "./report.mts";
+import { summary, verdict, type CaseResults, type Result } from "./report.mts";
 import { scoreCase } from "./score.mts";
 
 process.loadEnvFile?.(".env.local");
@@ -31,6 +31,7 @@ const { values } = parseArgs({
     photos: { type: "string" },
     app: { type: "string", default: "http://localhost:3000" },
     yes: { type: "boolean", default: false },
+    resume: { type: "string" },
   },
 });
 
@@ -77,12 +78,37 @@ if (provider !== "fake") {
 }
 
 const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-const outDir = join(
-  import.meta.dirname,
-  "results",
-  `${model.modelId.replace(/[^\w.-]/g, "_")}-${stamp}`,
-);
+// --resume <dir> finishes a batch that stopped: saved runs are reused as scored.
+const outDir = values.resume
+  ? resolve(values.resume)
+  : join(
+      import.meta.dirname,
+      "results",
+      `${model.modelId.replace(/[^\w.-]/g, "_")}-${stamp}`,
+    );
 mkdirSync(outDir, { recursive: true });
+
+function saved(dir: string): Result | null {
+  if (!values.resume || !existsSync(join(dir, "run.json"))) return null;
+  const { score, ...run } = JSON.parse(
+    readFileSync(join(dir, "run.json"), "utf8"),
+  );
+  return {
+    score,
+    run: {
+      ...run,
+      pages: run.pages ?? [],
+      projection: readFileSync(join(dir, "projection.txt"), "utf8"),
+    },
+  };
+}
+
+// The SDK can reject a stray promise after a failure the run already recorded.
+process.on("unhandledRejection", (e) =>
+  console.warn(
+    `  (after a failed request: ${e instanceof Error ? e.message : e})`,
+  ),
+);
 
 const browser = await MeasureBrowser.open(values.app);
 const renderer = new PrintRenderer(browser.browser, values.app);
@@ -97,6 +123,13 @@ try {
       continue;
     }
     for (let r = 1; r <= repeat; r++) {
+      const dir = join(outDir, c.id, `r${r}`);
+      const kept = saved(dir);
+      if (kept) {
+        entry.results.push(kept);
+        console.log(`${c.id} #${r} … saved`);
+        continue;
+      }
       const issue = await startingIssue(
         c,
         values.photos && resolve(values.photos),
@@ -107,16 +140,11 @@ try {
       const fills = await browser.fills(run.pages);
       const score = scoreCase(c, issue.pages, run, fills);
       entry.results.push({ run, score });
-      const dir = join(outDir, c.id, `r${r}`);
       mkdirSync(dir, { recursive: true });
       writeFileSync(join(dir, "projection.txt"), run.projection);
       writeFileSync(
         join(dir, "run.json"),
-        JSON.stringify(
-          { score, ...run, projection: undefined, pages: undefined },
-          null,
-          2,
-        ),
+        JSON.stringify({ score, ...run, projection: undefined }, null, 2),
       );
       const after = await assistantIssue(issue, run.pages, browser);
       writeFileSync(

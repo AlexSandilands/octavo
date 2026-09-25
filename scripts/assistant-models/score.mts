@@ -29,7 +29,13 @@ export type Score = {
   mutatingCalls: number;
   views: number;
   toolsUsed: string[];
-  wording: { mode: Case["expect"]["preserve"]; ok: boolean; detail: string };
+  wording: {
+    mode: Case["expect"]["preserve"];
+    ok: boolean;
+    /** Every word kept but out of order (articles swapped), or words changed. */
+    change?: "order" | "words";
+    detail: string;
+  };
   pasteVerbatim: boolean | null;
   changedBlocks: number;
   overflowPages: number[];
@@ -58,6 +64,23 @@ const issueWords = (c: IssueContent) =>
   c.pages
     .filter((p) => !p.cover)
     .flatMap((p) => p.blocks.flatMap((b) => normalizedWords(blockPlain(b))));
+
+/** How two word runs differ: the same words out of order, or other words. */
+const changeOf = (a: string[], b: string[]) =>
+  a.length === b.length && [...a].sort().join(" ") === [...b].sort().join(" ")
+    ? ("order" as const)
+    : ("words" as const);
+
+function wordingOf(
+  mode: Case["expect"]["preserve"],
+  a: string[],
+  b: string[],
+): Score["wording"] {
+  const detail = firstDiff(a, b);
+  return detail === "identical"
+    ? { mode, ok: true, detail }
+    : { mode, ok: false, change: changeOf(a, b), detail };
+}
 
 function firstDiff(a: string[], b: string[]): string {
   const n = Math.min(a.length, b.length);
@@ -146,12 +169,10 @@ export function scoreCase(
   let pasteVerbatim: boolean | null = null;
   const advisories: string[] = [];
   if (c.expect.preserve === "page") {
-    const d = firstDiff(issueWords(before), issueWords(after));
-    wording = { mode: "page", ok: d === "identical", detail: d };
+    wording = wordingOf("page", issueWords(before), issueWords(after));
   } else if (c.expect.preserve === "paste") {
     const text = newBlockWords(before, after, true);
-    const d = firstDiff(pasteBodyWords(c.paste ?? "", text), text);
-    wording = { mode: "paste", ok: d === "identical", detail: d };
+    wording = wordingOf("paste", pasteBodyWords(c.paste ?? "", text), text);
     const exact = firstDiff(
       normalizedWords(c.paste ?? ""),
       newBlockWords(before, after),
@@ -160,7 +181,10 @@ export function scoreCase(
     if (!pasteVerbatim)
       advisories.push(`paste not verbatim incl. headings: ${exact}`);
   }
-  if (!wording.ok) failures.push(`wording: ${wording.detail}`);
+  if (!wording.ok)
+    failures.push(
+      `${wording.change === "order" ? "order changed (every word kept)" : "words changed"}: ${wording.detail}`,
+    );
 
   const overflowPages = after.pages.flatMap((p, i) => {
     const f = fills[p.id];

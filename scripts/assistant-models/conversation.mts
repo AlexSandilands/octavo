@@ -68,6 +68,9 @@ export type CaseRun = {
 };
 
 const REQUEST_LIMIT = 60;
+// A reply that stalls this long stops the run (the provider's own HTTP/2 body
+// timeout is five minutes, and its error escapes the stream).
+const REQUEST_TIMEOUT_MS = 180_000;
 
 function priced(
   model: AssistantModel,
@@ -207,18 +210,30 @@ export async function runCase({
     }
     const t = Date.now();
     let usage: { u: LanguageModelUsage; model?: string } | undefined;
-    const { chunks, error } = await drain(
-      streamAssistant({
-        config: model,
-        messages: await toModelMessages(body.chat.messages),
-        hooks: { onEnd: (u, id) => void (usage = { u, model: id }) },
-      }),
-    );
+    const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+    let drained: Awaited<ReturnType<typeof drain>>;
+    try {
+      drained = await drain(
+        streamAssistant({
+          config: model,
+          messages: await toModelMessages(body.chat.messages),
+          abortSignal: timeout,
+          hooks: { onEnd: (u, id) => void (usage = { u, model: id }) },
+        }),
+      );
+    } catch (e) {
+      stopped = `request failed: ${e instanceof Error ? e.message : e}`;
+      break;
+    }
     if (usage)
       requests.push(priced(model, usage.u, Date.now() - t, usage.model));
-    reply = await assemble(chunks, reply);
-    if (error) {
-      stopped = `stream error: ${error}`;
+    reply = await assemble(drained.chunks, reply);
+    if (timeout.aborted) {
+      stopped = `no reply within ${REQUEST_TIMEOUT_MS / 60_000} minutes`;
+      break;
+    }
+    if (drained.error) {
+      stopped = `stream error: ${drained.error}`;
       break;
     }
 

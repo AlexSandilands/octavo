@@ -29,11 +29,19 @@ function row({ c, skipped, results }: CaseResults): string {
       results.flatMap((r) => [...r.score.failures, ...r.score.advisories]),
     ),
   ];
-  const wording = results.every((r) => r.score.wording.ok)
-    ? c.expect.preserve === "none"
-      ? "–"
-      : "kept"
-    : "changed";
+  // A run scored before `change` existed reads as changed words.
+  const changes = new Set(
+    results.map((r) =>
+      r.score.wording.ok ? undefined : (r.score.wording.change ?? "words"),
+    ),
+  );
+  const wording = changes.has("words")
+    ? "changed"
+    : changes.has("order")
+      ? "reordered"
+      : c.expect.preserve === "none"
+        ? "–"
+        : "kept";
   const overflow = results.some((r) => r.score.overflowPages.length)
     ? "yes"
     : "none";
