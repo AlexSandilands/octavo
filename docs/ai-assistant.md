@@ -297,7 +297,7 @@ don't redesign it.
   way the canvas and the header are `inert` (as Import PDF's are), a note over the canvas says "The assistant is editing
   this issue. Stop it from the panel.", and the editor's Ctrl/Cmd+Z stands down. The page rail and the panel stay live. If
   the pages change anyway between the run's calls (a page added from the rail, say), the executor refuses the next call and
-  the run stops with "The issue changed while I was working, so I stopped. What I'd done is still in place; Ctrl+Z takes
+  the run stops with "The issue changed while I was working, so I stopped. What I'd done is still in place; Ctrl+Z (⌘Z on a Mac) takes
   back your change first, then mine." — as it already did for a change during one call's measurement.
 - **A run ends** when the model's last reply asks for no more tools, or the author stops it, or it fails (the rule is in
   the panel section above); its line is worked out then.
