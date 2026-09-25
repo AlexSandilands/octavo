@@ -176,6 +176,80 @@ calls, which production wouldn't make. The full runs are re-scored with the curr
 - **Meaning drift isn't scored.** Read `after.md`, or open the saved drafts ("Spike · <case> · <model>" in the local DB), for 01,
   05, 07, 08 and 11.
 
+## Round 2: seeing pages, composing covers, new issues (2026-09-25)
+
+### What was added
+
+- **`view_page` / `view_photo`** (`--vision`, `vision.ts`, `render.ts`). A picture of a page as members see it, or an uploaded photo
+  scaled to 800px. Both share one per-run budget (6 by default; `--views N` overrides it). Pages are drawn by **server-rendering the app's
+  own `PrintDocument`**, the component the PDF print route renders. It goes into headless Chromium on the dev server's origin with the
+  dev server's compiled CSS and next/font variables. Images go in as data URIs, and nothing is written to the database.
+- **Cover tools** (`cover-tools.ts`, `cover-tool-defs.ts`, `cover-view.ts`). The **compose** tier (`--cover`, #313's scope) has
+  `set_cover_background`, `clear_cover_background`, `set_masthead`, `add_story` (linked to interior heading ids), `add_details`,
+  `add_logo` and `remove_cover_item`. The **style** tier (`--cover-style`, beyond #313) adds `place_cover_item` (the 3×3 grid, width,
+  align, text size), `style_cover_item` (colours, panel, shadow, lettering font/weight) and `style_cover_page`. All of it goes through
+  the real cover schemas. With the tools on, the projection's cover view lists every item with its id, placement and paint, plus the
+  linkable headings, grid, palette and fonts.
+- **New-issue cases.** `setup.newIssue` starts from a cover and one empty page. `generatedImages` is seed-renderer art with the
+  photo's role printed in a corner, so only vision can tell them apart. `photosDir` loads real photos with **opaque ids**, sorted by
+  id. `generatedLogo` adds a logo to the library, and `stripCover` empties a seed cover.
+- The prompt is assembled from `prompt.md` + `prompt-vision.md` + `prompt-cover.md` according to the flags, and saved per case. Each result dir gets
+  `pages/p01.png…` of the finished issue and an **"overflow measured"** column: the rendered DOM's verdict (footer top against
+  content bottom), which corresponds to the editor's real measurer. The estimate stays in the tool results.
+
+### Fidelity gaps added this round
+
+- The page pictures are rendered **outside Next**. BlockImage gets null dimensions and takes its plain-`<img>` branch (same
+  classes). Video posters and montages get the real next/image through a resolve-hook shim (`next-image-shim.mts`). Settings are
+  the deployment defaults plus a case's overrides (a new club's name), not the DB row.
+- **The print route can't render a draft.** `/read/[n]/print` looks issues up by _published number_. That's why the spike renders
+  in-process, and it's a finding for #309/#310: a production `view_page` needs a draft-capable render path, either an admin-gated
+  single-page print view or a snapshot of the editor's own canvas.
+- Once, Sonnet called `view_page` without Claude Code's `mcp__octavo__` prefix and was refused. That's a naming artefact of the harness.
+
+### Results (Sonnet 5)
+
+| run              | case                         | pass | calls (max) | views used | wording                         | overflow est. / measured | time | cost   |
+| ---------------- | ---------------------------- | ---- | ----------- | ---------- | ------------------------------- | ------------------------ | ---- | ------ |
+| no vision        | 01 tidy                      | ✅   | 2 (8)       | –          | kept                            | none / none              | 10s  | $0.029 |
+| vision           | 01 tidy                      | ✅   | 2 (8)       | 0 of 6     | kept                            | none / none              | 10s  | $0.043 |
+| no vision        | 07 structure                 | ✅   | 2 (10)      | –          | kept                            | none / none              | 8s   | $0.022 |
+| vision           | 07 structure                 | ✅   | 3 (10)      | 0 of 6     | kept                            | none / none              | 11s  | $0.025 |
+| no vision        | 08 large paste               | ✅   | 9 (30)      | –          | kept                            | none / none              | 33s  | $0.086 |
+| vision           | 08 large paste               | ✅   | 9 (30)      | 0 of 6     | kept                            | none / none              | 30s  | $0.083 |
+| vision + compose | 13 Regatta cover             | ✅   | 6 (20)      | 2 of 6     | kept                            | –                        | 17s  | $0.069 |
+| vision + style   | 13 Regatta cover             | ✅   | 14 (20)     | 2 of 6     | kept                            | –                        | 26s  | $0.097 |
+| vision + style   | 12 new issue (generated art) | ✅   | 39 (40)     | **6 of 6** | kept (headings added)           | none / none              | 94s  | $0.262 |
+| vision + style   | 14 new issue (Alex's photos) | ❌   | 32 (45)     | 8 of 10    | words kept, structure changed\* | none / none              | 69s  | $0.231 |
+| style, no vision | 14 new issue (Alex's photos) | ✅   | 20 (45)     | –          | kept (headings added)           | none / none              | 51s  | $0.152 |
+
+Total for the round: about $1.10 list price. The result dirs are `results/sonnet-*-2026-09-25T02-41-09*` and `results/sonnet-*-2026-09-25T02-46-46-*`.
+Drafts in the local DB are titled "Spike · <case> · sonnet · <variant>". Files and rows created for 12/14 are listed in each case's `created.json`.
+
+\* 14 · vision lost no words (a bag-of-words check over every interior block found 0 missing and 0 added). It set each article's
+**standfirst as the heading title and demoted the real headline to the kicker** ("Summer evenings under the lights" /
+"How the Thursday twilight league took over the club"). That's a layout-quality miss: the kicker is meant to be 1–4 words.
+
+### What round 2 shows
+
+- **Vision went unused where it wasn't needed.** On 01/07/08, with six views offered and a prompt asking it to check changed pages,
+  Sonnet took **zero** views and got the same results as without vision. Its cost was flat to slightly higher (the tools' definitions
+  are in the prompt).
+- **Vision is what matches photos to stories.** In 14, with opaque ids and real photos, the vision arm looked at all six photos
+  and placed each beside its story. It put the evening game under festoon lights on the cover, leading with the twilight-league
+  story. The no-vision arm got the two portraits right, very likely from their shape, and put the festoon-lights photo on the
+  new-players article. (Case 12's ids gave the content away, `img-plot-leeks` and so on, so 12 can't answer this.)
+- **When the budget is tight, it goes on the cover and photos, not interior pages.** 12 spent all 6 views: 3 photos and 3 cover
+  iterations. 14 with 10 views spent 8: all 6 photos and 2 cover checks. Neither ever looked at an interior page.
+- **Covers are composable from the tools.** Every cover tool call was valid. The compose tier alone made a coherent Regatta
+  cover in 6 calls, but with no placement tool its stories sit over the illustration. With the style tier (14 calls) the stories went to
+  the bottom and the burgee to a corner. Neither reached the seeded designer cover: no display lead, no lettering fonts. (A
+  scripted run of the same tools _does_ rebuild the seeded cover, so that's a matter of prompt and taste, not the tools.) The
+  14 · vision cover put small light text over a busy photo even after looking at it twice.
+- **The scorer's paste check needed three fixes this round**, each a false negative on a correct answer: a sign-off line kept as
+  text, a phrase that is also a heading, and a headline ending in "?". It now aligns the paste in order and treats short
+  lines with no closing full stop as optional headings. Read failures in `after.md` before trusting them.
+
 ## Recommendation (octavo-2c, 2026-09-25)
 
 Based on 29 model runs (≈ $1.75 list price) over 11 cases, one run per case per prompt version, so read the numbers as

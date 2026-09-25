@@ -80,15 +80,23 @@ function newBlockWords(
 
 /** A pasted paragraph that reads as a heading: short, no closing punctuation. */
 const headingLike = (para: string) =>
-  para.split(/\s+/).length <= 6 && !/[.!?:;]["'’”)]*$/.test(para);
+  para.split(/\s+/).length <= 6 && !/[.!:;]["'’”)]*$/.test(para);
 
-/** The paste's words minus its heading-like lines — what new text blocks must say. */
-function pasteBodyWords(paste: string): string[] {
-  return paste
-    .split(/\n\s*\n/)
-    .map((p) => p.trim())
-    .filter((p) => p && !headingLike(p))
-    .flatMap(normalizedWords);
+/**
+ * The paste's words as the new text should say them, aligned in order: body
+ * paragraphs are required; a heading-like line is expected where the text
+ * holds it at that point (a sign-off kept as text), and skipped where it
+ * became a heading instead.
+ */
+function pasteBodyWords(paste: string, newText: string[]): string[] {
+  const out: string[] = [];
+  for (const para of paste.split(/\n\s*\n/).map((p) => p.trim())) {
+    const words = normalizedWords(para);
+    const here = newText.slice(out.length, out.length + words.length);
+    if (!headingLike(para) || words.every((w, i) => here[i] === w))
+      out.push(...words);
+  }
+  return out;
 }
 
 /** Blocks added, deleted or edited (moves alone don't count). */
@@ -141,7 +149,7 @@ export function scoreCase(
     // New text blocks, in order, must say exactly what was pasted, less its
     // heading lines; headings may be added or reworded (the case asks for them).
     const d = firstDiff(
-      pasteBodyWords(c.paste ?? ""),
+      pasteBodyWords(c.paste ?? "", newBlockWords(before, content, true)),
       newBlockWords(before, content, true),
     );
     preserve = { mode: "paste", ok: d === "identical", detail: d };
