@@ -13,7 +13,12 @@ export const AI_MAX_MESSAGES = 200;
 export const AI_MAX_TEXT_CHARS = 20_000;
 export const AI_MAX_PROJECTION_CHARS = 60_000;
 export const AI_MAX_IMAGES_PER_MESSAGE = 8;
-export const AI_MAX_IMAGES_PER_REQUEST = 80;
+// Past these the conversation is full (`too_long`). Sized to a 200k-token
+// context: 330k chars at ~3 chars/token is 110k, 24 images at ~1.6k tokens is
+// 38k, plus the prompt (~5k) and the reply (32k) leaves ~15k spare.
+export const AI_MAX_IMAGES_PER_REQUEST = 24;
+export const AI_MAX_CONVERSATION_CHARS = 330_000;
+export const AI_MAX_OUTPUT_TOKENS = 32_000;
 export const AI_MAX_BODY_BYTES = 24 * 1024 * 1024;
 
 export const AI_ERROR_CODES = [
