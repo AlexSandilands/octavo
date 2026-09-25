@@ -118,7 +118,7 @@ export function createAssistantExecutor({
             describeReport(index + 1, page, await measure.report(page)),
           );
       }
-      return [result.text, ...lines].join(" ");
+      return [result.text, lines.join("; ")].filter(Boolean).join(" ");
     } catch (error) {
       if (error instanceof Refusal)
         return `Error: ${error.message}. Nothing changed.`;

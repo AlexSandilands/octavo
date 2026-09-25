@@ -3,21 +3,14 @@
 // step per run with undo back to the exact pages, the photo layout defaults,
 // split_page, the overflow feedback, whole-issue validation, the
 // circuit-breaker and the run summary. The measurer is a stand-in with fixed
-// block heights; the real one is the editor's (dev-assistant-tools-gate.mts).
+// block heights (fixtures/assistant/tools-harness.mts); the real one is the
+// editor's (dev-assistant-tools-gate.mts).
 //   npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-tools.mts
-import { buildIssues } from "../src/db/seed-data";
-import { SEED_IMAGES, type SeedImages } from "../src/db/seed/images";
 import { collectImageIds } from "../src/lib/images";
-import { createId } from "../src/lib/id";
-import { makeBlock, type Block, type Page } from "../src/lib/blocks";
+import type { Block } from "../src/lib/blocks";
 import { aiToolSchemas, AI_TOOL_NAMES } from "../src/lib/ai-tools";
 import { docToMarkdown, markdownToDoc } from "../src/lib/markdown-doc";
-import {
-  richDocSchema,
-  richTextToPlain,
-  stringToDoc,
-  type RichDoc,
-} from "../src/lib/rich-text-doc";
+import { richDocSchema, richTextToPlain } from "../src/lib/rich-text-doc";
 import { richDocBlocks } from "../src/lib/rich-text-split";
 import type { EditorSnapshot } from "../src/features/editor/use-editor-history";
 import {
@@ -25,144 +18,11 @@ import {
   createAssistantExecutor,
   formatPages,
 } from "../src/features/editor/assistant/executor";
-import type {
-  EditMeasurer,
-  PageReport,
-} from "../src/features/editor/assistant/page-report";
-import { fillFromMeasure } from "../src/features/editor/assistant/page-fill";
+import type { EditMeasurer } from "../src/features/editor/assistant/page-report";
+import * as h from "./fixtures/assistant/tools-harness.mts";
 
-let failures = 0;
-const ok = (cond: unknown, msg: string) => {
-  if (!cond) failures++;
-  console.log(`${cond ? "ok" : "FAIL"} — ${msg}`);
-};
-const heading = (name: string) => console.log(`\n── ${name} `.padEnd(72, "─"));
-
-// ── A stand-in measurer: fixed heights on an 800px text area ───────────────
-const AVAIL = 800;
-const NODE_PX = 40;
-const docOf = (b: Extract<Block, { type: "text" }>): RichDoc =>
-  typeof b.text === "string" ? stringToDoc(b.text) : b.text;
-const height = (b: Block) =>
-  b.type === "text"
-    ? richDocBlocks(b.text).length * NODE_PX
-    : b.type === "heading"
-      ? 60
-      : "width" in b
-        ? 3 * b.width
-        : 80;
-let measured = 0;
-const measurer: EditMeasurer = {
-  async report(page: Page): Promise<PageReport> {
-    measured++;
-    if (page.cover)
-      return {
-        fill: { kind: "cover" },
-        overflowAt: null,
-        overflowPx: 0,
-        heights: {},
-        text: [],
-      };
-    let y = 0;
-    let overflowAt: PageReport["overflowAt"] = null;
-    const heights: Record<string, number> = {};
-    for (const b of page.blocks) {
-      heights[b.id] = height(b);
-      if (!overflowAt && y + height(b) > AVAIL)
-        overflowAt = { blockId: b.id, fitsAlone: height(b) <= AVAIL };
-      y += height(b);
-    }
-    return {
-      fill: fillFromMeasure({ used: y, avail: AVAIL }),
-      overflowAt,
-      overflowPx: Math.max(0, y - AVAIL),
-      heights,
-      text: overflowAt
-        ? page.blocks
-            .filter((b) => b.type === "text")
-            .map((b) => ({
-              id: b.id,
-              lines: richDocBlocks(b.text).length * 2,
-              lastLines: richDocBlocks(b.text).map(() => 3),
-            }))
-        : [],
-    };
-  },
-  async textFlow(blocks, blockId) {
-    let y = 0;
-    for (const b of blocks) {
-      if (b.id === blockId && b.type === "text") {
-        const nodes = richDocBlocks(b.text).map((_, i) => ({
-          top: y + i * NODE_PX,
-          bottom: y + (i + 1) * NODE_PX,
-        }));
-        return { nodes, firstAvail: AVAIL - y, restAvail: AVAIL };
-      }
-      y += height(b);
-    }
-    return null;
-  },
-};
-
-// ── The seed, with opaque photo ids ────────────────────────────────────────
-const ids = Object.fromEntries(
-  SEED_IMAGES.map((s) => [s.key, createId()]),
-) as SeedImages;
-const issues = buildIssues(ids);
-const photos = new Set(Object.values(ids));
-const call = { photos, read: () => ({ text: "(read_page)" }) };
-
-function harness(pages: Page[]) {
-  let state: EditorSnapshot = { pages, curPage: 1, sel: null };
-  const history: EditorSnapshot[] = [];
-  const executor = createAssistantExecutor({
-    measure: measurer,
-    handle: {
-      state: () => state,
-      apply: async (next, record) => {
-        if (record) history.push(record);
-        state = next;
-      },
-    },
-  });
-  return {
-    executor,
-    history,
-    get pages() {
-      return state.pages;
-    },
-    set(next: EditorSnapshot) {
-      state = next;
-    },
-    run: (name: string, input: unknown) => executor.run(name, input, call),
-  };
-}
-
-const para = (text: string) => ({
-  type: "paragraph" as const,
-  content: [{ type: "text" as const, text }],
-});
-const textBlock = (n: number, label = "Para"): Block => ({
-  ...(makeBlock("text") as Extract<Block, { type: "text" }>),
-  text: {
-    type: "doc",
-    content: Array.from({ length: n }, (_, i) => para(`${label} ${i + 1}.`)),
-  },
-});
-const headingBlock = (title: string): Block => ({
-  ...(makeBlock("heading") as Extract<Block, { type: "heading" }>),
-  title,
-  level: "section",
-});
-const photo = (width = 100, align: "full" | "left" | "right" = "full"): Block =>
-  ({
-    ...makeBlock("image"),
-    imageId: [...photos][0]!,
-    align,
-    width,
-  }) as Block;
-const cover: Page = { id: createId(), blocks: [], cover: true } as Page;
-const page = (...blocks: Block[]): Page => ({ id: createId(), blocks });
+const { ok, heading, docOf, measurer, issues, photos, call, harness } = h;
+const { textBlock, headingBlock, photo, cover, page } = h;
 
 heading("the tool contract");
 ok(
@@ -592,9 +452,9 @@ ok(
   "page lists read naturally",
 );
 ok(
-  measured > 0 && collectImageIds(issues[0]!.content).length > 0,
+  h.measured > 0 && collectImageIds(issues[0]!.content).length > 0,
   "the stand-in measurer and seed were used",
 );
 
-console.log(failures ? `\n${failures} failed` : "\nall passed");
-process.exit(failures ? 1 : 0);
+console.log(h.failures ? `\n${h.failures} failed` : "\nall passed");
+process.exit(h.failures ? 1 : 0);
