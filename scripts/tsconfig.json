@@ -17,6 +17,9 @@
       "server-only": ["../node_modules/next/dist/compiled/server-only/empty.js"]
     }
   },
+  // Its own exclude: the root one leaves out scripts/spike (whose `.ts` imports
+  // only this config allows), and `exclude` is inherited through `extends`.
+  "exclude": ["../node_modules"],
   // The scripts themselves plus the app modules they pull in. `include` is what
   // tsx consults to decide whether a file it loads is covered by this config —
   // drop `../src` and the app's .tsx compiles with the wrong JSX factory.
