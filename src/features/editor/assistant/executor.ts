@@ -35,7 +35,7 @@ export const RUN_MOVE_LIMIT = 2;
 export const BREAKER_MESSAGE =
   "I got stuck, so I stopped. Everything I did is in place and can be undone in one step.";
 export const INTERRUPTED_MESSAGE =
-  "The issue changed while I was working, so I stopped. What I'd done is still in place; Ctrl+Z takes back your change first, then mine.";
+  "The issue changed while I was working, so I stopped. What I'd done is still in place; Ctrl+Z (⌘Z on a Mac) takes back your change first, then mine.";
 
 type RunState = {
   calls: number;
