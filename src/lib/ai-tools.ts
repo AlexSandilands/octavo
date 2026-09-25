@@ -101,7 +101,21 @@ export const aiToolSchemas = {
   set_image_layout: z
     .object({ blockId, align, width: width.optional() })
     .strict(),
+  // Vision (#342): answered with an image in the tool result.
+  view_page: z.object({ page: pageNo }).strict(),
+  view_photo: z
+    .object({
+      imageId: z
+        .string()
+        .min(1)
+        .max(64)
+        .describe("A photo id from the projection."),
+    })
+    .strict(),
 } as const;
+
+/** Views (pages and photos together) per run; the next one is refused. */
+export const AI_VIEWS_PER_RUN = 6;
 
 export const aiToolDescriptions: Record<AiToolName, string> = {
   read_page:
@@ -122,10 +136,19 @@ export const aiToolDescriptions: Record<AiToolName, string> = {
     'Set a placed photo\'s alt text (what a screen reader says) and/or its visible caption. Pass "" to clear a caption.',
   set_image_layout:
     "Re-align or resize a placed photo. Setting align to full without a width makes it full width (100); setting left/right without a width keeps its width, or uses 45 if it was full width.",
+  view_page: `See a picture of one page exactly as members will see it: fonts, photos, the running footer, and the cover as designed, with how full it is. You have ${AI_VIEWS_PER_RUN} views (pages and photos together) per request; use them to check work that text can't show you (a cover, a photo's placement, whether a page looks balanced).`,
+  view_photo: `See one photo uploaded to the issue (placed or not), to learn what it shows before choosing where it goes or writing its alt text. Shares the ${AI_VIEWS_PER_RUN}-view budget with view_page.`,
 };
 
 /** Tools that only read; every other tool edits the issue. */
-export const AI_READ_ONLY_TOOLS: readonly AiToolName[] = ["read_page"];
+export const AI_READ_ONLY_TOOLS = [
+  "read_page",
+  "view_page",
+  "view_photo",
+] as const satisfies readonly AiToolName[];
+export type AiReadOnlyTool = (typeof AI_READ_ONLY_TOOLS)[number];
+/** The vision tools (#342): the editor answers them with pictures. */
+export type AiViewTool = Exclude<AiReadOnlyTool, "read_page">;
 
 export type AiToolName = keyof typeof aiToolSchemas;
 export const AI_TOOL_NAMES = Object.keys(aiToolSchemas) as AiToolName[];

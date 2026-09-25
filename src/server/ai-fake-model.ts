@@ -22,10 +22,17 @@ export const FAKE_TRIGGER_ODD_MODEL = "[fake:odd-model]";
 // Spaces the stream out (a second a part), so a gate can hang up mid-reply.
 export const FAKE_TRIGGER_SLOW = "[fake:slow]";
 // Followed by a JSON array of { toolName, input }: the calls to make, one a
-// turn, before a closing sentence (#310's gates script edits with it).
+// turn, before a closing sentence (#310's gates script edits with it). A null
+// step ends that turn with no call; the script picks up after the editor's
+// end-of-run review, so a gate can edit in the review turn too (#342).
 export const FAKE_TRIGGER_TOOLS = "[fake:tools]";
 
 type Reply = { text: string; toolCall?: { toolName: string; input: object } };
+
+type Message = LanguageModelV4Prompt[number];
+/** The editor's end-of-run review (#342) carries the pages as pictures. */
+const isReview = (m: Message) =>
+  m.role === "user" && m.content.some((p) => p.type === "file");
 
 function textOf(parts: { type: string; text?: string }[]): string[] {
   return parts.flatMap((p) => (p.type === "text" && p.text ? [p.text] : []));
@@ -33,11 +40,12 @@ function textOf(parts: { type: string; text?: string }[]): string[] {
 
 /** The next step of a `[fake:tools]` script, or null without one. */
 function scriptedReply(prompt: LanguageModelV4Prompt): Reply | null {
-  const at = prompt.findLastIndex((m) => m.role === "user");
+  // The author's message, reading past a review the editor sent after it.
+  const at = prompt.findLastIndex((m) => m.role === "user" && !isReview(m));
   const said = at >= 0 ? textOf(prompt[at]!.content as { type: string }[]) : [];
   const text = said.find((t) => t.includes(FAKE_TRIGGER_TOOLS));
   if (!text) return null;
-  let script: Reply["toolCall"][];
+  let script: (Reply["toolCall"] | null)[];
   try {
     script = JSON.parse(
       text.slice(text.indexOf(FAKE_TRIGGER_TOOLS) + FAKE_TRIGGER_TOOLS.length),
@@ -47,6 +55,8 @@ function scriptedReply(prompt: LanguageModelV4Prompt): Reply | null {
     return { text: "The tool script isn't a JSON array." };
   }
   const step = prompt.slice(at).filter((m) => m.role === "assistant").length;
+  if (step < script.length && script[step] === null)
+    return { text: `Stopping after step ${step}.` };
   const call = script[step];
   return call
     ? { text: `Step ${step + 1}: ${call.toolName}.`, toolCall: call }
@@ -75,6 +85,12 @@ export function fakeReply(prompt: LanguageModelV4Prompt): Reply {
     };
   }
   if (last?.role !== "user") return { text: "There was nothing to answer." };
+  if (isReview(last)) {
+    const pages = last.content.filter((p) => p.type === "file").length;
+    return {
+      text: `Looked over ${pages} page${pages === 1 ? "" : "s"}. Nothing needed changing.`,
+    };
+  }
   const [projection, ...rest] = textOf(last.content);
   if (rest.length === 0)
     return { text: "I can't see the issue, so I haven't changed anything." };
