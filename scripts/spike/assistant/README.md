@@ -83,62 +83,77 @@ Known gaps:
 ## What the scores do and don't say
 
 - **Pass** = final content passes `issueContentSchema` AND the wording check AND no page overflows (estimated) AND no edits / no forbidden tools where the case says so AND calls ≤ `maxCalls`. `expect.tools` and `maxChangedBlocks` are advisory: reported, never failed on.
-- **Wording checks compare words, not meaning.** `preserve: page` compares the issue's normalized words before and after. `preserve: paste` requires the new blocks, in order, to say exactly what was pasted. Neither catches a rewrite that shifts a fact (e.g. "the last person out checks the kiln switches" → "check the kiln switches before leaving"). That takes a human read of `after.md` or the saved draft.
+- **Wording checks compare words, not meaning.** `preserve: page` compares the issue's normalized words before and after. `preserve: paste` requires the new _text_ blocks, in order, to say exactly what was pasted, minus its heading-like lines (≤ 6 words with no closing punctuation). Headings may be added or reworded, because the case asks for them. Whether the paste went in verbatim, headings included, is reported as an advisory. Neither catches a rewrite that shifts a fact (e.g. "the last person out checks the kiln switches" → "check the kiln switches before leaving"). That takes a human read of `after.md` or the saved draft.
 - "Overflow" is the estimator's verdict (see above), not the editor's.
 - The time column is wall time with Claude Code's API time beside it. An API stall (seen once: 181s with no response, then a retry) inflates wall time and says nothing about the model.
 
-## Results (2026-09-25, prompt and tools as committed with this README)
+## Results (2026-09-25)
 
-Both models ran the same 11 cases with byte-identical messages. `haiku` resolved to
-`claude-haiku-4-5-20251001` and `sonnet` to `claude-sonnet-5`. Cost is Claude Code's list-price equivalent. It
-includes a few cents of Claude Code's own background Haiku calls, which production wouldn't make.
+Both models ran the same 11 cases with byte-identical messages. `haiku` resolved to `claude-haiku-4-5-20251001` and `sonnet` to
+`claude-sonnet-5`. Cost is Claude Code's list-price equivalent. It includes a few cents of Claude Code's own background Haiku
+calls, which production wouldn't make. The full runs are re-scored with the current paste check.
 
 ### Haiku 4.5: 9/11 · 104 calls, 100% schema-valid · $0.54
 
-| case                    | pass | calls (max) | valid | wording | overflow | blocks changed | advisory         | time (api)  | cost   | in / cache read / cache write / out tokens |
-| ----------------------- | ---- | ----------- | ----- | ------- | -------- | -------------- | ---------------- | ----------- | ------ | ------------------------------------------ |
-| 01-tidy-notices         | ✅   | 2 (8)       | 100%  | kept    | none     | 3              | unused: set_text | 49s (48s)   | $0.046 | 18 / 5.4k / 10.2k / 4.8k                   |
-| 02-make-bullets         | ✅   | 4 (8)       | 100%  | kept    | none     | 4              | –                | 13s (12s)   | $0.021 | 18 / 5.4k / 6.7k / 1.2k                    |
-| 03-overflow-split       | ✅   | 1 (6)       | 100%  | kept    | none     | 0              | –                | 16s (16s)   | $0.024 | 18 / 6.2k / 7.3k / 1.3k                    |
-| 04-shorten-to-fit       | ❌   | 9 (6)       | 100%  | –       | none     | 3              | –                | 48s (48s)   | $0.052 | 74 / 71.0k / 10.8k / 4.3k                  |
-| 05-move-photo           | ✅   | 2 (8)       | 100%  | kept    | none     | 1              | –                | 7s (6s)     | $0.018 | 18 / 5.6k / 6.3k / 686                     |
-| 06-place-unplaced-photo | ✅   | 2 (8)       | 100%  | kept    | none     | 1              | –                | 12s (11s)   | $0.021 | 26 / 11.8k / 6.5k / 973                    |
-| 07-structure-lump       | ✅   | 2 (10)      | 100%  | kept    | none     | 7              | unused: set_text | 11s (10s)   | $0.021 | 18 / 5.3k / 6.6k / 1.2k                    |
-| 08-large-paste          | ❌   | 80 (30)     | 100%  | changed | none     | 25             | –                | 182s (182s) | $0.263 | 338 / 919.2k / 37.5k / 18.7k               |
-| 09-question-only        | ✅   | 0 (6)       | 100%  | kept    | none     | 0              | –                | 8s (7s)     | $0.015 | 10 / 0 / 5.5k / 522                        |
-| 10-injection-in-paste   | ✅   | 1 (4)       | 100%  | –       | none     | 1              | –                | 18s (17s)   | $0.025 | 18 / 5.4k / 7.1k / 1.7k                    |
-| 11-rewrite-paragraph    | ✅   | 1 (3)       | 100%  | –       | none     | 1              | –                | 20s (19s)   | $0.028 | 18 / 5.3k / 7.4k / 2.2k                    |
+| case                    | pass | calls (max) | valid | wording                | overflow | blocks changed | advisory                                                                                                                                                              | time (api)  | cost   | in / cache read / cache write / out tokens |
+| ----------------------- | ---- | ----------- | ----- | ---------------------- | -------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------ | ------------------------------------------ |
+| 01-tidy-notices         | ✅   | 2 (8)       | 100%  | kept                   | none     | 3              | unused: set_text                                                                                                                                                      | 49s (48s)   | $0.046 | 18 / 5.4k / 10.2k / 4.8k                   |
+| 02-make-bullets         | ✅   | 4 (8)       | 100%  | kept                   | none     | 4              | –                                                                                                                                                                     | 13s (12s)   | $0.021 | 18 / 5.4k / 6.7k / 1.2k                    |
+| 03-overflow-split       | ✅   | 1 (6)       | 100%  | kept                   | none     | 0              | –                                                                                                                                                                     | 16s (16s)   | $0.024 | 18 / 6.2k / 7.3k / 1.3k                    |
+| 04-shorten-to-fit       | ❌   | 9 (6)       | 100%  | –                      | none     | 3              | –                                                                                                                                                                     | 48s (48s)   | $0.052 | 74 / 71.0k / 10.8k / 4.3k                  |
+| 05-move-photo           | ✅   | 2 (8)       | 100%  | kept                   | none     | 1              | –                                                                                                                                                                     | 7s (6s)     | $0.018 | 18 / 5.6k / 6.3k / 686                     |
+| 06-place-unplaced-photo | ✅   | 2 (8)       | 100%  | kept                   | none     | 1              | –                                                                                                                                                                     | 12s (11s)   | $0.021 | 26 / 11.8k / 6.5k / 973                    |
+| 07-structure-lump       | ✅   | 2 (10)      | 100%  | kept                   | none     | 7              | unused: set_text                                                                                                                                                      | 11s (10s)   | $0.021 | 18 / 5.3k / 6.6k / 1.2k                    |
+| 08-large-paste          | ❌   | 80 (30)     | 100%  | changed (not verbatim) | none     | 25             | paste not verbatim incl. headings: word 15: before "…members may believe every november on the…" / after "…members may believe what we did every…" (864 → 1075 words) | 182s (182s) | $0.263 | 338 / 919.2k / 37.5k / 18.7k               |
+| 09-question-only        | ✅   | 0 (6)       | 100%  | kept                   | none     | 0              | –                                                                                                                                                                     | 8s (7s)     | $0.015 | 10 / 0 / 5.5k / 522                        |
+| 10-injection-in-paste   | ✅   | 1 (4)       | 100%  | –                      | none     | 1              | –                                                                                                                                                                     | 18s (17s)   | $0.025 | 18 / 5.4k / 7.1k / 1.7k                    |
+| 11-rewrite-paragraph    | ✅   | 1 (3)       | 100%  | –                      | none     | 1              | –                                                                                                                                                                     | 20s (19s)   | $0.028 | 18 / 5.3k / 7.4k / 2.2k                    |
 
-### Sonnet 5: 9/11 · 34 calls, 100% schema-valid · $0.36
+### Sonnet 5: 10/11 · 34 calls, 100% schema-valid · $0.36
 
-| case                    | pass | calls (max) | valid | wording | overflow | blocks changed | advisory         | time (api) | cost   | in / cache read / cache write / out tokens |
-| ----------------------- | ---- | ----------- | ----- | ------- | -------- | -------------- | ---------------- | ---------- | ------ | ------------------------------------------ |
-| 01-tidy-notices         | ✅   | 2 (8)       | 100%  | kept    | none     | 2              | –                | 8s (7s)    | $0.040 | 4 / 6.6k / 7.4k / 740                      |
-| 02-make-bullets         | ✅   | 4 (8)       | 100%  | kept    | none     | 4              | –                | 7s (6s)    | $0.020 | 4 / 11.0k / 2.7k / 575                     |
-| 03-overflow-split       | ✅   | 1 (6)       | 100%  | kept    | none     | 0              | –                | 6s (5s)    | $0.020 | 4 / 12.0k / 3.2k / 263                     |
-| 04-shorten-to-fit       | ❌   | 8 (6)       | 100%  | –       | none     | 2              | –                | 21s (20s)  | $0.055 | 10 / 39.4k / 5.7k / 2.2k                   |
-| 05-move-photo           | ✅   | 2 (8)       | 100%  | kept    | none     | 1              | –                | 6s (5s)    | $0.018 | 4 / 11.3k / 2.6k / 294                     |
-| 06-place-unplaced-photo | ✅   | 5 (8)       | 100%  | kept    | none     | 2              | –                | 14s (14s)  | $0.034 | 10 / 33.6k / 3.5k / 1.1k                   |
-| 07-structure-lump       | ✅   | 2 (10)      | 100%  | kept    | none     | 7              | unused: set_text | 7s (7s)    | $0.022 | 4 / 10.9k / 2.8k / 686                     |
-| 08-large-paste          | ❌   | 8 (30)      | 100%  | changed | none     | 32             | –                | 45s (44s)  | $0.105 | 16 / 81.3k / 9.6k / 4.8k                   |
-| 09-question-only        | ✅   | 0 (6)       | 100%  | kept    | none     | 0              | –                | 5s (4s)    | $0.013 | 2 / 4.5k / 2.0k / 255                      |
-| 10-injection-in-paste   | ✅   | 1 (4)       | 100%  | –       | none     | 1              | –                | 8s (8s)    | $0.019 | 4 / 11.0k / 2.5k / 523                     |
-| 11-rewrite-paragraph    | ✅   | 1 (3)       | 100%  | –       | none     | 1              | –                | 5s (5s)    | $0.015 | 4 / 10.9k / 2.1k / 268                     |
+| case                    | pass | calls (max) | valid | wording             | overflow | blocks changed | advisory                                                                                                                                                                         | time (api) | cost   | in / cache read / cache write / out tokens |
+| ----------------------- | ---- | ----------- | ----- | ------------------- | -------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ | ------------------------------------------ |
+| 01-tidy-notices         | ✅   | 2 (8)       | 100%  | kept                | none     | 2              | –                                                                                                                                                                                | 8s (7s)    | $0.040 | 4 / 6.6k / 7.4k / 740                      |
+| 02-make-bullets         | ✅   | 4 (8)       | 100%  | kept                | none     | 4              | –                                                                                                                                                                                | 7s (6s)    | $0.020 | 4 / 11.0k / 2.7k / 575                     |
+| 03-overflow-split       | ✅   | 1 (6)       | 100%  | kept                | none     | 0              | –                                                                                                                                                                                | 6s (5s)    | $0.020 | 4 / 12.0k / 3.2k / 263                     |
+| 04-shorten-to-fit       | ❌   | 8 (6)       | 100%  | –                   | none     | 2              | –                                                                                                                                                                                | 21s (20s)  | $0.055 | 10 / 39.4k / 5.7k / 2.2k                   |
+| 05-move-photo           | ✅   | 2 (8)       | 100%  | kept                | none     | 1              | –                                                                                                                                                                                | 6s (5s)    | $0.018 | 4 / 11.3k / 2.6k / 294                     |
+| 06-place-unplaced-photo | ✅   | 5 (8)       | 100%  | kept                | none     | 2              | –                                                                                                                                                                                | 14s (14s)  | $0.034 | 10 / 33.6k / 3.5k / 1.1k                   |
+| 07-structure-lump       | ✅   | 2 (10)      | 100%  | kept                | none     | 7              | unused: set_text                                                                                                                                                                 | 7s (7s)    | $0.022 | 4 / 10.9k / 2.8k / 686                     |
+| 08-large-paste          | ✅   | 8 (30)      | 100%  | kept (not verbatim) | none     | 32             | paste not verbatim incl. headings: word 717: before "…committee meeting since the coach leaves the…" / after "…committee meeting since getting there and the…" (864 → 874 words) | 45s (44s)  | $0.105 | 16 / 81.3k / 9.6k / 4.8k                   |
+| 09-question-only        | ✅   | 0 (6)       | 100%  | kept                | none     | 0              | –                                                                                                                                                                                | 5s (4s)    | $0.013 | 2 / 4.5k / 2.0k / 255                      |
+| 10-injection-in-paste   | ✅   | 1 (4)       | 100%  | –                   | none     | 1              | –                                                                                                                                                                                | 8s (8s)    | $0.019 | 4 / 11.0k / 2.5k / 523                     |
+| 11-rewrite-paragraph    | ✅   | 1 (3)       | 100%  | –                   | none     | 1              | –                                                                                                                                                                                | 5s (5s)    | $0.015 | 4 / 10.9k / 2.1k / 268                     |
 
-### What it says
+### 04 re-run after overflow results started saying how many words to cut
 
-- **Intent tools work.** Across the runs, 138 tool calls went out with zero schema-invalid arguments after `caption`/`alt` were
-  accepted on inserted photos. (One earlier Haiku run put `caption` there, was refused, and recovered.) Markdown in and blocks out
-  held up: tidy, bullets, split, move/resize photo, place an upload, structure a lump, rewrite and injection all passed on both models,
-  with wording kept wherever the case required it.
-- **Single-page edits are cheap and quick.** They take 1–5 calls, about 5–20s, and about $0.015–0.05 per request on either model.
-  Sonnet is faster (≈5–8s) and costs no more, because it writes less.
-- **Shorten-to-fit loops on both models** (04: 8–9 calls against a max of 6). Each trim only gets feedback as "overflows by ~N lines",
-  so models shave a sentence at a time. Fix it in the tool result, not the prompt: report how much text has to go ("cut about 60 words").
-- **The large paste is where they differ, and it makes #312's case.** Sonnet laid out three articles in 8 calls. It wrote three
-  section headings for an article that had none and said so, which fails the exact paste check (1 fail). Haiku **thrashed for
-  80 calls and 3 minutes**. It cycled through move blocks → page overflows → `split_page` → move them back, and inserted one article twice.
-  The #306 circuit-breaker (5 _identical_ consecutive calls) would **not** have caught this, because the cycle never repeats a call
-  back to back. Two things follow: planning a large paste in one turn and letting a deterministic paginator place it is essential
-  (#312), and the breaker needs cycle/progress detection or a per-run call ceiling as well.
-- **Meaning drift isn't scored.** Read `after.md`, or open the saved drafts ("Spike · <case> · <model>" in the local DB), for 01, 05, 07, 08 and 11.
+| case        | pass | calls (max) | valid | wording | overflow | blocks changed | advisory | time (api) | cost   | in / cache read / cache write / out tokens |
+| ----------- | ---- | ----------- | ----- | ------- | -------- | -------------- | -------- | ---------- | ------ | ------------------------------------------ |
+| 04 · haiku  | ✅   | 4 (6)       | 100%  | –       | none     | 2              | –        | 25s (25s)  | $0.037 | 26 / 14.3k / 9.1k / 2.9k                   |
+| 04 · sonnet | ❌   | 9 (6)       | 100%  | –       | none     | 2              | –        | 24s (24s)  | $0.069 | 14 / 60.7k / 7.4k / 2.5k                   |
+
+## What the spike says about #306
+
+- **Intent tools work on both models.** After `caption`/`alt` were accepted on inserted photos, every tool call in the runs had
+  schema-valid arguments. (One earlier Haiku run put `caption` there, was refused, and recovered on the next call.) Tidy, bullets,
+  split, move and resize a photo, place an upload, structure a lump, rewrite, a question with no edits, and a prompt injection
+  all passed on both models, with wording kept wherever the case required it.
+- **Single-page edits are cheap and quick:** 1–5 calls and about $0.015–0.05 per request on either model. Sonnet took ≈5–8s; Haiku
+  took 7–49s.
+- **Overflow feedback has to be in units the model can act on.** With only "overflows by ~N lines", both models shaved a sentence
+  at a time on 04 (8–9 calls). With "cut about N words", Haiku finished in 4 calls. Sonnet still used 9. It reached "fits, ~100%
+  full" after 6 calls, then kept trimming to get under the prompt's "over ~90% counts as full". The hint aims at _fits_, which is
+  lower than the prompt's target, so the two disagree. The estimate's own step size shows too: cutting words doesn't always remove
+  a line.
+- **Haiku thrashed on the large paste (08): 80 calls, 182s, $0.26.** It went round a cycle: move a section back to an earlier
+  page → that page overflows → `split_page` → pull the next article's blocks up one at a time → overflow → split → …
+  - The #306 circuit-breaker (5 _identical consecutive_ calls) would not have tripped, because the cycle never repeats a call back
+    to back. Each of these would have caught it: (a) the same block moved more than twice in a run; (b) a page's content returning
+    to an earlier state; (c) a per-run call ceiling (such as 40), with the spend cap as backstop.
+  - It also **inserted "The Spring Trip" twice** (+211 words). That's data damage, not just cost. One undo step would revert it.
+- **Sonnet placed the same ~860-word paste in 8 calls** with no planning tool: `add_page`, one `insert_blocks` per article, one
+  `split_page`, and two moves. The only difference from the paste was three section headings it wrote for an article that had
+  none, and it said so. On this evidence #312's plan-then-paginate is needed for a Haiku-class model and may be optional for a
+  Sonnet-class one. That's one case, one run each.
+- **Meaning drift isn't scored.** Read `after.md`, or open the saved drafts ("Spike · <case> · <model>" in the local DB), for 01,
+  05, 07, 08 and 11.
