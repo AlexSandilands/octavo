@@ -57,6 +57,8 @@ export type CoverStageProps = {
   hint: string[];
   onHint: (ids: string[]) => void;
   docking: ReturnType<typeof usePanelDock>;
+  /** False while the assistant's panel is out: the inspector steps aside (#309). */
+  inspector: boolean;
   updateOverlay: PageEdits["updateCoverOverlay"];
   updateElement: PageEdits["updateCoverElement"];
   removeElement: PageEdits["removeCoverElement"];
@@ -147,7 +149,10 @@ export function EditorStage({
     // The stage's own padding, the tool bar's reserve included on its side,
     // and the cover inspector's column while it shows.
     fitMargin: {
-      x: padding.left + padding.right + (cover ? INSPECTOR_RESERVE : 0),
+      x:
+        padding.left +
+        padding.right +
+        (cover?.inspector ? INSPECTOR_RESERVE : 0),
       y: padding.top + padding.bottom,
     },
     // Small enough that the page still clears a standing tool bar at the
@@ -159,7 +164,7 @@ export function EditorStage({
 
   // The inspector floats over the stage; the page slides away from it only as
   // far as the two would otherwise meet. Layout checks name the items concerned.
-  const dodge = useStageDodge(stageRef, scale, Boolean(cover));
+  const dodge = useStageDodge(stageRef, scale, Boolean(cover?.inspector));
   const warnings = useCoverLayoutWarnings(
     page,
     canvasRef,
@@ -310,7 +315,7 @@ export function EditorStage({
           </ScaledPage>
         </PageDropZone>
       </div>
-      {cover && page && (
+      {cover?.inspector && page && (
         <CoverOverlayControls
           docking={cover.docking}
           hasMasthead={cover.hasMasthead}

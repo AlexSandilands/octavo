@@ -55,6 +55,7 @@ import { useEditorAutosave } from "./use-editor-autosave";
 import { useEditorFlows } from "./use-editor-flows";
 import type { EditorTool } from "./side-panel/tool-rail";
 import { usePanelWidth } from "./side-panel/use-panel-width";
+import { useAssistantSnapshot } from "./assistant/use-assistant-snapshot";
 
 // Extends FooterReserve: the footer this issue's pages were laid out against
 // (issue #128) is what the canvas draws and measures overflow against, whatever
@@ -163,13 +164,14 @@ export function Editor({
   const [tool, setTool] = useState<EditorTool | null>(null);
   const toolPageKey = `${page?.id ?? ""}:${page?.cover ? "cover" : "interior"}`;
   const [previousToolPageKey, setPreviousToolPageKey] = useState(toolPageKey);
-  // Preserve an open panel across interior pages, but close it before a cover renders.
+  // Preserve an open panel across interior pages, but close Import PDF before a
+  // cover renders; the assistant stays, and the inspector steps aside for it.
   if (toolPageKey !== previousToolPageKey) {
     setPreviousToolPageKey(toolPageKey);
-    if (page?.cover) setTool(null);
+    if (page?.cover && tool === "pdf") setTool(null);
   }
   const rowRef = useRef<HTMLDivElement>(null);
-  const panel = usePanelWidth(rowRef);
+  const panel = usePanelWidth(rowRef, tool);
   // The canvas column: its width, not the window's, decides how the tool bar
   // lays out — labels, icons only, or standing at the left edge.
   const columnRef = useRef<HTMLDivElement>(null);
@@ -186,6 +188,8 @@ export function Editor({
   // Null until published (issue #270), then whatever the publish allocated —
   // which is also what defaults the modal's email off on a re-publish.
   const [number, setNumber] = useState(issue.number);
+  // Published here or before: the assistant only works on drafts (#306).
+  const [published, setPublished] = useState(issue.status === "published");
   const issueNo = number ?? suggestedNumber;
   // Items a pointed-at layout warning is lighting up on the page.
   const [hint, setHint] = useState<string[]>([]);
@@ -202,7 +206,10 @@ export function Editor({
     issueId: issue.id,
     flushSave,
     onSaveError: () => setStatus("error"),
-    onPublished: setNumber,
+    onPublished: (n) => {
+      setNumber(n);
+      setPublished(true);
+    },
   });
 
   const importer = usePdfInsertion({
@@ -263,6 +270,15 @@ export function Editor({
   // the canvas (and the reader) draw the smaller one it was made with until the
   // author says otherwise — see FooterUpdateNotice.
   const footerBehind = footerHeldBack(magazineFooter, issue);
+  const assistantSnapshot = useAssistantSnapshot({
+    title,
+    theme: themeId,
+    pages,
+    curPage,
+    logos,
+    sponsors,
+    measure: { theme, images, sponsors: sponsorMap, settings, logo, issueNo },
+  });
 
   return (
     <CoverTextProvider selectedId={sel}>
@@ -370,6 +386,7 @@ export function Editor({
                         hint,
                         onHint: setHint,
                         docking,
+                        inspector: tool !== "assistant",
                         updateOverlay: updateCoverOverlay,
                         updateElement: updateCoverElement,
                         removeElement: removeCoverElement,
@@ -409,6 +426,11 @@ export function Editor({
               pages={pages}
               onAdd={importer.add}
               dropRef={dropRef}
+              assistant={{
+                issueId: issue.id,
+                published,
+                snapshot: assistantSnapshot,
+              }}
             />
           </div>
           <DragOutGhost

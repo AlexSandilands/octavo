@@ -3,6 +3,7 @@
 // measured fill, and one page in full with every block's id. Pure, so the check
 // script runs it over the seed. Bounded: long text is cut with `[…]`, which the
 // prompt explains.
+import { AI_MAX_PROJECTION_CHARS } from "@/lib/ai-chat-contract";
 import type { Block, Page } from "@/lib/blocks";
 import { collectImageIds } from "@/lib/images";
 import { docToMarkdown } from "@/lib/markdown-doc";
@@ -13,7 +14,7 @@ import { describeFill } from "./page-fill";
 import { clip, quote, shape } from "./projection-text";
 
 /** The route's limit on a projection or a `read_page` result (#308). */
-export const PROJECTION_MAX = 60_000;
+export const PROJECTION_MAX = AI_MAX_PROJECTION_CHARS;
 /** Per-block text cap in the current-page view; `read_page` allows more. */
 export const VIEW_TEXT_CAP = 2_500;
 export const READ_TEXT_CAP = 12_000;
@@ -172,7 +173,7 @@ export function projection(issue: AssistantIssue, currentPage: number): string {
     top +
     clip(
       pageView(issue, currentPage, VIEW_TEXT_CAP),
-      PROJECTION_MAX - top.length - 8,
+      PROJECTION_MAX - top.length,
     )
   );
 }

@@ -2,9 +2,9 @@ import type { PhotoShape } from "./issue-context";
 
 // Small text helpers the projection's parts share (#309).
 
-/** Cut to `n` characters with the `[…]` marker the prompt explains. */
+/** At most `n` characters, a cut marked with the `[…]` the prompt explains. */
 export const clip = (s: string, n: number) =>
-  s.length > n ? `${s.slice(0, n).trimEnd()} […]` : s;
+  s.length > n ? `${s.slice(0, Math.max(0, n - 4)).trimEnd()} […]` : s;
 
 export const quote = (s: string) => `"${s.replace(/\s+/g, " ").trim()}"`;
 

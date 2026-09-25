@@ -2,13 +2,14 @@ import { notFound } from "next/navigation";
 import { Editor } from "@/features/editor/editor";
 import { EditorGate } from "@/features/editor/editor-gate";
 import { getIssue, nextIssueNumber } from "@/server/issues";
-import { resolveIssueImages } from "@/server/images";
+import { resolveIssueImages, resolveIssueUploads } from "@/server/images";
 import { listLogos } from "@/server/logos";
 import { countSubscribedRecipients } from "@/server/recipients";
 import { listSponsors } from "@/server/sponsors";
 import { requireAdminOrRedirect } from "@/server/session";
 import { getSettings } from "@/server/settings";
 import { settingsForIssue } from "@/lib/branding";
+import { assistantEnabled } from "@/features/editor/assistant/enabled";
 
 export const dynamic = "force-dynamic";
 
@@ -26,15 +27,24 @@ export default async function EditIssuePage({
   // derives the render map from it, so one query covers both. The logo list
   // does the same double duty for the footer mark: it is the picker's options
   // *and* how the canvas resolves the current choice to an image.
-  const [images, sponsors, logos, settings, subscriberCount, suggestedNumber] =
-    await Promise.all([
-      resolveIssueImages(issue.content),
-      listSponsors(),
-      listLogos(),
-      getSettings(),
-      countSubscribedRecipients(),
-      nextIssueNumber(),
-    ]);
+  const [
+    images,
+    uploads,
+    sponsors,
+    logos,
+    settings,
+    subscriberCount,
+    suggestedNumber,
+  ] = await Promise.all([
+    resolveIssueImages(issue.content),
+    // Photos uploaded here but not placed, which the assistant can place (#309).
+    assistantEnabled ? resolveIssueUploads(issue.id) : {},
+    listSponsors(),
+    listLogos(),
+    getSettings(),
+    countSubscribedRecipients(),
+    nextIssueNumber(),
+  ]);
 
   return (
     <EditorGate>
@@ -53,7 +63,7 @@ export default async function EditIssuePage({
         }}
         // What a draft's running head previews; stored only at publish (#270).
         suggestedNumber={suggestedNumber}
-        images={images}
+        images={{ ...uploads, ...images }}
         sponsors={sponsors}
         logos={logos}
         // The canvas draws — and measures overflow against — the footer this
