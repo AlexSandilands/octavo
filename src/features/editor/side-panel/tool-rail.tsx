@@ -1,15 +1,29 @@
 "use client";
 
+import type { RefObject } from "react";
 import type { IconName } from "@/components/icons";
+import { assistantEnabled } from "../assistant/enabled";
 import { ToolButton } from "../tool-button";
 
-export type EditorTool = "pdf";
+export type EditorTool = "pdf" | "assistant";
 
+// The assistant is dormant until a deployment sets NEXT_PUBLIC_AI_ASSISTANT (#306).
 export const EDITOR_TOOLS: {
   id: EditorTool;
   label: string;
   icon: IconName;
-}[] = [{ id: "pdf", label: "Import PDF", icon: "importFile" }];
+}[] = [
+  { id: "pdf", label: "Import PDF", icon: "importFile" },
+  ...(assistantEnabled
+    ? [
+        {
+          id: "assistant" as const,
+          label: "Assistant",
+          icon: "sparkle" as const,
+        },
+      ]
+    : []),
+];
 
 /** A smaller button hung under the open tool's own: Close, Replace PDF, … */
 export type RailAction = {
@@ -31,12 +45,15 @@ export function ToolRail({
   panelId,
   actions,
   unavailable,
+  buttons,
   onToggle,
 }: {
   active: EditorTool | null;
   panelId: string;
   actions: RailAction[];
   unavailable?: Partial<Record<EditorTool, string>>;
+  /** Each tool's button, so closing a panel can hand focus back to it. */
+  buttons?: RefObject<Partial<Record<EditorTool, HTMLButtonElement | null>>>;
   onToggle: (tool: EditorTool) => void;
 }) {
   return (
@@ -53,6 +70,9 @@ export function ToolRail({
             className="group relative flex flex-col items-center gap-2"
           >
             <ToolButton
+              ref={(el) => {
+                if (buttons) buttons.current[tool.id] = el;
+              }}
               icon={tool.icon}
               label={tool.label}
               iconClass="text-accent"
