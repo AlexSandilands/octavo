@@ -25,6 +25,8 @@ export type Score = {
   /** Reported, not failed on. */
   advisories: string[];
   changedBlocks: number;
+  /** Paste cases: new blocks, headings included, say exactly the paste. */
+  pasteVerbatim: boolean | null;
   calls: number;
   validPct: number;
   mutatingCalls: number;
@@ -63,13 +65,30 @@ function firstDiff(a: string[], b: string[]): string {
 }
 
 /** Words of the blocks that weren't in `before`, in document order. */
-function newBlockWords(before: IssueContent, after: IssueContent): string[] {
+function newBlockWords(
+  before: IssueContent,
+  after: IssueContent,
+  textOnly = false,
+): string[] {
   const old = new Set(before.pages.flatMap((p) => p.blocks.map((b) => b.id)));
   return after.pages.flatMap((p) =>
     p.blocks
-      .filter((b) => !old.has(b.id))
+      .filter((b) => !old.has(b.id) && (!textOnly || b.type === "text"))
       .flatMap((b) => normalizedWords(blockPlain(b))),
   );
+}
+
+/** A pasted paragraph that reads as a heading: short, no closing punctuation. */
+const headingLike = (para: string) =>
+  para.split(/\s+/).length <= 6 && !/[.!?:;]["'’”)]*$/.test(para);
+
+/** The paste's words minus its heading-like lines — what new text blocks must say. */
+function pasteBodyWords(paste: string): string[] {
+  return paste
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter((p) => p && !headingLike(p))
+    .flatMap(normalizedWords);
 }
 
 /** Blocks added, deleted or edited (moves alone don't count). */
@@ -108,6 +127,8 @@ export function scoreCase(
   const mutating = calls.filter((x) => x.mutated).length;
   const used = [...new Set(calls.map((x) => x.name))];
 
+  let pasteVerbatim: boolean | null = null;
+  const advisoriesExtra: string[] = [];
   let preserve: Score["preserve"] = {
     mode: c.expect.preserve,
     ok: true,
@@ -117,12 +138,20 @@ export function scoreCase(
     const d = firstDiff(issueWords(before), issueWords(content));
     preserve = { mode: "page", ok: d === "identical", detail: d };
   } else if (c.expect.preserve === "paste") {
-    // The new blocks, read in order, must say exactly what was pasted.
+    // New text blocks, in order, must say exactly what was pasted, less its
+    // heading lines; headings may be added or reworded (the case asks for them).
     const d = firstDiff(
+      pasteBodyWords(c.paste ?? ""),
+      newBlockWords(before, content, true),
+    );
+    preserve = { mode: "paste", ok: d === "identical", detail: d };
+    const exact = firstDiff(
       normalizedWords(c.paste ?? ""),
       newBlockWords(before, content),
     );
-    preserve = { mode: "paste", ok: d === "identical", detail: d };
+    pasteVerbatim = exact === "identical";
+    if (!pasteVerbatim)
+      advisoriesExtra.push(`paste not verbatim incl. headings: ${exact}`);
   }
   if (!preserve.ok) failures.push(`wording: ${preserve.detail}`);
 
@@ -140,15 +169,18 @@ export function scoreCase(
 
   // Advisory, like expect.tools: reported, never failed on.
   const changed = changedBlocks(before, content);
-  const advisories =
-    c.expect.maxChangedBlocks !== undefined &&
+  const advisories = [
+    ...advisoriesExtra,
+    ...(c.expect.maxChangedBlocks !== undefined &&
     changed > c.expect.maxChangedBlocks
       ? [`${changed} blocks changed (expected ≤ ${c.expect.maxChangedBlocks})`]
-      : [];
+      : []),
+  ];
 
   const flow = fills.filter((f) => f.kind === "flow");
   return {
     changedBlocks: changed,
+    pasteVerbatim,
     advisories,
     pass: failures.length === 0,
     failures,

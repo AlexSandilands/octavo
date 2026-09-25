@@ -13,9 +13,10 @@ import {
 } from "../../../src/lib/blocks.ts";
 import { createId } from "../../../src/lib/id.ts";
 import {
-  describeFill,
-  estimateFill,
   TEXT_AREA_H,
+  describeFill,
+  describeFillAction,
+  estimateFill,
   textDoc,
   usedHeight,
 } from "./fill.ts";
@@ -58,7 +59,7 @@ function editable(ctx: IssueContext, pageIdx: number): Page {
 }
 
 const fillLine = (ctx: IssueContext, pageIdx: number) =>
-  `page ${pageIdx + 1}: ${describeFill(estimateFill(ctx.content.pages[pageIdx]!, ctx.images))}`;
+  `page ${pageIdx + 1}: ${describeFillAction(estimateFill(ctx.content.pages[pageIdx]!, ctx.images))}`;
 
 /** Width when none is given: full means full width; a float can't be 100%. */
 function floatDefault(

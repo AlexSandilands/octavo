@@ -200,6 +200,25 @@ export function describeFill(fill: PageFill): string {
   return `fits, ~${Math.round(fill.percent / 5) * 5}% full`;
 }
 
+// Words on one body line: the column's characters per line over an average
+// English word plus its space (~6 characters).
+const WORDS_PER_LINE = Math.floor(cpl(COLUMN_W, textSizePx("m")) / 6);
+/** Past this, trimming is the wrong fix — carry the end over instead. */
+const TRIM_LIMIT_LINES = 8;
+
+/**
+ * The fill figure as a tool result: an overflow says what would fix it, in
+ * units the model can act on (words to cut, or a split when that's too many).
+ */
+export function describeFillAction(fill: PageFill): string {
+  const base = describeFill(fill);
+  if (fill.overflowLines === 0) return base;
+  const words = Math.ceil((fill.overflowLines * WORDS_PER_LINE) / 5) * 5;
+  return fill.overflowLines <= TRIM_LIMIT_LINES
+    ? `${base} — cut about ${words} words from the text on it, or split_page / move a block if the words must stay`
+    : `${base} (about ${words} words) — too much to trim; split_page or move a block to another page`;
+}
+
 /** Plain words of a block, for outlines and wording checks. */
 export function blockPlain(block: Block): string {
   if (block.type === "heading")

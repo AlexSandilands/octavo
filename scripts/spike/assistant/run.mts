@@ -287,7 +287,7 @@ const lines = [
   "|---|---|---|---|---|---|---|---|---|---|---|",
   ...rows.map(({ c, score: s, run: r }) =>
     s && r
-      ? `| ${c.id} | ${s.pass ? "✅" : "❌"} | ${s.calls} (${c.expect.maxCalls}) | ${s.validPct}% | ${s.preserve.mode === "none" ? "–" : s.preserve.ok ? "kept" : "changed"} | ${s.overflowPages.length ? `p${s.overflowPages.join(",")}` : "none"} | ${s.changedBlocks} | ${[...(s.toolsMissing.length ? [`unused: ${s.toolsMissing.join(", ")}`] : []), ...s.advisories].join("; ") || "–"} | ${seconds(r.durationMs)} (${seconds(r.apiMs ?? null)}) | ${r.costUsd === null ? "–" : `$${r.costUsd.toFixed(3)}`} | ${k(r.usage.input_tokens)} / ${k(r.usage.cache_read_input_tokens)} / ${k(r.usage.cache_creation_input_tokens)} / ${k(r.usage.output_tokens)} |`
+      ? `| ${c.id} | ${s.pass ? "✅" : "❌"} | ${s.calls} (${c.expect.maxCalls}) | ${s.validPct}% | ${s.preserve.mode === "none" ? "–" : s.preserve.ok ? "kept" : "changed"}${s.pasteVerbatim === false ? " (not verbatim)" : ""} | ${s.overflowPages.length ? `p${s.overflowPages.join(",")}` : "none"} | ${s.changedBlocks} | ${[...(s.toolsMissing.length ? [`unused: ${s.toolsMissing.join(", ")}`] : []), ...s.advisories].join("; ") || "–"} | ${seconds(r.durationMs)} (${seconds(r.apiMs ?? null)}) | ${r.costUsd === null ? "–" : `$${r.costUsd.toFixed(3)}`} | ${k(r.usage.input_tokens)} / ${k(r.usage.cache_read_input_tokens)} / ${k(r.usage.cache_creation_input_tokens)} / ${k(r.usage.output_tokens)} |`
       : `| ${c.id} | dry run | – | – | – | – | – | – | – | – | – |`,
   ),
 ];
