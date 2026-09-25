@@ -98,6 +98,31 @@ export function measurePageOverflow(
   };
 }
 
+/** How much of the page's text area its blocks take, in canvas px (#309). */
+export type PageFillMeasure = { used: number; avail: number };
+
+/**
+ * The same page geometry `measurePageOverflow` checks against, as a figure: from
+ * the top of the text area to the lowest block's bottom edge, against the room
+ * above the running footer. `used > avail` is an overflow. Null before layout.
+ */
+export function measurePageFill(
+  container: HTMLElement,
+): PageFillMeasure | null {
+  const geo = pageGeometry(container);
+  if (!geo) return null;
+  let bottom = geo.contentTop;
+  for (const el of container.querySelectorAll<HTMLElement>("[data-block-id]")) {
+    if (el.hasAttribute("data-cover-background")) continue;
+    const top = offsetWithin(el, geo.page);
+    if (top !== null) bottom = Math.max(bottom, top + el.offsetHeight);
+  }
+  return {
+    used: bottom - geo.contentTop,
+    avail: geo.limit - geo.contentTop,
+  };
+}
+
 /**
  * Measure one text block for the flow action: every top-level node's edges, plus
  * how much room the text has on this page and on a fresh one.
