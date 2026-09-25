@@ -86,7 +86,14 @@ export function AssistantPanel({
           <AssistantThread
             messages={chat.messages}
             busy={chat.busy}
-            error={chat.error?.code === "budget_spent" ? null : chat.error}
+            error={
+              // Told in the panel's own words: the spent month below, the run
+              // cap as the circuit-breaker's message.
+              chat.error?.code === "budget_spent" ||
+              chat.error?.code === "run_cap"
+                ? null
+                : chat.error
+            }
             intro={INTRO}
             after={
               <RunResult

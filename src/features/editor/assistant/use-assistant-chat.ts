@@ -18,7 +18,7 @@ import {
   type AiProjectionData,
 } from "@/lib/ai-chat-contract";
 import type { AiToolInput, AiToolName, AiToolOutput } from "@/lib/ai-tools";
-import type { RunSummary } from "./executor";
+import { BREAKER_MESSAGE, type RunSummary } from "./executor";
 import type { AssistantIssue } from "./issue-context";
 import { projection } from "./projection";
 import type { AssistantTools } from "./tools";
@@ -171,7 +171,10 @@ export function useAssistantChat({
       if (isAbort || isError || stopped.current || !continues) endRun();
     },
     onError: (error) => {
-      if (readAiError(error.message).code === "too_long") setFull(true);
+      const code = readAiError(error.message).code;
+      if (code === "too_long") setFull(true);
+      // The run's $0.50 cap is the circuit-breaker's third condition (#310).
+      if (code === "run_cap") setStuck(BREAKER_MESSAGE);
       endRun();
     },
   });
