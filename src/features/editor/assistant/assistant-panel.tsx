@@ -135,7 +135,7 @@ export function AssistantPanel({
               inputRef={input}
               busy={chat.busy}
               disabled={spent || chat.full}
-              onSend={(text) => void chat.send(text)}
+              onSend={chat.send}
               onStop={chat.stop}
             />
             {usage && (

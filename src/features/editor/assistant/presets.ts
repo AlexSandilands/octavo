@@ -1,3 +1,5 @@
+import type { SendResult } from "./use-assistant-chat";
+
 // The quick requests above the composer (#310): each a fixed message aimed at
 // the page open now and, when one is selected, its block. The block id rides in
 // brackets for the model; the thread shows the author the words around it.
@@ -30,8 +32,8 @@ export function presetMessage(id: PresetId, target: PresetTarget): string {
   }
 }
 
-/** Sends an Ask; false when the conversation can't take a request now. */
-export type AskHandler = (blockId: string, text: string) => boolean;
+/** Sends an Ask, or says why the conversation can't take it now. */
+export type AskHandler = (blockId: string, text: string) => Promise<SendResult>;
 
 /** The Ask box's request (#311): the author's words, aimed at one block. */
 export const askMessage = (

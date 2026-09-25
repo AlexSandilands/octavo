@@ -1,5 +1,6 @@
 "use client";
 
+import type { AskHandler } from "./assistant/presets";
 import { useEffect, useEffectEvent, type RefObject } from "react";
 import {
   SortableContext,
@@ -47,7 +48,7 @@ export type StageActions = Pick<
 > & {
   registerImage: (imageId: string, image: ResolvedImage) => void;
   /** The assistant's Ask on the selected block (#311), when it's offered. */
-  ask?: (blockId: string, text: string) => boolean;
+  ask?: AskHandler;
 };
 
 type PageEdits = ReturnType<typeof useEditorPages>;

@@ -28,6 +28,7 @@ import { SponsorPicker } from "./sponsor-picker";
 import { CoverItemTools } from "./cover-item-tools";
 import { RichTextEditor } from "./rich-text-editor";
 import { AskControl } from "./assistant/ask-box";
+import type { SendResult } from "./assistant/use-assistant-chat";
 
 // One block in the editor canvas: the themed BlockView (editable) wrapped in the
 // editing chrome — a faint hover outline, a darker selected outline, a left
@@ -83,7 +84,7 @@ export function EditorBlock({
   onFillPage: (align: PageAlign) => void;
   onRegisterImage: (imageId: string, image: ResolvedImage) => void;
   /** The assistant's Ask (#311): absent while it's off, on drafts' covers and published issues. */
-  onAsk?: (text: string) => boolean;
+  onAsk?: (text: string) => Promise<SendResult>;
 }) {
   const {
     attributes,

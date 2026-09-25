@@ -10,6 +10,7 @@ import {
 import dynamic from "next/dynamic";
 import type { Page } from "@/lib/blocks";
 import { AssistantPanel, budgetSpent } from "./assistant/assistant-panel";
+import { assistantEnabled } from "./assistant/enabled";
 import {
   useAssistantChat,
   type AssistantSnapshot,
@@ -89,7 +90,10 @@ export function EditorSide({
   const buttons = useRef<Partial<Record<EditorTool, HTMLButtonElement | null>>>(
     {},
   );
-  const usage = useAssistantUsage(tool === "assistant");
+  const usage = useAssistantUsage(
+    assistantEnabled && !assistant.published,
+    tool === "assistant",
+  );
   const chat = useAssistantChat({
     issueId: assistant.issueId,
     snapshot: assistant.snapshot,
@@ -102,16 +106,16 @@ export function EditorSide({
   // panel takes the focus, as it does on opening, with Stop at hand.
   const { askRef } = assistant;
   useEffect(() => {
-    askRef.current = (blockId, text) => {
+    askRef.current = async (blockId, text) => {
       if (shown === "assistant")
         document.getElementById(ASSISTANT_INPUT_ID)?.focus();
       else onToggle("assistant");
-      if (chat.busy || chat.full || budgetSpent(chat, usage.usage))
-        return false;
-      void chat.send(
+      // The editor fetches the figure on opening; if it hasn't landed, ask.
+      const now = usage.usage ?? (await usage.refresh());
+      if (budgetSpent(chat, now)) return { ok: false, reason: "spent" };
+      return chat.send(
         askMessage({ page: assistant.target.page, blockId }, text),
       );
-      return true;
     };
   });
   // A closing panel keeps its content while it slides out. Each opening counts,

@@ -389,7 +389,11 @@ export function Editor({
                     setImages((m) => ({ ...m, [imageId]: image })),
                   ask:
                     assistantEnabled && !published
-                      ? (id, text) => askRef.current?.(id, text) ?? false
+                      ? async (id, text) =>
+                          (await askRef.current?.(id, text)) ?? {
+                            ok: false,
+                            reason: "failed",
+                          }
                       : undefined,
                 }}
                 cover={
