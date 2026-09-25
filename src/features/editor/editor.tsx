@@ -57,6 +57,7 @@ import type { EditorTool } from "./side-panel/tool-rail";
 import { usePanelWidth } from "./side-panel/use-panel-width";
 import { useAssistantSnapshot } from "./assistant/use-assistant-snapshot";
 import { useAssistantTools } from "./assistant/tools";
+import { AssistantEditingNote } from "./assistant/editing-note";
 
 // Extends FooterReserve: the footer this issue's pages were laid out against
 // (issue #128) is what the canvas draws and measures overflow against, whatever
@@ -124,6 +125,7 @@ export function Editor({
     page,
     canUndo,
     canRedo,
+    historyTop,
     historyNotice,
     undo,
     redo,
@@ -292,8 +294,9 @@ export function Editor({
       <div
         className="bg-card relative flex h-dvh flex-col"
         data-import-pending={importer.pending}
+        data-assistant-running={assistantTools.running}
       >
-        <div inert={importer.pending}>
+        <div inert={importer.pending || assistantTools.running}>
           <EditorHeader
             title={title}
             onTitleChange={setTitle}
@@ -337,9 +340,10 @@ export function Editor({
             </div>
             <div
               ref={columnRef}
-              inert={importer.pending}
+              inert={importer.pending || assistantTools.running}
               className="bg-canvas relative flex min-w-0 flex-1 flex-col overflow-hidden"
             >
+              {assistantTools.running && <AssistantEditingNote />}
               {/* Not while the inspector is up: it spans the stage's height. */}
               {footerBehind &&
                 page &&
@@ -443,6 +447,7 @@ export function Editor({
                   blockId: page?.blocks.some((b) => b.id === sel) ? sel : null,
                 },
                 undo,
+                historyTop,
               }}
             />
           </div>

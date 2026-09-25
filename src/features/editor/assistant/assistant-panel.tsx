@@ -6,7 +6,8 @@ import { AI_ERROR_COPY } from "@/lib/ai-chat-contract";
 import { usageLine, type AiUsageSummary } from "@/lib/ai-usage-summary";
 import { AssistantComposer } from "./assistant-composer";
 import { AssistantThread } from "./assistant-thread";
-import type { Page } from "@/lib/blocks";
+import { Icon } from "@/components/icons";
+import type { EditorSnapshot } from "../use-editor-history";
 import type { RunSummary } from "./executor";
 import {
   PRESETS,
@@ -32,7 +33,7 @@ export function AssistantPanel({
   cover,
   usage,
   target,
-  pages,
+  historyTop,
   onUndo,
 }: {
   chat: ReturnType<typeof useAssistantChat>;
@@ -42,8 +43,8 @@ export function AssistantPanel({
   usage: AiUsageSummary | null;
   /** The page open now and its selected block, for the presets. */
   target: PresetTarget;
-  /** The editor's pages: a run's Undo stands while they're as it left them. */
-  pages: Page[];
+  /** The step Ctrl+Z would restore: a run's line stands while it's the run's. */
+  historyTop: EditorSnapshot | null;
   onUndo: () => void;
 }) {
   const input = useRef<HTMLTextAreaElement>(null);
@@ -97,9 +98,12 @@ export function AssistantPanel({
             intro={INTRO}
             after={
               <RunResult
-                summary={chat.summary}
+                // Anything else recorded since means the run is no longer one
+                // Undo away: its line goes.
+                summary={
+                  chat.summary?.step === historyTop ? chat.summary : null
+                }
                 stuck={chat.stuck}
-                undoable={chat.summary?.after === pages}
                 onUndo={onUndo}
               />
             }
@@ -195,44 +199,36 @@ function Presets({
   );
 }
 
-// What the last run did, with its one-step Undo while the pages are still as it
-// left them; or, when the circuit-breaker stopped it, why.
+// What the last run did, with its one-step Undo while that is still the step
+// Ctrl+Z would take; or, when the circuit-breaker stopped it, why.
 function RunResult({
   summary,
   stuck,
-  undoable,
   onUndo,
 }: {
   summary: RunSummary | null;
   stuck: string | null;
-  undoable: boolean;
   onUndo: () => void;
 }) {
   if (!summary && !stuck) return null;
   return (
     <div
       data-assistant-run
-      className="border-line flex flex-col gap-1.5 rounded-lg border bg-white px-3.5 py-2.5 font-sans text-[15px] leading-snug"
+      className="border-line flex flex-col gap-2.5 rounded-lg border bg-white px-3.5 py-3 font-sans text-[15px] leading-snug"
     >
       {stuck && <p className="text-warn font-medium">{stuck}</p>}
       {summary && (
-        <p className="text-ink flex flex-wrap items-baseline gap-x-2">
-          <span>{summary.text}</span>
-          {undoable && (
-            <>
-              <span aria-hidden className="text-faint">
-                ·
-              </span>
-              <button
-                type="button"
-                onClick={onUndo}
-                className="text-accent hover:text-accent-strong font-semibold hover:underline"
-              >
-                Undo
-              </button>
-            </>
-          )}
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+          <p className="text-ink">{summary.text}</p>
+          <button
+            type="button"
+            onClick={onUndo}
+            className="border-hair-warm text-ink hover:border-accent hover:bg-accent-wash inline-flex h-11 flex-none cursor-pointer items-center gap-2 rounded-lg border-[1.5px] bg-white px-4 font-sans text-[15px] font-semibold transition-colors motion-safe:active:scale-95"
+          >
+            <Icon name="undo" size={17} />
+            Undo
+          </button>
+        </div>
       )}
     </div>
   );
