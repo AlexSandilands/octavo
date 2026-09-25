@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AI_MAX_TOOL_TEXT,
   aiToolSchemas,
@@ -36,6 +36,8 @@ export type AssistantTools = {
   endRun(): RunSummary | null;
   /** Non-null: stop the run and show this. */
   breaker(): string | null;
+  /** A run is under way: the editor keeps the author's hands off the canvas. */
+  running: boolean;
 };
 
 export function readPage(input: unknown, issue: AssistantIssue): AiToolOutput {
@@ -118,8 +120,13 @@ export function useAssistantTools({
     });
   }, []);
 
+  const [running, setRunning] = useState(false);
   return {
-    beginRun: () => executor.current?.beginRun(),
+    running,
+    beginRun: () => {
+      setRunning(true);
+      executor.current?.beginRun();
+    },
     run: async (name, input, issue) =>
       executor.current
         ? executor.current.run(name, input, {
@@ -127,7 +134,10 @@ export function useAssistantTools({
             read: (args) => readPage(args, issue),
           })
         : { text: "Error: the editor isn't ready yet. Nothing changed." },
-    endRun: () => executor.current?.summary() ?? null,
+    endRun: () => {
+      setRunning(false);
+      return executor.current?.summary() ?? null;
+    },
     breaker: () => executor.current?.breaker() ?? null,
   };
 }

@@ -24,27 +24,40 @@ export type AssistantEditorHandle = {
   apply(next: EditorSnapshot, record: EditorSnapshot | null): Promise<void>;
 };
 
-export type RunSummary = {
-  text: string;
-  blocks: number;
-  pages: number[];
-  /** The pages as the run left them: Undo is offered while they still stand. */
-  after: Page[];
+export type RunChange = { text: string; blocks: number; pages: number[] };
+export type RunSummary = RunChange & {
+  /** The run's one history step: its Undo is offered while that is on top. */
+  step: EditorSnapshot;
 };
 
 export const RUN_CALL_LIMIT = 40;
 export const RUN_MOVE_LIMIT = 2;
 export const BREAKER_MESSAGE =
   "I got stuck, so I stopped. Everything I did is in place and can be undone in one step.";
+export const INTERRUPTED_MESSAGE =
+  "The issue changed while I was working, so I stopped. What I'd done is still in place; Ctrl+Z takes back your change first, then mine.";
 
 type RunState = {
   calls: number;
   moves: Map<string, number>;
-  /** The pages before the run's first change; null until it changes something. */
-  start: Page[] | null;
+  /** The step recorded before the run's first change; null until it changes something. */
+  step: EditorSnapshot | null;
+  /** The pages as the run last left them. */
+  last: Page[] | null;
+  /** Something else changed the pages mid-run: it stops. */
+  interrupted: boolean;
 };
 
-const fresh = (): RunState => ({ calls: 0, moves: new Map(), start: null });
+const fresh = (): RunState => ({
+  calls: 0,
+  moves: new Map(),
+  step: null,
+  last: null,
+  interrupted: false,
+});
+
+const CHANGED_UNDER_RUN =
+  "Error: the issue changed while you were working (the author edited it, or undid your changes), so this run has stopped; nothing more changed.";
 
 function argumentError(name: string, error: ZodError): string {
   const issue = error.issues[0];
@@ -79,6 +92,12 @@ export function createAssistantExecutor({
     photos: ReadonlySet<string>,
   ): Promise<string> => {
     const before = handle.state();
+    // One run is one undo step only while nothing else has changed the pages
+    // since its last edit: a change between calls stops the run.
+    if (run.interrupted || (run.last && before.pages !== run.last)) {
+      run.interrupted = true;
+      return CHANGED_UNDER_RUN;
+    }
     try {
       const result = await applyEdit(
         { pages: before.pages, photos, measure },
@@ -91,11 +110,13 @@ export function createAssistantExecutor({
       });
       if (!valid.success)
         return `Error: that edit would make the issue invalid (${valid.error.issues[0]?.message}); nothing changed.`;
-      if (handle.state().pages !== before.pages)
-        return "Error: the author changed the issue while this edit was being measured; nothing changed. Read the page again and retry.";
+      if (handle.state().pages !== before.pages) {
+        run.interrupted = true;
+        return CHANGED_UNDER_RUN;
+      }
 
-      const record = run.start ? null : before;
-      run.start ??= before.pages;
+      const record = run.step ? null : before;
+      run.step ??= before;
       const current = before.pages[before.curPage]?.id;
       const curPage = result.pages.findIndex((p) => p.id === current);
       const selKept = result.pages.some((p) =>
@@ -112,6 +133,7 @@ export function createAssistantExecutor({
         },
         record,
       );
+      run.last = result.pages;
       if (result.moved)
         run.moves.set(result.moved, (run.moves.get(result.moved) ?? 0) + 1);
 
@@ -162,14 +184,18 @@ export function createAssistantExecutor({
       queue = next.catch(() => undefined);
       return next;
     },
-    /** Why the run should stop now (too many calls, a block moved back and forth), or null. */
+    /** Why the run should stop now (too many calls, a block moved back and
+     *  forth, the issue changed under it), or null. */
     breaker(): string | null {
+      if (run.interrupted) return INTERRUPTED_MESSAGE;
       const thrashing = [...run.moves.values()].some((n) => n > RUN_MOVE_LIMIT);
       return run.calls > RUN_CALL_LIMIT || thrashing ? BREAKER_MESSAGE : null;
     },
-    /** What the run changed, for the panel's one line and its Undo; null if nothing. */
+    /** What the run itself changed, for the panel's one line and its Undo; null if nothing. */
     summary(): RunSummary | null {
-      return run.start ? summarizeRun(run.start, handle.state().pages) : null;
+      if (!run.step || !run.last) return null;
+      const change = summarizeRun(run.step.pages, run.last);
+      return change && { ...change, step: run.step };
     },
   };
 }
@@ -212,7 +238,7 @@ function reordered(ids: string[], order: Map<string, number>): string[] {
 }
 
 /** Blocks changed, moved, added or removed between two documents, by page. */
-export function summarizeRun(before: Page[], after: Page[]): RunSummary | null {
+export function summarizeRun(before: Page[], after: Page[]): RunChange | null {
   type At = { json: string; page: number; pageId: string; index: number };
   const where = (pages: Page[]) => {
     const map = new Map<string, At>();
@@ -264,10 +290,5 @@ export function summarizeRun(before: Page[], after: Page[]): RunSummary | null {
   if (added > 0)
     parts.push(`added ${added === 1 ? "1 page" : `${added} pages`}`);
   const text = parts.join(" and ");
-  return {
-    text: text[0]!.toUpperCase() + text.slice(1),
-    blocks,
-    pages,
-    after,
-  };
+  return { text: text[0]!.toUpperCase() + text.slice(1), blocks, pages };
 }

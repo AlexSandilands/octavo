@@ -388,6 +388,7 @@ export function useEditorPages(content: IssueContent) {
     page,
     canUndo: history.canUndo,
     canRedo: history.canRedo,
+    historyTop: history.top,
     historyNotice: history.notice,
     undo,
     redo,
