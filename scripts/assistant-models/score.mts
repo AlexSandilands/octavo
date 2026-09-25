@@ -14,13 +14,15 @@ import {
 import { richTextToPlain } from "../../src/lib/rich-text-doc.ts";
 import type { PageFill } from "../../src/features/editor/assistant/page-fill.ts";
 import type { Case } from "../fixtures/assistant/cases.mts";
-import { doneFailures } from "./checks.mts";
+import { claimFailures, doneFailures } from "./checks.mts";
 import type { CaseRun } from "./conversation.mts";
 
 export type Score = {
   pass: boolean;
   /** The task was done, by the case's own checks. */
   done: boolean;
+  /** Edits the reply claims that no tool made. */
+  falseClaims: string[];
   failures: string[];
   /** Reported, not failed on. */
   advisories: string[];
@@ -206,6 +208,8 @@ export function scoreCase(
     reply: run.reply,
   });
   failures.push(...notDone);
+  const claims = claimFailures(run.reply, run.calls);
+  failures.push(...claims);
 
   const changed = changedBlocks(before, after);
   if (
@@ -223,6 +227,7 @@ export function scoreCase(
   return {
     pass: failures.length === 0,
     done: notDone.length === 0,
+    falseClaims: claims,
     failures,
     advisories,
     calls,

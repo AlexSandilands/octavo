@@ -212,3 +212,51 @@ export function doneFailures(checks: Check[], ctx: Ctx): string[] {
     return why ? [`not done: ${why}`] : [];
   });
 }
+
+// Structural edits a reply says it made ("I then removed…"), and the tools
+// that could have made them. Wording inside a block is set_text's, and offers
+// ("if you'd like it removed") aren't claims, so only first-person edits of
+// whole blocks and pages count.
+const I = String.raw`\bI(?:'ve| have)?(?: also| then| now)? `;
+const CLAIMS: { said: RegExp; what: string; tools: string[] }[] = [
+  {
+    said: new RegExp(
+      `${I}(?:removed|deleted)\\b[^.]*\\b(?:blocks?|paragraphs|headings?|photos?|images?)\\b`,
+      "i",
+    ),
+    what: "removed blocks",
+    tools: ["delete_block"],
+  },
+  {
+    said: new RegExp(`${I}moved\\b[^.]*\\bpage`, "i"),
+    what: "moved a block",
+    tools: ["move_block", "split_page"],
+  },
+  {
+    said: new RegExp(
+      `${I}(?:split|carried)\\b[^.]*\\bonto\\b[^.]*\\bpage`,
+      "i",
+    ),
+    what: "split a page",
+    tools: ["split_page", "move_block"],
+  },
+  {
+    said: new RegExp(`${I}added\\b[^.]*\\bpages?\\b`, "i"),
+    what: "added pages",
+    tools: ["add_page", "split_page"],
+  },
+];
+
+/** Edits the reply says it made that no tool made, as "reply claims …". */
+export function claimFailures(
+  reply: string,
+  calls: { name: string; mutated: boolean }[],
+): string[] {
+  const made = new Set(calls.filter((c) => c.mutated).map((c) => c.name));
+  return CLAIMS.filter(
+    (c) => c.said.test(reply) && !c.tools.some((t) => made.has(t)),
+  ).map(
+    (c) =>
+      `reply claims an edit no tool made: ${c.what} (no ${c.tools.join(" / ")})`,
+  );
+}
