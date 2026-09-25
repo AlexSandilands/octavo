@@ -52,8 +52,7 @@ export async function checkAiUsagePage(d: Deps) {
     await sql`insert into ai_grants (id, amount_usd, note, created_at)
       values (${crypto.randomUUID()}, 4, ${tag}, '2001-02-10T00:00:00Z')`;
     const spent = rows.reduce((n, r) => n + r[5], 0);
-    // One ledger row per request; Tokens is all four counts.
-    const requests = rows.length;
+    // Tokens is all four counts.
     const tokens = rows.reduce((n, r) => n + r[1] + r[2] + r[3] + r[4], 0);
     const allowance = Number(process.env.AI_MONTHLY_BUDGET_USD ?? 0);
     const remaining = Math.max(0, allowance + 4 - spent);
@@ -142,7 +141,7 @@ export async function checkAiUsagePage(d: Deps) {
     );
 
     // ── The note under the figures ──────────────────────────────────────────
-    const note = `In February 2001 the assistant answered 3 messages, about ${usd(spent / requests)} a request. When the month’s allowance is used up, the assistant stops until the next month; the site owner can raise it.`;
+    const note = `In February 2001 the assistant answered 3 messages, about ${usd(spent / 3)} each. When the month’s allowance is used up, the assistant stops until the next month; the site owner can raise it.`;
     ok(
       (await page.getByText(note, { exact: true }).count()) === 1,
       `the note reads as the owner asked`,

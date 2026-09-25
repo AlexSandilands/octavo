@@ -58,7 +58,6 @@ export default async function AiUsagePage({
       cost: d.cost,
     }))
     .sort((a, b) => (a.day < b.day ? 1 : -1));
-  const requests = rows.reduce((n, r) => n + r.requests, 0);
   const enabled = isAssistantEnabled();
 
   return (
@@ -95,7 +94,6 @@ export default async function AiUsagePage({
         </div>
         <div className="mt-6">
           <UsageNotes
-            requests={requests}
             runs={runs}
             spent={budget.spent}
             monthName={monthName}
