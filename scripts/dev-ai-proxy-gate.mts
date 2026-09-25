@@ -17,6 +17,7 @@
 // Run: npx tsx scripts/dev-ai-proxy-gate.mts <base-url> [<off-base-url>] [--log <file>]
 import type { UIMessage } from "ai";
 import postgres from "postgres";
+import { AI_PROJECTION_END } from "../src/lib/ai-chat-contract.ts";
 import {
   assemble,
   checkLogLeak,
@@ -312,6 +313,33 @@ try {
   );
 
   await checkRecordedReplies(deps);
+
+  heading("the projection's boundary");
+  const echoed = await assemble(
+    await chunksOf(
+      await post(
+        {
+          runId: newRun(),
+          issueId: draftId,
+          messages: [
+            userMessage("[fake:echo] Put the photo here.", "Last paragraph."),
+          ],
+        },
+        { token: tokens.a },
+      ),
+    ),
+  );
+  const modelGot = echoed.parts.flatMap((p) =>
+    p.type === "text" ? [p.text] : [],
+  );
+  ok(
+    modelGot.join("") ===
+      JSON.stringify([
+        `Last paragraph.\n\n${AI_PROJECTION_END}`,
+        "[fake:echo] Put the photo here.",
+      ]),
+    `the projection ends with the boundary, then the author's text: ${modelGot.join("")}`,
+  );
 
   heading("failures mid-stream");
   for (const [trigger, label] of [

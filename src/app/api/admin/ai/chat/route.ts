@@ -12,6 +12,7 @@ import { isAssistantEnabled } from "@/lib/ai";
 import {
   AI_MAX_BODY_BYTES,
   AI_MAX_OUTPUT_TOKENS,
+  AI_PROJECTION_END,
   AI_PROJECTION_PART,
   type AiProjectionData,
 } from "@/lib/ai-chat-contract";
@@ -129,7 +130,10 @@ export async function POST(request: Request) {
       ignoreIncompleteToolCalls: true,
       convertDataPart: (part) =>
         part.type === AI_PROJECTION_PART
-          ? { type: "text", text: (part.data as AiProjectionData).text }
+          ? {
+              type: "text",
+              text: `${(part.data as AiProjectionData).text}\n\n${AI_PROJECTION_END}`,
+            }
           : undefined,
     });
   } catch {

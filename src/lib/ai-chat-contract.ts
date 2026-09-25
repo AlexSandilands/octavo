@@ -8,6 +8,10 @@ export const AI_CHAT_PATH = "/api/admin/ai/chat";
 // text part. It stays in history verbatim, so the cache prefix never changes.
 export const AI_PROJECTION_PART = "data-projection";
 export type AiProjectionData = { text: string };
+// Closes the projection as the model reads it, so the author's words after it
+// aren't read as the end of the page's last paragraph (found by #315).
+export const AI_PROJECTION_END =
+  "— End of the issue view. The editor's message follows. —";
 
 export const AI_MAX_MESSAGES = 200;
 export const AI_MAX_TEXT_CHARS = 20_000;
