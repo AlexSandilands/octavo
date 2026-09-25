@@ -2,7 +2,7 @@
 
 > **Throwaway.** The decisions this spike led to are in [`docs/ai-assistant.md`](../../../docs/ai-assistant.md); this
 > README is the evidence behind them. The modules are lifted into `src/` by #310 and the harness becomes #315's
-> model-selection fixture; the epic's closing issue deletes `scripts/spike/`.
+> model-selection fixture; the epic's close-out (#344) deletes `scripts/spike/`.
 
 One question, answered before #307–#315 are built: **can a Claude model do the
 epic's page-editing job through intent tools (markdown in, blocks out, never
