@@ -25,7 +25,7 @@ export const EDITOR_TOOLS: {
     : []),
 ];
 
-/** A smaller button hung under the open tool's own: Close, Replace PDF, … */
+/** A smaller button hung under the open tool's own: Replace PDF, … */
 export type RailAction = {
   id: string;
   icon: IconName;
@@ -38,8 +38,8 @@ export type RailAction = {
 // The slim strip on the editor's right edge that opens the side panel: one
 // square per tool, pressed while its panel is out. The rail is the panel's
 // permanent home so a new tool is one entry above, not a new header button.
-// The open tool's actions slide down out of its button, so the panel itself
-// carries no chrome.
+// The open tool's actions slide down out of its button and Close sits under
+// the whole list, so the panel itself carries no chrome.
 export function ToolRail({
   active,
   panelId,
@@ -47,6 +47,7 @@ export function ToolRail({
   unavailable,
   buttons,
   onToggle,
+  onClose,
 }: {
   active: EditorTool | null;
   panelId: string;
@@ -55,6 +56,7 @@ export function ToolRail({
   /** Each tool's button, so closing a panel can hand focus back to it. */
   buttons?: RefObject<Partial<Record<EditorTool, HTMLButtonElement | null>>>;
   onToggle: (tool: EditorTool) => void;
+  onClose: () => void;
 }) {
   return (
     <nav
@@ -110,6 +112,16 @@ export function ToolRail({
           </div>
         );
       })}
+      {active && (
+        <div className="starting:opacity-0 motion-safe:transition-opacity motion-safe:duration-300">
+          <ToolButton
+            icon="close"
+            label="Close panel"
+            size="xs"
+            onClick={onClose}
+          />
+        </div>
+      )}
     </nav>
   );
 }
