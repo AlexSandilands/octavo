@@ -55,3 +55,8 @@ yarn-error.log*
 
 # Generated from the pinned browser PDF parser.
 /public/pdfjs/
+
+# assistant spike run output (#306)
+/scripts/spike/assistant/results/
+/scripts/spike/assistant/.cache/
+/scripts/spike/assistant/photos/

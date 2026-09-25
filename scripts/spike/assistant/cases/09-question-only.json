@@ -1,0 +1,14 @@
+{
+  "id": "09-question-only",
+  "description": "A question about the issue; must answer without editing.",
+  "issue": 5,
+  "page": 2,
+  "instruction": "Which pages are nearly full, and which ones have room for another photo?",
+  "expect": {
+    "preserve": "page",
+    "tools": [],
+    "maxCalls": 6,
+    "noOverflow": false,
+    "noEdits": true
+  }
+}

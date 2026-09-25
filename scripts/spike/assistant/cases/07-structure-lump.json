@@ -1,0 +1,24 @@
+{
+  "id": "07-structure-lump",
+  "description": "An article pasted as one text block with its headings as plain lines: give it structure.",
+  "issue": 3,
+  "page": 5,
+  "setup": {
+    "replacePage": {
+      "page": 5,
+      "blocks": [
+        {
+          "kind": "text",
+          "markdown": "Exhibition\nThe Members' Show\n\nThe annual show filled the arts centre's long room for a fortnight in May: ninety pieces, thirty-one makers, and a visitors' book that ran to a second volume by the final weekend. The hanging committee settled the running order in a single evening, which is believed to be a record.\n\nWhat sold\n\nMugs, as ever, went first, followed by the small bud vases that newer members make in batches of twenty. The large lidded jar in the window, which three visitors asked about and none could afford, has been bought by the arts centre for its reception desk.\n\nNext year\n\nThe show returns in May with a second room, a demonstration wheel, and, at the insistence of the treasurer, a card machine."
+        }
+      ]
+    }
+  },
+  "instruction": "This article was pasted in as one block. Give it proper headings and paragraphs.",
+  "expect": {
+    "preserve": "page",
+    "tools": ["insert_blocks", "set_text"],
+    "maxCalls": 10,
+    "noOverflow": true
+  }
+}
