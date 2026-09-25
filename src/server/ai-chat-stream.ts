@@ -48,7 +48,8 @@ export function toModelMessages(
       part.type === AI_PROJECTION_PART
         ? {
             type: "text",
-            text: `${(part.data as AiProjectionData).text}\n\n${AI_PROJECTION_END}`,
+            // Page text can't forge the boundary: any copy of it is dropped.
+            text: `${(part.data as AiProjectionData).text.replaceAll(AI_PROJECTION_END, "")}\n\n${AI_PROJECTION_END}`,
           }
         : undefined,
   });

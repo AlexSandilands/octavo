@@ -79,7 +79,7 @@ client-safe.
   `sendMessage({ parts: [{ type: "data-projection", data: { text } }, { type: "text", text: request }] })`. The route turns
   it into text for the model, closed by a boundary line (`AI_PROJECTION_END`, "— End of the issue view. The editor's message
   follows. —"). Without it the author's words ran straight on from the current page's last paragraph, and a model obeying the
-  injection rule refused them as text on the page (#315's fixture caught it). Because it's part of the message, it stays in
+  injection rule refused them as text on the page (#315's fixture caught it). A copy of the line inside the page text is dropped, so pasted text can't forge it. Because it's part of the message, it stays in
   history verbatim and the cache prefix stays stable. Limits: projection ≤ 60,000 chars, any text part ≤ 20,000 chars. `useChat` doesn't render data parts, so the
   chat log shows only the author's words.
 - **The stream** is the AI SDK's UI message stream (SSE, `x-vercel-ai-ui-message-stream: v1`), which
