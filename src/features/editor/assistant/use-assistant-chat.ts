@@ -9,6 +9,7 @@ import {
 } from "ai";
 import {
   AI_CHAT_PATH,
+  AI_MAX_CONVERSATION_CHARS,
   AI_MAX_MESSAGES,
   AI_MAX_TEXT_CHARS,
   AI_PROJECTION_PART,
@@ -46,8 +47,46 @@ export type AssistantSnapshot = () => Promise<{
   currentPage: number;
 }>;
 
-/** Room for one more run: the author's message and the reply to it. */
+/** Room for one more run: the author's message and the reply to it… */
 const RUN_MESSAGES = 2;
+/** …and the characters that reply and its tool results may add. */
+const RUN_CHARS = 20_000;
+
+/** Characters the route counts against AI_MAX_CONVERSATION_CHARS (#308). */
+function conversationChars(messages: AssistantMessage[]): number {
+  let chars = 0;
+  for (const m of messages)
+    for (const part of m.parts) {
+      if (part.type === "text" || part.type === "reasoning")
+        chars += part.text.length;
+      else if (part.type === AI_PROJECTION_PART) chars += part.data.text.length;
+      else if ("toolCallId" in part)
+        chars +=
+          JSON.stringify(part.input ?? null).length +
+          ((part.output as AiToolOutput | undefined)?.text.length ?? 0) +
+          (part.errorText?.length ?? 0);
+    }
+  return chars;
+}
+
+/**
+ * A stopped reply can end mid tool call. That tail was never answered, so it is
+ * closed off rather than replayed half-made: a call still arriving is dropped,
+ * one that arrived unanswered is marked stopped. Earlier turns are untouched.
+ */
+function closeStoppedTail(messages: AssistantMessage[]): AssistantMessage[] {
+  const last = messages[messages.length - 1];
+  if (last?.role !== "assistant") return messages;
+  const parts = last.parts.flatMap((part): AssistantMessage["parts"] => {
+    if (!("toolCallId" in part)) return [part];
+    if (part.state === "input-streaming") return [];
+    if (part.state !== "input-available") return [part];
+    return [
+      { ...part, state: "output-error", errorText: "Stopped by the editor." },
+    ];
+  });
+  return [...messages.slice(0, -1), { ...last, parts }];
+}
 
 export function useAssistantChat({
   issueId,
@@ -140,12 +179,16 @@ export function useAssistantChat({
     setRunning(true);
     try {
       const { issue, currentPage } = await latest.current.snapshot();
+      const view = projection(issue, currentPage);
+      const size = conversationChars(chat.messages) + view.length + text.length;
+      if (size + RUN_CHARS > AI_MAX_CONVERSATION_CHARS) {
+        setFull(true);
+        endRun();
+        return;
+      }
       await chat.sendMessage({
         parts: [
-          {
-            type: AI_PROJECTION_PART,
-            data: { text: projection(issue, currentPage) },
-          },
+          { type: AI_PROJECTION_PART, data: { text: view } },
           { type: "text", text },
         ],
       });
@@ -155,13 +198,14 @@ export function useAssistantChat({
     }
   };
 
-  const stop = () => {
+  const stop = async () => {
     stopped.current = true;
-    void chat.stop();
+    await chat.stop();
+    chat.setMessages(closeStoppedTail);
     endRun();
   };
 
-  /** The route's message cap reached: a fresh conversation, nothing trimmed. */
+  /** A fresh conversation (the old one is full, or the author asked). */
   const restart = () => {
     if (busy) return;
     chat.setMessages([]);
