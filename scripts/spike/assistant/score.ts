@@ -99,6 +99,8 @@ export function scoreCase(
   const failures: string[] = [];
   const parsed = issueContentSchema.safeParse(after);
   if (!parsed.success) failures.push("final content fails issueContentSchema");
+  // Compare like with like: both sides with the schema's defaults applied.
+  before = issueContentSchema.parse(before);
   const content = parsed.success ? parsed.data : before;
 
   const total = Math.max(attempted, calls.length);

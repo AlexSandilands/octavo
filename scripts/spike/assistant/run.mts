@@ -5,12 +5,13 @@
 //
 //   npx tsx --tsconfig scripts/tsconfig.json scripts/spike/assistant/run.mts \
 //     --model haiku [--case 03-overflow-split[,05-move-photo]] [--dry-run] [--save-draft]
+//   … run.mts --rescore results/<dir>   (re-score a finished run, no model calls)
 //
 // --dry-run builds each case's state, projection and message without calling
 // the model (free). Real runs spend the logged-in Claude subscription.
 import { spawn } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { loadCases, startingContext, userMessage, type Case } from "./cases.ts";
 import { estimateFill, describeFill } from "./fill.ts";
@@ -36,6 +37,7 @@ const { values } = parseArgs({
     case: { type: "string" },
     "dry-run": { type: "boolean", default: false },
     "save-draft": { type: "boolean", default: false },
+    rescore: { type: "string" },
   },
 });
 const model = values.model!;
@@ -46,11 +48,13 @@ const cases = loadCases().filter(
 if (!cases.length) throw new Error(`no case matches ${values.case}`);
 
 const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-const outDir = join(
-  HERE,
-  "results",
-  `${model.replace(/[^\w.-]/g, "_")}-${stamp}${values["dry-run"] ? "-dry" : ""}`,
-);
+const outDir = values.rescore
+  ? resolve(values.rescore)
+  : join(
+      HERE,
+      "results",
+      `${model.replace(/[^\w.-]/g, "_")}-${stamp}${values["dry-run"] ? "-dry" : ""}`,
+    );
 mkdirSync(outDir, { recursive: true });
 const systemPrompt = readFileSync(join(HERE, "prompt.md"), "utf8");
 
@@ -64,6 +68,8 @@ type RunResult = {
   usage: Record<string, number>;
   turns: number | null;
   durationMs: number;
+  /** Time spent waiting on the API, per Claude Code — excludes tool execution. */
+  apiMs: number | null;
   toolUses: number;
   error?: string;
 };
@@ -157,6 +163,10 @@ function runClaude(dir: string, message: string): Promise<RunResult> {
         usage: (result?.usage as Record<string, number>) ?? {},
         turns: typeof result?.num_turns === "number" ? result.num_turns : null,
         durationMs: Date.now() - started,
+        apiMs:
+          typeof result?.duration_api_ms === "number"
+            ? result.duration_api_ms
+            : null,
         toolUses,
         error:
           code === 0 && result && !result.is_error
@@ -170,15 +180,68 @@ function runClaude(dir: string, message: string): Promise<RunResult> {
 type Row = { c: Case; score?: Score; run?: RunResult; startFill: string };
 const rows: Row[] = [];
 
+/** Score a case's directory: before.json, state.json and calls.jsonl. */
+function scoreDir(c: Case, dir: string, run: RunResult): Score {
+  const read = (f: string) =>
+    fromStateFile(JSON.parse(readFileSync(join(dir, f), "utf8")) as StateFile);
+  const before = read("before.json");
+  const after = read("state.json");
+  const calls = readFileSync(join(dir, "calls.jsonl"), "utf8")
+    .split("\n")
+    .filter(Boolean)
+    .map((l) => JSON.parse(l) as LoggedCall);
+  const score = scoreCase(
+    c,
+    before.content,
+    after.content,
+    calls,
+    run.toolUses,
+    after.images,
+  );
+  if (run.error) {
+    score.failures.unshift(`run error: ${run.error}`);
+    score.pass = false;
+  }
+  writeFileSync(join(dir, "after.md"), dump(after));
+  return score;
+}
+
+const seconds = (ms: number | null) =>
+  ms === null ? "–" : `${(ms / 1000).toFixed(0)}s`;
+
 for (const c of cases) {
   const dir = join(outDir, c.id);
+  if (values.rescore) {
+    if (!existsSync(join(dir, "before.json"))) continue;
+    const saved = JSON.parse(readFileSync(join(dir, "score.json"), "utf8")) as {
+      run: RunResult;
+      startFill: string;
+    };
+    const score = scoreDir(c, dir, saved.run);
+    writeFileSync(
+      join(dir, "score.json"),
+      JSON.stringify(
+        {
+          case: c.id,
+          model,
+          startFill: saved.startFill,
+          score,
+          run: saved.run,
+        },
+        null,
+        2,
+      ),
+    );
+    rows.push({ c, score, run: saved.run, startFill: saved.startFill });
+    continue;
+  }
   mkdirSync(dir, { recursive: true });
   const ctx = startingContext(c);
-  const before = structuredClone(ctx.content);
   const startFill = describeFill(
     estimateFill(ctx.content.pages[c.page - 1]!, ctx.images),
   );
   const message = userMessage(projection(ctx, c.page), c);
+  writeFileSync(join(dir, "before.json"), JSON.stringify(toStateFile(ctx)));
   writeFileSync(join(dir, "state.json"), JSON.stringify(toStateFile(ctx)));
   writeFileSync(join(dir, "calls.jsonl"), "");
   writeFileSync(join(dir, "message.txt"), message);
@@ -193,34 +256,18 @@ for (const c of cases) {
 
   process.stdout.write(`${c.id} (${model}) … `);
   const run = await runClaude(dir, message);
-  const after = fromStateFile(
-    JSON.parse(readFileSync(join(dir, "state.json"), "utf8")) as StateFile,
-  );
-  const calls = readFileSync(join(dir, "calls.jsonl"), "utf8")
-    .split("\n")
-    .filter(Boolean)
-    .map((l) => JSON.parse(l) as LoggedCall);
-  const score = scoreCase(
-    c,
-    before,
-    after.content,
-    calls,
-    run.toolUses,
-    after.images,
-  );
-  if (run.error) {
-    score.failures.unshift(`run error: ${run.error}`);
-    score.pass = false;
-  }
-  writeFileSync(join(dir, "after.md"), dump(after));
+  const score = scoreDir(c, dir, run);
   writeFileSync(
     join(dir, "score.json"),
     JSON.stringify({ case: c.id, model, startFill, score, run }, null, 2),
   );
   console.log(
-    `${score.pass ? "PASS" : "FAIL"} · ${score.calls} calls · ${(run.durationMs / 1000).toFixed(0)}s${score.failures.length ? ` · ${score.failures.join("; ")}` : ""}`,
+    `${score.pass ? "PASS" : "FAIL"} · ${score.calls} calls · ${seconds(run.durationMs)}${score.failures.length ? ` · ${score.failures.join("; ")}` : ""}`,
   );
   if (values["save-draft"]) {
+    const after = fromStateFile(
+      JSON.parse(readFileSync(join(dir, "state.json"), "utf8")) as StateFile,
+    );
     const id = await saveDraft(after, `Spike · ${c.id} · ${model}`);
     console.log(`  saved as draft ${id} — /admin/issues/${id}/edit`);
   }
@@ -232,7 +279,7 @@ for (const c of cases) {
 const k = (n: number | undefined) =>
   n === undefined ? "–" : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
 const header =
-  "| case | pass | calls (max) | valid | wording | overflow | blocks changed | advisory | time | cost | in / cache read / cache write / out tokens |";
+  "| case | pass | calls (max) | valid | wording | overflow | blocks changed | advisory | time (api) | cost | in / cache read / cache write / out tokens |";
 const lines = [
   `### ${model} · ${stamp}`,
   "",
@@ -240,7 +287,7 @@ const lines = [
   "|---|---|---|---|---|---|---|---|---|---|---|",
   ...rows.map(({ c, score: s, run: r }) =>
     s && r
-      ? `| ${c.id} | ${s.pass ? "✅" : "❌"} | ${s.calls} (${c.expect.maxCalls}) | ${s.validPct}% | ${s.preserve.mode === "none" ? "–" : s.preserve.ok ? "kept" : "changed"} | ${s.overflowPages.length ? `p${s.overflowPages.join(",")}` : "none"} | ${s.changedBlocks} | ${[...(s.toolsMissing.length ? [`unused: ${s.toolsMissing.join(", ")}`] : []), ...s.advisories].join("; ") || "–"} | ${(r.durationMs / 1000).toFixed(0)}s | ${r.costUsd === null ? "–" : `$${r.costUsd.toFixed(3)}`} | ${k(r.usage.input_tokens)} / ${k(r.usage.cache_read_input_tokens)} / ${k(r.usage.cache_creation_input_tokens)} / ${k(r.usage.output_tokens)} |`
+      ? `| ${c.id} | ${s.pass ? "✅" : "❌"} | ${s.calls} (${c.expect.maxCalls}) | ${s.validPct}% | ${s.preserve.mode === "none" ? "–" : s.preserve.ok ? "kept" : "changed"} | ${s.overflowPages.length ? `p${s.overflowPages.join(",")}` : "none"} | ${s.changedBlocks} | ${[...(s.toolsMissing.length ? [`unused: ${s.toolsMissing.join(", ")}`] : []), ...s.advisories].join("; ") || "–"} | ${seconds(r.durationMs)} (${seconds(r.apiMs ?? null)}) | ${r.costUsd === null ? "–" : `$${r.costUsd.toFixed(3)}`} | ${k(r.usage.input_tokens)} / ${k(r.usage.cache_read_input_tokens)} / ${k(r.usage.cache_creation_input_tokens)} / ${k(r.usage.output_tokens)} |`
       : `| ${c.id} | dry run | – | – | – | – | – | – | – | – | – |`,
   ),
 ];

@@ -47,6 +47,33 @@ export function seedIssues(): IssueContext[] {
   });
 }
 
+/**
+ * Run `fn` with `crypto.randomUUID` replaced by a seeded generator, so a case
+ * builds with the same (random-looking) block ids on every run and every model
+ * sees an identical message.
+ */
+export function withSeededIds<T>(seed: number, fn: () => T): T {
+  const original = crypto.randomUUID;
+  let state = seed >>> 0;
+  const next = () => {
+    // mulberry32
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0).toString(16).padStart(8, "0");
+  };
+  crypto.randomUUID = () => {
+    const h = next() + next() + next() + next();
+    return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-a${h.slice(17, 20)}-${h.slice(20, 32)}` as `${string}-${string}-${string}-${string}-${string}`;
+  };
+  try {
+    return fn();
+  } finally {
+    crypto.randomUUID = original;
+  }
+}
+
 /** Image ids the issue's blocks reference. */
 export function placedImageIds(content: IssueContent): Set<string> {
   const ids = new Set<string>();

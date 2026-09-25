@@ -5,7 +5,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
 import { buildBlock } from "./executor.ts";
-import { seedIssues, type IssueContext } from "./seed.ts";
+import { seedIssues, withSeededIds, type IssueContext } from "./seed.ts";
 import { insertItemSchema } from "./tools.ts";
 
 // Setup items are insert items plus the two fields only a fixture may set.
@@ -100,6 +100,10 @@ function buildItems(ctx: IssueContext, items: z.infer<typeof setupItem>[]) {
 
 /** A fresh seed issue with the case's setup applied. */
 export function startingContext(c: Case): IssueContext {
+  return withSeededIds(306, () => buildStart(c));
+}
+
+function buildStart(c: Case): IssueContext {
   const ctx = seedIssues()[c.issue]!;
   for (const img of c.setup?.unplacedImages ?? []) {
     ctx.uploads.push(img);
