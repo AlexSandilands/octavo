@@ -107,7 +107,13 @@ const runtimeBaseSchema = z.object({
   SENTRY_DSN: z.string().url().optional(),
   // The AI assistant's standing monthly allowance in USD (issue #307); grants
   // add to it. Unset is 0 — no spend without a grant.
-  AI_MONTHLY_BUDGET_USD: z.coerce.number().nonnegative().default(0),
+  AI_MONTHLY_BUDGET_USD: z
+    .string()
+    .trim()
+    .regex(/^(\d{1,5}(\.\d{1,2})?)?$/, "a dollar amount, e.g. 50 or 12.50")
+    .optional()
+    .transform((value) => (value ? Number(value) : 0))
+    .pipe(z.number().max(10_000, "at most 10000")),
 });
 
 const runtimeSchema = runtimeBaseSchema.superRefine((vars, ctx) => {

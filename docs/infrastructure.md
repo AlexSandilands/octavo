@@ -96,7 +96,9 @@ month up with a one-off grant, beside `db:admin` and run the same way:
 railway run npm run ai:grant -- 25 "Spring issue layout"   # drop `railway run` locally
 ```
 
-The amount is dollars and cents, above $0 and at most $1,000; the note (≤ 200 characters) is the
+Under `railway run` the script reads only Railway's variables (it loads `.env.local` only when
+`DATABASE_URL` isn't already set), so the budget it prints is production's. The amount is dollars and
+cents, above $0 and at most $1,000; the note (≤ 200 characters) is the
 record of what the grant was for. It counts in the current calendar month (UTC) only and prints the
 month's budget afterwards — allowance + grants − spent = remaining. Grants can't be edited or
 withdrawn from the app; the arithmetic is in [database.md](database.md#ai-assistant-spend-issue-307).
@@ -254,7 +256,7 @@ EMAIL_FROM=              # "Club Magazine <hello@clubmag.org>"
 SENTRY_DSN=              # Sentry project DSN (server-side). Optional — app runs fine unset.
 NEXT_PUBLIC_SENTRY_DSN=  # SAME DSN, browser copy (public ingest key; build-time inlined).
 
-AI_MONTHLY_BUDGET_USD=   # the AI assistant's monthly allowance in USD; unset = 0 (top up with ai:grant)
+AI_MONTHLY_BUDGET_USD=   # the AI assistant's monthly allowance in USD (e.g. 20 or 12.50, ≤ 10000); unset = 0 (top up with ai:grant)
 ```
 
 Both Sentry vars are optional everywhere: with them unset, `Sentry.init` is

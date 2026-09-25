@@ -5,9 +5,12 @@
 // Production (Railway): railway run npm run ai:grant -- 25 "Spring issue layout"
 import { existsSync } from "node:fs";
 
-// Load .env.local when present (local dev); in production the environment is
-// set already. The app modules read it, so they load after.
-if (existsSync(".env.local")) process.loadEnvFile(".env.local");
+// Load .env.local for a local run only: under `railway run` the database is
+// Railway's, and a local file would fill in the vars Railway leaves unset (a
+// local AI_MONTHLY_BUDGET_USD would misreport production's month). The app
+// modules read the environment, so they load after.
+if (!process.env.DATABASE_URL && existsSync(".env.local"))
+  process.loadEnvFile(".env.local");
 
 const usd = (n: number) => `$${n.toFixed(2)}`;
 

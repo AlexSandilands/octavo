@@ -34,7 +34,9 @@ the code and applies migrations; it never replaces content).
   in the same database transaction as the delete. Regatta, issue 6, tops the library.
 - **Keeps** members, their sessions and the magazine settings (name, footer,
   the discussion and PDF switches). Admins stay admins; a member's next comment
-  asks for a posting name again.
+  asks for a posting name again. The AI assistant's ledger and grants
+  (`ai_usage`, `ai_grants`) stay too, so a reset doesn't restore the month's
+  budget; a deleted issue's rows keep counting with no issue attached.
 - **Then sweeps storage:** every object in the bucket that no image row names is
   deleted — old uploads, avatars, imported images and cached PDFs, including
   anything orphaned before the script existed. Seed images keep fixed keys, so

@@ -3,8 +3,36 @@
 // ids, unknown models), per-run spend, the daily rollup and UTC boundaries.
 // Every scratch row is dated 1999–2000, tagged "check-307", and removed again.
 // Run: npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-budget.mts
+import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { randomUUID } from "node:crypto";
+import { fileURLToPath } from "node:url";
+
+// The allowance as env.ts parses it, in a child process so each value is fresh.
+if (process.argv.includes("--env-probe")) {
+  const { env } = await import("../src/lib/env.ts");
+  try {
+    console.log(JSON.stringify(env.AI_MONTHLY_BUDGET_USD));
+  } catch {
+    console.log('"refused"');
+  }
+  process.exit(0);
+}
+const allowanceFor = (value: string) =>
+  JSON.parse(
+    execFileSync(
+      process.execPath,
+      [...process.execArgv, fileURLToPath(import.meta.url), "--env-probe"],
+      {
+        env: { ...process.env, AI_MONTHLY_BUDGET_USD: value },
+        stdio: ["ignore", "pipe", "ignore"],
+      },
+    )
+      .toString()
+      .trim()
+      .split("\n")
+      .at(-1)!,
+  ) as number | "refused";
 
 for (const file of [".env.local", ".env"]) {
   if (existsSync(file)) process.loadEnvFile(file);
@@ -79,6 +107,22 @@ async function grant(amountUsd: number | string, when: string) {
 
 const scratchUserId = randomUUID();
 try {
+  heading("AI_MONTHLY_BUDGET_USD");
+  for (const [value, want] of [
+    ["", 0],
+    ["50", 50],
+    ["12.50", 12.5],
+    ["10000", 10000],
+    ["Infinity", "refused"],
+    ["0x10", "refused"],
+    ["-5", "refused"],
+    ["1e3", "refused"],
+    ["10000.01", "refused"],
+  ] as const) {
+    const got = allowanceFor(value);
+    ok(got === want, `"${value}" reads as ${JSON.stringify(got)}`);
+  }
+
   heading("an empty month");
   const empty = await budget.resolveBudget(at("1999-11-15T12:00:00Z"));
   ok(
