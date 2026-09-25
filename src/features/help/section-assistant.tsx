@@ -1,8 +1,8 @@
 import { AssistantUsageHelp } from "./assistant-usage";
 import { Bullets, Callout, GuideSection, P } from "./guide-ui";
 
-// The editing assistant (epic #306): what it can do, the presets (#310), and
-// Undo. Shown only where the deployment offers it.
+// The editing assistant (epic #306): what it can do, the presets (#310), the
+// cover (#313), and Undo. Shown only where the deployment offers it.
 // #314 adds how to see what it costs at the end of this section.
 export function SectionAssistant() {
   return (
@@ -16,9 +16,9 @@ export function SectionAssistant() {
         edge of the editor opens a chat beside the page you&rsquo;re working on.
         You ask in ordinary words, and it answers from the issue in front of it
         or makes the change for you: tidying a page, turning a list into
-        bullets, rewriting or shortening text, moving or resizing a photo, or
-        carrying the end of a full page onto a new one. Its changes appear on
-        the page as it makes them.
+        bullets, rewriting or shortening text, moving or resizing a photo,
+        carrying the end of a full page onto a new one, or composing the cover.
+        Its changes appear on the page as it makes them.
       </P>
       <P>
         It can also look. It can open your photos to put each one beside the
@@ -50,6 +50,17 @@ export function SectionAssistant() {
           fits. The wording will change here too.
         </li>
       </Bullets>
+      <P>
+        On the cover the four buttons give way to one,{" "}
+        <strong>Compose cover</strong>, which leads with the issue&rsquo;s
+        strongest story and keeps the photo already there. You can also ask for
+        a cover in your own words, such as &ldquo;put the evening photo on the
+        cover, lead with the twilight league, and add the date and our
+        logo&rdquo;. It sets the background, the masthead, stories linked to
+        their pages, the issue details and a logo from your library, and places
+        and colours them. The typefaces stay yours to choose in the cover
+        settings. Asked from an inside page, it works on the front cover.
+      </P>
       <P>
         When it has finished, a line in the panel says what changed, such as
         &ldquo;Changed 3 blocks on pages 4&ndash;5&rdquo;, with an{" "}
