@@ -438,6 +438,11 @@ export function Editor({
                 published,
                 snapshot: assistantSnapshot,
                 tools: assistantTools,
+                target: {
+                  page: curPage + 1,
+                  blockId: page?.blocks.some((b) => b.id === sel) ? sel : null,
+                },
+                undo,
               }}
             />
           </div>

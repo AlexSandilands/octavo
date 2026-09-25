@@ -17,6 +17,7 @@ import {
   BREAKER_MESSAGE,
   createAssistantExecutor,
   formatPages,
+  summarizeRun,
 } from "../src/features/editor/assistant/executor";
 import type { EditMeasurer } from "../src/features/editor/assistant/page-report";
 import * as h from "./fixtures/assistant/tools-harness.mts";
@@ -442,6 +443,30 @@ heading("the circuit-breaker");
       "I got stuck, so I stopped. Everything I did is in place and can be undone in one step.",
     "with the agreed words",
   );
+}
+
+heading("the run summary counts moves");
+{
+  const [a, b, c] = [textBlock(1, "A"), textBlock(1, "B"), textBlock(1, "C")];
+  const before = [cover, page(a, b, c), page(headingBlock("Z"))];
+  const within = [before[0]!, page(a, c, b), before[2]!].map((p, i) => ({
+    ...p,
+    id: before[i]!.id,
+  }));
+  ok(
+    summarizeRun(before, within)?.text === "Changed 1 block on page 2",
+    `a block moved within its page is one change (${summarizeRun(before, within)?.text})`,
+  );
+  const across = [
+    before[0]!,
+    { ...before[1]!, blocks: [a, b] },
+    { ...before[2]!, blocks: [...before[2]!.blocks, c] },
+  ];
+  ok(
+    summarizeRun(before, across)?.text === "Changed 1 block on page 3",
+    "a block moved to another page is one change, where it landed",
+  );
+  ok(summarizeRun(before, before) === null, "no change is no summary");
 }
 
 heading("formatting");

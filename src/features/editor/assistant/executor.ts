@@ -24,7 +24,13 @@ export type AssistantEditorHandle = {
   apply(next: EditorSnapshot, record: EditorSnapshot | null): Promise<void>;
 };
 
-export type RunSummary = { text: string; blocks: number; pages: number[] };
+export type RunSummary = {
+  text: string;
+  blocks: number;
+  pages: number[];
+  /** The pages as the run left them: Undo is offered while they still stand. */
+  after: Page[];
+};
 
 export const RUN_CALL_LIMIT = 40;
 export const RUN_MOVE_LIMIT = 2;
@@ -185,32 +191,66 @@ export function formatPages(numbers: number[]): string {
     : (runs[0] ?? "");
 }
 
-/** Blocks changed, added or removed between two documents, by page. */
+/**
+ * The blocks of `ids` that moved within a page: every one not on its longest
+ * run still in the old order (one moved paragraph is one, not its neighbours).
+ */
+function reordered(ids: string[], order: Map<string, number>): string[] {
+  const at = ids.map((id) => order.get(id)!);
+  const best = at.map(() => 1);
+  const prev = at.map(() => -1);
+  for (let i = 0; i < at.length; i++)
+    for (let j = 0; j < i; j++)
+      if (at[j]! < at[i]! && best[j]! + 1 > best[i]!) {
+        best[i] = best[j]! + 1;
+        prev[i] = j;
+      }
+  const keep = new Set<number>();
+  for (let i = best.indexOf(Math.max(0, ...best)); i >= 0; i = prev[i]!)
+    keep.add(i);
+  return ids.filter((_, i) => !keep.has(i));
+}
+
+/** Blocks changed, moved, added or removed between two documents, by page. */
 export function summarizeRun(before: Page[], after: Page[]): RunSummary | null {
+  type At = { json: string; page: number; pageId: string; index: number };
   const where = (pages: Page[]) => {
-    const map = new Map<string, { json: string; page: number }>();
+    const map = new Map<string, At>();
     pages.forEach((p, i) =>
-      p.blocks.forEach((b) =>
-        map.set(b.id, { json: JSON.stringify(b), page: i + 1 }),
+      p.blocks.forEach((b, index) =>
+        map.set(b.id, {
+          json: JSON.stringify(b),
+          page: i + 1,
+          pageId: p.id,
+          index,
+        }),
       ),
     );
     return map;
   };
   const was = where(before);
   const now = where(after);
-  const pageNos: number[] = [];
-  let blocks = 0;
+  const touched = new Map<string, number>();
   for (const [id, b] of now) {
-    if (was.get(id)?.json === b.json) continue;
-    blocks++;
-    pageNos.push(b.page);
+    const old = was.get(id);
+    if (!old || old.json !== b.json || old.pageId !== b.pageId)
+      touched.set(id, b.page);
   }
+  for (const p of after) {
+    const stayed = p.blocks
+      .map((b) => b.id)
+      .filter((id) => was.get(id)?.pageId === p.id && !touched.has(id));
+    const order = new Map(stayed.map((id) => [id, was.get(id)!.index]));
+    for (const id of reordered(stayed, order))
+      touched.set(id, now.get(id)!.page);
+  }
+  const pageNos = [...touched.values()];
+  let blocks = touched.size;
   for (const [id, b] of was) {
     if (now.has(id)) continue;
     blocks++;
     // A removed block is reported on its page as it stands now.
-    const pageId = before[b.page - 1]!.id;
-    const index = after.findIndex((p) => p.id === pageId);
+    const index = after.findIndex((p) => p.id === b.pageId);
     pageNos.push(index >= 0 ? index + 1 : b.page);
   }
   const added = after.length - before.length;
@@ -224,5 +264,10 @@ export function summarizeRun(before: Page[], after: Page[]): RunSummary | null {
   if (added > 0)
     parts.push(`added ${added === 1 ? "1 page" : `${added} pages`}`);
   const text = parts.join(" and ");
-  return { text: text[0]!.toUpperCase() + text.slice(1), blocks, pages };
+  return {
+    text: text[0]!.toUpperCase() + text.slice(1),
+    blocks,
+    pages,
+    after,
+  };
 }
