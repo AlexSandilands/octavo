@@ -95,6 +95,17 @@ export const caseSchema = z.object({
   estimate: tokens,
   instruction: z.string(),
   paste: z.string().optional(),
+  /** The calls a good run makes, played by the fake provider so a free run
+   *  exercises the executor and the scorer's pass path. A block id may be
+   *  written "@p3.text2": page 3's second text block in the starting issue. */
+  fake: z
+    .array(
+      z.object({
+        toolName: z.string(),
+        input: z.record(z.string(), z.unknown()),
+      }),
+    )
+    .optional(),
   expect: z.object({
     preserve: z.enum(["page", "paste", "none"]),
     tools: z.array(z.string()),
@@ -291,3 +302,26 @@ function build(
 /** The author's words for the case: the instruction, then any paste. */
 export const authorText = (c: Case) =>
   c.paste ? `${c.instruction}\n\n${c.paste}` : c.instruction;
+
+const BLOCK_REF = /^@p(\d+)\.(heading|text|image)(\d+)$/;
+
+/** The case's fake script with its "@pN.kindM" references made block ids. */
+export function fakeScript(c: Case, pages: Page[]): Case["fake"] {
+  const resolve = (v: unknown): unknown => {
+    if (Array.isArray(v)) return v.map(resolve);
+    if (v && typeof v === "object")
+      return Object.fromEntries(
+        Object.entries(v).map(([k, x]) => [k, resolve(x)]),
+      );
+    const m = typeof v === "string" ? BLOCK_REF.exec(v) : null;
+    if (!m) return v;
+    const block = pages[Number(m[1]) - 1]?.blocks.filter(
+      (b) => b.type === m[2],
+    )[Number(m[3]) - 1];
+    if (!block) throw new Error(`${c.id}: no block ${v}`);
+    return block.id;
+  };
+  return c.fake?.map(
+    (call) => resolve(call) as NonNullable<Case["fake"]>[number],
+  );
+}

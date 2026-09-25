@@ -33,5 +33,33 @@
         "caption": "The thermometer outside the hall, updated every Sunday."
       }
     ]
-  }
+  },
+  "fake": [
+    {
+      "toolName": "insert_blocks",
+      "input": {
+        "after": {
+          "blockId": "@p3.heading2"
+        },
+        "blocks": [
+          {
+            "kind": "image",
+            "imageId": "img-extra-thermometer",
+            "align": "right",
+            "caption": "The thermometer outside the hall, updated every Sunday.",
+            "alt": "The roof fund thermometer outside the hall.",
+            "width": 35
+          }
+        ]
+      }
+    },
+    {
+      "toolName": "set_image_layout",
+      "input": {
+        "blockId": "@p3.image1",
+        "align": "full",
+        "width": 70
+      }
+    }
+  ]
 }

@@ -154,9 +154,7 @@ export async function loadPhotos(
 }
 
 /** A round mark for a new club: a boule and jack, or a leaf over a spade. */
-export async function clubMark(
-  name: string,
-): Promise<{
+export async function clubMark(name: string): Promise<{
   logo: { id: string; name: string; imageId: string };
   image: FixtureImage;
 }> {

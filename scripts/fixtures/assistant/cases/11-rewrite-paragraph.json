@@ -24,5 +24,14 @@
         "text": 2
       }
     ]
-  }
+  },
+  "fake": [
+    {
+      "toolName": "set_text",
+      "input": {
+        "blockId": "@p2.text2",
+        "markdown": "New members, note the studio's two rules: the last person out checks the kiln switches, and nobody touches another potter's ware board. Everything else is negotiable."
+      }
+    }
+  ]
 }

@@ -21,6 +21,7 @@ import {
   toModelMessages,
 } from "../../src/server/ai-chat-stream.ts";
 import { assistantTools } from "../../src/server/ai-chat-tools.ts";
+import { FAKE_TRIGGER_TOOLS } from "../../src/server/ai-fake-model.ts";
 import type { AssistantModel } from "../../src/server/ai-provider.ts";
 import type { EditorSnapshot } from "../../src/features/editor/use-editor-history.ts";
 import { createAssistantExecutor } from "../../src/features/editor/assistant/executor.ts";
@@ -28,6 +29,7 @@ import { projection } from "../../src/features/editor/assistant/projection.ts";
 import { readPage } from "../../src/features/editor/assistant/tools.ts";
 import {
   authorText,
+  fakeScript,
   type Case,
   type FixtureIssue,
 } from "../fixtures/assistant/cases.mts";
@@ -134,6 +136,12 @@ const textOf = (m: UIMessage | undefined) =>
     .join("\n")
     .trim();
 
+/** On the fake provider, the case's scripted calls for it to play. */
+function scriptFor(c: Case, issue: FixtureIssue, model: AssistantModel) {
+  const script = model.provider === "fake" && fakeScript(c, issue.pages);
+  return script ? `\n\n${FAKE_TRIGGER_TOOLS}${JSON.stringify(script)}` : "";
+}
+
 export async function runCase({
   c,
   issue,
@@ -172,7 +180,7 @@ export async function runCase({
     role: "user",
     parts: [
       { type: AI_PROJECTION_PART, data: { text: view } },
-      { type: "text", text: authorText(c) },
+      { type: "text", text: authorText(c) + scriptFor(c, issue, model) },
     ],
   };
   const calls: LoggedCall[] = [];
