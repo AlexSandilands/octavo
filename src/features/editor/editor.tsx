@@ -56,6 +56,7 @@ import { useEditorFlows } from "./use-editor-flows";
 import type { EditorTool } from "./side-panel/tool-rail";
 import { usePanelWidth } from "./side-panel/use-panel-width";
 import { useAssistantSnapshot } from "./assistant/use-assistant-snapshot";
+import { useAssistantTools } from "./assistant/tools";
 
 // Extends FooterReserve: the footer this issue's pages were laid out against
 // (issue #128) is what the canvas draws and measures overflow against, whatever
@@ -113,6 +114,7 @@ export function Editor({
   const {
     pages,
     applyImport,
+    applyAssistant,
     curPage,
     sel,
     setSel,
@@ -279,6 +281,11 @@ export function Editor({
     sponsors,
     measure: { theme, images, sponsors: sponsorMap, settings, logo, issueNo },
   });
+  const assistantTools = useAssistantTools({
+    state: { pages, curPage, sel },
+    apply: applyAssistant,
+    measure: { theme, images, sponsors: sponsorMap, settings, logo, issueNo },
+  });
 
   return (
     <CoverTextProvider selectedId={sel}>
@@ -430,6 +437,7 @@ export function Editor({
                 issueId: issue.id,
                 published,
                 snapshot: assistantSnapshot,
+                tools: assistantTools,
               }}
             />
           </div>

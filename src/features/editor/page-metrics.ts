@@ -140,7 +140,10 @@ export function measureTextFlow(
   const block = container.querySelector<HTMLElement>(
     `[data-block-id="${CSS.escape(blockId)}"]`,
   );
-  const body = block?.querySelector<HTMLElement>("[data-text-body]");
+  // The canvas's Tiptap body, or the reader-form body of an off-screen layout.
+  const body =
+    block?.querySelector<HTMLElement>("[data-text-body]") ??
+    block?.querySelector<HTMLElement>(".rich-text");
   if (!geo || !block || !body || nodeCount === 0) return null;
 
   const children = Array.from(body.children).filter(
