@@ -177,6 +177,25 @@ const ICONS: Record<string, ReactNode> = {
       <path d="M9 3v6M3 12h9m0 0l-3-3m3 3l-3 3" />
     </>
   ),
+  // A large and a small four-point star: the editor's assistant (#309).
+  sparkle: (
+    <>
+      <path d="M10 3.5l1.7 4.8 4.8 1.7-4.8 1.7L10 16.5l-1.7-4.8L3.5 10l4.8-1.7z" />
+      <path d="M17.5 14.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z" />
+    </>
+  ),
+  send: <path d="M12 19V5m0 0l-6 6m6-6l6 6" />,
+  stop: (
+    <rect
+      x="7"
+      y="7"
+      width="10"
+      height="10"
+      rx="1.5"
+      fill="currentColor"
+      stroke="none"
+    />
+  ),
   // A cut with the halves pushed apart: split a detected text region.
   split: <path d="M12 4v16M5 8l3 4-3 4M19 8l-3 4 3 4" />,
   help: (

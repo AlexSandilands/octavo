@@ -1,17 +1,31 @@
 "use client";
 
+import type { RefObject } from "react";
 import type { IconName } from "@/components/icons";
+import { assistantEnabled } from "../assistant/enabled";
 import { ToolButton } from "../tool-button";
 
-export type EditorTool = "pdf";
+export type EditorTool = "pdf" | "assistant";
 
+// The assistant is dormant until a deployment sets NEXT_PUBLIC_AI_ASSISTANT (#306).
 export const EDITOR_TOOLS: {
   id: EditorTool;
   label: string;
   icon: IconName;
-}[] = [{ id: "pdf", label: "Import PDF", icon: "importFile" }];
+}[] = [
+  { id: "pdf", label: "Import PDF", icon: "importFile" },
+  ...(assistantEnabled
+    ? [
+        {
+          id: "assistant" as const,
+          label: "Assistant",
+          icon: "sparkle" as const,
+        },
+      ]
+    : []),
+];
 
-/** A smaller button hung under the open tool's own: Close, Replace PDF, … */
+/** A smaller button hung under the open tool's own: Replace PDF, … */
 export type RailAction = {
   id: string;
   icon: IconName;
@@ -24,20 +38,25 @@ export type RailAction = {
 // The slim strip on the editor's right edge that opens the side panel: one
 // square per tool, pressed while its panel is out. The rail is the panel's
 // permanent home so a new tool is one entry above, not a new header button.
-// The open tool's actions slide down out of its button, so the panel itself
-// carries no chrome.
+// The open tool's actions slide down out of its button and Close sits under
+// the whole list, so the panel itself carries no chrome.
 export function ToolRail({
   active,
   panelId,
   actions,
   unavailable,
+  buttons,
   onToggle,
+  onClose,
 }: {
   active: EditorTool | null;
   panelId: string;
   actions: RailAction[];
   unavailable?: Partial<Record<EditorTool, string>>;
+  /** Each tool's button, so closing a panel can hand focus back to it. */
+  buttons?: RefObject<Partial<Record<EditorTool, HTMLButtonElement | null>>>;
   onToggle: (tool: EditorTool) => void;
+  onClose: () => void;
 }) {
   return (
     <nav
@@ -53,6 +72,9 @@ export function ToolRail({
             className="group relative flex flex-col items-center gap-2"
           >
             <ToolButton
+              ref={(el) => {
+                if (buttons) buttons.current[tool.id] = el;
+              }}
               icon={tool.icon}
               label={tool.label}
               iconClass="text-accent"
@@ -90,6 +112,16 @@ export function ToolRail({
           </div>
         );
       })}
+      {active && (
+        <div className="starting:opacity-0 motion-safe:transition-opacity motion-safe:duration-300">
+          <ToolButton
+            icon="close"
+            label="Close panel"
+            size="xs"
+            onClick={onClose}
+          />
+        </div>
+      )}
     </nav>
   );
 }

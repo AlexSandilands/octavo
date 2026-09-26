@@ -1,5 +1,5 @@
 import "server-only";
-import { inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { images } from "@/db/schema";
 import { keyToUrl } from "@/lib/storage";
@@ -42,5 +42,22 @@ export async function resolveIssueImages(
       height: row.height,
     };
   }
+  return map;
+}
+
+// Every photo uploaded to the issue, placed or not (#309): the assistant lists
+// the unplaced ones, and the editor resolves them like any other.
+export async function resolveIssueUploads(issueId: string): Promise<ImageMap> {
+  const rows = await db
+    .select()
+    .from(images)
+    .where(eq(images.issueId, issueId));
+  const map: ImageMap = {};
+  for (const row of rows)
+    map[row.id] = {
+      url: keyToUrl(row.key),
+      width: row.width,
+      height: row.height,
+    };
   return map;
 }
