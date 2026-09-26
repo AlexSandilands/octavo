@@ -4,7 +4,7 @@
 // first preset if the server turns out to be real; `--real` spends.
 //   AI_PROVIDER=anthropic AI_MONTHLY_BUDGET_USD=5 NEXT_PUBLIC_AI_ASSISTANT=1 PORT=3310 npm run dev
 //   npx tsx --tsconfig scripts/tsconfig.json scripts/dev-assistant-presets.mts http://localhost:3310 --real [shots-dir]
-// The pages are the spike's cases (scripts/spike/assistant/cases): Tidy on the
+// The pages are the fixture cases (scripts/fixtures/assistant/cases): Tidy on the
 // notices lump (01), Make bullets on the notices page (02), Rewrite for clarity
 // on one selected paragraph (11), Shorten to fit on the overflowing essay page
 // (04). For each it screenshots the page before and after, prints the run's
@@ -236,7 +236,7 @@ try {
   const page = await ctx.newPage();
   for (const c of CASES) {
     const spike = JSON.parse(
-      readFileSync(`scripts/spike/assistant/cases/${c.spike}.json`, "utf8"),
+      readFileSync(`scripts/fixtures/assistant/cases/${c.spike}.json`, "utf8"),
     ) as Spike;
     const content = structuredClone(issues[spike.issue]!.content);
     const { replacePage, appendToPage } = spike.setup ?? {};
