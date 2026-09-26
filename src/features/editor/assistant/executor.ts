@@ -10,6 +10,8 @@ import type { EditorSnapshot } from "../use-editor-history";
 import { applyEdit, Refusal } from "./edit-tools";
 import { describeReport, type EditMeasurer } from "./page-report";
 import { clip } from "./projection-text";
+import { formatPages } from "./page-numbers";
+export { formatPages };
 
 // Runs the model's editing tools against the editor's state (#310). Every call
 // is validated, applied to a copy, re-validated whole with the save path's
@@ -46,6 +48,8 @@ type RunState = {
   last: Page[] | null;
   /** Something else changed the pages mid-run: it stops. */
   interrupted: boolean;
+  /** Lines the author's run summary adds (a photo a plan suggested). */
+  notes: string[];
 };
 
 const fresh = (): RunState => ({
@@ -54,6 +58,7 @@ const fresh = (): RunState => ({
   step: null,
   last: null,
   interrupted: false,
+  notes: [],
 });
 
 const CHANGED_UNDER_RUN =
@@ -134,6 +139,7 @@ export function createAssistantExecutor({
         record,
       );
       run.last = result.pages;
+      run.notes.push(...(result.notes ?? []));
       if (result.moved)
         run.moves.set(result.moved, (run.moves.get(result.moved) ?? 0) + 1);
 
@@ -195,27 +201,14 @@ export function createAssistantExecutor({
     summary(): RunSummary | null {
       if (!run.step || !run.last) return null;
       const change = summarizeRun(run.step.pages, run.last);
-      return change && { ...change, step: run.step };
+      if (!change) return null;
+      const notes = run.notes.map((n) => ` ${n}.`).join("");
+      return { ...change, text: change.text + notes, step: run.step };
     },
   };
 }
 
 export type AssistantExecutor = ReturnType<typeof createAssistantExecutor>;
-
-/** "4–5", "2, 4–5 and 7". */
-export function formatPages(numbers: number[]): string {
-  const sorted = [...new Set(numbers)].sort((a, b) => a - b);
-  const runs: string[] = [];
-  for (let i = 0; i < sorted.length; ) {
-    let j = i;
-    while (sorted[j + 1] === sorted[j]! + 1) j++;
-    runs.push(i === j ? `${sorted[i]}` : `${sorted[i]}–${sorted[j]}`);
-    i = j + 1;
-  }
-  return runs.length > 1
-    ? `${runs.slice(0, -1).join(", ")} and ${runs.at(-1)}`
-    : (runs[0] ?? "");
-}
 
 /**
  * The blocks of `ids` that moved within a page: every one not on its longest

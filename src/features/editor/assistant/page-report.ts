@@ -1,4 +1,5 @@
 import type { Block, Page } from "@/lib/blocks";
+import type { Fits } from "../pdf-import/paginate";
 import type { TextFlowMetrics } from "../text-flow";
 import { BODY_LINE_PX, describeFill, type PageFill } from "./page-fill";
 
@@ -25,6 +26,8 @@ export interface EditMeasurer {
   report(page: Page): Promise<PageReport>;
   /** The flow split's metrics for `blockId`, laid out after `blocks`' others. */
   textFlow(blocks: Block[], blockId: string): Promise<TextFlowMetrics | null>;
+  /** The paginator's page test (#312), live until `dispose`. */
+  fitter(): Promise<{ fits: Fits; dispose(): void }>;
 }
 
 const MAX_LAST_LINES = 12;

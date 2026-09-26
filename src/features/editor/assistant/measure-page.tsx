@@ -72,7 +72,7 @@ function textLines(block: HTMLElement, id: string): TextLines | null {
 
 export function createPageMeasurer(
   options: MeasurementOptions,
-): EditMeasurer & {
+): Omit<EditMeasurer, "fitter"> & {
   dispose(): void;
 } {
   const cache = new WeakMap<Page, PageReport>();

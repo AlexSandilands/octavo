@@ -62,10 +62,10 @@ export function useAssistantTools({
   /** Everything a page's layout depends on besides its blocks. */
   measure: MeasurementOptions;
 }): AssistantTools {
-  const latest = useRef({ state, apply });
+  const latest = useRef({ state, apply, measure });
   const waiters = useRef<{ pages: Page[]; done: () => void }[]>([]);
   useEffect(() => {
-    latest.current = { state, apply };
+    latest.current = { state, apply, measure };
     waiters.current = waiters.current.filter((w) => {
       if (w.pages !== state.pages) return true;
       w.done();
@@ -101,6 +101,14 @@ export function useAssistantTools({
       measure: {
         report: async (page) => (await measured()).report(page),
         textFlow: async (blocks, id) => (await measured()).textFlow(blocks, id),
+        // A section plan (#312) is fitted by Import PDF's own page test.
+        fitter: async () => {
+          const { createMeasurer } = await import("../pdf-import/measure");
+          return createMeasurer(
+            latest.current.measure,
+            new AbortController().signal,
+          );
+        },
       },
       handle: {
         state: () => latest.current.state,

@@ -8,7 +8,12 @@
 //   npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-tools.mts
 import { collectImageIds } from "../src/lib/images";
 import type { Block } from "../src/lib/blocks";
-import { aiToolSchemas, AI_TOOL_NAMES } from "../src/lib/ai-tools";
+import {
+  AI_PLAN_MAX_BODY,
+  AI_PLAN_MAX_SECTIONS,
+  aiToolSchemas,
+  AI_TOOL_NAMES,
+} from "../src/lib/ai-tools";
 import { docToMarkdown, markdownToDoc } from "../src/lib/markdown-doc";
 import { richDocSchema, richTextToPlain } from "../src/lib/rich-text-doc";
 import { richDocBlocks } from "../src/lib/rich-text-split";
@@ -20,7 +25,7 @@ const { textBlock, headingBlock, photo, cover, page } = h;
 heading("the tool contract");
 ok(
   AI_TOOL_NAMES.join() ===
-    "read_page,set_text,set_heading,insert_blocks,delete_block,move_block,add_page,split_page,set_image_text,set_image_layout",
+    "read_page,set_text,set_heading,insert_blocks,delete_block,move_block,add_page,split_page,set_image_text,set_image_layout,propose_sections",
   "every tool is declared, read_page first (the cached order)",
 );
 const refused = (tool: keyof typeof aiToolSchemas, input: unknown) =>
@@ -57,6 +62,43 @@ for (const [tool, input, why] of [
   ],
 ] as const)
   ok(refused(tool, input), `${tool}'s zod refuses ${why}`);
+
+// propose_sections' bounds (#312): 40 sections, a 20,000-character body.
+const section = { headline: "H", body: "Text." };
+const plan = (sections: unknown[], extra = {}) =>
+  aiToolSchemas.propose_sections.safeParse({ after: 2, sections, ...extra })
+    .success;
+ok(
+  plan(Array(AI_PLAN_MAX_SECTIONS).fill(section)) &&
+    plan([{ ...section, body: "x".repeat(AI_PLAN_MAX_BODY) }]) &&
+    plan([
+      {
+        ...section,
+        kicker: "Club Notes",
+        standfirst: "S.",
+        photos: [{ imageId: "p" }, { after: "standfirst" }, { after: 3 }],
+      },
+    ]),
+  "propose_sections takes 40 sections, a 20,000-character body, kicker, standfirst and photos",
+);
+for (const [input, why] of [
+  [[], "no sections"],
+  [Array(AI_PLAN_MAX_SECTIONS + 1).fill(section), "41 sections"],
+  [[{ ...section, body: "x".repeat(AI_PLAN_MAX_BODY + 1) }], "a longer body"],
+  [[{ ...section, body: "" }], "an empty body"],
+  [[{ ...section, headline: "" }], "no headline"],
+  [[{ ...section, kicker: "k".repeat(301) }], "a 301-character kicker"],
+  [[{ ...section, standfirst: "s".repeat(1_001) }], "a long standfirst"],
+  [[{ ...section, photos: [{ after: 0 }] }], "a photo after paragraph 0"],
+  [
+    [{ ...section, photos: [{ after: "headline" }] }],
+    "a photo after the headline",
+  ],
+  [[{ ...section, photos: Array(13).fill({}) }], "13 photos"],
+  [[{ ...section, title: "T" }], "an extra field"],
+] as const)
+  ok(!plan(input as unknown[]), `propose_sections' zod refuses ${why}`);
+ok(!plan([section], { after: 0 }), "propose_sections' zod refuses page 0");
 
 heading("unknown ids and places are refused, nothing changes");
 {

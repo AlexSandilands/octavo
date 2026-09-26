@@ -66,6 +66,55 @@ export const aiInsertItemSchema = z.discriminatedUnion("kind", [
 ]);
 export type AiInsertItem = z.infer<typeof aiInsertItemSchema>;
 
+// A long paste's plan (#312): one call, placed by the paginator. Headline,
+// kicker and standfirst are separate fields so the model can't blur them.
+export const AI_PLAN_MAX_SECTIONS = 40;
+export const AI_PLAN_MAX_BODY = 20_000;
+const planPhoto = z
+  .object({
+    imageId: z
+      .string()
+      .min(1)
+      .max(64)
+      .describe(
+        "A photo id from the issue. Omit it to suggest a photo you don't have.",
+      )
+      .optional(),
+    after: z
+      .union([
+        z.literal("standfirst"),
+        z
+          .number()
+          .int()
+          .min(1)
+          .max(500)
+          .describe("After the body's nth paragraph or list, 1-based."),
+      ])
+      .optional(),
+    align: align.optional(),
+  })
+  .strict();
+export const aiPlanSectionSchema = z
+  .object({
+    headline: title.describe("The article's title: its headline as written."),
+    kicker: kicker.optional(),
+    standfirst: z
+      .string()
+      .max(1_000)
+      .describe("The intro sentence or two under the headline, as markdown.")
+      .optional(),
+    body: z
+      .string()
+      .min(1)
+      .max(AI_PLAN_MAX_BODY)
+      .describe(
+        "The article's text as markdown. A line starting ## is a section heading, ### a run-in sub-head.",
+      ),
+    photos: z.array(planPhoto).max(12).optional(),
+  })
+  .strict();
+export type AiPlanSection = z.infer<typeof aiPlanSectionSchema>;
+
 // The order here is the order the model sees: part of the cached prompt prefix,
 // so new tools go at the end.
 export const aiToolSchemas = {
@@ -101,6 +150,14 @@ export const aiToolSchemas = {
   set_image_layout: z
     .object({ blockId, align, width: width.optional() })
     .strict(),
+  propose_sections: z
+    .object({
+      after: pageNo.describe(
+        "The sections go on new pages after this page. If this page is empty (and not the cover), the first section starts on it.",
+      ),
+      sections: z.array(aiPlanSectionSchema).min(1).max(AI_PLAN_MAX_SECTIONS),
+    })
+    .strict(),
 } as const;
 
 export const aiToolDescriptions: Record<AiToolName, string> = {
@@ -122,6 +179,12 @@ export const aiToolDescriptions: Record<AiToolName, string> = {
     'Set a placed photo\'s alt text (what a screen reader says) and/or its visible caption. Pass "" to clear a caption.',
   set_image_layout:
     "Re-align or resize a placed photo. Setting align to full without a width makes it full width (100); setting left/right without a width keeps its width, or uses 45 if it was full width.",
+  propose_sections: `Lay out long pasted content (several articles, or more than a page of text) in one call. Each section is one article: it starts at the top of a new page under a main heading, and the editor fits it onto as many pages as it needs, adding pages, so don't split or measure it yourself. Keep every word of the author's text. Fields, from a pasted article:
+  SPRING SHOW DRAWS RECORD CROWD
+  More than 400 visitors came through the hall on Saturday.
+  The doors opened at nine…
+→ { "headline": "SPRING SHOW DRAWS RECORD CROWD", "standfirst": "More than 400 visitors came through the hall on Saturday.", "body": "The doors opened at nine…" }
+The line in capitals is the headline, never the kicker. The sentence under it is the standfirst, never the headline. Give a kicker (a 1–4 word label such as "Club Notes") only when the author's text has one above the headline. Photos: an issue photo's id, placed after the standfirst or after a body paragraph; without an id it is only a suggestion, reported to the author.`,
 };
 
 /** Tools that only read; every other tool edits the issue. */
