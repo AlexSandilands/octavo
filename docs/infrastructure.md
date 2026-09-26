@@ -267,8 +267,9 @@ NEXT_PUBLIC_AI_ASSISTANT=  # "1" shows the editor's assistant button (build-time
 `AI_PROVIDER` is set, and **unsetting `AI_PROVIDER` is the kill switch**: the chat route
 404s at once, with no redeploy (set `NEXT_PUBLIC_AI_ASSISTANT` back to unset on the next
 build to hide the button too). With a provider set, the boot refuses to start without its
-key, and refuses a model with no price in `src/lib/ai-pricing.ts` (its spend couldn't be
-metered). The key is a server secret; never give it a `NEXT_PUBLIC_` name. `fake` streams
+key, refuses a model with no price in `src/lib/ai-pricing.ts` (its spend couldn't be
+metered), and refuses an Anthropic model missing from `src/lib/ai-thinking.ts` (it would
+refuse the wrong thinking mode on every request). The key is a server secret; never give it a `NEXT_PUBLIC_` name. `fake` streams
 canned replies at no cost and is for gates and the demo. Set a spend limit at the provider
 too; it's the backstop behind the monthly budget.
 

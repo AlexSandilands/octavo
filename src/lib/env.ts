@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { priceFor } from "./ai-pricing";
+import { anthropicThinking } from "./ai-thinking";
 import { BRAND_IDS, DEFAULT_BRAND, type BrandId } from "./brands";
 import { THEME_IDS } from "@/features/blocks/themes/registry";
 
@@ -174,6 +175,13 @@ const runtimeSchema = runtimeBaseSchema.superRefine((vars, ctx) => {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: `AI_MODEL "${model}" has no price in src/lib/ai-pricing.ts, so its spend couldn't be metered.`,
+    });
+  }
+  // Anthropic refuses a thinking mode a model doesn't support, on every request.
+  if (provider === "anthropic" && model && !anthropicThinking(model)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `AI_MODEL "${model}" isn't in src/lib/ai-thinking.ts, so how it thinks is unknown; add it after a smoke run.`,
     });
   }
   if (process.env.NODE_ENV !== "production") return;

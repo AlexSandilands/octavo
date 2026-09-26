@@ -5,6 +5,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import type { SharedV4ProviderOptions } from "@ai-sdk/provider";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import type { LanguageModel } from "ai";
+import { anthropicThinking } from "@/lib/ai-thinking";
 import { DEFAULT_ANTHROPIC_MODEL, env } from "@/lib/env";
 import { createFakeModel } from "@/server/ai-fake-model";
 
@@ -38,8 +39,7 @@ export function assistantModel(): AssistantModel | null {
         reasoning: REASONING,
         providerOptions: {
           anthropic: {
-            thinking: { type: "adaptive" },
-            effort: REASONING,
+            ...anthropicOptions(modelId),
             // Thinking blocks go back with the history, as the API requires on
             // a tool turn.
             sendReasoning: true,
@@ -78,4 +78,12 @@ export function assistantModel(): AssistantModel | null {
         providerOptions: {},
       };
   }
+}
+
+/** Adaptive thinking at the effort, or the model's fixed budget (ai-thinking). */
+function anthropicOptions(modelId: string) {
+  const thinking = anthropicThinking(modelId) ?? { type: "adaptive" as const };
+  return thinking.type === "adaptive"
+    ? ({ thinking, effort: REASONING } as const)
+    : { thinking };
 }

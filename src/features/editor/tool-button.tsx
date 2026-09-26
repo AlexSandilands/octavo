@@ -42,8 +42,8 @@ export function ToolButton({
   disabled?: boolean;
   /** Off, but still focusable — see `unavailable` in `ui.tsx`. */
   unavailable?: boolean;
-  /** "sm" is a 36px square for dense rows (the import selection list). */
-  size?: "md" | "sm";
+  /** "sm" is a 36px square for dense rows (the import selection list); "xs" 32px. */
+  size?: "md" | "sm" | "xs";
   /** The id of the region this tool shows or hides. */
   controls?: string;
   /** Supporting text that explains the control's current state. */
@@ -56,7 +56,8 @@ export function ToolButton({
     : pressed
       ? "border-accent bg-accent text-paper cursor-pointer motion-safe:active:scale-95"
       : "border-hair-warm text-ink hover:border-accent hover:bg-accent-wash cursor-pointer bg-white motion-safe:active:scale-95";
-  const box = size === "sm" ? "h-9 w-9" : "h-10 w-10";
+  const box =
+    size === "xs" ? "h-8 w-8" : size === "sm" ? "h-9 w-9" : "h-10 w-10";
   const grow = showLabel ? "w-auto px-3.5" : "";
   return (
     <button
@@ -74,7 +75,11 @@ export function ToolButton({
       aria-describedby={describedBy}
       className={`relative flex flex-none items-center justify-center gap-1.5 rounded-[9px] border font-sans text-[13px] font-semibold transition-[transform,background-color,border-color,color] duration-150 ease-out select-none ${box} ${grow} ${look}`}
     >
-      <Icon name={icon} size={16} className={pressed ? "" : iconClass} />
+      <Icon
+        name={icon}
+        size={size === "xs" ? 14 : 16}
+        className={pressed ? "" : iconClass}
+      />
       {showLabel && <span>{label}</span>}
       {badge !== undefined && (
         <span

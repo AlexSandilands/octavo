@@ -2,7 +2,7 @@
 
 An assistant in the editor that edits the issue on the author's behalf. It can tidy a page, lay out pasted articles and
 photos, compose a cover, and rewrite when asked. **Built so far, dormant until a provider is set:** the spend ledger
-(#307) and the chat route (#308). This note holds the decisions every child issue assumes. Read it with the epic before
+(#307), the chat route (#308) and the editor's panel, which reads but doesn't edit yet (#309). This note holds the decisions every child issue assumes. Read it with the epic before
 working any child. Each child's PR updates it to match what shipped, and the epic's closing issue (#344) turns it into
 the feature doc (the `docs/pdf-import.md` shape).
 
@@ -77,8 +77,10 @@ client-safe.
     it, and the smoke run confirmed that a stopped tool call closed as `output-error` replays cleanly.
 - **The projection** travels inside each author message as a data part placed **before** the author's text:
   `sendMessage({ parts: [{ type: "data-projection", data: { text } }, { type: "text", text: request }] })`. The route turns
-  it into text for the model. Because it's part of the message, it stays in history verbatim and the cache prefix stays
-  stable. Limits: projection ≤ 60,000 chars, any text part ≤ 20,000 chars. `useChat` doesn't render data parts, so the
+  it into text for the model, closed by a boundary line (`AI_PROJECTION_END`, "— End of the issue view. The editor's message
+  follows. —"). Without it the author's words ran straight on from the current page's last paragraph, and a model obeying the
+  injection rule refused them as text on the page (#315's fixture caught it). Because it's part of the message, it stays in
+  history verbatim and the cache prefix stays stable. Limits: projection ≤ 60,000 chars, any text part ≤ 20,000 chars. `useChat` doesn't render data parts, so the
   chat log shows only the author's words.
 - **The stream** is the AI SDK's UI message stream (SSE, `x-vercel-ai-ui-message-stream: v1`), which
   `DefaultChatTransport` reads as-is. It carries text, reasoning (usually empty) and tool-call parts.
@@ -133,7 +135,12 @@ client-safe.
 - **Provider** (`src/server/ai-provider.ts`) from `AI_PROVIDER` / `AI_MODEL` / the key. `isAssistantEnabled()`
   (`src/lib/ai.ts`) is the on/off answer, and `NEXT_PUBLIC_AI_ASSISTANT=1` mirrors it for the button. Thinking and
   effort are explicit: Anthropic runs adaptive thinking at `effort: "medium"` with `sendReasoning`, the others take
-  `reasoning: "medium"`. The boot refuses a provider with no key, and a model with no price in `src/lib/ai-pricing.ts`.
+  `reasoning: "medium"`. A model that refuses adaptive thinking takes a fixed budget instead, listed in
+  `src/lib/ai-thinking.ts` (keyed like the price table): Haiku 4.5 answers every adaptive request with a 400, so it runs
+  `{ type: "enabled", budgetTokens: 4000 }` with no effort. The boot refuses a provider with no key, a model with no price
+  in `src/lib/ai-pricing.ts`, and an Anthropic model missing from `ai-thinking.ts`; a new `AI_MODEL` is added there
+  after a smoke run (`scripts/dev-ai-smoke.mts`). Haiku's smoke run can't show cache reads: its minimum cacheable prompt
+  (4,096 tokens) is larger than the smoke's requests.
 - **Caching:** the system prompt (`src/server/ai-prompt/`, `base.md` then `vision.md` and `cover.md` when those tools
   exist) and the tool list are byte-stable, with a `cache_control` breakpoint on the system message (which covers the
   tools before it) and one on the newest message, so each request reads the conversation so far from cache. The TTL is
@@ -154,8 +161,55 @@ client-safe.
   signed reasoning block, as Anthropic's does. An author message gets
   `Looking at "<the projection's first line>".` and then a `read_page({ page: 1 })` call; a tool result gets
   `Read read_page (<n> characters back). Nothing needed changing.` Triggers in the author's text reach the failure
-  paths: `[fake:fail]`, `[fake:drop]`, `[fake:slow]` and `[fake:odd-model]`. `scripts/dev-ai-proxy-gate.mts` runs
-  against it.
+  paths: `[fake:fail]`, `[fake:drop]`, `[fake:slow]` and `[fake:odd-model]`; `[fake:echo]` replies with the text parts
+  the model was sent. `scripts/dev-ai-proxy-gate.mts` runs against it.
+
+#### Where it appears: the editor's side panel (#309)
+
+- **The rail's second tool.** An **Assistant** button (a sparkle) sits under Import PDF on the editor's right-hand rail,
+  only when the build sets `NEXT_PUBLIC_AI_ASSISTANT=1`. It opens the same side panel Import PDF uses: slide-in,
+  drag-to-resize, the canvas re-fits beside it, one panel at a time. Close is a smaller square at the foot of the rail,
+  under every tool. The assistant's panel defaults to **400px** (min 300) rather than half the row, and opens at its
+  minimum wherever 400px would leave the canvas under 520px. Each tool remembers its own width. On a 768px tablet that
+  leaves about 305px of canvas, and the page in it is about 173px wide beside the standing tool bar. Once there are
+  messages, a **New conversation** action hangs under the Assistant button.
+- **On a cover** the assistant stays open (Import PDF doesn't). Opening it hides the cover inspector, closing it
+  brings the inspector back, and a line at the top of the panel says so.
+- **States.**
+  - A published issue shows one message ("The assistant only works on drafts. Start a new issue to use it.") and no
+    composer. The app has no Unpublish, so the issue's original wording ("Unpublish or…") was corrected.
+  - A spent month (`GET /api/admin/ai/usage` says `remaining <= 0`, or the route answers `budget_spent`) keeps the
+    thread but turns the composer off with the route's copy.
+  - A full conversation says so and offers **Start a new one**: at 200 messages, when `too_long` comes back, or when
+    the history plus the next projection would pass `AI_MAX_CONVERSATION_CHARS` less 20k of headroom for the reply.
+  - Route errors show inline in the thread, verbatim.
+- **The composer.** A growing textarea (Enter sends, Shift+Enter is a new line) and one 44px button that is Send, or
+  Stop while a reply is on its way. Nothing is cut silently: from 18,000 characters a count shows, and past the
+  route's 20,000 it says how far over and Send is off until the text is shortened. The row under the text is left
+  free for #343's attach button. Above it, #310's
+  four presets show disabled, with an "Editing arrives soon" tooltip. Replies render as plain paragraphs with markdown
+  lists and bold only, never HTML.
+- **The conversation** lives above the panel (`editor-side.tsx`), so closing the panel keeps it. It ends when the editor
+  is closed. `src/features/editor/assistant/use-assistant-chat.ts` is the only file that knows `useChat`, the
+  transport and the stream's parts. A run is one author message: one `runId`, the projection as a `data-projection`
+  part before the text, and tool calls answered in `onToolCall`. A run ends once, when a reply finishes with no tool
+  call awaiting or holding an answer. In AI SDK 7 a quick tool can answer before its reply's stream finishes, so both
+  cases count. Parts go back exactly as `useChat` built them, including the provider's empty, signed reasoning part. **Stop** aborts the stream and closes off the reply's
+  unanswered tool calls: one still streaming is dropped, and one that arrived unanswered becomes an `output-error`
+  "Stopped by the editor.". A half-made call can't be replayed, and only that never-sent tail changes. #308's
+  real-provider smoke test should cover it: stop mid tool call, send again, and the second request succeeds with
+  `cache_read_input_tokens > 0`.
+- **Usage footer.** "US$1.21 of US$20.00 used this month" (spend rounded up to the cent, as `/admin/ai` shows it), from `GET /api/admin/ai/usage` (admin-only, 404 while off,
+  `resolveBudget()`'s figures), with a link to `/admin/ai`. It is fetched when the panel opens and after every run.
+- **Accessibility.** The thread is a `role="log"` region that is `aria-busy` while a reply streams, so the finished
+  reply is announced once. Opening puts focus in the composer (or on the drafts-only message), and Close hands it back
+  to the rail button. "Thinking…" shows from Send until the reply has words or a tool line to show. A reply opens with
+  an empty reasoning part, and hiding the line on that alone left the panel looking dead, most visibly after a Stop.
+- **Photos uploaded but not placed** are the issue's own `images` rows. With the flag on, the editor page also loads
+  them. With it off, the page runs exactly the queries it did before.
+- The gate is `scripts/dev-assistant-panel-gate.mts <base-url>`, against a dev server started with
+  `AI_PROVIDER=fake`, `AI_MONTHLY_BUDGET_USD=5` and `NEXT_PUBLIC_AI_ASSISTANT=1`. Run it again with `--off` against a
+  server with none of them set.
 
 ### What the model reads
 
@@ -166,6 +220,19 @@ client-safe.
   - with cover tools, the cover's items and the linkable interior headings.
 - `read_page(n)` reads any other page.
 - Image ids must never describe content. The spike's `img-plot-leeks` let the model choose photos "by their filenames".
+- **Built (#309):** `src/features/editor/assistant/projection.ts` (pure), lifted from the spike. Body text is shown as
+  markdown by `src/lib/markdown-doc.ts` (`docToMarkdown`; `markdownToDoc` is #310's way back), which round-trips every
+  seed text block exactly. Photos appear as their `images.id` plus "landscape 1600×1067", never a url or a file name.
+  Covers are an element list, marked read-only until #313.
+- **The fill is measured, not estimated.** `measurePageFill()` in `page-metrics.ts` reads the geometry the overflow
+  marker uses: from the text area's top to the lowest block, against the room above the running footer. Every page is
+  laid out off screen in the editor's own presentation (the Import PDF measurer's) and cached per page object
+  (`measure-fills.tsx`). The outline reads "fits, ~80% full", "overflows by ~6 lines" (lines of body text) or "a
+  full-page photo".
+- **Bounds.** The projection and a `read_page` result are each at most 60,000 characters. A text block is cut at
+  2,500 characters in the current-page view and 12,000 in `read_page`, marked `[…]`. The outline stops listing pages
+  past 24,000 characters and says `read_page` shows the rest. `scripts/check-assistant-projection.mts` checks every
+  seed issue.
 
 ### Tools
 

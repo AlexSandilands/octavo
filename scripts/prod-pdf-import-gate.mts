@@ -30,6 +30,7 @@ import {
   selectedRegions,
   addedRegions,
 } from "./pdf-import-gate-support.mts";
+import { railOrder } from "./editor-rail-gate-support.mts";
 const number = await setup();
 async function zoomSource(page: BrowserPage) {
   const canvas = page.locator("[data-pdf-private] canvas");
@@ -144,6 +145,13 @@ try {
   assert((await canvas.boundingBox())!.width < canvasBefore, "Canvas re-fits.");
   const beforeOpen = requests.length;
   await openFile(page);
+  // Replace PDF hangs under its tool; Close sits under every tool.
+  await page.getByRole("button", { name: "Replace PDF" }).waitFor();
+  const order = await railOrder(page);
+  assert(
+    /^Import PDF, Replace PDF, (Assistant, )?Close panel$/.test(order),
+    `Rail order: ${order}`,
+  );
   assert.equal(await region(page, "Image").count(), 1);
   assert.equal(workers.length, 1);
   assert(workers[0]?.startsWith(base + "/pdfjs/"));

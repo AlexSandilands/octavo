@@ -13,7 +13,8 @@ import type {
 // tool result gets a closing sentence naming what came back. "[fake:fail]" in
 // the author's message fails the request before it streams, "[fake:drop]"
 // fails it midway, so gates can reach the failure copy; "[fake:slow]" takes
-// its time; "[fake:odd-model]" reports a model id with no price.
+// its time; "[fake:odd-model]" reports a model id with no price; "[fake:echo]"
+// replies with the author message's text parts as the model got them.
 
 export const FAKE_TRIGGER_FAIL = "[fake:fail]";
 export const FAKE_TRIGGER_DROP = "[fake:drop]";
@@ -21,6 +22,8 @@ export const FAKE_TRIGGER_DROP = "[fake:drop]";
 export const FAKE_TRIGGER_ODD_MODEL = "[fake:odd-model]";
 // Spaces the stream out (a second a part), so a gate can hang up mid-reply.
 export const FAKE_TRIGGER_SLOW = "[fake:slow]";
+// Replies with the author message's text parts, JSON: what the model was sent.
+export const FAKE_TRIGGER_ECHO = "[fake:echo]";
 
 type Reply = { text: string; toolCall?: { toolName: string; input: object } };
 
@@ -48,7 +51,10 @@ export function fakeReply(prompt: LanguageModelV4Prompt): Reply {
     };
   }
   if (last?.role !== "user") return { text: "There was nothing to answer." };
-  const [projection, ...rest] = textOf(last.content);
+  const said = textOf(last.content);
+  if (said.some((t) => t.includes(FAKE_TRIGGER_ECHO)))
+    return { text: JSON.stringify(said) };
+  const [projection, ...rest] = said;
   if (rest.length === 0)
     return { text: "I can't see the issue, so I haven't changed anything." };
   const firstLine = projection!.split("\n", 1)[0]!.trim();
