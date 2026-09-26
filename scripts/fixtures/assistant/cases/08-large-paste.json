@@ -29,5 +29,169 @@
         "new": true
       }
     ]
-  }
+  },
+  "fake": [
+    {
+      "toolName": "add_page",
+      "input": {
+        "after": 8
+      }
+    },
+    {
+      "toolName": "insert_blocks",
+      "input": {
+        "after": {
+          "page": 9
+        },
+        "blocks": [
+          {
+            "kind": "heading",
+            "title": "Winter Working Weekend",
+            "level": "main"
+          },
+          {
+            "kind": "text",
+            "markdown": "The rinks don't look after themselves, whatever the newer members may believe"
+          },
+          {
+            "kind": "text",
+            "markdown": "Every November, on the first weekend after the last league fixture, the club closes its gates to play and opens them to rakes. The winter working weekend is the least glamorous date in our calendar and, by some distance, the most important. Without it the gravel compacts, the boards rot, and by April the far rink behaves like a car park.\n\nThis year twenty-three members turned out on the Saturday and seventeen on the Sunday, which the committee is choosing to read as a triumph of loyalty over the weather rather than as evidence that six people went home wet and did not come back."
+          },
+          {
+            "kind": "heading",
+            "title": "What we did",
+            "level": "section"
+          },
+          {
+            "kind": "text",
+            "markdown": "The main job was the re-dressing of rinks two and three. Forty bags of fine gravel went down, were raked level, were rolled, were raked again when the roller revealed a dip nobody had noticed in eleven years, and were finally declared fit. Rink one, which was re-dressed last winter, needed only a light rake and a stern look.\n\nThe boards along the south edge were the second job. Eleven lengths were found to be soft enough to push a thumb into, and were replaced with treated timber donated by a member who asked not to be named and who will therefore be thanked here only as \"a member with a van\".\n\nThe clubhouse gutters were cleared, the kettle was descaled for the first time in living memory, and the noticeboard was stripped back to the cork, revealing a fixture list from 2009 that has been framed and hung in the bar."
+          },
+          {
+            "kind": "heading",
+            "title": "What we still need",
+            "level": "section"
+          },
+          {
+            "kind": "text",
+            "markdown": "The shed roof leaks in the north-east corner and the committee would welcome anyone who knows about felt. The floodlight on the far pole flickers in a way that is either a loose connection or a ghost; an electrician among the membership would settle the question. And the bench by rink three, which has been \"about to be mended\" since the spring, is now officially condemned."
+          },
+          {
+            "kind": "heading",
+            "title": "Thank you",
+            "level": "section"
+          },
+          {
+            "kind": "text",
+            "markdown": "To everyone who raked, rolled, carried, sawed, swept, made tea or simply stood near the brazier offering opinions: thank you. The rinks will open on the first Saturday of March, and they have never been in better shape."
+          }
+        ]
+      }
+    },
+    {
+      "toolName": "add_page",
+      "input": {
+        "after": 9
+      }
+    },
+    {
+      "toolName": "insert_blocks",
+      "input": {
+        "after": {
+          "page": 10
+        },
+        "blocks": [
+          {
+            "kind": "heading",
+            "title": "Meet Your New Committee",
+            "level": "main"
+          },
+          {
+            "kind": "text",
+            "markdown": "Three new faces, one old hand, and a treasurer who has promised to explain the accounts in words"
+          },
+          {
+            "kind": "text",
+            "markdown": "The annual general meeting in October was quorate within four minutes, which the outgoing secretary noted with visible emotion, and elected a committee that is, for the first time in the club's history, younger on average than the clubhouse."
+          },
+          {
+            "kind": "heading",
+            "title": "The chair",
+            "level": "section"
+          },
+          {
+            "kind": "text",
+            "markdown": "Helen Achterberg takes the chair after four years as fixtures secretary. She has said that her priorities are a full ladder, a working floodlight, and fewer meetings, and that she will consider the third a success if the first two take care of themselves."
+          },
+          {
+            "kind": "heading",
+            "title": "The treasurer",
+            "level": "section"
+          },
+          {
+            "kind": "text",
+            "markdown": "Priya Raman joins the committee for the first time and has already done what three predecessors could not, which is to produce a one-page summary of the accounts that the membership can read without a calculator. It shows the club in modest good health, with enough in reserve to replace the roller when it finally gives up."
+          },
+          {
+            "kind": "heading",
+            "title": "The secretary",
+            "level": "section"
+          },
+          {
+            "kind": "text",
+            "markdown": "Owen Castell has been a member for two seasons and has volunteered, in his words, \"because nobody else put their hand up quickly enough\". Minutes will now be circulated by email within a week of each meeting, a promise the membership has asked us to print so that it can be held to."
+          },
+          {
+            "kind": "heading",
+            "title": "Fixtures and ladder",
+            "level": "section"
+          },
+          {
+            "kind": "text",
+            "markdown": "Brenda Oyelaran moves from the ladder to fixtures, and the ladder passes to the committee as a whole until a volunteer can be found. Anyone who enjoys spreadsheets and the gentle disapproval of their friends is encouraged to apply."
+          }
+        ]
+      }
+    },
+    {
+      "toolName": "add_page",
+      "input": {
+        "after": 10
+      }
+    },
+    {
+      "toolName": "insert_blocks",
+      "input": {
+        "after": {
+          "page": 11
+        },
+        "blocks": [
+          {
+            "kind": "heading",
+            "title": "The Spring Trip",
+            "level": "main"
+          },
+          {
+            "kind": "text",
+            "markdown": "A weekend in the south, and a rematch four years in the making"
+          },
+          {
+            "kind": "text",
+            "markdown": "The club will travel to our twinned club on the coast for the long weekend in May, for two days of friendly doubles, one formal dinner, and a rematch of the 2021 final, which we lost by a single point and have discussed at every committee meeting since.\n\nThe coach leaves the car park at six in the morning on the Friday and returns late on the Monday. The cost, including the coach, three nights in the guesthouse by the harbour and the dinner, is being finalised and will be announced at the Christmas social; the committee expects it to be a little under last time.\n\nPlaces are limited to thirty-two and will be allocated in the order names reach the secretary. Members who have not been on a club trip before will be given priority for the first twelve places, so that the same thirty faces do not go every year.\n\nAnyone who plays, or who would like to watch, or who simply wants a weekend by the sea with people who will talk about boules at breakfast, should put their name on the list in the clubhouse before the end of January."
+          }
+        ]
+      }
+    },
+    {
+      "toolName": "split_page",
+      "input": {
+        "page": 10
+      }
+    },
+    {
+      "toolName": "split_page",
+      "input": {
+        "page": 9
+      }
+    }
+  ]
 }
