@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import {
   HEADING_LEVELS,
   type BlockPatch,
@@ -10,9 +11,12 @@ import {
 export function HeadingLevelControl({
   level,
   onChange,
+  trailing,
 }: {
   level: HeadingLevel;
   onChange: (patch: BlockPatch) => void;
+  /** More of the bar after the levels (the assistant's Ask). */
+  trailing?: ReactNode;
 }) {
   return (
     <div className="border-hair flex items-center gap-2 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap shadow-[0_4px_14px_rgba(40,36,28,0.16)]">
@@ -39,6 +43,7 @@ export function HeadingLevelControl({
           </button>
         ))}
       </div>
+      {trailing}
     </div>
   );
 }

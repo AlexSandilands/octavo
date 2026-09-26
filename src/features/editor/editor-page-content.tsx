@@ -10,6 +10,7 @@ import { caretColorFor } from "@/lib/cover-appearance";
 import { pageFillsCanvas } from "@/features/blocks/layout";
 import { EditorCoverElement } from "./editor-cover-element";
 import { EditorBlock } from "./editor-block";
+import type { AskHandler } from "./assistant/presets";
 import type { BlockOverflow } from "./page-metrics";
 
 export function EditorPageContent({
@@ -37,6 +38,7 @@ export function EditorPageContent({
   flow,
   fillPage,
   registerImage,
+  ask,
   preview,
 }: {
   page: Page;
@@ -64,6 +66,8 @@ export function EditorPageContent({
   flow: (id: string) => void;
   fillPage: (id: string, align: PageAlign) => void;
   registerImage: (id: string, image: ResolvedImage) => void;
+  /** The assistant's Ask on a block (#311); absent when it isn't offered. */
+  ask?: AskHandler;
   /** A PDF region in hand, shown in place at the index it would take. */
   preview?: { index: number; node: ReactNode } | null;
 }) {

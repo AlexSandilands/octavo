@@ -1,5 +1,6 @@
 "use client";
 
+import type { AskHandler } from "./assistant/presets";
 import { useEffect, useEffectEvent, type RefObject } from "react";
 import {
   SortableContext,
@@ -44,7 +45,11 @@ export type StageActions = Pick<
   | "fillPage"
   | "flowText"
   | "moveToNextPage"
-> & { registerImage: (imageId: string, image: ResolvedImage) => void };
+> & {
+  registerImage: (imageId: string, image: ResolvedImage) => void;
+  /** The assistant's Ask on the selected block (#311), when it's offered. */
+  ask?: AskHandler;
+};
 
 type PageEdits = ReturnType<typeof useEditorPages>;
 /** What a cover page brings to the stage: its inspector and its item edits. */
@@ -303,6 +308,7 @@ export function EditorStage({
                     flow={flow}
                     fillPage={actions.fillPage}
                     registerImage={actions.registerImage}
+                    ask={actions.ask}
                     preview={
                       preview
                         ? { index: preview.index, node: dropPreview }

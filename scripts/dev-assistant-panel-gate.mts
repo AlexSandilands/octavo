@@ -8,8 +8,8 @@
 // canvas's overflow marker), Stop, an inline error, the usage footer, the log's
 // announcements, a full conversation and a tablet's width.
 // With `--off`, against a server with neither variable set, it checks the
-// button, the help section and the usage route are all absent
-// (assistant-panel-gate-off.mts).
+// button, the Ask on a block, the help section and the usage route are all
+// absent (assistant-panel-gate-off.mts).
 //
 // SAFETY: shared dev database. It mints its own admin, session, one draft and
 // one published issue; the budget check holds one scratch ai_usage row for a

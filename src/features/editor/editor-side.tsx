@@ -1,14 +1,25 @@
 "use client";
 
-import { useRef, useState, type ComponentProps, type RefObject } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ComponentProps,
+  type RefObject,
+} from "react";
 import dynamic from "next/dynamic";
 import type { Page } from "@/lib/blocks";
-import { AssistantPanel } from "./assistant/assistant-panel";
+import { AssistantPanel, budgetSpent } from "./assistant/assistant-panel";
+import { assistantEnabled } from "./assistant/enabled";
 import {
   useAssistantChat,
   type AssistantSnapshot,
 } from "./assistant/use-assistant-chat";
-import type { PresetTarget } from "./assistant/presets";
+import {
+  askMessage,
+  type AskHandler,
+  type PresetTarget,
+} from "./assistant/presets";
 import type { EditorSnapshot } from "./use-editor-history";
 import type { AssistantTools } from "./assistant/tools";
 import { useAssistantUsage } from "./assistant/use-assistant-usage";
@@ -26,6 +37,7 @@ const PdfImportPanel = dynamic(() => import("./pdf-import/panel"), {
   ssr: false,
 });
 const PANEL_ID = "editor-side-panel";
+const ASSISTANT_INPUT_ID = "assistant-input";
 const PDF_COVER_DESCRIPTION =
   "PDF import is available on interior pages. Move to another page to use it.";
 const TITLES: Record<EditorTool, string> = {
@@ -70,13 +82,18 @@ export function EditorSide({
     /** The editor's own Undo: a run is one step. */
     undo: () => void;
     historyTop: EditorSnapshot | null;
+    /** Set here: the Ask box on a block sends through this conversation. */
+    askRef: RefObject<AskHandler | null>;
   };
 }) {
   const [toolActions, setToolActions] = useState<RailAction[]>([]);
   const buttons = useRef<Partial<Record<EditorTool, HTMLButtonElement | null>>>(
     {},
   );
-  const usage = useAssistantUsage(tool === "assistant");
+  const usage = useAssistantUsage(
+    assistantEnabled && !assistant.published,
+    tool === "assistant",
+  );
   const chat = useAssistantChat({
     issueId: assistant.issueId,
     snapshot: assistant.snapshot,

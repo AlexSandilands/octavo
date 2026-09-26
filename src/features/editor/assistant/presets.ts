@@ -1,3 +1,5 @@
+import type { SendResult } from "./use-assistant-chat";
+
 // The quick requests above the composer (#310): each a fixed message aimed at
 // the page open now and, when one is selected, its block. The block id rides in
 // brackets for the model; the thread shows the author the words around it.

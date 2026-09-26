@@ -11,8 +11,8 @@
 // fixtures/assistant/vision-checks.mts), and a cover composed by a run (#313,
 // assistant-tools-gate-cover.mts).
 //
-// SAFETY: shared dev database. It mints its own admin, session, draft and one
-// photo row (a key with no file behind it); the finally deletes exactly those
+// SAFETY: shared dev database. It mints its own admin, session, a draft and a
+// published copy of it, and one photo row (a key with no file behind it); the finally deletes exactly those
 // and the ai_usage its runs left.
 import assert from "node:assert/strict";
 import { chromium, type Page } from "playwright";
@@ -51,6 +51,7 @@ const tag = `assistant-tools-gate-${crypto.randomUUID().slice(0, 8)}`;
 const adminId = crypto.randomUUID();
 const token = crypto.randomUUID();
 const draftId = crypto.randomUUID();
+const publishedId = crypto.randomUUID();
 
 const RAIL = 'nav[aria-label="Editor panels"]';
 const BUTTON = `${RAIL} button[aria-label="Assistant"]`;
@@ -65,27 +66,11 @@ const saved = async (): Promise<Doc> =>
       { content: Doc }[]
     >`select content from issues where id = ${draftId}`
   )[0]!.content;
-let capping = false;
-let capped: Promise<void> | null = null;
-
 async function checks(page: Page) {
   const chat = watchChat(page);
   const { asked } = chat;
   const runScript = (_: Page, ...args: Parameters<typeof chat.runScript>) =>
     chat.runScript(...args);
-  // The run-cap case: once the run's first reply is streaming, the run has
-  // "spent" $0.60, so the route refuses its next request.
-  page.on("response", (res) => {
-    const capRun = chat.runId();
-    if (!capping || capped || !capRun) return;
-    if (!res.url().endsWith("/api/admin/ai/chat")) return;
-    capped = sql`insert into ai_usage (id, user_id, issue_id, run_id, model,
-      provider, prompt_tokens, cache_read_tokens, cache_write_tokens,
-      completion_tokens, cost_usd) values (${crypto.randomUUID()}, ${adminId},
-      ${draftId}, ${capRun}, 'fake', 'fake', 0, 0, 0, 0, 0.6)`.then(
-      () => undefined,
-    );
-  });
   await page.goto(`${base}/admin/issues/${draftId}/edit`);
   await page.waitForSelector(RAIL);
   await page.click(BUTTON);
@@ -364,95 +349,19 @@ async function checks(page: Page) {
   ok(true, "one Undo restored the pre-run text");
   ok((await page.$(RUN)) === null, "and the run's line went with it");
 
-  heading("the circuit-breaker");
-  const run4 = await runScript(page, [
-    {
-      toolName: "move_block",
-      input: { blockId: ids.next, after: { page: 2 } },
-    },
-    {
-      toolName: "move_block",
-      input: { blockId: ids.next, after: { page: 3 } },
-    },
-    {
-      toolName: "move_block",
-      input: { blockId: ids.next, after: { page: 2 } },
-    },
-    {
-      toolName: "set_text",
-      input: { blockId: ids.intro, markdown: "SHOULD NOT HAPPEN" },
-    },
-  ]);
-  // The third move's result is never sent: the run stopped on it.
-  ok(
-    run4.requests === 3 && run4.outputs.length === 2,
-    `three moves ran, then the run stopped (${run4.requests} requests)`,
-  );
-  await until(
-    "autosave of the moves",
-    async () => where(await saved(), ids.next) === 2,
-  );
-  ok(
-    !JSON.stringify(block(await saved(), ids.intro)).includes("SHOULD NOT"),
-    "the call after the trip never ran; the moves are kept",
-  );
-  const stopped = await page.textContent(RUN);
-  ok(
-    stopped?.includes(
-      "I got stuck, so I stopped. Everything I did is in place and can be undone in one step.",
-    ) && stopped.includes("Undo"),
-    "the panel says it got stuck, with Undo",
-  );
-  const reads = Array.from({ length: 42 }, () => ({
-    toolName: "read_page",
-    input: { page: 2 },
-  }));
-  const run5 = await runScript(page, [
-    ...reads,
-    {
-      toolName: "set_text",
-      input: { blockId: ids.intro, markdown: "SHOULD NOT HAPPEN" },
-    },
-  ]);
-  ok(
-    run5.requests === 41,
-    `41 calls, then the run stopped (${run5.requests} requests)`,
-  );
-  ok(
-    !JSON.stringify(block(await saved(), ids.intro)).includes("SHOULD NOT"),
-    "nothing after the 41st ran",
-  );
-
-  heading("the run's $0.50 cap is the third breaker");
-  capping = true;
-  const run6 = await runScript(
+  await checkAsk({
     page,
-    [
-      {
-        toolName: "set_text",
-        input: { blockId: ids.intro, markdown: "Capped edit." },
-      },
-      {
-        toolName: "set_text",
-        input: { blockId: ids.intro, markdown: "SHOULD NOT HAPPEN" },
-      },
-    ],
-    "Slowly [fake:slow]",
-  );
-  capping = false;
-  await capped;
-  ok(run6.requests === 2, "the route refused the run's second request");
-  await until("autosave of the capped edit", async () =>
-    JSON.stringify(block(await saved(), ids.intro)).includes("Capped edit."),
-  );
-  const capLine = await page.textContent(RUN);
-  const capLog = await page.textContent(LOG);
-  ok(
-    capLine?.includes("I got stuck, so I stopped.") &&
-      capLine.includes("Undo") &&
-      !capLog?.includes("used its share of the budget"),
-    "the panel shows the breaker's message, with Undo, not the route's error",
-  );
+    sql,
+    adminId,
+    draftId,
+    chat,
+    base: base!,
+    publishedId,
+    saved,
+    ok,
+    heading,
+  });
+  await checkBreaker({ page, sql, chat, adminId, draftId, saved, ok, heading });
 
   await visionChecks(page, {
     photoId,
@@ -476,6 +385,10 @@ try {
     values (${token}, ${adminId}, now() + interval '1 hour')`;
   await sql`insert into issues (id, title, theme, status, content) values
     (${draftId}, ${tag}, 'classic', 'draft', ${sql.json({ version: 10, ...content } as never)})`;
+  const [{ n } = { n: 0 }] = await sql<{ n: number }[]>`
+    select coalesce(max(number), 0) + 1000 as n from issues`;
+  await sql`insert into issues (id, title, theme, status, content, number, published_at)
+    values (${publishedId}, ${tag}, 'classic', 'published', ${sql.json({ version: 10, ...content } as never)}, ${n}, now())`;
   await sql`insert into images (id, key, width, height, issue_id)
     values (${photoId}, ${`${tag}/photo.webp`}, 1600, 1067, ${draftId})`;
   const ctx = await browser.newContext({
@@ -495,7 +408,7 @@ try {
   await browser.close();
   await sql`delete from ai_usage where user_id = ${adminId} or issue_id = ${draftId}`;
   await sql`delete from images where id = ${photoId}`;
-  await sql`delete from issues where id = ${draftId}`;
+  await sql`delete from issues where id in (${draftId}, ${publishedId})`;
   await sql`delete from sessions where user_id = ${adminId}`;
   await sql`delete from users where id = ${adminId}`;
   await sql.end();
