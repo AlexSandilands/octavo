@@ -197,7 +197,9 @@ client-safe.
   photo bar's Alt field was cut off at common widths); now it slides left to stay inside, and one wider than the whole
   canvas wraps onto a second row (`use-bar-fit.ts`), so Ask and Alt are always in reach. On a cover (#313) Ask ends every selected cover item's bar the same way: a
   text item's format bar, the story and details bars, and a small bar of its own on a logo or a cover photo; the
-  message says "the selected cover item". It isn't offered on a full-page photo or a cover's background (the tools
+  message says "the selected cover item". Ask sits outside the format bar's scrolling row, so its box is never clipped,
+  and the cover's bars stay on the canvas, clear of the inspector and the standing tool pill
+  (`use-cover-toolbar-bounds.ts`). It isn't offered on a full-page photo or a cover's background (the tools
   refuse those), on a published issue, or while the assistant is off.
   It opens a one-line box under the bar's right end, a labelled non-modal `dialog`. **Enter** or **Send** posts `About the selected block [<id>] on page <n>: <words>` to the panel's conversation as an ordinary
   run. That means the same breaker, the same one-step Undo and the same line. The author's bubble drops the id, as

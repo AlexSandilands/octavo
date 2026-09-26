@@ -290,4 +290,41 @@ async function checkCoverAsk(
       .catch(() => null),
     "the selected masthead has Ask at the end of its format bar",
   );
+  // Narrower canvases, the panel open: Ask and its box stay on the canvas.
+  const was = tab.viewportSize()!;
+  for (const width of [900, 768]) {
+    await tab.setViewportSize({ width, height: 900 });
+    await tab.click(`${item(storyId)} [role="button"]`);
+    await tab.click(`${inBar} button[aria-label="Ask"]`);
+    await tab.waitForTimeout(300);
+    const stage = await tab.locator("[data-editor-canvas-stage]").boundingBox();
+    const inside = async (sel: string) => {
+      const r = await tab.locator(sel).boundingBox();
+      return Boolean(
+        r &&
+        stage &&
+        r.x >= stage.x - 1 &&
+        r.x + r.width <= stage.x + stage.width + 1,
+      );
+    };
+    const tools = await tab
+      .locator('[data-bar-placement="left"], [data-bar-placement="right"]')
+      .boundingBox()
+      .catch(() => null);
+    const bar = await tab
+      .locator(`${item(storyId)} [data-block-bar]`)
+      .boundingBox();
+    ok(
+      (await inside(`${inBar} button[aria-label="Ask"]`)) &&
+        (await inside(`${item(storyId)} [role="dialog"]`)) &&
+        (!tools ||
+          !bar ||
+          bar.x >= tools.x + tools.width ||
+          bar.x + bar.width <= tools.x),
+      `at ${width}, the story's bar, Ask and its box are on the canvas, clear of its tools`,
+    );
+    await shoot(`cover-ask-story-${width}`);
+    await tab.keyboard.press("Escape");
+  }
+  await tab.setViewportSize(was);
 }
