@@ -1,11 +1,11 @@
-// The per-block Ask half of dev-assistant-tools-gate.mts (#311): the pill on a
-// selected block, reached by Tab from the block's own bar; its box is a named
-// dialog that keeps Tab inside it; Escape closes it with focus back on the
-// pill; Ctrl+Z typed in it never reaches the editor; Send opens the panel on an
-// ordinary run whose `set_text` lands on that block, with the run's line and
-// Undo. Absent on a published issue (the `--off` panel gate checks a server
-// with it off). With the month spent and the panel never opened, nothing is
-// sent and the words stay.
+// The per-block Ask half of dev-assistant-tools-gate.mts (#311): the last
+// control in a selected block's own bar, inside the canvas even on a wide
+// photo bar at 1440 and 900px. Its box is a named dialog that keeps Tab inside
+// it; Escape closes it with focus back on Ask; Ctrl+Z typed in it never
+// reaches the editor; Send opens the panel on an ordinary run whose `set_text`
+// lands on that block, with the run's line and Undo. Absent on a published
+// issue (the `--off` panel gate checks a server with it off). With the month
+// spent and the panel never opened, nothing is sent and the words stay.
 import type { Page } from "playwright";
 import type postgres from "postgres";
 import { AI_ERROR_COPY } from "../src/lib/ai-chat-contract";
@@ -59,7 +59,7 @@ export async function checkAsk(d: {
     "the story starts as the fixture wrote it",
   );
 
-  heading("Ask: the pill, reached from the block's own bar");
+  heading("Ask: the last control in the block's own bar");
   await page.click(CLOSE);
   await page.waitForFunction(
     (sel) => document.querySelector(sel)?.hasAttribute("aria-hidden"),
@@ -69,13 +69,16 @@ export async function checkAsk(d: {
     position: { x: 200, y: 8 },
   });
   await page.waitForSelector(PILL);
-  // The last control on the text bar, then Tab: the pill comes next.
-  await page.$$eval(
-    `[data-block-id="${ids.story}"] [data-block-bar] button`,
-    (buttons) => (buttons.at(-1) as HTMLElement).focus(),
+  // Ask is the text bar's last control: Tab from Link lands on it.
+  await page.focus(
+    `[data-block-id="${ids.story}"] [data-block-bar] button[title="Link"]`,
   );
   await page.keyboard.press("Tab");
-  ok((await focused(page)) === "Ask", "Tab from the block's bar lands on Ask");
+  ok(
+    (await focused(page)) === "Ask" &&
+      (await page.$eval(PILL, (el) => Boolean(el.closest("[data-block-bar]")))),
+    "Ask is the last control in the block's own bar, after Link",
+  );
   ok(
     (await page.getAttribute(PILL, "aria-haspopup")) === "dialog" &&
       (await page.getAttribute(PILL, "aria-expanded")) === "false",
@@ -103,7 +106,7 @@ export async function checkAsk(d: {
     "Shift+Tab goes back to Send; the box is still open",
   );
 
-  heading("Ask: Escape closes it, focus back on the pill");
+  heading("Ask: Escape closes it, focus back on Ask");
   await page.keyboard.press("Escape");
   ok((await page.$(DIALOG)) === null, "Escape closed the box");
   ok((await focused(page)) === "Ask", "and the focus is back on Ask");
@@ -176,6 +179,27 @@ export async function checkAsk(d: {
       canonical(block(await saved(), ids.story)?.text) === storyBefore,
   );
   ok(true, "the panel's Undo took the Ask's run back in one step");
+
+  heading("Ask: in reach on a photo's bar, wide and narrow");
+  const photoAsk = `[data-block-id="${ids.photo}"] [data-ask] > button`;
+  for (const width of [1440, 900]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.click(`[data-block-id="${ids.photo}"]`, {
+      position: { x: 30, y: 30 },
+      force: true,
+    });
+    await page.waitForSelector(photoAsk);
+    await page.waitForTimeout(300);
+    const inside = await page.$eval(photoAsk, (el) => {
+      const r = el.getBoundingClientRect();
+      const s = el
+        .closest("[data-editor-canvas-stage]")!
+        .getBoundingClientRect();
+      return r.left >= s.left && r.right <= s.right && r.top >= s.top;
+    });
+    ok(inside, `at ${width}px the photo bar's Ask is inside the canvas`);
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
 
   heading("Ask: not on a published issue");
   // In a second tab: this one's conversation carries on.

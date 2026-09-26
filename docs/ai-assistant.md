@@ -176,21 +176,23 @@ client-safe.
   minimum wherever 400px would leave the canvas under 520px. Each tool remembers its own width. On a 768px tablet that
   leaves about 305px of canvas, and the page in it is about 173px wide beside the standing tool bar. Once there are
   messages, a **New conversation** action hangs under the Assistant button.
-- **The per-block Ask (built, #311).** A selected block on an inside page of a draft has an **Ask** pill (the rail's sparkle
-  and the word) at its top-right corner. It is the same height as the block's own tool bar, and it comes after that bar
-  in the tab order. Where the two would collide (a narrow floated photo, or a wide bar), the pill stands above the
-  bar. It isn't offered on a cover (until #313), on a full-page photo (the tools refuse those), on a published issue,
-  or while the assistant is off. It opens a one-line box under it, a labelled non-modal `dialog`. **Enter** or
-  **Send** posts `About the selected block [<id>] on page <n>: <words>` to the panel's conversation as an ordinary
+- **The per-block Ask (built, #311).** A selected block on an inside page of a draft has **Ask** (the rail's sparkle and
+  the word) as the last control in its own tool bar, after a rule, and last in the bar's tab order. That's the text
+  format bar, the heading, photo, montage, video and sponsor bars, or beside a bare type label. The owner's first browser
+  pass found a free-floating pill above the bar awkward. A bar wider than the canvas used to run off its right edge (the
+  photo bar's Alt field was cut off at common widths); now it slides left to stay inside, and one wider than the whole
+  canvas wraps onto a second row (`use-bar-fit.ts`), so Ask and Alt are always in reach. It isn't offered on a cover
+  (until #313), on a full-page photo (the tools refuse those), on a published issue, or while the assistant is off.
+  It opens a one-line box under the bar's right end, a labelled non-modal `dialog`. **Enter** or **Send** posts `About the selected block [<id>] on page <n>: <words>` to the panel's conversation as an ordinary
   run. That means the same breaker, the same one-step Undo and the same line. The author's bubble drops the id, as
   the presets' does. The panel opens (or, already open, takes the focus) so the reply and the line are in view, and
-  the box closes. **Escape**, or a press anywhere else, closes it without sending, and Escape hands focus back to the
-  pill without deselecting the block. Tab and Shift+Tab cycle the box and Send while it's open. The editor's Ctrl/Cmd+Z
+  the box closes. **Escape**, or a press anywhere else, closes it without sending, and Escape hands focus back to Ask
+  without deselecting the block. Tab and Shift+Tab cycle the box and Send while it's open. The editor's Ctrl/Cmd+Z
   stands down while the box is open, both for text entry and for the dialog. If the conversation can't take a request
   (busy, full, or the month spent), nothing is sent: the box keeps the words and says why, and the panel opens on the
   reason. The chat's `send` reports that before any request (`SendResult`), so the panel's composer also keeps a
   refused message rather than clearing it. The issue text named `floating-bar.tsx`, which is the canvas's tool pill,
-  not the block's chrome, so the pill sits on the block instead.
+  not the block's chrome; Ask lives in the block's own bar instead.
 - **On a cover** the assistant stays open (Import PDF doesn't). Opening it hides the cover inspector, closing it
   brings the inspector back, and a line at the top of the panel says so.
 - **States.**
