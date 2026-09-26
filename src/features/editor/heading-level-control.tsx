@@ -19,7 +19,7 @@ export function HeadingLevelControl({
   trailing?: ReactNode;
 }) {
   return (
-    <div className="border-hair flex items-center gap-2 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap shadow-[0_4px_14px_rgba(40,36,28,0.16)]">
+    <div className="border-hair flex flex-wrap items-center gap-2 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap shadow-[0_4px_14px_rgba(40,36,28,0.16)]">
       <span className="text-faint2 font-sans text-[9px] font-semibold tracking-[0.14em] uppercase">
         Heading
       </span>

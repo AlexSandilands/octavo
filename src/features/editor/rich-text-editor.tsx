@@ -15,6 +15,7 @@ import {
 import { externalHref } from "@/lib/rich-text";
 import { stringToDoc, type RichTextValue } from "@/lib/rich-text-doc";
 import { Underline, Link } from "./rich-text-marks";
+import { useBarFit } from "./use-bar-fit";
 
 // The editing surface for a body-text block. A Tiptap editor styled to match the
 // reader's themed paragraph exactly, with a floating toolbar (size, alignment, bold,
@@ -131,6 +132,8 @@ function Toolbar({
 }) {
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkValue, setLinkValue] = useState("");
+  // Kept inside the canvas: Ask, its last control, must stay in reach.
+  const bar = useBarFit<HTMLDivElement>();
 
   const openLink = () => {
     setLinkValue((editor.getAttributes("link").href as string) ?? "");
@@ -165,9 +168,10 @@ function Toolbar({
   return (
     <div
       data-block-bar
-      className="border-hair chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex flex-col gap-1.5 rounded-[8px] border bg-white p-1.5 shadow-[0_4px_14px_rgba(40,36,28,0.16)]"
+      ref={bar}
+      className="border-hair chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex w-max flex-col gap-1.5 rounded-[8px] border bg-white p-1.5 shadow-[0_4px_14px_rgba(40,36,28,0.16)]"
     >
-      <div className="flex items-center gap-1.5 whitespace-nowrap">
+      <div className="flex flex-wrap items-center gap-1.5 whitespace-nowrap">
         <div className="border-hair flex overflow-hidden rounded-[6px] border">
           {TEXT_SIZES.map((s) => (
             <TbBtn
