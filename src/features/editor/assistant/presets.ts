@@ -1,3 +1,5 @@
+import type { SendResult } from "./use-assistant-chat";
+
 // The quick requests above the composer (#310): each a fixed message aimed at
 // the page open now and, when one is selected, its block. The block id rides in
 // brackets for the model; the thread shows the author the words around it.
@@ -29,6 +31,16 @@ export function presetMessage(id: PresetId, target: PresetTarget): string {
       return `Shorten the text on ${where} until the page fits, and stop as soon as it does. The wording may change; keep the facts and the voice.`;
   }
 }
+
+/** Sends an Ask, or says why the conversation can't take it now. */
+export type AskHandler = (blockId: string, text: string) => Promise<SendResult>;
+
+/** The Ask box's request (#311): the author's words, aimed at one block. */
+export const askMessage = (
+  target: { page: number; blockId: string },
+  text: string,
+) =>
+  `About the selected block [${target.blockId}] on page ${target.page}: ${text.trim()}`;
 
 /** A message as the author reads it: block ids are for the model. */
 export const withoutBlockIds = (text: string) =>

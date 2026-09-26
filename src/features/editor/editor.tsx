@@ -58,6 +58,8 @@ import { usePanelWidth } from "./side-panel/use-panel-width";
 import { useAssistantSnapshot } from "./assistant/use-assistant-snapshot";
 import { useAssistantTools } from "./assistant/tools";
 import { AssistantEditingNote } from "./assistant/editing-note";
+import { assistantEnabled } from "./assistant/enabled";
+import type { AskHandler } from "./assistant/presets";
 
 // Extends FooterReserve: the footer this issue's pages were laid out against
 // (issue #128) is what the canvas draws and measures overflow against, whatever
@@ -263,6 +265,8 @@ export function Editor({
   // A region dragged out of the PDF panel: previewed in place on this page and,
   // dropped, added through the panel's own Add (it sets `dropRef`).
   const dropRef = useRef<DropHandler | null>(null);
+  // The Ask box on a block sends through the panel's conversation (#311).
+  const askRef = useRef<AskHandler | null>(null);
   const dragOut = usePdfDragOut({
     page,
     curPage,
@@ -383,6 +387,14 @@ export function Editor({
                   moveToNextPage,
                   registerImage: (imageId, image) =>
                     setImages((m) => ({ ...m, [imageId]: image })),
+                  ask:
+                    assistantEnabled && !published
+                      ? async (id, text) =>
+                          (await askRef.current?.(id, text)) ?? {
+                            ok: false,
+                            reason: "failed",
+                          }
+                      : undefined,
                 }}
                 cover={
                   showCoverTools
@@ -448,6 +460,7 @@ export function Editor({
                 },
                 undo,
                 historyTop,
+                askRef,
               }}
             />
           </div>
