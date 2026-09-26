@@ -379,6 +379,25 @@ don't redesign it.
 - The model sees an attached photo only through `view_photo`, on demand. It doesn't get every photo in every message.
 - **Alt text can be written from what the photo shows.** This was out of scope before; it's worth having for this audience.
 - Photos attached but never placed follow the same rule as any unplaced issue photo.
+- **As built (#343):**
+  - **Attaching:** the composer's **Attach photos** button (keyboard: Tab from the box), pasting an image into the box, or
+    dropping files anywhere on the panel. Each file is uploaded at once through `POST /api/admin/images` and becomes an
+    issue photo; the editor learns it, so the projection's header lists it with the unplaced photos and `insert_blocks`
+    can place it. At most **10 a message** (an eleventh is left out with a note), and the route's own limits (12 MB,
+    image types; its refusal shows beside the thumbnail in its own words, and Send waits until the file is removed).
+    Send also waits while any upload is running. Removing a thumbnail doesn't delete the uploaded photo.
+  - **What's sent:** the author's words, then `Attached N photos: <id>, <id>` as a text part of its own (so the fake
+    provider's scripts and the author's words stay whole). No bytes, ever: the model calls `view_photo` for the ones it
+    needs. The author's bubble reads "3 photos attached". Photos alone, with no words, can be sent.
+  - **Prompt:** `vision.md` tells the model to look at each attached photo before placing it, write its alt text from
+    what it shows and a caption only when the text supports one, and say which it left unplaced.
+  - **Run line:** after the change line, "2 attached photos weren't placed. They're with this issue's photos."
+  - **Privacy:** the panel's first-use text says attached photos join the issue's photos and are seen by the provider;
+    the help page says the same.
+  - **The proxy:** Next truncates proxied bodies at 10 MB, so a 10–12 MB photo used to reach the upload route cut short
+    and fail as "Expected multipart form data" (everywhere photos are uploaded). `/api/admin/images` is now excluded
+    from the proxy matcher by exact path, like the issue import; the route authenticates itself.
+  - **Gate:** `scripts/dev-assistant-attach-gate.mts` (fake provider).
 
 ### Budget, access and privacy (unchanged from the epic)
 
