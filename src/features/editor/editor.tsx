@@ -449,6 +449,8 @@ export function Editor({
                 },
                 undo,
                 historyTop,
+                registerImage: (id, image) =>
+                  setImages((m) => ({ ...m, [id]: image })),
               }}
             />
           </div>

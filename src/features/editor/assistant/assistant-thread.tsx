@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 import type { AiError } from "@/lib/ai-chat-contract";
+import { Icon } from "@/components/icons";
+import { attachedCount, photos } from "./attached";
 import { withoutBlockIds } from "./presets";
 import { ReplyText } from "./reply-text";
 import { isReview } from "./review";
@@ -72,14 +74,25 @@ function Message({ message }: { message: AssistantMessage }) {
     );
   }
   if (message.role === "user") {
-    // The projection rides in a data part the author never sees.
+    // The projection rides in a data part the author never sees; attached
+    // photos (#343) read as a count, not their ids.
+    const said = message.parts.flatMap((p) =>
+      p.type === "text" ? [p.text] : [],
+    );
+    const attached = said.reduce((n, t) => n + attachedCount(t), 0);
     const text = withoutBlockIds(
-      message.parts.map((p) => (p.type === "text" ? p.text : "")).join(""),
+      said.filter((t) => !attachedCount(t)).join(""),
     );
     return (
-      <div className="bg-accent-wash text-ink self-end rounded-xl rounded-br-sm px-3.5 py-2.5 font-sans text-[15px] leading-snug whitespace-pre-wrap">
+      <div className="bg-accent-wash text-ink flex flex-col gap-1.5 self-end rounded-xl rounded-br-sm px-3.5 py-2.5 font-sans text-[15px] leading-snug whitespace-pre-wrap">
         <span className="sr-only">You: </span>
-        {text}
+        {text && <span>{text}</span>}
+        {attached > 0 && (
+          <span className="text-muted flex items-center gap-1.5 text-[13px] font-semibold">
+            <Icon name="image" size={15} />
+            {photos(attached)} attached
+          </span>
+        )}
       </div>
     );
   }
@@ -144,7 +157,7 @@ export function AssistantThread({
       className="scrollbar-soft flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-5 [--scrollbar-surface:var(--color-card)]"
     >
       {messages.length === 0 && (
-        <p className="text-muted font-serif text-[16px] leading-relaxed">
+        <p className="text-muted font-serif text-[16px] leading-relaxed whitespace-pre-line">
           {intro}
         </p>
       )}

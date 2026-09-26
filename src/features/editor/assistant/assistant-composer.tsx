@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect, useState, type RefObject } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { Icon } from "@/components/icons";
 import { AI_MAX_TEXT_CHARS } from "@/lib/ai-chat-contract";
+import { AttachButton, AttachmentTray } from "./attachment-tray";
+import { filesOf, type useAttachments } from "./use-attachments";
 
 // The author's side of the chat (#309): a box that grows with what is typed,
 // Enter to send and Shift+Enter for a new line, and one 44px button that sends
-// or, while a reply is on its way, stops it. The row under the text keeps its
-// left end free for the attach button and thumbnails #343 adds. Nothing is ever
+// or, while a reply is on its way, stops it. Photos attach by the button at the
+// row's left end or a paste (#343; the panel takes drops) and show as
+// thumbnails above the text; Send waits for their uploads. Nothing is ever
 // cut silently: near the route's limit a count shows, and past it Send is off
 // until the text is shortened.
 
@@ -18,6 +21,7 @@ export function AssistantComposer({
   inputRef,
   busy,
   disabled,
+  attachments,
   onSend,
   onStop,
 }: {
@@ -25,10 +29,12 @@ export function AssistantComposer({
   busy: boolean;
   /** Nothing can be sent (the month's budget is spent, the conversation is full). */
   disabled: boolean;
+  attachments: ReturnType<typeof useAttachments>;
   onSend: (text: string) => void;
   onStop: () => void;
 }) {
   const [value, setValue] = useState("");
+  const attachButton = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const el = inputRef.current;
@@ -38,7 +44,14 @@ export function AssistantComposer({
   }, [value, inputRef]);
 
   const over = value.length > AI_MAX_TEXT_CHARS;
-  const canSend = !busy && !disabled && !over && value.trim() !== "";
+  // Photos can go on their own; one still uploading, or refused, holds Send.
+  const canSend =
+    !busy &&
+    !disabled &&
+    !over &&
+    !attachments.uploading &&
+    !attachments.failed &&
+    (value.trim() !== "" || attachments.ids.length > 0);
   const submit = () => {
     if (!canSend) return;
     onSend(value);
@@ -57,6 +70,7 @@ export function AssistantComposer({
         disabled ? "opacity-60" : ""
       }`}
     >
+      <AttachmentTray attachments={attachments} attachButton={attachButton} />
       <label htmlFor="assistant-input" className="sr-only">
         Message the assistant
       </label>
@@ -73,6 +87,12 @@ export function AssistantComposer({
           value.length > COUNT_FROM ? "assistant-input-count" : undefined
         }
         onChange={(e) => setValue(e.target.value)}
+        onPaste={(e) => {
+          const files = filesOf(e.clipboardData);
+          if (!files.length) return;
+          e.preventDefault();
+          attachments.add(files);
+        }}
         onKeyDown={(e) => {
           if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing)
             return;
@@ -82,7 +102,11 @@ export function AssistantComposer({
         className="text-ink placeholder:text-faint scrollbar-soft max-h-60 min-h-[3.5rem] w-full resize-none rounded-t-xl bg-transparent px-3.5 pt-3 pb-1 font-sans text-[16px] leading-snug [--scrollbar-surface:white] disabled:cursor-not-allowed"
       />
       <div className="flex items-center gap-2 px-2 pb-2">
-        {/* #343's attach button and thumbnails go here. */}
+        <AttachButton
+          attachments={attachments}
+          disabled={disabled}
+          buttonRef={attachButton}
+        />
         <div className="min-w-0 flex-1">
           {value.length > COUNT_FROM && (
             <p

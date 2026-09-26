@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, type DragEvent } from "react";
 import { Button } from "@/components/ui";
 import { AI_ERROR_COPY } from "@/lib/ai-chat-contract";
 import { usageLine, type AiUsageSummary } from "@/lib/ai-usage-summary";
+import type { ResolvedImage } from "@/lib/images";
+import { unplacedText } from "./attached";
 import { AssistantComposer } from "./assistant-composer";
 import { AssistantThread } from "./assistant-thread";
 import { Icon } from "@/components/icons";
@@ -16,19 +18,25 @@ import {
   type PresetTarget,
 } from "./presets";
 import type { useAssistantChat } from "./use-assistant-chat";
+import { filesOf, useAttachments } from "./use-attachments";
 
 const DRAFTS_ONLY =
   "The assistant only works on drafts. Start a new issue to use it.";
 const INTRO =
   "Ask it to tidy a page, turn a list into bullets, rewrite or shorten text, or place photos, or ask what’s on a page. Everything it does can be undone in one step.";
+const PHOTOS_NOTE =
+  "You can attach photos here, or drop them on this panel. They’re added to this issue’s photos, and the assistant’s provider sees them so it can place them and describe them.";
 const COVER_PRESETS = "Presets work on the inside pages, not the cover.";
 
 // The assistant's side panel (#309): every state it can be in. A published
 // issue gets one message and no composer; a spent budget keeps the thread but
 // disables the composer; a full conversation offers a fresh one. On opening,
-// focus goes to the composer (or the message standing in for it).
+// focus goes to the composer (or the message standing in for it). Photos
+// dropped anywhere on the panel attach to the next message (#343).
 export function AssistantPanel({
   chat,
+  issueId,
+  registerImage,
   published,
   cover,
   usage,
@@ -37,6 +45,8 @@ export function AssistantPanel({
   onUndo,
 }: {
   chat: ReturnType<typeof useAssistantChat>;
+  issueId: string;
+  registerImage: (imageId: string, image: ResolvedImage) => void;
   published: boolean;
   /** On a cover the inspector steps aside while the panel is out. */
   cover: boolean;
@@ -53,6 +63,13 @@ export function AssistantPanel({
     chat.error?.code === "budget_spent" ||
     (usage !== null && usage.remaining <= 0);
   const blocked = published || spent || chat.full;
+  const attachments = useAttachments({ issueId, onUploaded: registerImage });
+  const [dropping, setDropping] = useState(false);
+  const dragging = (e: DragEvent) => {
+    if (blocked || !e.dataTransfer.types.includes("Files")) return false;
+    e.preventDefault();
+    return true;
+  };
   useEffect(() => {
     if (blocked) notice.current?.focus();
     else input.current?.focus();
@@ -67,7 +84,20 @@ export function AssistantPanel({
   }, [chat.full]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div
+      className={`relative flex min-h-0 flex-1 flex-col ${dropping ? "bg-accent-wash" : ""}`}
+      onDragOver={(e) => {
+        if (dragging(e)) setDropping(true);
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node))
+          setDropping(false);
+      }}
+      onDrop={(e) => {
+        setDropping(false);
+        if (dragging(e)) attachments.add(filesOf(e.dataTransfer));
+      }}
+    >
       <h2 className="sr-only">Assistant</h2>
       {cover && !published && (
         <p className="border-line bg-paper text-muted border-b px-5 py-2.5 font-sans text-[13px] leading-snug">
@@ -96,7 +126,7 @@ export function AssistantPanel({
                 ? null
                 : chat.error
             }
-            intro={INTRO}
+            intro={`${INTRO}\n\n${PHOTOS_NOTE}`}
             after={
               <RunResult
                 // Anything else recorded since means the run is no longer one
@@ -105,6 +135,7 @@ export function AssistantPanel({
                   chat.summary?.step === historyTop ? chat.summary : null
                 }
                 stuck={chat.stuck}
+                unplaced={chat.unplaced}
                 onUndo={onUndo}
               />
             }
@@ -138,7 +169,11 @@ export function AssistantPanel({
               inputRef={input}
               busy={chat.busy}
               disabled={spent || chat.full}
-              onSend={(text) => void chat.send(text)}
+              attachments={attachments}
+              onSend={(text) => {
+                void chat.send(text, attachments.ids);
+                attachments.clear();
+              }}
               onStop={chat.stop}
             />
             {usage && (
@@ -205,19 +240,23 @@ function Presets({
 function RunResult({
   summary,
   stuck,
+  unplaced,
   onUndo,
 }: {
   summary: RunSummary | null;
   stuck: string | null;
+  /** Attached photos the run left unplaced (#343). */
+  unplaced: number;
   onUndo: () => void;
 }) {
-  if (!summary && !stuck) return null;
+  if (!summary && !stuck && !unplaced) return null;
   return (
     <div
       data-assistant-run
       className="border-line flex flex-col gap-2.5 rounded-lg border bg-white px-3.5 py-3 font-sans text-[15px] leading-snug"
     >
       {stuck && <p className="text-warn font-medium">{stuck}</p>}
+      {unplaced > 0 && <p className="text-ink">{unplacedText(unplaced)}</p>}
       {summary && (
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <p className="text-ink">{summary.text}</p>
