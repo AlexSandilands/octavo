@@ -114,6 +114,17 @@ client-safe.
   200k-token context: 330,000 characters at a cautious ~3 per token is ~110k tokens, 24 images at ~1.6k tokens is ~38k,
   and with the prompt and tools (~5k) and the reply's allowance (32k output tokens, thinking included) that leaves
   ~15k spare. The count covers text, reasoning, projections, tool inputs and tool outputs.
+- **Pictures against the 24 (#342).** A run takes only the room the conversation has left, not a fixed reservation:
+  - `room = 24 − pictures already in history` (tool-result images plus file parts), counted once as the run starts;
+  - the views get `min(6, room)`, and each view's result says how many are left. A view refused for the run's six says
+    how many more pictures the conversation has room for; one refused for the room says so and that a new
+    conversation starts afresh;
+  - the review renders `min(8, room − views used)` of its pages, the cover first. With none left it doesn't happen, and
+    the run ends as it would without one;
+  - the conversation reads **full** when `room < 2`, the least a two-page review needs.
+
+  So a run can never be refused mid-way for pictures. A conversation of picture-light runs lasts; one run with six
+  views and an eight-page review leaves room for 10 more.
 
 **How the route is built.**
 
@@ -141,10 +152,11 @@ client-safe.
   in `src/lib/ai-pricing.ts`, and an Anthropic model missing from `ai-thinking.ts`; a new `AI_MODEL` is added there
   after a smoke run (`scripts/dev-ai-smoke.mts`). Haiku's smoke run can't show cache reads: its minimum cacheable prompt
   (4,096 tokens) is larger than the smoke's requests.
-- **Caching:** the system prompt (`src/server/ai-prompt/`, `base.md` then `vision.md` and `cover.md` when those tools
-  exist) and the tool list are byte-stable, with a `cache_control` breakpoint on the system message (which covers the
-  tools before it) and one on the newest message, so each request reads the conversation so far from cache. The TTL is
-  the default five minutes, which is what the ledger prices cache writes at.
+- **Caching:** the system prompt (`src/server/ai-prompt/`: `base.md`, then `vision.md`, then `cover.md` when those tools
+  exist) and the tool list are byte-stable. `vision.md` is always on since #342, with no env switch, so there is one
+  cached prefix and one configuration for #315's fixture. There is a `cache_control` breakpoint on the system message
+  (which covers the tools before it) and one on the newest message, so each request reads the conversation so far from
+  cache. The TTL is the default five minutes, which is what the ledger prices cache writes at.
 - **Metering** (`src/server/ai-metering.ts`): one `ai_usage` row per request, however it ends. When the provider
   reports usage, the row gets its uncached, cache-read, cache-write and output tokens and the model id it reported (or
   the configured one, when the reported id has no price). With no usage (the author stopped the reply, or the stream
@@ -163,7 +175,9 @@ client-safe.
   `Read read_page (<n> characters back). Nothing needed changing.` Triggers in the author's text reach the failure
   paths: `[fake:fail]`, `[fake:drop]`, `[fake:slow]` and `[fake:odd-model]`; `[fake:echo]` replies with the text parts
   the model was sent. `[fake:tools]` followed by a JSON array of `{ toolName, input }` scripts a run instead: one call a
-  turn (`Step n: <tool>.`), then `Done: N steps.` (#310). `scripts/dev-ai-proxy-gate.mts` and
+  turn (`Step n: <tool>.`), then `Done: N steps.` (#310). A `null` step ends that turn with no call, and the script picks
+  up again after the editor's end-of-run review, so a gate can edit in the review turn (#342). A review with no script
+  gets `Looked over N pages. Nothing needed changing.` `scripts/dev-ai-proxy-gate.mts` and
   `scripts/dev-assistant-tools-gate.mts` run against it.
 
 #### Where it appears: the editor's side panel (#309)
@@ -275,11 +289,26 @@ don't redesign it.
 - **Cover tools, style:** `place_cover_item` (the 3×3 grid, width, align, text size), and `style_cover_item` / `style_cover_page`
   (text colour, panel and panel shape, shadow). **Fonts and weights stay with the cover inspector** until a fixture run shows
   the model using them well.
-- **Vision (#342):**
-  - `view_photo(imageId)` (an uploaded photo, about 800px) and `view_page(n)` (a page as members see it), sharing a small
-    per-run budget of about 6;
-  - production needs a **draft-capable single-page render**, because `/read/[n]/print` looks issues up by published number. The
-    render must use the real page components (`PrintDocument`), as the spike's `render.ts` did.
+- **Vision (built, #342):** `view_page` and `view_photo`, the last two tools in the fixed order. The editor answers each with
+  a picture inside the tool result (`images` on `AiToolOutput`; `src/features/editor/assistant/vision.ts`):
+  - `view_photo({ imageId })` takes only a photo uploaded to the issue (the projection's ids) and returns it as an 800px
+    JPEG, with its shape, from `POST /api/admin/ai/photo`. That route takes a photo uploaded to the issue or placed in it,
+    and refuses a logo-library mark, which is not a photo;
+  - `view_page({ page })` returns the page as members will see it, with its **measured** fill ("Page 4 (fits, ~70%
+    full)"), from `POST /api/admin/ai/render`;
+  - the two share **6 views a run** (`AI_VIEWS_PER_RUN`), fewer when the conversation has less room (see the chat
+    route's picture arithmetic). The 7th is refused ("you have used all 6 views…"), and a picture that fails costs no
+    view;
+  - **the draft render.** `/read/[n]/print` looks issues up by published number, so the render route takes the issue as
+    the editor holds it (unsaved edits too), validated by `issueContentSchema` within the save cap. It stashes it in memory
+    under a one-time nonce (60 s, swept on each new stash, dropped when done) and has headless Chromium (the PDF's
+    `launchPrintBrowser`) load `/read/draft/[nonce]/print` with the internal print token. That page renders the PDF's own
+    `PrintDocument`. Each requested `.pdf-page` is screenshotted at 1.5× (960×1350, PNG, or JPEG when a photo-heavy page
+    passes the tool result's 1.5 MB), and its fill is read with the overflow marker's geometry. The app runs as one
+    instance, so the page always finds the stash. Both routes share the chat route's gate (admin + same origin, 404 while
+    off, drafts only) and are limited to 120 requests per admin per 10 minutes;
+  - `scripts/check-assistant-render.mts` checks all of it against a running server: every seed page's measured fill
+    against the editor's overflow marker, an unsaved edit, and the refusals.
 - **Planning tool for long pastes (#312):** takes the whole plan in one call, and each section has **separate `headline`,
   `kicker?`, `standfirst?`** fields with a worked example in the description. A prompt line alone did not stop the model turning
   an all-caps headline into the kicker and the standfirst into the title.
@@ -305,9 +334,17 @@ don't redesign it.
   (`assistant/presets.ts`). Each sends a fixed message for the page open now and, when one is selected, its block — the
   block id rides in brackets for the model and is hidden from the author's bubble. Tidy and Make bullets say to keep every
   word; Rewrite and Shorten say the wording may change and to keep the facts and the voice. They're off on a cover.
-- **Automatic end-of-run review (#342):** when a run touched the cover or more than one page, the editor renders those pages and sends
-  them back as images in a follow-up message for one more turn. There is only one review round, and none for single-page
-  edits. It adds 25–40% to such a run. It catches collisions (floats crowding text), not polish.
+- **Automatic end-of-run review (built, #342):** when a run's changes touched the cover or more than one page, the panel
+  pictures those pages (the cover first, at most 8) and sends them as one user message. The message is the review text
+  (`assistant/review.ts`, from the spike's `review-message.md`), then "Page N (fits, ~X% full)" and the picture for each
+  page as `file` parts. The model gets **one** more turn with the same tools. It is the same run: same `runId`, one undo
+  step, the same call ceiling and $0.50 cap, and the canvas stays hands-off throughout. There is no review after a
+  single-page edit or a run that changed nothing. The thread shows it as one quiet line ("Showed it the pages it changed
+  to look over: …"), with "Picturing the pages it changed…" while the render runs. A Stop during the render drops the
+  review, and a message sent straight after starts a run of its own that the stale review can't touch. In the spike it added 25–40% to such
+  a run, and it caught collisions (floats crowding text), not polish.
+- **Pictures fill a conversation (#342).** History is never trimmed, so every picture counts against #308's 24-image
+  cap for the rest of the conversation. The arithmetic is recorded under the chat route's conversation cap.
 - **Circuit-breaker (built, #310; replaces "5 identical calls"):** stop a run, keeping what it has done, when **any** of these
   happens:
   - more than **40 tool calls** in the run (`RUN_CALL_LIMIT`; the 41st call's result is never sent);
@@ -342,6 +379,25 @@ don't redesign it.
 - The model sees an attached photo only through `view_photo`, on demand. It doesn't get every photo in every message.
 - **Alt text can be written from what the photo shows.** This was out of scope before; it's worth having for this audience.
 - Photos attached but never placed follow the same rule as any unplaced issue photo.
+- **As built (#343):**
+  - **Attaching:** the composer's **Attach photos** button (keyboard: Tab from the box), pasting an image into the box, or
+    dropping files anywhere on the panel. Each file is uploaded at once through `POST /api/admin/images` and becomes an
+    issue photo; the editor learns it, so the projection's header lists it with the unplaced photos and `insert_blocks`
+    can place it. At most **10 a message** (an eleventh is left out with a note), and the route's own limits (12 MB,
+    image types; its refusal shows beside the thumbnail in its own words, and Send waits until the file is removed).
+    Send also waits while any upload is running. Removing a thumbnail doesn't delete the uploaded photo.
+  - **What's sent:** the author's words, then `Attached N photos: <id>, <id>` as a text part of its own (so the fake
+    provider's scripts and the author's words stay whole). No bytes, ever: the model calls `view_photo` for the ones it
+    needs. The author's bubble reads "3 photos attached". Photos alone, with no words, can be sent.
+  - **Prompt:** `vision.md` tells the model to look at each attached photo before placing it, write its alt text from
+    what it shows and a caption only when the text supports one, and say which it left unplaced.
+  - **Run line:** after the change line, "2 attached photos weren't placed. They're with this issue's photos."
+  - **Privacy:** the panel's first-use text says attached photos join the issue's photos and are seen by the provider;
+    the help page says the same.
+  - **The proxy:** Next truncates proxied bodies at 10 MB, so a 10–12 MB photo used to reach the upload route cut short
+    and fail as "Expected multipart form data" (everywhere photos are uploaded). `/api/admin/images` is now excluded
+    from the proxy matcher by exact path, like the issue import; the route authenticates itself.
+  - **Gate:** `scripts/dev-assistant-attach-gate.mts` (fake provider).
 
 ### Budget, access and privacy (unchanged from the epic)
 

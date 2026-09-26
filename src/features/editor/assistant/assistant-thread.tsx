@@ -2,8 +2,11 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 import type { AiError } from "@/lib/ai-chat-contract";
+import { Icon } from "@/components/icons";
+import { attachedCount, photos } from "./attached";
 import { withoutBlockIds } from "./presets";
 import { ReplyText } from "./reply-text";
+import { isReview } from "./review";
 import type { AssistantMessage } from "./use-assistant-chat";
 
 type Part = AssistantMessage["parts"][number];
@@ -19,6 +22,12 @@ const TOOL_WORDS: Record<string, [doing: string, done: string]> = {
   split_page: ["Carrying text onto a new page", "Carried text onto a new page"],
   set_image_text: ["Changing a photo's words", "Changed a photo's words"],
   set_image_layout: ["Placing a photo", "Placed a photo"],
+  view_photo: ["Looking at a photo", "Looked at a photo"],
+};
+// Tools that name a page: [running, done, failed].
+const PAGE_WORDS: Record<string, [string, string, string]> = {
+  read_page: ["Reading page", "Read page", "Couldn’t read page"],
+  view_page: ["Looking at page", "Looked at page", "Couldn’t look at page"],
 };
 
 /** A tool call as one quiet line in the thread: what the assistant did. */
@@ -31,15 +40,16 @@ function toolLine(part: Part): string | null {
       (part.output as { text?: string } | undefined)?.text?.startsWith(
         "Error:",
       ));
-  if (name === "read_page") {
+  const paged = PAGE_WORDS[name];
+  if (paged) {
     const page = ("input" in part ? part.input : undefined) as
       | { page?: number }
       | undefined;
     const n = page?.page;
-    if (failed) return `Couldn’t read page ${n}`;
+    if (failed) return `${paged[2]} ${n}`;
     return part.state === "output-available"
-      ? `Read page ${n}`
-      : `Reading page ${n ?? ""}…`;
+      ? `${paged[1]} ${n}`
+      : `${paged[0]} ${n ?? ""}…`;
   }
   const words = TOOL_WORDS[name];
   if (!words) return null;
@@ -52,15 +62,37 @@ const shows = (part: Part) =>
   part.type === "text" ? part.text.trim() !== "" : toolLine(part) !== null;
 
 function Message({ message }: { message: AssistantMessage }) {
+  if (message.role === "user" && isReview(message.parts)) {
+    // The editor's own end-of-run review (#342): the pages it sent, not words.
+    const pages = message.parts
+      .slice(1)
+      .flatMap((p) => (p.type === "text" ? [p.text] : []));
+    return (
+      <p className="text-faint font-sans text-[13px]">
+        Showed it the pages it changed to look over: {pages.join(", ")}
+      </p>
+    );
+  }
   if (message.role === "user") {
-    // The projection rides in a data part the author never sees.
+    // The projection rides in a data part the author never sees; attached
+    // photos (#343) read as a count, not their ids.
+    const said = message.parts.flatMap((p) =>
+      p.type === "text" ? [p.text] : [],
+    );
+    const attached = said.reduce((n, t) => n + attachedCount(t), 0);
     const text = withoutBlockIds(
-      message.parts.map((p) => (p.type === "text" ? p.text : "")).join(""),
+      said.filter((t) => !attachedCount(t)).join(""),
     );
     return (
-      <div className="bg-accent-wash text-ink self-end rounded-xl rounded-br-sm px-3.5 py-2.5 font-sans text-[15px] leading-snug whitespace-pre-wrap">
+      <div className="bg-accent-wash text-ink flex flex-col gap-1.5 self-end rounded-xl rounded-br-sm px-3.5 py-2.5 font-sans text-[15px] leading-snug whitespace-pre-wrap">
         <span className="sr-only">You: </span>
-        {text}
+        {text && <span>{text}</span>}
+        {attached > 0 && (
+          <span className="text-muted flex items-center gap-1.5 text-[13px] font-semibold">
+            <Icon name="image" size={15} />
+            {photos(attached)} attached
+          </span>
+        )}
       </div>
     );
   }
@@ -92,9 +124,12 @@ export function AssistantThread({
   error,
   intro,
   after,
+  reviewing = false,
 }: {
   messages: AssistantMessage[];
   busy: boolean;
+  /** The pages it changed are being pictured for its review (#342). */
+  reviewing?: boolean;
   error: AiError | null;
   intro: string;
   /** What the last run left: its change and Undo, or why it stopped. */
@@ -122,14 +157,18 @@ export function AssistantThread({
       className="scrollbar-soft flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-5 [--scrollbar-surface:var(--color-card)]"
     >
       {messages.length === 0 && (
-        <p className="text-muted font-serif text-[16px] leading-relaxed">
+        <p className="text-muted font-serif text-[16px] leading-relaxed whitespace-pre-line">
           {intro}
         </p>
       )}
       {messages.map((m) => (
         <Message key={m.id} message={m} />
       ))}
-      {waiting && <p className="text-faint font-sans text-[13px]">Thinking…</p>}
+      {(waiting || (busy && reviewing)) && (
+        <p className="text-faint font-sans text-[13px]">
+          {reviewing ? "Picturing the pages it changed…" : "Thinking…"}
+        </p>
+      )}
 
       {!busy && after}
       {error && (

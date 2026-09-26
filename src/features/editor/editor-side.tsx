@@ -3,6 +3,7 @@
 import { useRef, useState, type ComponentProps, type RefObject } from "react";
 import dynamic from "next/dynamic";
 import type { Page } from "@/lib/blocks";
+import type { ResolvedImage } from "@/lib/images";
 import { AssistantPanel } from "./assistant/assistant-panel";
 import {
   useAssistantChat,
@@ -70,6 +71,8 @@ export function EditorSide({
     /** The editor's own Undo: a run is one step. */
     undo: () => void;
     historyTop: EditorSnapshot | null;
+    /** A photo attached in the chat (#343) joins the editor's photos. */
+    registerImage: (imageId: string, image: ResolvedImage) => void;
   };
 }) {
   const [toolActions, setToolActions] = useState<RailAction[]>([]);
@@ -127,6 +130,8 @@ export function EditorSide({
           <AssistantPanel
             key={opened.count}
             chat={chat}
+            issueId={assistant.issueId}
+            registerImage={assistant.registerImage}
             published={assistant.published}
             cover={cover}
             usage={usage.usage}

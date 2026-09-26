@@ -2,7 +2,8 @@ import { AssistantUsageHelp } from "./assistant-usage";
 import { Bullets, Callout, GuideSection, P } from "./guide-ui";
 
 // The editing assistant (epic #306): what it can do, the presets (#310), and
-// Undo. Shown only where the deployment offers it.
+// Undo, and photos attached in the chat (#343). Shown only where the
+// deployment offers it.
 // #314 adds how to see what it costs at the end of this section.
 export function SectionAssistant() {
   return (
@@ -19,6 +20,24 @@ export function SectionAssistant() {
         bullets, rewriting or shortening text, moving or resizing a photo, or
         carrying the end of a full page onto a new one. Its changes appear on
         the page as it makes them.
+      </P>
+      <P>
+        It can also look. It can open your photos to put each one beside the
+        story it belongs to, or to describe it for readers who use a screen
+        reader. It can also see a page as members will. When a change runs over
+        the cover or more than one page, it looks over those pages once more
+        before it finishes and tidies anything that reads badly, so a bigger job
+        takes a little longer.
+      </P>
+      <P>
+        You can give it photos too. Press <strong>Attach photos</strong> (the
+        picture button beside Send), paste a photo into the box, or drop photos
+        onto the panel, up to ten a message. Each one is added to the
+        issue&rsquo;s photos as it uploads, and shows as a small picture you can
+        remove before sending. Then say what you&rsquo;d like, such as
+        &ldquo;put these beside the stories they belong to&rdquo;. It looks at
+        each photo to place it and to write its description; any it
+        doesn&rsquo;t use stay with the issue&rsquo;s photos, and it says so.
       </P>
       <P>
         Four quick buttons sit above the box where you type. Each asks about the
@@ -76,9 +95,9 @@ export function SectionAssistant() {
         The assistant can misread a page or get a detail wrong, and a rewrite
         can change what a sentence means. Read what it tells you and what it
         changed before relying on it, and check the page itself. The
-        issue&rsquo;s text and photos are sent to the AI service to answer you,
-        so don&rsquo;t paste anything into the chat you wouldn&rsquo;t put in
-        the magazine.
+        issue&rsquo;s text, its photos (including any you attach) and pictures
+        of its pages are sent to the AI service to answer you, so don&rsquo;t
+        paste or attach anything you wouldn&rsquo;t put in the magazine.
       </Callout>
       <AssistantUsageHelp />
     </GuideSection>

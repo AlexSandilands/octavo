@@ -68,7 +68,8 @@ function hasSessionCookie(req: NextRequest): boolean {
 
 // The members-only prefixes the auth gate covers (`/`, `/archive`, `/profile`,
 // `/read/:path*`, `/admin/:path*`). The one
-// carve-out is the PDF print route (`/read/[n]/print`): it carries no session
+// carve-out is the print routes (`/read/[n]/print`, and the assistant's draft
+// pictures at `/read/draft/[nonce]/print`, #342): they carry no session
 // cookie (the generator self-fetches over localhost) and would be redirected to
 // /signin here, so it is let through the gate and guarded instead by the
 // internal print token it validates in-route (src/lib/pdf-token.ts) — without a
@@ -167,11 +168,12 @@ export function proxy(req: NextRequest) {
 // stays scoped to the gated prefixes in code (isGatedRoute), so broadening the
 // matcher for the CSP does not gate any new route.
 //
-// `/api/admin/issues/import` is excluded by exact path: Next truncates proxied
-// request bodies at 10 MB and that handler authenticates itself. See
-// docs/issue-transfer.md#transport.
+// `/api/admin/issues/import` and `/api/admin/images` are excluded by exact
+// path: Next truncates proxied request bodies at 10 MB (a 10–12 MB photo
+// reached the upload route cut short) and both handlers authenticate
+// themselves. See docs/issue-transfer.md#transport.
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api/admin/issues/import$|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/admin/issues/import$|api/admin/images$|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$).*)",
   ],
 };
