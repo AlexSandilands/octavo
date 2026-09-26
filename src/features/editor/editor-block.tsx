@@ -28,12 +28,23 @@ import { SponsorPicker } from "./sponsor-picker";
 import { CoverItemTools } from "./cover-item-tools";
 import { RichTextEditor } from "./rich-text-editor";
 import { AskControl } from "./assistant/ask-box";
+import { useBarFit } from "./use-bar-fit";
 import type { SendResult } from "./assistant/use-assistant-chat";
 
 // One block in the editor canvas: the themed BlockView (editable) wrapped in the
 // editing chrome — a faint hover outline, a darker selected outline, a left
 // drag handle for reordering, and the selected block's type label + controls.
 // Reordering uses dnd-kit, so the other blocks slide out of the way as you drag.
+/** Block kinds with a tool bar of their own; the rest show a type label. */
+const BARRED = new Set([
+  "image",
+  "montage",
+  "video",
+  "sponsor",
+  "text",
+  "heading",
+]);
+
 export function EditorBlock({
   block,
   theme,
@@ -137,10 +148,12 @@ export function EditorBlock({
           ? { note: "Overflows this page", label: "Move to next page" }
           : { note: "Taller than a whole page", label: undefined };
 
-  // Not on a full-page photo: the assistant's tools leave those alone.
+  // The last control in the block's own bar, after a rule; beside a bare type
+  // label, without one. Not on a full-page photo: the tools leave those alone.
+  const barRef = useBarFit<HTMLDivElement>();
   const ask =
     selected && onAsk && !cover && !bleed ? (
-      <AskControl onSend={onAsk} />
+      <AskControl onSend={onAsk} divider={BARRED.has(block.type)} />
     ) : null;
 
   return (
@@ -225,7 +238,8 @@ export function EditorBlock({
           {block.type === "image" ? (
             <div
               data-block-bar
-              className={`border-hair chrome-unscaled absolute z-20 flex items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap shadow-[0_4px_14px_rgba(40,36,28,0.16)] ${chromeTop} ${bleed ? "left-11" : "left-0"}`}
+              ref={barRef}
+              className={`border-hair chrome-unscaled absolute z-20 flex w-max flex-wrap items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap shadow-[0_4px_14px_rgba(40,36,28,0.16)] ${chromeTop} ${bleed ? "left-11" : "left-0"}`}
             >
               <ImageBlockControl
                 issueId={issueId}
@@ -261,11 +275,13 @@ export function EditorBlock({
                   </label>
                 </>
               )}
+              {ask}
             </div>
           ) : block.type === "montage" ? (
             <div
               data-block-bar
-              className="border-hair chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap shadow-[0_4px_14px_rgba(40,36,28,0.16)]"
+              ref={barRef}
+              className="border-hair chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex w-max flex-wrap items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap shadow-[0_4px_14px_rgba(40,36,28,0.16)]"
             >
               <MontageBlockControl
                 items={block.items}
@@ -288,11 +304,13 @@ export function EditorBlock({
                   />
                 </>
               )}
+              {ask}
             </div>
           ) : block.type === "video" ? (
             <div
               data-block-bar
-              className="border-hair chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap shadow-[0_4px_14px_rgba(40,36,28,0.16)]"
+              ref={barRef}
+              className="border-hair chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex w-max flex-wrap items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap shadow-[0_4px_14px_rgba(40,36,28,0.16)]"
             >
               <VideoBlockControl
                 videoId={block.videoId}
@@ -314,6 +332,7 @@ export function EditorBlock({
                   />
                 </>
               )}
+              {ask}
             </div>
           ) : block.type === "text" && !cover ? (
             // The text block's toolbar (size + formatting) lives inside the
@@ -327,6 +346,7 @@ export function EditorBlock({
               <HeadingLevelControl
                 level={block.level ?? "main"}
                 onChange={onChange}
+                trailing={ask}
               />
             </div>
           ) : block.type === "sponsor" ? (
@@ -339,16 +359,20 @@ export function EditorBlock({
                 sponsors={sponsors}
                 onChange={onChange}
               />
+              {ask}
             </div>
           ) : (
-            <span
+            // A bare type label: Ask sits right beside it, in the same chrome.
+            <div
               data-block-bar
-              className="bg-accent text-paper chrome-unscaled absolute bottom-full left-0 z-10 mb-2 rounded-[3px] px-1.5 py-[3px] font-sans text-[9px] font-semibold tracking-[0.1em] uppercase"
+              className="chrome-unscaled absolute bottom-full left-0 z-10 mb-2 flex items-center gap-1.5"
             >
-              {block.type}
-            </span>
+              <span className="bg-accent text-paper rounded-[3px] px-1.5 py-[3px] font-sans text-[9px] font-semibold tracking-[0.1em] uppercase">
+                {block.type}
+              </span>
+              {ask}
+            </div>
           )}
-          {block.type !== "text" && ask}
           <div
             className={`absolute z-10 ${
               // Bottom corner on a filled page: the top one is where the

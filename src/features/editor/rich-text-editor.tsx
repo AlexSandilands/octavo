@@ -35,7 +35,7 @@ export function RichTextEditor({
   align?: TextAlign;
   selected: boolean;
   onChange: (patch: BlockPatch) => void;
-  /** Chrome that follows the toolbar in the tab order (the assistant's Ask). */
+  /** The toolbar's last control (the assistant's Ask). */
   afterToolbar?: ReactNode;
 }) {
   const editor = useEditor({
@@ -101,9 +101,9 @@ export function RichTextEditor({
           size={size}
           align={align}
           onChange={onChange}
+          trailing={afterToolbar}
         />
       )}
-      {afterToolbar}
       <div
         // While selected, show the normal text caret instead of the block's
         // pointer cursor; unselected blocks keep the pointer (click to select).
@@ -121,11 +121,13 @@ function Toolbar({
   size,
   align,
   onChange,
+  trailing,
 }: {
   editor: Editor;
   size: TextSize;
   align: TextAlign;
   onChange: (patch: BlockPatch) => void;
+  trailing?: ReactNode;
 }) {
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkValue, setLinkValue] = useState("");
@@ -235,6 +237,7 @@ function Toolbar({
           active={editor.isActive("link") || linkOpen}
           onClick={openLink}
         />
+        {trailing}
       </div>
 
       {linkOpen && (

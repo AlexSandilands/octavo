@@ -43,11 +43,11 @@ export function SectionAssistant() {
       </Bullets>
       <P>
         To ask about one block without opening the panel, select the block and
-        press <strong>Ask</strong> at its top right corner. Type what you want,
-        such as &ldquo;make this a bulleted list&rdquo;, and press Enter. The
-        panel opens to show the answer and what changed. Escape closes the box
-        without sending anything. Ask isn&rsquo;t offered on the cover or on a
-        full-page photo.
+        press <strong>Ask</strong> at the end of its tool bar. Type what you
+        want, such as &ldquo;make this a bulleted list&rdquo;, and press Enter.
+        The panel opens to show the answer and what changed. Escape closes the
+        box without sending anything. Ask isn&rsquo;t offered on the cover or on
+        a full-page photo.
       </P>
       <P>
         When it has finished, a line in the panel says what changed, such as
