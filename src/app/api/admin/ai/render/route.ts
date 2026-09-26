@@ -43,8 +43,9 @@ export async function POST(request: Request) {
       { status: 503, headers: { "Retry-After": "5" } },
     );
 
-  const nonce = stashDraft({ issueId, theme, logoId, content });
+  let nonce: string | null = null;
   try {
+    nonce = stashDraft({ issueId, theme, logoId, content });
     const rendered = await renderDraftPages(
       nonce,
       pages.map((page) => ({
@@ -65,7 +66,7 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   } finally {
-    dropDraft(nonce);
+    if (nonce) dropDraft(nonce);
     release();
   }
 }
