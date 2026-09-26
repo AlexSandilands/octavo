@@ -10,7 +10,7 @@
 //   npx tsx --tsconfig scripts/tsconfig.json scripts/check-assistant-models.mts \
 //     --app http://localhost:3315 --provider fake            # free: the harness itself
 //   … --provider anthropic --model claude-sonnet-5 --repeat 3
-//   … --provider openrouter --model openai/gpt-6-sol        # needs OPENROUTER_API_KEY
+//   … --provider openrouter --model openai/gpt-6-sol        # needs OPENROUTER_API_KEY + a price entry
 // Keys come from .env.local. Options: --case 03,08 (a subset), --repeat N,
 // --photos <dir> (real photos for cases that accept them; never commit them),
 // --yes (skip the spend question), --resume <results dir> (finish a batch that

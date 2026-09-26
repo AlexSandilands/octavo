@@ -26,22 +26,6 @@ export const AI_PRICES: Readonly<Record<string, ModelPrice>> = {
     outputPerMillion: 5,
     checked: "2026-09-25",
   },
-  // Candidates through OpenRouter (#315), at OpenRouter's list prices
-  // (https://openrouter.ai/api/v1/models), keyed by the id it takes and reports.
-  "openai/gpt-6-sol": {
-    inputPerMillion: 2,
-    cacheReadPerMillion: 0.2,
-    cacheWritePerMillion: 2.5,
-    outputPerMillion: 10,
-    checked: "2026-09-25",
-  },
-  "google/gemini-3.8-flash": {
-    inputPerMillion: 0.75,
-    cacheReadPerMillion: 0.075,
-    cacheWritePerMillion: 0.0417,
-    outputPerMillion: 3.75,
-    checked: "2026-09-25",
-  },
   // AI_PROVIDER=fake (gates, the demo, fixtures): real rows at no cost.
   fake: {
     inputPerMillion: 0,

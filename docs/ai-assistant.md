@@ -435,8 +435,10 @@ built on: it **moves and drops the author's words** (in three cases) and describ
 misses are the known weaknesses below, each with its issue (#355, #360). All calls from both were schema-valid.
 
 - **Not run:** `openai/gpt-6-sol` through OpenRouter stays a candidate, deferred by the owner. There is no
-  `OPENROUTER_API_KEY` yet, so the script prints "Skipped" and exits 0. Adding the key and running
-  `--provider openrouter --model openai/gpt-6-sol --repeat 3` (about $1.30) is all it takes.
+  `OPENROUTER_API_KEY` yet, so the script prints "Skipped" and exits 0. Running it takes the key, a dated entry for
+  the model in `src/lib/ai-pricing.ts` (the script refuses an unpriced model), then
+  `--provider openrouter --model openai/gpt-6-sol --repeat 3`. The price goes in with the run, not before, so no
+  untested model is ever priced for the live site.
 - **Cases 12–14 are SKIPPED** until the cover tools (#313) and vision (#342) merge. Their cases and checks are already in place and
   each skip names its reason. The PR that lands those tools deletes its entry from `MISSING` in
   `scripts/assistant-models/main.mts` and re-runs the pick with them on, since covers and new issues are where the
