@@ -36,6 +36,7 @@ heading("eight sections, each from the top of a fresh page");
     body: paras(i === 2 ? 45 : 6, `S${i + 1}`),
   }));
   const original = JSON.stringify(x.pages);
+  const [, second, third] = x.pages;
   x.executor.beginRun();
   const out = await x.run("propose_sections", { after: 2, sections });
   console.log(`    → ${out.text.slice(0, 300)}…`);
@@ -63,9 +64,7 @@ heading("eight sections, each from the top of a fresh page");
     "the kicker sits on its heading, the standfirst is the text under it, no invented kickers",
   );
   ok(
-    pages.length === 3 + 8 + 2 &&
-      pages[1]!.blocks.length === 1 &&
-      plain(pages.at(-1)!.blocks[0]).startsWith("Last 1."),
+    pages.length === 3 + 8 + 2 && pages[1] === second && pages.at(-1) === third,
     `story 3 carried onto two more pages, the pages around the plan untouched (${pages.length} pages)`,
   );
   const all = (await Promise.all(pages.map(fits))).every(Boolean);
@@ -86,7 +85,7 @@ heading("eight sections, each from the top of a fresh page");
   );
   const summary = x.executor.summary();
   ok(
-    summary?.text.includes("added 10 pages"),
+    summary?.text === "Changed 26 blocks on pages 3–12 and added 10 pages",
     `the run's line: ${summary?.text}`,
   );
 }
@@ -124,7 +123,7 @@ heading("an empty page takes the first section; sub-heads and photos");
   );
   ok(
     out.text.includes('Suggested a photo for "Garden"') &&
-      x.executor.summary()?.text.endsWith('Suggested a photo for "Garden".'),
+      x.executor.summary()?.text.endsWith('. Suggested a photo for "Garden".'),
     "a photo without an id is a suggestion in the result and the run's line",
   );
 }

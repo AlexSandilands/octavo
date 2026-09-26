@@ -177,7 +177,14 @@ export async function placePlan(
         fits: fitter.fits,
         signal: new AbortController().signal,
       });
-      pages = placed.pages;
+      // Only the pages it wrote are new: the rest keep their identity (the
+      // paginator hands back parsed copies of every page).
+      const wrote = placed.pages.length - pages.length + 1;
+      pages = [
+        ...pages.slice(0, next),
+        ...placed.pages.slice(next, next + wrote),
+        ...pages.slice(next + 1),
+      ];
       written.push({ headline, first: next, last: placed.curPage });
       next = placed.curPage + 1;
     } catch (error) {

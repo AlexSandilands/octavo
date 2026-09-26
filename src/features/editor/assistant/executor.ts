@@ -202,8 +202,12 @@ export function createAssistantExecutor({
       if (!run.step || !run.last) return null;
       const change = summarizeRun(run.step.pages, run.last);
       if (!change) return null;
-      const notes = run.notes.map((n) => ` ${n}.`).join("");
-      return { ...change, text: change.text + notes, step: run.step };
+      const text = [change.text, ...run.notes].join(". ");
+      return {
+        ...change,
+        text: run.notes.length ? `${text}.` : text,
+        step: run.step,
+      };
     },
   };
 }
