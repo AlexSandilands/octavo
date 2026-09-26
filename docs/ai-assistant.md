@@ -2,7 +2,8 @@
 
 An assistant in the editor that edits the issue on the author's behalf. It can tidy a page, lay out pasted articles and
 photos, compose a cover, and rewrite when asked. **Built so far, dormant until a provider is set:** the spend ledger
-(#307), the chat route (#308), the editor's panel (#309) and the page-editing tools (#310). This note holds the decisions every child issue assumes. Read it with the epic before
+(#307), the chat route (#308), the editor's panel (#309), the page-editing tools (#310) and the model-selection
+fixture (#315). This note holds the decisions every child issue assumes. Read it with the epic before
 working any child. Each child's PR updates it to match what shipped, and the epic's closing issue (#344) turns it into
 the feature doc (the `docs/pdf-import.md` shape).
 
@@ -79,7 +80,7 @@ client-safe.
   `sendMessage({ parts: [{ type: "data-projection", data: { text } }, { type: "text", text: request }] })`. The route turns
   it into text for the model, closed by a boundary line (`AI_PROJECTION_END`, "— End of the issue view. The editor's message
   follows. —"). Without it the author's words ran straight on from the current page's last paragraph, and a model obeying the
-  injection rule refused them as text on the page (#315's fixture caught it). Because it's part of the message, it stays in
+  injection rule refused them as text on the page (#315's fixture caught it). A copy of the line inside the page text is dropped, so pasted text can't forge it. Because it's part of the message, it stays in
   history verbatim and the cache prefix stays stable. Limits: projection ≤ 60,000 chars, any text part ≤ 20,000 chars. `useChat` doesn't render data parts, so the
   chat log shows only the author's words.
 - **The stream** is the AI SDK's UI message stream (SSE, `x-vercel-ai-ui-message-stream: v1`), which
@@ -114,6 +115,17 @@ client-safe.
   200k-token context: 330,000 characters at a cautious ~3 per token is ~110k tokens, 24 images at ~1.6k tokens is ~38k,
   and with the prompt and tools (~5k) and the reply's allowance (32k output tokens, thinking included) that leaves
   ~15k spare. The count covers text, reasoning, projections, tool inputs and tool outputs.
+- **Pictures against the 24 (#342).** A run takes only the room the conversation has left, not a fixed reservation:
+  - `room = 24 − pictures already in history` (tool-result images plus file parts), counted once as the run starts;
+  - the views get `min(6, room)`, and each view's result says how many are left. A view refused for the run's six says
+    how many more pictures the conversation has room for; one refused for the room says so and that a new
+    conversation starts afresh;
+  - the review renders `min(8, room − views used)` of its pages, the cover first. With none left it doesn't happen, and
+    the run ends as it would without one;
+  - the conversation reads **full** when `room < 2`, the least a two-page review needs.
+
+  So a run can never be refused mid-way for pictures. A conversation of picture-light runs lasts; one run with six
+  views and an eight-page review leaves room for 10 more.
 
 **How the route is built.**
 
@@ -141,10 +153,11 @@ client-safe.
   in `src/lib/ai-pricing.ts`, and an Anthropic model missing from `ai-thinking.ts`; a new `AI_MODEL` is added there
   after a smoke run (`scripts/dev-ai-smoke.mts`). Haiku's smoke run can't show cache reads: its minimum cacheable prompt
   (4,096 tokens) is larger than the smoke's requests.
-- **Caching:** the system prompt (`src/server/ai-prompt/`, `base.md` then `vision.md` and `cover.md` when those tools
-  exist) and the tool list are byte-stable, with a `cache_control` breakpoint on the system message (which covers the
-  tools before it) and one on the newest message, so each request reads the conversation so far from cache. The TTL is
-  the default five minutes, which is what the ledger prices cache writes at.
+- **Caching:** the system prompt (`src/server/ai-prompt/`: `base.md`, then `vision.md`, then `cover.md` when those tools
+  exist) and the tool list are byte-stable. `vision.md` is always on since #342, with no env switch, so there is one
+  cached prefix and one configuration for #315's fixture. There is a `cache_control` breakpoint on the system message
+  (which covers the tools before it) and one on the newest message, so each request reads the conversation so far from
+  cache. The TTL is the default five minutes, which is what the ledger prices cache writes at.
 - **Metering** (`src/server/ai-metering.ts`): one `ai_usage` row per request, however it ends. When the provider
   reports usage, the row gets its uncached, cache-read, cache-write and output tokens and the model id it reported (or
   the configured one, when the reported id has no price). With no usage (the author stopped the reply, or the stream
@@ -163,7 +176,9 @@ client-safe.
   `Read read_page (<n> characters back). Nothing needed changing.` Triggers in the author's text reach the failure
   paths: `[fake:fail]`, `[fake:drop]`, `[fake:slow]` and `[fake:odd-model]`; `[fake:echo]` replies with the text parts
   the model was sent. `[fake:tools]` followed by a JSON array of `{ toolName, input }` scripts a run instead: one call a
-  turn (`Step n: <tool>.`), then `Done: N steps.` (#310). `scripts/dev-ai-proxy-gate.mts` and
+  turn (`Step n: <tool>.`), then `Done: N steps.` (#310). A `null` step ends that turn with no call, and the script picks
+  up again after the editor's end-of-run review, so a gate can edit in the review turn (#342). A review with no script
+  gets `Looked over N pages. Nothing needed changing.` `scripts/dev-ai-proxy-gate.mts` and
   `scripts/dev-assistant-tools-gate.mts` run against it.
 
 #### Where it appears: the editor's side panel (#309)
@@ -275,11 +290,26 @@ don't redesign it.
 - **Cover tools, style:** `place_cover_item` (the 3×3 grid, width, align, text size), and `style_cover_item` / `style_cover_page`
   (text colour, panel and panel shape, shadow). **Fonts and weights stay with the cover inspector** until a fixture run shows
   the model using them well.
-- **Vision (#342):**
-  - `view_photo(imageId)` (an uploaded photo, about 800px) and `view_page(n)` (a page as members see it), sharing a small
-    per-run budget of about 6;
-  - production needs a **draft-capable single-page render**, because `/read/[n]/print` looks issues up by published number. The
-    render must use the real page components (`PrintDocument`), as the spike's `render.ts` did.
+- **Vision (built, #342):** `view_page` and `view_photo`, the last two tools in the fixed order. The editor answers each with
+  a picture inside the tool result (`images` on `AiToolOutput`; `src/features/editor/assistant/vision.ts`):
+  - `view_photo({ imageId })` takes only a photo uploaded to the issue (the projection's ids) and returns it as an 800px
+    JPEG, with its shape, from `POST /api/admin/ai/photo`. That route takes a photo uploaded to the issue or placed in it,
+    and refuses a logo-library mark, which is not a photo;
+  - `view_page({ page })` returns the page as members will see it, with its **measured** fill ("Page 4 (fits, ~70%
+    full)"), from `POST /api/admin/ai/render`;
+  - the two share **6 views a run** (`AI_VIEWS_PER_RUN`), fewer when the conversation has less room (see the chat
+    route's picture arithmetic). The 7th is refused ("you have used all 6 views…"), and a picture that fails costs no
+    view;
+  - **the draft render.** `/read/[n]/print` looks issues up by published number, so the render route takes the issue as
+    the editor holds it (unsaved edits too), validated by `issueContentSchema` within the save cap. It stashes it in memory
+    under a one-time nonce (60 s, swept on each new stash, dropped when done) and has headless Chromium (the PDF's
+    `launchPrintBrowser`) load `/read/draft/[nonce]/print` with the internal print token. That page renders the PDF's own
+    `PrintDocument`. Each requested `.pdf-page` is screenshotted at 1.5× (960×1350, PNG, or JPEG when a photo-heavy page
+    passes the tool result's 1.5 MB), and its fill is read with the overflow marker's geometry. The app runs as one
+    instance, so the page always finds the stash. Both routes share the chat route's gate (admin + same origin, 404 while
+    off, drafts only) and are limited to 120 requests per admin per 10 minutes;
+  - `scripts/check-assistant-render.mts` checks all of it against a running server: every seed page's measured fill
+    against the editor's overflow marker, an unsaved edit, and the refusals.
 - **Planning tool for long pastes (#312):** takes the whole plan in one call, and each section has **separate `headline`,
   `kicker?`, `standfirst?`** fields with a worked example in the description. A prompt line alone did not stop the model turning
   an all-caps headline into the kicker and the standfirst into the title.
@@ -305,9 +335,17 @@ don't redesign it.
   (`assistant/presets.ts`). Each sends a fixed message for the page open now and, when one is selected, its block — the
   block id rides in brackets for the model and is hidden from the author's bubble. Tidy and Make bullets say to keep every
   word; Rewrite and Shorten say the wording may change and to keep the facts and the voice. They're off on a cover.
-- **Automatic end-of-run review (#342):** when a run touched the cover or more than one page, the editor renders those pages and sends
-  them back as images in a follow-up message for one more turn. There is only one review round, and none for single-page
-  edits. It adds 25–40% to such a run. It catches collisions (floats crowding text), not polish.
+- **Automatic end-of-run review (built, #342):** when a run's changes touched the cover or more than one page, the panel
+  pictures those pages (the cover first, at most 8) and sends them as one user message. The message is the review text
+  (`assistant/review.ts`, from the spike's `review-message.md`), then "Page N (fits, ~X% full)" and the picture for each
+  page as `file` parts. The model gets **one** more turn with the same tools. It is the same run: same `runId`, one undo
+  step, the same call ceiling and $0.50 cap, and the canvas stays hands-off throughout. There is no review after a
+  single-page edit or a run that changed nothing. The thread shows it as one quiet line ("Showed it the pages it changed
+  to look over: …"), with "Picturing the pages it changed…" while the render runs. A Stop during the render drops the
+  review, and a message sent straight after starts a run of its own that the stale review can't touch. In the spike it added 25–40% to such
+  a run, and it caught collisions (floats crowding text), not polish.
+- **Pictures fill a conversation (#342).** History is never trimmed, so every picture counts against #308's 24-image
+  cap for the rest of the conversation. The arithmetic is recorded under the chat route's conversation cap.
 - **Circuit-breaker (built, #310; replaces "5 identical calls"):** stop a run, keeping what it has done, when **any** of these
   happens:
   - more than **40 tool calls** in the run (`RUN_CALL_LIMIT`; the 41st call's result is never sent);
@@ -367,6 +405,85 @@ don't redesign it.
 - **Privacy:** issue text **and photos** go to the configured provider. The club is told which provider, and can have the
   assistant switched off.
 
+## Model selection (#315)
+
+`AI_MODEL` is picked by a fixture, not by price. **No model or provider change reaches the members' site without a fresh
+run** on the new pairing, and the run's table goes in the PR that changes it.
+
+- **The fixture** is `scripts/fixtures/assistant/`: 14 cases on the seed issues (fictional demo content), each with a
+  stated `expectation`, the checks that say it was done (`expect.done`: a list made, a photo placed with its caption,
+  pages added under main headings…), what must not happen (overflow, changed wording, forbidden tools, edits on a
+  question) and a call budget. Photos are generated art; real ones are passed at run time with `--photos <dir>` and never
+  committed. Cases whose tools don't exist yet say so and print **SKIPPED** with the reason (covers until #313).
+- **The script** is `scripts/check-assistant-models.mts`. It runs each case the way the panel does: the route's own body
+  check and model call (`src/server/ai-chat-stream.ts`, the same function the route calls), the editor's real executor
+  (`createAssistantExecutor`) and its real measurer, bundled with esbuild into headless Chromium with the app's CSS and
+  fonts, answering until the model stops, the circuit-breaker trips or the run's $0.50 cap is reached. It needs a
+  running app for the CSS and fonts:
+
+  ```sh
+  PORT=3315 npm run dev
+  npx tsx --tsconfig scripts/tsconfig.json scripts/check-assistant-models.mts --app http://localhost:3315 --provider fake
+  npx tsx --tsconfig scripts/tsconfig.json scripts/check-assistant-models.mts --app http://localhost:3315 \
+    --provider anthropic --model claude-sonnet-5 --repeat 3
+  ```
+
+  Options: `--provider anthropic|openai|openrouter|fake` (**required**, no default, so a bare run with `--yes` can't
+  spend), `--model <id>`, `--repeat N` (the spread matters: one spike case swung between 4 and 14 calls),
+  `--case 03,08`, `--photos <dir>`, `--yes`, and `--resume <results dir>`, which finishes a batch that stopped, reusing
+  its saved runs. A request with no reply in three minutes stops its run with a reason rather than the batch. Keys come
+  from `.env.local`; a provider without its key is skipped (OpenRouter exits 0 so a batch carries on).
+
+- **It spends real money** on any provider but `fake`. Before starting it prints an estimate (each case's tokens from a
+  Sonnet 5 run, at the model's list price in `src/lib/ai-pricing.ts`, times 1.5, times the repeats) and the ceiling (the
+  per-run cap), and asks; `--yes` answers up front, and without a terminal it refuses. A model with no dated price entry
+  is refused. The runs are **not** written to `ai_usage`, so fixture spend never shows on `/admin/ai` or counts against
+  the month; the estimate and the results are the record.
+- **Free on `fake`.** A case may carry a `fake` script — the calls a good run makes, with block ids written `@p3.text2`
+  (page 3's second text block) — which the fake provider plays. So `--provider fake` runs every case end to end for $0:
+  scripted cases pass, the rest fail with the reason, which tests the harness, the executor and both of the scorer's
+  paths.
+- **Scores**, per case and over the repeats: pass, calls against the case's budget, schema-valid calls, wording
+  (kept, **reordered** — every word there but out of order — or changed), overflow, views, time, cost and cache reads,
+  with every failure and advisory. A reply that **claims an edit no tool made** ("I then removed the separate blocks"
+  with no `delete_block`) fails the run. Each case's call budget is tighter than the product's 40-call breaker on
+  purpose, so a run can finish in the editor and still fail the fixture for thrashing.
+- **Verdict** — fit to be `AI_MODEL` when every runnable case passes in a majority of its repeats, at least 95% of calls
+  are schema-valid and no run hit the breaker, the cap or an error. It is strict on purpose and isn't graded against the
+  known weaknesses: it's a regression detector, and the pick below says why a model is used anyway. Results (a summary
+  table, JSON with the final pages, the page views before and after, and a PNG per page) go to the git-ignored
+  `scripts/assistant-models/results/`. Covers and layout still need a human look at the PNGs.
+- **Pictures** come through a `PageRenderer`: the reader's `PrintDocument`, rendered in-process into the same Chromium.
+  It also answers the model's `view_page`, and `view_photo` reads the case's own image file at 800px. Both go through
+  the editor's `createVision`, so the fixture keeps the real view budget, refusals and captions. The admin render and
+  photo routes need a saved draft, which the fixture never writes. Case 06's fake script views the photo and the page,
+  so the free run covers vision too. The route and the fixture send one system prompt, `assistantInstructions()` in
+  `src/server/ai-chat-stream.ts`, with vision on.
+
+### The pick, 2026-09-26
+
+`AI_MODEL` stays **`claude-sonnet-5`** (the Anthropic default; leave the variable unset). Both Anthropic candidates ran
+the 11 page cases three times each, after the issue-view boundary fix (#356) and before vision (#342) was offered.
+Neither earns the strict verdict:
+
+| model              | runs passed | calls | cost (33 runs) | per run | what failed                                                                                                                                                                                      |
+| ------------------ | ----------- | ----- | -------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `claude-sonnet-5`  | 27/33       | 191   | $1.24          | ~$0.04  | 04 shorten-to-fit 0/3 (14–41 calls, one breaker trip); 08 large paste 1/3 (a section out of order, 35 calls); 02 bullets 2/3 (claimed deletes it didn't make)                                    |
+| `claude-haiku-4-5` | 25/33       | 96    | $0.38          | ~$0.01  | 03 overflow split 0/3 and 07 structure 2/3 (sentences reordered instead of `split_page`); 08 large paste 1/3 (reordered, once 43 words dropped); 10 injection 1/3 (claimed pages it never added) |
+
+Haiku is a third of the price and trims to fit where Sonnet thrashes, but its failures break the rule the assistant is
+built on: it **moves and drops the author's words** (in three cases) and describes edits it didn't make. Sonnet's
+misses are the known weaknesses below, each with its issue (#355, #360). All calls from both were schema-valid.
+
+- **Not run:** `openai/gpt-6-sol` through OpenRouter stays a candidate, deferred by the owner. There is no
+  `OPENROUTER_API_KEY` yet, so the script prints "Skipped" and exits 0. Running it takes the key, a dated entry for
+  the model in `src/lib/ai-pricing.ts` (the script refuses an unpriced model), then
+  `--provider openrouter --model openai/gpt-6-sol --repeat 3`. The price goes in with the run, not before, so no
+  untested model is ever priced for the live site.
+- **Cases 12–14 are SKIPPED** until the cover tools (#313) merge. Their cases and checks are already in place and each
+  skip names its reason. #313 deletes `cover` from `MISSING` in `scripts/assistant-models/main.mts` and re-runs the
+  pick with covers and vision on, since covers and new issues are where the models differed most in the spike.
+
 ## Rollout
 
 - **Children merge to `main` one at a time, dormant.** With `AI_PROVIDER` unset the rail button is hidden and the route 404s. The
@@ -378,13 +495,22 @@ don't redesign it.
   3. the members' site (set the env var, cut a release tag).
 - If the feature has to come out, the child merges revert cleanly. The `ai_usage`/`ai_grants` tables would need a dropping
   migration.
-- **The model changes only after a fixture run.** `scripts/spike/assistant/run.mts --model <id>` works today, on a Claude Code
-  login. #315 turns it into the AI SDK route's own fixture and adds repeat runs, since one case swung between 4 and 14 calls
-  across runs.
+- **The model changes only after a fixture run** (see Model selection).
 
 ## Known weaknesses and open questions
 
-- **"Shorten to fit"** trims in small steps. The per-block overflow feedback above is the fix to try first.
+- **"Shorten to fit"** trims about a line per call. On the fixture Sonnet 5 took 14–41 `set_text` calls to fit one page
+  (case 04, 0 of 3), and the breaker doesn't catch it because every call makes progress. The per-block overflow feedback
+  isn't enough on its own (#355).
+- **Order in long pastes.** Laying out a three-article paste, Sonnet 5 once put an article's last section ahead of its
+  own main heading: every word kept, one section in the wrong place (case 08). The scorer reports it as "order
+  changed".
+- **Replies can claim edits that weren't made.** On "Make bullets" Sonnet 5 wrote the list into the first block, then
+  said it had removed the other three without calling `delete_block`, so the notices appeared twice. The run's
+  "Changed N blocks · Undo" line is worked out from the real diff, so the panel stays honest; the reply text can't be
+  trusted the same way (#360).
+- **A stalled provider stream** holds the panel until the author presses Stop or the route's five-minute ceiling ends
+  it. The fixture met one (Sonnet 5, mid-paste); an idle timeout on the route is #358.
 - **Pages left mostly empty.** Starting every article on a fresh page leaves short pages half blank, and neither model enlarged
   photos or rebalanced to fill them. The review didn't flag it either.
 - **Small cover text over busy photos** (the issue-details line) was missed by the model and by the review.

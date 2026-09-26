@@ -1,0 +1,77 @@
+{
+  "id": "06-place-unplaced-photo",
+  "description": "Place an uploaded but unused portrait photo beside a named paragraph, with a caption.",
+  "expectation": "The uploaded portrait photo is placed beside the Hall Roof Fund paragraph, floated right, with exactly the given caption.",
+  "issue": 2,
+  "page": 3,
+  "setup": {
+    "unplacedImages": [
+      {
+        "id": "img-extra-thermometer",
+        "width": 1200,
+        "height": 1600
+      }
+    ]
+  },
+  "estimate": {
+    "input": 10,
+    "cacheRead": 33600,
+    "cacheWrite": 3500,
+    "output": 1100
+  },
+  "instruction": "I've uploaded a tall photo of the roof fund thermometer. Put it beside the Hall Roof Fund paragraph, wrapped on the right, with the caption: The thermometer outside the hall, updated every Sunday.",
+  "expect": {
+    "preserve": "page",
+    "tools": ["insert_blocks"],
+    "maxCalls": 8,
+    "noOverflow": true,
+    "done": [
+      {
+        "check": "image",
+        "imageId": "img-extra-thermometer",
+        "align": "right",
+        "caption": "The thermometer outside the hall, updated every Sunday."
+      }
+    ]
+  },
+  "fake": [
+    {
+      "toolName": "view_photo",
+      "input": {
+        "imageId": "img-extra-thermometer"
+      }
+    },
+    {
+      "toolName": "insert_blocks",
+      "input": {
+        "after": {
+          "blockId": "@p3.heading2"
+        },
+        "blocks": [
+          {
+            "kind": "image",
+            "imageId": "img-extra-thermometer",
+            "align": "right",
+            "caption": "The thermometer outside the hall, updated every Sunday.",
+            "alt": "The roof fund thermometer outside the hall.",
+            "width": 35
+          }
+        ]
+      }
+    },
+    {
+      "toolName": "set_image_layout",
+      "input": {
+        "blockId": "@p3.image1",
+        "align": "full",
+        "width": 70
+      }
+    },
+    {
+      "toolName": "view_page",
+      "input": {
+        "page": 3
+      }
+    }
+  ]
+}

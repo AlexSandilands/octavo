@@ -1,0 +1,58 @@
+{
+  "id": "02-make-bullets",
+  "description": "Four separate notice blocks into one bulleted list.",
+  "expectation": "The four notice blocks become one bulleted list with the same words, the emptied blocks removed.",
+  "issue": 2,
+  "page": 4,
+  "estimate": {
+    "input": 4,
+    "cacheRead": 11000,
+    "cacheWrite": 2700,
+    "output": 575
+  },
+  "instruction": "Make these notices into a bulleted list.",
+  "expect": {
+    "preserve": "page",
+    "tools": ["set_text", "delete_block"],
+    "maxCalls": 8,
+    "noOverflow": true,
+    "done": [
+      {
+        "check": "list",
+        "page": 4
+      },
+      {
+        "check": "textBlocks",
+        "page": 4,
+        "max": 1
+      }
+    ]
+  },
+  "fake": [
+    {
+      "toolName": "set_text",
+      "input": {
+        "blockId": "@p4.text1",
+        "markdown": "- The mobile library resumes its fortnightly Thursday stop outside the post office, 10 until noon. New members welcome; late returns forgiven on production of a reasonable story.\n- Choir practice moves to Wednesdays for the winter. The tenors are asked to note that this includes them.\n- The footpath by Marsh Lane is passable again. Walkers are asked to keep to the line of the path and to shut the gate, which has a new latch and no further excuses.\n- Planning: no applications this quarter, a sentence the editor has waited four years to set in type."
+      }
+    },
+    {
+      "toolName": "delete_block",
+      "input": {
+        "blockId": "@p4.text2"
+      }
+    },
+    {
+      "toolName": "delete_block",
+      "input": {
+        "blockId": "@p4.text3"
+      }
+    },
+    {
+      "toolName": "delete_block",
+      "input": {
+        "blockId": "@p4.text4"
+      }
+    }
+  ]
+}
