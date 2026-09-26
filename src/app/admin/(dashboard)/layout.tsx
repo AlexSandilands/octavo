@@ -1,4 +1,5 @@
 import { AdminShell } from "@/components/admin-shell";
+import { isAssistantEnabled } from "@/lib/ai";
 import { getMemberIdentity } from "@/server/member-names";
 import { countOpenReports } from "@/server/report-inbox";
 import { requireAdminOrRedirect } from "@/server/session";
@@ -25,7 +26,11 @@ export default async function DashboardLayout({
     avatarUrl: shown?.avatarUrl ?? null,
   };
   return (
-    <AdminShell user={user} openReports={openReports}>
+    <AdminShell
+      user={user}
+      openReports={openReports}
+      assistant={isAssistantEnabled()}
+    >
       {children}
     </AdminShell>
   );
