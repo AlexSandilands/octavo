@@ -327,8 +327,8 @@ don't redesign it.
   is up. The estimate (`assistant/paste-estimate.ts`) prices the paste on the model `GET /api/admin/ai/usage` names
   (the fake provider is estimated as the default model): one cache write of the paste, the paste again as the plan's
   output, three cache reads of it for the later turns, plus a run's own prompt and replies; rounded up to the cent.
-  It's code, not prompt, so the question is asked before anything is spent. #343's text attachments count toward the
-  4,000.
+  It's code, not prompt, so the question is asked before anything is spent. Only the typed text counts: #343's photos
+  cost what the model spends looking at them, which isn't known at send time.
 - **Automatic end-of-run review (#342):** when a run touched the cover or more than one page, the editor renders those pages and sends
   them back as images in a follow-up message for one more turn. There is only one review round, and none for single-page
   edits. It adds 25–40% to such a run. It catches collisions (floats crowding text), not polish.

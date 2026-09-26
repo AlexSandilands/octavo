@@ -13,7 +13,7 @@ const CHARS_PER_TOKEN = 4;
 const LATER_TURNS = 3;
 const RUN = { input: 8_000, cacheRead: 60_000, output: 2_000 };
 
-/** A message of this size asks before it is sent. #343 adds its attachments' text. */
+/** A message of this many characters asks before it is sent. */
 export const needsCostConfirm = (chars: number) => chars > CONFIRM_FROM_CHARS;
 
 /** US dollars to lay out `chars` of pasted text on `model`; null if unpriced. */

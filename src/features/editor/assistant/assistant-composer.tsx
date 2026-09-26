@@ -50,9 +50,8 @@ export function AssistantComposer({
     !busy && !disabled && !holding && !over && value.trim() !== "";
   const submit = () => {
     if (!canSend) return;
-    // What goes out: #343 adds its text attachments to this.
-    const size = value.length;
-    if (needsCostConfirm(size)) {
+    // Only typed text: #343's photos are costed when the model looks at them.
+    if (needsCostConfirm(value.length)) {
       onLongPaste(value, () => setValue(""));
       return;
     }
