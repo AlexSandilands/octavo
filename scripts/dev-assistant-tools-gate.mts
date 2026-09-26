@@ -372,7 +372,7 @@ async function checks(page: Page) {
     heading,
   });
 
-  await checkCover({ page, sql, base: base!, tag, ok, heading });
+  await checkCover({ page, sql, base: base!, tag, ok, heading, shots });
 
   console.log("\nassistant tools gate: all checks passed");
 }

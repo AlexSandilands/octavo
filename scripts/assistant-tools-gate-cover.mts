@@ -3,7 +3,8 @@
 // from the cover's Compose preset's place in the panel — background, masthead,
 // a story linking three real headings, details, the club's logo, two items
 // placed and styled. The run is one step (the panel's Undo empties the cover,
-// Ctrl+Y puts it back), the Ask pill sits on a cover item, and once published
+// Ctrl+Y puts it back), Ask ends a cover item's bar (a logo's bar of its own),
+// and once published
 // the composed cover renders in both readers, the print route and the library
 // thumbnail. Its own tab and chat watch; its own scratch issue, deleted after.
 import assert from "node:assert/strict";
@@ -30,6 +31,8 @@ export async function checkCover(d: {
   tag: string;
   ok: (cond: unknown, msg: string) => void;
   heading: (name: string) => void;
+  /** An optional folder for screenshots of the cover's Ask. */
+  shots?: string;
 }) {
   const { sql, base, ok, heading } = d;
   const [seed] = await sql<{ content: Doc; theme: string }[]>`
@@ -121,7 +124,7 @@ export async function checkCover(d: {
       Boolean((await saved()).pages[0]!.coverElements?.length === 3),
     );
     const composed = (await saved()).pages[0]!;
-    const [story, details] = composed.coverElements!;
+    const [story, details, logo] = composed.coverElements!;
     const place = await chat.runScript([
       {
         toolName: "place_cover_item",
@@ -161,11 +164,7 @@ export async function checkCover(d: {
       /^Changed \d+ blocks? on page 1\s*Undo$/.test(line ?? ""),
       `the run's line (${line})`,
     );
-    await tab.click(`[data-cover-element="${story!.id}"] [role="button"]`);
-    ok(
-      (await tab.$(`[data-cover-element="${story!.id}"] [data-ask]`)) !== null,
-      "a selected cover item has the Ask pill",
-    );
+    await checkCoverAsk(tab, story!.id, logo!.id, ok, d.shots);
 
     heading("cover: one Undo, and back");
     // The placing run is its own step: Undo it, then the compose run.
@@ -239,4 +238,43 @@ export async function checkCover(d: {
     await sql`delete from ai_usage where issue_id = ${id}`;
     await sql`delete from issues where id = ${id}`;
   }
+}
+
+/** Ask ends a story's format bar, and a logo gets a bar holding just Ask. */
+async function checkCoverAsk(
+  tab: Page,
+  storyId: string,
+  logoId: string,
+  ok: (cond: unknown, msg: string) => void,
+  shots?: string,
+) {
+  const shoot = (name: string) =>
+    shots ? tab.screenshot({ path: `${shots}/${name}.png` }) : null;
+  const item = (id: string) => `[data-cover-element="${id}"]`;
+  await tab.click(`${item(storyId)} [role="button"]`);
+  const inBar = `${item(storyId)} [data-block-bar] > div:not(.overflow-x-auto) > [data-ask]`;
+  ok(
+    await tab.waitForSelector(inBar, { timeout: 5000 }).catch(() => null),
+    "a selected story has Ask at the end of its format bar, outside the scrolling row",
+  );
+  await tab.click(`${inBar} button[aria-label="Ask"]`);
+  const box = await tab
+    .locator(`${item(storyId)} [role="dialog"]`)
+    .boundingBox();
+  const width = tab.viewportSize()!.width;
+  ok(
+    box && box.x >= 0 && box.x + box.width <= width,
+    `its box opens inside the window (${Math.round(box?.x ?? -1)}–${Math.round((box?.x ?? 0) + (box?.width ?? 0))} of ${width})`,
+  );
+  await shoot("cover-ask-story");
+  await tab.keyboard.press("Escape");
+  await tab.click(`${item(logoId)} [role="button"]`);
+  const bar = tab.locator(`${item(logoId)} [data-block-bar]`);
+  ok(
+    (await bar.count()) === 1 &&
+      (await bar.locator("[data-ask]").count()) === 1 &&
+      (await bar.locator("button").count()) === 1,
+    "a selected logo has a bar of its own holding just Ask",
+  );
+  await shoot("cover-ask-logo");
 }

@@ -14,7 +14,7 @@ import type { ImageMap } from "@/lib/images";
 import { CoverElementView } from "@/features/blocks/cover-element-view";
 import { CoverItemTools } from "./cover-item-tools";
 import { CoverTextToolbar } from "./cover-text-toolbar";
-import { AskControl } from "./assistant/ask-box";
+import { CoverAskBar } from "./cover-ask-bar";
 import type { SendResult } from "./assistant/use-assistant-chat";
 
 export function EditorCoverElement({
@@ -117,10 +117,12 @@ export function EditorCoverElement({
           )}
         />
       </div>
-      {selected && element.type !== "logo" && (
-        <CoverTextToolbar appearance={appearance} />
-      )}
-      {selected && onAsk && <AskControl onSend={onAsk} />}
+      {selected &&
+        (element.type !== "logo" ? (
+          <CoverTextToolbar appearance={appearance} onAsk={onAsk} />
+        ) : (
+          onAsk && <CoverAskBar onAsk={onAsk} />
+        ))}
       <CoverItemTools
         selected={selected}
         onMove={onMove}
