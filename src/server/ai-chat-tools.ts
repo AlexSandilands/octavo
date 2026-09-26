@@ -1,5 +1,6 @@
 import "server-only";
 import { tool } from "ai";
+import type { z } from "zod";
 import {
   AI_TOOL_NAMES,
   aiToolDescriptions,
@@ -37,7 +38,9 @@ function buildTools() {
       name,
       tool({
         description: aiToolDescriptions[name],
-        inputSchema: aiToolSchemas[name],
+        // Each tool's own schema; the set is keyed by name, so its input type
+        // is widened here and narrowed again by the editor that runs it.
+        inputSchema: aiToolSchemas[name] as z.ZodType<unknown>,
         outputSchema: aiToolOutputSchema,
         toModelOutput: ({ output }) => toModelOutput(output),
       }),

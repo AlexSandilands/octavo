@@ -8,6 +8,9 @@ import {
   useAssistantChat,
   type AssistantSnapshot,
 } from "./assistant/use-assistant-chat";
+import type { PresetTarget } from "./assistant/presets";
+import type { EditorSnapshot } from "./use-editor-history";
+import type { AssistantTools } from "./assistant/tools";
 import { useAssistantUsage } from "./assistant/use-assistant-usage";
 import { SidePanel } from "./side-panel/side-panel";
 import {
@@ -61,6 +64,12 @@ export function EditorSide({
     issueId: string;
     published: boolean;
     snapshot: AssistantSnapshot;
+    tools: AssistantTools;
+    /** The page open now and its selected block, for the presets. */
+    target: PresetTarget;
+    /** The editor's own Undo: a run is one step. */
+    undo: () => void;
+    historyTop: EditorSnapshot | null;
   };
 }) {
   const [toolActions, setToolActions] = useState<RailAction[]>([]);
@@ -71,6 +80,7 @@ export function EditorSide({
   const chat = useAssistantChat({
     issueId: assistant.issueId,
     snapshot: assistant.snapshot,
+    tools: assistant.tools,
     onRunEnd: () => void usage.refresh(),
   });
   // Import PDF steps aside on a cover (#287); the assistant stays.
@@ -120,6 +130,12 @@ export function EditorSide({
             published={assistant.published}
             cover={cover}
             usage={usage.usage}
+            target={assistant.target}
+            historyTop={assistant.historyTop}
+            onUndo={() => {
+              assistant.undo();
+              chat.dismissRun();
+            }}
           />
         ) : (
           <PdfImportPanel

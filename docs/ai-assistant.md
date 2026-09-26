@@ -2,7 +2,7 @@
 
 An assistant in the editor that edits the issue on the author's behalf. It can tidy a page, lay out pasted articles and
 photos, compose a cover, and rewrite when asked. **Built so far, dormant until a provider is set:** the spend ledger
-(#307), the chat route (#308) and the editor's panel, which reads but doesn't edit yet (#309). This note holds the decisions every child issue assumes. Read it with the epic before
+(#307), the chat route (#308), the editor's panel (#309) and the page-editing tools (#310). This note holds the decisions every child issue assumes. Read it with the epic before
 working any child. Each child's PR updates it to match what shipped, and the epic's closing issue (#344) turns it into
 the feature doc (the `docs/pdf-import.md` shape).
 
@@ -162,7 +162,9 @@ client-safe.
   `Looking at "<the projection's first line>".` and then a `read_page({ page: 1 })` call; a tool result gets
   `Read read_page (<n> characters back). Nothing needed changing.` Triggers in the author's text reach the failure
   paths: `[fake:fail]`, `[fake:drop]`, `[fake:slow]` and `[fake:odd-model]`; `[fake:echo]` replies with the text parts
-  the model was sent. `scripts/dev-ai-proxy-gate.mts` runs against it.
+  the model was sent. `[fake:tools]` followed by a JSON array of `{ toolName, input }` scripts a run instead: one call a
+  turn (`Step n: <tool>.`), then `Done: N steps.` (#310). `scripts/dev-ai-proxy-gate.mts` and
+  `scripts/dev-assistant-tools-gate.mts` run against it.
 
 #### Where it appears: the editor's side panel (#309)
 
@@ -182,12 +184,13 @@ client-safe.
     thread but turns the composer off with the route's copy.
   - A full conversation says so and offers **Start a new one**: at 200 messages, when `too_long` comes back, or when
     the history plus the next projection would pass `AI_MAX_CONVERSATION_CHARS` less 20k of headroom for the reply.
-  - Route errors show inline in the thread, verbatim.
+  - Route errors show inline in the thread, verbatim — except the run cap (`run_cap`), which is the circuit-breaker's
+    message (see Runs).
 - **The composer.** A growing textarea (Enter sends, Shift+Enter is a new line) and one 44px button that is Send, or
   Stop while a reply is on its way. Nothing is cut silently: from 18,000 characters a count shows, and past the
   route's 20,000 it says how far over and Send is off until the text is shortened. The row under the text is left
-  free for #343's attach button. Above it, #310's
-  four presets show disabled, with an "Editing arrives soon" tooltip. Replies render as plain paragraphs with markdown
+  free for #343's attach button. Above it sit #310's four presets (see Runs); on a cover they're off, with a tooltip
+  saying they work on the inside pages. Replies render as plain paragraphs with markdown
   lists and bold only, never HTML.
 - **The conversation** lives above the panel (`editor-side.tsx`), so closing the panel keeps it. It ends when the editor
   is closed. `src/features/editor/assistant/use-assistant-chat.ts` is the only file that knows `useChat`, the
@@ -239,16 +242,34 @@ client-safe.
 The spike's contract (`scripts/spike/assistant/tools.ts`, `cover-tool-defs.ts`, `vision.ts`) is the starting point. Lift it;
 don't redesign it.
 
-- **Page tools:**
+- **Page tools (built, #310):**
   - `read_page`, `set_text`, `set_heading`;
   - `insert_blocks` (headings, text as markdown, and photos with optional `caption`/`alt`, since models reach for those);
   - `delete_block`, `move_block`, `add_page`, `split_page`;
   - `set_image_text`, and `set_image_layout`, where `full` means full width.
-- **Every mutating result ends with the touched page's fill after the edit.**
-- **Overflow feedback names the lever.** For an overflowing page, report each text block's line count and the words on its
-  last line, so the model can see which cut actually frees a line. "Overflows by ~N lines" made both models shave a
-  sentence at a time, and "cut about N words" misled whenever a paragraph's last line was nearly full. "Shorten to fit" was
-  the one preset that underperformed on both models.
+- **Where they live.** The contract is `src/lib/ai-tools.ts`: one zod schema and description per tool, in a fixed order (the
+  cached prefix; new tools go at the end), with no refinements so the SDK's JSON schema is exact. The route declares them
+  (`src/server/ai-chat-tools.ts`); the editor runs them. `src/features/editor/assistant/edit-tools.ts` is the pure edit, lifted
+  from the spike's executor; `executor.ts` validates, applies to a copy, re-validates the whole issue with
+  `issueContentSchema` and only then commits through the editor (`applyAssistant` in `use-editor-pages.ts`, which reseeds any
+  text editor it changed). A refusal — an unknown id, a cover (#313), a full-page photo, a block the save path would refuse,
+  an edit the whole issue would fail — comes back as `Error: … Nothing changed.`, which the model reads. Calls run one at a
+  time, each waiting for the editor to render the last; if the author edits while a call is being measured, the call is
+  refused rather than overwriting them.
+- **`split_page` is the editor's own fix.** It measures the page, takes the first block past the text area, and cuts body
+  text between top-level nodes with `planTextFlow` over the measured node offsets (as many continuation pages as it needs);
+  anything else moves whole. Everything after the crossing block goes with it, so the reading order holds, and a heading is
+  never left at the foot of the page.
+- **Every mutating result ends with the touched pages' fill after the edit**, measured off screen in the editor's own
+  presentation (`measure-page.tsx`, the fill measurer's layout read with `page-metrics.ts`'s geometry): "page 4: fits, ~80%
+  full".
+- **Overflow feedback names the lever.** For an overflowing page the result lists each text block's line count and the
+  words on each paragraph's last line (up to 12), says that a line is freed only when a paragraph's last line empties,
+  names any non-text block tall enough to clear the overflow if moved, and offers `split_page`. "Overflows by ~N lines"
+  made both models shave a sentence at a time, and "cut about N words" misled whenever a paragraph's last line was nearly
+  full. "Shorten to fit" was the one preset that underperformed on both models.
+- **Checked** by `scripts/check-ai-tools.mts` (in memory, a stand-in measurer) and `scripts/dev-assistant-tools-gate.mts`
+  (a real editor, the fake provider's `[fake:tools]` script, the real measurer).
 - **Cover tools, compose:** `set_cover_background`, `clear_cover_background`, `set_masthead`, `add_story` (items linked to real
   heading ids), `add_details`, `add_logo`, `remove_cover_item`.
 - **Cover tools, style:** `place_cover_item` (the 3×3 grid, width, align, text size), and `style_cover_item` / `style_cover_page`
@@ -266,14 +287,35 @@ don't redesign it.
 ### Runs
 
 - One author message plus everything the model does in response is one run, and **one history snapshot**: Ctrl/Cmd+Z reverts
-  the run. The panel shows a one-line change summary with Undo.
+  the run. The executor records the step before the run's first real change (a refused first call records nothing).
+  After the run the thread ends with one line — "Changed 3 blocks on pages 4–5 and added 1 page · Undo" — counting blocks
+  changed, added, removed or moved (a reordered page counts only the blocks that left the old order). The line and its
+  Undo (a 44px button) stand only while the run's step is the one Ctrl+Z would take: anything else recorded since and the
+  line goes. It is the editor's own undo, one step. Each tool call shows as one quiet line ("Rewrote a text block",
+  "Carried text onto a new page"; a refused one says it didn't work).
+- **Hands off during a run.** One run is one step only if nothing else lands between its edits, so while a run is under
+  way the canvas and the header are `inert` (as Import PDF's are), a note over the canvas says "The assistant is editing
+  this issue. Stop it from the panel.", and the editor's Ctrl/Cmd+Z stands down. The page rail and the panel stay live. If
+  the pages change anyway between the run's calls (a page added from the rail, say), the executor refuses the next call and
+  the run stops with "The issue changed while I was working, so I stopped. What I'd done is still in place; Ctrl+Z (⌘Z on a Mac) takes
+  back your change first, then mine." — as it already did for a change during one call's measurement.
+- **A run ends** when the model's last reply asks for no more tools, or the author stops it, or it fails (the rule is in
+  the panel section above); its line is worked out then.
+- **Presets (built, #310)** above the composer: _Tidy this page_, _Make bullets_, _Rewrite for clarity_, _Shorten to fit_
+  (`assistant/presets.ts`). Each sends a fixed message for the page open now and, when one is selected, its block — the
+  block id rides in brackets for the model and is hidden from the author's bubble. Tidy and Make bullets say to keep every
+  word; Rewrite and Shorten say the wording may change and to keep the facts and the voice. They're off on a cover.
 - **Automatic end-of-run review (#342):** when a run touched the cover or more than one page, the editor renders those pages and sends
   them back as images in a follow-up message for one more turn. There is only one review round, and none for single-page
   edits. It adds 25–40% to such a run. It catches collisions (floats crowding text), not polish.
-- **Circuit-breaker (#310; replaces "5 identical calls"):** stop a run, keeping what it has done, when **any** of these happens:
-  - more than **~40 tool calls** in the run;
-  - the **same block is moved more than twice**;
-  - the run's spend passes **~$0.50**.
+- **Circuit-breaker (built, #310; replaces "5 identical calls"):** stop a run, keeping what it has done, when **any** of these
+  happens:
+  - more than **40 tool calls** in the run (`RUN_CALL_LIMIT`; the 41st call's result is never sent);
+  - the **same block is moved more than twice** (`RUN_MOVE_LIMIT`);
+  - the route refuses the run's next request for its **$0.50** cap (`run_cap`, #308).
+
+  The panel then says "I got stuck, so I stopped. Everything I did is in place and can be undone in one step." with the
+  run's line and Undo, in place of the route's error.
 
   Haiku's 80-call cycle repeated no call back to back, so the old rule would never have tripped. A $2 run would be a tenth of
   the month.

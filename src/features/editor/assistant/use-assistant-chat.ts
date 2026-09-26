@@ -17,10 +17,11 @@ import {
   type AiError,
   type AiProjectionData,
 } from "@/lib/ai-chat-contract";
-import type { AiToolInput, AiToolOutput } from "@/lib/ai-tools";
+import type { AiToolInput, AiToolName, AiToolOutput } from "@/lib/ai-tools";
+import { BREAKER_MESSAGE, type RunSummary } from "./executor";
 import type { AssistantIssue } from "./issue-context";
 import { projection } from "./projection";
-import { runAssistantTool } from "./tools";
+import type { AssistantTools } from "./tools";
 
 // The assistant's conversation (#309): the only file that knows the AI SDK's
 // client side — `useChat`, the transport and the stream's parts — so leaving the
@@ -33,12 +34,7 @@ import { runAssistantTool } from "./tools";
 export type AssistantMessage = UIMessage<
   unknown,
   { projection: AiProjectionData },
-  {
-    read_page: {
-      input: AiToolInput<"read_page">;
-      output: AiToolOutput;
-    };
-  }
+  { [N in AiToolName]: { input: AiToolInput<N>; output: AiToolOutput } }
 >;
 
 /** The issue as it stands, with every page's fill measured, and the page open now. */
@@ -91,10 +87,13 @@ function closeStoppedTail(messages: AssistantMessage[]): AssistantMessage[] {
 export function useAssistantChat({
   issueId,
   snapshot,
+  tools,
   onRunEnd,
 }: {
   issueId: string;
   snapshot: AssistantSnapshot;
+  /** Runs the model's tool calls against the editor (#310). */
+  tools: AssistantTools;
   /** A run finished, stopped or failed: its spend is on the ledger now. */
   onRunEnd: () => void;
 }) {
@@ -102,18 +101,22 @@ export function useAssistantChat({
   const stopped = useRef(false);
   const runOpen = useRef(false);
   // The Chat is made once; its callbacks read the latest props through these.
-  const latest = useRef({ snapshot, onRunEnd });
+  const latest = useRef({ snapshot, tools, onRunEnd });
   useEffect(() => {
-    latest.current = { snapshot, onRunEnd };
+    latest.current = { snapshot, tools, onRunEnd };
   });
   const [running, setRunning] = useState(false);
   const [full, setFull] = useState(false);
+  // What the last run changed, and why it was stopped if the breaker tripped.
+  const [summary, setSummary] = useState<RunSummary | null>(null);
+  const [stuck, setStuck] = useState<string | null>(null);
 
   // Idempotent: a failed stream reports through both onError and onFinish.
   const endRun = () => {
     setRunning(false);
     if (!runOpen.current) return;
     runOpen.current = false;
+    setSummary(latest.current.tools.endRun());
     latest.current.onRunEnd();
   };
 
@@ -131,11 +134,21 @@ export function useAssistantChat({
       if (toolCall.dynamic) return;
       try {
         const { issue } = await latest.current.snapshot();
+        const output = await latest.current.tools.run(
+          toolCall.toolName,
+          toolCall.input,
+          issue,
+        );
         chat.addToolOutput({
           tool: toolCall.toolName,
           toolCallId: toolCall.toolCallId,
-          output: runAssistantTool(toolCall.toolName, toolCall.input, issue),
+          output,
         });
+        const breaker = latest.current.tools.breaker();
+        if (breaker && !stopped.current) {
+          setStuck(breaker);
+          stop();
+        }
       } catch (error) {
         chat.addToolOutput({
           state: "output-error",
@@ -158,7 +171,10 @@ export function useAssistantChat({
       if (isAbort || isError || stopped.current || !continues) endRun();
     },
     onError: (error) => {
-      if (readAiError(error.message).code === "too_long") setFull(true);
+      const code = readAiError(error.message).code;
+      if (code === "too_long") setFull(true);
+      // The run's $0.50 cap is the circuit-breaker's third condition (#310).
+      if (code === "run_cap") setStuck(BREAKER_MESSAGE);
       endRun();
     },
   });
@@ -181,6 +197,10 @@ export function useAssistantChat({
     stopped.current = false;
     runOpen.current = true;
     setRunning(true);
+    setSummary(null);
+    setStuck(null);
+    // Before anything can end the run, so its summary is never the last run's.
+    latest.current.tools.beginRun();
     try {
       const { issue, currentPage } = await latest.current.snapshot();
       const view = projection(issue, currentPage);
@@ -223,6 +243,15 @@ export function useAssistantChat({
     busy,
     error,
     full,
+    /** The last run's change ("Changed 3 blocks on pages 4–5"), for its Undo. */
+    summary,
+    /** The circuit-breaker's message, when it stopped the last run. */
+    stuck,
+    /** The run was undone: its line goes. */
+    dismissRun: () => {
+      setSummary(null);
+      setStuck(null);
+    },
     send,
     stop,
     restart,
