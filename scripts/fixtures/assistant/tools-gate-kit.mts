@@ -151,21 +151,27 @@ export function watchChat(page: Page) {
     asked,
     /** The run id of the latest request. */
     runId: () => runId,
-    /** Send a scripted run and wait for it to finish: what it sent back. */
-    async runScript(
-      calls: { toolName: string; input: object }[],
-      prefix = "Please",
-    ) {
+    /** Start a run with `start` and wait for it to finish: what it sent back. */
+    async awaitRun(start: () => Promise<void>) {
       const from = outputs.length;
       const sent = requests;
-      await page.fill(
-        "#assistant-input",
-        `${prefix} [fake:tools]${JSON.stringify(calls)}`,
-      );
-      await page.keyboard.press("Enter");
+      await start();
       await busy("true");
       await busy("false");
       return { outputs: outputs.slice(from), requests: requests - sent };
+    },
+    /** Send a scripted run and wait for it to finish: what it sent back. A
+     *  script long enough to ask first (#312) is continued. */
+    runScript(calls: { toolName: string; input: object }[], prefix = "Please") {
+      const message = `${prefix} [fake:tools]${JSON.stringify(calls)}`;
+      return this.awaitRun(async () => {
+        await page.fill("#assistant-input", message);
+        await page.keyboard.press("Enter");
+        if (message.length > 4_000)
+          await page.click(
+            '[data-assistant-paste-confirm] button:text-is("Continue")',
+          );
+      });
     },
   };
 }

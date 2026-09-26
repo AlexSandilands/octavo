@@ -3,13 +3,15 @@
 import { useEffect, useState, type RefObject } from "react";
 import { Icon } from "@/components/icons";
 import { AI_MAX_TEXT_CHARS } from "@/lib/ai-chat-contract";
+import { needsCostConfirm } from "./paste-estimate";
 
 // The author's side of the chat (#309): a box that grows with what is typed,
 // Enter to send and Shift+Enter for a new line, and one 44px button that sends
 // or, while a reply is on its way, stops it. The row under the text keeps its
 // left end free for the attach button and thumbnails #343 adds. Nothing is ever
 // cut silently: near the route's limit a count shows, and past it Send is off
-// until the text is shortened.
+// until the text is shortened. A long message asks first (#312): it goes to
+// `onLongPaste` instead, and the text stays, read-only, until it is sent.
 
 /** The count shows from here, so a long paste is never a surprise. */
 const COUNT_FROM = AI_MAX_TEXT_CHARS - 2_000;
@@ -19,6 +21,8 @@ export function AssistantComposer({
   busy,
   disabled,
   onSend,
+  onLongPaste,
+  holding,
   onStop,
 }: {
   inputRef: RefObject<HTMLTextAreaElement | null>;
@@ -26,6 +30,10 @@ export function AssistantComposer({
   /** Nothing can be sent (the month's budget is spent, the conversation is full). */
   disabled: boolean;
   onSend: (text: string) => void;
+  /** A message long enough to ask first; `clear` empties the box once it's sent. */
+  onLongPaste: (text: string, clear: () => void) => void;
+  /** That question is up: the text waits, unchanged. */
+  holding: boolean;
   onStop: () => void;
 }) {
   const [value, setValue] = useState("");
@@ -38,9 +46,15 @@ export function AssistantComposer({
   }, [value, inputRef]);
 
   const over = value.length > AI_MAX_TEXT_CHARS;
-  const canSend = !busy && !disabled && !over && value.trim() !== "";
+  const canSend =
+    !busy && !disabled && !holding && !over && value.trim() !== "";
   const submit = () => {
     if (!canSend) return;
+    // Only typed text: #343's photos are costed when the model looks at them.
+    if (needsCostConfirm(value.length)) {
+      onLongPaste(value, () => setValue(""));
+      return;
+    }
     onSend(value);
     setValue("");
     // Send turns into Stop under a pointer; the box keeps the focus.
@@ -66,6 +80,7 @@ export function AssistantComposer({
         rows={2}
         value={value}
         disabled={disabled}
+        readOnly={holding}
         placeholder={disabled ? "" : "Ask about this issue…"}
         aria-keyshortcuts="Enter"
         aria-invalid={over || undefined}

@@ -87,6 +87,14 @@ export const measurer: EditMeasurer = {
     }
     return null;
   },
+  // The paginator's page test (#312): the same fixed heights.
+  async fitter() {
+    return {
+      fits: async (blocks: Block[], bleed = false) =>
+        bleed || blocks.reduce((y, b) => y + height(b), 0) <= AVAIL,
+      dispose() {},
+    };
+  },
 };
 
 // ── The seed, with opaque photo ids ────────────────────────────────────────

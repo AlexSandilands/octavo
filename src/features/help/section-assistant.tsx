@@ -1,8 +1,8 @@
 import { AssistantUsageHelp } from "./assistant-usage";
 import { Bullets, Callout, GuideSection, P } from "./guide-ui";
 
-// The editing assistant (epic #306): what it can do, the presets (#310), and
-// Undo. Shown only where the deployment offers it.
+// The editing assistant (epic #306): what it can do, the presets (#310),
+// Undo, and a long paste (#312). Shown only where the deployment offers it.
 // #314 adds how to see what it costs at the end of this section.
 export function SectionAssistant() {
   return (
@@ -49,6 +49,17 @@ export function SectionAssistant() {
         back everything it did in one step. If it goes round in circles it stops
         itself and says so; what it had done stays, and can be undone the same
         way.
+      </P>
+      <P>
+        <strong>Pasting a long document.</strong> You can paste several articles
+        into the chat at once and ask for them to be laid out as new pages. It
+        plans each article, with its headline, the small label above it and the
+        introduction under it, then places every one at the top of a fresh page,
+        adding pages where an article runs long. Anything over about 4,000
+        characters asks first, with a rough cost, because laying it out costs
+        more than a normal question; you can always paste it onto the page
+        yourself and ask the assistant to tidy it. Where an article would suit a
+        photo you haven&rsquo;t uploaded, the line at the end says so.
       </P>
       <Bullets>
         <li>

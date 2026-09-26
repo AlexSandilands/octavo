@@ -6,7 +6,8 @@
 // measurer, off screen); autosave keeps the result; Ctrl+Z takes the whole run
 // back in one step; insert after a block; move and resize a photo; an unknown id
 // refused and reported; and both circuit-breaker conditions stop a run with
-// its edits kept.
+// its edits kept. Then #312's long paste (fixtures/assistant/plan-gate.mts):
+// the cost question, Cancel and Continue, an 8-section plan placed.
 //
 // SAFETY: shared dev database. It mints its own admin, session, draft and one
 // photo row (a key with no file behind it); the finally deletes exactly those
@@ -26,6 +27,7 @@ import {
   where,
   type Doc,
 } from "./fixtures/assistant/tools-gate-kit.mts";
+import { planChecks } from "./fixtures/assistant/plan-gate.mts";
 
 process.loadEnvFile?.(".env.local");
 // An optional folder for screenshots of the held canvas and the run's line.
@@ -449,6 +451,8 @@ async function checks(page: Page) {
       !capLog?.includes("used its share of the budget"),
     "the panel shows the breaker's message, with Undo, not the route's error",
   );
+
+  await planChecks({ page, chat, sql, adminId, saved, ok, heading });
 
   console.log("\nassistant tools gate: all checks passed");
 }

@@ -70,9 +70,10 @@ function textLines(block: HTMLElement, id: string): TextLines | null {
   return { id, lines, lastLines };
 }
 
-export function createPageMeasurer(
-  options: MeasurementOptions,
-): EditMeasurer & {
+export function createPageMeasurer(options: MeasurementOptions): Omit<
+  EditMeasurer,
+  "fitter"
+> & {
   dispose(): void;
 } {
   const cache = new WeakMap<Page, PageReport>();

@@ -18,6 +18,8 @@ import {
 import { planTextFlow } from "../text-flow";
 import { describeFill } from "./page-fill";
 import type { EditMeasurer } from "./page-report";
+import { placePlan } from "./plan-sections";
+import { refuse } from "./refusal";
 
 // The assistant's page edits (#310), lifted from the spike's executor: intent
 // in, blocks out, through the same zod the save path uses. Each edit returns a
@@ -25,10 +27,7 @@ import type { EditMeasurer } from "./page-report";
 // fill cache see only what changed. A refusal throws `Refusal`, which the
 // executor turns into a result the model reads.
 
-export class Refusal extends Error {}
-const refuse = (message: string): never => {
-  throw new Refusal(message);
-};
+export { Refusal } from "./refusal";
 
 export type EditContext = {
   pages: Page[];
@@ -45,6 +44,8 @@ export type EditResult = {
   report: string[];
   /** The block a move_block moved, for the circuit-breaker. */
   moved?: string;
+  /** Lines for the author's run summary (a photo the plan suggested, #312). */
+  notes?: string[];
 };
 
 type MutatingTool = Exclude<AiToolName, "read_page">;
@@ -319,6 +320,8 @@ export async function applyEdit(
     }
     case "split_page":
       return splitPage(ctx, aiToolSchemas.split_page.parse(input).page - 1);
+    case "propose_sections":
+      return placePlan(ctx, aiToolSchemas.propose_sections.parse(input));
     case "set_image_text": {
       const a = aiToolSchemas.set_image_text.parse(input);
       if (a.alt === undefined && a.caption === undefined)

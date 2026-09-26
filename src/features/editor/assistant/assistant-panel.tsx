@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui";
 import { AI_ERROR_COPY } from "@/lib/ai-chat-contract";
 import { usageLine, type AiUsageSummary } from "@/lib/ai-usage-summary";
 import { AssistantComposer } from "./assistant-composer";
 import { AssistantThread } from "./assistant-thread";
+import { PasteConfirm } from "./paste-confirm";
 import { Icon } from "@/components/icons";
 import type { EditorSnapshot } from "../use-editor-history";
 import type { RunSummary } from "./executor";
@@ -53,6 +54,11 @@ export function AssistantPanel({
     chat.error?.code === "budget_spent" ||
     (usage !== null && usage.remaining <= 0);
   const blocked = published || spent || chat.full;
+  // A long message waiting on the cost question (#312).
+  const [paste, setPaste] = useState<{
+    text: string;
+    clear: () => void;
+  } | null>(null);
   useEffect(() => {
     if (blocked) notice.current?.focus();
     else input.current?.focus();
@@ -129,15 +135,37 @@ export function AssistantPanel({
               </div>
             )}
             <Presets
-              disabled={chat.busy || spent || chat.full}
+              disabled={chat.busy || spent || chat.full || paste !== null}
               cover={cover}
               onPick={(id) => void chat.send(presetMessage(id, target))}
             />
+            {paste && (
+              <PasteConfirm
+                chars={paste.text.length}
+                model={usage?.model ?? null}
+                // A run under way or a full conversation would drop the send:
+                // the question and the text wait instead.
+                blocked={chat.busy || chat.full}
+                onContinue={() => {
+                  if (chat.busy || chat.full) return;
+                  paste.clear();
+                  setPaste(null);
+                  void chat.send(paste.text);
+                  input.current?.focus();
+                }}
+                onCancel={() => {
+                  setPaste(null);
+                  input.current?.focus();
+                }}
+              />
+            )}
             <AssistantComposer
               inputRef={input}
               busy={chat.busy}
               disabled={spent || chat.full}
               onSend={(text) => void chat.send(text)}
+              onLongPaste={(text, clear) => setPaste({ text, clear })}
+              holding={paste !== null}
               onStop={chat.stop}
             />
             {usage && (

@@ -2,7 +2,7 @@
 
 An assistant in the editor that edits the issue on the author's behalf. It can tidy a page, lay out pasted articles and
 photos, compose a cover, and rewrite when asked. **Built so far, dormant until a provider is set:** the spend ledger
-(#307), the chat route (#308), the editor's panel (#309) and the page-editing tools (#310). This note holds the decisions every child issue assumes. Read it with the epic before
+(#307), the chat route (#308), the editor's panel (#309), the page-editing tools (#310) and long-paste planning (#312). This note holds the decisions every child issue assumes. Read it with the epic before
 working any child. Each child's PR updates it to match what shipped, and the epic's closing issue (#344) turns it into
 the feature doc (the `docs/pdf-import.md` shape).
 
@@ -280,9 +280,24 @@ don't redesign it.
     per-run budget of about 6;
   - production needs a **draft-capable single-page render**, because `/read/[n]/print` looks issues up by published number. The
     render must use the real page components (`PrintDocument`), as the spike's `render.ts` did.
-- **Planning tool for long pastes (#312):** takes the whole plan in one call, and each section has **separate `headline`,
-  `kicker?`, `standfirst?`** fields with a worked example in the description. A prompt line alone did not stop the model turning
-  an all-caps headline into the kicker and the standfirst into the title.
+- **Planning tool for long pastes (built, #312):** `propose_sections({ after, sections })` takes the whole plan in one
+  call: up to 40 sections, each `{ headline, kicker?, standfirst?, body, photos? }` with a body of at most 20,000
+  characters. Headline, kicker and standfirst are **separate fields**, and the description carries a worked example
+  (the line in capitals is the headline, the sentence under it the standfirst, a kicker only when the author wrote one).
+  A prompt line alone did not stop the model turning an all-caps headline into the kicker and the standfirst into the
+  title. A body line starting `#`/`##` is a section heading and `###` a run-in sub-head. A photo is an issue photo's id,
+  after the standfirst or after the body's nth paragraph or list (`left`/`right` wrap at 45%); a photo with no id is a
+  suggestion, which goes into the result and the author's run line ("Suggested a photo for "Spring show"."). An unknown
+  id refuses the whole plan. `base.md` tells the model to use it for several articles or more than about a page of text.
+- **Placement** (`assistant/plan-sections.ts`) builds each section's blocks with `markdownToDoc` and hands them to
+  Import PDF's paginator (`pdf-import/paginate.ts`'s `paginateImport`, fitted by `createMeasurer`'s page test, the one
+  Import PDF uses): each section from the top of a new page after `after` (an empty non-cover page there takes the
+  first), continuation pages added by measurement, a heading never left at a page's foot. The paginator's failures are
+  a typed `PaginateError`, so Import PDF keeps its wording and the assistant refuses with its own. Only the pages it
+  wrote are new objects; the rest keep their identity. The result names each section's pages and every written page's
+  fill, so "make the second one shorter" works as a normal follow-up. Checked by `scripts/check-ai-plan.mts` (in memory;
+  the schema's bounds are in `check-ai-tools.mts`) and the long-paste half of `dev-assistant-tools-gate.mts`
+  (`fixtures/assistant/plan-gate.mts`).
 
 ### Runs
 
@@ -305,6 +320,15 @@ don't redesign it.
   (`assistant/presets.ts`). Each sends a fixed message for the page open now and, when one is selected, its block — the
   block id rides in brackets for the model and is hidden from the author's bubble. Tidy and Make bullets say to keep every
   word; Rewrite and Shorten say the wording may change and to keep the facts and the voice. They're off on a cover.
+- **A long paste asks first (built, #312).** A message over **4,000 characters** isn't sent from the composer: a box
+  above it says "That's a lot of content. Laying it out will cost more than a normal request (about US$X on the current
+  model). You could paste it onto the page yourself and use me to tidy it. Continue?", with **Continue** and
+  **Cancel**. Cancel (or Escape) sends nothing and leaves the text in the box; the box is read-only while the question
+  is up. The estimate (`assistant/paste-estimate.ts`) prices the paste on the model `GET /api/admin/ai/usage` names
+  (the fake provider is estimated as the default model): one cache write of the paste, the paste again as the plan's
+  output, three cache reads of it for the later turns, plus a run's own prompt and replies; rounded up to the cent.
+  It's code, not prompt, so the question is asked before anything is spent. Only the typed text counts: #343's photos
+  cost what the model spends looking at them, which isn't known at send time.
 - **Automatic end-of-run review (#342):** when a run touched the cover or more than one page, the editor renders those pages and sends
   them back as images in a follow-up message for one more turn. There is only one review round, and none for single-page
   edits. It adds 25–40% to such a run. It catches collisions (floats crowding text), not polish.
