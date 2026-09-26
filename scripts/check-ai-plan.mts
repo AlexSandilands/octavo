@@ -65,7 +65,7 @@ heading("eight sections, each from the top of a fresh page");
   ok(
     pages.length === 3 + 8 + 2 &&
       pages[1]!.blocks.length === 1 &&
-      plain(pages.at(-1)!.blocks[0]).startsWith("Last paragraph 1"),
+      plain(pages.at(-1)!.blocks[0]).startsWith("Last 1."),
     `story 3 carried onto two more pages, the pages around the plan untouched (${pages.length} pages)`,
   );
   const all = (await Promise.all(pages.map(fits))).every(Boolean);
