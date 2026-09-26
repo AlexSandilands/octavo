@@ -36,7 +36,7 @@ async function bundle(): Promise<string> {
         name: "next-image",
         setup: (b) =>
           b.onResolve({ filter: /^next\/image$/ }, () => ({
-            path: join(import.meta.dirname, "next-image-shim.ts"),
+            path: join(import.meta.dirname, "next-image-shim.mts"),
           })),
       },
     ],

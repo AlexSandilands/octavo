@@ -103,6 +103,15 @@ export function summary(title: string, all: CaseResults[]): string {
     "",
     `**Verdict: ${v.fit ? "fit to be AI_MODEL" : "not fit"}**${v.why.length ? ` — ${v.why.join("; ")}` : ""}. Covers and layout still need a look at the PNGs.`,
     "",
+    // A failed, errored or timed-out request may report no usage, so it is counted at $0.
+    ...(ran.some((r) =>
+      /^(request failed|no reply|stream error)/.test(r.run.stopped ?? ""),
+    )
+      ? [
+          "A run stopped on a failed, errored or timed-out request; that request's cost isn't known, so the costs are a floor.",
+          "",
+        ]
+      : []),
     "| case | pass | calls (max) | valid | wording | overflow | views | time | cost | cache read | notes |",
     "| ---- | ---- | ----------- | ----- | ------- | -------- | ----- | ---- | ---- | ---------- | ----- |",
   ];
