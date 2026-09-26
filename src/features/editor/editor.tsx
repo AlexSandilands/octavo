@@ -149,8 +149,12 @@ export function Editor({
     deletePage,
   } = useEditorPages(issue.content);
   // imageId → resolved image, seeded from the server and grown as uploads land,
-  // so the canvas previews an image the moment it's uploaded.
-  const [images, setImages] = useState<ImageMap>(initialImages);
+  // so the canvas previews an image the moment it's uploaded. The library's
+  // marks are in it too, for a logo the assistant places (#313).
+  const [images, setImages] = useState<ImageMap>(() => ({
+    ...Object.fromEntries(logos.map((l) => [l.imageId, l.image])),
+    ...initialImages,
+  }));
   const [title, setTitle] = useState(issue.title);
   // The issue's stored layout theme, normalised to an enabled theme id so the
   // picker (which offers only enabled themes) and the state stay in sync; an
