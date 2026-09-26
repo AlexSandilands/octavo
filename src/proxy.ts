@@ -168,11 +168,12 @@ export function proxy(req: NextRequest) {
 // stays scoped to the gated prefixes in code (isGatedRoute), so broadening the
 // matcher for the CSP does not gate any new route.
 //
-// `/api/admin/issues/import` is excluded by exact path: Next truncates proxied
-// request bodies at 10 MB and that handler authenticates itself. See
-// docs/issue-transfer.md#transport.
+// `/api/admin/issues/import` and `/api/admin/images` are excluded by exact
+// path: Next truncates proxied request bodies at 10 MB (a 10–12 MB photo
+// reached the upload route cut short) and both handlers authenticate
+// themselves. See docs/issue-transfer.md#transport.
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api/admin/issues/import$|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/admin/issues/import$|api/admin/images$|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$).*)",
   ],
 };

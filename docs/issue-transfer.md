@@ -260,6 +260,8 @@ archive. Excluding this one exact path costs nothing: the proxy's auth gate cove
 handler is the authority), its CSP nonce only matters on HTML, and the static headers
 in `next.config.ts` still apply. Raising the limit instead would make every route,
 including unauthenticated ones, buffer larger bodies in memory.
+The image upload route (`/api/admin/images`, up to 12 MB) is excluded the same way and for the
+same reasons: a 10–12 MB photo used to reach it truncated and fail as "Expected multipart form data" (#343).
 
 Export, plan and import all check `sameOrigin` (`src/lib/same-origin.ts`) and
 `getAdminUser()`; import is rate-limited per admin. The status `GET` checks the admin

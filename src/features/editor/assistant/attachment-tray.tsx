@@ -119,7 +119,11 @@ export function AttachmentTray({
           ))}
         </ul>
       )}
-      <p role="status" className="text-faint px-0.5 font-sans text-[13px]">
+      <p
+        data-attachment-status
+        role="status"
+        className="text-faint px-0.5 font-sans text-[13px]"
+      >
         {uploading
           ? `Uploading ${uploading === 1 ? "1 photo" : `${uploading} photos`}…`
           : done
@@ -128,6 +132,7 @@ export function AttachmentTray({
       </p>
       {(failed.length > 0 || note) && (
         <div
+          data-attachment-alert
           role="alert"
           className="text-warn px-0.5 font-sans text-[13px] leading-snug font-semibold"
         >

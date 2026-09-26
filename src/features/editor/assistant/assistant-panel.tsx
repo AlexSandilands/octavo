@@ -256,7 +256,6 @@ function RunResult({
       className="border-line flex flex-col gap-2.5 rounded-lg border bg-white px-3.5 py-3 font-sans text-[15px] leading-snug"
     >
       {stuck && <p className="text-warn font-medium">{stuck}</p>}
-      {unplaced > 0 && <p className="text-ink">{unplacedText(unplaced)}</p>}
       {summary && (
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <p className="text-ink">{summary.text}</p>
@@ -270,6 +269,7 @@ function RunResult({
           </button>
         </div>
       )}
+      {unplaced > 0 && <p className="text-ink">{unplacedText(unplaced)}</p>}
     </div>
   );
 }
