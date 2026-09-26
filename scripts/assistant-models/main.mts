@@ -24,7 +24,8 @@ import { scoreCase } from "./score.mts";
 process.loadEnvFile?.(".env.local");
 const { values } = parseArgs({
   options: {
-    provider: { type: "string", default: "anthropic" },
+    // No default: a run that could spend must name its provider.
+    provider: { type: "string" },
     model: { type: "string" },
     repeat: { type: "string", default: "1" },
     case: { type: "string" },
@@ -36,8 +37,12 @@ const { values } = parseArgs({
 });
 
 const provider = values.provider as AssistantProvider;
-if (!AI_PROVIDERS.includes(provider))
-  throw new Error(`--provider is one of ${AI_PROVIDERS.join(", ")}`);
+if (!AI_PROVIDERS.includes(provider)) {
+  console.error(
+    `--provider is required, one of ${AI_PROVIDERS.join(", ")} (fake is free)`,
+  );
+  process.exit(1);
+}
 const KEYS: Record<AssistantProvider, string | undefined> = {
   anthropic: "ANTHROPIC_API_KEY",
   openai: "OPENAI_API_KEY",

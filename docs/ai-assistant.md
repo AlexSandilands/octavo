@@ -392,11 +392,11 @@ run** on the new pairing, and the run's table goes in the PR that changes it.
     --provider anthropic --model claude-sonnet-5 --repeat 3
   ```
 
-  Options: `--provider anthropic|openai|openrouter|fake`, `--model <id>`, `--repeat N` (the spread matters: one spike
-  case swung between 4 and 14 calls), `--case 03,08`, `--photos <dir>`, `--yes`, and `--resume <results dir>`, which
-  finishes a batch that stopped, reusing its saved runs. A request with no reply in three minutes stops its run with a
-  reason rather than the batch. Keys come from `.env.local`; a provider
-  without its key is skipped (OpenRouter exits 0 so a batch carries on).
+  Options: `--provider anthropic|openai|openrouter|fake` (**required**, no default, so a bare run with `--yes` can't
+  spend), `--model <id>`, `--repeat N` (the spread matters: one spike case swung between 4 and 14 calls),
+  `--case 03,08`, `--photos <dir>`, `--yes`, and `--resume <results dir>`, which finishes a batch that stopped, reusing
+  its saved runs. A request with no reply in three minutes stops its run with a reason rather than the batch. Keys come
+  from `.env.local`; a provider without its key is skipped (OpenRouter exits 0 so a batch carries on).
 
 - **It spends real money** on any provider but `fake`. Before starting it prints an estimate (each case's tokens from a
   Sonnet 5 run, at the model's list price in `src/lib/ai-pricing.ts`, times 1.5, times the repeats) and the ceiling (the
