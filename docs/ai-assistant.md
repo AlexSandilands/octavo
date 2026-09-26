@@ -2,7 +2,8 @@
 
 An assistant in the editor that edits the issue on the author's behalf. It can tidy a page, lay out pasted articles and
 photos, compose a cover, and rewrite when asked. **Built so far, dormant until a provider is set:** the spend ledger
-(#307), the chat route (#308), the editor's panel (#309) and the page-editing tools (#310). This note holds the decisions every child issue assumes. Read it with the epic before
+(#307), the chat route (#308), the editor's panel (#309), the page-editing tools (#310) and the model-selection
+fixture (#315). This note holds the decisions every child issue assumes. Read it with the epic before
 working any child. Each child's PR updates it to match what shipped, and the epic's closing issue (#344) turns it into
 the feature doc (the `docs/pdf-import.md` shape).
 
@@ -367,6 +368,80 @@ don't redesign it.
 - **Privacy:** issue text **and photos** go to the configured provider. The club is told which provider, and can have the
   assistant switched off.
 
+## Model selection (#315)
+
+`AI_MODEL` is picked by a fixture, not by price. **No model or provider change reaches the members' site without a fresh
+run** on the new pairing, and the run's table goes in the PR that changes it.
+
+- **The fixture** is `scripts/fixtures/assistant/`: 14 cases on the seed issues (fictional demo content), each with a
+  stated `expectation`, the checks that say it was done (`expect.done`: a list made, a photo placed with its caption,
+  pages added under main headings…), what must not happen (overflow, changed wording, forbidden tools, edits on a
+  question) and a call budget. Photos are generated art; real ones are passed at run time with `--photos <dir>` and never
+  committed. Cases whose tools don't exist yet say so and print **SKIPPED** with the reason (covers until #313, vision
+  until #342).
+- **The script** is `scripts/check-assistant-models.mts`. It runs each case the way the panel does: the route's own body
+  check and model call (`src/server/ai-chat-stream.ts`, the same function the route calls), the editor's real executor
+  (`createAssistantExecutor`) and its real measurer, bundled with esbuild into headless Chromium with the app's CSS and
+  fonts, answering until the model stops, the circuit-breaker trips or the run's $0.50 cap is reached. It needs a
+  running app for the CSS and fonts:
+
+  ```sh
+  PORT=3315 npm run dev
+  npx tsx --tsconfig scripts/tsconfig.json scripts/check-assistant-models.mts --app http://localhost:3315 --provider fake
+  npx tsx --tsconfig scripts/tsconfig.json scripts/check-assistant-models.mts --app http://localhost:3315 \
+    --provider anthropic --model claude-sonnet-5 --repeat 3
+  ```
+
+  Options: `--provider anthropic|openai|openrouter|fake`, `--model <id>`, `--repeat N` (the spread matters: one spike
+  case swung between 4 and 14 calls), `--case 03,08`, `--photos <dir>`, `--yes`, and `--resume <results dir>`, which
+  finishes a batch that stopped, reusing its saved runs. A request with no reply in three minutes stops its run with a
+  reason rather than the batch. Keys come from `.env.local`; a provider
+  without its key is skipped (OpenRouter exits 0 so a batch carries on).
+
+- **It spends real money** on any provider but `fake`. Before starting it prints an estimate (each case's tokens from a
+  Sonnet 5 run, at the model's list price in `src/lib/ai-pricing.ts`, times 1.5, times the repeats) and the ceiling (the
+  per-run cap), and asks; `--yes` answers up front, and without a terminal it refuses. A model with no dated price entry
+  is refused. The runs are **not** written to `ai_usage`, so fixture spend never shows on `/admin/ai` or counts against
+  the month; the estimate and the results are the record.
+- **Free on `fake`.** A case may carry a `fake` script — the calls a good run makes, with block ids written `@p3.text2`
+  (page 3's second text block) — which the fake provider plays. So `--provider fake` runs every case end to end for $0:
+  scripted cases pass, the rest fail with the reason, which tests the harness, the executor and both of the scorer's
+  paths.
+- **Scores**, per case and over the repeats: pass, calls against the case's budget, schema-valid calls, wording
+  (kept, **reordered** — every word there but out of order — or changed), overflow, views, time, cost and cache reads,
+  with every failure and advisory. A reply that **claims an edit no tool made** ("I then removed the separate blocks"
+  with no `delete_block`) fails the run. Each case's call budget is tighter than the product's 40-call breaker on
+  purpose, so a run can finish in the editor and still fail the fixture for thrashing.
+- **Verdict** — fit to be `AI_MODEL` when every runnable case passes in a majority of its repeats, at least 95% of calls
+  are schema-valid and no run hit the breaker, the cap or an error. It is strict on purpose and isn't graded against the
+  known weaknesses: it's a regression detector, and the pick below says why a model is used anyway. Results (a summary
+  table, JSON with the final pages, the page views before and after, and a PNG per page) go to the git-ignored
+  `scripts/assistant-models/results/`. Covers and layout still need a human look at the PNGs.
+- **Pictures** come through a `PageRenderer`: for now the reader's `PrintDocument`, rendered in-process into the same
+  Chromium; #342's draft render can replace it.
+
+### The pick, 2026-09-26
+
+`AI_MODEL` stays **`claude-sonnet-5`** (the Anthropic default; leave the variable unset). Both Anthropic candidates ran
+the 11 page cases three times each, after the issue-view boundary fix (#356). Neither earns the strict verdict:
+
+| model              | runs passed | calls | cost (33 runs) | per run | what failed                                                                                                                                                                                      |
+| ------------------ | ----------- | ----- | -------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `claude-sonnet-5`  | 27/33       | 191   | $1.24          | ~$0.04  | 04 shorten-to-fit 0/3 (14–41 calls, one breaker trip); 08 large paste 1/3 (a section out of order, 35 calls); 02 bullets 2/3 (claimed deletes it didn't make)                                    |
+| `claude-haiku-4-5` | 25/33       | 96    | $0.38          | ~$0.01  | 03 overflow split 0/3 and 07 structure 2/3 (sentences reordered instead of `split_page`); 08 large paste 1/3 (reordered, once 43 words dropped); 10 injection 1/3 (claimed pages it never added) |
+
+Haiku is a third of the price and trims to fit where Sonnet thrashes, but its failures break the rule the assistant is
+built on: it **moves and drops the author's words** (in three cases) and describes edits it didn't make. Sonnet's
+misses are the known weaknesses below, each with its issue (#355, #360). All calls from both were schema-valid.
+
+- **Not run:** `openai/gpt-6-sol` through OpenRouter stays a candidate, deferred by the owner. There is no
+  `OPENROUTER_API_KEY` yet, so the script prints "Skipped" and exits 0. Adding the key and running
+  `--provider openrouter --model openai/gpt-6-sol --repeat 3` (about $1.30) is all it takes.
+- **Cases 12–14 are SKIPPED** until the cover tools (#313) and vision (#342) merge. Their cases and checks are already in place and
+  each skip names its reason. The PR that lands those tools deletes its entry from `MISSING` in
+  `scripts/assistant-models/main.mts` and re-runs the pick with them on, since covers and new issues are where the
+  models differed most in the spike.
+
 ## Rollout
 
 - **Children merge to `main` one at a time, dormant.** With `AI_PROVIDER` unset the rail button is hidden and the route 404s. The
@@ -378,13 +453,22 @@ don't redesign it.
   3. the members' site (set the env var, cut a release tag).
 - If the feature has to come out, the child merges revert cleanly. The `ai_usage`/`ai_grants` tables would need a dropping
   migration.
-- **The model changes only after a fixture run.** `scripts/spike/assistant/run.mts --model <id>` works today, on a Claude Code
-  login. #315 turns it into the AI SDK route's own fixture and adds repeat runs, since one case swung between 4 and 14 calls
-  across runs.
+- **The model changes only after a fixture run** (see Model selection).
 
 ## Known weaknesses and open questions
 
-- **"Shorten to fit"** trims in small steps. The per-block overflow feedback above is the fix to try first.
+- **"Shorten to fit"** trims about a line per call. On the fixture Sonnet 5 took 14–41 `set_text` calls to fit one page
+  (case 04, 0 of 3), and the breaker doesn't catch it because every call makes progress. The per-block overflow feedback
+  isn't enough on its own (#355).
+- **Order in long pastes.** Laying out a three-article paste, Sonnet 5 once put an article's last section ahead of its
+  own main heading: every word kept, one section in the wrong place (case 08). The scorer reports it as "order
+  changed".
+- **Replies can claim edits that weren't made.** On "Make bullets" Sonnet 5 wrote the list into the first block, then
+  said it had removed the other three without calling `delete_block`, so the notices appeared twice. The run's
+  "Changed N blocks · Undo" line is worked out from the real diff, so the panel stays honest; the reply text can't be
+  trusted the same way (#360).
+- **A stalled provider stream** holds the panel until the author presses Stop or the route's five-minute ceiling ends
+  it. The fixture met one (Sonnet 5, mid-paste); an idle timeout on the route is #358.
 - **Pages left mostly empty.** Starting every article on a fresh page leaves short pages half blank, and neither model enlarged
   photos or rebalanced to fill them. The review didn't flag it either.
 - **Small cover text over busy photos** (the issue-details line) was missed by the model and by the review.
