@@ -1,3 +1,4 @@
+import { AssistantUsageHelp } from "./assistant-usage";
 import { Bullets, Callout, GuideSection, P } from "./guide-ui";
 
 // The editing assistant (epic #306): what it can do, the presets (#310), the
@@ -87,6 +88,7 @@ export function SectionAssistant() {
         so don&rsquo;t paste anything into the chat you wouldn&rsquo;t put in
         the magazine.
       </Callout>
+      <AssistantUsageHelp />
     </GuideSection>
   );
 }
