@@ -341,7 +341,8 @@ export function EditorBlock({
           ) : block.type === "heading" && !cover ? (
             <div
               data-block-bar
-              className="chrome-unscaled absolute bottom-full left-0 z-20 mb-2"
+              ref={barRef}
+              className="chrome-unscaled absolute bottom-full left-0 z-20 mb-2 w-max"
             >
               <HeadingLevelControl
                 level={block.level ?? "main"}
@@ -352,7 +353,8 @@ export function EditorBlock({
           ) : block.type === "sponsor" ? (
             <div
               data-block-bar
-              className="border-hair chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 shadow-[0_4px_14px_rgba(40,36,28,0.16)]"
+              ref={barRef}
+              className="border-hair chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex w-max flex-wrap items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 shadow-[0_4px_14px_rgba(40,36,28,0.16)]"
             >
               <SponsorPicker
                 sponsorId={block.sponsorId}

@@ -180,26 +180,8 @@ export async function checkAsk(d: {
   );
   ok(true, "the panel's Undo took the Ask's run back in one step");
 
-  heading("Ask: in reach on a photo's bar, wide and narrow");
-  const photoAsk = `[data-block-id="${ids.photo}"] [data-ask] > button`;
-  for (const width of [1440, 900]) {
-    await page.setViewportSize({ width, height: 900 });
-    await page.click(`[data-block-id="${ids.photo}"]`, {
-      position: { x: 30, y: 30 },
-      force: true,
-    });
-    await page.waitForSelector(photoAsk);
-    await page.waitForTimeout(300);
-    const inside = await page.$eval(photoAsk, (el) => {
-      const r = el.getBoundingClientRect();
-      const s = el
-        .closest("[data-editor-canvas-stage]")!
-        .getBoundingClientRect();
-      return r.left >= s.left && r.right <= s.right && r.top >= s.top;
-    });
-    ok(inside, `at ${width}px the photo bar's Ask is inside the canvas`);
-  }
-  await page.setViewportSize({ width: 1440, height: 900 });
+  heading("Ask: in reach, box and all, at 1440, 900 and 768");
+  await checkReach(page, ok);
 
   heading("Ask: not on a published issue");
   // In a second tab: this one's conversation carries on.
@@ -250,4 +232,65 @@ export async function checkAsk(d: {
     await fresh.close();
     await d.sql`delete from ai_usage where id = ${spendId}`;
   }
+}
+
+/** Every bar's Ask and its open box stay inside the canvas and clear of its
+ * standing tools, panel open or not. */
+async function checkReach(page: Page, ok: (c: unknown, m: string) => void) {
+  const blocks = [
+    ["heading", ids.head, undefined],
+    ["text", ids.story, undefined],
+    ["photo", ids.photo, { x: 30, y: 30 }],
+  ] as const;
+  const inside = (sel: string) =>
+    page.$eval(sel, (el) => {
+      const r = el.getBoundingClientRect();
+      const s = el
+        .closest("[data-editor-canvas-stage]")!
+        .getBoundingClientRect();
+      // Clear of the canvas's tools, where they stand on end at its edge.
+      const t = document
+        .querySelector(
+          '[data-bar-placement="left"], [data-bar-placement="right"]',
+        )
+        ?.getBoundingClientRect();
+      const clear = !t || r.left >= t.right || r.right <= t.left;
+      return r.left >= s.left && r.right <= s.right && r.top >= s.top && clear;
+    });
+  for (const withPanel of [false, true]) {
+    if ((await panelOpen(page)) !== withPanel)
+      await page.click(
+        withPanel
+          ? 'nav[aria-label="Editor panels"] button[aria-label="Assistant"]'
+          : CLOSE,
+      );
+    await page.waitForFunction(
+      ([sel, want]) => {
+        const el = document.querySelector(sel as string);
+        return !el?.hasAttribute("aria-hidden") === want;
+      },
+      [PANEL, withPanel] as const,
+    );
+    for (const width of [1440, 900, 768]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const [name, id, position] of blocks) {
+        const ask = `[data-block-id="${id}"] [data-ask] > button`;
+        await page.click(`[data-block-id="${id}"]`, { position, force: true });
+        await page.waitForSelector(ask);
+        await page.waitForTimeout(300);
+        await page.click(ask);
+        await page.waitForSelector(DIALOG);
+        const at = `${width}px, panel ${withPanel ? "open" : "closed"}`;
+        ok(
+          (await inside(ask)) && (await inside(DIALOG)),
+          `${at}: the ${name} bar's Ask and its box are inside the canvas, clear of its tools`,
+        );
+        // Once for the box, once to deselect: the bar would cover the next block.
+        await page.keyboard.press("Escape");
+        await page.keyboard.press("Escape");
+        await page.waitForSelector(ask, { state: "detached" });
+      }
+    }
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
 }
