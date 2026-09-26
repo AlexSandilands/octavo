@@ -17,6 +17,10 @@ function toolLine(part: Part): string | null {
     : `Reading page ${page ?? ""}…`;
 }
 
+/** Whether a part shows anything; a reply opens with an empty reasoning part. */
+const shows = (part: Part) =>
+  part.type === "text" ? part.text.trim() !== "" : toolLine(part) !== null;
+
 function Message({ message }: { message: AssistantMessage }) {
   if (message.role === "user") {
     // The projection rides in a data part the author never sees.
@@ -65,6 +69,9 @@ export function AssistantThread({
 }) {
   const log = useRef<HTMLDivElement>(null);
   const last = messages[messages.length - 1];
+  // "Thinking…" until the reply has something to show, not merely begun.
+  const waiting =
+    busy && !(last?.role === "assistant" && last.parts.some(shows));
   const tail = last ? JSON.stringify(last.parts).length : 0;
   // Follow the newest words, as a chat does. Not scrollIntoView: that would
   // also scroll the panel's clipped ancestors.
@@ -89,9 +96,7 @@ export function AssistantThread({
       {messages.map((m) => (
         <Message key={m.id} message={m} />
       ))}
-      {busy && last?.role !== "assistant" && (
-        <p className="text-faint font-sans text-[13px]">Thinking…</p>
-      )}
+      {waiting && <p className="text-faint font-sans text-[13px]">Thinking…</p>}
       {error && (
         <p className="border-warn text-warn rounded-lg border-l-4 bg-white px-3.5 py-2.5 font-sans text-[15px] leading-snug">
           {error.error}

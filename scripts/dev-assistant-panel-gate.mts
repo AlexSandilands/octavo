@@ -18,6 +18,7 @@ import { chromium, type Page, type Request } from "playwright";
 import postgres from "postgres";
 import { AI_ERROR_COPY } from "../src/lib/ai-chat-contract";
 import { railOrder } from "./editor-rail-gate-support.mts";
+import { stopChecks } from "./fixtures/assistant/panel-stop-checks.mts";
 
 process.loadEnvFile?.(".env.local");
 const [base, flag] = process.argv.slice(2);
@@ -267,33 +268,7 @@ async function onChecks(page: Page, pageCount: number) {
   await page.click('button[aria-label="Page 1 (cover)"]');
 
   heading("Stop, errors, the log");
-  await page.fill(INPUT, "Take your time [fake:slow]");
-  await page.keyboard.press("Enter");
-  await page.waitForSelector('button[aria-label="Stop the reply"]');
-  ok(
-    (await page.getAttribute(LOG, "aria-busy")) === "true",
-    "the log is busy while a reply streams",
-  );
-  await page.click('button[aria-label="Stop the reply"]');
-  await waitIdle(page);
-  ok(
-    (await focusedId(page)) === "assistant-input",
-    "Stop leaves focus in the composer",
-  );
-  await page.fill(INPUT, "Carry on.");
-  await page.keyboard.press("Enter");
-  await page.waitForFunction(
-    (sel) =>
-      (
-        document
-          .querySelector(sel)
-          ?.textContent?.match(/Nothing needed changing\./g) ?? []
-      ).length >= 2,
-    LOG,
-    { timeout: 30_000 },
-  );
-  ok(true, "the conversation carries on after a Stop");
-  await waitIdle(page);
+  await stopChecks(page, ok);
   await page.fill(INPUT, "Break please [fake:fail]");
   await page.keyboard.press("Enter");
   await page.waitForFunction(

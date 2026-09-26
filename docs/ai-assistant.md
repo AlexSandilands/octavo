@@ -203,7 +203,8 @@ client-safe.
   `resolveBudget()`'s figures), with a link to `/admin/ai`. It is fetched when the panel opens and after every run.
 - **Accessibility.** The thread is a `role="log"` region that is `aria-busy` while a reply streams, so the finished
   reply is announced once. Opening puts focus in the composer (or on the drafts-only message), and Close hands it back
-  to the rail button.
+  to the rail button. "Thinking…" shows from Send until the reply has words or a tool line to show. A reply opens with
+  an empty reasoning part, and hiding the line on that alone left the panel looking dead, most visibly after a Stop.
 - **Photos uploaded but not placed** are the issue's own `images` rows. With the flag on, the editor page also loads
   them. With it off, the page runs exactly the queries it did before.
 - The gate is `scripts/dev-assistant-panel-gate.mts <base-url>`, against a dev server started with
