@@ -34,8 +34,9 @@ export type Score = {
   wording: {
     mode: Case["expect"]["preserve"];
     ok: boolean;
-    /** Every word kept but out of order (articles swapped), or words changed. */
-    change?: "order" | "words";
+    /** Every word kept but out of order (articles swapped), words changed,
+     *  or (a paste) nothing placed at all. */
+    change?: "order" | "words" | "missing";
     detail: string;
   };
   pasteVerbatim: boolean | null;
@@ -172,6 +173,17 @@ export function scoreCase(
   const advisories: string[] = [];
   if (c.expect.preserve === "page") {
     wording = wordingOf("page", issueWords(before), issueWords(after));
+  } else if (
+    c.expect.preserve === "paste" &&
+    !newBlockWords(before, after).length
+  ) {
+    wording = {
+      mode: "paste",
+      ok: false,
+      change: "missing",
+      detail: "no new blocks",
+    };
+    pasteVerbatim = false;
   } else if (c.expect.preserve === "paste") {
     const text = newBlockWords(before, after, true);
     wording = wordingOf("paste", pasteBodyWords(c.paste ?? "", text), text);
@@ -185,7 +197,9 @@ export function scoreCase(
   }
   if (!wording.ok)
     failures.push(
-      `${wording.change === "order" ? "order changed (every word kept)" : "words changed"}: ${wording.detail}`,
+      wording.change === "missing"
+        ? "paste not placed: no new blocks"
+        : `${wording.change === "order" ? "order changed (every word kept)" : "words changed"}: ${wording.detail}`,
     );
 
   const overflowPages = after.pages.flatMap((p, i) => {

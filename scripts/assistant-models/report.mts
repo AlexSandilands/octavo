@@ -39,9 +39,11 @@ function row({ c, skipped, results }: CaseResults): string {
     ? "changed"
     : changes.has("order")
       ? "reordered"
-      : c.expect.preserve === "none"
-        ? "–"
-        : "kept";
+      : changes.has("missing")
+        ? "not placed"
+        : c.expect.preserve === "none"
+          ? "–"
+          : "kept";
   const overflow = results.some((r) => r.score.overflowPages.length)
     ? "yes"
     : "none";
