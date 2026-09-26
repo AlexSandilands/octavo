@@ -12,7 +12,10 @@ import {
   type UIMessageChunk,
 } from "ai";
 import type { Page } from "../../src/lib/blocks.ts";
-import { AI_PROJECTION_PART } from "../../src/lib/ai-chat-contract.ts";
+import {
+  AI_MAX_IMAGES_PER_REQUEST,
+  AI_PROJECTION_PART,
+} from "../../src/lib/ai-chat-contract.ts";
 import { priceFor, RUN_SPEND_CAP_USD } from "../../src/lib/ai-pricing.ts";
 import { aiToolSchemas, type AiToolOutput } from "../../src/lib/ai-tools.ts";
 import { parseChatBody } from "../../src/server/ai-chat-request.ts";
@@ -35,6 +38,8 @@ import {
 } from "../fixtures/assistant/cases.mts";
 import { assistantIssue } from "./issue.mts";
 import type { MeasureBrowser } from "./measure.mts";
+import type { PageRenderer } from "./render.mts";
+import { fixtureVision } from "./vision.mts";
 
 export type LoggedCall = {
   name: string;
@@ -149,11 +154,13 @@ export async function runCase({
   c,
   issue,
   browser,
+  renderer,
   model,
 }: {
   c: Case;
   issue: FixtureIssue;
   browser: MeasureBrowser;
+  renderer: PageRenderer;
   model: AssistantModel;
 }): Promise<CaseRun> {
   const started = Date.now();
@@ -172,6 +179,9 @@ export async function runCase({
     },
   });
   executor.beginRun();
+  // One author message on a fresh conversation: the whole picture allowance.
+  const vision = fixtureVision(issue, renderer, () => state.pages);
+  vision.beginRun(AI_MAX_IMAGES_PER_REQUEST);
 
   const view = projection(
     await assistantIssue(issue, state.pages, browser),
@@ -263,6 +273,8 @@ export async function runCase({
       const output: AiToolOutput = await executor.run(name, part.input, {
         photos: new Set(now.uploads),
         read: (args) => readPage(args, now),
+        view: (tool, args) =>
+          vision.view(tool, args, now, { issueId: "fixture", logoId: null }),
       });
       calls.push({
         name,

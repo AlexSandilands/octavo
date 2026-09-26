@@ -36,6 +36,12 @@
   },
   "fake": [
     {
+      "toolName": "view_photo",
+      "input": {
+        "imageId": "img-extra-thermometer"
+      }
+    },
+    {
       "toolName": "insert_blocks",
       "input": {
         "after": {
@@ -59,6 +65,12 @@
         "blockId": "@p3.image1",
         "align": "full",
         "width": 70
+      }
+    },
+    {
+      "toolName": "view_page",
+      "input": {
+        "page": 3
       }
     }
   ]

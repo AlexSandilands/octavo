@@ -115,6 +115,17 @@ client-safe.
   200k-token context: 330,000 characters at a cautious ~3 per token is ~110k tokens, 24 images at ~1.6k tokens is ~38k,
   and with the prompt and tools (~5k) and the reply's allowance (32k output tokens, thinking included) that leaves
   ~15k spare. The count covers text, reasoning, projections, tool inputs and tool outputs.
+- **Pictures against the 24 (#342).** A run takes only the room the conversation has left, not a fixed reservation:
+  - `room = 24 − pictures already in history` (tool-result images plus file parts), counted once as the run starts;
+  - the views get `min(6, room)`, and each view's result says how many are left. A view refused for the run's six says
+    how many more pictures the conversation has room for; one refused for the room says so and that a new
+    conversation starts afresh;
+  - the review renders `min(8, room − views used)` of its pages, the cover first. With none left it doesn't happen, and
+    the run ends as it would without one;
+  - the conversation reads **full** when `room < 2`, the least a two-page review needs.
+
+  So a run can never be refused mid-way for pictures. A conversation of picture-light runs lasts; one run with six
+  views and an eight-page review leaves room for 10 more.
 
 **How the route is built.**
 
@@ -142,10 +153,11 @@ client-safe.
   in `src/lib/ai-pricing.ts`, and an Anthropic model missing from `ai-thinking.ts`; a new `AI_MODEL` is added there
   after a smoke run (`scripts/dev-ai-smoke.mts`). Haiku's smoke run can't show cache reads: its minimum cacheable prompt
   (4,096 tokens) is larger than the smoke's requests.
-- **Caching:** the system prompt (`src/server/ai-prompt/`, `base.md` then `vision.md` and `cover.md` when those tools
-  exist) and the tool list are byte-stable, with a `cache_control` breakpoint on the system message (which covers the
-  tools before it) and one on the newest message, so each request reads the conversation so far from cache. The TTL is
-  the default five minutes, which is what the ledger prices cache writes at.
+- **Caching:** the system prompt (`src/server/ai-prompt/`: `base.md`, then `vision.md`, then `cover.md` when those tools
+  exist) and the tool list are byte-stable. `vision.md` is always on since #342, with no env switch, so there is one
+  cached prefix and one configuration for #315's fixture. There is a `cache_control` breakpoint on the system message
+  (which covers the tools before it) and one on the newest message, so each request reads the conversation so far from
+  cache. The TTL is the default five minutes, which is what the ledger prices cache writes at.
 - **Metering** (`src/server/ai-metering.ts`): one `ai_usage` row per request, however it ends. When the provider
   reports usage, the row gets its uncached, cache-read, cache-write and output tokens and the model id it reported (or
   the configured one, when the reported id has no price). With no usage (the author stopped the reply, or the stream
@@ -164,7 +176,9 @@ client-safe.
   `Read read_page (<n> characters back). Nothing needed changing.` Triggers in the author's text reach the failure
   paths: `[fake:fail]`, `[fake:drop]`, `[fake:slow]` and `[fake:odd-model]`; `[fake:echo]` replies with the text parts
   the model was sent. `[fake:tools]` followed by a JSON array of `{ toolName, input }` scripts a run instead: one call a
-  turn (`Step n: <tool>.`), then `Done: N steps.` (#310). `scripts/dev-ai-proxy-gate.mts` and
+  turn (`Step n: <tool>.`), then `Done: N steps.` (#310). A `null` step ends that turn with no call, and the script picks
+  up again after the editor's end-of-run review, so a gate can edit in the review turn (#342). A review with no script
+  gets `Looked over N pages. Nothing needed changing.` `scripts/dev-ai-proxy-gate.mts` and
   `scripts/dev-assistant-tools-gate.mts` run against it.
 
 #### Where it appears: the editor's side panel (#309)
@@ -276,11 +290,26 @@ don't redesign it.
 - **Cover tools, style:** `place_cover_item` (the 3×3 grid, width, align, text size), and `style_cover_item` / `style_cover_page`
   (text colour, panel and panel shape, shadow). **Fonts and weights stay with the cover inspector** until a fixture run shows
   the model using them well.
-- **Vision (#342):**
-  - `view_photo(imageId)` (an uploaded photo, about 800px) and `view_page(n)` (a page as members see it), sharing a small
-    per-run budget of about 6;
-  - production needs a **draft-capable single-page render**, because `/read/[n]/print` looks issues up by published number. The
-    render must use the real page components (`PrintDocument`), as the spike's `render.ts` did.
+- **Vision (built, #342):** `view_page` and `view_photo`, the last two tools in the fixed order. The editor answers each with
+  a picture inside the tool result (`images` on `AiToolOutput`; `src/features/editor/assistant/vision.ts`):
+  - `view_photo({ imageId })` takes only a photo uploaded to the issue (the projection's ids) and returns it as an 800px
+    JPEG, with its shape, from `POST /api/admin/ai/photo`. That route takes a photo uploaded to the issue or placed in it,
+    and refuses a logo-library mark, which is not a photo;
+  - `view_page({ page })` returns the page as members will see it, with its **measured** fill ("Page 4 (fits, ~70%
+    full)"), from `POST /api/admin/ai/render`;
+  - the two share **6 views a run** (`AI_VIEWS_PER_RUN`), fewer when the conversation has less room (see the chat
+    route's picture arithmetic). The 7th is refused ("you have used all 6 views…"), and a picture that fails costs no
+    view;
+  - **the draft render.** `/read/[n]/print` looks issues up by published number, so the render route takes the issue as
+    the editor holds it (unsaved edits too), validated by `issueContentSchema` within the save cap. It stashes it in memory
+    under a one-time nonce (60 s, swept on each new stash, dropped when done) and has headless Chromium (the PDF's
+    `launchPrintBrowser`) load `/read/draft/[nonce]/print` with the internal print token. That page renders the PDF's own
+    `PrintDocument`. Each requested `.pdf-page` is screenshotted at 1.5× (960×1350, PNG, or JPEG when a photo-heavy page
+    passes the tool result's 1.5 MB), and its fill is read with the overflow marker's geometry. The app runs as one
+    instance, so the page always finds the stash. Both routes share the chat route's gate (admin + same origin, 404 while
+    off, drafts only) and are limited to 120 requests per admin per 10 minutes;
+  - `scripts/check-assistant-render.mts` checks all of it against a running server: every seed page's measured fill
+    against the editor's overflow marker, an unsaved edit, and the refusals.
 - **Planning tool for long pastes (#312):** takes the whole plan in one call, and each section has **separate `headline`,
   `kicker?`, `standfirst?`** fields with a worked example in the description. A prompt line alone did not stop the model turning
   an all-caps headline into the kicker and the standfirst into the title.
@@ -306,9 +335,17 @@ don't redesign it.
   (`assistant/presets.ts`). Each sends a fixed message for the page open now and, when one is selected, its block — the
   block id rides in brackets for the model and is hidden from the author's bubble. Tidy and Make bullets say to keep every
   word; Rewrite and Shorten say the wording may change and to keep the facts and the voice. They're off on a cover.
-- **Automatic end-of-run review (#342):** when a run touched the cover or more than one page, the editor renders those pages and sends
-  them back as images in a follow-up message for one more turn. There is only one review round, and none for single-page
-  edits. It adds 25–40% to such a run. It catches collisions (floats crowding text), not polish.
+- **Automatic end-of-run review (built, #342):** when a run's changes touched the cover or more than one page, the panel
+  pictures those pages (the cover first, at most 8) and sends them as one user message. The message is the review text
+  (`assistant/review.ts`, from the spike's `review-message.md`), then "Page N (fits, ~X% full)" and the picture for each
+  page as `file` parts. The model gets **one** more turn with the same tools. It is the same run: same `runId`, one undo
+  step, the same call ceiling and $0.50 cap, and the canvas stays hands-off throughout. There is no review after a
+  single-page edit or a run that changed nothing. The thread shows it as one quiet line ("Showed it the pages it changed
+  to look over: …"), with "Picturing the pages it changed…" while the render runs. A Stop during the render drops the
+  review, and a message sent straight after starts a run of its own that the stale review can't touch. In the spike it added 25–40% to such
+  a run, and it caught collisions (floats crowding text), not polish.
+- **Pictures fill a conversation (#342).** History is never trimmed, so every picture counts against #308's 24-image
+  cap for the rest of the conversation. The arithmetic is recorded under the chat route's conversation cap.
 - **Circuit-breaker (built, #310; replaces "5 identical calls"):** stop a run, keeping what it has done, when **any** of these
   happens:
   - more than **40 tool calls** in the run (`RUN_CALL_LIMIT`; the 41st call's result is never sent);
@@ -377,8 +414,7 @@ run** on the new pairing, and the run's table goes in the PR that changes it.
   stated `expectation`, the checks that say it was done (`expect.done`: a list made, a photo placed with its caption,
   pages added under main headings…), what must not happen (overflow, changed wording, forbidden tools, edits on a
   question) and a call budget. Photos are generated art; real ones are passed at run time with `--photos <dir>` and never
-  committed. Cases whose tools don't exist yet say so and print **SKIPPED** with the reason (covers until #313, vision
-  until #342).
+  committed. Cases whose tools don't exist yet say so and print **SKIPPED** with the reason (covers until #313).
 - **The script** is `scripts/check-assistant-models.mts`. It runs each case the way the panel does: the route's own body
   check and model call (`src/server/ai-chat-stream.ts`, the same function the route calls), the editor's real executor
   (`createAssistantExecutor`) and its real measurer, bundled with esbuild into headless Chromium with the app's CSS and
@@ -417,13 +453,18 @@ run** on the new pairing, and the run's table goes in the PR that changes it.
   known weaknesses: it's a regression detector, and the pick below says why a model is used anyway. Results (a summary
   table, JSON with the final pages, the page views before and after, and a PNG per page) go to the git-ignored
   `scripts/assistant-models/results/`. Covers and layout still need a human look at the PNGs.
-- **Pictures** come through a `PageRenderer`: for now the reader's `PrintDocument`, rendered in-process into the same
-  Chromium; #342's draft render can replace it.
+- **Pictures** come through a `PageRenderer`: the reader's `PrintDocument`, rendered in-process into the same Chromium.
+  It also answers the model's `view_page`, and `view_photo` reads the case's own image file at 800px. Both go through
+  the editor's `createVision`, so the fixture keeps the real view budget, refusals and captions. The admin render and
+  photo routes need a saved draft, which the fixture never writes. Case 06's fake script views the photo and the page,
+  so the free run covers vision too. The route and the fixture send one system prompt, `assistantInstructions()` in
+  `src/server/ai-chat-stream.ts`, with vision on.
 
 ### The pick, 2026-09-26
 
 `AI_MODEL` stays **`claude-sonnet-5`** (the Anthropic default; leave the variable unset). Both Anthropic candidates ran
-the 11 page cases three times each, after the issue-view boundary fix (#356). Neither earns the strict verdict:
+the 11 page cases three times each, after the issue-view boundary fix (#356) and before vision (#342) was offered.
+Neither earns the strict verdict:
 
 | model              | runs passed | calls | cost (33 runs) | per run | what failed                                                                                                                                                                                      |
 | ------------------ | ----------- | ----- | -------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -439,10 +480,9 @@ misses are the known weaknesses below, each with its issue (#355, #360). All cal
   the model in `src/lib/ai-pricing.ts` (the script refuses an unpriced model), then
   `--provider openrouter --model openai/gpt-6-sol --repeat 3`. The price goes in with the run, not before, so no
   untested model is ever priced for the live site.
-- **Cases 12–14 are SKIPPED** until the cover tools (#313) and vision (#342) merge. Their cases and checks are already in place and
-  each skip names its reason. The PR that lands those tools deletes its entry from `MISSING` in
-  `scripts/assistant-models/main.mts` and re-runs the pick with them on, since covers and new issues are where the
-  models differed most in the spike.
+- **Cases 12–14 are SKIPPED** until the cover tools (#313) merge. Their cases and checks are already in place and each
+  skip names its reason. #313 deletes `cover` from `MISSING` in `scripts/assistant-models/main.mts` and re-runs the
+  pick with covers and vision on, since covers and new issues are where the models differed most in the spike.
 
 ## Rollout
 

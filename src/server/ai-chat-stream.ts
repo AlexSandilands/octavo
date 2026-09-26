@@ -23,6 +23,13 @@ import type { AssistantModel } from "@/server/ai-provider";
 // metering so the model-selection fixture (#315) runs exactly this in-process.
 // Everything that shapes what the provider sees and caches lives here.
 
+// Fixed by what's merged, never by env: one prompt, one cached prefix, and the
+// configuration the fixture tests. Vision is #342's part.
+const PROMPT_FEATURES: PromptFeatures = { vision: true };
+
+/** The system prompt every request sends. */
+export const assistantInstructions = () => systemPrompt(PROMPT_FEATURES);
+
 // The default 5-minute TTL: ai-pricing bills cache writes at that rate, so
 // never "1h" here.
 const cached = { anthropic: { cacheControl: { type: "ephemeral" } } } as const;
@@ -78,13 +85,11 @@ export type StreamHooks = {
 export function streamAssistant({
   config,
   messages,
-  features,
   abortSignal,
   hooks = {},
 }: {
   config: AssistantModel;
   messages: ModelMessage[];
-  features?: PromptFeatures;
   abortSignal?: AbortSignal;
   hooks?: StreamHooks;
 }): ReadableStream<UIMessageChunk> {
@@ -93,7 +98,7 @@ export function streamAssistant({
     // Byte-stable, with a breakpoint: the tools and prompt are cached once.
     instructions: {
       role: "system",
-      content: systemPrompt(features),
+      content: assistantInstructions(),
       providerOptions: cached,
     },
     messages: withTailBreakpoint(messages),

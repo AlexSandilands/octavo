@@ -1,6 +1,5 @@
 // Pictures of a case's pages as members see them, for the human look covers
-// and layout still need (#315). Behind PageRenderer so #342's draft-capable
-// render can replace it; until then this is the spike's approach: the app's
+// and layout still need (#315), and for the model's view_page (#342). The app's
 // PrintDocument server-rendered in-process and loaded into the harness's
 // Chromium with the dev server's CSS and fonts. Load next-image-hook.mts first.
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -17,6 +16,8 @@ import { appShell, IMAGE_PATH, serveImages } from "./measure.mts";
 export interface PageRenderer {
   /** One PNG per page into `dir` (p01.png, …); returns the file names. */
   shoot(issue: FixtureIssue, pages: Page[], dir: string): Promise<string[]>;
+  /** One page as a PNG, for view_page (#342). */
+  picture(issue: FixtureIssue, pages: Page[], page: number): Promise<Buffer>;
   close(): Promise<void>;
 }
 
@@ -45,7 +46,7 @@ export class PrintRenderer implements PageRenderer {
     return tab;
   }
 
-  async shoot(issue: FixtureIssue, pages: Page[], dir: string) {
+  private async load(issue: FixtureIssue, pages: Page[]): Promise<Tab> {
     const tab = await this.open();
     const shell = await appShell(this.app);
     this.files.clear();
@@ -74,6 +75,19 @@ export class PrintRenderer implements PageRenderer {
       { waitUntil: "networkidle" },
     );
     await tab.evaluate(() => document.fonts.ready);
+    return tab;
+  }
+
+  async picture(issue: FixtureIssue, pages: Page[], page: number) {
+    const tab = await this.load(issue, pages);
+    return tab
+      .locator(".pdf-page")
+      .nth(page - 1)
+      .screenshot({ type: "png" });
+  }
+
+  async shoot(issue: FixtureIssue, pages: Page[], dir: string) {
+    const tab = await this.load(issue, pages);
     mkdirSync(dir, { recursive: true });
     const names: string[] = [];
     for (let n = 1; n <= pages.length; n++) {

@@ -61,7 +61,6 @@ const repeat = Math.max(1, Number(values.repeat) || 1);
 // Tool families the route doesn't declare yet; their cases wait for them.
 const MISSING: Record<string, string> = {
   cover: "needs the cover tools (#313)",
-  vision: "needs view_photo / view_page (#342)",
 };
 const wanted = values.case?.split(",").map((s) => s.trim());
 const cases = loadCases().filter(
@@ -141,7 +140,7 @@ try {
       );
       await configureFor(browser, issue);
       process.stdout.write(`${c.id}${repeat > 1 ? ` #${r}` : ""} … `);
-      const run = await runCase({ c, issue, browser, model });
+      const run = await runCase({ c, issue, browser, renderer, model });
       const fills = await browser.fills(run.pages);
       const score = scoreCase(c, issue.pages, run, fills);
       entry.results.push({ run, score });

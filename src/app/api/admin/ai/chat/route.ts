@@ -10,11 +10,14 @@ import { createRateLimiter } from "@/lib/rate-limit";
 import { sameOrigin } from "@/lib/same-origin";
 import { resolveBudget, runSpend } from "@/server/ai-budget";
 import { parseChatBody } from "@/server/ai-chat-request";
-import { streamAssistant, toModelMessages } from "@/server/ai-chat-stream";
+import {
+  assistantInstructions,
+  streamAssistant,
+  toModelMessages,
+} from "@/server/ai-chat-stream";
 import { assistantTools } from "@/server/ai-chat-tools";
 import { aiErrorResponse } from "@/server/ai-errors";
 import { createMeter } from "@/server/ai-metering";
-import { systemPrompt } from "@/server/ai-prompt";
 import { assistantModel } from "@/server/ai-provider";
 import { getAdminUser } from "@/server/session";
 
@@ -108,7 +111,8 @@ export async function POST(request: Request) {
     runId,
     provider: config.provider,
     modelId: config.modelId,
-    inputChars: systemPrompt().length + JSON.stringify(modelMessages).length,
+    inputChars:
+      assistantInstructions().length + JSON.stringify(modelMessages).length,
   });
 
   return createUIMessageStreamResponse({
