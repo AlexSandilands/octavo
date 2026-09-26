@@ -164,7 +164,8 @@ export async function checkCover(d: {
       /^Changed \d+ blocks? on page 1\s*Undo$/.test(line ?? ""),
       `the run's line (${line})`,
     );
-    await checkCoverAsk(tab, story!.id, logo!.id, ok, d.shots);
+    const masthead = composed.blocks.find((b) => b.type === "heading")!;
+    await checkCoverAsk(tab, story!.id, logo!.id, masthead.id, ok, d.shots);
 
     heading("cover: one Undo, and back");
     // The placing run is its own step: Undo it, then the compose run.
@@ -240,11 +241,12 @@ export async function checkCover(d: {
   }
 }
 
-/** Ask ends a story's format bar, and a logo gets a bar holding just Ask. */
+/** Ask ends a story's and the masthead's format bars; a logo's bar is just Ask. */
 async function checkCoverAsk(
   tab: Page,
   storyId: string,
   logoId: string,
+  mastheadId: string,
   ok: (cond: unknown, msg: string) => void,
   shots?: string,
 ) {
@@ -277,4 +279,15 @@ async function checkCoverAsk(
     "a selected logo has a bar of its own holding just Ask",
   );
   await shoot("cover-ask-logo");
+  const head = `[data-block-id="${mastheadId}"]`;
+  await tab.click(head);
+  ok(
+    await tab
+      .waitForSelector(
+        `${head} [data-block-bar] > div:not(.overflow-x-auto) > [data-ask]`,
+        { timeout: 5000 },
+      )
+      .catch(() => null),
+    "the selected masthead has Ask at the end of its format bar",
+  );
 }

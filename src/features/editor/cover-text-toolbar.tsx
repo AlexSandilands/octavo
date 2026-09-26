@@ -199,6 +199,27 @@ export function CoverTextToolbar({
   );
 }
 
+/** A cover block's bar: the format bar on words, an Ask-only bar on a photo. */
+export function CoverBlockBar({
+  type,
+  appearance,
+  onAsk,
+}: {
+  type: string;
+  appearance?: Required<CoverAppearance>;
+  onAsk?: (text: string) => Promise<SendResult>;
+}) {
+  if (type !== "image" && appearance)
+    return (
+      <CoverTextToolbar
+        appearance={appearance}
+        italicByDefault={type === "text"}
+        onAsk={onAsk}
+      />
+    );
+  return onAsk ? <CoverAskBar onAsk={onAsk} /> : null;
+}
+
 // A toolbar button that opens a tray below the bar. `active` marks a setting
 // that is on for the selection, in the same pressed style as bold or italic.
 function Tray({

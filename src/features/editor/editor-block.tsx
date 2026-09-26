@@ -1,6 +1,6 @@
 "use client";
 import { CoverTextEditor } from "./cover-text-editor";
-import { CoverTextToolbar } from "./cover-text-toolbar";
+import { CoverBlockBar } from "./cover-text-toolbar";
 import { DEFAULT_COVER_PLACEMENT, nudgeLayer } from "@/lib/cover-elements";
 import { blockFontContext } from "@/lib/cover-fonts";
 import type { CoverAppearance } from "@/lib/cover-appearance";
@@ -227,13 +227,13 @@ export function EditorBlock({
           onRemove={onRemove}
         />
       )}
-      {coverItem && selected && appearance && block.type !== "image" && (
-        <CoverTextToolbar
+      {coverItem && selected && (
+        <CoverBlockBar
+          type={block.type}
           appearance={appearance}
-          italicByDefault={block.type === "text"}
+          onAsk={bleed ? undefined : onAsk}
         />
       )}
-      {coverItem && ask}
       {selected && !coverItem && (
         <>
           {block.type === "image" ? (
