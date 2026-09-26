@@ -6,6 +6,7 @@ import {
   aiToolSchemas,
   type AiToolOutput,
 } from "@/lib/ai-tools";
+import type { AiRenderedPage } from "@/lib/ai-vision-contract";
 import type { Page } from "@/lib/blocks";
 import type { MeasurementOptions } from "../pdf-import/measure";
 import type { EditorSnapshot } from "../use-editor-history";
@@ -18,6 +19,7 @@ import type { AssistantIssue } from "./issue-context";
 import { createPageMeasurer } from "./measure-page";
 import { pageView } from "./projection";
 import { clip } from "./projection-text";
+import { createVision, picturePages, type VisionSource } from "./vision";
 
 // The model's tools as the chat runs them (#306, #310): read_page from the
 // projection, every other tool through the executor, which edits the editor's
@@ -26,7 +28,8 @@ import { clip } from "./projection-text";
 
 /** What the chat calls, at the start of a run, per tool call, and at its end. */
 export type AssistantTools = {
-  beginRun(): void;
+  /** `pictures`: how many more images the conversation has room for. */
+  beginRun(pictures: number): void;
   run(
     name: string,
     input: unknown,
@@ -38,6 +41,12 @@ export type AssistantTools = {
   breaker(): string | null;
   /** A run is under way: the editor keeps the author's hands off the canvas. */
   running: boolean;
+  /** What the run has changed so far, without ending it (the review asks, #342). */
+  summary(): RunSummary | null;
+  /** Pictures of pages as members will see them, for the end-of-run review (#342). */
+  picture(pages: number[], issue: AssistantIssue): Promise<AiRenderedPage[]>;
+  /** Pictures the conversation still has room for, after this run's views. */
+  pictureRoom(): number;
 };
 
 export function readPage(input: unknown, issue: AssistantIssue): AiToolOutput {
@@ -55,14 +64,22 @@ export function useAssistantTools({
   state,
   apply,
   measure,
+  source,
 }: {
   state: EditorSnapshot;
   /** Commit the executor's pages, recording `record` as one undo step first. */
   apply: (next: EditorSnapshot, record: EditorSnapshot | null) => void;
   /** Everything a page's layout depends on besides its blocks. */
   measure: MeasurementOptions;
+  /** The issue and its footer mark, for page pictures (#342). */
+  source: VisionSource;
 }): AssistantTools {
   const latest = useRef({ state, apply });
+  const pictured = useRef(source);
+  useEffect(() => {
+    pictured.current = source;
+  });
+  const [vision] = useState(createVision);
   const waiters = useRef<{ pages: Page[]; done: () => void }[]>([]);
   useEffect(() => {
     latest.current = { state, apply };
@@ -101,6 +118,7 @@ export function useAssistantTools({
       measure: {
         report: async (page) => (await measured()).report(page),
         textFlow: async (blocks, id) => (await measured()).textFlow(blocks, id),
+        cover: async (page, pages) => (await measured()).cover(page, pages),
       },
       handle: {
         state: () => latest.current.state,
@@ -123,15 +141,19 @@ export function useAssistantTools({
   const [running, setRunning] = useState(false);
   return {
     running,
-    beginRun: () => {
+    beginRun: (pictures) => {
       setRunning(true);
       executor.current?.beginRun();
+      vision.beginRun(pictures);
     },
     run: async (name, input, issue) =>
       executor.current
         ? executor.current.run(name, input, {
             photos: new Set(issue.uploads),
+            logos: issue.logos,
             read: (args) => readPage(args, issue),
+            view: (tool, args) =>
+              vision.view(tool, args, issue, pictured.current),
           })
         : { text: "Error: the editor isn't ready yet. Nothing changed." },
     endRun: () => {
@@ -139,5 +161,8 @@ export function useAssistantTools({
       return executor.current?.summary() ?? null;
     },
     breaker: () => executor.current?.breaker() ?? null,
+    summary: () => executor.current?.summary() ?? null,
+    picture: (pages, issue) => picturePages(pictured.current, issue, pages),
+    pictureRoom: vision.room,
   };
 }

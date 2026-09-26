@@ -2,7 +2,8 @@
 // executor's refusals, markdown round trips over the seed's text, one history
 // step per run with undo back to the exact pages, the photo layout defaults,
 // split_page, the overflow feedback, whole-issue validation, the
-// circuit-breaker and the run summary. The measurer is a stand-in with fixed
+// circuit-breaker and the run summary; the cover tools (#313,
+// fixtures/assistant/cover-checks.mts). The measurer is a stand-in with fixed
 // block heights (fixtures/assistant/tools-harness.mts); the real one is the
 // editor's (dev-assistant-tools-gate.mts).
 //   npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-tools.mts
@@ -13,6 +14,9 @@ import { docToMarkdown, markdownToDoc } from "../src/lib/markdown-doc";
 import { richDocSchema, richTextToPlain } from "../src/lib/rich-text-doc";
 import { richDocBlocks } from "../src/lib/rich-text-split";
 import * as h from "./fixtures/assistant/tools-harness.mts";
+import { createVision } from "../src/features/editor/assistant/vision";
+import type { AssistantIssue } from "../src/features/editor/assistant/issue-context";
+import { coverChecks } from "./fixtures/assistant/cover-checks.mts";
 
 const { ok, heading, docOf, issues, photos, harness } = h;
 const { textBlock, headingBlock, photo, cover, page } = h;
@@ -20,7 +24,8 @@ const { textBlock, headingBlock, photo, cover, page } = h;
 heading("the tool contract");
 ok(
   AI_TOOL_NAMES.join() ===
-    "read_page,set_text,set_heading,insert_blocks,delete_block,move_block,add_page,split_page,set_image_text,set_image_layout",
+    "read_page,set_text,set_heading,insert_blocks,delete_block,move_block,add_page,split_page,set_image_text,set_image_layout,view_page,view_photo," +
+      "set_cover_background,clear_cover_background,set_masthead,add_story,add_details,add_logo,remove_cover_item,place_cover_item,style_cover_item,style_cover_page",
   "every tool is declared, read_page first (the cached order)",
 );
 const refused = (tool: keyof typeof aiToolSchemas, input: unknown) =>
@@ -91,7 +96,7 @@ heading("unknown ids and places are refused, nothing changes");
     [
       "insert_blocks",
       { after: { page: 1 }, blocks: [{ kind: "text", markdown: "x" }] },
-      "is the cover",
+      "is a cover; use the cover tools",
     ],
     ["add_page", { after: 9 }, "there is no page 9"],
     ["split_page", { page: 9 }, "there is no page 9"],
@@ -325,6 +330,46 @@ heading("covers, full-page photos and whole-issue validation");
     "an edit that leaves the issue invalid is rolled back",
   );
 }
+
+heading("vision: views within the run's six and the conversation's room");
+{
+  // The photo route, stubbed: every view succeeds unless refused first.
+  globalThis.fetch = async () =>
+    Response.json({ mediaType: "image/jpeg", data: "x", width: 8, height: 6 });
+  const issue = {
+    uploads: ["img-1"],
+    images: { "img-1": { width: 8, height: 6 } },
+  } as unknown as AssistantIssue;
+  const source = { issueId: "i", logoId: null };
+  const vision = createVision();
+  const look = () =>
+    vision.view("view_photo", { imageId: "img-1" }, issue, source);
+  vision.beginRun(3);
+  const three = [await look(), await look(), await look()];
+  ok(
+    three.map((o) => o.text.split(". ").at(-1)).join() ===
+      "2 views left.,1 view left.,0 views left.",
+    "with room for 3, the views count down from 3",
+  );
+  const fourth = await look();
+  ok(
+    fourth.text.startsWith("Error: this conversation has no room") &&
+      !fourth.images &&
+      vision.room() === 0,
+    "the 4th is refused for the conversation's room, and the review gets none",
+  );
+  vision.beginRun(24);
+  for (let i = 0; i < 6; i++) await look();
+  const seventh = await look();
+  ok(
+    seventh.text.includes("all 6 views") &&
+      seventh.text.includes("room for 18 more pictures") &&
+      vision.room() === 18,
+    "with room for 24: six views, the 7th refused, 18 left for the review",
+  );
+}
+
+await coverChecks();
 
 ok(
   h.measured > 0 && collectImageIds(issues[0]!.content).length > 0,

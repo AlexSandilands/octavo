@@ -1,14 +1,25 @@
 "use client";
 
-import { useRef, useState, type ComponentProps, type RefObject } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ComponentProps,
+  type RefObject,
+} from "react";
 import dynamic from "next/dynamic";
 import type { Page } from "@/lib/blocks";
-import { AssistantPanel } from "./assistant/assistant-panel";
+import { AssistantPanel, budgetSpent } from "./assistant/assistant-panel";
+import { assistantEnabled } from "./assistant/enabled";
 import {
   useAssistantChat,
   type AssistantSnapshot,
 } from "./assistant/use-assistant-chat";
-import type { PresetTarget } from "./assistant/presets";
+import {
+  askMessage,
+  type AskHandler,
+  type PresetTarget,
+} from "./assistant/presets";
 import type { EditorSnapshot } from "./use-editor-history";
 import type { AssistantTools } from "./assistant/tools";
 import { useAssistantUsage } from "./assistant/use-assistant-usage";
@@ -26,6 +37,7 @@ const PdfImportPanel = dynamic(() => import("./pdf-import/panel"), {
   ssr: false,
 });
 const PANEL_ID = "editor-side-panel";
+const ASSISTANT_INPUT_ID = "assistant-input";
 const PDF_COVER_DESCRIPTION =
   "PDF import is available on interior pages. Move to another page to use it.";
 const TITLES: Record<EditorTool, string> = {
@@ -70,13 +82,18 @@ export function EditorSide({
     /** The editor's own Undo: a run is one step. */
     undo: () => void;
     historyTop: EditorSnapshot | null;
+    /** Set here: the Ask box on a block sends through this conversation. */
+    askRef: RefObject<AskHandler | null>;
   };
 }) {
   const [toolActions, setToolActions] = useState<RailAction[]>([]);
   const buttons = useRef<Partial<Record<EditorTool, HTMLButtonElement | null>>>(
     {},
   );
-  const usage = useAssistantUsage(tool === "assistant");
+  const usage = useAssistantUsage(
+    assistantEnabled && !assistant.published,
+    tool === "assistant",
+  );
   const chat = useAssistantChat({
     issueId: assistant.issueId,
     snapshot: assistant.snapshot,
@@ -85,6 +102,22 @@ export function EditorSide({
   });
   // Import PDF steps aside on a cover (#287); the assistant stays.
   const shown = tool === "pdf" && cover ? null : tool;
+  // An Ask opens the panel on the run (or on why it can't take one); an open
+  // panel takes the focus, as it does on opening, with Stop at hand.
+  const { askRef } = assistant;
+  useEffect(() => {
+    askRef.current = async (blockId, text) => {
+      if (shown === "assistant")
+        document.getElementById(ASSISTANT_INPUT_ID)?.focus();
+      else onToggle("assistant");
+      // The editor fetches the figure on opening; if it hasn't landed, ask.
+      const now = usage.usage ?? (await usage.refresh());
+      if (budgetSpent(chat, now)) return { ok: false, reason: "spent" };
+      return chat.send(
+        askMessage({ page: assistant.target.page, blockId, cover }, text),
+      );
+    };
+  });
   // A closing panel keeps its content while it slides out. Each opening counts,
   // so a panel reopened mid-slide still mounts afresh and takes the focus.
   const [last, setLast] = useState<EditorTool>(shown ?? "pdf");

@@ -17,7 +17,7 @@ export { ChromiumUnavailableError };
 // The origin the generator self-fetches. Localhost by design: it avoids the
 // public CDN/edge, incurs no egress, and never leaves the box. Railway injects
 // PORT; default to Next's dev port.
-function selfOrigin(): string {
+export function selfOrigin(): string {
   const port = process.env.PORT ?? "3000";
   return `http://127.0.0.1:${port}`;
 }
@@ -45,6 +45,17 @@ const STAMP_META: Record<keyof PrintStamps, string> = {
   sponsors: "print-sponsors",
 };
 
+/** Headless Chromium, or ChromiumUnavailableError when it isn't installed.
+ *  Shared with the assistant's page pictures (server/ai-render). */
+export async function launchPrintBrowser() {
+  try {
+    return await chromium.launch({ headless: true });
+  } catch (err) {
+    if (isMissingBrowser(err)) throw new ChromiumUnavailableError(err);
+    throw err;
+  }
+}
+
 export async function generateIssuePdf(
   issueNumber: number,
   theme: PdfTheme,
@@ -52,14 +63,7 @@ export async function generateIssuePdf(
 ): Promise<Buffer> {
   const url = `${selfOrigin()}/read/${issueNumber}/print?token=${printToken()}&theme=${theme}`;
 
-  let browser;
-  try {
-    browser = await chromium.launch({ headless: true });
-  } catch (err) {
-    if (isMissingBrowser(err)) throw new ChromiumUnavailableError(err);
-    throw err;
-  }
-
+  const browser = await launchPrintBrowser();
   try {
     const page = await browser.newPage();
     // networkidle so images (R2/local) and web fonts have finished loading; then

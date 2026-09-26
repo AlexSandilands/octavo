@@ -1,8 +1,9 @@
 import { AssistantUsageHelp } from "./assistant-usage";
 import { Bullets, Callout, GuideSection, P } from "./guide-ui";
 
-// The editing assistant (epic #306): what it can do, the presets (#310), and
-// Undo. Shown only where the deployment offers it.
+// The editing assistant (epic #306): what it can do, the presets (#310), the
+// per-block Ask (#311), the cover (#313), and Undo. Shown only where the
+// deployment offers it.
 // #314 adds how to see what it costs at the end of this section.
 export function SectionAssistant() {
   return (
@@ -16,9 +17,17 @@ export function SectionAssistant() {
         edge of the editor opens a chat beside the page you&rsquo;re working on.
         You ask in ordinary words, and it answers from the issue in front of it
         or makes the change for you: tidying a page, turning a list into
-        bullets, rewriting or shortening text, moving or resizing a photo, or
-        carrying the end of a full page onto a new one. Its changes appear on
-        the page as it makes them.
+        bullets, rewriting or shortening text, moving or resizing a photo,
+        carrying the end of a full page onto a new one, or composing the cover.
+        Its changes appear on the page as it makes them.
+      </P>
+      <P>
+        It can also look. It can open your photos to put each one beside the
+        story it belongs to, or to describe it for readers who use a screen
+        reader. It can also see a page as members will. When a change runs over
+        the cover or more than one page, it looks over those pages once more
+        before it finishes and tidies anything that reads badly, so a bigger job
+        takes a little longer.
       </P>
       <P>
         Four quick buttons sit above the box where you type. Each asks about the
@@ -42,6 +51,25 @@ export function SectionAssistant() {
           fits. The wording will change here too.
         </li>
       </Bullets>
+      <P>
+        To ask about one block without opening the panel, select the block and
+        press <strong>Ask</strong> at the end of its tool bar. Type what you
+        want, such as &ldquo;make this a bulleted list&rdquo;, and press Enter.
+        The panel opens to show the answer and what changed. Escape closes the
+        box without sending anything. Ask works on the cover&rsquo;s items too,
+        but not on a full-page photo or the cover&rsquo;s background.
+      </P>
+      <P>
+        On the cover the four buttons give way to one,{" "}
+        <strong>Compose cover</strong>, which leads with the issue&rsquo;s
+        strongest story and keeps the photo already there. You can also ask for
+        a cover in your own words, such as &ldquo;put the evening photo on the
+        cover, lead with the twilight league, and add the date and our
+        logo&rdquo;. It sets the background, the masthead, stories linked to
+        their pages, the issue details and a logo from your library, and places
+        and colours them. The typefaces stay yours to choose in the cover
+        settings. Asked from an inside page, it works on the front cover.
+      </P>
       <P>
         When it has finished, a line in the panel says what changed, such as
         &ldquo;Changed 3 blocks on pages 4&ndash;5&rdquo;, with an{" "}
@@ -76,9 +104,9 @@ export function SectionAssistant() {
         The assistant can misread a page or get a detail wrong, and a rewrite
         can change what a sentence means. Read what it tells you and what it
         changed before relying on it, and check the page itself. The
-        issue&rsquo;s text and photos are sent to the AI service to answer you,
-        so don&rsquo;t paste anything into the chat you wouldn&rsquo;t put in
-        the magazine.
+        issue&rsquo;s text, its photos and pictures of its pages are sent to the
+        AI service to answer you, so don&rsquo;t paste anything into the chat
+        you wouldn&rsquo;t put in the magazine.
       </Callout>
       <AssistantUsageHelp />
     </GuideSection>

@@ -2,7 +2,7 @@
 
 An assistant in the editor that edits the issue on the author's behalf. It can tidy a page, lay out pasted articles and
 photos, compose a cover, and rewrite when asked. **Built so far, dormant until a provider is set:** the spend ledger
-(#307), the chat route (#308), the editor's panel (#309) and the page-editing tools (#310). This note holds the decisions every child issue assumes. Read it with the epic before
+(#307), the chat route (#308), the editor's panel (#309), the page-editing tools (#310), the per-block Ask box (#311) and cover composition (#313). This note holds the decisions every child issue assumes. Read it with the epic before
 working any child. Each child's PR updates it to match what shipped, and the epic's closing issue (#344) turns it into
 the feature doc (the `docs/pdf-import.md` shape).
 
@@ -114,6 +114,17 @@ client-safe.
   200k-token context: 330,000 characters at a cautious ~3 per token is ~110k tokens, 24 images at ~1.6k tokens is ~38k,
   and with the prompt and tools (~5k) and the reply's allowance (32k output tokens, thinking included) that leaves
   ~15k spare. The count covers text, reasoning, projections, tool inputs and tool outputs.
+- **Pictures against the 24 (#342).** A run takes only the room the conversation has left, not a fixed reservation:
+  - `room = 24 − pictures already in history` (tool-result images plus file parts), counted once as the run starts;
+  - the views get `min(6, room)`, and each view's result says how many are left. A view refused for the run's six says
+    how many more pictures the conversation has room for; one refused for the room says so and that a new
+    conversation starts afresh;
+  - the review renders `min(8, room − views used)` of its pages, the cover first. With none left it doesn't happen, and
+    the run ends as it would without one;
+  - the conversation reads **full** when `room < 2`, the least a two-page review needs.
+
+  So a run can never be refused mid-way for pictures. A conversation of picture-light runs lasts; one run with six
+  views and an eight-page review leaves room for 10 more.
 
 **How the route is built.**
 
@@ -141,10 +152,11 @@ client-safe.
   in `src/lib/ai-pricing.ts`, and an Anthropic model missing from `ai-thinking.ts`; a new `AI_MODEL` is added there
   after a smoke run (`scripts/dev-ai-smoke.mts`). Haiku's smoke run can't show cache reads: its minimum cacheable prompt
   (4,096 tokens) is larger than the smoke's requests.
-- **Caching:** the system prompt (`src/server/ai-prompt/`, `base.md` then `vision.md` and `cover.md` when those tools
-  exist) and the tool list are byte-stable, with a `cache_control` breakpoint on the system message (which covers the
-  tools before it) and one on the newest message, so each request reads the conversation so far from cache. The TTL is
-  the default five minutes, which is what the ledger prices cache writes at.
+- **Caching:** the system prompt (`src/server/ai-prompt/`: `base.md`, then `vision.md`, then `cover.md` when those tools
+  exist) and the tool list are byte-stable. `vision.md` is always on since #342 and `cover.md` since #313, with no env
+  switch, so there is one cached prefix and one configuration for #315's fixture. There is a `cache_control` breakpoint on the system message
+  (which covers the tools before it) and one on the newest message, so each request reads the conversation so far from
+  cache. The TTL is the default five minutes, which is what the ledger prices cache writes at.
 - **Metering** (`src/server/ai-metering.ts`): one `ai_usage` row per request, however it ends. When the provider
   reports usage, the row gets its uncached, cache-read, cache-write and output tokens and the model id it reported (or
   the configured one, when the reported id has no price). With no usage (the author stopped the reply, or the stream
@@ -163,8 +175,11 @@ client-safe.
   `Read read_page (<n> characters back). Nothing needed changing.` Triggers in the author's text reach the failure
   paths: `[fake:fail]`, `[fake:drop]`, `[fake:slow]` and `[fake:odd-model]`; `[fake:echo]` replies with the text parts
   the model was sent. `[fake:tools]` followed by a JSON array of `{ toolName, input }` scripts a run instead: one call a
-  turn (`Step n: <tool>.`), then `Done: N steps.` (#310). `scripts/dev-ai-proxy-gate.mts` and
-  `scripts/dev-assistant-tools-gate.mts` run against it.
+  turn (`Step n: <tool>.`), then `Done: N steps.` (#310). A `null` step ends that turn with no call, and the script picks
+  up again after the editor's end-of-run review, so a gate can edit in the review turn (#342). A review with no script
+  gets `Looked over N pages. Nothing needed changing.` `scripts/dev-ai-proxy-gate.mts` and
+  `scripts/dev-assistant-tools-gate.mts` (with its Ask, breaker and cover parts,
+  `assistant-tools-gate-ask.mts`, `assistant-tools-gate-breaker.mts` and `assistant-tools-gate-cover.mts`) run against it.
 
 #### Where it appears: the editor's side panel (#309)
 
@@ -175,6 +190,27 @@ client-safe.
   minimum wherever 400px would leave the canvas under 520px. Each tool remembers its own width. On a 768px tablet that
   leaves about 305px of canvas, and the page in it is about 173px wide beside the standing tool bar. Once there are
   messages, a **New conversation** action hangs under the Assistant button.
+- **The per-block Ask (built, #311).** A selected block on an inside page of a draft has **Ask** (the rail's sparkle and
+  the word) as the last control in its own tool bar, after a rule, and last in the bar's tab order. That's the text
+  format bar, the heading, photo, montage, video and sponsor bars, or beside a bare type label. The owner's first browser
+  pass found a free-floating pill above the bar awkward. A bar wider than the canvas used to run off its right edge (the
+  photo bar's Alt field was cut off at common widths); now it slides left to stay inside, and one wider than the whole
+  canvas wraps onto a second row (`use-bar-fit.ts`), so Ask and Alt are always in reach. On a cover (#313) Ask ends every selected cover item's bar the same way: a
+  text item's format bar, the story and details bars, and a small bar of its own on a logo or a cover photo; the
+  message says "the selected cover item". Ask sits outside the format bar's scrolling row, so its box is never clipped,
+  and the cover's bars stay on the canvas, clear of the inspector and the standing tool pill
+  (`use-cover-toolbar-bounds.ts`). It isn't offered on a full-page photo or a cover's background (the tools
+  refuse those), on a published issue, or while the assistant is off.
+  It opens a one-line box under the bar's right end, a labelled non-modal `dialog`. **Enter** or **Send** posts `About the selected block [<id>] on page <n>: <words>` to the panel's conversation as an ordinary
+  run. That means the same breaker, the same one-step Undo and the same line. The author's bubble drops the id, as
+  the presets' does. The panel opens (or, already open, takes the focus) so the reply and the line are in view, and
+  the box closes. **Escape**, or a press anywhere else, closes it without sending, and Escape hands focus back to Ask
+  without deselecting the block. Tab and Shift+Tab cycle the box and Send while it's open. The editor's Ctrl/Cmd+Z
+  stands down while the box is open, both for text entry and for the dialog. If the conversation can't take a request
+  (busy, full, or the month spent), nothing is sent: the box keeps the words and says why, and the panel opens on the
+  reason. The chat's `send` reports that before any request (`SendResult`), so the panel's composer also keeps a
+  refused message rather than clearing it. The issue text named `floating-bar.tsx`, which is the canvas's tool pill,
+  not the block's chrome; Ask lives in the block's own bar instead.
 - **On a cover** the assistant stays open (Import PDF doesn't). Opening it hides the cover inspector, closing it
   brings the inspector back, and a line at the top of the panel says so.
 - **States.**
@@ -189,8 +225,8 @@ client-safe.
 - **The composer.** A growing textarea (Enter sends, Shift+Enter is a new line) and one 44px button that is Send, or
   Stop while a reply is on its way. Nothing is cut silently: from 18,000 characters a count shows, and past the
   route's 20,000 it says how far over and Send is off until the text is shortened. The row under the text is left
-  free for #343's attach button. Above it sit #310's four presets (see Runs); on a cover they're off, with a tooltip
-  saying they work on the inside pages. Replies render as plain paragraphs with markdown
+  free for #343's attach button. Above it sit #310's four presets (see Runs); on a cover they give way to one,
+  _Compose cover_ (#313). Replies render as plain paragraphs with markdown
   lists and bold only, never HTML.
 - **The conversation** lives above the panel (`editor-side.tsx`), so closing the panel keeps it. It ends when the editor
   is closed. `src/features/editor/assistant/use-assistant-chat.ts` is the only file that knows `useChat`, the
@@ -203,7 +239,7 @@ client-safe.
   real-provider smoke test should cover it: stop mid tool call, send again, and the second request succeeds with
   `cache_read_input_tokens > 0`.
 - **Usage footer.** "US$1.21 of US$20.00 used this month" (spend rounded up to the cent, as `/admin/ai` shows it), from `GET /api/admin/ai/usage` (admin-only, 404 while off,
-  `resolveBudget()`'s figures), with a link to `/admin/ai`. It is fetched when the panel opens and after every run.
+  `resolveBudget()`'s figures), with a link to `/admin/ai`. It is fetched when the editor opens with the assistant on (so a spent month is known before the first send from either the panel or the Ask box), when the panel opens, and after every run.
 - **Accessibility.** The thread is a `role="log"` region that is `aria-busy` while a reply streams, so the finished
   reply is announced once. Opening puts focus in the composer (or on the drafts-only message), and Close hands it back
   to the rail button. "Thinking…" shows from Send until the reply has words or a tool line to show. A reply opens with
@@ -226,7 +262,8 @@ client-safe.
 - **Built (#309):** `src/features/editor/assistant/projection.ts` (pure), lifted from the spike. Body text is shown as
   markdown by `src/lib/markdown-doc.ts` (`docToMarkdown`; `markdownToDoc` is #310's way back), which round-trips every
   seed text block exactly. Photos appear as their `images.id` plus "landscape 1600×1067", never a url or a file name.
-  Covers are an element list, marked read-only until #313.
+  On a cover (#313) it lists the background, the masthead, every item with its id, placement and paint, the interior
+  headings a story can link (id, page, title), the grid and the palette.
 - **The fill is measured, not estimated.** `measurePageFill()` in `page-metrics.ts` reads the geometry the overflow
   marker uses: from the text area's top to the lowest block, against the room above the running footer. Every page is
   laid out off screen in the editor's own presentation (the Import PDF measurer's) and cached per page object
@@ -252,7 +289,7 @@ don't redesign it.
   (`src/server/ai-chat-tools.ts`); the editor runs them. `src/features/editor/assistant/edit-tools.ts` is the pure edit, lifted
   from the spike's executor; `executor.ts` validates, applies to a copy, re-validates the whole issue with
   `issueContentSchema` and only then commits through the editor (`applyAssistant` in `use-editor-pages.ts`, which reseeds any
-  text editor it changed). A refusal — an unknown id, a cover (#313), a full-page photo, a block the save path would refuse,
+  text editor it changed). A refusal — an unknown id, a cover (the page tools point the model at the cover tools), a full-page photo, a block the save path would refuse,
   an edit the whole issue would fail — comes back as `Error: … Nothing changed.`, which the model reads. Calls run one at a
   time, each waiting for the editor to render the last; if the author edits while a call is being measured, the call is
   refused rather than overwriting them.
@@ -270,16 +307,57 @@ don't redesign it.
   full. "Shorten to fit" was the one preset that underperformed on both models.
 - **Checked** by `scripts/check-ai-tools.mts` (in memory, a stand-in measurer) and `scripts/dev-assistant-tools-gate.mts`
   (a real editor, the fake provider's `[fake:tools]` script, the real measurer).
-- **Cover tools, compose:** `set_cover_background`, `clear_cover_background`, `set_masthead`, `add_story` (items linked to real
-  heading ids), `add_details`, `add_logo`, `remove_cover_item`.
-- **Cover tools, style:** `place_cover_item` (the 3×3 grid, width, align, text size), and `style_cover_item` / `style_cover_page`
-  (text colour, panel and panel shape, shadow). **Fonts and weights stay with the cover inspector** until a fixture run shows
-  the model using them well.
-- **Vision (#342):**
-  - `view_photo(imageId)` (an uploaded photo, about 800px) and `view_page(n)` (a page as members see it), sharing a small
-    per-run budget of about 6;
-  - production needs a **draft-capable single-page render**, because `/read/[n]/print` looks issues up by published number. The
-    render must use the real page components (`PrintDocument`), as the spike's `render.ts` did.
+- **Cover tools (built, #313):** `src/lib/ai-cover-tools.ts`, appended after the view tools and lifted from the spike's
+  `cover-tools.ts` and `cover-tool-defs.ts`; the editor's side is `assistant/cover-tools.ts`, dispatched by the executor.
+  - **Compose:** `set_cover_background` (fill or fit; a former background stays on the cover as an ordinary photo, as the
+    editor's own Fill/Fit does), `clear_cover_background`, `set_masthead` (created top left, extra large, after what's
+    there, and the automatic magazine-name line turned off; changed words keep the typeface the inspector set, a line
+    that didn't change keeps all its lettering), `add_story` (1–6 items, each a real interior heading id or its own
+    title), `add_details`, `add_logo` (by its library name), `remove_cover_item`.
+  - **Place and style:** `place_cover_item` (the 3×3 grid, width, align, text size, order) and `style_cover_item` /
+    `style_cover_page` (text colour, panel and panel shape, shadow and its colour, the frame, the automatic
+    magazine-name line). **No font or weight arguments:** fonts stay with the cover inspector until a #315 fixture run
+    shows the model using them well.
+  - **Which cover.** The compose tools edit the cover open now, else the front cover (page 1), and that cover for the
+    rest of the run, wherever the author turns; every result names it. The item tools find their id on any cover and refuse one on an inside page; the page tools keep refusing
+    covers and point at the cover tools. There is no page argument, and `cover.md` tells the model the rule.
+  - **Validation.** Every item goes through the real cover schemas (`coverElementSchema`, `coverPlacementSchema`), new
+    items take the next order after what's there (as the editor's own Add does), and the whole issue is re-validated
+    as for any edit. Only headings, text and photos are placed or styled, as in the inspector; a sponsor, quote or list
+    on a cover is refused. The executor also refuses any edit whose keys the save path's schema would drop, so what
+    the editor shows is always what the issue stores. A cover with no defaults yet takes the editor's own
+    (`coverOverlayOf`: dark type on paper, light and shadowed over a photo). Styling an item whose words the author
+    coloured one by one says those words keep their colour.
+  - **Results** end with a one-line summary ("The cover (page 1) now has a background photo, a masthead, 2 stories,
+    issue details, 1 logo.") and the editor's own layout warnings in words: a story linked to a heading that's gone,
+    an item past the page margin, two items overlapping. The cover is laid out off screen with the reader's
+    `PageBlocks` (`measure-page.tsx`) and read with `readCoverWarnings()`, the function the inspector's warnings use.
+  - **The run's line** counts cover items and cover-wide changes like blocks, so a cover run gets its Undo line and
+    #342's review. `place_cover_item` counts as a move for the circuit-breaker, and a selected cover item stays
+    selected through a run.
+  - **Checked** by `check-ai-tools.mts` (`fixtures/assistant/cover-checks.mts`) and the tools gate's cover sequence
+    (`assistant-tools-gate-cover.mts`): a Regatta copy with its cover emptied, composed by a fake-provider run, undone
+    in one step and redone, then rendered by both readers, the print route and the library thumbnail.
+- **Vision (built, #342):** `view_page` and `view_photo`, after the page tools and before the cover tools (#313) in the fixed order. The editor answers each with
+  a picture inside the tool result (`images` on `AiToolOutput`; `src/features/editor/assistant/vision.ts`):
+  - `view_photo({ imageId })` takes only a photo uploaded to the issue (the projection's ids) and returns it as an 800px
+    JPEG, with its shape, from `POST /api/admin/ai/photo`. That route takes a photo uploaded to the issue or placed in it,
+    and refuses a logo-library mark, which is not a photo;
+  - `view_page({ page })` returns the page as members will see it, with its **measured** fill ("Page 4 (fits, ~70%
+    full)"), from `POST /api/admin/ai/render`;
+  - the two share **6 views a run** (`AI_VIEWS_PER_RUN`), fewer when the conversation has less room (see the chat
+    route's picture arithmetic). The 7th is refused ("you have used all 6 views…"), and a picture that fails costs no
+    view;
+  - **the draft render.** `/read/[n]/print` looks issues up by published number, so the render route takes the issue as
+    the editor holds it (unsaved edits too), validated by `issueContentSchema` within the save cap. It stashes it in memory
+    under a one-time nonce (60 s, swept on each new stash, dropped when done) and has headless Chromium (the PDF's
+    `launchPrintBrowser`) load `/read/draft/[nonce]/print` with the internal print token. That page renders the PDF's own
+    `PrintDocument`. Each requested `.pdf-page` is screenshotted at 1.5× (960×1350, PNG, or JPEG when a photo-heavy page
+    passes the tool result's 1.5 MB), and its fill is read with the overflow marker's geometry. The app runs as one
+    instance, so the page always finds the stash. Both routes share the chat route's gate (admin + same origin, 404 while
+    off, drafts only) and are limited to 120 requests per admin per 10 minutes;
+  - `scripts/check-assistant-render.mts` checks all of it against a running server: every seed page's measured fill
+    against the editor's overflow marker, an unsaved edit, and the refusals.
 - **Planning tool for long pastes (#312):** takes the whole plan in one call, and each section has **separate `headline`,
   `kicker?`, `standfirst?`** fields with a worked example in the description. A prompt line alone did not stop the model turning
   an all-caps headline into the kicker and the standfirst into the title.
@@ -304,10 +382,20 @@ don't redesign it.
 - **Presets (built, #310)** above the composer: _Tidy this page_, _Make bullets_, _Rewrite for clarity_, _Shorten to fit_
   (`assistant/presets.ts`). Each sends a fixed message for the page open now and, when one is selected, its block — the
   block id rides in brackets for the model and is hidden from the author's bubble. Tidy and Make bullets say to keep every
-  word; Rewrite and Shorten say the wording may change and to keep the facts and the voice. They're off on a cover.
-- **Automatic end-of-run review (#342):** when a run touched the cover or more than one page, the editor renders those pages and sends
-  them back as images in a follow-up message for one more turn. There is only one review round, and none for single-page
-  edits. It adds 25–40% to such a run. It catches collisions (floats crowding text), not polish.
+  word; Rewrite and Shorten say the wording may change and to keep the facts and the voice. A cover gets one preset
+  instead (#313), _Compose cover_: "Compose the cover on page N. Use the issue's strongest story as the lead and keep the
+  current background."
+- **Automatic end-of-run review (built, #342):** when a run's changes touched the cover or more than one page, the panel
+  pictures those pages (the cover first, at most 8) and sends them as one user message. The message is the review text
+  (`assistant/review.ts`, from the spike's `review-message.md`), then "Page N (fits, ~X% full)" and the picture for each
+  page as `file` parts. The model gets **one** more turn with the same tools. It is the same run: same `runId`, one undo
+  step, the same call ceiling and $0.50 cap, and the canvas stays hands-off throughout. There is no review after a
+  single-page edit or a run that changed nothing. The thread shows it as one quiet line ("Showed it the pages it changed
+  to look over: …"), with "Picturing the pages it changed…" while the render runs. A Stop during the render drops the
+  review, and a message sent straight after starts a run of its own that the stale review can't touch. In the spike it added 25–40% to such
+  a run, and it caught collisions (floats crowding text), not polish.
+- **Pictures fill a conversation (#342).** History is never trimmed, so every picture counts against #308's 24-image
+  cap for the rest of the conversation. The arithmetic is recorded under the chat route's conversation cap.
 - **Circuit-breaker (built, #310; replaces "5 identical calls"):** stop a run, keeping what it has done, when **any** of these
   happens:
   - more than **40 tool calls** in the run (`RUN_CALL_LIMIT`; the 41st call's result is never sent);
@@ -389,4 +477,5 @@ don't redesign it.
   photos or rebalanced to fill them. The review didn't flag it either.
 - **Small cover text over busy photos** (the issue-details line) was missed by the model and by the review.
 - **Meaning drift in rewrites isn't machine-checkable.** Rewrites need the author's read, and the help page says so.
-- The per-block **Ask** box (#311) and multi-turn follow-ups weren't exercised by the spike.
+- The per-block **Ask** box (#311) and multi-turn follow-ups weren't exercised by the spike. The Ask box is checked
+  only against the fake provider so far.

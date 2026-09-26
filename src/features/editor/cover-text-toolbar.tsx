@@ -9,19 +9,26 @@ import { SHADOW_OPTIONS } from "./cover-shadow-control";
 import { CoverSelectedFont } from "./cover-selected-font";
 import { useCoverToolbarBounds } from "./use-cover-toolbar-bounds";
 import { CAP_NUDGE, TbBtn } from "./rich-text-editor";
+import { AskControl } from "./assistant/ask-box";
+import type { SendResult } from "./assistant/use-assistant-chat";
+import { COVER_BAR, CoverAskBar } from "./cover-ask-bar";
 
 // The floating bar above a selected cover item, for the words inside it: bold,
 // italic, underline, a colour and a shadow for the selection only. Whole-item
 // styling lives in the inspector; this is the same split the body-text blocks
-// make on ordinary pages.
+// make on ordinary pages. The assistant's Ask (#313) ends the bar, outside
+// the row that scrolls, so its box is never clipped.
 export function CoverTextToolbar({
   appearance,
   italicByDefault = false,
+  onAsk,
 }: {
   /** What the item paints with, so an unpainted selection shows its real colour. */
   appearance: Required<CoverAppearance>;
   /** The cover's tagline style sets its text in italics before any formatting. */
   italicByDefault?: boolean;
+  /** The assistant's Ask on this item, when it's offered. */
+  onAsk?: (text: string) => Promise<SendResult>;
 }) {
   const { target } = useCoverText();
   const editor = target?.editor;
@@ -53,7 +60,7 @@ export function CoverTextToolbar({
       document.removeEventListener("keydown", onKey);
     };
   }, [open]);
-  if (!editor) return null;
+  if (!editor) return onAsk ? <CoverAskBar onAsk={onAsk} /> : null;
 
   const paint = editor.getAttributes("coverPaint");
   const italic = paint.fontStyle
@@ -77,79 +84,95 @@ export function CoverTextToolbar({
       onPointerDown={(e) => e.stopPropagation()}
       role="group"
       aria-label="Selected text formatting"
-      className="border-hair chrome-unscaled absolute bottom-full left-0 z-30 mb-2 flex w-max flex-col gap-1.5 rounded-[8px] border bg-white p-1.5 shadow-[0_4px_14px_rgba(40,36,28,0.16)]"
+      data-block-bar
+      className={`${COVER_BAR} flex-col gap-1.5`}
     >
-      <div className="scrollbar-soft flex min-w-0 items-center gap-1.5 overflow-x-auto whitespace-nowrap [&>*]:shrink-0">
-        <CoverSelectedFont editor={editor} font={target.font} />
-        <div className="border-hair flex overflow-hidden rounded-[6px] border">
+      <div className="flex min-w-0 items-center gap-1.5">
+        <div className="scrollbar-soft flex min-w-0 items-center gap-1.5 overflow-x-auto whitespace-nowrap [&>*]:shrink-0">
+          <CoverSelectedFont editor={editor} font={target.font} />
+          <div className="border-hair flex overflow-hidden rounded-[6px] border">
+            <TbBtn
+              label="B"
+              labelClass="font-bold"
+              title="Bold"
+              active={coverSelectionIsBold(editor.state, target.font)}
+              onClick={() =>
+                editor
+                  .chain()
+                  .focus()
+                  .command(({ tr }) =>
+                    toggleCoverSelectionBold(tr, target.font),
+                  )
+                  .run()
+              }
+            />
+            <TbBtn
+              label="I"
+              labelClass="font-serif italic"
+              labelFont="serif"
+              title="Italic"
+              active={italic}
+              onClick={() =>
+                editor
+                  .chain()
+                  .focus()
+                  .unsetItalic()
+                  .setMark("coverPaint", {
+                    fontStyle: italic ? "normal" : "italic",
+                  })
+                  .run()
+              }
+            />
+            <TbBtn
+              label="U"
+              labelClass="underline"
+              title="Underline"
+              active={editor.isActive("underline")}
+              onClick={() =>
+                editor.chain().focus().toggleMark("underline").run()
+              }
+            />
+          </div>
+          <span className="bg-line h-5 w-px" />
+          <Tray
+            title="Text colour"
+            open={open === "colour"}
+            onClick={() => toggle("colour")}
+          >
+            {/* The current colour as a swatch; a paper ring keeps it legible
+              on the pressed (accent) button. */}
+            <span
+              aria-hidden
+              className="border-hair-warm block h-4 w-4 rounded-full border shadow-[0_0_0_1.5px_var(--color-page)]"
+              style={{ background: colorCss(colour) }}
+            />
+          </Tray>
+          <Tray
+            title="Text shadow"
+            open={open === "shadow"}
+            active={shadow !== "none"}
+            onClick={() => toggle("shadow")}
+          >
+            {/* Same cap-height nudge as the bar's other text labels. */}
+            <span className={CAP_NUDGE.sans}>Shadow</span>
+          </Tray>
+          <span className="bg-line h-5 w-px" />
           <TbBtn
-            label="B"
-            labelClass="font-bold"
-            title="Bold"
-            active={coverSelectionIsBold(editor.state, target.font)}
-            onClick={() =>
-              editor
-                .chain()
-                .focus()
-                .command(({ tr }) => toggleCoverSelectionBold(tr, target.font))
-                .run()
-            }
-          />
-          <TbBtn
-            label="I"
-            labelClass="font-serif italic"
-            labelFont="serif"
-            title="Italic"
-            active={italic}
-            onClick={() =>
-              editor
-                .chain()
-                .focus()
-                .unsetItalic()
-                .setMark("coverPaint", {
-                  fontStyle: italic ? "normal" : "italic",
-                })
-                .run()
-            }
-          />
-          <TbBtn
-            label="U"
-            labelClass="underline"
-            title="Underline"
-            active={editor.isActive("underline")}
-            onClick={() => editor.chain().focus().toggleMark("underline").run()}
+            label="Clear"
+            title="Clear formatting"
+            active={false}
+            onClick={() => editor.chain().focus().unsetAllMarks().run()}
           />
         </div>
-        <span className="bg-line h-5 w-px" />
-        <Tray
-          title="Text colour"
-          open={open === "colour"}
-          onClick={() => toggle("colour")}
-        >
-          {/* The current colour as a swatch; a paper ring keeps it legible
-              on the pressed (accent) button. */}
-          <span
-            aria-hidden
-            className="border-hair-warm block h-4 w-4 rounded-full border shadow-[0_0_0_1.5px_var(--color-page)]"
-            style={{ background: colorCss(colour) }}
-          />
-        </Tray>
-        <Tray
-          title="Text shadow"
-          open={open === "shadow"}
-          active={shadow !== "none"}
-          onClick={() => toggle("shadow")}
-        >
-          {/* Same cap-height nudge as the bar's other text labels. */}
-          <span className={CAP_NUDGE.sans}>Shadow</span>
-        </Tray>
-        <span className="bg-line h-5 w-px" />
-        <TbBtn
-          label="Clear"
-          title="Clear formatting"
-          active={false}
-          onClick={() => editor.chain().focus().unsetAllMarks().run()}
-        />
+        {onAsk && (
+          <div
+            role="group"
+            aria-label="Assistant"
+            className="flex items-center gap-1.5"
+          >
+            <AskControl onSend={onAsk} />
+          </div>
+        )}
       </div>
       {open === "colour" && (
         <div className="border-hair rounded-[6px] border p-2">
@@ -182,6 +205,27 @@ export function CoverTextToolbar({
       )}
     </div>
   );
+}
+
+/** A cover block's bar: the format bar on words, an Ask-only bar on a photo. */
+export function CoverBlockBar({
+  type,
+  appearance,
+  onAsk,
+}: {
+  type: string;
+  appearance?: Required<CoverAppearance>;
+  onAsk?: (text: string) => Promise<SendResult>;
+}) {
+  if (type !== "image" && appearance)
+    return (
+      <CoverTextToolbar
+        appearance={appearance}
+        italicByDefault={type === "text"}
+        onAsk={onAsk}
+      />
+    );
+  return onAsk ? <CoverAskBar onAsk={onAsk} /> : null;
 }
 
 // A toolbar button that opens a tray below the bar. `active` marks a setting
