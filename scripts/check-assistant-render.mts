@@ -6,8 +6,8 @@
 // each measured fill against the editor's own overflow marker on that page;
 // renders a page with an unsaved edit (the picture and the fill change, the
 // database doesn't); and checks the refusals: a published issue, a member, a
-// cross-site request, an oversized body; a logo-library mark and another
-// issue's photo for view_photo.
+// cross-site request, an oversized body, a third render at once; a logo-library
+// mark and another issue's photo for view_photo.
 //
 // SAFETY: shared dev database. It mints its own admin, member, sessions and one
 // draft copy per seed issue; the finally deletes exactly those rows.
@@ -286,6 +286,23 @@ async function checks(page: Page) {
   ok(
     (await post(AI_RENDER_PATH, { ...body, content: broken })).status === 400,
     "content the save path would refuse: 400",
+  );
+
+  heading("Two renders at once; a third is turned away");
+  const three = await Promise.all(
+    [0, 1, 2].map(() => post(AI_RENDER_PATH, { ...body, pages: [1, 2, 3] })),
+  );
+  const codes = three.map((r) => r.status).sort();
+  ok(codes.join() === "200,200,503", `three in parallel: ${codes.join(", ")}`);
+  const busy = three.find((r) => r.status === 503)!;
+  ok(
+    busy.headers.get("retry-after") === "5" &&
+      /^Too many pages/.test(((await busy.json()) as { error: string }).error),
+    "the third says so, with Retry-After",
+  );
+  ok(
+    (await post(AI_RENDER_PATH, body)).status === 200,
+    "and the slots are free again afterwards",
   );
 
   heading("view_photo's photos");

@@ -89,7 +89,7 @@ export function createVision() {
     const [shot] = await picturePages(source, issue, [page]);
     if (!shot)
       return {
-        text: `Error: page ${page} couldn't be pictured just now; carry on without it. No view was used.`,
+        text: `Error: page ${page} couldn't be pictured right now; carry on without it. No view was used.`,
       };
     used++;
     return {
