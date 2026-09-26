@@ -48,11 +48,19 @@ export function toModelMessages(
       part.type === AI_PROJECTION_PART
         ? {
             type: "text",
-            // Page text can't forge the boundary: any copy of it is dropped.
-            text: `${(part.data as AiProjectionData).text.replaceAll(AI_PROJECTION_END, "")}\n\n${AI_PROJECTION_END}`,
+            text: `${withoutBoundary((part.data as AiProjectionData).text)}\n\n${AI_PROJECTION_END}`,
           }
         : undefined,
   });
+}
+
+/** Page text can't forge the boundary: every copy is dropped, including one
+ *  that a single pass would leave behind by nesting it inside another. */
+function withoutBoundary(text: string): string {
+  let out = text;
+  while (out.includes(AI_PROJECTION_END))
+    out = out.replaceAll(AI_PROJECTION_END, "");
+  return out;
 }
 
 export type StreamHooks = {
