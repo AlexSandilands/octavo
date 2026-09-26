@@ -24,6 +24,9 @@ export const FAKE_TRIGGER_ODD_MODEL = "[fake:odd-model]";
 export const FAKE_TRIGGER_SLOW = "[fake:slow]";
 // Replies with the author message's text parts, JSON: what the model was sent.
 export const FAKE_TRIGGER_ECHO = "[fake:echo]";
+// Followed by a JSON array of { toolName, input }: the calls to make, one a
+// turn, before a closing sentence (#310's gates script edits with it).
+export const FAKE_TRIGGER_TOOLS = "[fake:tools]";
 
 type Reply = { text: string; toolCall?: { toolName: string; input: object } };
 
@@ -31,8 +34,32 @@ function textOf(parts: { type: string; text?: string }[]): string[] {
   return parts.flatMap((p) => (p.type === "text" && p.text ? [p.text] : []));
 }
 
+/** The next step of a `[fake:tools]` script, or null without one. */
+function scriptedReply(prompt: LanguageModelV4Prompt): Reply | null {
+  const at = prompt.findLastIndex((m) => m.role === "user");
+  const said = at >= 0 ? textOf(prompt[at]!.content as { type: string }[]) : [];
+  const text = said.find((t) => t.includes(FAKE_TRIGGER_TOOLS));
+  if (!text) return null;
+  let script: Reply["toolCall"][];
+  try {
+    script = JSON.parse(
+      text.slice(text.indexOf(FAKE_TRIGGER_TOOLS) + FAKE_TRIGGER_TOOLS.length),
+    );
+    if (!Array.isArray(script)) throw new Error();
+  } catch {
+    return { text: "The tool script isn't a JSON array." };
+  }
+  const step = prompt.slice(at).filter((m) => m.role === "assistant").length;
+  const call = script[step];
+  return call
+    ? { text: `Step ${step + 1}: ${call.toolName}.`, toolCall: call }
+    : { text: `Done: ${script.length} steps.` };
+}
+
 /** The reply for a prompt; exported so gates can assert the exact wording. */
 export function fakeReply(prompt: LanguageModelV4Prompt): Reply {
+  const scripted = scriptedReply(prompt);
+  if (scripted) return scripted;
   const last = prompt[prompt.length - 1];
   if (last?.role === "tool") {
     const result = last.content.find((p) => p.type === "tool-result");

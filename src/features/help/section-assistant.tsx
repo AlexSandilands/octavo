@@ -1,6 +1,7 @@
 import { Bullets, Callout, GuideSection, P } from "./guide-ui";
 
-// The editing assistant (epic #306). Shown only where the deployment offers it.
+// The editing assistant (epic #306): what it can do, the presets (#310), and
+// Undo. Shown only where the deployment offers it.
 // #314 adds how to see what it costs at the end of this section.
 export function SectionAssistant() {
   return (
@@ -12,10 +13,41 @@ export function SectionAssistant() {
       <P>
         The <strong>Assistant</strong> button (a small sparkle) on the right
         edge of the editor opens a chat beside the page you&rsquo;re working on.
-        You ask in ordinary words, and it answers from the issue in front of it:
-        what&rsquo;s on a page, which pages are nearly full, where an article
-        starts. For now it only reads the issue; it can&rsquo;t change anything
-        yet.
+        You ask in ordinary words, and it answers from the issue in front of it
+        or makes the change for you: tidying a page, turning a list into
+        bullets, rewriting or shortening text, moving or resizing a photo, or
+        carrying the end of a full page onto a new one. Its changes appear on
+        the page as it makes them.
+      </P>
+      <P>
+        Four quick buttons sit above the box where you type. Each asks about the
+        page you have open, or only the block you have selected on it:
+      </P>
+      <Bullets>
+        <li>
+          <strong>Tidy this page</strong> straightens spacing, punctuation and
+          headings without changing your words.
+        </li>
+        <li>
+          <strong>Make bullets</strong> turns a list written as running text
+          into bullet points, keeping every word.
+        </li>
+        <li>
+          <strong>Rewrite for clarity</strong> rewords the text. The wording
+          will change, so read it through.
+        </li>
+        <li>
+          <strong>Shorten to fit</strong> trims a page that runs over until it
+          fits. The wording will change here too.
+        </li>
+      </Bullets>
+      <P>
+        When it has finished, a line in the panel says what changed, such as
+        &ldquo;Changed 3 blocks on pages 4&ndash;5&rdquo;, with an{" "}
+        <strong>Undo</strong> button. Undo, or Ctrl+Z (&#8984;Z on a Mac), takes
+        back everything it did in one step. If it goes round in circles it stops
+        itself and says so; what it had done stays, and can be undone the same
+        way.
       </P>
       <Bullets>
         <li>
@@ -40,8 +72,9 @@ export function SectionAssistant() {
         </li>
       </Bullets>
       <Callout tone="careful" title="You’re responsible for what it writes">
-        The assistant can misread a page or get a detail wrong. Read what it
-        tells you before relying on it, and check the page itself. The
+        The assistant can misread a page or get a detail wrong, and a rewrite
+        can change what a sentence means. Read what it tells you and what it
+        changed before relying on it, and check the page itself. The
         issue&rsquo;s text and photos are sent to the AI service to answer you,
         so don&rsquo;t paste anything into the chat you wouldn&rsquo;t put in
         the magazine.
