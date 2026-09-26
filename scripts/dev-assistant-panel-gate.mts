@@ -120,8 +120,19 @@ async function onChecks(page: Page, pageCount: number) {
   await page.waitForSelector("[data-cover-inspector]");
   ok(true, "the inspector comes back");
   await page.keyboard.press("Enter");
+  // Waited for, as the click is: on a cold server the slide can land late.
   await page.waitForFunction(
-    () => document.activeElement?.id === "assistant-input",
+    (sel) => {
+      const el = document.querySelector(sel);
+      return (
+        el &&
+        !el.hasAttribute("aria-hidden") &&
+        el.clientWidth > 0 &&
+        document.activeElement?.id === "assistant-input"
+      );
+    },
+    PANEL,
+    { timeout: 30_000 },
   );
   ok(
     await panelOpen(page),
