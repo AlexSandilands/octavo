@@ -41,14 +41,14 @@ const adminId = crypto.randomUUID();
 const token = crypto.randomUUID();
 const LOG = '[role="log"]';
 
-type Case = { preset: PresetId; spike: string; select?: "second-text" };
+type Case = { preset: PresetId; fixture: string; select?: "second-text" };
 const CASES: Case[] = [
-  { preset: "tidy", spike: "01-tidy-notices" },
-  { preset: "bullets", spike: "02-make-bullets" },
-  { preset: "rewrite", spike: "11-rewrite-paragraph", select: "second-text" },
-  { preset: "shorten", spike: "04-shorten-to-fit" },
+  { preset: "tidy", fixture: "01-tidy-notices" },
+  { preset: "bullets", fixture: "02-make-bullets" },
+  { preset: "rewrite", fixture: "11-rewrite-paragraph", select: "second-text" },
+  { preset: "shorten", fixture: "04-shorten-to-fit" },
 ];
-type Spike = {
+type Fixture = {
   issue: number;
   page: number;
   setup?: {
@@ -122,7 +122,7 @@ async function saved(id: string): Promise<IssueContent> {
 async function runCase(page: Page, c: Case, issueId: string, pageNo: number) {
   const label = PRESETS.find((p) => p.id === c.preset)!.label;
   console.log(
-    `\n── ${label} (spike ${c.spike}, page ${pageNo}) `.padEnd(74, "─"),
+    `\n── ${label} (case ${c.fixture}, page ${pageNo}) `.padEnd(74, "─"),
   );
   await page.goto(`${base}/admin/issues/${issueId}/edit`);
   await page.waitForSelector('button[aria-label="Assistant"]');
@@ -235,11 +235,14 @@ try {
   ]);
   const page = await ctx.newPage();
   for (const c of CASES) {
-    const spike = JSON.parse(
-      readFileSync(`scripts/fixtures/assistant/cases/${c.spike}.json`, "utf8"),
-    ) as Spike;
-    const content = structuredClone(issues[spike.issue]!.content);
-    const { replacePage, appendToPage } = spike.setup ?? {};
+    const fixture = JSON.parse(
+      readFileSync(
+        `scripts/fixtures/assistant/cases/${c.fixture}.json`,
+        "utf8",
+      ),
+    ) as Fixture;
+    const content = structuredClone(issues[fixture.issue]!.content);
+    const { replacePage, appendToPage } = fixture.setup ?? {};
     if (replacePage)
       content.pages[replacePage.page - 1]!.blocks = replacePage.blocks.map(
         (b) => textBlock(b.markdown),
@@ -251,8 +254,8 @@ try {
     const id = crypto.randomUUID();
     drafts.push(id);
     await sql`insert into issues (id, title, theme, status, content) values
-      (${id}, ${`${tag} ${c.preset}`}, ${issues[spike.issue]!.theme}, 'draft', ${sql.json(content as never)})`;
-    results.push(await runCase(page, c, id, spike.page));
+      (${id}, ${`${tag} ${c.preset}`}, ${issues[fixture.issue]!.theme}, 'draft', ${sql.json(content as never)})`;
+    results.push(await runCase(page, c, id, fixture.page));
     if (mode === "--fake") {
       const [real] = await sql<{ n: number }[]>`
         select count(*)::int as n from ai_usage
