@@ -212,9 +212,9 @@ export async function placePlan(
   return {
     pages,
     text: [
-      `Placed ${written.length === 1 ? "1 section" : `${written.length} sections`} on pages ${formatPages(
+      `Placed ${written.length === 1 ? "1 section" : `${written.length} sections`} on ${last > first ? "pages" : "page"} ${formatPages(
         Array.from({ length: last - first + 1 }, (_, i) => first + i + 1),
-      )}; later pages renumbered: ${where}.`,
+      )}${last + 1 < pages.length ? "; later pages renumbered" : ""}: ${where}.`,
       suggested.length &&
         `${suggested.join("; ")}: the author sees each suggestion.`,
       other.length && `Note: ${other.join("; ")}.`,

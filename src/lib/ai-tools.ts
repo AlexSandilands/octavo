@@ -68,6 +68,8 @@ export type AiInsertItem = z.infer<typeof aiInsertItemSchema>;
 
 // A long paste's plan (#312): one call, placed by the paginator. Headline,
 // kicker and standfirst are separate fields so the model can't blur them.
+// 40 × 20,000 is a per-field ceiling; what one call can hold is bounded by the
+// route's output-token cap, and the page count by MAX_PAGES at placement.
 export const AI_PLAN_MAX_SECTIONS = 40;
 export const AI_PLAN_MAX_BODY = 20_000;
 const planPhoto = z

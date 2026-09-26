@@ -11,12 +11,15 @@ import { estimatePasteUsd } from "./paste-estimate";
 export function PasteConfirm({
   chars,
   model,
+  blocked,
   onContinue,
   onCancel,
 }: {
   chars: number;
   /** The model the estimate is priced on; null until the usage has loaded. */
   model: string | null;
+  /** Nothing can be sent just now: Continue waits. */
+  blocked: boolean;
   onContinue: () => void;
   onCancel: () => void;
 }) {
@@ -48,7 +51,7 @@ export function PasteConfirm({
         me to tidy it. Continue?
       </p>
       <div className="flex gap-2">
-        <Button size="compact" onClick={onContinue}>
+        <Button size="compact" disabled={blocked} onClick={onContinue}>
           Continue
         </Button>
         <Button size="compact" variant="secondary" onClick={onCancel}>

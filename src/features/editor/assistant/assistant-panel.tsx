@@ -135,7 +135,7 @@ export function AssistantPanel({
               </div>
             )}
             <Presets
-              disabled={chat.busy || spent || chat.full}
+              disabled={chat.busy || spent || chat.full || paste !== null}
               cover={cover}
               onPick={(id) => void chat.send(presetMessage(id, target))}
             />
@@ -143,7 +143,11 @@ export function AssistantPanel({
               <PasteConfirm
                 chars={paste.text.length}
                 model={usage?.model ?? null}
+                // A run under way or a full conversation would drop the send:
+                // the question and the text wait instead.
+                blocked={chat.busy || chat.full}
                 onContinue={() => {
+                  if (chat.busy || chat.full) return;
                   paste.clear();
                   setPaste(null);
                   void chat.send(paste.text);

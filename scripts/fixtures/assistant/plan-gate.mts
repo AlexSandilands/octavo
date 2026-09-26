@@ -62,11 +62,19 @@ export async function planChecks({
           where user_id = ${adminId}`
       )[0]!.n,
     );
+  // An inside page, where the presets would otherwise be on.
+  await page.click('button[aria-label="Page 2"]');
   const ledger = await rows();
   const asked = chat.asked.length;
   await page.fill(INPUT, message);
   await page.keyboard.press("Enter");
   await page.waitForSelector(CONFIRM);
+  ok(
+    (await page
+      .locator('button:text-is("Tidy this page")')
+      .getAttribute("aria-disabled")) === "true",
+    "while it asks, the presets are off",
+  );
   const copy = (await page.textContent(CONFIRM)) ?? "";
   ok(
     /cost more than a normal request \(about US\$\d+\.\d\d on the current model\)/.test(

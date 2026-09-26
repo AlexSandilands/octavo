@@ -108,7 +108,11 @@ heading("an empty page takes the first section; sub-heads and photos");
       },
     ],
   });
-  ok(x.pages.length === 2, "the empty page 2 took the section");
+  ok(
+    x.pages.length === 2 &&
+      out.text.startsWith('Placed 1 section on page 2: "Garden" on page 2.'),
+    `the empty page 2 took the section, nothing after it renumbered (${out.text.slice(0, 60)}…)`,
+  );
   ok(
     kinds(x.pages[1]!) ===
       "h:main image text image text h:section text h:paragraph text",
