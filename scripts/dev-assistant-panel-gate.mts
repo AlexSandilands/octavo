@@ -344,6 +344,10 @@ async function onChecks(page: Page, pageCount: number) {
     if (await page.isVisible("text=This conversation is full.")) break;
     await page.fill(INPUT, `${i} ${filler}`);
     await page.keyboard.press("Enter");
+    // Past 4,000 characters it asks first (#312).
+    await page.click(
+      '[data-assistant-paste-confirm] button:text-is("Continue")',
+    );
     await waitIdle(page);
   }
   ok(
