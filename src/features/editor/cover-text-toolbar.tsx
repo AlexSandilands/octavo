@@ -164,7 +164,15 @@ export function CoverTextToolbar({
             onClick={() => editor.chain().focus().unsetAllMarks().run()}
           />
         </div>
-        {onAsk && <AskControl onSend={onAsk} />}
+        {onAsk && (
+          <div
+            role="group"
+            aria-label="Assistant"
+            className="flex items-center gap-1.5"
+          >
+            <AskControl onSend={onAsk} />
+          </div>
+        )}
       </div>
       {open === "colour" && (
         <div className="border-hair rounded-[6px] border p-2">

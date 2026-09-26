@@ -310,29 +310,35 @@ don't redesign it.
 - **Cover tools (built, #313):** `src/lib/ai-cover-tools.ts`, appended after the view tools and lifted from the spike's
   `cover-tools.ts` and `cover-tool-defs.ts`; the editor's side is `assistant/cover-tools.ts`, dispatched by the executor.
   - **Compose:** `set_cover_background` (fill or fit; a former background stays on the cover as an ordinary photo, as the
-    editor's own Fill/Fit does), `clear_cover_background`, `set_masthead` (created top left, extra large, and the
-    automatic magazine-name line turned off), `add_story` (1–6 items, each a real interior heading id or its own
+    editor's own Fill/Fit does), `clear_cover_background`, `set_masthead` (created top left, extra large, after what's
+    there, and the automatic magazine-name line turned off; changed words keep the typeface the inspector set, a line
+    that didn't change keeps all its lettering), `add_story` (1–6 items, each a real interior heading id or its own
     title), `add_details`, `add_logo` (by its library name), `remove_cover_item`.
   - **Place and style:** `place_cover_item` (the 3×3 grid, width, align, text size, order) and `style_cover_item` /
     `style_cover_page` (text colour, panel and panel shape, shadow and its colour, the frame, the automatic
     magazine-name line). **No font or weight arguments:** fonts stay with the cover inspector until a #315 fixture run
     shows the model using them well.
-  - **Which cover.** The compose tools edit the cover open now, else the front cover (page 1), and every result names
-    it. The item tools find their id on any cover and refuse one on an inside page; the page tools keep refusing
+  - **Which cover.** The compose tools edit the cover open now, else the front cover (page 1), and that cover for the
+    rest of the run, wherever the author turns; every result names it. The item tools find their id on any cover and refuse one on an inside page; the page tools keep refusing
     covers and point at the cover tools. There is no page argument, and `cover.md` tells the model the rule.
   - **Validation.** Every item goes through the real cover schemas (`coverElementSchema`, `coverPlacementSchema`), new
     items take the next order after what's there (as the editor's own Add does), and the whole issue is re-validated
-    as for any edit.
+    as for any edit. Only headings, text and photos are placed or styled, as in the inspector; a sponsor, quote or list
+    on a cover is refused. The executor also refuses any edit whose keys the save path's schema would drop, so what
+    the editor shows is always what the issue stores. A cover with no defaults yet takes the editor's own
+    (`coverOverlayOf`: dark type on paper, light and shadowed over a photo). Styling an item whose words the author
+    coloured one by one says those words keep their colour.
   - **Results** end with a one-line summary ("The cover (page 1) now has a background photo, a masthead, 2 stories,
     issue details, 1 logo.") and the editor's own layout warnings in words: a story linked to a heading that's gone,
     an item past the page margin, two items overlapping. The cover is laid out off screen with the reader's
     `PageBlocks` (`measure-page.tsx`) and read with `readCoverWarnings()`, the function the inspector's warnings use.
   - **The run's line** counts cover items and cover-wide changes like blocks, so a cover run gets its Undo line and
-    #342's review.
+    #342's review. `place_cover_item` counts as a move for the circuit-breaker, and a selected cover item stays
+    selected through a run.
   - **Checked** by `check-ai-tools.mts` (`fixtures/assistant/cover-checks.mts`) and the tools gate's cover sequence
     (`assistant-tools-gate-cover.mts`): a Regatta copy with its cover emptied, composed by a fake-provider run, undone
     in one step and redone, then rendered by both readers, the print route and the library thumbnail.
-- **Vision (built, #342):** `view_page` and `view_photo`, the last two tools in the fixed order. The editor answers each with
+- **Vision (built, #342):** `view_page` and `view_photo`, after the page tools and before the cover tools (#313) in the fixed order. The editor answers each with
   a picture inside the tool result (`images` on `AiToolOutput`; `src/features/editor/assistant/vision.ts`):
   - `view_photo({ imageId })` takes only a photo uploaded to the issue (the projection's ids) and returns it as an 800px
     JPEG, with its shape, from `POST /api/admin/ai/photo`. That route takes a photo uploaded to the issue or placed in it,

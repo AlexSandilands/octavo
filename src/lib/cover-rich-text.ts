@@ -80,3 +80,46 @@ export const coverRichFieldsSchema = z
     (fields) => Object.keys(fields).length <= 20,
     "Too many cover text fields",
   );
+
+type PaintAttrs = z.infer<typeof paint>["attrs"];
+const paintsOf = (doc: CoverRichDoc): PaintAttrs[] =>
+  doc.content.flatMap((p) =>
+    (p.content ?? []).flatMap((n) =>
+      n.type === "text"
+        ? (n.marks ?? []).flatMap((m) =>
+            m.type === "coverPaint" ? [m.attrs] : [],
+          )
+        : [],
+    ),
+  );
+
+/** New words in the typeface the old ones were set in (the inspector's choice);
+ *  other per-word paint doesn't carry. Undefined when there's no face to keep. */
+export function carryLettering(
+  text: string,
+  old?: CoverRichDoc,
+): CoverRichDoc | undefined {
+  const face = old && paintsOf(old).find((a) => a.fontFamily || a.fontWeight);
+  if (!face || !text) return undefined;
+  const attrs = {
+    ...(face.fontFamily ? { fontFamily: face.fontFamily } : {}),
+    ...(face.fontWeight ? { fontWeight: face.fontWeight } : {}),
+  };
+  const doc = plainCoverDoc(text);
+  return {
+    ...doc,
+    content: doc.content.map((p) => ({
+      ...p,
+      ...(p.content && {
+        content: p.content.map((n) => ({
+          ...n,
+          marks: [{ type: "coverPaint" as const, attrs }],
+        })),
+      }),
+    })),
+  };
+}
+
+/** Whether any words in these fields carry their own colour. */
+export const hasWordColour = (fields?: Record<string, CoverRichDoc>) =>
+  Object.values(fields ?? {}).some((doc) => paintsOf(doc).some((a) => a.color));

@@ -15,7 +15,8 @@ import {
   type CoverElement,
   type CoverPlacement,
 } from "@/lib/cover-elements";
-import { coverItems, placementOf } from "@/lib/cover-order";
+import { coverItems, coverOverlayOf, placementOf } from "@/lib/cover-order";
+import { carryLettering, hasWordColour } from "@/lib/cover-rich-text";
 import { setCoverBackground } from "../cover-layout";
 import { Refusal, type EditResult } from "./edit-tools";
 import type { EditMeasurer } from "./page-report";
@@ -39,6 +40,8 @@ export type CoverContext = {
   photos: ReadonlySet<string>;
   logos: readonly { id: string; name: string; imageId: string }[];
   measure: EditMeasurer;
+  /** The run's cover, pinned by its first compose call (the page's id). */
+  pin: { id?: string };
 };
 
 const isBackground = (b: Block) =>
@@ -48,10 +51,22 @@ const compact = <T extends object>(o: T) =>
     Object.entries(o).filter(([, v]) => v !== undefined),
   ) as Partial<T>;
 
-/** The cover the compose tools edit: the one open now, else the front cover. */
+/** The cover the compose tools edit: the one open now, else the front cover,
+ *  then that one for the rest of the run, wherever the author turns to. */
 function targetCover(ctx: CoverContext): number {
-  if (ctx.pages[ctx.curPage]?.cover) return ctx.curPage;
-  return ctx.pages[0]?.cover ? 0 : refuse("this issue has no cover page");
+  const pinned = ctx.pages.findIndex((p) => p.id === ctx.pin.id && p.cover);
+  const at =
+    pinned !== -1
+      ? pinned
+      : ctx.pages[ctx.curPage]?.cover
+        ? ctx.curPage
+        : ctx.pages[0]?.cover
+          ? 0
+          : refuse(
+              "neither the page open now nor page 1 is a cover, and only the author can make one",
+            );
+  ctx.pin.id = ctx.pages[at]!.id;
+  return at;
 }
 
 type Item =
@@ -81,17 +96,20 @@ function findItem(pages: Page[], id: string): { pageIdx: number; item: Item } {
   );
 }
 
+/** The order after everything already on the cover. */
+const nextOrder = (page: Page) =>
+  Math.max(
+    0,
+    ...coverItems(page).map((i) => (placementOf(i, page).order ?? 0) + 1),
+  );
+
 /** A new element, validated, after everything already on the cover. */
 function addElement(page: Page, el: CoverElement): Page {
   if ((page.coverElements?.length ?? 0) >= MAX_COVER_ELEMENTS)
     refuse(`the cover already holds ${MAX_COVER_ELEMENTS} items`);
-  const order = Math.max(
-    0,
-    ...coverItems(page).map((i) => (placementOf(i, page).order ?? 0) + 1),
-  );
   const parsed = coverElementSchema.safeParse({
     ...el,
-    placement: { ...el.placement, order },
+    placement: { ...el.placement, order: nextOrder(page) },
   });
   if (!parsed.success)
     refuse(`that item isn't valid: ${parsed.error.issues[0]?.message}`);
@@ -101,11 +119,9 @@ function addElement(page: Page, el: CoverElement): Page {
   };
 }
 
-const overlayOf = (page: Page) => ({
-  style: "light-shadow" as const,
-  position: "top" as const,
-  ...page.coverOverlay,
-});
+// The cover's defaults as the editor reads them: dark type on paper, light and
+// shadowed over a photo.
+const overlayOf = (page: Page) => ({ ...coverOverlayOf(page) });
 
 /** The item's placement with `change`, validated; a background can't be placed. */
 function withPlacement(
@@ -115,6 +131,14 @@ function withPlacement(
 ): Page {
   if (item.kind === "block" && isBackground(item.block))
     refuse("the background fills the page; it can't be placed or styled");
+  // As in the inspector: only headings, text and photos have a placement.
+  if (
+    item.kind === "block" &&
+    !["heading", "text", "image"].includes(item.block.type)
+  )
+    refuse(
+      `a ${item.block.type} block can't be placed or styled on a cover; only headings, text, photos and cover items can`,
+    );
   const current =
     item.kind === "element" ? item.el.placement : placementOf(item.block, page);
   const placement = coverPlacementSchema.parse(change(current));
@@ -179,11 +203,17 @@ function compose(
     }
     case "clear_cover_background": {
       schemas.clear_cover_background.parse(input);
-      if (!page.blocks.some(isBackground))
-        refuse("the cover has no background photo");
+      const bg = page.blocks.find(isBackground);
+      if (!bg || bg.type !== "image")
+        return refuse("the cover has no background photo");
+      const elsewhere = ctx.pages.some(
+        (p) =>
+          p.id !== page.id &&
+          p.blocks.some((b) => b.type === "image" && b.imageId === bg.imageId),
+      );
       return {
         page: { ...page, blocks: page.blocks.filter((b) => !isBackground(b)) },
-        text: "Removed the background; the photo is unplaced again.",
+        text: `Removed the background${elsewhere ? "" : "; the photo is unplaced again"}.`,
       };
     }
     case "set_masthead": {
@@ -192,14 +222,26 @@ function compose(
       const blocks = [...page.blocks];
       if (at !== -1) {
         const old = blocks[at] as Extract<Block, { type: "heading" }>;
-        // Lettering painted onto the old words doesn't carry to new ones.
+        const kicker = a.kicker ?? old.kicker;
+        // Words that change keep the inspector's typeface; per-word paint
+        // doesn't carry to new words. An unchanged line keeps all of it.
+        const richText = { ...old.coverPlacement?.richText };
+        for (const [field, was, now] of [
+          ["title", old.title, a.title],
+          ["kicker", old.kicker, kicker],
+        ] as const) {
+          if (was === now) continue;
+          const kept = carryLettering(now, richText[field]);
+          if (kept) richText[field] = kept;
+          else delete richText[field];
+        }
         blocks[at] = {
           ...old,
           title: a.title,
-          kicker: a.kicker ?? old.kicker,
+          kicker,
           coverPlacement: old.coverPlacement && {
             ...old.coverPlacement,
-            richText: undefined,
+            richText,
           },
         };
       } else
@@ -214,7 +256,7 @@ function compose(
             width: "wide",
             align: "left",
             textSize: "xlarge",
-            order: 0,
+            order: nextOrder(page),
           },
         } as Block);
       // The cover's own masthead replaces the automatic magazine-name line.
@@ -323,7 +365,7 @@ function itemEdit(
   pages: Page[],
   name: AiCoverToolName,
   input: unknown,
-): { pageIdx: number; page: Page; text: string } {
+): { pageIdx: number; page: Page; text: string; moved?: string } {
   const parsed =
     name === "remove_cover_item"
       ? schemas.remove_cover_item.parse(input)
@@ -359,6 +401,7 @@ function itemEdit(
         ...compact({ textSize: a.textSize, order: a.order }),
       })),
       text: `Placed it ${a.row} ${a.column}, ${a.width}, aligned ${a.align}.`,
+      moved: a.id,
     };
   }
   const a = schemas.style_cover_item.parse(input);
@@ -370,13 +413,19 @@ function itemEdit(
     shadow: a.shadow,
     shadowColor: a.shadowColor,
   });
+  const placement =
+    item.kind === "element" ? item.el.placement : placementOf(item.block, page);
+  // Words the author coloured one by one keep their colour over the item's.
+  const kept = a.text && hasWordColour(placement.richText);
   return {
     pageIdx,
     page: withPlacement(page, item, (p) => ({
       ...p,
       appearance: { ...p.appearance, ...paint },
     })),
-    text: "Styled it.",
+    text: kept
+      ? "Styled it, but some of its words have their own colour, set by the author, and keep it."
+      : "Styled it.",
   };
 }
 
@@ -408,7 +457,8 @@ export async function applyCoverTool(
   name: AiCoverToolName,
   input: unknown,
 ): Promise<EditResult> {
-  const edit = ITEM_TOOLS.has(name)
+  const edit: { pageIdx: number; page: Page; text: string; moved?: string } =
+    ITEM_TOOLS.has(name)
     ? itemEdit(ctx.pages, name, input)
     : (() => {
         const pageIdx = targetCover(ctx);
@@ -423,5 +473,6 @@ export async function applyCoverTool(
     pages,
     text: `${edit.text} The cover (page ${edit.pageIdx + 1}) now has ${coverSummary(edit.page)}. ${said}`,
     report: [],
+    moved: edit.moved,
   };
 }

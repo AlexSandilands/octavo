@@ -70,7 +70,9 @@ export function useEditorAssistant({
   return {
     tools,
     ask,
-    /** The side panel's view of it. */
+    /** The side panel's view of it. The target is a block on an inside page,
+     *  for the presets; a cover's only preset works on the whole cover, and a
+     *  cover item's Ask sends its own id. */
     side: {
       issueId,
       published,

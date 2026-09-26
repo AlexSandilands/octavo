@@ -49,6 +49,8 @@ type RunState = {
   last: Page[] | null;
   /** Something else changed the pages mid-run: it stops. */
   interrupted: boolean;
+  /** The cover this run's compose calls edit, once one has (#313). */
+  cover: { id?: string };
 };
 
 const fresh = (): RunState => ({
@@ -57,7 +59,32 @@ const fresh = (): RunState => ({
   step: null,
   last: null,
   interrupted: false,
+  cover: {},
 });
+
+/** The first key an edit set that the save path's schema would drop, if any:
+ *  what the editor shows must be what the issue stores. */
+function droppedKey(set: unknown, kept: unknown, at = "pages"): string | null {
+  if (Array.isArray(set))
+    return set.reduce<string | null>(
+      (found, v, i) =>
+        found ?? droppedKey(v, (kept as unknown[])?.[i], `${at}[${i}]`),
+      null,
+    );
+  if (!set || typeof set !== "object") return null;
+  for (const [key, value] of Object.entries(set)) {
+    if (value === undefined) continue;
+    if (!kept || typeof kept !== "object" || !(key in kept))
+      return `${at}.${key}`;
+    const deeper = droppedKey(
+      value,
+      (kept as Record<string, unknown>)[key],
+      `${at}.${key}`,
+    );
+    if (deeper) return deeper;
+  }
+  return null;
+}
 
 const CHANGED_UNDER_RUN =
   "Error: the issue changed while you were working (the author edited it, or undid your changes), so this run has stopped; nothing more changed.";
@@ -115,6 +142,7 @@ export function createAssistantExecutor({
               photos,
               logos,
               measure,
+              pin: run.cover,
             },
             name,
             input,
@@ -130,6 +158,9 @@ export function createAssistantExecutor({
       });
       if (!valid.success)
         return `Error: that edit would make the issue invalid (${valid.error.issues[0]?.message}); nothing changed.`;
+      const dropped = droppedKey(result.pages, valid.data.pages);
+      if (dropped)
+        return `Error: that edit sets something the issue can't store (${dropped}); nothing changed.`;
       if (handle.state().pages !== before.pages) {
         run.interrupted = true;
         return CHANGED_UNDER_RUN;
@@ -139,8 +170,10 @@ export function createAssistantExecutor({
       run.step ??= before;
       const current = before.pages[before.curPage]?.id;
       const curPage = result.pages.findIndex((p) => p.id === current);
-      const selKept = result.pages.some((p) =>
-        p.blocks.some((b) => b.id === before.sel),
+      const selKept = result.pages.some(
+        (p) =>
+          p.blocks.some((b) => b.id === before.sel) ||
+          p.coverElements?.some((e) => e.id === before.sel),
       );
       await handle.apply(
         {

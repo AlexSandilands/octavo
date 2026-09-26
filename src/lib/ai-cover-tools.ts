@@ -133,7 +133,7 @@ export const aiCoverToolSchemas = {
         .number()
         .int()
         .min(0)
-        .max(100)
+        .max(10000)
         .describe("Stacking order within a cell (lower first).")
         .optional(),
     })

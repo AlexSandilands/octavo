@@ -12,6 +12,7 @@ import { createHash } from "node:crypto";
 import type { Page } from "playwright";
 import type postgres from "postgres";
 import { watchChat, until } from "./fixtures/assistant/tools-gate-kit.mts";
+import { makeBlock } from "../src/lib/blocks";
 
 type Doc = {
   pages: {
@@ -42,8 +43,11 @@ export async function checkCover(d: {
   assert(seed, "the Regatta seed issue is in the database");
   const id = crypto.randomUUID();
   const coverId = crypto.randomUUID();
+  // A sponsor on the cover: the cover tools refuse to place it (it has no
+  // placement to store), then remove it.
+  const sponsor = { ...makeBlock("sponsor"), name: "Chandlery" };
   const pages = [
-    { id: coverId, cover: true, blocks: [] },
+    { id: coverId, cover: true, blocks: [sponsor] },
     ...seed.content.pages.slice(1),
   ];
   const heads = pages
@@ -76,6 +80,40 @@ export async function checkCover(d: {
       (await tab.$('button:text-is("Compose cover")')) !== null &&
         (await tab.$('button:text-is("Tidy this page")')) === null,
       "on a cover the panel offers Compose cover, not the page presets",
+    );
+    await tab.click('button:text-is("Compose cover")');
+    for (const busy of ["true", "false"])
+      await tab.waitForFunction(
+        (v) =>
+          document.querySelector('[role="log"]')?.getAttribute("aria-busy") ===
+          v,
+        busy,
+        { timeout: 60_000 },
+      );
+    ok(
+      chat.asked.at(-1)?.startsWith("Compose the cover on page 1."),
+      `the Compose cover preset sends its message for this cover (${chat.asked.at(-1)?.slice(0, 32)}…)`,
+    );
+    const other = await chat.runScript([
+      {
+        toolName: "place_cover_item",
+        input: {
+          id: sponsor.id,
+          column: "left",
+          row: "top",
+          width: "wide",
+          align: "left",
+        },
+      },
+      { toolName: "remove_cover_item", input: { id: sponsor.id } },
+    ]);
+    ok(
+      other.outputs[0]?.includes("a sponsor block can't be placed") &&
+        other.outputs[1]?.startsWith("Removed it."),
+      `a sponsor on the cover is refused a placement, then removed (${other.outputs[0]?.split(".")[0]})`,
+    );
+    await until("autosave of the removal", async () =>
+      Boolean((await saved()).pages[0]!.blocks.length === 0),
     );
     const run = await chat.runScript(
       [
@@ -254,7 +292,10 @@ async function checkCoverAsk(
     shots ? tab.screenshot({ path: `${shots}/${name}.png` }) : null;
   const item = (id: string) => `[data-cover-element="${id}"]`;
   await tab.click(`${item(storyId)} [role="button"]`);
-  const inBar = `${item(storyId)} [data-block-bar] > div:not(.overflow-x-auto) > [data-ask]`;
+  // Bar > row > [scrolling formats | Assistant group > Ask].
+  const IN_BAR =
+    '[data-block-bar] > div > [aria-label="Assistant"] > [data-ask]';
+  const inBar = `${item(storyId)} ${IN_BAR}`;
   ok(
     await tab.waitForSelector(inBar, { timeout: 5000 }).catch(() => null),
     "a selected story has Ask at the end of its format bar, outside the scrolling row",
@@ -283,10 +324,7 @@ async function checkCoverAsk(
   await tab.click(head);
   ok(
     await tab
-      .waitForSelector(
-        `${head} [data-block-bar] > div:not(.overflow-x-auto) > [data-ask]`,
-        { timeout: 5000 },
-      )
+      .waitForSelector(`${head} ${IN_BAR}`, { timeout: 5000 })
       .catch(() => null),
     "the selected masthead has Ask at the end of its format bar",
   );
@@ -307,10 +345,14 @@ async function checkCoverAsk(
         r.x + r.width <= stage.x + stage.width + 1,
       );
     };
-    const tools = await tab
-      .locator('[data-bar-placement="left"], [data-bar-placement="right"]')
-      .boundingBox()
-      .catch(() => null);
+    const pill = tab.locator(
+      '[data-bar-placement="left"], [data-bar-placement="right"]',
+    );
+    // At 768 with the panel out the tools stand on end (#350's case).
+    const tools = (await pill.count())
+      ? await pill.first().boundingBox()
+      : null;
+    if (width === 768) ok(tools, "at 768 the canvas's tools stand at its edge");
     const bar = await tab
       .locator(`${item(storyId)} [data-block-bar]`)
       .boundingBox();

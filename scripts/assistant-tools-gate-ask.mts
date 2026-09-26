@@ -234,6 +234,37 @@ export async function checkAsk(d: {
   }
 }
 
+/** Until the stage and a block hold still across two frames, with no transition
+ * running: a click right after a resize can land before the canvas re-fits. */
+const settled = (page: Page, id: string) =>
+  page.waitForFunction(
+    (blockId) =>
+      new Promise<boolean>((done) => {
+        const rects = () =>
+          JSON.stringify(
+            ["[data-editor-canvas-stage]", `[data-block-id="${blockId}"]`].map(
+              (sel) => document.querySelector(sel)?.getBoundingClientRect(),
+            ),
+          );
+        const first = rects();
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() =>
+            done(
+              first === rects() &&
+                document
+                  .getAnimations()
+                  .every(
+                    (a) =>
+                      a.playState !== "running" ||
+                      a.effect?.getTiming().iterations === Infinity,
+                  ),
+            ),
+          ),
+        );
+      }),
+    id,
+  );
+
 /** Every bar's Ask and its open box stay inside the canvas and clear of its
  * standing tools, panel open or not. */
 async function checkReach(page: Page, ok: (c: unknown, m: string) => void) {
@@ -275,6 +306,7 @@ async function checkReach(page: Page, ok: (c: unknown, m: string) => void) {
       await page.setViewportSize({ width, height: 900 });
       for (const [name, id, position] of blocks) {
         const ask = `[data-block-id="${id}"] [data-ask] > button`;
+        await settled(page, id);
         await page.click(`[data-block-id="${id}"]`, { position, force: true });
         await page.waitForSelector(ask);
         await page.waitForTimeout(300);

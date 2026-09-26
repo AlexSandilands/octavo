@@ -22,6 +22,8 @@ export function CoverAskBar({
       ref={root}
       data-canvas-chrome
       data-block-bar
+      role="group"
+      aria-label="Assistant"
       onClick={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
       className={`${COVER_BAR} items-center`}

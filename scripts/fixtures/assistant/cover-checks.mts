@@ -5,7 +5,14 @@
 // path's schema and undone in one step, the cover line and warnings in every
 // result, and the run summary counting cover items.
 import { issueContentSchema, CONTENT_VERSION } from "../../../src/lib/blocks";
-import { coverElementSchema } from "../../../src/lib/cover-elements";
+import {
+  DEFAULT_COVER_OVERLAY,
+  coverElementSchema,
+  makeCoverElement,
+} from "../../../src/lib/cover-elements";
+import { makeBlock, type Block, type Page } from "../../../src/lib/blocks";
+import { plainCoverDoc } from "../../../src/lib/cover-rich-text";
+import { RUN_MOVE_LIMIT } from "../../../src/features/editor/assistant/executor";
 import { aiToolSchemas } from "../../../src/lib/ai-tools";
 import * as h from "./tools-harness.mts";
 
@@ -198,4 +205,183 @@ export async function coverChecks() {
     warned.text.includes("links to a section that no longer exists"),
     `the next cover result says so (${warned.text.split("Layout warnings: ")[1]})`,
   );
+  await reviewChecks(lead);
+}
+
+/** The #363 review's cases: what the editor shows is what the issue stores. */
+async function reviewChecks(lead: Block) {
+  heading("cover tools: only headings, text and photos take a placement");
+  const sponsor = { ...makeBlock("sponsor"), name: "Chandlery" } as Block;
+  {
+    const x = harness([{ ...cover, blocks: [sponsor] }, page(lead)]);
+    const before = JSON.stringify(x.pages);
+    const out = await x.run("place_cover_item", {
+      id: sponsor.id,
+      column: "left",
+      row: "top",
+      width: "wide",
+      align: "left",
+    });
+    ok(
+      out.text.includes("a sponsor block can't be placed") &&
+        JSON.stringify(x.pages) === before,
+      `a sponsor on the cover is refused (${out.text.split(".")[0]})`,
+    );
+  }
+
+  heading("cover tools: a paper cover keeps the editor's defaults");
+  {
+    const x = harness([{ ...cover, blocks: [] }, page(lead)]);
+    await x.run("set_masthead", { title: "Regatta" });
+    const o = x.pages[0]!.coverOverlay!;
+    ok(
+      o.style === "dark" && o.position === DEFAULT_COVER_OVERLAY.position,
+      `set_masthead on paper writes dark type at the default position (${o.style}, ${o.position})`,
+    );
+  }
+
+  heading(
+    "cover tools: the masthead keeps its typeface and takes the next order",
+  );
+  {
+    const face = { fontFamily: "hanken-grotesk", fontWeight: 700 } as const;
+    const lettered = (text: string, color?: string) => {
+      const doc = plainCoverDoc(text);
+      doc.content[0]!.content = [
+        {
+          type: "text",
+          text,
+          marks: [{ type: "coverPaint", attrs: { ...face, color } }],
+        },
+      ];
+      return doc;
+    };
+    const masthead = {
+      ...makeBlock("heading"),
+      title: "Old name",
+      kicker: "The club magazine",
+      coverPlacement: {
+        ...makeCoverElement("details").placement,
+        order: 3,
+        richText: {
+          title: lettered("Old name", "#ff0000"),
+          kicker: lettered("The club magazine"),
+        },
+      },
+    } as Block;
+    const x = harness([{ ...cover, blocks: [masthead] }, page(lead)]);
+    await x.run("set_masthead", { title: "Summer Regatta" });
+    const kept = x.pages[0]!.blocks[0]! as Extract<Block, { type: "heading" }>;
+    const title = kept.coverPlacement?.richText?.title;
+    const marks = title?.content[0]?.content?.[0];
+    ok(
+      marks?.type === "text" &&
+        marks.text === "Summer Regatta" &&
+        JSON.stringify(marks.marks) ===
+          JSON.stringify([{ type: "coverPaint", attrs: face }]) &&
+        JSON.stringify(kept.coverPlacement?.richText?.kicker) ===
+          JSON.stringify(lettered("The club magazine")),
+      "new words keep the face and weight, not the colour; the kicker is untouched",
+    );
+    const style = await x.run("style_cover_item", {
+      id: masthead.id,
+      text: "ink",
+    });
+    ok(
+      style.text.includes("their own colour") === false,
+      "with no per-word colour left, styling just says so",
+    );
+    const y = harness([
+      { ...cover, blocks: [{ ...masthead, title: "Old name" } as Block] },
+      page(lead),
+    ]);
+    const coloured = await y.run("style_cover_item", {
+      id: masthead.id,
+      text: "ink",
+    });
+    ok(
+      coloured.text.includes("have their own colour"),
+      `words coloured one by one are reported as keeping it (${coloured.text.split(".")[0]})`,
+    );
+    const z = harness([{ ...cover, blocks: [] }, page(lead)]);
+    await z.run("add_details", { text: "Spring" });
+    await z.run("set_masthead", { title: "Regatta" });
+    const head = z.pages[0]!.blocks.find((b) => b.type === "heading")!;
+    ok(
+      "coverPlacement" in head && (head.coverPlacement?.order ?? 0) > 0,
+      "a new masthead takes the next order, after what's there",
+    );
+  }
+
+  heading("cover tools: placing counts as a move for the breaker");
+  {
+    const x = harness([{ ...cover, blocks: [] }, page(lead)]);
+    x.executor.beginRun();
+    await x.run("add_details", { text: "Spring" });
+    const id = x.pages[0]!.coverElements![0]!.id;
+    const place = (column: string) =>
+      x.run("place_cover_item", {
+        id,
+        column,
+        row: "top",
+        width: "narrow",
+        align: "left",
+      });
+    for (const column of ["left", "right"].slice(0, RUN_MOVE_LIMIT))
+      await place(column);
+    const early = x.executor.breaker();
+    await place("center");
+    ok(
+      early === null && x.executor.breaker() !== null,
+      `placing the same item a ${RUN_MOVE_LIMIT + 1}rd time trips the breaker`,
+    );
+  }
+
+  heading("cover tools: one cover a run; a selected cover item stays selected");
+  {
+    const back = { ...cover, id: "back-cover", blocks: [] } as Page;
+    const x = harness([{ ...cover, blocks: [] }, page(lead), back]);
+    x.set({ pages: x.pages, curPage: 0, sel: null });
+    x.executor.beginRun();
+    await x.run("add_details", { text: "Spring" });
+    const story = x.pages[0]!.coverElements![0]!.id;
+    x.set({ pages: x.pages, curPage: 2, sel: story });
+    const second = await x.run("add_logo", { logo: "club burgee" });
+    ok(
+      second.text.includes("The cover (page 1)") &&
+        !x.pages[2]!.coverElements?.length,
+      "turning to the back cover mid-run leaves the run on the front one",
+    );
+    ok(
+      x.sel === story,
+      "the selected cover item is still selected after the edit",
+    );
+    x.executor.beginRun();
+    const next = await x.run("add_details", { text: "Autumn" });
+    ok(
+      next.text.includes("The cover (page 3)"),
+      "a new run takes the cover open now",
+    );
+  }
+
+  heading("cover tools: clearing a background says where the photo is");
+  {
+    const [shot] = [...photos];
+    const x = harness([{ ...cover, blocks: [] }, page(lead)]);
+    await x.run("set_cover_background", { imageId: shot, fit: "fill" });
+    const alone = await x.run("clear_cover_background", {});
+    await x.run("set_cover_background", { imageId: shot, fit: "fill" });
+    const pic = { ...makeBlock("image"), imageId: shot } as Block;
+    x.set({
+      pages: [x.pages[0]!, page(lead, pic)],
+      curPage: 0,
+      sel: null,
+    });
+    const shared = await x.run("clear_cover_background", {});
+    ok(
+      alone.text.includes("unplaced again") &&
+        !shared.text.includes("unplaced"),
+      "“unplaced again” only when no other page shows it",
+    );
+  }
 }

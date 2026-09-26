@@ -131,6 +131,9 @@ export function harness(pages: Page[]) {
     get pages() {
       return state.pages;
     },
+    get sel() {
+      return state.sel;
+    },
     set(next: EditorSnapshot) {
       state = next;
     },
