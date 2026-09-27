@@ -2,8 +2,9 @@
 
 An assistant in the editor's side panel that edits a draft issue on the author's behalf: it tidies a page, turns notices
 into a list, splits an overflowing page, places photos, lays out a pasted article across new pages, and rewrites or
-shortens when asked. It works through **intent tools** (markdown in, blocks out) that the editor runs against its own
-state, so every change autosaves, is measured and undoes like a keypress, and one author message undoes in one step.
+shortens when asked, from the panel's chat or about one selected block through the **Ask** in that block's bar. It
+works through **intent tools** (markdown in, blocks out) that the editor runs against its own state, so every change
+autosaves, is measured and undoes like a keypress, and one author message undoes in one step.
 Admins only, drafts only. It is **off until `AI_PROVIDER` is set**, and the owner's monthly budget caps what it spends.
 
 History: the design was settled on 2026-09-22 and tested by a throwaway feasibility spike on 2026-09-25 (43 runs on
@@ -18,6 +19,23 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
   minimum wherever 400px would leave the canvas under 520px. Each tool remembers its own width. On a 768px tablet that
   leaves about 305px of canvas, and the page in it is about 173px wide beside the standing tool bar. Once there are
   messages, a **New conversation** action hangs under the Assistant button.
+- **The per-block Ask (#311).** A selected block on an inside page of a draft has **Ask** (the rail's sparkle and
+  the word) as the last control in its own tool bar, after a rule, and last in the bar's tab order. That's the text
+  format bar, the heading, photo, montage, video and sponsor bars, or beside a bare type label. The owner's first browser
+  pass found a free-floating pill above the bar awkward. A bar wider than the canvas used to run off its right edge (the
+  photo bar's Alt field was cut off at common widths); now it slides left to stay inside, and one wider than the whole
+  canvas wraps onto a second row (`use-bar-fit.ts`), so Ask and Alt are always in reach. It isn't offered on a cover
+  (until #313), on a full-page photo (the tools refuse those), on a published issue, or while the assistant is off.
+  It opens a one-line box under the bar's right end, a labelled non-modal `dialog`. **Enter** or **Send** posts `About the selected block [<id>] on page <n>: <words>` to the panel's conversation as an ordinary
+  run. That means the same breaker, the same one-step Undo and the same line. The author's bubble drops the id, as
+  the presets' does. The panel opens (or, already open, takes the focus) so the reply and the line are in view, and
+  the box closes. **Escape**, or a press anywhere else, closes it without sending, and Escape hands focus back to Ask
+  without deselecting the block. Tab and Shift+Tab cycle the box and Send while it's open. The editor's Ctrl/Cmd+Z
+  stands down while the box is open, both for text entry and for the dialog. If the conversation can't take a request
+  (busy, full, or the month spent), nothing is sent: the box keeps the words and says why, and the panel opens on the
+  reason. The chat's `send` reports that before any request (`SendResult`), so the panel's composer also keeps a
+  refused message rather than clearing it. The issue text named `floating-bar.tsx`, which is the canvas's tool pill,
+  not the block's chrome; Ask lives in the block's own bar instead.
 - **On a cover** the assistant stays open (Import PDF doesn't). Opening it hides the cover inspector, closing it
   brings the inspector back, and a line at the top of the panel says so.
 - **States.**
@@ -46,7 +64,7 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
   real-provider smoke covers it: a stop mid tool call, then a request that succeeds and reads the conversation from
   cache.
 - **Usage footer.** "US$1.21 of US$20.00 used this month" (spend rounded up to the cent, as `/admin/ai` shows it), from `GET /api/admin/ai/usage` (admin-only, 404 while off,
-  `resolveBudget()`'s figures), with a link to `/admin/ai`. It is fetched when the panel opens and after every run.
+  `resolveBudget()`'s figures), with a link to `/admin/ai`. It is fetched when the editor opens with the assistant on (so a spent month is known before the first send from either the panel or the Ask box), when the panel opens, and after every run.
 - **Accessibility.** The thread is a `role="log"` region that is `aria-busy` while a reply streams, so the finished
   reply is announced once. Opening puts focus in the composer (or on the drafts-only message), and Close hands it back
   to the rail button. "Thinking…" shows from Send until the reply has words or a tool line to show. A reply opens with
@@ -349,7 +367,8 @@ client-safe.
   turn (`Step n: <tool>.`), then `Done: N steps.` (#310). A `null` step ends that turn with no call, and the script picks
   up again after the editor's end-of-run review, so a gate can edit in the review turn (#342). A review with no script
   gets `Looked over N pages. Nothing needed changing.` `scripts/dev-ai-proxy-gate.mts` and
-  `scripts/dev-assistant-tools-gate.mts` run against it.
+  `scripts/dev-assistant-tools-gate.mts` (with its Ask and breaker halves, `assistant-tools-gate-ask.mts` and
+  `assistant-tools-gate-breaker.mts`) run against it.
 
 ## Budget, access and privacy
 
@@ -474,7 +493,7 @@ npx tsx --tsconfig scripts/tsconfig.json scripts/check-assistant-projection.mts
 # against a running dev server
 npx tsx scripts/dev-ai-proxy-gate.mts <base-url> [<off-base-url>] [--log <server log>]
 npx tsx --tsconfig scripts/tsconfig.json scripts/check-assistant-render.mts <base-url>
-npx tsx --tsconfig scripts/tsconfig.json scripts/dev-assistant-tools-gate.mts <base-url>
+npx tsx --tsconfig scripts/tsconfig.json scripts/dev-assistant-tools-gate.mts <base-url>   # with its Ask and breaker halves
 npx tsx --tsconfig scripts/tsconfig.json scripts/dev-assistant-panel-gate.mts <base-url> [--off]
 npx tsx --tsconfig scripts/tsconfig.json scripts/dev-assistant-presets.mts <base-url> --fake [shots-dir]
 npx tsx scripts/dev-admin-gate.mts <base-url> <dev-log-path>   # includes /admin/ai
@@ -520,4 +539,4 @@ delete their own rows.
   photos or rebalanced to fill them. The review didn't flag it either.
 - **Small cover text over busy photos** (the issue-details line) was missed by the model and by the review.
 - **Meaning drift in rewrites isn't machine-checkable.** Rewrites need the author's read, and the help page says so.
-- Multi-turn follow-ups aren't in the fixture yet.
+- Multi-turn follow-ups aren't in the fixture yet, and the Ask box is checked only against the fake provider so far.
