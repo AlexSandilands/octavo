@@ -2,8 +2,8 @@
 
 An assistant in the editor's side panel that edits a draft issue on the author's behalf: it tidies a page, turns notices
 into a list, splits an overflowing page, places photos (including ones the author attaches to a message), lays out a
-pasted article across new pages, and rewrites or
-shortens when asked, from the panel's chat or about one selected block through the **Ask** in that block's bar. It
+pasted article across new pages, composes and lays out the cover, and rewrites or
+shortens when asked, from the panel's chat or about one selected block or cover item through the **Ask** in its bar. It
 works through **intent tools** (markdown in, blocks out) that the editor runs against its own state, so every change
 autosaves, is measured and undoes like a keypress, and one author message undoes in one step.
 Admins only, drafts only. It is **off until `AI_PROVIDER` is set**, and the owner's monthly budget caps what it spends.
@@ -25,8 +25,12 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
   format bar, the heading, photo, montage, video and sponsor bars, or beside a bare type label. The owner's first browser
   pass found a free-floating pill above the bar awkward. A bar wider than the canvas used to run off its right edge (the
   photo bar's Alt field was cut off at common widths); now it slides left to stay inside, and one wider than the whole
-  canvas wraps onto a second row (`use-bar-fit.ts`), so Ask and Alt are always in reach. It isn't offered on a cover
-  (until #313), on a full-page photo (the tools refuse those), on a published issue, or while the assistant is off.
+  canvas wraps onto a second row (`use-bar-fit.ts`), so Ask and Alt are always in reach. On a cover (#313) Ask ends
+  every selected cover item's bar the same way: a text item's format bar, the story and details bars, and a small bar
+  of its own on a logo or a cover photo; the message says "the selected cover item". Ask sits outside the format bar's
+  scrolling row, so its box is never clipped, and the cover's bars stay on the canvas, clear of the inspector and the
+  standing tool pill (`use-cover-toolbar-bounds.ts`). It isn't offered on a full-page photo or a cover's background
+  (the tools refuse those), on a published issue, or while the assistant is off.
   It opens a one-line box under the bar's right end, a labelled non-modal `dialog`. **Enter** or **Send** posts `About the selected block [<id>] on page <n>: <words>` to the panel's conversation as an ordinary
   run. That means the same breaker, the same one-step Undo and the same line. The author's bubble drops the id, as
   the presets' does. The panel opens (or, already open, takes the focus) so the reply and the line are in view, and
@@ -52,8 +56,8 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
   Stop while a reply is on its way. Nothing is cut silently: from 18,000 characters a count shows, and past the
   route's 20,000 it says how far over and Send is off until the text is shortened. The row under the text starts
   with the Attach photos button, and attached photos show as thumbnails above the text (see Photos and text in the
-  chat). Above it sit #310's four presets (see Runs); on a cover they're off, with a tooltip
-  saying they work on the inside pages. Replies render as plain paragraphs with markdown
+  chat). Above it sit #310's four presets (see Runs); on a cover they give way to one,
+  _Compose cover_ (#313). Replies render as plain paragraphs with markdown
   lists and bold only, never HTML.
 - **The conversation** lives above the panel (`editor-side.tsx`), so closing the panel keeps it. It ends when the editor
   is closed. `src/features/editor/assistant/use-assistant-chat.ts` is the only file that knows `useChat`, the
@@ -114,7 +118,8 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
 - `src/features/editor/assistant/projection.ts` (pure, #309) builds it. Body text is shown as
   markdown by `src/lib/markdown-doc.ts` (`docToMarkdown`; `markdownToDoc` is #310's way back), which round-trips every
   seed text block exactly. Photos appear as their `images.id` plus "landscape 1600×1067", never a url or a file name.
-  Covers are an element list, marked read-only until #313.
+  On a cover it lists the background, the masthead, every item with its id, placement and paint, the interior headings
+  a story can link (id, page, title), the grid and the palette.
 - **The fill is measured, not estimated.** `measurePageFill()` in `page-metrics.ts` reads the geometry the overflow
   marker uses: from the text area's top to the lowest block, against the room above the running footer. Every page is
   laid out off screen in the editor's own presentation (the Import PDF measurer's) and cached per page object
@@ -136,7 +141,7 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
   cached prefix; new tools go at the end), with no refinements so the SDK's JSON schema is exact. The route declares them
   (`src/server/ai-chat-tools.ts`); the editor runs them. `src/features/editor/assistant/edit-tools.ts` is the pure edit; `executor.ts` validates, applies to a copy, re-validates the whole issue with
   `issueContentSchema` and only then commits through the editor (`applyAssistant` in `use-editor-pages.ts`, which reseeds any
-  text editor it changed). A refusal — an unknown id, a cover (#313), a full-page photo, a block the save path would refuse,
+  text editor it changed). A refusal — an unknown id, a cover (the page tools point the model at the cover tools), a full-page photo, a block the save path would refuse,
   an edit the whole issue would fail — comes back as `Error: … Nothing changed.`, which the model reads. Calls run one at a
   time, each waiting for the editor to render the last; if the author edits while a call is being measured, the call is
   refused rather than overwriting them.
@@ -154,12 +159,40 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
   full. "Shorten to fit" was the one preset that underperformed on both models.
 - **Checked** by `scripts/check-ai-tools.mts` (in memory, a stand-in measurer) and `scripts/dev-assistant-tools-gate.mts`
   (a real editor, the fake provider's `[fake:tools]` script, the real measurer).
-- **Cover tools, compose (#313, in review):** `set_cover_background`, `clear_cover_background`, `set_masthead`, `add_story` (items linked to real
-  heading ids), `add_details`, `add_logo`, `remove_cover_item`.
-- **Cover tools, style (#313, in review):** `place_cover_item` (the 3×3 grid, width, align, text size), and `style_cover_item` / `style_cover_page`
-  (text colour, panel and panel shape, shadow). **Fonts and weights stay with the cover inspector** until a fixture run shows
-  the model using them well.
-- **Vision (#342):** `view_page` and `view_photo`, the last two tools in the fixed order. The editor answers each with
+- **Cover tools (#313):** `src/lib/ai-cover-tools.ts`, appended after the view tools; the editor's side is
+  `assistant/cover-tools.ts`, dispatched by the executor.
+  - **Compose:** `set_cover_background` (fill or fit; a former background stays on the cover as an ordinary photo, as the
+    editor's own Fill/Fit does), `clear_cover_background`, `set_masthead` (created top left, extra large, after what's
+    there, and the automatic magazine-name line turned off; changed words keep the typeface the inspector set, a line
+    that didn't change keeps all its lettering), `add_story` (1–6 items, each a real interior heading id or its own
+    title), `add_details`, `add_logo` (by its library name), `remove_cover_item`.
+  - **Place and style:** `place_cover_item` (the 3×3 grid, width, align, text size, order) and `style_cover_item` /
+    `style_cover_page` (text colour, panel and panel shape, shadow and its colour, the frame, the automatic
+    magazine-name line). **No font or weight arguments:** fonts stay with the cover inspector until a fixture run
+    shows the model using them well.
+  - **Which cover.** The compose tools edit the cover open when the author asked, else the front cover (page 1), and
+    that cover for the rest of the run, wherever the author turns; every result names it. The item tools find their id
+    on any cover and refuse one on an inside page; the page tools keep refusing covers and point at the cover tools.
+    There is no page argument, and `cover.md` tells the model the rule.
+  - **Validation.** Every item goes through the real cover schemas (`coverElementSchema`, `coverPlacementSchema`), new
+    items take the next order after what's there (as the editor's own Add does), and the whole issue is re-validated
+    as for any edit. Only headings, text and photos are placed or styled, as in the inspector; a sponsor, quote or list
+    on a cover is refused. The executor also refuses an edit that writes a key the save path's schema would drop, so
+    what the editor shows is always what the issue stores; what was already there, and rich text (where the save
+    trimming Tiptap's attributes is the editor's norm), don't count. A cover with no defaults yet takes the editor's
+    own (`coverOverlayOf`: dark type on paper, light and shadowed over a photo). Styling an item whose words the author
+    coloured one by one says those words keep their colour.
+  - **Results** end with a one-line summary ("The cover (page 1) now has a background photo, a masthead, 2 stories,
+    issue details, 1 logo.") and the editor's own layout warnings in words: a story linked to a heading that's gone,
+    an item past the page margin, two items overlapping. The cover is laid out off screen with the reader's
+    `PageBlocks` (`measure-page.tsx`) and read with `readCoverWarnings()`, the function the inspector's warnings use.
+  - **The run's line** counts cover items and cover-wide changes like blocks, so a cover run gets its Undo line and
+    the review. `place_cover_item` counts as a move for the circuit-breaker, and a selected cover item stays selected
+    through a run.
+  - **Checked** by `check-ai-tools.mts` (`fixtures/assistant/cover-checks.mts`) and the tools gate's cover sequence
+    (`assistant-tools-gate-cover.mts`): a Regatta copy with its cover emptied, composed by a fake-provider run, undone
+    in one step and redone, then rendered by both readers, the print route and the library thumbnail.
+- **Vision (#342):** `view_page` and `view_photo`, after the page tools and before the cover tools in the fixed order. The editor answers each with
   a picture inside the tool result (`images` on `AiToolOutput`; `src/features/editor/assistant/vision.ts`):
   - `view_photo({ imageId })` takes only a photo uploaded to the issue (the projection's ids) and returns it as an 800px
     JPEG, with its shape, from `POST /api/admin/ai/photo`. That route takes a photo uploaded to the issue or placed in it,
@@ -207,7 +240,9 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
 - **Presets (#310)** above the composer: _Tidy this page_, _Make bullets_, _Rewrite for clarity_, _Shorten to fit_
   (`assistant/presets.ts`). Each sends a fixed message for the page open now and, when one is selected, its block — the
   block id rides in brackets for the model and is hidden from the author's bubble. Tidy and Make bullets say to keep every
-  word; Rewrite and Shorten say the wording may change and to keep the facts and the voice. They're off on a cover.
+  word; Rewrite and Shorten say the wording may change and to keep the facts and the voice. A cover gets one preset
+  instead (#313), _Compose cover_: "Compose the cover on page N. Use the issue's strongest story as the lead and keep the
+  current background."
 - **Automatic end-of-run review (#342):** when a run's changes touched the cover or more than one page, the panel
   pictures those pages (the cover first, at most 8) and sends them as one user message. The message is the review text
   (`assistant/review.ts`), then "Page N (fits, ~X% full)" and the picture for each
@@ -372,7 +407,8 @@ client-safe.
   after a smoke run (`scripts/dev-ai-smoke.mts`). Haiku's smoke run can't show cache reads: its minimum cacheable prompt
   (4,096 tokens) is larger than the smoke's requests.
 - **Caching:** the system prompt (`src/server/ai-prompt/`: `base.md`, then `vision.md`, then `cover.md` when those tools
-  exist) and the tool list are byte-stable. `vision.md` is always on since #342, with no env switch, so there is one
+  exist) and the tool list are byte-stable. `vision.md` is always on since #342 and `cover.md` since #313 (`PROMPT_FEATURES` in `src/server/ai-chat-stream.ts`),
+  with no env switch, so there is one
   cached prefix and one configuration for #315's fixture. There is a `cache_control` breakpoint on the system message
   (which covers the tools before it) and one on the newest message, so each request reads the conversation so far from
   cache. The TTL is the default five minutes, which is what the ledger prices cache writes at.
@@ -397,8 +433,8 @@ client-safe.
   turn (`Step n: <tool>.`), then `Done: N steps.` (#310). A `null` step ends that turn with no call, and the script picks
   up again after the editor's end-of-run review, so a gate can edit in the review turn (#342). A review with no script
   gets `Looked over N pages. Nothing needed changing.` `scripts/dev-ai-proxy-gate.mts` and
-  `scripts/dev-assistant-tools-gate.mts` (with its Ask and breaker halves, `assistant-tools-gate-ask.mts` and
-  `assistant-tools-gate-breaker.mts`) run against it.
+  `scripts/dev-assistant-tools-gate.mts` (with its Ask, breaker and cover parts,
+  `assistant-tools-gate-ask.mts`, `assistant-tools-gate-breaker.mts` and `assistant-tools-gate-cover.mts`) run against it.
 
 ## Budget, access and privacy
 
@@ -437,7 +473,7 @@ run** on the new pairing, and the run's table goes in the PR that changes it.
   stated `expectation`, the checks that say it was done (`expect.done`: a list made, a photo placed with its caption,
   pages added under main headings…), what must not happen (overflow, changed wording, forbidden tools, edits on a
   question) and a call budget. Photos are generated art; real ones are passed at run time with `--photos <dir>` and never
-  committed. Cases whose tools don't exist yet say so and print **SKIPPED** with the reason (covers until #313).
+  committed. A case whose tools the route doesn't declare prints **SKIPPED** with the reason; none do now.
 - **The script** is `scripts/check-assistant-models.mts`. It runs each case the way the panel does: the route's own body
   check and model call (`src/server/ai-chat-stream.ts`, the same function the route calls), the editor's real executor
   (`createAssistantExecutor`) and its real measurer, bundled with esbuild into headless Chromium with the app's CSS and
@@ -503,9 +539,10 @@ misses are the known weaknesses below, each with its issue (#355, #360). All cal
   the model in `src/lib/ai-pricing.ts` (the script refuses an unpriced model), then
   `--provider openrouter --model openai/gpt-6-sol --repeat 3`. The price goes in with the run, not before, so no
   untested model is ever priced for the live site.
-- **Cases 12–14 are SKIPPED** until the cover tools (#313) merge. Their cases and checks are already in place and each
-  skip names its reason. #313 deletes `cover` from `MISSING` in `scripts/assistant-models/main.mts` and re-runs the
-  pick with covers and vision on, since covers and new issues are where the models differed most.
+- **Cases 12–14 (covers) run** since #313: `cover` is out of `MISSING` in `scripts/assistant-models/main.mts`, and the
+  route's prompt has `cover.md` on (`PROMPT_FEATURES`, which the fixture reads too). On the fake provider they run and
+  fail with "not done" reasons, since the cases have no fake scripts. The pick with covers and vision on is still to
+  be re-run on real models; covers and new issues are where the models differed most.
 
 ## Verification
 
@@ -513,7 +550,7 @@ None of these spend money except `dev-ai-smoke` and a fixture run on a real prov
 run with `AI_PROVIDER=fake AI_MONTHLY_BUDGET_USD=5 NEXT_PUBLIC_AI_ASSISTANT=1`.
 
 ```sh
-# in memory: the tool contract, edits, refusals, runs, split, feedback, breaker, vision budget
+# in memory: the tool contract, edits, refusals, runs, split, feedback, breaker, vision budget, the cover tools
 npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-tools.mts
 # the ledger and budget arithmetic; runs and their spend
 npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-budget.mts
@@ -523,7 +560,7 @@ npx tsx --tsconfig scripts/tsconfig.json scripts/check-assistant-projection.mts
 # against a running dev server
 npx tsx scripts/dev-ai-proxy-gate.mts <base-url> [<off-base-url>] [--log <server log>]
 npx tsx --tsconfig scripts/tsconfig.json scripts/check-assistant-render.mts <base-url>
-npx tsx --tsconfig scripts/tsconfig.json scripts/dev-assistant-tools-gate.mts <base-url>   # with its Ask and breaker halves
+npx tsx --tsconfig scripts/tsconfig.json scripts/dev-assistant-tools-gate.mts <base-url>   # with its Ask, breaker and cover parts
 npx tsx --tsconfig scripts/tsconfig.json scripts/dev-assistant-panel-gate.mts <base-url> [--off]
 npx tsx --tsconfig scripts/tsconfig.json scripts/dev-assistant-attach-gate.mts <base-url>   # photos attached in the chat
 npx tsx --tsconfig scripts/tsconfig.json scripts/dev-assistant-presets.mts <base-url> --fake [shots-dir]
@@ -568,6 +605,8 @@ delete their own rows.
   it. The fixture met one (Sonnet 5, mid-paste); an idle timeout on the route is #358.
 - **Pages left mostly empty.** Starting every article on a fresh page leaves short pages half blank, and neither model enlarged
   photos or rebalanced to fill them. The review didn't flag it either.
-- **Small cover text over busy photos** (the issue-details line) was missed by the model and by the review.
+- **Cover review misses.** Small cover text over busy photos (the issue-details line) was missed by the model and by
+  the review. In #313's real run (case 13, Sonnet 5, $0.098) the "Also inside" panel sat over the sail and the review
+  said it didn't.
 - **Meaning drift in rewrites isn't machine-checkable.** Rewrites need the author's read, and the help page says so.
 - Multi-turn follow-ups aren't in the fixture yet, and the Ask box is checked only against the fake provider so far.

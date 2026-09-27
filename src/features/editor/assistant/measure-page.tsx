@@ -1,7 +1,11 @@
+import type { ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { flushSync } from "react-dom";
+import { PageBlocks } from "@/features/blocks/page-blocks";
 import { PageFrame, PAGE_H, PAGE_W } from "@/features/blocks/page-frame";
+import { pageFillsCanvas } from "@/features/blocks/layout";
 import { isPageOwning, type Block, type Page } from "@/lib/blocks";
+import { coverSources } from "@/lib/cover-elements";
 import type { MeasurementOptions } from "../pdf-import/measure";
 import { MeasurementBlocks } from "../pdf-import/measurement-blocks";
 import {
@@ -9,6 +13,7 @@ import {
   measurePageOverflow,
   measureTextFlow,
 } from "../page-metrics";
+import { readCoverWarnings } from "../use-cover-layout-warnings";
 import { fillFromMeasure } from "./page-fill";
 import type { EditMeasurer, PageReport, TextLines } from "./page-report";
 
@@ -79,8 +84,8 @@ export function createPageMeasurer(
   let host: HTMLDivElement | null = null;
   let root: Root | null = null;
 
-  /** Lays `blocks` out as one page; returns the block container. */
-  const layout = async (blocks: Block[]): Promise<HTMLElement | null> => {
+  /** Renders one page off screen and waits for its fonts and photos. */
+  const render = async (page: ReactNode): Promise<HTMLElement> => {
     if (!host || !root) {
       host = document.createElement("div");
       host.setAttribute("aria-hidden", "true");
@@ -98,22 +103,7 @@ export function createPageMeasurer(
     }
     const r = root;
     await document.fonts.ready;
-    flushSync(() =>
-      r.render(
-        <PageFrame
-          theme={options.theme}
-          w={PAGE_W}
-          h={PAGE_H}
-          issueNo={options.issueNo}
-          pageNo={1}
-          logo={options.logo}
-          settings={options.settings}
-          clip={false}
-        >
-          <MeasurementBlocks blocks={blocks} options={options} ids />
-        </PageFrame>,
-      ),
-    );
+    flushSync(() => r.render(page));
     await Promise.all(
       [...host.querySelectorAll("img")]
         .filter((img) => !img.complete && !img.getAttribute("height"))
@@ -122,10 +112,29 @@ export function createPageMeasurer(
           return settle(img.decode(), IMAGE_WAIT_MS);
         }),
     );
+    return host;
+  };
+
+  /** Lays `blocks` out as one page; returns the block container. */
+  const layout = async (blocks: Block[]): Promise<HTMLElement | null> => {
+    const laid = await render(
+      <PageFrame
+        theme={options.theme}
+        w={PAGE_W}
+        h={PAGE_H}
+        issueNo={options.issueNo}
+        pageNo={1}
+        logo={options.logo}
+        settings={options.settings}
+        clip={false}
+      >
+        <MeasurementBlocks blocks={blocks} options={options} ids />
+      </PageFrame>,
+    );
     // Body text is measured as Tiptap sets it (see pdf-import/measure.tsx).
-    for (const body of host.querySelectorAll(".rich-text"))
+    for (const body of laid.querySelectorAll(".rich-text"))
       body.classList.add("ProseMirror");
-    return host.querySelector<HTMLElement>("[data-page-frame] > .flow-root");
+    return laid.querySelector<HTMLElement>("[data-page-frame] > .flow-root");
   };
 
   // Nothing stays laid out: its block ids would shadow the canvas's.
@@ -192,6 +201,45 @@ export function createPageMeasurer(
           `[data-block-id="${CSS.escape(blockId)}"] .rich-text`,
         );
         return measureTextFlow(container, blockId, body?.children.length ?? 0);
+      } finally {
+        clear();
+      }
+    },
+    async cover(page, pages) {
+      const sources = coverSources(pages);
+      try {
+        // As the print document sets a cover: the reader's own components.
+        const laid = await render(
+          <PageFrame
+            theme={options.theme}
+            w={PAGE_W}
+            h={PAGE_H}
+            issueNo={options.issueNo}
+            pageNo={1}
+            side="right"
+            logo={options.logo}
+            settings={options.settings}
+            cover={page.cover}
+            coverDecoration={page.coverOverlay?.decoration}
+            coverMasthead={page.coverOverlay?.masthead}
+            bleed={pageFillsCanvas(page)}
+          >
+            <PageBlocks
+              page={page}
+              sources={sources}
+              issueNo={options.issueNo}
+              theme={options.theme}
+              images={options.images}
+              sponsors={options.sponsors}
+            />
+          </PageFrame>,
+        );
+        return readCoverWarnings(
+          page,
+          sources,
+          laid.querySelector<HTMLElement>(".cover-composition"),
+          laid.querySelector<HTMLElement>("[data-page-frame]"),
+        );
       } finally {
         clear();
       }

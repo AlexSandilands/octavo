@@ -1,6 +1,6 @@
 "use client";
 import { CoverTextEditor } from "./cover-text-editor";
-import { CoverTextToolbar } from "./cover-text-toolbar";
+import { CoverBlockBar } from "./cover-text-toolbar";
 import { DEFAULT_COVER_PLACEMENT, nudgeLayer } from "@/lib/cover-elements";
 import { blockFontContext } from "@/lib/cover-fonts";
 import type { CoverAppearance } from "@/lib/cover-appearance";
@@ -149,10 +149,10 @@ export function EditorBlock({
           : { note: "Taller than a whole page", label: undefined };
 
   // The last control in the block's own bar, after a rule; beside a bare type
-  // label, without one. Not on a full-page photo: the tools leave those alone.
+  // label, without one. Not on a full-page photo or a cover's background.
   const barRef = useBarFit<HTMLDivElement>();
   const ask =
-    selected && onAsk && !cover && !bleed ? (
+    selected && onAsk && !bleed ? (
       <AskControl onSend={onAsk} divider={BARRED.has(block.type)} />
     ) : null;
 
@@ -227,10 +227,11 @@ export function EditorBlock({
           onRemove={onRemove}
         />
       )}
-      {coverItem && selected && appearance && block.type !== "image" && (
-        <CoverTextToolbar
+      {coverItem && selected && (
+        <CoverBlockBar
+          type={block.type}
           appearance={appearance}
-          italicByDefault={block.type === "text"}
+          onAsk={bleed ? undefined : onAsk}
         />
       )}
       {selected && !coverItem && (

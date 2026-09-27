@@ -272,6 +272,7 @@ export async function runCase({
       const before = state.pages;
       const output: AiToolOutput = await executor.run(name, part.input, {
         photos: new Set(now.uploads),
+        logos: now.logos,
         read: (args) => readPage(args, now),
         view: (tool, args) =>
           vision.view(tool, args, now, { issueId: "fixture", logoId: null }),

@@ -10,6 +10,7 @@ import {
 } from "@/lib/ai-tools";
 import type { EditorSnapshot } from "../use-editor-history";
 import { applyEdit, Refusal } from "./edit-tools";
+import { applyCoverTool, isCoverTool } from "./cover-tools";
 import { describeReport, type EditMeasurer } from "./page-report";
 import { clip } from "./projection-text";
 
@@ -48,6 +49,8 @@ type RunState = {
   last: Page[] | null;
   /** Something else changed the pages mid-run: it stops. */
   interrupted: boolean;
+  /** The cover this run's compose calls edit, once one has (#313). */
+  cover: { id?: string };
 };
 
 const fresh = (): RunState => ({
@@ -56,7 +59,51 @@ const fresh = (): RunState => ({
   step: null,
   last: null,
   interrupted: false,
+  cover: {},
 });
+
+/** Every object in the issue before an edit: the executor copies only what it
+ *  edits, so an object seen here is one the edit didn't write. */
+export function objectsIn(value: unknown, into = new WeakSet<object>()) {
+  if (value && typeof value === "object" && !into.has(value)) {
+    into.add(value);
+    for (const v of Object.values(value)) objectsIn(v, into);
+  }
+  return into;
+}
+
+/** The first key an edit wrote that the save path's schema would drop, if any:
+ *  what the editor shows must be what the issue stores. What was there before
+ *  isn't the edit's, so it's skipped; so is rich text, where the save trimming
+ *  Tiptap's attributes (a link's target, a list's start) is the editor's norm. */
+export function droppedKey(
+  set: unknown,
+  kept: unknown,
+  before: WeakSet<object>,
+  at = "pages",
+): string | null {
+  if (!set || typeof set !== "object" || before.has(set)) return null;
+  if ((set as { type?: unknown }).type === "doc") return null;
+  if (Array.isArray(set))
+    return set.reduce<string | null>(
+      (found, v, i) =>
+        found ?? droppedKey(v, (kept as unknown[])?.[i], before, `${at}[${i}]`),
+      null,
+    );
+  for (const [key, value] of Object.entries(set)) {
+    if (value === undefined) continue;
+    if (!kept || typeof kept !== "object" || !(key in kept))
+      return `${at}.${key}`;
+    const deeper = droppedKey(
+      value,
+      (kept as Record<string, unknown>)[key],
+      before,
+      `${at}.${key}`,
+    );
+    if (deeper) return deeper;
+  }
+  return null;
+}
 
 const CHANGED_UNDER_RUN =
   "Error: the issue changed while you were working (the author edited it, or undid your changes), so this run has stopped; nothing more changed.";
@@ -73,6 +120,8 @@ function argumentError(name: string, error: ZodError): string {
 export type CallContext = {
   /** Photos uploaded to this issue: the only ones insert_blocks places. */
   photos: ReadonlySet<string>;
+  /** The logo library, for add_logo (#313). */
+  logos: readonly { id: string; name: string; imageId: string }[];
   /** read_page, answered from the projection's own view of the issue. */
   read: (input: unknown) => AiToolOutput;
   /** view_page / view_photo (#342): a picture, within the run's view budget. */
@@ -93,7 +142,7 @@ export function createAssistantExecutor({
   const edit = async (
     name: Exclude<AiToolName, AiReadOnlyTool>,
     input: unknown,
-    photos: ReadonlySet<string>,
+    call: CallContext,
   ): Promise<string> => {
     const before = handle.state();
     // One run is one undo step only while nothing else has changed the pages
@@ -103,17 +152,38 @@ export function createAssistantExecutor({
       return CHANGED_UNDER_RUN;
     }
     try {
-      const result = await applyEdit(
-        { pages: before.pages, photos, measure },
-        name,
-        input,
-      );
+      const { photos, logos } = call;
+      const result = isCoverTool(name)
+        ? await applyCoverTool(
+            {
+              pages: before.pages,
+              curPage: before.curPage,
+              photos,
+              logos,
+              measure,
+              pin: run.cover,
+            },
+            name,
+            input,
+          )
+        : await applyEdit(
+            { pages: before.pages, photos, measure },
+            name,
+            input,
+          );
       const valid = issueContentSchema.safeParse({
         version: CONTENT_VERSION,
         pages: result.pages,
       });
       if (!valid.success)
         return `Error: that edit would make the issue invalid (${valid.error.issues[0]?.message}); nothing changed.`;
+      const dropped = droppedKey(
+        result.pages,
+        valid.data.pages,
+        objectsIn(before.pages),
+      );
+      if (dropped)
+        return `Error: that edit sets something the issue can't store (${dropped}); nothing changed.`;
       if (handle.state().pages !== before.pages) {
         run.interrupted = true;
         return CHANGED_UNDER_RUN;
@@ -123,8 +193,10 @@ export function createAssistantExecutor({
       run.step ??= before;
       const current = before.pages[before.curPage]?.id;
       const curPage = result.pages.findIndex((p) => p.id === current);
-      const selKept = result.pages.some((p) =>
-        p.blocks.some((b) => b.id === before.sel),
+      const selKept = result.pages.some(
+        (p) =>
+          p.blocks.some((b) => b.id === before.sel) ||
+          p.coverElements?.some((e) => e.id === before.sel),
       );
       await handle.apply(
         {
@@ -172,7 +244,7 @@ export function createAssistantExecutor({
     if (tool === "view_page" || tool === "view_photo")
       return call.view(tool, input);
     return {
-      text: clip(await edit(tool, input, call.photos), AI_MAX_TOOL_TEXT),
+      text: clip(await edit(tool, input, call), AI_MAX_TOOL_TEXT),
     };
   };
 
@@ -180,6 +252,9 @@ export function createAssistantExecutor({
     /** A new author message: counters reset, and the next change records a step. */
     beginRun() {
       run = fresh();
+      // A cover open as the author asks is the run's cover from the start.
+      const { pages, curPage } = handle.state();
+      if (pages[curPage]?.cover) run.cover.id = pages[curPage].id;
     },
     run(
       name: string,
@@ -284,6 +359,24 @@ export function summarizeRun(before: Page[], after: Page[]): RunChange | null {
     // A removed block is reported on its page as it stands now.
     const index = after.findIndex((p) => p.id === b.pageId);
     pageNos.push(index >= 0 ? index + 1 : b.page);
+  }
+  // Cover items (#313) count like blocks; a cover-wide change counts once.
+  for (const [i, p] of after.entries()) {
+    const old = before.find((q) => q.id === p.id);
+    if (!old?.cover && !p.cover) continue;
+    const els = new Map((old?.coverElements ?? []).map((e) => [e.id, e]));
+    let n = 0;
+    for (const e of p.coverElements ?? []) {
+      const was = els.get(e.id);
+      if (!was || JSON.stringify(was) !== JSON.stringify(e)) n++;
+      els.delete(e.id);
+    }
+    n += els.size;
+    if (JSON.stringify(old?.coverOverlay) !== JSON.stringify(p.coverOverlay))
+      n = Math.max(n, 1);
+    if (!n) continue;
+    blocks += n;
+    pageNos.push(i + 1);
   }
   const added = after.length - before.length;
   if (!blocks && added <= 0) return null;

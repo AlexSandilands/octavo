@@ -71,12 +71,14 @@ export async function checkCoverEdits(f: CoverFixture, storyId: string) {
   await panel.getByRole("checkbox", { name: "Use cover appearance" }).check();
   await close();
   // Rename a referenced heading through its actual editor, then move its page.
-  await page.getByRole("button", { name: "3", exact: true }).click();
+  await page.getByRole("button", { name: "Page 3", exact: true }).click();
   const title = canvas
     .locator('[data-block-id="community"] [contenteditable="true"]')
     .last();
   await title.fill("People of the club");
-  await page.getByRole("button", { name: "1", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Page 1 (cover)", exact: true })
+    .click();
   await waitSaved(
     (c) =>
       c.pages[2]?.blocks.some(
@@ -84,26 +86,32 @@ export async function checkCoverEdits(f: CoverFixture, storyId: string) {
       ) === true,
   );
   assert((await canvas.innerText()).includes("People of the club"));
-  await page.getByRole("button", { name: "3", exact: true }).click();
+  await page.getByRole("button", { name: "Page 3", exact: true }).click();
   await canvas.locator('[data-block-id="community"]').click();
   await canvas
     .locator('[data-block-id="community"]')
     .getByRole("button", { name: "Delete", exact: true })
     .click();
-  await page.getByRole("button", { name: "1", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Page 1 (cover)", exact: true })
+    .click();
   await clickStory();
   await panel.getByText(/links to a section that no longer exists/).waitFor();
   await close();
   await page.getByRole("button", { name: "Undo", exact: true }).click();
-  await page.getByRole("button", { name: "1", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Page 1 (cover)", exact: true })
+    .click();
   assert((await canvas.innerText()).includes("People of the club"));
   // Restore the original headline with an editor operation for the reader checks.
-  await page.getByRole("button", { name: "3", exact: true }).click();
+  await page.getByRole("button", { name: "Page 3", exact: true }).click();
   await canvas
     .locator('[data-block-id="community"] [contenteditable="true"]')
     .last()
     .fill("Meet the members");
-  await page.getByRole("button", { name: "1", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Page 1 (cover)", exact: true })
+    .click();
   await waitSaved(
     (c) =>
       c.pages[2]?.blocks.some(

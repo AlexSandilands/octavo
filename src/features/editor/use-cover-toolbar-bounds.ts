@@ -24,6 +24,16 @@ export function useCoverToolbarBounds(
         if (before >= after) right = Math.max(left, panel.left - 8);
         else left = Math.min(right, panel.right + 8);
       }
+      // The canvas's tools, standing on end at a narrow canvas's edge.
+      const tools = stage.parentElement
+        ?.querySelector(
+          '[data-bar-placement="left"], [data-bar-placement="right"]',
+        )
+        ?.getBoundingClientRect();
+      if (tools?.width && tools.left < stageRect.left + stageRect.width / 2)
+        left = Math.min(right, Math.max(left, tools.right + 8));
+      else if (tools?.width)
+        right = Math.max(left, Math.min(right, tools.left - 8));
       const style = getComputedStyle(toolbar);
       const pageScale = Number(style.getPropertyValue("--page-scale")) || 1;
       const chromeScale = Number(style.getPropertyValue("--chrome-scale")) || 1;

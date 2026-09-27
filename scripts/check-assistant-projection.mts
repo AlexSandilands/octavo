@@ -65,7 +65,11 @@ for (const seed of buildIssues(ids)) {
     images: shapes,
     // One unplaced upload, so the header's list is exercised.
     uploads: [...placed, spare],
-    logos: SEED_LOGOS.map((l) => ({ id: l.id, name: l.name })),
+    logos: SEED_LOGOS.map((l) => ({
+      id: l.id,
+      name: l.name,
+      imageId: l.imageKey,
+    })),
     sponsorNames: ["Harbour Chandlery"],
     fills: Object.fromEntries(
       seed.content.pages.map((p) => [p.id, standInFill(p)]),

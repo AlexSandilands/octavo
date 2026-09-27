@@ -24,8 +24,8 @@ import type { AssistantModel } from "@/server/ai-provider";
 // Everything that shapes what the provider sees and caches lives here.
 
 // Fixed by what's merged, never by env: one prompt, one cached prefix, and the
-// configuration the fixture tests. Vision is #342's part.
-const PROMPT_FEATURES: PromptFeatures = { vision: true };
+// configuration the fixture tests. Vision is #342's part, the cover #313's.
+const PROMPT_FEATURES: PromptFeatures = { vision: true, cover: true };
 
 /** The system prompt every request sends. */
 export const assistantInstructions = () => systemPrompt(PROMPT_FEATURES);
