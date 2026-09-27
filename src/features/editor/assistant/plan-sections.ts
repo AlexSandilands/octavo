@@ -167,7 +167,8 @@ export async function placePlan(
         ...pages.slice(next),
       ];
     }
-    const fitter = await ctx.measure.fitter();
+    const signal = ctx.signal ?? new AbortController().signal;
+    const fitter = await ctx.measure.fitter(signal);
     try {
       const placed = await paginateImport({
         pages,
@@ -175,7 +176,7 @@ export async function placePlan(
         selected: null,
         inserted: blocks,
         fits: fitter.fits,
-        signal: new AbortController().signal,
+        signal,
       });
       // Only the pages it wrote are new: the rest keep their identity (the
       // paginator hands back parsed copies of every page).

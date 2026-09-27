@@ -26,8 +26,8 @@ export interface EditMeasurer {
   report(page: Page): Promise<PageReport>;
   /** The flow split's metrics for `blockId`, laid out after `blocks`' others. */
   textFlow(blocks: Block[], blockId: string): Promise<TextFlowMetrics | null>;
-  /** The paginator's page test (#312), live until `dispose`. */
-  fitter(): Promise<{ fits: Fits; dispose(): void }>;
+  /** The paginator's page test (#312), live until `dispose` or `signal` aborts. */
+  fitter(signal: AbortSignal): Promise<{ fits: Fits; dispose(): void }>;
 }
 
 const MAX_LAST_LINES = 12;

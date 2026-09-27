@@ -34,6 +34,8 @@ export type EditContext = {
   /** Photos uploaded to this issue, by id: the only ones insert_blocks places. */
   photos: ReadonlySet<string>;
   measure: EditMeasurer;
+  /** The run's: aborted when it ends or is stopped. */
+  signal?: AbortSignal;
 };
 
 export type EditResult = {

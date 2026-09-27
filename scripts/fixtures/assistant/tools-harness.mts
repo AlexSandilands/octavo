@@ -88,10 +88,12 @@ export const measurer: EditMeasurer = {
     return null;
   },
   // The paginator's page test (#312): the same fixed heights.
-  async fitter() {
+  async fitter(signal: AbortSignal) {
     return {
-      fits: async (blocks: Block[], bleed = false) =>
-        bleed || blocks.reduce((y, b) => y + height(b), 0) <= AVAIL,
+      fits: async (blocks: Block[], bleed = false) => {
+        signal.throwIfAborted();
+        return bleed || blocks.reduce((y, b) => y + height(b), 0) <= AVAIL;
+      },
       dispose() {},
     };
   },

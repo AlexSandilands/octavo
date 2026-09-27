@@ -50,6 +50,8 @@ type RunState = {
   interrupted: boolean;
   /** Lines the author's run summary adds (a photo a plan suggested). */
   notes: string[];
+  /** Aborted when the run ends or is stopped: a call still working gives up. */
+  abort: AbortController;
 };
 
 const fresh = (): RunState => ({
@@ -59,8 +61,11 @@ const fresh = (): RunState => ({
   last: null,
   interrupted: false,
   notes: [],
+  abort: new AbortController(),
 });
 
+const STOPPED =
+  "Error: this run was stopped before the edit landed; nothing changed.";
 const CHANGED_UNDER_RUN =
   "Error: the issue changed while you were working (the author edited it, or undid your changes), so this run has stopped; nothing more changed.";
 
@@ -97,6 +102,9 @@ export function createAssistantExecutor({
     photos: ReadonlySet<string>,
   ): Promise<string> => {
     const before = handle.state();
+    const mine = run;
+    // A call that outlives its run (Stop, or a new message) lands nowhere.
+    const gone = () => run !== mine || mine.abort.signal.aborted;
     // One run is one undo step only while nothing else has changed the pages
     // since its last edit: a change between calls stops the run.
     if (run.interrupted || (run.last && before.pages !== run.last)) {
@@ -105,10 +113,11 @@ export function createAssistantExecutor({
     }
     try {
       const result = await applyEdit(
-        { pages: before.pages, photos, measure },
+        { pages: before.pages, photos, measure, signal: mine.abort.signal },
         name,
         input,
       );
+      if (gone()) return STOPPED;
       const valid = issueContentSchema.safeParse({
         version: CONTENT_VERSION,
         pages: result.pages,
@@ -154,6 +163,7 @@ export function createAssistantExecutor({
       }
       return [result.text, lines.join("; ")].filter(Boolean).join(" ");
     } catch (error) {
+      if (gone()) return STOPPED;
       if (error instanceof Refusal)
         return `Error: ${error.message}. Nothing changed.`;
       if (error instanceof ZodError) return argumentError(name, error);
@@ -179,7 +189,12 @@ export function createAssistantExecutor({
   return {
     /** A new author message: counters reset, and the next change records a step. */
     beginRun() {
+      run.abort.abort();
       run = fresh();
+    },
+    /** The run is over (it ended or was stopped): a call still working gives up. */
+    abort() {
+      run.abort.abort();
     },
     run(
       name: string,

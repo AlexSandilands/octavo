@@ -102,12 +102,9 @@ export function useAssistantTools({
         report: async (page) => (await measured()).report(page),
         textFlow: async (blocks, id) => (await measured()).textFlow(blocks, id),
         // A section plan (#312) is fitted by Import PDF's own page test.
-        fitter: async () => {
+        fitter: async (signal) => {
           const { createMeasurer } = await import("../pdf-import/measure");
-          return createMeasurer(
-            latest.current.measure,
-            new AbortController().signal,
-          );
+          return createMeasurer(latest.current.measure, signal);
         },
       },
       handle: {
@@ -144,6 +141,7 @@ export function useAssistantTools({
         : { text: "Error: the editor isn't ready yet. Nothing changed." },
     endRun: () => {
       setRunning(false);
+      executor.current?.abort();
       return executor.current?.summary() ?? null;
     },
     breaker: () => executor.current?.breaker() ?? null,

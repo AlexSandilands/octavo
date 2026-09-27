@@ -132,6 +132,32 @@ heading("an empty page takes the first section; sub-heads and photos");
   );
 }
 
+heading("a placement that outlives its run lands nowhere");
+{
+  const plan = {
+    after: 2,
+    sections: [{ headline: "Late", body: paras(30, "L") }],
+  };
+  for (const [how, end] of [
+    ["Stop", (x: ReturnType<typeof harness>) => x.executor.abort()],
+    ["a new message", (x: ReturnType<typeof harness>) => x.executor.beginRun()],
+  ] as const) {
+    const x = harness([cover, page(textBlock(2))]);
+    const before = JSON.stringify(x.pages);
+    x.executor.beginRun();
+    const placing = x.run("propose_sections", plan);
+    end(x);
+    const out = await placing;
+    ok(
+      out.text.includes("was stopped") &&
+        JSON.stringify(x.pages) === before &&
+        x.history.length === 0 &&
+        x.executor.summary() === null,
+      `after ${how}: nothing placed, no step, no run line (${out.text})`,
+    );
+  }
+}
+
 heading("refusals change nothing");
 {
   const x = harness([cover, page(textBlock(2))]);
