@@ -100,7 +100,11 @@ const planPhoto = z
 export const aiPlanSectionSchema = z
   .object({
     headline: title.describe("The article's title: its headline as written."),
-    kicker: kicker.optional(),
+    kicker: kicker
+      .describe(
+        "Only a 1–4 word label the author wrote on its own line above the headline. Otherwise omit it.",
+      )
+      .optional(),
     standfirst: z
       .string()
       .max(1_000)
@@ -206,7 +210,7 @@ export const aiToolDescriptions: Record<AiToolName, string> = {
   More than 400 visitors came through the hall on Saturday.
   The doors opened at nine…
 → { "headline": "SPRING SHOW DRAWS RECORD CROWD", "standfirst": "More than 400 visitors came through the hall on Saturday.", "body": "The doors opened at nine…" }
-The line in capitals is the headline, never the kicker. The sentence under it is the standfirst, never the headline. Give a kicker (a 1–4 word label such as "Club Notes") only when the author's text has one above the headline. Photos: an issue photo's id, placed after the standfirst or after a body paragraph; without an id it is only a suggestion, reported to the author.`,
+The line in capitals is the headline, never the kicker. The sentence under it is the standfirst, never the headline. That article has no kicker, so the plan has none: give one only when the author wrote a short label on its own line above the headline, and never make one up, not even to match the issue's other pages. Photos: an issue photo's id, placed after the standfirst or after a body paragraph; without an id it is only a suggestion, reported to the author.`,
 };
 
 /** Tools that only read; every other tool edits the issue. */
