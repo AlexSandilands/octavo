@@ -9,6 +9,7 @@ import {
 } from "react";
 import dynamic from "next/dynamic";
 import type { Page } from "@/lib/blocks";
+import { collectImageIds, type ResolvedImage } from "@/lib/images";
 import { AssistantPanel, budgetSpent } from "./assistant/assistant-panel";
 import { assistantEnabled } from "./assistant/enabled";
 import {
@@ -23,6 +24,7 @@ import {
 import type { EditorSnapshot } from "./use-editor-history";
 import type { AssistantTools } from "./assistant/tools";
 import { useAssistantUsage } from "./assistant/use-assistant-usage";
+import { useAttachments } from "./assistant/use-attachments";
 import { SidePanel } from "./side-panel/side-panel";
 import {
   ToolRail,
@@ -82,6 +84,8 @@ export function EditorSide({
     /** The editor's own Undo: a run is one step. */
     undo: () => void;
     historyTop: EditorSnapshot | null;
+    /** A photo attached in the chat (#343) joins the editor's photos. */
+    registerImage: (imageId: string, image: ResolvedImage) => void;
     /** Set here: the Ask box on a block sends through this conversation. */
     askRef: RefObject<AskHandler | null>;
   };
@@ -100,6 +104,14 @@ export function EditorSide({
     tools: assistant.tools,
     onRunEnd: () => void usage.refresh(),
   });
+  // Photos waiting in the composer (#343): here with the conversation, so
+  // closing the panel keeps them. The last run's that no page places now.
+  const attachments = useAttachments({
+    issueId: assistant.issueId,
+    onUploaded: assistant.registerImage,
+  });
+  const placed = new Set(collectImageIds({ pages }));
+  const unplaced = chat.runPhotos.filter((id) => !placed.has(id)).length;
   // Import PDF steps aside on a cover (#287); the assistant stays.
   const shown = tool === "pdf" && cover ? null : tool;
   // An Ask opens the panel on the run (or on why it can't take one); an open
@@ -160,6 +172,8 @@ export function EditorSide({
           <AssistantPanel
             key={opened.count}
             chat={chat}
+            attachments={attachments}
+            unplaced={unplaced}
             published={assistant.published}
             cover={cover}
             usage={usage.usage}

@@ -137,7 +137,7 @@ export const aiToolDescriptions: Record<AiToolName, string> = {
   set_image_layout:
     "Re-align or resize a placed photo. Setting align to full without a width makes it full width (100); setting left/right without a width keeps its width, or uses 45 if it was full width.",
   view_page: `See a picture of one page exactly as members will see it: fonts, photos, the running footer, and the cover as designed, with how full it is. You have ${AI_VIEWS_PER_RUN} views (pages and photos together) per request; use them to check work that text can't show you (a cover, a photo's placement, whether a page looks balanced).`,
-  view_photo: `See one photo uploaded to the issue (placed or not), to learn what it shows before choosing where it goes or writing its alt text. Shares the ${AI_VIEWS_PER_RUN}-view budget with view_page.`,
+  view_photo: `See one photo uploaded to the issue (placed or not), to learn what it shows before choosing where it goes or writing its alt text. Shares the ${AI_VIEWS_PER_RUN}-view budget with view_page, except that your first look at each photo attached to the author's current message uses no view.`,
 };
 
 /** Tools that only read; every other tool edits the issue. */
