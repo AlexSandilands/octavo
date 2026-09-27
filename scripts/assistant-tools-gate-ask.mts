@@ -310,9 +310,20 @@ async function checkReach(page: Page, ok: (c: unknown, m: string) => void) {
       await page.setViewportSize({ width, height: 900 });
       for (const [name, id, position] of blocks) {
         const ask = `[data-block-id="${id}"] [data-ask] > button`;
-        await settled(page, id);
-        await page.click(`[data-block-id="${id}"]`, { position, force: true });
-        await page.waitForSelector(ask);
+        // The layout can still shift after it settles (the tools stand on end
+        // a beat later); selecting again is harmless, so retry a missed click.
+        for (let tries = 1; ; tries++) {
+          await settled(page, id);
+          await page.click(`[data-block-id="${id}"]`, {
+            position,
+            force: true,
+          });
+          const shown = await page
+            .waitForSelector(ask, { timeout: tries < 3 ? 3000 : 30_000 })
+            .catch(() => null);
+          if (shown) break;
+          if (tries === 3) throw new Error(`FAIL: ${name}'s Ask never showed`);
+        }
         await page.waitForTimeout(300);
         await page.click(ask);
         await page.waitForSelector(DIALOG);
