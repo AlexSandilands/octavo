@@ -30,9 +30,9 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
   of its own on a logo or a cover photo; the message says "the selected cover item". Ask sits outside the format bar's
   scrolling row, so its box is never clipped, and the cover's bars stay on the canvas, clear of the inspector and the
   standing tool pill (`use-cover-toolbar-bounds.ts`). A sponsor on a cover isn't a cover item and keeps its own
-  bar, but that bar is placed the same way, and follows the canvas when focus scrolls it (#369); the Ask box under any
-  bar on a cover keeps clear of the inspector too (`use-bar-fit.ts`). It isn't offered on a full-page photo or a cover's background
-  (the tools refuse those), on a published issue, or while the assistant is off.
+  bar, but that bar is placed the same way and follows the canvas when focus scrolls it (#369); the Ask box under any
+  bar on a cover keeps clear of the inspector too (`use-bar-fit.ts`). It isn't offered on a full-page photo or a
+  cover's background (the tools refuse those), on a published issue, or while the assistant is off.
   It opens a one-line box under the bar's right end, a labelled non-modal `dialog`. **Enter** or **Send** posts `About the selected block [<id>] on page <n>: <words>` to the panel's conversation as an ordinary
   run. That means the same breaker, the same one-step Undo and the same line. The author's bubble drops the id, as
   the presets' does. The panel opens (or, already open, takes the focus) so the reply and the line are in view, and

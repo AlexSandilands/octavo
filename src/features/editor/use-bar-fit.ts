@@ -7,13 +7,14 @@ const EDGE = 8;
 
 /**
  * Keeps a selected block's tool bar (or the Ask box under it) inside the
- * canvas and clear of the canvas's standing tools and a cover's inspector, so its last controls (Alt,
- * Ask, Send) are always in reach: one that would run past either side slides
- * back in, and one wider than the room wraps onto a second row. Bars keep one
- * screen size at every zoom (a transform ResizeObserver doesn't see), so this
- * measures on every render as well as on resize, and writes the two styles
- * itself rather than round-trip through state. `active: false` stands it down
- * for a bar another hook places (a cover's, `useCoverToolbarBounds`).
+ * canvas and clear of the canvas's standing tools and a cover's inspector, so
+ * its last controls (Alt, Ask, Send) are always in reach: one that would run
+ * past either side slides back in, and one wider than the room wraps onto a
+ * second row. Bars keep one screen size at every zoom (a transform
+ * ResizeObserver doesn't see), so this measures on every render as well as on
+ * resize, and writes the two styles itself rather than round-trip through
+ * state. `active: false` stands it down for a bar another hook places (a
+ * cover's, `useCoverToolbarBounds`).
  */
 export function useBarFit<T extends HTMLElement>(active = true) {
   const ref = useRef<T>(null);

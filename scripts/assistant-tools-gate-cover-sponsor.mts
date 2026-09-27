@@ -4,9 +4,10 @@
 // the standing tool pill (panel open, 768). At 1440, 900 and 768, panel closed
 // and open, the point at the centre of its Ask must be Ask: after a click
 // selects the sponsor, and again after Tab reaches Ask (focus scrolls the
-// canvas at 768). A real click there opens the box, whose Send is on top too. Runs on a scratch copy of
-// the Regatta cover (masthead, story, details, logo) plus a sponsor, in the
-// caller's signed-in context; the caller deletes the issue.
+// canvas at 768). A real click there opens the box, whose Send is on top too.
+// Runs on a scratch copy of the Regatta cover (masthead, story, details, logo)
+// plus a sponsor, in the caller's signed-in context; the caller deletes the
+// issue.
 import type { BrowserContext } from "playwright";
 import type postgres from "postgres";
 import { makeBlock } from "../src/lib/blocks";
@@ -81,6 +82,10 @@ export async function checkCoverSponsorAsk(d: {
           mouse.mine,
           `${at}: the sponsor's Ask (${mouse.at}) is on top at its centre (${mouse.hit})`,
         );
+        if (d.shots)
+          await tab.screenshot({
+            path: `${d.shots}/cover-sponsor-ask-${width}-panel-${panel ? "open" : "closed"}.png`,
+          });
         const box = (await tab.locator(ask).boundingBox())!;
         await tab.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
         ok(
@@ -94,10 +99,6 @@ export async function checkCoverSponsorAsk(d: {
           send.mine,
           `${at}: its box's Send is on top too, clear of the inspector (${send.hit})`,
         );
-        if (d.shots && width === 768)
-          await tab.screenshot({
-            path: `${d.shots}/cover-sponsor-ask-768-panel-${panel ? "open" : "closed"}.png`,
-          });
         await tab.keyboard.press("Escape");
         // The keyboard's way in: focus scrolls the canvas to show the picker.
         await tab.focus(`${block} button[aria-label="Drag to reorder"]`);
@@ -106,11 +107,15 @@ export async function checkCoverSponsorAsk(d: {
           if (await tab.$eval(ask, (el) => el === document.activeElement))
             break;
         }
+        ok(
+          await tab.$eval(ask, (el) => el === document.activeElement),
+          `${at}: Tab reaches the sponsor's Ask`,
+        );
         await settled(tab, sponsor.id);
         const keys = await onTop();
         ok(
           keys.mine,
-          `${at}: Tab reaches it, and it is still on top (${keys.hit})`,
+          `${at}: reached by Tab, it is still on top (${keys.hit})`,
         );
         await tab.keyboard.press("Escape"); // deselects: the next width starts clean
       }
