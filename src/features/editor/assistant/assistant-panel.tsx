@@ -87,6 +87,7 @@ export function AssistantPanel({
           <AssistantThread
             messages={chat.messages}
             busy={chat.busy}
+            reviewing={chat.reviewing}
             error={
               // Told in the panel's own words: the spent month below, the run
               // cap as the circuit-breaker's message.

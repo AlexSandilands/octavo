@@ -10,6 +10,7 @@ import {
 import {
   AI_CHAT_PATH,
   AI_MAX_CONVERSATION_CHARS,
+  AI_MAX_IMAGES_PER_REQUEST,
   AI_MAX_MESSAGES,
   AI_MAX_TEXT_CHARS,
   AI_PROJECTION_PART,
@@ -21,6 +22,7 @@ import type { AiToolInput, AiToolName, AiToolOutput } from "@/lib/ai-tools";
 import { BREAKER_MESSAGE, type RunSummary } from "./executor";
 import type { AssistantIssue } from "./issue-context";
 import { projection } from "./projection";
+import { reviewPages, reviewParts } from "./review";
 import type { AssistantTools } from "./tools";
 
 // The assistant's conversation (#309): the only file that knows the AI SDK's
@@ -47,6 +49,22 @@ export type AssistantSnapshot = () => Promise<{
 const RUN_MESSAGES = 2;
 /** …and the characters that reply and its tool results may add. */
 const RUN_CHARS = 20_000;
+
+/** Pictures the route counts against AI_MAX_IMAGES_PER_REQUEST: the history's
+ *  own, since it is never trimmed. A run's views and review take what's left. */
+function conversationImages(messages: AssistantMessage[]): number {
+  let images = 0;
+  for (const m of messages)
+    for (const part of m.parts) {
+      if (part.type === "file") images++;
+      else if ("toolCallId" in part)
+        images +=
+          (part.output as AiToolOutput | undefined)?.images?.length ?? 0;
+    }
+  return images;
+}
+/** Below this, a run couldn't show the model two pages: the conversation is full. */
+const MIN_PICTURE_ROOM = 2;
 
 /** Characters the route counts against AI_MAX_CONVERSATION_CHARS (#308). */
 function conversationChars(messages: AssistantMessage[]): number {
@@ -100,6 +118,8 @@ export function useAssistantChat({
   const runId = useRef("");
   const stopped = useRef(false);
   const runOpen = useRef(false);
+  // The run has had its end-of-run review (#342): at most one.
+  const reviewed = useRef(false);
   // The Chat is made once; its callbacks read the latest props through these.
   const latest = useRef({ snapshot, tools, onRunEnd });
   useEffect(() => {
@@ -110,10 +130,12 @@ export function useAssistantChat({
   // What the last run changed, and why it was stopped if the breaker tripped.
   const [summary, setSummary] = useState<RunSummary | null>(null);
   const [stuck, setStuck] = useState<string | null>(null);
+  const [reviewing, setReviewing] = useState(false);
 
   // Idempotent: a failed stream reports through both onError and onFinish.
   const endRun = () => {
     setRunning(false);
+    setReviewing(false);
     if (!runOpen.current) return;
     runOpen.current = false;
     setSummary(latest.current.tools.endRun());
@@ -168,7 +190,11 @@ export function useAssistantChat({
             "state" in p &&
             p.state === "input-available",
         ) || lastAssistantMessageIsCompleteWithToolCalls({ messages });
-      if (isAbort || isError || stopped.current || !continues) endRun();
+      if (isAbort || isError || stopped.current) return endRun();
+      if (continues) return;
+      if (reviewed.current) return endRun();
+      reviewed.current = true;
+      void review();
     },
     onError: (error) => {
       const code = readAiError(error.message).code;
@@ -178,6 +204,34 @@ export function useAssistantChat({
       endRun();
     },
   });
+
+  // One more turn, same run, when the run touched the cover or several pages:
+  // those pages as members will see them, then the model looks them over.
+  // Rendering takes seconds: a Stop, or a Stop and a new message, may land
+  // meanwhile. Stop has ended this run already, and a new run isn't ours to end.
+  const review = async () => {
+    const id = runId.current;
+    const live = () =>
+      runId.current === id && runOpen.current && !stopped.current;
+    try {
+      const { tools, snapshot } = latest.current;
+      const { issue } = await snapshot();
+      if (!live()) return;
+      // The review's pages come out of what the run's views left.
+      const pages = reviewPages(tools.summary(), issue.pages).slice(
+        0,
+        tools.pictureRoom(),
+      );
+      if (!pages.length) return endRun();
+      setReviewing(true);
+      const shots = await tools.picture(pages, issue);
+      if (!live()) return;
+      if (!shots.length) return endRun();
+      await chat.sendMessage({ parts: reviewParts(shots, issue) });
+    } catch {
+      if (live()) endRun();
+    }
+  };
 
   const error: AiError | null = chat.error
     ? readAiError(chat.error.message)
@@ -196,16 +250,21 @@ export function useAssistantChat({
     runId.current = crypto.randomUUID();
     stopped.current = false;
     runOpen.current = true;
+    reviewed.current = false;
     setRunning(true);
     setSummary(null);
     setStuck(null);
+    const room = AI_MAX_IMAGES_PER_REQUEST - conversationImages(chat.messages);
     // Before anything can end the run, so its summary is never the last run's.
-    latest.current.tools.beginRun();
+    latest.current.tools.beginRun(room);
     try {
       const { issue, currentPage } = await latest.current.snapshot();
       const view = projection(issue, currentPage);
       const size = conversationChars(chat.messages) + view.length + text.length;
-      if (size + RUN_CHARS > AI_MAX_CONVERSATION_CHARS) {
+      if (
+        size + RUN_CHARS > AI_MAX_CONVERSATION_CHARS ||
+        room < MIN_PICTURE_ROOM
+      ) {
         setFull(true);
         endRun();
         return;
@@ -247,6 +306,8 @@ export function useAssistantChat({
     summary,
     /** The circuit-breaker's message, when it stopped the last run. */
     stuck,
+    /** The pages it changed are being pictured for its review (#342). */
+    reviewing,
     /** The run was undone: its line goes. */
     dismissRun: () => {
       setSummary(null);

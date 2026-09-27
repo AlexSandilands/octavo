@@ -21,6 +21,14 @@ export function SectionAssistant() {
         the page as it makes them.
       </P>
       <P>
+        It can also look. It can open your photos to put each one beside the
+        story it belongs to, or to describe it for readers who use a screen
+        reader. It can also see a page as members will. When a change runs over
+        the cover or more than one page, it looks over those pages once more
+        before it finishes and tidies anything that reads badly, so a bigger job
+        takes a little longer.
+      </P>
+      <P>
         Four quick buttons sit above the box where you type. Each asks about the
         page you have open, or only the block you have selected on it:
       </P>
@@ -76,9 +84,9 @@ export function SectionAssistant() {
         The assistant can misread a page or get a detail wrong, and a rewrite
         can change what a sentence means. Read what it tells you and what it
         changed before relying on it, and check the page itself. The
-        issue&rsquo;s text and photos are sent to the AI service to answer you,
-        so don&rsquo;t paste anything into the chat you wouldn&rsquo;t put in
-        the magazine.
+        issue&rsquo;s text, its photos and pictures of its pages are sent to the
+        AI service to answer you, so don&rsquo;t paste anything into the chat
+        you wouldn&rsquo;t put in the magazine.
       </Callout>
       <AssistantUsageHelp />
     </GuideSection>

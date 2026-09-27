@@ -68,7 +68,8 @@ function hasSessionCookie(req: NextRequest): boolean {
 
 // The members-only prefixes the auth gate covers (`/`, `/archive`, `/profile`,
 // `/read/:path*`, `/admin/:path*`). The one
-// carve-out is the PDF print route (`/read/[n]/print`): it carries no session
+// carve-out is the print routes (`/read/[n]/print`, and the assistant's draft
+// pictures at `/read/draft/[nonce]/print`, #342): they carry no session
 // cookie (the generator self-fetches over localhost) and would be redirected to
 // /signin here, so it is let through the gate and guarded instead by the
 // internal print token it validates in-route (src/lib/pdf-token.ts) — without a
