@@ -60,3 +60,7 @@ yarn-error.log*
 /scripts/spike/assistant/results/
 /scripts/spike/assistant/.cache/
 /scripts/spike/assistant/photos/
+
+# model-selection fixture output and generated art (#315)
+/scripts/assistant-models/results/
+/scripts/assistant-models/.cache/

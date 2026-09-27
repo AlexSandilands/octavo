@@ -39,6 +39,11 @@ export type AssistantMessage = UIMessage<
   { [N in AiToolName]: { input: AiToolInput<N>; output: AiToolOutput } }
 >;
 
+/** Whether a send was taken, and if not, why: nothing was sent (#311). */
+export type SendResult =
+  | { ok: true }
+  | { ok: false; reason: "invalid" | "busy" | "full" | "spent" | "failed" };
+
 /** The issue as it stands, with every page's fill measured, and the page open now. */
 export type AssistantSnapshot = () => Promise<{
   issue: AssistantIssue;
@@ -239,14 +244,17 @@ export function useAssistantChat({
   const busy =
     running || chat.status === "submitted" || chat.status === "streaming";
 
-  /** Resolves true once the message is in the thread; false if it wasn't taken. */
-  const send = async (request: string): Promise<boolean> => {
+  /** Sends a run, or says (before any request) why it wasn't taken. */
+  const send = async (request: string): Promise<SendResult> => {
     // The composer holds anything longer back; the route would refuse it.
     const text = request.trim();
-    if (!text || text.length > AI_MAX_TEXT_CHARS || busy || full) return false;
+    if (!text || text.length > AI_MAX_TEXT_CHARS)
+      return { ok: false, reason: "invalid" };
+    if (busy) return { ok: false, reason: "busy" };
+    if (full) return { ok: false, reason: "full" };
     if (chat.messages.length + RUN_MESSAGES > AI_MAX_MESSAGES) {
       setFull(true);
-      return false;
+      return { ok: false, reason: "full" };
     }
     runId.current = crypto.randomUUID();
     stopped.current = false;
@@ -268,10 +276,10 @@ export function useAssistantChat({
       ) {
         setFull(true);
         endRun();
-        return false;
+        return { ok: false, reason: "full" };
       }
-      // Taken once it's in the thread; the reply streams on without us.
-      void chat
+      // Taken: the reply streams on without holding the caller.
+      chat
         .sendMessage({
           parts: [
             { type: AI_PROJECTION_PART, data: { text: view } },
@@ -280,10 +288,10 @@ export function useAssistantChat({
         })
         // useChat reports request failures through `error` and onError.
         .catch(endRun);
-      return true;
+      return { ok: true };
     } catch {
       endRun();
-      return false;
+      return { ok: false, reason: "failed" };
     }
   };
 

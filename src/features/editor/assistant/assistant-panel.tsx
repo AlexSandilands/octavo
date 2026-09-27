@@ -50,9 +50,7 @@ export function AssistantPanel({
 }) {
   const input = useRef<HTMLTextAreaElement>(null);
   const notice = useRef<HTMLDivElement>(null);
-  const spent =
-    chat.error?.code === "budget_spent" ||
-    (usage !== null && usage.remaining <= 0);
+  const spent = budgetSpent(chat, usage);
   const blocked = published || spent || chat.full;
   // A long message waiting on the cost question (#312).
   const [paste, setPaste] = useState<{
@@ -158,7 +156,7 @@ export function AssistantPanel({
                   if (chat.busy || chat.full) return;
                   // The paste goes only once the chat has taken it: a full
                   // conversation leaves it in the box.
-                  if (!(await chat.send(paste.text))) return;
+                  if (!(await chat.send(paste.text)).ok) return;
                   paste.clear();
                   setPaste(null);
                   input.current?.focus();
@@ -173,7 +171,7 @@ export function AssistantPanel({
               inputRef={input}
               busy={chat.busy}
               disabled={spent || chat.full}
-              onSend={(text) => void chat.send(text)}
+              onSend={chat.send}
               onLongPaste={(text, clear) => setPaste({ text, clear })}
               holding={paste !== null}
               onStop={chat.stop}
@@ -195,6 +193,14 @@ export function AssistantPanel({
     </div>
   );
 }
+
+/** The month's budget is spent: nothing more can be sent. */
+export const budgetSpent = (
+  chat: Pick<ReturnType<typeof useAssistantChat>, "error">,
+  usage: AiUsageSummary | null,
+) =>
+  chat.error?.code === "budget_spent" ||
+  (usage !== null && usage.remaining <= 0);
 
 // The quick requests (#310): one tap sends a fixed message for the page open
 // now (see presets.ts). Not on a cover, where the page tools don't reach.
