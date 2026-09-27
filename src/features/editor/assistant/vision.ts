@@ -28,6 +28,13 @@ import { shape } from "./projection-text";
 /** What the page pictures need beyond the issue the projection reads. */
 export type VisionSource = { issueId: string; logoId: string | null };
 
+/** Below this, a run couldn't show the model two pages: the conversation is full. */
+export const MIN_PICTURE_ROOM = 2;
+/** Whether a run fits the conversation's picture room: two pages to look at,
+ *  and a first look at each photo attached to its message (#368). */
+export const roomForRun = (room: number, photos: number) =>
+  room >= MIN_PICTURE_ROOM + photos;
+
 const views = (n: number) => `${n} view${n === 1 ? "" : "s"} left`;
 
 async function post<T>(path: string, body: unknown): Promise<T | null> {

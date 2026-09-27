@@ -25,6 +25,7 @@ import type { AssistantIssue } from "./issue-context";
 import { projection } from "./projection";
 import { reviewPages, reviewParts } from "./review";
 import type { AssistantTools } from "./tools";
+import { roomForRun } from "./vision";
 
 // The assistant's conversation (#309): the only file that knows the AI SDK's
 // client side — `useChat`, the transport and the stream's parts — so leaving the
@@ -69,8 +70,6 @@ function conversationImages(messages: AssistantMessage[]): number {
     }
   return images;
 }
-/** Below this, a run couldn't show the model two pages: the conversation is full. */
-const MIN_PICTURE_ROOM = 2;
 
 /** Characters the route counts against AI_MAX_CONVERSATION_CHARS (#308). */
 function conversationChars(messages: AssistantMessage[]): number {
@@ -291,7 +290,7 @@ export function useAssistantChat({
         conversationChars(chat.messages) + view.length + words.join("").length;
       if (
         size + RUN_CHARS > AI_MAX_CONVERSATION_CHARS ||
-        room < MIN_PICTURE_ROOM
+        !roomForRun(room, photos.length)
       ) {
         setFull(true);
         endRun();

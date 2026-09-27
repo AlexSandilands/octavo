@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { DialogShell } from "@/components/dialog-shell";
 import { Icon } from "@/components/icons";
 import { Button, IconButton } from "@/components/ui";
+import { imageUploadRefusal } from "@/lib/image-upload-limits";
 import type { LogoListItem } from "@/lib/logos";
 import {
   createLogoAction,
@@ -41,8 +42,11 @@ export function LogoDialog({
     const file = e.target.files?.[0];
     e.target.value = ""; // allow re-picking the same file after an error
     if (!file) return;
+    // A file the route would refuse isn't sent; it says why in the same words.
+    const refused = imageUploadRefusal(file);
+    setError(refused);
+    if (refused) return;
     setUploading(true);
-    setError(null);
     try {
       const body = new FormData();
       body.append("file", file);
