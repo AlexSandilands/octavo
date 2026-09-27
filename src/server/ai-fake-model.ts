@@ -14,7 +14,8 @@ import type {
 // the author's message fails the request before it streams, "[fake:drop]"
 // fails it midway, so gates can reach the failure copy; "[fake:slow]" takes
 // its time; "[fake:odd-model]" reports a model id with no price; "[fake:echo]"
-// replies with the author message's text parts as the model got them.
+// replies with the author message's text parts as the model got them;
+// "[fake:stall]" goes quiet mid-reply until the route gives up on it.
 
 export const FAKE_TRIGGER_FAIL = "[fake:fail]";
 export const FAKE_TRIGGER_DROP = "[fake:drop]";
@@ -29,8 +30,18 @@ export const FAKE_TRIGGER_ECHO = "[fake:echo]";
 // step ends that turn with no call; the script picks up after the editor's
 // end-of-run review, so a gate can edit in the review turn too (#342).
 export const FAKE_TRIGGER_TOOLS = "[fake:tools]";
+// Streams the reply's text, then nothing until the request is aborted, as a
+// stalled provider did in #315's fixture (#358). A script step "stall" does
+// the same on that turn.
+export const FAKE_TRIGGER_STALL = "[fake:stall]";
+export const FAKE_STALL_ABORTED =
+  "The fake provider's stalled request was aborted.";
 
-type Reply = { text: string; toolCall?: { toolName: string; input: object } };
+type Reply = {
+  text: string;
+  toolCall?: { toolName: string; input: object };
+  stall?: boolean;
+};
 
 type Message = LanguageModelV4Prompt[number];
 /** The editor's end-of-run review (#342) carries the pages as pictures. */
@@ -48,7 +59,7 @@ function scriptedReply(prompt: LanguageModelV4Prompt): Reply | null {
   const said = at >= 0 ? textOf(prompt[at]!.content as { type: string }[]) : [];
   const text = said.find((t) => t.includes(FAKE_TRIGGER_TOOLS));
   if (!text) return null;
-  let script: (Reply["toolCall"] | null)[];
+  let script: (Reply["toolCall"] | null | "stall")[];
   try {
     script = JSON.parse(
       text.slice(text.indexOf(FAKE_TRIGGER_TOOLS) + FAKE_TRIGGER_TOOLS.length),
@@ -61,6 +72,8 @@ function scriptedReply(prompt: LanguageModelV4Prompt): Reply | null {
   if (step < script.length && script[step] === null)
     return { text: `Stopping after step ${step}.` };
   const call = script[step];
+  if (call === "stall")
+    return { text: `Step ${step + 1}: stalling.`, stall: true };
   return call
     ? { text: `Step ${step + 1}: ${call.toolName}.`, toolCall: call }
     : { text: `Done: ${script.length} steps.` };
@@ -146,6 +159,7 @@ export function createFakeModel(): LanguageModelV4 {
         throw new Error("The fake provider was asked to fail.");
       const reply = fakeReply(options.prompt);
       const slow = said.includes(FAKE_TRIGGER_SLOW);
+      const stall = reply.stall || said.includes(FAKE_TRIGGER_STALL);
       const parts: LanguageModelV4StreamPart[] = [
         { type: "stream-start", warnings: [] },
         {
@@ -178,6 +192,26 @@ export function createFakeModel(): LanguageModelV4 {
           .map((delta) => ({ type: "text-delta" as const, id: "t1", delta })),
         { type: "text-end", id: "t1" },
       ];
+      if (stall) {
+        const signal = options.abortSignal;
+        return {
+          stream: new ReadableStream<LanguageModelV4StreamPart>({
+            async pull(controller) {
+              const part = parts.shift();
+              if (part) return controller.enqueue(part);
+              // Quiet until aborted, then fail as fetch does on an abort.
+              await new Promise<void>((_, reject) => {
+                const abort = () => {
+                  console.warn(FAKE_STALL_ABORTED);
+                  reject(signal!.reason);
+                };
+                if (signal?.aborted) abort();
+                else signal?.addEventListener("abort", abort, { once: true });
+              });
+            },
+          }),
+        };
+      }
       if (said.includes(FAKE_TRIGGER_DROP)) {
         parts.push({
           type: "error",

@@ -141,6 +141,11 @@ const runtimeBaseSchema = z.object({
   // never NEXT_PUBLIC_. AI_MODEL defaults to DEFAULT_ANTHROPIC_MODEL on anthropic.
   AI_PROVIDER: unsetIfBlank(z.enum(AI_PROVIDERS).optional()),
   AI_MODEL: unsetIfBlank(z.string().max(100).optional()),
+  // Gates only: shortens the chat route's idle timeout (#358) on
+  // AI_PROVIDER=fake so a stall case needn't wait a minute. Ignored otherwise.
+  AI_IDLE_TIMEOUT_MS: unsetIfBlank(
+    z.coerce.number().int().min(500).max(60_000).optional(),
+  ),
   ANTHROPIC_API_KEY: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
   OPENROUTER_API_KEY: z.string().optional(),

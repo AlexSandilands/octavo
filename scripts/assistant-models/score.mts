@@ -14,7 +14,8 @@ import {
 import { richTextToPlain } from "../../src/lib/rich-text-doc.ts";
 import type { PageFill } from "../../src/features/editor/assistant/page-fill.ts";
 import type { Case } from "../fixtures/assistant/cases.mts";
-import { claimFailures, doneFailures } from "./checks.mts";
+import { claimFailures } from "./claims.mts";
+import { doneFailures } from "./checks.mts";
 import type { CaseRun } from "./conversation.mts";
 
 export type Score = {

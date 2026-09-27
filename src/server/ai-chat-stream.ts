@@ -70,6 +70,39 @@ function withoutBoundary(text: string): string {
   return out;
 }
 
+// No chunk from the provider for this long and the request is abandoned as
+// provider_down (#358). A silent think is idle too: the spike's slowest reply
+// was ~49s, and the one stall the fixture met lasted five minutes.
+export const AI_IDLE_TIMEOUT_MS = 60_000;
+
+/** Aborts its signal once `reset` hasn't been called for `ms`; `stop`
+ *  disarms it for good. Armed from the start. */
+export function idleTimer(ms: number) {
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let stopped = false;
+  const reset = () => {
+    if (stopped) return;
+    clearTimeout(timer);
+    timer = setTimeout(
+      () =>
+        controller.abort(
+          new DOMException(`No chunk for ${ms}ms`, "TimeoutError"),
+        ),
+      ms,
+    );
+  };
+  reset();
+  return {
+    signal: controller.signal,
+    reset,
+    stop: () => {
+      stopped = true;
+      clearTimeout(timer);
+    },
+  };
+}
+
 export type StreamHooks = {
   onChunk?: (chunk: { type: string; text?: string; delta?: string }) => void;
   onEnd?: (
@@ -81,7 +114,8 @@ export type StreamHooks = {
 };
 
 /** The reply as the UI message stream the panel reads; failures arrive as
- *  its error text, `{ error, code }` JSON. */
+ *  its error text, `{ error, code }` JSON. A provider that goes quiet for the
+ *  idle timeout has its request aborted and fails as provider_down. */
 export function streamAssistant({
   config,
   messages,
@@ -93,6 +127,12 @@ export function streamAssistant({
   abortSignal?: AbortSignal;
   hooks?: StreamHooks;
 }): ReadableStream<UIMessageChunk> {
+  // Every chunk resets it, thinking included; firing aborts the provider's
+  // request, which streamText reports as an abort.
+  const idleMs = config.idleTimeoutMs ?? AI_IDLE_TIMEOUT_MS;
+  const idle = idleTimer(idleMs);
+  abortSignal?.addEventListener("abort", idle.stop, { once: true });
+  const stalled = () => idle.signal.aborted && !abortSignal?.aborted;
   const result = streamText({
     model: config.model,
     // Byte-stable, with a breakpoint: the tools and prompt are cached once.
@@ -107,11 +147,22 @@ export function streamAssistant({
     providerOptions: config.providerOptions,
     maxOutputTokens: AI_MAX_OUTPUT_TOKENS,
     maxRetries: 1,
-    abortSignal,
-    onChunk: ({ chunk }) => hooks.onChunk?.(chunk),
-    onEnd: (event) =>
-      hooks.onEnd?.(event.usage, event.finalStep?.response.modelId),
-    onAbort: () => hooks.onAbort?.(),
+    abortSignal: abortSignal
+      ? AbortSignal.any([abortSignal, idle.signal])
+      : idle.signal,
+    onChunk: ({ chunk }) => {
+      idle.reset();
+      hooks.onChunk?.(chunk);
+    },
+    onEnd: (event) => {
+      idle.stop();
+      return hooks.onEnd?.(event.usage, event.finalStep?.response.modelId);
+    },
+    // Metered as a stopped reply is: an estimate.
+    onAbort: () => {
+      idle.stop();
+      return hooks.onAbort?.();
+    },
     onError: () => hooks.onError?.(),
   });
   return toUIMessageStream({
@@ -122,5 +173,21 @@ export function streamAssistant({
       if (code === "provider_down") console.error("AI chat failed", error);
       return JSON.stringify(aiError(code));
     },
-  });
+  }).pipeThrough(
+    // A stall reads as the provider failing, not as the author's Stop.
+    new TransformStream<UIMessageChunk, UIMessageChunk>({
+      transform(chunk, controller) {
+        if (chunk.type !== "abort" || !stalled())
+          return controller.enqueue(chunk);
+        console.error(
+          `AI chat stalled: nothing from the provider for ${idleMs / 1000}s; request aborted`,
+        );
+        controller.enqueue({
+          type: "error",
+          errorText: JSON.stringify(aiError("provider_down")),
+        });
+      },
+      flush: () => idle.stop(),
+    }),
+  );
 }
