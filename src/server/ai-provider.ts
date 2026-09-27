@@ -22,6 +22,8 @@ export type AssistantModel = {
   model: LanguageModel;
   reasoning: typeof REASONING;
   providerOptions: SharedV4ProviderOptions;
+  /** Overrides the chat route's idle timeout (fake provider, gates only). */
+  idleTimeoutMs?: number;
 };
 
 export type AssistantProvider = (typeof AI_PROVIDERS)[number];
@@ -36,11 +38,13 @@ export function assistantModel(): AssistantModel | null {
     openrouter: env.OPENROUTER_API_KEY,
     fake: undefined,
   };
-  return createAssistantModel({
+  const model = createAssistantModel({
     provider,
     modelId: env.AI_MODEL,
     apiKey: keys[provider],
   });
+  const idleTimeoutMs = provider === "fake" ? env.AI_IDLE_TIMEOUT_MS : null;
+  return idleTimeoutMs ? { ...model, idleTimeoutMs } : model;
 }
 
 /** A provider's model with the assistant's settings. `modelId` is required

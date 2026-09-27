@@ -3,11 +3,13 @@
 //   AI_PROVIDER=fake AI_MONTHLY_BUDGET_USD=5 PORT=3308 npm run dev
 // It checks access (signed out, member, cross-origin, published, missing), the
 // body limits, a two-turn tool round trip read the way useChat reads it, the
-// failure copy mid-stream, the per-run cap, the monthly budget and both rate
-// limits, and that every request left an ai_usage row for its run. Pass a
-// second URL, a server with AI_PROVIDER unset, to check the route 404s there,
-// and --log <file>, the server's output, to check a refused body's content
-// never reaches the log.
+// failure copy mid-stream, a stalled reply ended by the idle timeout (#358:
+// quick with AI_IDLE_TIMEOUT_MS=3000 on the server, else a minute), the
+// per-run cap, the monthly budget and both rate limits, and that every
+// request left an ai_usage row for its run. Pass a second URL, a server with
+// AI_PROVIDER unset, to check the route 404s there, and --log <file>, the
+// server's output, to check a refused body's content never reaches the log
+// and that a stall aborts the provider's request.
 //
 // SAFETY: shared dev database. It mints its own two admins, one member, one
 // draft and one published issue, and the ai_usage rows are all under run ids it
@@ -20,6 +22,7 @@ import postgres from "postgres";
 import { AI_PROJECTION_END } from "../src/lib/ai-chat-contract.ts";
 import {
   assemble,
+  checkFailures,
   checkLogLeak,
   checkRecordedReplies,
   chunksOf,
@@ -131,6 +134,7 @@ try {
     newRun,
     tag,
     logPath,
+    usageRows,
   };
 
   if (offBase) {
@@ -347,35 +351,7 @@ try {
     `the projection ends with the boundary, forged ones (plain and nested) dropped, then the author's text: ${modelGot.join("")}`,
   );
 
-  heading("failures mid-stream");
-  for (const [trigger, label] of [
-    ["[fake:fail]", "before the stream"],
-    ["[fake:drop]", "during the stream"],
-  ] as const) {
-    const failRun = newRun();
-    const res = await post(
-      {
-        runId: failRun,
-        issueId: draftId,
-        messages: [userMessage(trigger, "projection")],
-      },
-      { token: tokens.a },
-    );
-    const error = (await chunksOf(res)).find((c) => c.type === "error");
-    const parsed =
-      error?.type === "error"
-        ? (JSON.parse(error.errorText) as { code?: string; error?: string })
-        : null;
-    ok(
-      parsed?.code === "provider_down" && !!parsed.error,
-      `${label}: provider_down, "${parsed?.error}"`,
-    );
-    const failRows = await usageRows(failRun);
-    ok(
-      failRows.length === 1 && failRows[0]!.model.startsWith("fake"),
-      `…and still one ai_usage row (${failRows[0]?.model})`,
-    );
-  }
+  await checkFailures(deps);
 
   heading("a reported model with no price");
   const odd = newRun();
