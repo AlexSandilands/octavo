@@ -105,7 +105,7 @@ export async function planChecks({
     page.click(`${CONFIRM} button:text-is("Continue")`),
   );
   ok(
-    chat.asked.length === asked + 1 &&
+    chat.asked[asked]?.startsWith("Lay these out") &&
       (await page.inputValue(INPUT)) === "" &&
       run.outputs[0]?.startsWith("Placed 8 sections"),
     `Continue sent it: ${run.outputs[0]?.slice(0, 160)}…`,
@@ -176,20 +176,23 @@ export async function planChecks({
     "the issue is back to its pages before the plan",
   );
 
-  heading("Stop mid-placement, then a new message: the plan lands nowhere");
+  heading("Stop, then a new message: the stopped plan lands nowhere");
   const late = Array.from({ length: 20 }, (_, i) => ({
     headline: `LATE ${i + 1}`,
     body: body(4, `L${i + 1}`),
   }));
   await page.fill(
     INPUT,
-    `Lay these out [fake:tools]${JSON.stringify([
+    `Lay these out [fake:slow] [fake:tools]${JSON.stringify([
       { toolName: "propose_sections", input: { after: from, sections: late } },
     ])}`,
   );
   await page.keyboard.press("Enter");
   await page.click(`${CONFIRM} button:text-is("Continue")`);
-  await page.waitForSelector('[role="log"] :text("Laying out the sections")');
+  // A placement runs in about a second with the page busy measuring, so a
+  // click can't land inside one (check-ai-plan stops one mid-way). Here the
+  // slowed stream is stopped before its call arrives; nothing may follow.
+  await page.waitForSelector('[role="log"][aria-busy="true"]');
   await page.click('button[aria-label="Stop the reply"]');
   const next = await chat.runScript([
     {
@@ -203,7 +206,7 @@ export async function planChecks({
     next.outputs[0]?.startsWith("Updated the text") &&
       after.pages.length === from &&
       !JSON.stringify(after).includes("LATE 1"),
-    "the stopped plan placed nothing; the next run's edit landed",
+    `the stopped plan placed nothing; the next run's edit landed (${next.outputs[0]?.slice(0, 60)}; ${after.pages.length} pages, ${from} before; late: ${JSON.stringify(after).includes("LATE 1")})`,
   );
   await page.click('[data-assistant-run] button:text-is("Undo")');
   await until(
