@@ -3,7 +3,7 @@ import { Bullets, Callout, GuideSection, P } from "./guide-ui";
 
 // The editing assistant (epic #306): what it can do, the presets (#310), and
 // Undo. Shown only where the deployment offers it.
-// #314 adds how to see what it costs at the end of this section.
+// It closes with what the assistant has cost this month (#314).
 export function SectionAssistant() {
   return (
     <GuideSection
