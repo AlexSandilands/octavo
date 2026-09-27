@@ -309,7 +309,25 @@ don't redesign it.
     off, drafts only) and are limited to 120 requests per admin per 10 minutes;
   - `scripts/check-assistant-render.mts` checks all of it against a running server: every seed page's measured fill
     against the editor's overflow marker, an unsaved edit, and the refusals.
--
+- **Planning tool for long pastes (built, #312):** `propose_sections({ after, sections })` takes the whole plan in one
+  call: up to 40 sections, each `{ headline, kicker?, standfirst?, body, photos? }` with a body of at most 20,000
+  characters. Headline, kicker and standfirst are **separate fields**, and the description carries a worked example
+  (the line in capitals is the headline, the sentence under it the standfirst, a kicker only when the author wrote one).
+  A prompt line alone did not stop the model turning an all-caps headline into the kicker and the standfirst into the
+  title. A body line starting `#`/`##` is a section heading and `###` a run-in sub-head. A photo is an issue photo's id,
+  after the standfirst or after the body's nth paragraph or list (`left`/`right` wrap at 45%); a photo with no id is a
+  suggestion, which goes into the result and the author's run line ("Suggested a photo for "Spring show"."). An unknown
+  id refuses the whole plan. `base.md` tells the model to use it for several articles or more than about a page of text.
+- **Placement** (`assistant/plan-sections.ts`) builds each section's blocks with `markdownToDoc` and hands them to
+  Import PDF's paginator (`pdf-import/paginate.ts`'s `paginateImport`, fitted by `createMeasurer`'s page test, the one
+  Import PDF uses): each section from the top of a new page after `after` (an empty non-cover page there takes the
+  first), continuation pages added by measurement, a heading never left at a page's foot. The paginator's failures are
+  a typed `PaginateError`, so Import PDF keeps its wording and the assistant refuses with its own. Only the pages it
+  wrote are new objects; the rest keep their identity. The result names each section's pages and every written page's
+  fill, so "make the second one shorter" works as a normal follow-up. Checked by `scripts/check-ai-plan.mts` (in memory;
+  the schema's bounds are in `check-ai-tools.mts`) and the long-paste half of `dev-assistant-tools-gate.mts`
+  (`assistant-tools-gate-plan.mts`). A placement belongs to its run: the run's `AbortController` (aborted by Stop, the
+  run's end or the next message) reaches the paginator and the measurer, and a call whose run is over lands nothing.
 
 ### Runs
 

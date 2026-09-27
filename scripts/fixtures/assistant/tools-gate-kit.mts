@@ -133,9 +133,10 @@ export function watchChat(page: Page) {
       if (
         part.type.startsWith("tool-") &&
         part.output &&
-        !seen.has(part.toolCallId!)
+        // The fake numbers calls by prompt length: a stopped run can repeat one.
+        !seen.has(`${body.runId}:${part.toolCallId}`)
       ) {
-        seen.add(part.toolCallId!);
+        seen.add(`${body.runId}:${part.toolCallId}`);
         outputs.push(part.output.text);
       }
   });

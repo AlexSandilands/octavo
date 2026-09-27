@@ -1,4 +1,5 @@
-// dev-assistant-tools-gate.mts's long-paste half (#312): a 6,000-character
+// dev-assistant-tools-gate.mts's long-paste half (#312), kept apart for the
+// 500-line rule: a 6,000-character
 // message asks first with an estimate, Cancel sends nothing (no request, no
 // ledger row) and keeps the text, Continue sends; a scripted propose_sections
 // of 8 sections lands each from the top of a fresh page, headline / kicker /
@@ -12,7 +13,7 @@ import {
   until,
   type Doc,
   type watchChat,
-} from "./tools-gate-kit.mts";
+} from "./fixtures/assistant/tools-gate-kit.mts";
 
 const INPUT = "#assistant-input";
 const CONFIRM = "[data-assistant-paste-confirm]";
@@ -194,6 +195,7 @@ export async function planChecks({
   // slowed stream is stopped before its call arrives; nothing may follow.
   await page.waitForSelector('[role="log"][aria-busy="true"]');
   await page.click('button[aria-label="Stop the reply"]');
+  await page.waitForSelector('[role="log"][aria-busy="false"]');
   const next = await chat.runScript([
     {
       toolName: "set_text",

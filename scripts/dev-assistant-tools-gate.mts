@@ -6,8 +6,7 @@
 // measurer, off screen); autosave keeps the result; Ctrl+Z takes the whole run
 // back in one step; insert after a block; move and resize a photo; an unknown id
 // refused and reported; and both circuit-breaker conditions stop a run with
-// its edits kept. Then vision (#342) and #312's long paste (the cost question,
-// an 8-section plan placed), in fixtures/assistant/.
+// its edits kept. Then vision (#342) and the long paste (#312), apart.
 //
 // SAFETY: shared dev database. It mints its own admin, session, draft and one
 // photo row (a key with no file behind it); the finally deletes exactly those
@@ -27,7 +26,7 @@ import {
   where,
   type Doc,
 } from "./fixtures/assistant/tools-gate-kit.mts";
-import { planChecks } from "./fixtures/assistant/plan-gate.mts";
+import { planChecks } from "./assistant-tools-gate-plan.mts";
 import { visionChecks } from "./fixtures/assistant/vision-checks.mts";
 
 process.loadEnvFile?.(".env.local");

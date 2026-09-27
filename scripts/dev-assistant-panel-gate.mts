@@ -364,6 +364,12 @@ async function onChecks(page: Page, pageCount: number) {
     "Start a new one: an empty thread, focus in the composer",
   );
 
+  ok(
+    !(await page.$("[data-assistant-paste-confirm]")) &&
+      (await page.inputValue(INPUT)).includes("A long note") &&
+      (await page.isEditable(INPUT)),
+    "the note that didn't fit waits in the box, the question gone (#312)",
+  );
   heading("A long paste is held, never cut");
   await page.fill(INPUT, "x".repeat(20_500));
   ok(

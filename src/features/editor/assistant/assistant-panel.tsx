@@ -128,7 +128,14 @@ export function AssistantPanel({
                 ) : (
                   <>
                     <p>This conversation is full.</p>
-                    <Button size="compact" onClick={chat.restart}>
+                    <Button
+                      size="compact"
+                      onClick={() => {
+                        // A paste still asking goes back to the box, editable.
+                        setPaste(null);
+                        chat.restart();
+                      }}
+                    >
                       Start a new one
                     </Button>
                   </>
