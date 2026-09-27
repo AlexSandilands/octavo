@@ -34,6 +34,7 @@ import { visionChecks } from "./fixtures/assistant/vision-checks.mts";
 import { checkBreaker } from "./assistant-tools-gate-breaker.mts";
 import { checkAsk } from "./assistant-tools-gate-ask.mts";
 import { planChecks } from "./assistant-tools-gate-plan.mts";
+import { askSeamChecks } from "./fixtures/assistant/seam-checks.mts";
 import { checkCover } from "./assistant-tools-gate-cover.mts";
 
 process.loadEnvFile?.(".env.local");
@@ -374,6 +375,19 @@ async function checks(page: Page) {
     heading,
   });
   await planChecks({ page, chat, sql, adminId, saved, ok, heading });
+  await page.click('button[aria-label="Page 2"]');
+  await askSeamChecks(page, {
+    label: "block Ask",
+    select: () =>
+      page.click(`[data-block-id="${ids.story}"]`, {
+        position: { x: 200, y: 8 },
+      }),
+    ask: `[data-block-id="${ids.story}"] [data-ask] > button`,
+    dialog: '[role="dialog"][aria-label="Ask the assistant about this block"]',
+    preset: "Tidy this page",
+    ok,
+    heading,
+  });
 
   await checkCover({ page, sql, base: base!, tag, ok, heading, shots });
 

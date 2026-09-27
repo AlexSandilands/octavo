@@ -11,6 +11,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import type { Page } from "playwright";
+import { askSeamChecks } from "./fixtures/assistant/seam-checks.mts";
 import type postgres from "postgres";
 import { watchChat, until } from "./fixtures/assistant/tools-gate-kit.mts";
 import { makeBlock } from "../src/lib/blocks";
@@ -226,6 +227,16 @@ export async function checkCover(d: {
     );
     const masthead = composed.blocks.find((b) => b.type === "heading")!;
     await checkCoverAsk(tab, story!.id, logo!.id, masthead.id, ok, d.shots);
+    const item = `[data-cover-element="${story!.id}"]`;
+    await askSeamChecks(tab, {
+      label: "cover Ask",
+      select: () => tab.click(`${item} [role="button"]`),
+      ask: `${item} [data-block-bar] [data-ask] > button`,
+      dialog: `${item} [role="dialog"]`,
+      preset: "Compose cover",
+      ok,
+      heading,
+    });
 
     heading("cover: one Undo, and back");
     // The placing run is its own step: Undo it, then the compose run.

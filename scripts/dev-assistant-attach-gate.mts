@@ -10,7 +10,9 @@
 // route's words, and the route refuses a 13 MB body by its length; a paste
 // carrying text is text; seven attached photos are each looked at without
 // using a view, leaving the page views (#365); an eleventh photo is refused
-// with a note, repeated names are numbered, and closing the panel keeps the tray. (Its own gate rather than
+// with a note, repeated names are numbered, and closing the panel keeps the tray.
+// A long message with photos asks first and Continue sends their ids once
+// (#312, fixtures/assistant/seam-attach-checks.mts). (Its own gate rather than
 // more of dev-assistant-tools-gate.mts, which is at the 500-line limit.)
 //
 // SAFETY: shared dev database. It mints its own admin, session and draft; the
@@ -29,6 +31,7 @@ import {
   until,
   type Doc,
 } from "./fixtures/assistant/tools-gate-kit.mts";
+import { attachSeamChecks } from "./fixtures/assistant/seam-attach-checks.mts";
 
 process.loadEnvFile?.(".env.local");
 const [base] = process.argv.slice(2);
@@ -353,6 +356,18 @@ async function checks(page: Page) {
       looks.outputs[8].includes("4 views left"),
     `a second look and a page view come from the six (${looks.outputs[8]?.slice(0, 60)})`,
   );
+
+  await attachSeamChecks(page, {
+    chat,
+    photos: [
+      file("fleet.png", "image/png", red),
+      file("dawn.png", "image/png", green),
+      file("late.png", "image/png", blue),
+    ],
+    settled: (n) => settled(page, n),
+    ok,
+    heading,
+  });
 
   heading("ten a message, numbered names, kept when the panel closes");
   const eleven = await Promise.all(
