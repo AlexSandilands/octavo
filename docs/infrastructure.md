@@ -276,7 +276,9 @@ key, refuses a model with no price in `src/lib/ai-pricing.ts` (its spend couldn'
 metered), and refuses an Anthropic model missing from `src/lib/ai-thinking.ts` (it would
 refuse the wrong thinking mode on every request). The key is a server secret; never give it a `NEXT_PUBLIC_` name. `fake` streams
 canned replies at no cost and is for gates and the demo. Set a spend limit at the provider
-too; it's the backstop behind the monthly budget.
+too; it's the backstop behind the monthly budget. Switching it on goes local smoke run → demo →
+members' site with a release tag, and any model or provider change needs a fixture run first:
+[AI assistant](ai-assistant.md) → Turning it on and off, and Model selection.
 
 Both Sentry vars are optional everywhere: with them unset, `Sentry.init` is
 skipped and every capture call is a no-op, so the app boots and behaves

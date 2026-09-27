@@ -1,6 +1,5 @@
-// The assistant's cover tools (#313), lifted from the spike's
-// `scripts/spike/assistant/cover-tools.ts` and `cover-tool-defs.ts`: compose a
-// cover from the issue's own material, then place and style it on the 3×3
+// The assistant's cover tools (#313), lifted from the feasibility spike: compose
+// a cover from the issue's own material, then place and style it on the 3×3
 // grid. No font or weight arguments: those stay with the cover inspector. No
 // refinements, so the SDK's JSON schema is exact; the editor checks the rest.
 import { z } from "zod";
