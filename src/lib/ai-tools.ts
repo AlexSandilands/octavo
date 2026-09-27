@@ -1,8 +1,8 @@
 // The assistant's tool contract (#306): intent in, never block JSON. Shared by
 // the chat route (which declares the tools and validates the model's arguments)
 // and the editor's executor (which runs them), so both read the same zod.
-// Lifted from the spike (`scripts/spike/assistant/tools.ts`) with the editing
-// tools (#310); their executor is src/features/editor/assistant/.
+// The editing tools arrived with #310; their executor is
+// src/features/editor/assistant/.
 import { z } from "zod";
 
 const pageNo = z
