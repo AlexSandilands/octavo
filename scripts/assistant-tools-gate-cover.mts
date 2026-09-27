@@ -6,7 +6,8 @@
 // Ctrl+Y puts it back), Ask ends a cover item's bar (a logo's bar of its own),
 // and once published
 // the composed cover renders in both readers, the print route and the library
-// thumbnail. Its own tab and chat watch; its own scratch issue, deleted after.
+// thumbnail. Its own admin, session, tab and chat watch; its own scratch issue,
+// all deleted after.
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import type { Page } from "playwright";
@@ -67,7 +68,28 @@ export async function checkCover(d: {
     (
       await sql<{ content: Doc }[]>`select content from issues where id = ${id}`
     )[0]!.content;
-  const tab = await d.page.context().newPage();
+  // Its own admin, so its runs don't count against the rest of the gate's
+  // (the route allows 20 runs an admin in ten minutes).
+  const adminId = crypto.randomUUID();
+  const token = crypto.randomUUID();
+  await sql`insert into users (id, email, is_admin, subscribed, email_verified)
+    values (${adminId}, ${`${d.tag}-cover@example.invalid`}, true, false, now())`;
+  await sql`insert into sessions (session_token, user_id, expires)
+    values (${token}, ${adminId}, now() + interval '1 hour')`;
+  const ctx = await d.page
+    .context()
+    .browser()!
+    .newContext({ viewport: { width: 1440, height: 900 } });
+  await ctx.addCookies([
+    {
+      name: "authjs.session-token",
+      value: token,
+      url: base,
+      httpOnly: true,
+      sameSite: "Lax",
+    },
+  ]);
+  const tab = await ctx.newPage();
   try {
     heading("cover: composed by a run, one step");
     const chat = watchChat(tab);
@@ -273,9 +295,11 @@ export async function checkCover(d: {
       "the library thumbnail",
     );
   } finally {
-    await tab.close();
-    await sql`delete from ai_usage where issue_id = ${id}`;
+    await ctx.close();
+    await sql`delete from ai_usage where issue_id = ${id} or user_id = ${adminId}`;
     await sql`delete from issues where id = ${id}`;
+    await sql`delete from sessions where user_id = ${adminId}`;
+    await sql`delete from users where id = ${adminId}`;
   }
 }
 

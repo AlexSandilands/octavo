@@ -238,19 +238,23 @@ export async function checkAsk(d: {
  * running: a click right after a resize can land before the canvas re-fits. */
 const settled = (page: Page, id: string) =>
   page.waitForFunction(
-    (blockId) =>
+    // No named functions in here: tsx's __name helper doesn't exist in the page.
+    (sels) =>
       new Promise<boolean>((done) => {
-        const rects = () =>
-          JSON.stringify(
-            ["[data-editor-canvas-stage]", `[data-block-id="${blockId}"]`].map(
-              (sel) => document.querySelector(sel)?.getBoundingClientRect(),
-            ),
-          );
-        const first = rects();
+        const first = JSON.stringify(
+          sels.map((sel) =>
+            document.querySelector(sel)?.getBoundingClientRect(),
+          ),
+        );
         requestAnimationFrame(() =>
           requestAnimationFrame(() =>
             done(
-              first === rects() &&
+              first ===
+                JSON.stringify(
+                  sels.map((sel) =>
+                    document.querySelector(sel)?.getBoundingClientRect(),
+                  ),
+                ) &&
                 document
                   .getAnimations()
                   .every(
@@ -262,7 +266,7 @@ const settled = (page: Page, id: string) =>
           ),
         );
       }),
-    id,
+    ["[data-editor-canvas-stage]", `[data-block-id="${id}"]`],
   );
 
 /** Every bar's Ask and its open box stay inside the canvas and clear of its
