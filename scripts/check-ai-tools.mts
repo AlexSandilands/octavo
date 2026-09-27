@@ -14,7 +14,10 @@ import { docToMarkdown, markdownToDoc } from "../src/lib/markdown-doc";
 import { richDocSchema, richTextToPlain } from "../src/lib/rich-text-doc";
 import { richDocBlocks } from "../src/lib/rich-text-split";
 import * as h from "./fixtures/assistant/tools-harness.mts";
-import { createVision } from "../src/features/editor/assistant/vision";
+import {
+  createVision,
+  roomForRun,
+} from "../src/features/editor/assistant/vision";
 import type { AssistantIssue } from "../src/features/editor/assistant/issue-context";
 import { coverChecks } from "./fixtures/assistant/cover-checks.mts";
 
@@ -366,6 +369,29 @@ heading("vision: views within the run's six and the conversation's room");
       seventh.text.includes("room for 18 more pictures") &&
       vision.room() === 18,
     "with room for 24: six views, the 7th refused, 18 left for the review",
+  );
+  // Send's room check (#368): two pages, plus a first look at each attached photo.
+  ok(
+    roomForRun(2, 0) &&
+      !roomForRun(1, 0) &&
+      roomForRun(12, 10) &&
+      !roomForRun(11, 10) &&
+      !roomForRun(4, 10),
+    "a run needs room for two pages and a look at each attached photo",
+  );
+  const ten = Array.from({ length: 10 }, (_, i) => `img-${i + 1}`);
+  const tenIssue = {
+    uploads: ten,
+    images: Object.fromEntries(ten.map((id) => [id, { width: 8, height: 6 }])),
+  } as unknown as AssistantIssue;
+  vision.beginRun(12, ten);
+  const looks = [];
+  for (const imageId of ten)
+    looks.push(await vision.view("view_photo", { imageId }, tenIssue, source));
+  looks.push(await look(), await look());
+  ok(
+    looks.every((o) => o.images?.length === 1) && vision.room() === 0,
+    "room for 12 lets ten attached photos and two more views all be seen",
   );
 }
 
