@@ -4,6 +4,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 import type { AiError } from "@/lib/ai-chat-contract";
 import { withoutBlockIds } from "./presets";
 import { ReplyText } from "./reply-text";
+import { isReview } from "./review";
 import type { AssistantMessage } from "./use-assistant-chat";
 
 type Part = AssistantMessage["parts"][number];
@@ -20,6 +21,12 @@ const TOOL_WORDS: Record<string, [doing: string, done: string]> = {
   set_image_text: ["Changing a photo's words", "Changed a photo's words"],
   set_image_layout: ["Placing a photo", "Placed a photo"],
   propose_sections: ["Laying out the sections", "Laid out the sections"],
+  view_photo: ["Looking at a photo", "Looked at a photo"],
+};
+// Tools that name a page: [running, done, failed].
+const PAGE_WORDS: Record<string, [string, string, string]> = {
+  read_page: ["Reading page", "Read page", "Couldn’t read page"],
+  view_page: ["Looking at page", "Looked at page", "Couldn’t look at page"],
 };
 
 /** A tool call as one quiet line in the thread: what the assistant did. */
@@ -32,15 +39,16 @@ function toolLine(part: Part): string | null {
       (part.output as { text?: string } | undefined)?.text?.startsWith(
         "Error:",
       ));
-  if (name === "read_page") {
+  const paged = PAGE_WORDS[name];
+  if (paged) {
     const page = ("input" in part ? part.input : undefined) as
       | { page?: number }
       | undefined;
     const n = page?.page;
-    if (failed) return `Couldn’t read page ${n}`;
+    if (failed) return `${paged[2]} ${n}`;
     return part.state === "output-available"
-      ? `Read page ${n}`
-      : `Reading page ${n ?? ""}…`;
+      ? `${paged[1]} ${n}`
+      : `${paged[0]} ${n ?? ""}…`;
   }
   const words = TOOL_WORDS[name];
   if (!words) return null;
@@ -53,6 +61,17 @@ const shows = (part: Part) =>
   part.type === "text" ? part.text.trim() !== "" : toolLine(part) !== null;
 
 function Message({ message }: { message: AssistantMessage }) {
+  if (message.role === "user" && isReview(message.parts)) {
+    // The editor's own end-of-run review (#342): the pages it sent, not words.
+    const pages = message.parts
+      .slice(1)
+      .flatMap((p) => (p.type === "text" ? [p.text] : []));
+    return (
+      <p className="text-faint font-sans text-[13px]">
+        Showed it the pages it changed to look over: {pages.join(", ")}
+      </p>
+    );
+  }
   if (message.role === "user") {
     // The projection rides in a data part the author never sees.
     const text = withoutBlockIds(
@@ -93,9 +112,12 @@ export function AssistantThread({
   error,
   intro,
   after,
+  reviewing = false,
 }: {
   messages: AssistantMessage[];
   busy: boolean;
+  /** The pages it changed are being pictured for its review (#342). */
+  reviewing?: boolean;
   error: AiError | null;
   intro: string;
   /** What the last run left: its change and Undo, or why it stopped. */
@@ -130,7 +152,11 @@ export function AssistantThread({
       {messages.map((m) => (
         <Message key={m.id} message={m} />
       ))}
-      {waiting && <p className="text-faint font-sans text-[13px]">Thinking…</p>}
+      {(waiting || (busy && reviewing)) && (
+        <p className="text-faint font-sans text-[13px]">
+          {reviewing ? "Picturing the pages it changed…" : "Thinking…"}
+        </p>
+      )}
 
       {!busy && after}
       {error && (

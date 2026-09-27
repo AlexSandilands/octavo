@@ -3,8 +3,10 @@ import { CONTENT_VERSION, issueContentSchema, type Page } from "@/lib/blocks";
 import {
   AI_MAX_TOOL_TEXT,
   aiToolSchemas,
+  type AiReadOnlyTool,
   type AiToolName,
   type AiToolOutput,
+  type AiViewTool,
 } from "@/lib/ai-tools";
 import type { EditorSnapshot } from "../use-editor-history";
 import { applyEdit, Refusal } from "./edit-tools";
@@ -83,6 +85,8 @@ export type CallContext = {
   photos: ReadonlySet<string>;
   /** read_page, answered from the projection's own view of the issue. */
   read: (input: unknown) => AiToolOutput;
+  /** view_page / view_photo (#342): a picture, within the run's view budget. */
+  view: (tool: AiViewTool, input: unknown) => Promise<AiToolOutput>;
 };
 
 export function createAssistantExecutor({
@@ -98,7 +102,7 @@ export function createAssistantExecutor({
 
   const edit = async (
     mine: RunState,
-    name: Exclude<AiToolName, "read_page">,
+    name: Exclude<AiToolName, AiReadOnlyTool>,
     input: unknown,
     photos: ReadonlySet<string>,
   ): Promise<string> => {
@@ -183,6 +187,8 @@ export function createAssistantExecutor({
       return { text: `Error: there is no tool "${name}".` };
     const tool = name as AiToolName;
     if (tool === "read_page") return call.read(input);
+    if (tool === "view_page" || tool === "view_photo")
+      return call.view(tool, input);
     return {
       text: clip(await edit(mine, tool, input, call.photos), AI_MAX_TOOL_TEXT),
     };

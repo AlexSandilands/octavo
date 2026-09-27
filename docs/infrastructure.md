@@ -127,6 +127,11 @@ within an instance, so the first click after a publish launches one Chromium eve
 if several members click at once. Chromium is a transient, on-demand cost — not
 held between requests.
 
+The AI assistant's page pictures (#342, `POST /api/admin/ai/render`) use the
+same Chromium the same way: one launch per request, a draft's print view over
+localhost, a screenshot per page. They're admin-only, rate-limited, and happen
+only while an admin uses the assistant (a view, or a run's one review).
+
 **Container deps — [`nixpacks.toml`](../nixpacks.toml)** installs the shared
 libraries Chromium needs (`aptPkgs`) and downloads Playwright's pinned Chromium
 into the image at build time. `playwright` is a **runtime** dependency (not just

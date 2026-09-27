@@ -287,6 +287,7 @@ export function Editor({
     state: { pages, curPage, sel },
     apply: applyAssistant,
     measure: { theme, images, sponsors: sponsorMap, settings, logo, issueNo },
+    source: { issueId: issue.id, logoId },
   });
 
   return (
