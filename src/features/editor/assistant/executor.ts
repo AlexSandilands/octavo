@@ -266,7 +266,7 @@ export function createAssistantExecutor({
         over ||= report.fill?.kind === "flow" && report.fill.overflowLines > 0;
         lines.push(describeReport(index + 1, page, report));
       }
-      run.stall = trackStall(run.stall, name, input, result.report[0], over);
+      mine.stall = trackStall(mine.stall, name, input, result.report[0], over);
       return [result.text, lines.join("; ")].filter(Boolean).join(" ");
     } catch (error) {
       if (gone()) return STOPPED;
