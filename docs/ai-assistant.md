@@ -2,8 +2,8 @@
 
 An assistant in the editor that edits the issue on the author's behalf. It can tidy a page, lay out pasted articles and
 photos, compose a cover, and rewrite when asked. **Built so far, dormant until a provider is set:** the spend ledger
-(#307), the chat route (#308), the editor's panel (#309), the page-editing tools (#310) and the model-selection
-fixture (#315). This note holds the decisions every child issue assumes. Read it with the epic before
+(#307), the chat route (#308), the editor's panel (#309), the page-editing tools (#310), the per-block Ask
+box (#311), vision (#342), the model-selection fixture (#315) and photos attached in the chat (#343). This note holds the decisions every child issue assumes. Read it with the epic before
 working any child. Each child's PR updates it to match what shipped, and the epic's closing issue (#344) turns it into
 the feature doc (the `docs/pdf-import.md` shape).
 
@@ -117,7 +117,8 @@ client-safe.
   ~15k spare. The count covers text, reasoning, projections, tool inputs and tool outputs.
 - **Pictures against the 24 (#342).** A run takes only the room the conversation has left, not a fixed reservation:
   - `room = 24 − pictures already in history` (tool-result images plus file parts), counted once as the run starts;
-  - the views get `min(6, room)`, and each view's result says how many are left. A view refused for the run's six says
+  - the views get `min(6, room)`, and each view's result says how many are left. A first look at a photo attached to the
+    run's own message (#343) is outside the six but inside the room (#365). A view refused for the run's six says
     how many more pictures the conversation has room for; one refused for the room says so and that a new
     conversation starts afresh;
   - the review renders `min(8, room − views used)` of its pages, the cover first. With none left it doesn't happen, and
@@ -179,7 +180,8 @@ client-safe.
   turn (`Step n: <tool>.`), then `Done: N steps.` (#310). A `null` step ends that turn with no call, and the script picks
   up again after the editor's end-of-run review, so a gate can edit in the review turn (#342). A review with no script
   gets `Looked over N pages. Nothing needed changing.` `scripts/dev-ai-proxy-gate.mts` and
-  `scripts/dev-assistant-tools-gate.mts` run against it.
+  `scripts/dev-assistant-tools-gate.mts` (with its Ask and breaker halves, `assistant-tools-gate-ask.mts` and
+  `assistant-tools-gate-breaker.mts`) run against it.
 
 #### Where it appears: the editor's side panel (#309)
 
@@ -190,6 +192,23 @@ client-safe.
   minimum wherever 400px would leave the canvas under 520px. Each tool remembers its own width. On a 768px tablet that
   leaves about 305px of canvas, and the page in it is about 173px wide beside the standing tool bar. Once there are
   messages, a **New conversation** action hangs under the Assistant button.
+- **The per-block Ask (built, #311).** A selected block on an inside page of a draft has **Ask** (the rail's sparkle and
+  the word) as the last control in its own tool bar, after a rule, and last in the bar's tab order. That's the text
+  format bar, the heading, photo, montage, video and sponsor bars, or beside a bare type label. The owner's first browser
+  pass found a free-floating pill above the bar awkward. A bar wider than the canvas used to run off its right edge (the
+  photo bar's Alt field was cut off at common widths); now it slides left to stay inside, and one wider than the whole
+  canvas wraps onto a second row (`use-bar-fit.ts`), so Ask and Alt are always in reach. It isn't offered on a cover
+  (until #313), on a full-page photo (the tools refuse those), on a published issue, or while the assistant is off.
+  It opens a one-line box under the bar's right end, a labelled non-modal `dialog`. **Enter** or **Send** posts `About the selected block [<id>] on page <n>: <words>` to the panel's conversation as an ordinary
+  run. That means the same breaker, the same one-step Undo and the same line. The author's bubble drops the id, as
+  the presets' does. The panel opens (or, already open, takes the focus) so the reply and the line are in view, and
+  the box closes. **Escape**, or a press anywhere else, closes it without sending, and Escape hands focus back to Ask
+  without deselecting the block. Tab and Shift+Tab cycle the box and Send while it's open. The editor's Ctrl/Cmd+Z
+  stands down while the box is open, both for text entry and for the dialog. If the conversation can't take a request
+  (busy, full, or the month spent), nothing is sent: the box keeps the words and says why, and the panel opens on the
+  reason. The chat's `send` reports that before any request (`SendResult`), so the panel's composer also keeps a
+  refused message rather than clearing it. The issue text named `floating-bar.tsx`, which is the canvas's tool pill,
+  not the block's chrome; Ask lives in the block's own bar instead.
 - **On a cover** the assistant stays open (Import PDF doesn't). Opening it hides the cover inspector, closing it
   brings the inspector back, and a line at the top of the panel says so.
 - **States.**
@@ -218,7 +237,7 @@ client-safe.
   real-provider smoke test should cover it: stop mid tool call, send again, and the second request succeeds with
   `cache_read_input_tokens > 0`.
 - **Usage footer.** "US$1.21 of US$20.00 used this month" (spend rounded up to the cent, as `/admin/ai` shows it), from `GET /api/admin/ai/usage` (admin-only, 404 while off,
-  `resolveBudget()`'s figures), with a link to `/admin/ai`. It is fetched when the panel opens and after every run.
+  `resolveBudget()`'s figures), with a link to `/admin/ai`. It is fetched when the editor opens with the assistant on (so a spent month is known before the first send from either the panel or the Ask box), when the panel opens, and after every run.
 - **Accessibility.** The thread is a `role="log"` region that is `aria-busy` while a reply streams, so the finished
   reply is announced once. Opening puts focus in the composer (or on the drafts-only message), and Close hands it back
   to the rail button. "Thinking…" shows from Send until the reply has words or a tool line to show. A reply opens with
@@ -544,4 +563,5 @@ misses are the known weaknesses below, each with its issue (#355, #360). All cal
   photos or rebalanced to fill them. The review didn't flag it either.
 - **Small cover text over busy photos** (the issue-details line) was missed by the model and by the review.
 - **Meaning drift in rewrites isn't machine-checkable.** Rewrites need the author's read, and the help page says so.
-- The per-block **Ask** box (#311) and multi-turn follow-ups weren't exercised by the spike.
+- The per-block **Ask** box (#311) and multi-turn follow-ups weren't exercised by the spike. The Ask box is checked
+  only against the fake provider so far.

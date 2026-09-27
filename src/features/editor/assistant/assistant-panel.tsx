@@ -59,9 +59,7 @@ export function AssistantPanel({
 }) {
   const input = useRef<HTMLTextAreaElement>(null);
   const notice = useRef<HTMLDivElement>(null);
-  const spent =
-    chat.error?.code === "budget_spent" ||
-    (usage !== null && usage.remaining <= 0);
+  const spent = budgetSpent(chat, usage);
   const blocked = published || spent || chat.full;
   const [dropping, setDropping] = useState(false);
   const dragging = (e: DragEvent) => {
@@ -171,9 +169,11 @@ export function AssistantPanel({
               attachments={attachments}
               onSend={async (text) => {
                 // The ids as they were on sending; the tray empties only once
-                // the message is in the conversation.
+                // the message is taken.
                 const ids = attachments.ids;
-                if (await chat.send(text, ids)) attachments.clear(ids);
+                const result = await chat.send(text, ids);
+                if (result.ok) attachments.clear(ids);
+                return result;
               }}
               onStop={chat.stop}
             />
@@ -194,6 +194,14 @@ export function AssistantPanel({
     </div>
   );
 }
+
+/** The month's budget is spent: nothing more can be sent. */
+export const budgetSpent = (
+  chat: Pick<ReturnType<typeof useAssistantChat>, "error">,
+  usage: AiUsageSummary | null,
+) =>
+  chat.error?.code === "budget_spent" ||
+  (usage !== null && usage.remaining <= 0);
 
 // The quick requests (#310): one tap sends a fixed message for the page open
 // now (see presets.ts). Not on a cover, where the page tools don't reach.

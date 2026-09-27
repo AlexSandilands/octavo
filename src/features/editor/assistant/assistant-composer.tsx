@@ -30,7 +30,8 @@ export function AssistantComposer({
   /** Nothing can be sent (the month's budget is spent, the conversation is full). */
   disabled: boolean;
   attachments: ReturnType<typeof useAttachments>;
-  onSend: (text: string) => void;
+  /** Resolves whether it was taken; a refused message stays in the box. */
+  onSend: (text: string) => Promise<{ ok: boolean }>;
   onStop: () => void;
 }) {
   const [value, setValue] = useState("");
@@ -54,8 +55,11 @@ export function AssistantComposer({
     (value.trim() !== "" || attachments.ids.length > 0);
   const submit = () => {
     if (!canSend) return;
-    onSend(value);
-    setValue("");
+    const sent = value;
+    // Cleared only once taken, and only if nothing new was typed meanwhile.
+    void onSend(sent).then(
+      (result) => result.ok && setValue((now) => (now === sent ? "" : now)),
+    );
     // Send turns into Stop under a pointer; the box keeps the focus.
     inputRef.current?.focus();
   };

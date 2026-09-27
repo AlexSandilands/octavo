@@ -269,7 +269,7 @@ async function browserPass(base: string) {
         .evaluate((el) => getComputedStyle(el).textAlign),
       "center",
     );
-    await page.getByRole("button", { name: "2", exact: true }).click();
+    await page.getByRole("button", { name: "Page 2", exact: true }).click();
     const body = page.locator('[data-block-id="body-text"] [data-text-body]');
     await body.click();
     assert.equal(
@@ -348,7 +348,7 @@ async function browserPass(base: string) {
       });
     }
     await page.reload();
-    await page.getByRole("button", { name: "2", exact: true }).click();
+    await page.getByRole("button", { name: "Page 2", exact: true }).click();
     await body.click();
     assert.equal(
       await body.evaluate((el) => getComputedStyle(el).textAlign),
@@ -370,7 +370,7 @@ async function browserPass(base: string) {
       );
     }
     await page.setViewportSize({ width: 1440, height: 1000 });
-    await page.getByRole("button", { name: "3", exact: true }).click();
+    await page.getByRole("button", { name: "Page 3", exact: true }).click();
     await page
       .locator('[data-block-id="long-text"] [data-text-body]')
       .click({ position: { x: 20, y: 20 } });

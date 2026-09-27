@@ -40,6 +40,11 @@ export type AssistantMessage = UIMessage<
   { [N in AiToolName]: { input: AiToolInput<N>; output: AiToolOutput } }
 >;
 
+/** Whether a send was taken, and if not, why: nothing was sent (#311). */
+export type SendResult =
+  | { ok: true }
+  | { ok: false; reason: "invalid" | "busy" | "full" | "spent" | "failed" };
+
 /** The issue as it stands, with every page's fill measured, and the page open now. */
 export type AssistantSnapshot = () => Promise<{
   issue: AssistantIssue;
@@ -246,22 +251,22 @@ export function useAssistantChat({
     running || chat.status === "submitted" || chat.status === "streaming";
 
   /**
-   * `photos`: ids of photos the author attached, already uploaded to the issue.
-   * True once the message is in the conversation; false when it was held back
-   * (empty, too long, busy, or the conversation is full), so the composer keeps it.
+   * Sends a run, or says (before any request) why it wasn't taken. `photos`:
+   * ids of photos the author attached (#343), already uploaded to the issue.
    */
   const send = async (
     request: string,
     photos: string[] = [],
-  ): Promise<boolean> => {
+  ): Promise<SendResult> => {
     // The composer holds anything longer back; the route would refuse it.
     const text = request.trim();
     if (!(text || photos.length) || text.length > AI_MAX_TEXT_CHARS)
-      return false;
-    if (busy || full) return false;
+      return { ok: false, reason: "invalid" };
+    if (busy) return { ok: false, reason: "busy" };
+    if (full) return { ok: false, reason: "full" };
     if (chat.messages.length + RUN_MESSAGES > AI_MAX_MESSAGES) {
       setFull(true);
-      return false;
+      return { ok: false, reason: "full" };
     }
     runId.current = crypto.randomUUID();
     stopped.current = false;
@@ -276,7 +281,6 @@ export function useAssistantChat({
       ...(text ? [text] : []),
       ...(photos.length ? [attachedText(photos)] : []),
     ];
-    let handed = false;
     const room = AI_MAX_IMAGES_PER_REQUEST - conversationImages(chat.messages);
     // Before anything can end the run, so its summary is never the last run's.
     latest.current.tools.beginRun(room, photos);
@@ -291,20 +295,23 @@ export function useAssistantChat({
       ) {
         setFull(true);
         endRun();
-        return false;
+        return { ok: false, reason: "full" };
       }
-      handed = true;
-      await chat.sendMessage({
-        parts: [
-          { type: AI_PROJECTION_PART, data: { text: view } },
-          ...words.map((t) => ({ type: "text" as const, text: t })),
-        ],
-      });
+      // Taken: the reply streams on without holding the caller.
+      chat
+        .sendMessage({
+          parts: [
+            { type: AI_PROJECTION_PART, data: { text: view } },
+            ...words.map((t) => ({ type: "text" as const, text: t })),
+          ],
+        })
+        // useChat reports request failures through `error` and onError.
+        .catch(endRun);
+      return { ok: true };
     } catch {
-      // useChat reports request failures through `error` and onError.
       endRun();
+      return { ok: false, reason: "failed" };
     }
-    return handed;
   };
 
   const stop = async () => {
