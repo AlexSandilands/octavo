@@ -1,35 +1,23 @@
 import { eq } from "drizzle-orm";
-import {
-  convertToModelMessages,
-  createUIMessageStreamResponse,
-  streamText,
-  toUIMessageStream,
-  type ModelMessage,
-} from "ai";
+import { createUIMessageStreamResponse, type ModelMessage } from "ai";
 import { db } from "@/db";
 import { issues } from "@/db/schema";
 import { isAssistantEnabled } from "@/lib/ai";
-import {
-  AI_MAX_BODY_BYTES,
-  AI_MAX_OUTPUT_TOKENS,
-  AI_PROJECTION_END,
-  AI_PROJECTION_PART,
-  type AiProjectionData,
-} from "@/lib/ai-chat-contract";
+import { AI_MAX_BODY_BYTES } from "@/lib/ai-chat-contract";
 import { RUN_SPEND_CAP_USD } from "@/lib/ai-pricing";
 import { readBoundedBody } from "@/lib/bounded-body";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { sameOrigin } from "@/lib/same-origin";
 import { resolveBudget, runSpend } from "@/server/ai-budget";
 import { parseChatBody } from "@/server/ai-chat-request";
-import { assistantTools } from "@/server/ai-chat-tools";
 import {
-  aiError,
-  aiErrorResponse,
-  classifyProviderError,
-} from "@/server/ai-errors";
+  assistantInstructions,
+  streamAssistant,
+  toModelMessages,
+} from "@/server/ai-chat-stream";
+import { assistantTools } from "@/server/ai-chat-tools";
+import { aiErrorResponse } from "@/server/ai-errors";
 import { createMeter } from "@/server/ai-metering";
-import { systemPrompt } from "@/server/ai-prompt";
 import { assistantModel } from "@/server/ai-provider";
 import { getAdminUser } from "@/server/session";
 
@@ -56,18 +44,6 @@ function isNewRun(adminId: string, runId: string): boolean {
     for (const [k, until] of seenRuns) if (until <= now) seenRuns.delete(k);
   const until = seenRuns.get(`${adminId}:${runId}`);
   return until === undefined || until <= now;
-}
-
-// The default 5-minute TTL: ai-pricing bills cache writes at that rate, so
-// never "1h" here.
-const cached = { anthropic: { cacheControl: { type: "ephemeral" } } } as const;
-
-/** A cache breakpoint on the newest message, so the next request reads the
- *  whole conversation so far from the cache. */
-function withTailBreakpoint(messages: ModelMessage[]): ModelMessage[] {
-  const last = messages[messages.length - 1];
-  if (!last) return messages;
-  return [...messages.slice(0, -1), { ...last, providerOptions: cached }];
 }
 
 export async function POST(request: Request) {
@@ -124,22 +100,10 @@ export async function POST(request: Request) {
 
   let modelMessages: ModelMessage[];
   try {
-    modelMessages = await convertToModelMessages(messages, {
-      tools: assistantTools,
-      // A run the author stopped mid-call leaves a call with no result.
-      ignoreIncompleteToolCalls: true,
-      convertDataPart: (part) =>
-        part.type === AI_PROJECTION_PART
-          ? {
-              type: "text",
-              text: `${(part.data as AiProjectionData).text}\n\n${AI_PROJECTION_END}`,
-            }
-          : undefined,
-    });
+    modelMessages = await toModelMessages(messages);
   } catch {
     return aiErrorResponse("bad_request");
   }
-  const instructions = systemPrompt();
 
   const meter = createMeter({
     userId: admin.id,
@@ -147,40 +111,16 @@ export async function POST(request: Request) {
     runId,
     provider: config.provider,
     modelId: config.modelId,
-    inputChars: instructions.length + JSON.stringify(modelMessages).length,
-  });
-
-  const result = streamText({
-    model: config.model,
-    // Byte-stable, with a breakpoint: the tools and prompt are cached once.
-    instructions: {
-      role: "system",
-      content: instructions,
-      providerOptions: cached,
-    },
-    messages: withTailBreakpoint(modelMessages),
-    tools: assistantTools,
-    reasoning: config.reasoning,
-    providerOptions: config.providerOptions,
-    maxOutputTokens: AI_MAX_OUTPUT_TOKENS,
-    maxRetries: 1,
-    abortSignal: request.signal,
-    onChunk: ({ chunk }) => meter.onChunk(chunk),
-    onEnd: (event) =>
-      meter.onEnd(event.usage, event.finalStep?.response.modelId),
-    onAbort: () => meter.onAbort(),
-    onError: () => meter.onError(),
+    inputChars:
+      assistantInstructions().length + JSON.stringify(modelMessages).length,
   });
 
   return createUIMessageStreamResponse({
-    stream: toUIMessageStream({
-      stream: result.stream,
-      sendReasoning: true,
-      onError: (error) => {
-        const code = classifyProviderError(error);
-        if (code === "provider_down") console.error("AI chat failed", error);
-        return JSON.stringify(aiError(code));
-      },
+    stream: streamAssistant({
+      config,
+      messages: modelMessages,
+      abortSignal: request.signal,
+      hooks: meter,
     }),
   });
 }

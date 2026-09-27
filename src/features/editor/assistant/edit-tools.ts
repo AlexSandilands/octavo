@@ -13,6 +13,7 @@ import {
   aiToolSchemas,
   type AiInsertItem,
   type AiToolInput,
+  type AiReadOnlyTool,
   type AiToolName,
 } from "@/lib/ai-tools";
 import { planTextFlow } from "../text-flow";
@@ -47,7 +48,7 @@ export type EditResult = {
   moved?: string;
 };
 
-type MutatingTool = Exclude<AiToolName, "read_page">;
+type MutatingTool = Exclude<AiToolName, AiReadOnlyTool>;
 type Found = { pageIdx: number; blockIdx: number; page: Page; block: Block };
 
 function find(pages: Page[], id: string): Found {

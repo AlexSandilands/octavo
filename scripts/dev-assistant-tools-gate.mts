@@ -7,7 +7,8 @@
 // back in one step; insert after a block; move and resize a photo; an unknown id
 // refused and reported; the per-block Ask box (#311,
 // assistant-tools-gate-ask.mts); and each circuit-breaker condition stops a run
-// with its edits kept (assistant-tools-gate-breaker.mts).
+// with its edits kept (assistant-tools-gate-breaker.mts). Then vision (#342,
+// fixtures/assistant/vision-checks.mts).
 //
 // SAFETY: shared dev database. It mints its own admin, session, a draft and a
 // published copy of it, and one photo row (a key with no file behind it); the finally deletes exactly those
@@ -29,6 +30,7 @@ import {
 } from "./fixtures/assistant/tools-gate-kit.mts";
 import { checkBreaker } from "./assistant-tools-gate-breaker.mts";
 import { checkAsk } from "./assistant-tools-gate-ask.mts";
+import { visionChecks } from "./fixtures/assistant/vision-checks.mts";
 
 process.loadEnvFile?.(".env.local");
 // An optional folder for screenshots of the held canvas and the run's line.
@@ -361,6 +363,15 @@ async function checks(page: Page) {
     heading,
   });
   await checkBreaker({ page, sql, chat, adminId, draftId, saved, ok, heading });
+
+  await visionChecks(page, {
+    photoId,
+    photoKey: `${tag}/photo.webp`,
+    saved,
+    runScript: (p, calls) => runScript(p, calls as never),
+    ok,
+    heading,
+  });
 
   console.log("\nassistant tools gate: all checks passed");
 }
