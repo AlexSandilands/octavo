@@ -19,9 +19,13 @@ import { docToMarkdown, markdownToDoc } from "../src/lib/markdown-doc";
 import { richDocSchema, richTextToPlain } from "../src/lib/rich-text-doc";
 import { richDocBlocks } from "../src/lib/rich-text-split";
 import * as h from "./fixtures/assistant/tools-harness.mts";
-import { createVision } from "../src/features/editor/assistant/vision";
+import {
+  createVision,
+  roomForRun,
+} from "../src/features/editor/assistant/vision";
 import type { AssistantIssue } from "../src/features/editor/assistant/issue-context";
 import { coverChecks } from "./fixtures/assistant/cover-checks.mts";
+import { describeReport } from "../src/features/editor/assistant/page-report";
 
 const { ok, heading, docOf, issues, photos, harness } = h;
 const { textBlock, headingBlock, photo, cover, page } = h;
@@ -275,6 +279,37 @@ heading("split_page and the overflow feedback");
     "with each text block's lines and last lines",
   );
   ok(out.text.includes("split_page 2"), "and offers split_page");
+  ok(
+    out.text.includes(
+      `To fit by trimming, the text must lose ${/overflows by ~(\d+)/.exec(out.text)?.[1]} lines in all. A paragraph whose last line is short frees that line for fewer words: [${intro.id}] (3 words), [${long.id}] (3 words).`,
+    ) && out.text.includes("in one round, one set_text per block"),
+    "the deficit comes first: the whole cut, the quickest lines, one call a block (#355)",
+  );
+  {
+    // 32 words on 4 lines, 2 on the last: ~10 words on each full line.
+    const blk = textBlock(1);
+    const words = Array.from({ length: 32 }, (_, i) => `w${i}`).join(" ");
+    const told = describeReport(
+      3,
+      page({ ...blk, text: docOf({ ...blk, text: words }) }),
+      {
+        fill: { kind: "flow", percent: 104, overflowLines: 1 },
+        overflowAt: null,
+        overflowPx: 30,
+        heights: {},
+        text: [{ id: blk.id, lines: 4, lastLines: [2] }],
+      },
+    );
+    ok(
+      told.includes(
+        `[${blk.id}] 4 lines of ~10 words, its last line holds 2 words`,
+      ) &&
+        told.includes(
+          "must lose 1 line in all: at least 10 words at ~10 a line.",
+        ),
+      `a text block's full lines are counted in words (${told.slice(0, 160)}…)`,
+    );
+  }
   const split = await h.run("split_page", { page: 2 });
   const [p2, p3, p4] = [h.pages[1]!, h.pages[2]!, h.pages[3]!];
   ok(
@@ -408,6 +443,29 @@ heading("vision: views within the run's six and the conversation's room");
       seventh.text.includes("room for 18 more pictures") &&
       vision.room() === 18,
     "with room for 24: six views, the 7th refused, 18 left for the review",
+  );
+  // Send's room check (#368): two pages, plus a first look at each attached photo.
+  ok(
+    roomForRun(2, 0) &&
+      !roomForRun(1, 0) &&
+      roomForRun(12, 10) &&
+      !roomForRun(11, 10) &&
+      !roomForRun(4, 10),
+    "a run needs room for two pages and a look at each attached photo",
+  );
+  const ten = Array.from({ length: 10 }, (_, i) => `img-${i + 1}`);
+  const tenIssue = {
+    uploads: ten,
+    images: Object.fromEntries(ten.map((id) => [id, { width: 8, height: 6 }])),
+  } as unknown as AssistantIssue;
+  vision.beginRun(12, ten);
+  const looks = [];
+  for (const imageId of ten)
+    looks.push(await vision.view("view_photo", { imageId }, tenIssue, source));
+  looks.push(await look(), await look());
+  ok(
+    looks.every((o) => o.images?.length === 1) && vision.room() === 0,
+    "room for 12 lets ten attached photos and two more views all be seen",
   );
 }
 

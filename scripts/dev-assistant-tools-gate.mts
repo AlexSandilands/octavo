@@ -139,10 +139,11 @@ async function checks(page: Page) {
   );
   ok(
     overflow?.includes(`[${ids.story}] `) &&
-      /\d+ lines, its paragraphs' last lines hold [\d, …]+ words/.test(
+      /\d+ lines of ~\d+ words, its paragraphs' last lines hold [\d, …]+ words/.test(
         overflow,
-      ),
-    "with each text block's lines and last lines",
+      ) &&
+      /must lose \d+ lines in all: at least \d+ words/.test(overflow),
+    "with each text block's lines, words a line and last lines, and the deficit (#355)",
   );
   ok(overflow?.includes("split_page 2"), "and offers split_page");
   ok(

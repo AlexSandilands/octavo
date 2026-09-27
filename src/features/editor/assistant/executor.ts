@@ -37,6 +37,8 @@ export type RunSummary = RunChange & {
 
 export const RUN_CALL_LIMIT = 40;
 export const RUN_MOVE_LIMIT = 2;
+/** Re-trims of a block, in a row, on a page that still overflows (#355). */
+export const RUN_STALL_LIMIT = 4;
 export const BREAKER_MESSAGE =
   "I got stuck, so I stopped. Everything I did is in place and can be undone in one step.";
 export const INTERRUPTED_MESSAGE =
@@ -57,7 +59,30 @@ type RunState = {
   abort: AbortController;
   /** The cover this run's compose calls edit, once one has (#313). */
   cover: { id?: string };
+  stall: Stall;
 };
+
+/** set_text calls in a row on one page that still overflows after each; a
+ *  block rewritten again in that streak is a repeat (#355). */
+type Stall = { pageId: string | null; blocks: Set<string>; repeats: number };
+const noStall = (): Stall => ({ pageId: null, blocks: new Set(), repeats: 0 });
+
+/** Trimming a line a call makes progress every few calls, so neither the call
+ *  ceiling nor the move rule caught it; one pass over many blocks isn't a stall. */
+function trackStall(
+  s: Stall,
+  name: string,
+  input: unknown,
+  pageId: string | undefined,
+  over: boolean,
+): Stall {
+  const blockId = (input as { blockId?: string }).blockId;
+  if (name !== "set_text" || !blockId || !pageId || !over) return noStall();
+  if (s.pageId !== pageId)
+    return { pageId, blocks: new Set([blockId]), repeats: 0 };
+  if (s.blocks.has(blockId)) return { ...s, repeats: s.repeats + 1 };
+  return { ...s, blocks: new Set(s.blocks).add(blockId) };
+}
 
 const fresh = (): RunState => ({
   calls: 0,
@@ -68,6 +93,7 @@ const fresh = (): RunState => ({
   notes: [],
   abort: new AbortController(),
   cover: {},
+  stall: noStall(),
 });
 
 const STOPPED =
@@ -231,14 +257,16 @@ export function createAssistantExecutor({
         mine.moves.set(result.moved, (mine.moves.get(result.moved) ?? 0) + 1);
 
       const lines: string[] = [];
+      let over = false;
       for (const id of result.report) {
         const index = result.pages.findIndex((p) => p.id === id);
         const page = result.pages[index];
-        if (page)
-          lines.push(
-            describeReport(index + 1, page, await measure.report(page)),
-          );
+        if (!page) continue;
+        const report = await measure.report(page);
+        over ||= report.fill?.kind === "flow" && report.fill.overflowLines > 0;
+        lines.push(describeReport(index + 1, page, report));
       }
+      run.stall = trackStall(run.stall, name, input, result.report[0], over);
       return [result.text, lines.join("; ")].filter(Boolean).join(" ");
     } catch (error) {
       if (gone()) return STOPPED;
@@ -292,10 +320,12 @@ export function createAssistantExecutor({
       return next;
     },
     /** Why the run should stop now (too many calls, a block moved back and
-     *  forth, the issue changed under it), or null. */
+     *  forth, trimming that stalls, the issue changed under it), or null. */
     breaker(): string | null {
       if (run.interrupted) return INTERRUPTED_MESSAGE;
-      const thrashing = [...run.moves.values()].some((n) => n > RUN_MOVE_LIMIT);
+      const thrashing =
+        [...run.moves.values()].some((n) => n > RUN_MOVE_LIMIT) ||
+        run.stall.repeats >= RUN_STALL_LIMIT;
       return run.calls > RUN_CALL_LIMIT || thrashing ? BREAKER_MESSAGE : null;
     },
     /** What the run itself changed, for the panel's one line and its Undo; null if nothing. */

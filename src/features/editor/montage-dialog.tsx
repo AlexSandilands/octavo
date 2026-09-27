@@ -11,6 +11,7 @@ import {
 } from "@/lib/blocks";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
 import { MenuSelect, type MenuSelectItem } from "@/components/menu-select";
+import { imageUploadRefusal } from "@/lib/image-upload-limits";
 import { MontageRow } from "./montage-row";
 
 // The montage block's settings panel (issue #95): the slide list — add, remove,
@@ -75,14 +76,28 @@ export function MontageDialog({
     const files = Array.from(e.target.files ?? []);
     e.target.value = ""; // let the same files be re-picked after an error
     if (files.length === 0) return;
+    const taken = files.slice(0, room);
+    // A file the route would refuse isn't sent; it says why in the route's
+    // words, named when several were picked. The rest still go.
+    const notes: string[] = [];
+    const sending = taken.filter((file) => {
+      const refused = imageUploadRefusal(file);
+      if (refused)
+        notes.push(files.length > 1 ? `${file.name}: ${refused}` : refused);
+      return !refused;
+    });
+    if (files.length > room) {
+      notes.push(`A montage holds at most ${MAX_MONTAGE_IMAGES} images.`);
+    }
+    setError(notes.join(" ") || null);
+    if (sending.length === 0) return;
     setUploading(true);
-    setError(null);
     const added: MontageItem[] = [];
     try {
       // Sequential on purpose: sharp re-encodes each upload, and a montage is
       // authored a handful of images at a time — parallel uploads would only
       // trade a legible progress state for contention.
-      for (const file of files.slice(0, room)) {
+      for (const file of sending) {
         const body = new FormData();
         body.append("file", file);
         body.append("issueId", issueId);
@@ -99,11 +114,9 @@ export function MontageDialog({
         });
         added.push({ imageId: data.imageId, alt: "", caption: "" });
       }
-      if (files.length > room) {
-        setError(`A montage holds at most ${MAX_MONTAGE_IMAGES} images.`);
-      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed.");
+      const failed = err instanceof Error ? err.message : "Upload failed.";
+      setError([failed, ...notes].join(" "));
     } finally {
       // Keep whatever landed before the failure — re-uploading successful
       // images to recover from one bad file would be a poor trade.

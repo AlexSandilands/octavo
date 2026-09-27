@@ -31,7 +31,7 @@ export function presetMessage(id: PresetId, target: PresetTarget): string {
     case "rewrite":
       return `Rewrite ${where} for clarity. The wording may change; keep the facts and the voice.`;
     case "shorten":
-      return `Shorten the text on ${where} until the page fits, and stop as soon as it does. The wording may change; keep the facts and the voice.`;
+      return `Shorten the text on ${where} until the page fits, and stop as soon as it does. Take out as many lines as the page is over in one round, one edit per block you shorten. The wording may change; keep the facts and the voice.`;
     case "compose":
       return `Compose the cover on page ${target.page}. Use the issue's strongest story as the lead and keep the current background.`;
   }
