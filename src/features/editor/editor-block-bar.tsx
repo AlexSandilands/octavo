@@ -11,6 +11,7 @@ import { MontageBlockControl } from "./montage-control";
 import { VideoBlockControl } from "./video-control";
 import { SponsorPicker } from "./sponsor-picker";
 import { useBarFit } from "./use-bar-fit";
+import { useCoverToolbarBounds } from "./use-cover-toolbar-bounds";
 
 // A selected block's own chrome, where it isn't a cover item: the tool bar for
 // its kind (or a bare type label) above it, and move/delete down its right side.
@@ -43,7 +44,11 @@ export function EditorBlockBar({
   onFillPage: (align: PageAlign) => void;
   onRegisterImage: (imageId: string, image: ResolvedImage) => void;
 }) {
-  const barRef = useBarFit<HTMLDivElement>();
+  // On a cover (a sponsor, say: not a cover item) the bar is placed like the
+  // cover items' bars, clear of the inspector and the standing tools, and kept
+  // there through pans and focus scrolls (#369).
+  const barRef = useBarFit<HTMLDivElement>(!cover);
+  useCoverToolbarBounds(barRef, Boolean(cover));
   const chromeTop = bleed
     ? "top-2 [transform-origin:top_left]"
     : "bottom-full mb-2";

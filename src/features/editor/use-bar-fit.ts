@@ -12,11 +12,13 @@ const EDGE = 8;
  * back in, and one wider than the room wraps onto a second row. Bars keep one
  * screen size at every zoom (a transform ResizeObserver doesn't see), so this
  * measures on every render as well as on resize, and writes the two styles
- * itself rather than round-trip through state.
+ * itself rather than round-trip through state. `active: false` stands it down
+ * for a bar another hook places (a cover's, `useCoverToolbarBounds`).
  */
-export function useBarFit<T extends HTMLElement>() {
+export function useBarFit<T extends HTMLElement>(active = true) {
   const ref = useRef<T>(null);
   useLayoutEffect(() => {
+    if (!active) return;
     const bar = ref.current;
     const parent = bar?.parentElement;
     const stage = bar?.closest<HTMLElement>("[data-editor-canvas-stage]");

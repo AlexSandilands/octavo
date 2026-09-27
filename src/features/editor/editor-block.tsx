@@ -226,6 +226,8 @@ export function EditorBlock({
       )}
       {selected && !coverItem && (
         <EditorBlockBar
+          // A cover's bar carries the placement its hook wrote; start afresh.
+          key={cover ? "cover" : "page"}
           block={block}
           cover={cover}
           bleed={bleed}
