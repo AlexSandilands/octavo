@@ -70,7 +70,23 @@ export function pageCaption(page: AiRenderedPage, issue: AssistantIssue) {
   return `Page ${page.page} (${fill})`;
 }
 
-export function createVision() {
+/** Where pictures come from: the admin routes, or the model-selection
+ *  fixture's own renderer (#315), which has no saved draft to post. */
+export type VisionEyes = {
+  pages: typeof picturePages;
+  photo: (
+    source: VisionSource,
+    imageId: string,
+  ) => Promise<AiPhotoResponse | null>;
+};
+
+const routeEyes: VisionEyes = {
+  pages: picturePages,
+  photo: (source, imageId) =>
+    post<AiPhotoResponse>(AI_PHOTO_PATH, { issueId: source.issueId, imageId }),
+};
+
+export function createVision(eyes: VisionEyes = routeEyes) {
   // Views counted against the run's budget, and every picture the run took.
   let used = 0;
   let pictured = 0;
@@ -98,7 +114,7 @@ export function createVision() {
       return {
         text: `Error: there is no page ${page}; this issue has ${issue.pages.length} pages.`,
       };
-    const [shot] = await picturePages(source, issue, [page]);
+    const [shot] = await eyes.pages(source, issue, [page]);
     if (!shot)
       return {
         text: `Error: page ${page} couldn't be pictured right now; carry on without it. No view was used.`,
@@ -124,10 +140,7 @@ export function createVision() {
       return {
         text: `Error: "${imageId}" isn't a photo uploaded to this issue.`,
       };
-    const photo = await post<AiPhotoResponse>(AI_PHOTO_PATH, {
-      issueId: source.issueId,
-      imageId,
-    });
+    const photo = await eyes.photo(source, imageId);
     if (!photo)
       return {
         text: `Error: photo ${imageId} couldn't be shown just now. No view was used.`,

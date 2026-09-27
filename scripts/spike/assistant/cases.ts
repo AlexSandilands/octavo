@@ -88,7 +88,11 @@ export const caseSchema = z.object({
 });
 export type Case = z.infer<typeof caseSchema>;
 
-export const CASES_DIR = join(import.meta.dirname, "cases");
+// Moved to the model-selection fixture (#315); the spike reads them there until #344.
+export const CASES_DIR = join(
+  import.meta.dirname,
+  "../../fixtures/assistant/cases",
+);
 
 export function loadCases(): Case[] {
   return readdirSync(CASES_DIR)
