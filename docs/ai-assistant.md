@@ -408,7 +408,9 @@ don't redesign it.
     file is uploaded at once through `POST /api/admin/images` and becomes an issue photo; the editor learns it, so the
     projection's header lists it with the unplaced photos and `insert_blocks` can place it.
   - **Limits:** at most **ten a message**; an eleventh is left out with a note. The model's first look at each is
-    outside its six views a run (#365, above), so it can look at every one and still check its pages. The route's limits (12 MB, image types, in `src/lib/image-upload-limits.ts`) are checked in the
+    outside its six views a run (#365, above), so it can look at every one and still check its pages. The cost of that
+    choice, accepted: every look still counts toward the conversation's 24 pictures, so a photo-heavy message (ten
+    looks, the run's views and the review) can use the conversation up, and the panel offers a new one. The route's limits (12 MB, image types, in `src/lib/image-upload-limits.ts`) are checked in the
     browser first and refused there in the route's words, never sent; Send waits until a refused file is removed, and
     while any upload runs. Removing a thumbnail doesn't delete the uploaded photo. Repeated names (every pasted image
     is "image.png") are numbered, so each remove button says which it is.

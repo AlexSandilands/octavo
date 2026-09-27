@@ -38,6 +38,9 @@ export function SectionAssistant() {
         &ldquo;put these beside the stories they belong to&rdquo;. It looks at
         each photo to place it and to write its description; any it
         doesn&rsquo;t use stay with the issue&rsquo;s photos, and it says so.
+        Looking at photos fills a conversation quickly: after a message or two
+        with many photos the panel may say the conversation is full, and offer
+        to start a new one.
       </P>
       <P>
         Four quick buttons sit above the box where you type. Each asks about the
