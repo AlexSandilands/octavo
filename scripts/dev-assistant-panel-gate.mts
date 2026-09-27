@@ -5,8 +5,9 @@
 // It opens and closes the panel with the mouse and the keyboard, checks focus in
 // and out, the rail's order, the cover inspector's hand-off, the drafts-only and
 // budget-spent states, a streamed reply with a read_page round trip (fills vs the
-// canvas's overflow marker), Stop, an inline error, the usage footer, the log's
-// announcements, a full conversation and a tablet's width.
+// canvas's overflow marker), Stop, an inline error, a stalled reply that keeps
+// its edit (#358; quick with AI_IDLE_TIMEOUT_MS=3000 on the server), the usage
+// footer, the log's announcements, a full conversation and a tablet's width.
 // With `--off`, against a server with neither variable set, it checks the
 // button, the Ask on a block, the help section and the usage route are all
 // absent (assistant-panel-gate-off.mts).
@@ -21,6 +22,7 @@ import { AI_ERROR_COPY } from "../src/lib/ai-chat-contract";
 import { railOrder } from "./editor-rail-gate-support.mts";
 import { stopChecks } from "./fixtures/assistant/panel-stop-checks.mts";
 import { checkOff } from "./assistant-panel-gate-off.mts";
+import { checkStall } from "./assistant-panel-gate-stall.mts";
 
 process.loadEnvFile?.(".env.local");
 const [base, flag] = process.argv.slice(2);
@@ -291,6 +293,7 @@ async function onChecks(page: Page, pageCount: number) {
   );
   ok(true, "a route error shows inline in its own words");
   page.off("request", onRequest);
+  await checkStall({ page, sql, draftId, ok, heading });
 
   heading("Budget spent");
   await sql`insert into ai_usage (id, user_id, run_id, model, provider, prompt_tokens,

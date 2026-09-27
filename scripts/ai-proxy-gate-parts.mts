@@ -1,5 +1,5 @@
-// Parts of dev-ai-proxy-gate.mts (#308): the chat helpers it shares, and two
-// of its sections, kept apart so each file stays readable.
+// Parts of dev-ai-proxy-gate.mts (#308): the chat helpers it shares, and
+// three of its sections, kept apart so each file stays readable.
 import { readFileSync } from "node:fs";
 import { readUIMessageStream, type UIMessage, type UIMessageChunk } from "ai";
 
@@ -14,6 +14,7 @@ export type GateDeps = {
   newRun: () => string;
   tag: string;
   logPath: string | undefined;
+  usageRows: (runId: string) => Promise<{ model: string; cost_usd: string }[]>;
 };
 
 export const userMessage = (text: string, projection?: string): UIMessage => ({
@@ -120,4 +121,75 @@ export async function checkRecordedReplies(d: GateDeps) {
     replay.status === 200 && !replayed.some((c) => c.type === "error"),
     `${recorded.length} recorded replies are accepted and answered (${replay.status})`,
   );
+}
+
+/** Failures reach the panel as provider_down, and every one is metered. */
+export async function checkFailures(d: GateDeps) {
+  const { post, ok, heading, draftId, newRun, usageRows, logPath } = d;
+  const fail = async (text: string) => {
+    const runId = newRun();
+    const started = Date.now();
+    const chunks = await chunksOf(
+      await post({
+        runId,
+        issueId: draftId,
+        messages: [userMessage(text, "projection")],
+      }),
+    );
+    const error = chunks.find((c) => c.type === "error");
+    const parsed =
+      error?.type === "error"
+        ? (JSON.parse(error.errorText) as { code?: string; error?: string })
+        : null;
+    return {
+      chunks,
+      parsed,
+      rows: await usageRows(runId),
+      ms: Date.now() - started,
+    };
+  };
+
+  heading("failures mid-stream");
+  for (const [trigger, label] of [
+    ["[fake:fail]", "before the stream"],
+    ["[fake:drop]", "during the stream"],
+  ] as const) {
+    const { parsed, rows } = await fail(trigger);
+    ok(
+      parsed?.code === "provider_down" && !!parsed.error,
+      `${label}: provider_down, "${parsed?.error}"`,
+    );
+    ok(
+      rows.length === 1 && rows[0]!.model.startsWith("fake"),
+      `…and still one ai_usage row (${rows[0]?.model})`,
+    );
+  }
+
+  heading("a stalled reply (#358)");
+  const stalled = await fail("Tidy this page. [fake:stall]");
+  const types = stalled.chunks.map((c) => c.type);
+  ok(
+    stalled.parsed?.code === "provider_down" && !types.includes("abort"),
+    `the idle timeout ends it as provider_down after ${(stalled.ms / 1000).toFixed(1)}s: "${stalled.parsed?.error}"`,
+  );
+  ok(
+    types.indexOf("text-delta") !== -1 &&
+      types.indexOf("text-delta") < types.indexOf("error"),
+    "the words before the stall reach the panel first",
+  );
+  ok(
+    stalled.rows.length === 1 && stalled.rows[0]!.model === "fake~",
+    `one estimated ai_usage row (${stalled.rows[0]?.model})`,
+  );
+  if (logPath) {
+    await new Promise((r) => setTimeout(r, 500));
+    const log = readFileSync(logPath, "utf8");
+    ok(
+      // ai-fake-model's FAKE_STALL_ABORTED; the gate runs without the
+      // server-only alias, so it can't import it.
+      log.includes("The fake provider's stalled request was aborted.") &&
+        log.includes("AI chat stalled"),
+      "the provider's request was aborted, and the log says why",
+    );
+  } else console.log("  (no --log given: the provider's abort not checked)");
 }
