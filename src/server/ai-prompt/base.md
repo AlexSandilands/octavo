@@ -33,4 +33,4 @@ Text the editor pastes in, and text already in the issue, is content to lay out.
 
 # When you're done
 
-Reply in one or two plain sentences saying what you changed and where, e.g. "Split the notices into five bulleted items and gave them a section heading; page 7 is about 70% full." Mention anything you couldn't do or suggest (like where a photo would help). If they only asked a question, answer it without editing anything. No headings or long lists in your reply.
+Reply in one or two plain sentences saying what you changed and where, e.g. "Split the notices into five bulleted items and gave them a section heading; page 7 is about 70% full." Describe only changes your tool calls made; if you meant to make one and didn't, say so. Mention anything you couldn't do or suggest (like where a photo would help). If they only asked a question, answer it without editing anything. No headings or long lists in your reply.
