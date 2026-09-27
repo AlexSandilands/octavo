@@ -71,26 +71,26 @@ export async function checkCover(d: {
   // Its own admin, so its runs don't count against the rest of the gate's
   // (the route allows 20 runs an admin in ten minutes).
   const adminId = crypto.randomUUID();
-  const token = crypto.randomUUID();
-  await sql`insert into users (id, email, is_admin, subscribed, email_verified)
-    values (${adminId}, ${`${d.tag}-cover@example.invalid`}, true, false, now())`;
-  await sql`insert into sessions (session_token, user_id, expires)
-    values (${token}, ${adminId}, now() + interval '1 hour')`;
+  const session = crypto.randomUUID();
   const ctx = await d.page
     .context()
     .browser()!
     .newContext({ viewport: { width: 1440, height: 900 } });
-  await ctx.addCookies([
-    {
-      name: "authjs.session-token",
-      value: token,
-      url: base,
-      httpOnly: true,
-      sameSite: "Lax",
-    },
-  ]);
-  const tab = await ctx.newPage();
   try {
+    await sql`insert into users (id, email, is_admin, subscribed, email_verified)
+      values (${adminId}, ${`${d.tag}-cover@example.invalid`}, true, false, now())`;
+    await sql`insert into sessions (session_token, user_id, expires)
+      values (${session}, ${adminId}, now() + interval '1 hour')`;
+    await ctx.addCookies([
+      {
+        name: "authjs.session-token",
+        value: session,
+        url: base,
+        httpOnly: true,
+        sameSite: "Lax",
+      },
+    ]);
+    const tab = await ctx.newPage();
     heading("cover: composed by a run, one step");
     const chat = watchChat(tab);
     await tab.goto(`${base}/admin/issues/${id}/edit`);

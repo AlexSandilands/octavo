@@ -62,16 +62,32 @@ const fresh = (): RunState => ({
   cover: {},
 });
 
-/** The first key an edit set that the save path's schema would drop, if any:
- *  what the editor shows must be what the issue stores. */
-function droppedKey(set: unknown, kept: unknown, at = "pages"): string | null {
+/** Every object in the issue before an edit: the executor copies only what it
+ *  edits, so an object seen here is one the edit didn't write. */
+export function objectsIn(value: unknown, into = new WeakSet<object>()) {
+  if (value && typeof value === "object" && !into.has(value)) {
+    into.add(value);
+    for (const v of Object.values(value)) objectsIn(v, into);
+  }
+  return into;
+}
+
+/** The first key an edit wrote that the save path's schema would drop, if any:
+ *  what the editor shows must be what the issue stores. What was there before
+ *  (a typed link's Tiptap attributes, say) isn't the edit's, so it's skipped. */
+export function droppedKey(
+  set: unknown,
+  kept: unknown,
+  before: WeakSet<object>,
+  at = "pages",
+): string | null {
+  if (!set || typeof set !== "object" || before.has(set)) return null;
   if (Array.isArray(set))
     return set.reduce<string | null>(
       (found, v, i) =>
-        found ?? droppedKey(v, (kept as unknown[])?.[i], `${at}[${i}]`),
+        found ?? droppedKey(v, (kept as unknown[])?.[i], before, `${at}[${i}]`),
       null,
     );
-  if (!set || typeof set !== "object") return null;
   for (const [key, value] of Object.entries(set)) {
     if (value === undefined) continue;
     if (!kept || typeof kept !== "object" || !(key in kept))
@@ -79,6 +95,7 @@ function droppedKey(set: unknown, kept: unknown, at = "pages"): string | null {
     const deeper = droppedKey(
       value,
       (kept as Record<string, unknown>)[key],
+      before,
       `${at}.${key}`,
     );
     if (deeper) return deeper;
@@ -158,7 +175,11 @@ export function createAssistantExecutor({
       });
       if (!valid.success)
         return `Error: that edit would make the issue invalid (${valid.error.issues[0]?.message}); nothing changed.`;
-      const dropped = droppedKey(result.pages, valid.data.pages);
+      const dropped = droppedKey(
+        result.pages,
+        valid.data.pages,
+        objectsIn(before.pages),
+      );
       if (dropped)
         return `Error: that edit sets something the issue can't store (${dropped}); nothing changed.`;
       if (handle.state().pages !== before.pages) {
@@ -229,6 +250,9 @@ export function createAssistantExecutor({
     /** A new author message: counters reset, and the next change records a step. */
     beginRun() {
       run = fresh();
+      // A cover open as the author asks is the run's cover from the start.
+      const { pages, curPage } = handle.state();
+      if (pages[curPage]?.cover) run.cover.id = pages[curPage].id;
     },
     run(
       name: string,

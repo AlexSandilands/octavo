@@ -266,7 +266,11 @@ const settled = (page: Page, id: string) =>
           ),
         );
       }),
-    ["[data-editor-canvas-stage]", `[data-block-id="${id}"]`],
+    [
+      "[data-editor-canvas-stage]",
+      `[data-block-id="${id}"]`,
+      "[data-bar-placement]",
+    ],
   );
 
 /** Every bar's Ask and its open box stay inside the canvas and clear of its
@@ -322,6 +326,9 @@ async function checkReach(page: Page, ok: (c: unknown, m: string) => void) {
             .waitForSelector(ask, { timeout: tries < 3 ? 3000 : 30_000 })
             .catch(() => null);
           if (shown) break;
+          console.log(
+            `  (retry ${tries}: ${name}'s Ask didn't show at ${width}px)`,
+          );
           if (tries === 3) throw new Error(`FAIL: ${name}'s Ask never showed`);
         }
         await page.waitForTimeout(300);

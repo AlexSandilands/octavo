@@ -12,12 +12,25 @@ import {
 } from "../../../src/lib/cover-elements";
 import { makeBlock, type Block, type Page } from "../../../src/lib/blocks";
 import { plainCoverDoc } from "../../../src/lib/cover-rich-text";
-import { RUN_MOVE_LIMIT } from "../../../src/features/editor/assistant/executor";
+import {
+  RUN_MOVE_LIMIT,
+  droppedKey,
+  objectsIn,
+} from "../../../src/features/editor/assistant/executor";
 import { aiToolSchemas } from "../../../src/lib/ai-tools";
 import * as h from "./tools-harness.mts";
 
-const { ok, heading, harness, headingBlock, textBlock, cover, page, photos } =
-  h;
+const {
+  ok,
+  heading,
+  harness,
+  headingBlock,
+  textBlock,
+  para,
+  cover,
+  page,
+  photos,
+} = h;
 
 export async function coverChecks() {
   heading("cover tools: the contract");
@@ -206,6 +219,134 @@ export async function coverChecks() {
     `the next cover result says so (${warned.text.split("Layout warnings: ")[1]})`,
   );
   await reviewChecks(lead);
+  await typedTextChecks();
+}
+
+/** What the author typed keeps Tiptap attributes the save drops (a link's
+ *  target and rel, a list's start); edits around it must still go through. */
+async function typedTextChecks() {
+  heading("cover tools: typed Tiptap attributes don't block an edit");
+  const typed = (): Block =>
+    ({
+      ...textBlock(1),
+      text: {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "text",
+                text: "The club site",
+                marks: [
+                  {
+                    type: "link",
+                    attrs: {
+                      href: "https://club.example",
+                      target: "_blank",
+                      rel: "noopener noreferrer nofollow",
+                      class: null,
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: "orderedList",
+            attrs: { start: 1, type: null },
+            content: [{ type: "listItem", content: [para("One.")] }],
+          },
+        ],
+      },
+    }) as unknown as Block;
+  const pageDoc = (pages: Page[]) =>
+    issueContentSchema.safeParse({ version: CONTENT_VERSION, pages });
+  {
+    const link = typed();
+    const probe = pageDoc([page(link)]);
+    ok(
+      probe.success &&
+        droppedKey([page(link)], probe.data.pages, objectsIn([])) !== null,
+      "the save drops those attributes (the case is real)",
+    );
+  }
+  const elsewhere = typed();
+  const here = textBlock(2);
+  const neighbour = typed();
+  const next = textBlock(1);
+  const coverText = typed();
+  const masthead = {
+    ...makeBlock("heading"),
+    title: "Regatta",
+    kicker: "The club magazine",
+    coverPlacement: {
+      ...makeCoverElement("details").placement,
+      richText: {
+        kicker: {
+          type: "doc",
+          content: [
+            {
+              type: "paragraph",
+              attrs: { textAlign: null },
+              content: [{ type: "text", text: "The club magazine" }],
+            },
+          ],
+        },
+      },
+    },
+  } as unknown as Block;
+  const x = harness([
+    { ...cover, blocks: [masthead, coverText] },
+    page(here, neighbour, next),
+    page(elsewhere),
+  ]);
+  for (const [tool, input, what] of [
+    [
+      "set_text",
+      { blockId: here.id, markdown: "New words." },
+      "set_text beside a typed link",
+    ],
+    [
+      "move_block",
+      { blockId: neighbour.id, after: { page: 3 } },
+      "move_block on the linked block",
+    ],
+    [
+      "move_block",
+      { blockId: next.id, after: { page: 3 } },
+      "move_block on its neighbour",
+    ],
+    [
+      "place_cover_item",
+      {
+        id: coverText.id,
+        column: "left",
+        row: "bottom",
+        width: "wide",
+        align: "left",
+      },
+      "place_cover_item on cover text with a link",
+    ],
+    [
+      "set_masthead",
+      { title: "Summer Regatta" },
+      "set_masthead with typed attributes in its kicker",
+    ],
+  ] as const) {
+    x.executor.beginRun();
+    const out = await x.run(tool, input);
+    ok(
+      !out.text.startsWith("Error"),
+      `${what} goes through (${out.text.split(".")[0]})`,
+    );
+  }
+  const fresh = { a: { b: 1, stray: 2 } };
+  ok(
+    droppedKey(fresh, { a: { b: 1 } }, objectsIn({})) === "pages.a.stray" &&
+      droppedKey(fresh, { a: { b: 1 } }, objectsIn(fresh)) === null,
+    "a key an edit writes that the save would drop is still caught",
+  );
 }
 
 /** The #363 review's cases: what the editor shows is what the issue stores. */

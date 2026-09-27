@@ -319,14 +319,15 @@ don't redesign it.
     `style_cover_page` (text colour, panel and panel shape, shadow and its colour, the frame, the automatic
     magazine-name line). **No font or weight arguments:** fonts stay with the cover inspector until a #315 fixture run
     shows the model using them well.
-  - **Which cover.** The compose tools edit the cover open now, else the front cover (page 1), and that cover for the
-    rest of the run, wherever the author turns; every result names it. The item tools find their id on any cover and refuse one on an inside page; the page tools keep refusing
+  - **Which cover.** The compose tools edit the cover open when the author asked, else the front cover (page 1), and
+    that cover for the rest of the run, wherever the author turns; every result names it. The item tools find their id on any cover and refuse one on an inside page; the page tools keep refusing
     covers and point at the cover tools. There is no page argument, and `cover.md` tells the model the rule.
   - **Validation.** Every item goes through the real cover schemas (`coverElementSchema`, `coverPlacementSchema`), new
     items take the next order after what's there (as the editor's own Add does), and the whole issue is re-validated
     as for any edit. Only headings, text and photos are placed or styled, as in the inspector; a sponsor, quote or list
-    on a cover is refused. The executor also refuses any edit whose keys the save path's schema would drop, so what
-    the editor shows is always what the issue stores. A cover with no defaults yet takes the editor's own
+    on a cover is refused. The executor also refuses an edit that writes a key the save path's schema would drop, so
+    what the editor shows is always what the issue stores; what was already there (a typed link's Tiptap attributes)
+    isn't the edit's and doesn't count. A cover with no defaults yet takes the editor's own
     (`coverOverlayOf`: dark type on paper, light and shadowed over a photo). Styling an item whose words the author
     coloured one by one says those words keep their colour.
   - **Results** end with a one-line summary ("The cover (page 1) now has a background photo, a masthead, 2 stories,
