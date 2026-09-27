@@ -28,8 +28,9 @@ import { createVision, picturePages, type VisionSource } from "./vision";
 
 /** What the chat calls, at the start of a run, per tool call, and at its end. */
 export type AssistantTools = {
-  /** `pictures`: how many more images the conversation has room for. */
-  beginRun(pictures: number): void;
+  /** `pictures`: how many more images the conversation has room for;
+   *  `photos`: the ones attached to this message (#343). */
+  beginRun(pictures: number, photos?: string[]): void;
   run(
     name: string,
     input: unknown,
@@ -141,10 +142,10 @@ export function useAssistantTools({
   const [running, setRunning] = useState(false);
   return {
     running,
-    beginRun: (pictures) => {
+    beginRun: (pictures, photos) => {
       setRunning(true);
       executor.current?.beginRun();
-      vision.beginRun(pictures);
+      vision.beginRun(pictures, photos);
     },
     run: async (name, input, issue) =>
       executor.current

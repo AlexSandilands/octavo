@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import type { Page } from "@/lib/blocks";
+import type { ResolvedImage } from "@/lib/images";
 import type { LogoListItem } from "@/lib/logos";
 import type { SponsorListItem } from "@/lib/sponsors";
 import type { MeasurementOptions } from "../pdf-import/measure";
@@ -28,6 +29,7 @@ export function useEditorAssistant({
   apply,
   undo,
   historyTop,
+  registerImage,
 }: {
   issueId: string;
   /** The assistant only works on drafts. */
@@ -44,6 +46,8 @@ export function useEditorAssistant({
   apply: (next: EditorSnapshot, record: EditorSnapshot | null) => void;
   undo: () => void;
   historyTop: EditorSnapshot | null;
+  /** A photo the author attached in the chat, for the canvas's image map (#343). */
+  registerImage: (imageId: string, image: ResolvedImage) => void;
 }) {
   const askRef = useRef<AskHandler | null>(null);
   const snapshot = useAssistantSnapshot({
@@ -84,6 +88,7 @@ export function useEditorAssistant({
       },
       undo,
       historyTop,
+      registerImage,
       askRef,
     },
   };

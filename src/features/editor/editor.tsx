@@ -292,6 +292,7 @@ export function Editor({
     apply: applyAssistant,
     undo,
     historyTop,
+    registerImage: (id, image) => setImages((m) => ({ ...m, [id]: image })),
   });
   const assistantTools = assistant.tools;
 
