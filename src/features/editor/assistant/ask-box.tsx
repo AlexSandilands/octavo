@@ -122,14 +122,14 @@ export function AskControl({
               e.stopPropagation();
               close();
             }}
-            className="border-hair absolute top-full right-0 z-40 mt-3 w-[22rem] rounded-lg border bg-white p-2 whitespace-normal shadow-[0_8px_24px_rgba(40,36,28,0.18)]"
+            className="border-hair absolute top-full right-0 z-40 mt-3 w-[20rem] rounded-[8px] border bg-white p-1.5 whitespace-normal shadow-[0_8px_24px_rgba(40,36,28,0.18)]"
           >
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 void submit();
               }}
-              className="flex items-center gap-2"
+              className="flex items-stretch gap-1.5"
             >
               <input
                 ref={input}
@@ -143,7 +143,8 @@ export function AskControl({
                   setValue(e.target.value);
                   setRefused(null);
                 }}
-                className="boxed-field border-line text-ink placeholder:text-faint h-11 min-w-0 flex-1 rounded-lg border-[1.5px] bg-white px-3 font-sans text-[16px]"
+                // The same size as the bar's own fields (the photo bar's Alt).
+                className="boxed-field border-hair text-ink placeholder:text-faint min-w-0 flex-1 rounded-[6px] border bg-white px-2 py-1 font-sans text-[12px]"
               />
               <button
                 ref={send}
@@ -151,16 +152,17 @@ export function AskControl({
                 aria-label="Send"
                 title="Send (Enter)"
                 disabled={!value.trim() || over || sending}
-                className="bg-accent text-paper enabled:hover:bg-accent-strong flex h-11 w-11 flex-none cursor-pointer items-center justify-center rounded-lg transition-colors disabled:cursor-default disabled:opacity-45"
+                // As tall as the field; the press area reaches a little past it.
+                className="bg-accent text-paper enabled:hover:bg-accent-strong relative flex w-8 flex-none cursor-pointer items-center justify-center rounded-[6px] transition-colors after:absolute after:-inset-y-1.5 after:-right-1.5 after:left-0 after:content-[''] disabled:cursor-default disabled:opacity-45"
               >
-                <Icon name="send" size={18} strokeWidth={2} />
+                <Icon name="send" size={14} strokeWidth={2.2} />
               </button>
             </form>
             {(over || refused) && (
               <p
                 id={`${boxId}-note`}
                 role="alert"
-                className="text-warn px-1 pt-2 font-sans text-[13px] leading-snug font-semibold"
+                className="text-warn px-1 pt-1.5 font-sans text-[12px] leading-snug font-semibold"
               >
                 {over
                   ? "Too long for the Ask box. Use the assistant panel for long requests."
