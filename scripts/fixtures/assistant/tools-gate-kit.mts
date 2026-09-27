@@ -4,6 +4,7 @@
 // on the chat's requests that runs `[fake:tools]` scripts and reads what went
 // back.
 import type { Page } from "playwright";
+import { CONFIRM_FROM_CHARS } from "../../../src/features/editor/assistant/paste-estimate";
 
 /** The issue photo the page places; its row has no file behind it. */
 export const photoId = crypto.randomUUID();
@@ -167,7 +168,7 @@ export function watchChat(page: Page) {
       return this.awaitRun(async () => {
         await page.fill("#assistant-input", message);
         await page.keyboard.press("Enter");
-        if (message.length > 4_000)
+        if (message.length > CONFIRM_FROM_CHARS)
           await page.click(
             '[data-assistant-paste-confirm] button:text-is("Continue")',
           );

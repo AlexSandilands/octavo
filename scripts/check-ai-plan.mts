@@ -104,6 +104,7 @@ heading("an empty page takes the first section; sub-heads and photos");
           { imageId: photo, after: 1, align: "right" },
           { imageId: photo, align: "left" },
           { after: 2 },
+          { after: 3 },
         ],
       },
     ],
@@ -126,8 +127,8 @@ heading("an empty page takes the first section; sub-heads and photos");
     "a photo after paragraph 1, wrapped right at 45%",
   );
   ok(
-    out.text.includes('Suggested a photo for "Garden"') &&
-      x.executor.summary()?.text.endsWith('. Suggested a photo for "Garden".'),
+    out.text.includes('Suggested 2 photos for "Garden"') &&
+      x.executor.summary()?.text.endsWith('. Suggested 2 photos for "Garden".'),
     "a photo without an id is a suggestion in the result and the run's line",
   );
 }

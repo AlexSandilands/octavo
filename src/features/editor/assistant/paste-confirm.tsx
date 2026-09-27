@@ -25,6 +25,21 @@ export function PasteConfirm({
 }) {
   const box = useRef<HTMLDivElement>(null);
   useEffect(() => box.current?.focus(), []);
+  // Escape cancels wherever focus is (the read-only box, say), before the
+  // panel's own Escape can close it.
+  const cancel = useRef(onCancel);
+  useEffect(() => {
+    cancel.current = onCancel;
+  });
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.stopPropagation();
+      cancel.current();
+    };
+    document.addEventListener("keydown", onKey, true);
+    return () => document.removeEventListener("keydown", onKey, true);
+  }, []);
   const usd = model ? estimatePasteUsd(chars, model) : null;
   const cost =
     usd === null ? "" : ` (about ${usdUp(usd)} on the current model)`;
@@ -35,11 +50,6 @@ export function PasteConfirm({
       role="alertdialog"
       aria-labelledby="assistant-paste-confirm"
       data-assistant-paste-confirm
-      onKeyDown={(e) => {
-        if (e.key !== "Escape") return;
-        e.stopPropagation();
-        onCancel();
-      }}
       className="border-line bg-paper flex flex-col gap-3 rounded-xl border-[1.5px] px-3.5 py-3 outline-none"
     >
       <p

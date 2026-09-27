@@ -6,7 +6,13 @@
 // one Ctrl+Z takes it all back.
 import type { Page } from "playwright";
 import type postgres from "postgres";
-import { until, type Doc, type watchChat } from "./tools-gate-kit.mts";
+import {
+  canonical,
+  ids,
+  until,
+  type Doc,
+  type watchChat,
+} from "./tools-gate-kit.mts";
 
 const INPUT = "#assistant-input";
 const CONFIRM = "[data-assistant-paste-confirm]";
@@ -166,8 +172,43 @@ export async function planChecks({
     async () => (await saved()).pages.length === from,
   );
   ok(
-    JSON.stringify((await saved()).pages.map((p) => p.id)) ===
-      JSON.stringify(before.pages.map((p) => p.id)),
+    canonical((await saved()).pages) === canonical(before.pages),
     "the issue is back to its pages before the plan",
   );
+
+  heading("Stop mid-placement, then a new message: the plan lands nowhere");
+  const late = Array.from({ length: 20 }, (_, i) => ({
+    headline: `LATE ${i + 1}`,
+    body: body(4, `L${i + 1}`),
+  }));
+  await page.fill(
+    INPUT,
+    `Lay these out [fake:tools]${JSON.stringify([
+      { toolName: "propose_sections", input: { after: from, sections: late } },
+    ])}`,
+  );
+  await page.keyboard.press("Enter");
+  await page.click(`${CONFIRM} button:text-is("Continue")`);
+  await page.waitForSelector('[role="log"] :text("Laying out the sections")');
+  await page.click('button[aria-label="Stop the reply"]');
+  const next = await chat.runScript([
+    {
+      toolName: "set_text",
+      input: { blockId: ids.intro, markdown: "AFTER STOP" },
+    },
+  ]);
+  await page.waitForTimeout(3_000);
+  const after = await saved();
+  ok(
+    next.outputs[0]?.startsWith("Updated the text") &&
+      after.pages.length === from &&
+      !JSON.stringify(after).includes("LATE 1"),
+    "the stopped plan placed nothing; the next run's edit landed",
+  );
+  await page.click('[data-assistant-run] button:text-is("Undo")');
+  await until(
+    "autosave of the next run's Undo",
+    async () => canonical((await saved()).pages) === canonical(before.pages),
+  );
+  ok(true, "the next run's Undo takes back only its own edit");
 }

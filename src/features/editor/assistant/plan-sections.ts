@@ -57,12 +57,14 @@ function sectionBlocks(
     } as Block);
 
   const placed = new Map<Where, Block[]>();
+  const wanted = (section.photos ?? []).filter((p) => !p.imageId).length;
+  if (wanted)
+    notes.push(
+      `Suggested ${wanted === 1 ? "a photo" : `${wanted} photos`} for "${section.headline}"`,
+    );
   for (const photo of section.photos ?? []) {
     const at = photo.after ?? "standfirst";
-    if (!photo.imageId) {
-      notes.push(`Suggested a photo for "${section.headline}"`);
-      continue;
-    }
+    if (!photo.imageId) continue;
     if (!photos.has(photo.imageId))
       refuse(`"${photo.imageId}" isn't a photo uploaded to this issue`);
     const align = photo.align ?? "full";
@@ -193,8 +195,11 @@ export async function placePlan(
         refuse(
           `section "${headline}" couldn't be placed: ${WHY[error.reason]}`,
         );
+      // The measurer's own failures are worded for Import PDF's author.
       if (error instanceof Error)
-        refuse(`section "${headline}" couldn't be placed: ${error.message}`);
+        refuse(
+          `section "${headline}" couldn't be measured onto a page; try fewer sections at a time`,
+        );
       throw error;
     } finally {
       fitter.dispose();
