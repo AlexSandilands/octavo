@@ -4,7 +4,7 @@
 // the standing tool pill (panel open, 768). At 1440, 900 and 768, panel closed
 // and open, the point at the centre of its Ask must be Ask: after a click
 // selects the sponsor, and again after Tab reaches Ask (focus scrolls the
-// canvas at 768). A real click there opens the box. Runs on a scratch copy of
+// canvas at 768). A real click there opens the box, whose Send is on top too. Runs on a scratch copy of
 // the Regatta cover (masthead, story, details, logo) plus a sponsor, in the
 // caller's signed-in context; the caller deletes the issue.
 import type { BrowserContext, Page } from "playwright";
@@ -41,8 +41,8 @@ export async function checkCoverSponsorAsk(d: {
   const block = `[data-block-id="${sponsor.id}"]`;
   const ask = `${block} [data-ask] > button[aria-label="Ask"]`;
   // What sits at the centre of Ask: Ask itself (or its icon), or what covers it.
-  const onTop = () =>
-    tab.$eval(ask, (el) => {
+  const onTop = (sel = ask) =>
+    tab.$eval(sel, (el) => {
       const r = el.getBoundingClientRect();
       const x = r.left + r.width / 2;
       const y = r.top + r.height / 2;
@@ -88,6 +88,11 @@ export async function checkCoverSponsorAsk(d: {
             .waitForSelector(DIALOG, { timeout: 3000 })
             .catch(() => null),
           `${at}: a click there opens its box`,
+        );
+        const send = await onTop(`${DIALOG} button[aria-label="Send"]`);
+        ok(
+          send.mine,
+          `${at}: its box's Send is on top too, clear of the inspector (${send.hit})`,
         );
         if (d.shots && width === 768)
           await tab.screenshot({

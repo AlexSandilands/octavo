@@ -7,7 +7,7 @@ const EDGE = 8;
 
 /**
  * Keeps a selected block's tool bar (or the Ask box under it) inside the
- * canvas and clear of the canvas's standing tools, so its last controls (Alt,
+ * canvas and clear of the canvas's standing tools and a cover's inspector, so its last controls (Alt,
  * Ask, Send) are always in reach: one that would run past either side slides
  * back in, and one wider than the room wraps onto a second row. Bars keep one
  * screen size at every zoom (a transform ResizeObserver doesn't see), so this
@@ -37,6 +37,15 @@ export function useBarFit<T extends HTMLElement>(active = true) {
       if (tools?.width && tools.left < room.left + room.width / 2)
         lo = Math.max(lo, tools.right + EDGE);
       else if (tools?.width) hi = Math.min(hi, tools.left - EDGE);
+      // A cover's inspector floats over the canvas: keep to its roomier side.
+      const panel = stage
+        .querySelector("[data-cover-inspector]")
+        ?.getBoundingClientRect();
+      if (panel?.width && panel.right > lo && panel.left < hi) {
+        if (panel.left - lo >= hi - panel.right)
+          hi = Math.max(lo, panel.left - EDGE);
+        else lo = Math.min(hi, panel.right + EDGE);
+      }
       let own = bar.getBoundingClientRect();
       const avail = hi - lo;
       if (own.width > avail) {
