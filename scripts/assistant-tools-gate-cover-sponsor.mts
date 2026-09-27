@@ -77,6 +77,16 @@ export async function checkCoverSponsorAsk(d: {
           if (tries === 3) throw new Error(`FAIL: ${at}: no sponsor Ask`);
         }
         await settled(tab, sponsor.id);
+        // The panel may still be sliding in: look once nothing finite moves.
+        await tab.waitForFunction(() =>
+          document
+            .getAnimations()
+            .every(
+              (a) =>
+                a.playState !== "running" ||
+                a.effect?.getComputedTiming().iterations === Infinity,
+            ),
+        );
         const mouse = await onTop();
         ok(
           mouse.mine,
