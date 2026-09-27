@@ -314,6 +314,10 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
   fail as "Expected multipart form data" (everywhere photos are uploaded). `/api/admin/images` is excluded from the proxy
   matcher by exact path, like the issue import; the route authenticates itself and refuses a `Content-Length` past 12 MB
   before reading the body.
+- **Checked before a send (#368):** the attached photos count toward the conversation's picture room before anything is
+  sent (room for two pages plus a look at each photo, `roomForRun` in `vision.ts`); short of it, the panel offers a new
+  conversation and the tray keeps its photos. Every image dialog (image block, montage, logo, sponsor) likewise refuses
+  an oversized or wrong-type file in the browser with the route's own words, and sends nothing.
 
 ## The chat route (#308)
 

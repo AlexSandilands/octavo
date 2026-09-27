@@ -10,8 +10,11 @@
 // route's words, and the route refuses a 13 MB body by its length; a paste
 // carrying text is text; seven attached photos are each looked at without
 // using a view, leaving the page views (#365); an eleventh photo is refused
-// with a note, repeated names are numbered, and closing the panel keeps the tray. (Its own gate rather than
-// more of dev-assistant-tools-gate.mts, which is at the 500-line limit.)
+// with a note, repeated names are numbered, and closing the panel keeps the tray;
+// ten photos with less picture room than they need are refused before any
+// request, the tray keeps them and a new conversation takes them (#368). (Its
+// own gate rather than more of dev-assistant-tools-gate.mts, which is at the
+// 500-line limit.)
 //
 // SAFETY: shared dev database. It mints its own admin, session and draft; the
 // finally deletes those, the photos uploaded to the draft (rows and objects)
@@ -20,7 +23,10 @@ import assert from "node:assert/strict";
 import { chromium, type Page } from "playwright";
 import postgres from "postgres";
 import sharp from "sharp";
-import { AI_PROJECTION_PART } from "../src/lib/ai-chat-contract";
+import {
+  AI_MAX_IMAGES_PER_REQUEST,
+  AI_PROJECTION_PART,
+} from "../src/lib/ai-chat-contract";
 import { deleteByPrefix } from "../src/lib/storage";
 import {
   content,
@@ -354,6 +360,17 @@ async function checks(page: Page) {
     `a second look and a page view come from the six (${looks.outputs[8]?.slice(0, 60)})`,
   );
 
+  // Six page views use up more of the room: what's left holds two pages but
+  // not ten photos as well (checked after the next section attaches them).
+  await chat.runScript(
+    Array.from({ length: 6 }, () => ({
+      toolName: "view_page",
+      input: { page: 2 },
+    })),
+  );
+  const pictures = bodies.at(-1)!.split('"mediaType"').length - 1;
+  const room = AI_MAX_IMAGES_PER_REQUEST - pictures;
+
   heading("ten a message, numbered names, kept when the panel closes");
   const eleven = await Promise.all(
     Array.from({ length: 11 }, (_, i) => png(i * 20, 90, 90)),
@@ -382,6 +399,38 @@ async function checks(page: Page) {
   );
   await openPanel(page);
   ok((await page.$$(THUMB)).length === 10, "closing the panel kept the tray");
+
+  heading("ten photos, room for fewer: refused before sending (#368)");
+  ok(
+    room >= 2 && room < 12,
+    `room for ${room} pictures: two pages, but not ten looks as well`,
+  );
+  const held = bodies.length;
+  const tray = await attachedIds(page);
+  await page.fill(INPUT, "Place these [fake:echo]");
+  await page.keyboard.press("Enter");
+  await page.waitForSelector(
+    '[role="status"]:has-text("This conversation is full.")',
+  );
+  ok(bodies.length === held, "no request was made");
+  ok((await attachedIds(page)).join() === tray.join(), "the tray kept all ten");
+  await page.click('button:text-is("Start a new one")');
+  await page.waitForFunction(
+    (sel) => document.activeElement === document.querySelector(sel),
+    INPUT,
+  );
+  ok(true, "a new conversation was offered, and the focus is back in the box");
+  await page.fill(INPUT, "Place these [fake:echo]");
+  await page.keyboard.press("Enter");
+  await page.waitForFunction(
+    (sel) => document.querySelectorAll(sel).length === 0,
+    THUMB,
+    { timeout: 30_000 },
+  );
+  ok(
+    bodies.length > held && bodies.at(-1)!.includes(tray.join(", ")),
+    "the new conversation took the ten, and the tray emptied",
+  );
 
   console.log("\nassistant attach gate: all checks passed");
 }
