@@ -267,7 +267,7 @@ async function typedTextChecks() {
     const probe = pageDoc([page(link)]);
     ok(
       probe.success &&
-        droppedKey([page(link)], probe.data.pages, objectsIn([])) !== null,
+        !/"target"|"start"/.test(JSON.stringify(probe.data.pages)),
       "the save drops those attributes (the case is real)",
     );
   }
@@ -341,6 +341,48 @@ async function typedTextChecks() {
       `${what} goes through (${out.text.split(".")[0]})`,
     );
   }
+  // Nodes a split or rewrite rebuilds are new objects; rich text isn't walked.
+  const linked = {
+    ...textBlock(1),
+    text: {
+      type: "doc",
+      content: Array.from({ length: 30 }, (_, i) => ({
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: `Notice ${i + 1}.`,
+            marks: [
+              {
+                type: "link",
+                attrs: {
+                  href: `https://club.example/${i}`,
+                  target: "_blank",
+                  rel: "noopener noreferrer nofollow",
+                  class: null,
+                },
+              },
+            ],
+          },
+        ],
+      })),
+    },
+  } as unknown as Block;
+  const y = harness([cover, page(headingBlock("Notices"), linked)]);
+  y.executor.beginRun();
+  const split = await y.run("split_page", { page: 2 });
+  ok(
+    !split.text.startsWith("Error") && y.pages.length === 3,
+    `split_page on a long block of typed links goes through (${split.text.split(";")[0]})`,
+  );
+  const rewrite = await y.run("set_text", {
+    blockId: linked.id,
+    markdown: "[The club site](https://club.example) has the rest.",
+  });
+  ok(
+    !rewrite.text.startsWith("Error"),
+    `set_text rewriting a linked paragraph goes through (${rewrite.text.split(".")[0]})`,
+  );
   const fresh = { a: { b: 1, stray: 2 } };
   ok(
     droppedKey(fresh, { a: { b: 1 } }, objectsIn({})) === "pages.a.stray" &&

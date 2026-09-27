@@ -74,7 +74,8 @@ export function objectsIn(value: unknown, into = new WeakSet<object>()) {
 
 /** The first key an edit wrote that the save path's schema would drop, if any:
  *  what the editor shows must be what the issue stores. What was there before
- *  (a typed link's Tiptap attributes, say) isn't the edit's, so it's skipped. */
+ *  isn't the edit's, so it's skipped; so is rich text, where the save trimming
+ *  Tiptap's attributes (a link's target, a list's start) is the editor's norm. */
 export function droppedKey(
   set: unknown,
   kept: unknown,
@@ -82,6 +83,7 @@ export function droppedKey(
   at = "pages",
 ): string | null {
   if (!set || typeof set !== "object" || before.has(set)) return null;
+  if ((set as { type?: unknown }).type === "doc") return null;
   if (Array.isArray(set))
     return set.reduce<string | null>(
       (found, v, i) =>
