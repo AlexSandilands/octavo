@@ -267,9 +267,12 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
   up nothing else goes (a preset is refused), Continue sends the held message with its attached photos, and the
   surface clears only once the chat has taken it; Cancel (or Escape) sends nothing and hands the text back to the box it
   came from. The estimate (`assistant/paste-estimate.ts`) prices the paste on the model `GET /api/admin/ai/usage` names
-  (the fake provider is estimated as the default model) from the pricing table: a run's own prompt, replies and
-  thinking, the paste written to cache once, returned as the plan's arguments, and read back from cache by each later
-  turn and the review; rounded up to the cent.
+  (the fake provider is estimated as the default model) from the pricing table: a run's own cold prompt, tool results,
+  replies and thinking; the paste written to cache twice (the message, then the plan in history), returned as the plan's
+  arguments and read back by each later turn; and a picture of each page written for the review; rounded up to the
+  cent. The constants are fitted to Sonnet 5's real runs (2026-09-28): case 08's 5,000-character paste is estimated at
+  about US$0.12 against $0.04 and $0.11 measured before the review, and a 20,000-character paste at about US$0.22. A
+  run that also looks at photos or composes a cover costs more than the question says (case 14: $0.23 against $0.12).
 - **Automatic end-of-run review (#342):** when a run's changes touched the cover or more than one page, the panel
   pictures those pages (the cover first, at most 8) and sends them as one user message. The message is the review text
   (`assistant/review.ts`), then "Page N (fits, ~X% full)" and the picture for each
@@ -648,9 +651,12 @@ delete their own rows.
 - **"Shorten to fit"** trims about a line per call. On the fixture Sonnet 5 took 14–41 `set_text` calls to fit one page
   (case 04, 0 of 3), and the breaker doesn't catch it because every call makes progress. The per-block overflow feedback
   isn't enough on its own (#355).
-- **Order in long pastes.** Laying out a three-article paste, Sonnet 5 once put an article's last section ahead of its
-  own main heading: every word kept, one section in the wrong place (case 08). The scorer reports it as "order
-  changed".
+- **Order in long pastes (#312, improved).** Laying out a three-article paste block by block, Sonnet 5 once put an
+  article's last section ahead of its own main heading: every word kept, one section in the wrong place (case 08). With
+  `propose_sections` the paste goes in one call and the paginator keeps its order: case 08 passed both real runs (7 and
+  3 calls, $0.106 and $0.043) and case 14 its one ($0.227, cover included), headlines as titles and standfirsts under
+  them. The first run copied the description's example kicker onto all three articles; the example now shows a plan
+  with none, and the second run added none.
 - **Replies claiming edits that weren't made (#360, improved).** On "Make bullets" Sonnet 5 once wrote the list into
   the first block, then said it had removed the other three without calling `delete_block`, so the notices appeared
   twice (1 of 6 runs over the two #315 batches). `base.md` now says to describe only what the tool calls did and to say
@@ -659,7 +665,9 @@ delete their own rows.
   diff, so the panel stays honest whatever the reply says; a panel-side check of the reply's verbs against the run's
   changes wasn't needed. The fixture's claim check fails any run that regresses.
 - **Pages left mostly empty.** Starting every article on a fresh page leaves short pages half blank, and neither model enlarged
-  photos or rebalanced to fill them. The review didn't flag it either.
+  photos or rebalanced to fill them. The review didn't flag it either. The plan's paginator can also carry a sentence
+  or two onto a page of their own (case 08: page 12 at ~5%, the page before it full), and the model left it, reading
+  "fits" as done.
 - **Cover review misses.** Small cover text over busy photos (the issue-details line) was missed by the model and by
   the review. In #313's real run (case 13, Sonnet 5, $0.098) the "Also inside" panel sat over the sail and the review
   said it didn't.

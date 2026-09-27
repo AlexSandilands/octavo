@@ -64,8 +64,7 @@
   "expect": {
     "preserve": "paste",
     "tools": [
-      "insert_blocks",
-      "add_page",
+      "propose_sections",
       "set_cover_background",
       "set_masthead",
       "add_story",
