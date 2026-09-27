@@ -20,6 +20,7 @@ import {
 } from "../src/features/editor/assistant/vision";
 import type { AssistantIssue } from "../src/features/editor/assistant/issue-context";
 import { coverChecks } from "./fixtures/assistant/cover-checks.mts";
+import { describeReport } from "../src/features/editor/assistant/page-report";
 
 const { ok, heading, docOf, issues, photos, harness } = h;
 const { textBlock, headingBlock, photo, cover, page } = h;
@@ -236,6 +237,37 @@ heading("split_page and the overflow feedback");
     "with each text block's lines and last lines",
   );
   ok(out.text.includes("split_page 2"), "and offers split_page");
+  ok(
+    out.text.includes(
+      `To fit by trimming, the text must lose ${/overflows by ~(\d+)/.exec(out.text)?.[1]} lines in all. A paragraph whose last line is short frees that line for fewer words: [${intro.id}] (3 words), [${long.id}] (3 words).`,
+    ) && out.text.includes("in one round, one set_text per block"),
+    "the deficit comes first: the whole cut, the quickest lines, one call a block (#355)",
+  );
+  {
+    // 32 words on 4 lines, 2 on the last: ~10 words on each full line.
+    const blk = textBlock(1);
+    const words = Array.from({ length: 32 }, (_, i) => `w${i}`).join(" ");
+    const told = describeReport(
+      3,
+      page({ ...blk, text: docOf({ ...blk, text: words }) }),
+      {
+        fill: { kind: "flow", percent: 104, overflowLines: 1 },
+        overflowAt: null,
+        overflowPx: 30,
+        heights: {},
+        text: [{ id: blk.id, lines: 4, lastLines: [2] }],
+      },
+    );
+    ok(
+      told.includes(
+        `[${blk.id}] 4 lines of ~10 words, its last line holds 2 words`,
+      ) &&
+        told.includes(
+          "must lose 1 line in all: at least 10 words at ~10 a line.",
+        ),
+      `a text block's full lines are counted in words (${told.slice(0, 160)}…)`,
+    );
+  }
   const split = await h.run("split_page", { page: 2 });
   const [p2, p3, p4] = [h.pages[1]!, h.pages[2]!, h.pages[3]!];
   ok(

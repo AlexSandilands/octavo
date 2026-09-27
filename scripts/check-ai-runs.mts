@@ -7,6 +7,7 @@ import type { EditorSnapshot } from "../src/features/editor/use-editor-history";
 import {
   BREAKER_MESSAGE,
   INTERRUPTED_MESSAGE,
+  RUN_STALL_LIMIT,
   createAssistantExecutor,
   formatPages,
   summarizeRun,
@@ -126,6 +127,59 @@ heading("the circuit-breaker");
     BREAKER_MESSAGE ===
       "I got stuck, so I stopped. Everything I did is in place and can be undone in one step.",
     "with the agreed words",
+  );
+}
+
+heading("the circuit-breaker: trimming that stalls (#355)");
+{
+  // 60 + 14 × 40 × 2 = 1180 on an 800px page; still over after six trims of one paragraph.
+  const paras = (n: number) =>
+    Array.from({ length: n }, (_, i) => `Para ${i + 1}.`).join("\n\n");
+  const [a, b] = [textBlock(14), textBlock(14)];
+  const h = harness([cover, page(headingBlock("Notes"), a, b)]);
+  h.executor.beginRun();
+  const trims = [a, b, a, b, a, b];
+  for (const [i, blk] of trims.entries()) {
+    await h.run("set_text", {
+      blockId: blk.id,
+      markdown: paras(13 - (i >> 1)),
+    });
+    const want = i + 1 === trims.length ? BREAKER_MESSAGE : null;
+    ok(
+      h.executor.breaker() === want,
+      `trim ${i + 1} (${i < 2 ? "first pass" : `repeat ${i - 1}`}), still overflowing: ${want ? "stops" : "carries on"}`,
+    );
+  }
+  ok(RUN_STALL_LIMIT === 4, "the stall is the 4th re-trim in a row");
+
+  // One pass over many blocks is progress, not a stall.
+  const many = Array.from({ length: 8 }, () => textBlock(3));
+  const h2 = harness([cover, page(headingBlock("Notes"), ...many)]);
+  h2.executor.beginRun();
+  for (const blk of many)
+    await h2.run("set_text", { blockId: blk.id, markdown: paras(3) });
+  ok(h2.executor.breaker() === null, "8 blocks trimmed once each carry on");
+
+  // Another kind of edit, or a page that fits, ends the streak.
+  const [c, d] = [textBlock(12), textBlock(12)];
+  const h3 = harness([cover, page(headingBlock("Notes"), c, d)]);
+  h3.executor.beginRun();
+  for (const blk of [c, d, c, d, c])
+    await h3.run("set_text", { blockId: blk.id, markdown: paras(12) });
+  await h3.run("set_heading", {
+    blockId: h3.pages[1]!.blocks[0]!.id,
+    title: "More notes",
+    level: "main",
+  });
+  for (const blk of [c, d, c])
+    await h3.run("set_text", { blockId: blk.id, markdown: paras(12) });
+  ok(h3.executor.breaker() === null, "another edit starts the count again");
+  await h3.run("set_text", { blockId: c.id, markdown: paras(2) });
+  for (const blk of [d, d, d, d])
+    await h3.run("set_text", { blockId: blk.id, markdown: paras(12) });
+  ok(
+    h3.executor.breaker() === null,
+    "re-trims once the page fits aren't a stall",
   );
 }
 
