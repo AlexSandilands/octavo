@@ -30,6 +30,14 @@ export function SectionAssistant() {
         takes a little longer.
       </P>
       <P>
+        It can also look. It can open your photos to put each one beside the
+        story it belongs to, or to describe it for readers who use a screen
+        reader. It can also see a page as members will. When a change runs over
+        the cover or more than one page, it looks over those pages once more
+        before it finishes and tidies anything that reads badly, so a bigger job
+        takes a little longer.
+      </P>
+      <P>
         Four quick buttons sit above the box where you type. Each asks about the
         page you have open, or only the block you have selected on it:
       </P>
