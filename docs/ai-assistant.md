@@ -354,6 +354,15 @@ client-safe.
   `error.message`, and `readAiError(error.message)` returns `{ error, code }`. The codes: `unauthorised` 403,
   `bad_request` 400, `not_found` 404 (also the whole route while the assistant is off, with an empty body), `not_draft`
   409, `too_long` 413, `rate_limited` 429, `budget_spent` 402, `run_cap` 402, `provider_down` 502 and `provider_busy` 503.
+- **Idle timeout (#358).** A request the provider sends nothing on for **60 seconds** (`AI_IDLE_TIMEOUT_MS` in
+  `src/server/ai-chat-stream.ts`) is aborted, the provider's request with it, and the stream ends with `provider_down`'s
+  text. The panel says "The assistant's service isn't answering right now…" and the run ends with its edits kept and
+  undoable, as on any provider failure; the request is metered as a stopped one is (an estimate, `~`), and the server
+  log says `AI chat stalled`. Every chunk resets the clock, thinking included, and it runs from the moment the request
+  is made, so a provider that never starts answering is caught too. A silent think counts as quiet, which 60s allows for:
+  the spike's slowest reply took ~49s. The route's `maxDuration` (300s) stays the ceiling on a whole reply. #315's
+  fixture met the case this is for: Sonnet 5's stream stalled mid-paste for five minutes. The gates shorten it with
+  `AI_IDLE_TIMEOUT_MS` in the env (0.5–60s), read only on `AI_PROVIDER=fake`.
 - **Limits:**
   - 300 requests and 20 distinct runs per admin per 10 minutes.
   - A run is refused once it has spent $0.50.
@@ -414,8 +423,8 @@ client-safe.
   cache. The TTL is the default five minutes, which is what the ledger prices cache writes at.
 - **Metering** (`src/server/ai-metering.ts`): one `ai_usage` row per request, however it ends. When the provider
   reports usage, the row gets its uncached, cache-read, cache-write and output tokens and the model id it reported (or
-  the configured one, when the reported id has no price). With no usage (the author stopped the reply, or the stream
-  failed partway), the tokens are estimated at 3 characters each and the model is marked `~`. A request that failed
+  the configured one, when the reported id has no price). With no usage (the author stopped the reply, the idle timeout
+  ended it, or the stream failed partway), the tokens are estimated at 3 characters each and the model is marked `~`. A request that failed
   before anything streamed gets a zero-token `~` row. An estimate prices the whole input as uncached, so it
   overstates what the provider bills (in the smoke run, $0.007 for a request whose neighbours cost about $0.002).
 - **Real-provider smoke** (2026-09-25, `claude-sonnet-5`, `scripts/dev-ai-smoke.mts`): every request of a
@@ -428,9 +437,9 @@ client-safe.
   signed reasoning block, as Anthropic's does. An author message gets
   `Looking at "<the projection's first line>".` and then a `read_page({ page: 1 })` call; a tool result gets
   `Read read_page (<n> characters back). Nothing needed changing.` Triggers in the author's text reach the failure
-  paths: `[fake:fail]`, `[fake:drop]`, `[fake:slow]` and `[fake:odd-model]`; `[fake:echo]` replies with the text parts
-  the model was sent. `[fake:tools]` followed by a JSON array of `{ toolName, input }` scripts a run instead: one call a
-  turn (`Step n: <tool>.`), then `Done: N steps.` (#310). A `null` step ends that turn with no call, and the script picks
+  paths: `[fake:fail]`, `[fake:drop]`, `[fake:slow]`, `[fake:stall]` (the reply's words, then nothing until the route aborts
+  it, #358) and `[fake:odd-model]`; `[fake:echo]` replies with the text parts the model was sent. `[fake:tools]` followed by a JSON array of `{ toolName, input }` scripts a run instead: one call a
+  turn (`Step n: <tool>.`), then `Done: N steps.` (#310). A `null` step ends that turn with no call, a `"stall"` step stalls it, and the script picks
   up again after the editor's end-of-run review, so a gate can edit in the review turn (#342). A review with no script
   gets `Looked over N pages. Nothing needed changing.` `scripts/dev-ai-proxy-gate.mts` and
   `scripts/dev-assistant-tools-gate.mts` (with its Ask, breaker and cover parts,
@@ -547,7 +556,8 @@ misses are the known weaknesses below, each with its issue (#355, #360). All cal
 ## Verification
 
 None of these spend money except `dev-ai-smoke` and a fixture run on a real provider. The dev servers for the gates
-run with `AI_PROVIDER=fake AI_MONTHLY_BUDGET_USD=5 NEXT_PUBLIC_AI_ASSISTANT=1`.
+run with `AI_PROVIDER=fake AI_MONTHLY_BUDGET_USD=5 NEXT_PUBLIC_AI_ASSISTANT=1`; add `AI_IDLE_TIMEOUT_MS=3000` and the
+stalled-reply cases in the proxy and panel gates take seconds rather than a minute each.
 
 ```sh
 # in memory: the tool contract, edits, refusals, runs, split, feedback, breaker, vision budget, the cover tools
@@ -555,6 +565,8 @@ npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-tools.mts
 # the ledger and budget arithmetic; runs and their spend
 npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-budget.mts
 npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-runs.mts
+# the chat route's idle timeout: the timer, stalls before and during a reply, slow replies, Stop, the override
+npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-idle-timeout.mts
 # the projection over every seed issue
 npx tsx --tsconfig scripts/tsconfig.json scripts/check-assistant-projection.mts
 # against a running dev server
@@ -601,8 +613,6 @@ delete their own rows.
   said it had removed the other three without calling `delete_block`, so the notices appeared twice. The run's
   "Changed N blocks · Undo" line is worked out from the real diff, so the panel stays honest; the reply text can't be
   trusted the same way (#360).
-- **A stalled provider stream** holds the panel until the author presses Stop or the route's five-minute ceiling ends
-  it. The fixture met one (Sonnet 5, mid-paste); an idle timeout on the route is #358.
 - **Pages left mostly empty.** Starting every article on a fresh page leaves short pages half blank, and neither model enlarged
   photos or rebalanced to fill them. The review didn't flag it either.
 - **Cover review misses.** Small cover text over busy photos (the issue-details line) was missed by the model and by

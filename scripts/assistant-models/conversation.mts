@@ -73,8 +73,8 @@ export type CaseRun = {
 };
 
 const REQUEST_LIMIT = 60;
-// A reply that stalls this long stops the run (the provider's own HTTP/2 body
-// timeout is five minutes, and its error escapes the stream).
+// A backstop on a whole reply: streamAssistant's idle timeout (#358) ends a
+// stalled one first, as a stream error.
 const REQUEST_TIMEOUT_MS = 180_000;
 
 function priced(
