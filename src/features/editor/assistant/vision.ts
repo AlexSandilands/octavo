@@ -18,7 +18,10 @@ import { shape } from "./projection-text";
 
 // The assistant's eyes (#342): `view_page` and `view_photo` answered with a
 // picture inside the tool result, within a budget of views per run, and the
-// pictures the end-of-run review sends. The pictures come from the server
+// pictures the end-of-run review sends. A first look at a photo attached to
+// the run's own message is outside that budget (#365), so attaching photos
+// never costs the model its page views; every picture counts toward the
+// conversation's room all the same. The pictures come from the server
 // (api/admin/ai/render, …/photo), which draws a page the way the PDF does from
 // the issue as the editor holds it, unsaved edits included.
 
@@ -84,10 +87,19 @@ const routeEyes: VisionEyes = {
 };
 
 export function createVision(eyes: VisionEyes = routeEyes) {
+  // Views counted against the run's budget, and every picture the run took.
   let used = 0;
+  let pictured = 0;
   // Pictures the conversation has room for, as the run started (#308's cap).
   let room = Infinity;
-  const left = () => Math.min(AI_VIEWS_PER_RUN, room) - used;
+  // Photos attached to the run's message; each one's first look is free.
+  let attached = new Set<string>();
+  const left = () => Math.min(AI_VIEWS_PER_RUN - used, room - pictured);
+  const free = (tool: AiViewTool, input: unknown) => {
+    const args =
+      tool === "view_photo" && aiToolSchemas.view_photo.safeParse(input);
+    return Boolean(args && args.success && attached.has(args.data.imageId));
+  };
 
   const viewPage = async (
     input: unknown,
@@ -108,6 +120,7 @@ export function createVision(eyes: VisionEyes = routeEyes) {
         text: `Error: page ${page} couldn't be pictured right now; carry on without it. No view was used.`,
       };
     used++;
+    pictured++;
     return {
       text: `${pageCaption(shot, issue)}. ${views(left())}.`,
       images: [{ mediaType: shot.mediaType, data: shot.data }],
@@ -132,33 +145,38 @@ export function createVision(eyes: VisionEyes = routeEyes) {
       return {
         text: `Error: photo ${imageId} couldn't be shown just now. No view was used.`,
       };
-    used++;
+    const own = attached.delete(imageId);
+    if (!own) used++;
+    pictured++;
     return {
-      text: `Photo ${imageId} (${shape(issue.images[imageId])}). ${views(left())}.`,
+      text: `Photo ${imageId} (${shape(issue.images[imageId])})${own ? ", attached to this message: this look used no view" : ""}. ${views(left())}.`,
       images: [{ mediaType: photo.mediaType, data: photo.data }],
     };
   };
 
   return {
-    /** A new author message: a fresh budget of views, within the conversation's room. */
-    beginRun(pictures: number) {
+    /** A new author message: a fresh budget of views, within the conversation's
+     *  room; `photos` are the ones attached to it (#343). */
+    beginRun(pictures: number, photos: string[] = []) {
       used = 0;
+      pictured = 0;
       room = pictures;
+      attached = new Set(photos);
     },
     /** Pictures the conversation still has room for (the review takes its pages from these). */
-    room: () => Math.max(0, room - used),
+    room: () => Math.max(0, room - pictured),
     view(
       tool: AiViewTool,
       input: unknown,
       issue: AssistantIssue,
       source: VisionSource,
     ): Promise<AiToolOutput> {
-      const more = `${Math.max(0, room - used)} more picture${room - used === 1 ? "" : "s"}`;
-      if (used >= AI_VIEWS_PER_RUN)
+      const more = `${Math.max(0, room - pictured)} more picture${room - pictured === 1 ? "" : "s"}`;
+      if (used >= AI_VIEWS_PER_RUN && !free(tool, input))
         return Promise.resolve({
           text: `Error: you have used all ${AI_VIEWS_PER_RUN} views for this request; finish from what you know. This conversation has room for ${more}.`,
         });
-      if (used >= room)
+      if (pictured >= room)
         return Promise.resolve({
           text: "Error: this conversation has no room for more pictures; finish from what you know. A new conversation starts afresh.",
         });
