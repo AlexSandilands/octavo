@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
-import { AI_VIEWS_PER_RUN } from "@/lib/ai-tools";
 import { imageUploadRefusal } from "@/lib/image-upload-limits";
 import type { ResolvedImage } from "@/lib/images";
 
@@ -11,8 +10,8 @@ import type { ResolvedImage } from "@/lib/images";
 // issue photo, unplaced until the model (or the author) places it. The message
 // carries only their ids; the model looks at them with view_photo.
 
-/** As many as the model can look at in one run, until #365 decides otherwise. */
-export const MAX_ATTACHMENTS = AI_VIEWS_PER_RUN;
+/** Per message. The model's first look at each is outside its views per run (#365). */
+export const MAX_ATTACHMENTS = 10;
 
 export type Attachment = {
   key: string;

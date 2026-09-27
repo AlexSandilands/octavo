@@ -40,6 +40,7 @@ export function AttachButton({
       </button>
       <input
         ref={input}
+        data-attach-input
         type="file"
         accept="image/*"
         multiple

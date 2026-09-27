@@ -8,8 +8,9 @@
 // the run's line names the other two as unplaced; one Undo takes the placement
 // back. A wrong type and a file too large are refused in the browser in the
 // route's words, and the route refuses a 13 MB body by its length; a paste
-// carrying text is text; a seventh photo is refused with a note, repeated names
-// are numbered, and closing the panel keeps the tray. (Its own gate rather than
+// carrying text is text; seven attached photos are each looked at without
+// using a view, leaving the page views (#365); an eleventh photo is refused
+// with a note, repeated names are numbered, and closing the panel keeps the tray. (Its own gate rather than
 // more of dev-assistant-tools-gate.mts, which is at the 500-line limit.)
 //
 // SAFETY: shared dev database. It mints its own admin, session and draft; the
@@ -48,6 +49,7 @@ const BUTTON = 'nav[aria-label="Editor panels"] button[aria-label="Assistant"]';
 const INPUT = "#assistant-input";
 const ATTACH = 'button[aria-label="Attach photos"]';
 const THUMB = "[data-attachment]";
+const PICKER = "input[data-attach-input]";
 const LOG = '[role="log"]';
 const RUN = "[data-assistant-run]";
 
@@ -109,17 +111,32 @@ async function attachByKeyboard(page: Page, files: object[]) {
   await page.focus(INPUT);
   await page.keyboard.press("Tab");
   ok((await focused(page)) === "Attach photos", "Tab from the box: Attach");
-  // The input's click always fires, but headless Chromium now and then raises
-  // no chooser for it: press again once rather than fail on the harness.
-  const chooser = async () => {
-    const [c] = await Promise.all([
-      page.waitForEvent("filechooser", { timeout: 5_000 }),
-      page.keyboard.press("Enter"),
-    ]);
-    return c;
-  };
-  const opened = await chooser().catch(chooser);
-  await opened.setFiles(files as never);
+  // Enter on Attach clicks the file input, as a person's would. The files then
+  // go to the input directly: headless Chromium doesn't reliably raise its
+  // chooser for a scripted press, which is the harness, not the product.
+  await page.$eval(PICKER, (el) => {
+    el.addEventListener("click", () => el.setAttribute("data-picked", ""), {
+      once: true,
+    });
+  });
+  await page.keyboard.press("Enter");
+  await page.waitForSelector(`${PICKER}[data-picked]`, { state: "attached" });
+  await page.$eval(PICKER, (el) => el.removeAttribute("data-picked"));
+  await page.setInputFiles(PICKER, files as never);
+}
+/** Opens the panel and waits out its slide: a key pressed mid-slide opens no
+ *  file chooser (Folio's finding, as the panel gate waits since #349). */
+async function openPanel(page: Page) {
+  await page.click(BUTTON);
+  await page.waitForSelector(INPUT);
+  await page.waitForFunction(() => {
+    const el = document.querySelector("aside#editor-side-panel");
+    return (
+      el &&
+      !el.hasAttribute("aria-hidden") &&
+      el.getAnimations({ subtree: true }).length === 0
+    );
+  });
 }
 
 async function checks(page: Page) {
@@ -131,9 +148,8 @@ async function checks(page: Page) {
     if (req.url().endsWith("/api/admin/images")) uploaded++;
   });
   await page.goto(`${base}/admin/issues/${draftId}/edit`);
-  await page.click(BUTTON);
-  await page.waitForSelector(INPUT);
   await page.click('button[aria-label="Page 2"]');
+  await openPanel(page);
 
   heading("the first-use note says where photos go");
   ok(
@@ -305,20 +321,53 @@ async function checks(page: Page) {
     "Office's picture beside the text isn't attached",
   );
 
-  heading("six a message, numbered names, kept when the panel closes");
+  heading("seven attached: every look is free, the page views are left");
   const seven = await Promise.all(
-    Array.from({ length: 7 }, (_, i) => png(i * 30, 90, 90)),
+    Array.from({ length: 7 }, (_, i) => png(i * 30, 60, 120)),
   );
   await attachByKeyboard(
     page,
-    seven.map((b) => file("image.png", "image/png", b)),
+    seven.map((b, i) => file(`s${i}.png`, "image/png", b)),
   );
-  await settled(page, 6);
+  await settled(page, 7);
+  const sevenIds = await attachedIds(page);
+  const looks = await chat.runScript([
+    ...sevenIds.map((imageId) => ({
+      toolName: "view_photo",
+      input: { imageId },
+    })),
+    { toolName: "view_photo", input: { imageId: sevenIds[0]! } },
+    { toolName: "view_page", input: { page: 2 } },
+  ]);
+  ok(
+    looks.outputs
+      .slice(0, 7)
+      .every((o) =>
+        o.includes("attached to this message: this look used no view"),
+      ),
+    "each attached photo's first look used no view",
+  );
+  ok(
+    looks.outputs[7]?.includes("5 views left") &&
+      looks.outputs[8]?.startsWith("Page 2") &&
+      looks.outputs[8].includes("4 views left"),
+    `a second look and a page view come from the six (${looks.outputs[8]?.slice(0, 60)})`,
+  );
+
+  heading("ten a message, numbered names, kept when the panel closes");
+  const eleven = await Promise.all(
+    Array.from({ length: 11 }, (_, i) => png(i * 20, 90, 90)),
+  );
+  await attachByKeyboard(
+    page,
+    eleven.map((b) => file("image.png", "image/png", b)),
+  );
+  await settled(page, 10);
   ok(
     (await page.textContent("[data-attachment-alert]"))?.includes(
-      "Up to 6 photos a message. One wasn't attached.",
+      "Up to 10 photos a message. One wasn't attached.",
     ),
-    "the seventh is left out, with a note",
+    "the eleventh is left out, with a note",
   );
   ok(await page.$eval(ATTACH, (el) => el.hasAttribute("disabled")), "full");
   const names = await page.$$eval(`${THUMB} img`, (els) =>
@@ -331,9 +380,8 @@ async function checks(page: Page) {
   await page.click(
     'nav[aria-label="Editor panels"] button[aria-label="Close panel"]',
   );
-  await page.click(BUTTON);
-  await page.waitForSelector(INPUT);
-  ok((await page.$$(THUMB)).length === 6, "closing the panel kept the tray");
+  await openPanel(page);
+  ok((await page.$$(THUMB)).length === 10, "closing the panel kept the tray");
 
   console.log("\nassistant attach gate: all checks passed");
 }

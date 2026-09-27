@@ -279,7 +279,7 @@ export function useAssistantChat({
     let handed = false;
     const room = AI_MAX_IMAGES_PER_REQUEST - conversationImages(chat.messages);
     // Before anything can end the run, so its summary is never the last run's.
-    latest.current.tools.beginRun(room);
+    latest.current.tools.beginRun(room, photos);
     try {
       const { issue, currentPage } = await latest.current.snapshot();
       const view = projection(issue, currentPage);

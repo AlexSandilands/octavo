@@ -298,7 +298,9 @@ don't redesign it.
     full)"), from `POST /api/admin/ai/render`;
   - the two share **6 views a run** (`AI_VIEWS_PER_RUN`), fewer when the conversation has less room (see the chat
     route's picture arithmetic). The 7th is refused ("you have used all 6 views…"), and a picture that fails costs no
-    view;
+    view. **The first look at each photo attached to the run's own message (#343) uses no view** (the owner's
+    decision, #365): six attached photos used to leave the model no page views for its own checks. Every picture,
+    free or not, still counts toward the conversation's room, and a second look at the same photo is an ordinary view;
   - **the draft render.** `/read/[n]/print` looks issues up by published number, so the render route takes the issue as
     the editor holds it (unsaved edits too), validated by `issueContentSchema` within the save cap. It stashes it in memory
     under a one-time nonce (60 s, swept on each new stash, dropped when done) and has headless Chromium (the PDF's
@@ -385,9 +387,8 @@ don't redesign it.
     dropping files anywhere on the panel. The tray lives with the conversation, so closing the panel keeps it. Each
     file is uploaded at once through `POST /api/admin/images` and becomes an issue photo; the editor learns it, so the
     projection's header lists it with the unplaced photos and `insert_blocks` can place it.
-  - **Limits:** at most **six a message** for now, the views one run has (`AI_VIEWS_PER_RUN`), so the model can look
-    at every one; a seventh is left out with a note. Whether attached photos should get views of their own is #365,
-    the owner's call. The route's limits (12 MB, image types, in `src/lib/image-upload-limits.ts`) are checked in the
+  - **Limits:** at most **ten a message**; an eleventh is left out with a note. The model's first look at each is
+    outside its six views a run (#365, above), so it can look at every one and still check its pages. The route's limits (12 MB, image types, in `src/lib/image-upload-limits.ts`) are checked in the
     browser first and refused there in the route's words, never sent; Send waits until a refused file is removed, and
     while any upload runs. Removing a thumbnail doesn't delete the uploaded photo. Repeated names (every pasted image
     is "image.png") are numbered, so each remove button says which it is.
