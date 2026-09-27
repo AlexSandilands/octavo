@@ -16,6 +16,7 @@ import {
   type AiReadOnlyTool,
   type AiToolName,
 } from "@/lib/ai-tools";
+import type { AiCoverToolName } from "@/lib/ai-cover-tools";
 import { planTextFlow } from "../text-flow";
 import { describeFill } from "./page-fill";
 import type { EditMeasurer } from "./page-report";
@@ -51,7 +52,7 @@ export type EditResult = {
   notes?: string[];
 };
 
-type MutatingTool = Exclude<AiToolName, AiReadOnlyTool>;
+type MutatingTool = Exclude<AiToolName, AiReadOnlyTool | AiCoverToolName>;
 type Found = { pageIdx: number; blockIdx: number; page: Page; block: Block };
 
 function find(pages: Page[], id: string): Found {
@@ -73,7 +74,7 @@ function editable(pages: Page[], pageIdx: number): Page {
     );
   if (page.cover)
     refuse(
-      `page ${pageIdx + 1} is the cover, and the assistant can't edit covers yet`,
+      `page ${pageIdx + 1} is a cover; use the cover tools (set_masthead, add_story, place_cover_item, style_cover_item …) for it`,
     );
   return page;
 }

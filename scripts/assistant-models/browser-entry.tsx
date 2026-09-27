@@ -37,6 +37,8 @@ const api = {
   },
   report: (p: Page) => need().page.report(p),
   textFlow: (blocks: Block[], id: string) => need().page.textFlow(blocks, id),
+  /** A cover's layout warnings, laid out as the reader sets it (#313). */
+  cover: (p: Page, pages: Page[]) => need().page.cover(p, pages),
   fills: (pages: Page[]) => need().fills.measure(pages),
   async openFitter() {
     fitter?.dispose();

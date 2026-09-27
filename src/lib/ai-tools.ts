@@ -1,9 +1,10 @@
 // The assistant's tool contract (#306): intent in, never block JSON. Shared by
 // the chat route (which declares the tools and validates the model's arguments)
 // and the editor's executor (which runs them), so both read the same zod.
-// Lifted from the spike (`scripts/spike/assistant/tools.ts`) with the editing
-// tools (#310); their executor is src/features/editor/assistant/.
+// The editing tools arrived with #310; their executor is
+// src/features/editor/assistant/.
 import { z } from "zod";
+import { aiCoverToolDescriptions, aiCoverToolSchemas } from "./ai-cover-tools";
 
 const pageNo = z
   .number()
@@ -163,6 +164,8 @@ export const aiToolSchemas = {
         .describe("A photo id from the projection."),
     })
     .strict(),
+  // The cover (#313): compose, then place and style (ai-cover-tools.ts).
+  ...aiCoverToolSchemas,
   propose_sections: z
     .object({
       after: pageNo.describe(
@@ -196,7 +199,8 @@ export const aiToolDescriptions: Record<AiToolName, string> = {
   set_image_layout:
     "Re-align or resize a placed photo. Setting align to full without a width makes it full width (100); setting left/right without a width keeps its width, or uses 45 if it was full width.",
   view_page: `See a picture of one page exactly as members will see it: fonts, photos, the running footer, and the cover as designed, with how full it is. You have ${AI_VIEWS_PER_RUN} views (pages and photos together) per request; use them to check work that text can't show you (a cover, a photo's placement, whether a page looks balanced).`,
-  view_photo: `See one photo uploaded to the issue (placed or not), to learn what it shows before choosing where it goes or writing its alt text. Shares the ${AI_VIEWS_PER_RUN}-view budget with view_page.`,
+  view_photo: `See one photo uploaded to the issue (placed or not), to learn what it shows before choosing where it goes or writing its alt text. Shares the ${AI_VIEWS_PER_RUN}-view budget with view_page, except that your first look at each photo attached to the author's current message uses no view.`,
+  ...aiCoverToolDescriptions,
   propose_sections: `Lay out long pasted content (several articles, or more than a page of text) in one call. Each section is one article: it starts at the top of a new page under a main heading, and the editor fits it onto as many pages as it needs, adding pages, so don't split or measure it yourself. Keep every word of the author's text. Fields, from a pasted article:
   SPRING SHOW DRAWS RECORD CROWD
   More than 400 visitors came through the hall on Saturday.

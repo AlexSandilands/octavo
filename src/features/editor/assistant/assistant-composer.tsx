@@ -1,17 +1,20 @@
 "use client";
 
-import { useEffect, useState, type RefObject } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { Icon } from "@/components/icons";
 import { AI_MAX_TEXT_CHARS } from "@/lib/ai-chat-contract";
-import { needsCostConfirm } from "./paste-estimate";
+import { AttachButton, AttachmentTray } from "./attachment-tray";
+import { pastedFiles, type useAttachments } from "./use-attachments";
+import type { SendResult } from "./use-assistant-chat";
 
 // The author's side of the chat (#309): a box that grows with what is typed,
 // Enter to send and Shift+Enter for a new line, and one 44px button that sends
-// or, while a reply is on its way, stops it. The row under the text keeps its
-// left end free for the attach button and thumbnails #343 adds. Nothing is ever
+// or, while a reply is on its way, stops it. Photos attach by the button at the
+// row's left end or a paste (#343; the panel takes drops) and show as
+// thumbnails above the text; Send waits for their uploads. Nothing is ever
 // cut silently: near the route's limit a count shows, and past it Send is off
-// until the text is shortened. A long message asks first (#312): it goes to
-// `onLongPaste` instead, and the text stays, read-only, until it is sent.
+// until the text is shortened. A long message asks first (#312): while the
+// question is up the text waits, read-only, and the tray is locked.
 
 /** The count shows from here, so a long paste is never a surprise. */
 const COUNT_FROM = AI_MAX_TEXT_CHARS - 2_000;
@@ -20,24 +23,28 @@ export function AssistantComposer({
   inputRef,
   busy,
   disabled,
+  attachments,
   onSend,
-  onLongPaste,
   holding,
+  putRef,
   onStop,
 }: {
   inputRef: RefObject<HTMLTextAreaElement | null>;
   busy: boolean;
   /** Nothing can be sent (the month's budget is spent, the conversation is full). */
   disabled: boolean;
-  /** Resolves whether it was taken; a refused message stays in the box. */
-  onSend: (text: string) => Promise<{ ok: boolean }>;
-  /** A message long enough to ask first; `clear` empties the box once it's sent. */
-  onLongPaste: (text: string, clear: () => void) => void;
-  /** That question is up: the text waits, unchanged. */
+  attachments: ReturnType<typeof useAttachments>;
+  /** Sends, or holds it for the cost question; `taken` runs once the chat
+   *  has it. A refused message stays in the box. */
+  onSend: (text: string, taken: () => void) => Promise<SendResult>;
+  /** The cost question is up: the text waits, unchanged, and the tray is locked. */
   holding: boolean;
+  /** Set here: puts a message handed back by Cancel into the box. */
+  putRef: RefObject<((text: string) => void) | null>;
   onStop: () => void;
 }) {
   const [value, setValue] = useState("");
+  const attachButton = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const el = inputRef.current;
@@ -47,20 +54,29 @@ export function AssistantComposer({
   }, [value, inputRef]);
 
   const over = value.length > AI_MAX_TEXT_CHARS;
+  // Photos can go on their own; one still uploading, or refused, holds Send.
   const canSend =
-    !busy && !disabled && !holding && !over && value.trim() !== "";
+    !busy &&
+    !disabled &&
+    !holding &&
+    !over &&
+    !attachments.uploading &&
+    !attachments.failed &&
+    (value.trim() !== "" || attachments.ids.length > 0);
+  // Cancel hands a held message back (an Ask box's, or this box's after the
+  // panel was closed and opened); one already here isn't doubled.
+  useEffect(() => {
+    putRef.current = (text) =>
+      setValue((now) =>
+        now === text ? now : now.trim() ? `${now}\n\n${text}` : text,
+      );
+  });
   const submit = () => {
     if (!canSend) return;
-    // Only typed text: #343's photos are costed when the model looks at them.
-    if (needsCostConfirm(value.length)) {
-      onLongPaste(value, () => setValue(""));
-      return;
-    }
     const sent = value;
-    // Cleared only once taken, and only if nothing new was typed meanwhile.
-    void onSend(sent).then(
-      (result) => result.ok && setValue((now) => (now === sent ? "" : now)),
-    );
+    // Cleared only once taken (now, or on Continue after the cost question),
+    // and only if nothing new was typed meanwhile.
+    void onSend(sent, () => setValue((now) => (now === sent ? "" : now)));
     // Send turns into Stop under a pointer; the box keeps the focus.
     inputRef.current?.focus();
   };
@@ -75,6 +91,11 @@ export function AssistantComposer({
         disabled ? "opacity-60" : ""
       }`}
     >
+      <AttachmentTray
+        attachments={attachments}
+        attachButton={attachButton}
+        locked={holding}
+      />
       <label htmlFor="assistant-input" className="sr-only">
         Message the assistant
       </label>
@@ -92,6 +113,12 @@ export function AssistantComposer({
           value.length > COUNT_FROM ? "assistant-input-count" : undefined
         }
         onChange={(e) => setValue(e.target.value)}
+        onPaste={(e) => {
+          const files = pastedFiles(e.clipboardData);
+          if (!files.length) return;
+          e.preventDefault();
+          if (!holding) attachments.add(files);
+        }}
         onKeyDown={(e) => {
           if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing)
             return;
@@ -101,7 +128,11 @@ export function AssistantComposer({
         className="text-ink placeholder:text-faint scrollbar-soft max-h-60 min-h-[3.5rem] w-full resize-none rounded-t-xl bg-transparent px-3.5 pt-3 pb-1 font-sans text-[16px] leading-snug [--scrollbar-surface:white] disabled:cursor-not-allowed"
       />
       <div className="flex items-center gap-2 px-2 pb-2">
-        {/* #343's attach button and thumbnails go here. */}
+        <AttachButton
+          attachments={attachments}
+          disabled={disabled || holding}
+          buttonRef={attachButton}
+        />
         <div className="min-w-0 flex-1">
           {value.length > COUNT_FROM && (
             <p

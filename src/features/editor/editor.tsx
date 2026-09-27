@@ -55,11 +55,8 @@ import { useEditorAutosave } from "./use-editor-autosave";
 import { useEditorFlows } from "./use-editor-flows";
 import type { EditorTool } from "./side-panel/tool-rail";
 import { usePanelWidth } from "./side-panel/use-panel-width";
-import { useAssistantSnapshot } from "./assistant/use-assistant-snapshot";
-import { useAssistantTools } from "./assistant/tools";
+import { useEditorAssistant } from "./assistant/use-editor-assistant";
 import { AssistantEditingNote } from "./assistant/editing-note";
-import { assistantEnabled } from "./assistant/enabled";
-import type { AskHandler } from "./assistant/presets";
 
 // Extends FooterReserve: the footer this issue's pages were laid out against
 // (issue #128) is what the canvas draws and measures overflow against, whatever
@@ -151,8 +148,12 @@ export function Editor({
     deletePage,
   } = useEditorPages(issue.content);
   // imageId → resolved image, seeded from the server and grown as uploads land,
-  // so the canvas previews an image the moment it's uploaded.
-  const [images, setImages] = useState<ImageMap>(initialImages);
+  // so the canvas previews an image the moment it's uploaded. The library's
+  // marks are in it too, for a logo the assistant places (#313).
+  const [images, setImages] = useState<ImageMap>(() => ({
+    ...Object.fromEntries(logos.map((l) => [l.imageId, l.image])),
+    ...initialImages,
+  }));
   const [title, setTitle] = useState(issue.title);
   // The issue's stored layout theme, normalised to an enabled theme id so the
   // picker (which offers only enabled themes) and the state stay in sync; an
@@ -265,8 +266,6 @@ export function Editor({
   // A region dragged out of the PDF panel: previewed in place on this page and,
   // dropped, added through the panel's own Add (it sets `dropRef`).
   const dropRef = useRef<DropHandler | null>(null);
-  // The Ask box on a block sends through the panel's conversation (#311).
-  const askRef = useRef<AskHandler | null>(null);
   const dragOut = usePdfDragOut({
     page,
     curPage,
@@ -278,21 +277,24 @@ export function Editor({
   // the canvas (and the reader) draw the smaller one it was made with until the
   // author says otherwise — see FooterUpdateNotice.
   const footerBehind = footerHeldBack(magazineFooter, issue);
-  const assistantSnapshot = useAssistantSnapshot({
+  const assistant = useEditorAssistant({
+    issueId: issue.id,
+    published,
     title,
     theme: themeId,
     pages,
     curPage,
+    sel,
     logos,
+    logoId,
     sponsors,
     measure: { theme, images, sponsors: sponsorMap, settings, logo, issueNo },
-  });
-  const assistantTools = useAssistantTools({
-    state: { pages, curPage, sel },
     apply: applyAssistant,
-    measure: { theme, images, sponsors: sponsorMap, settings, logo, issueNo },
-    source: { issueId: issue.id, logoId },
+    undo,
+    historyTop,
+    registerImage: (id, image) => setImages((m) => ({ ...m, [id]: image })),
   });
+  const assistantTools = assistant.tools;
 
   return (
     <CoverTextProvider selectedId={sel}>
@@ -388,14 +390,7 @@ export function Editor({
                   moveToNextPage,
                   registerImage: (imageId, image) =>
                     setImages((m) => ({ ...m, [imageId]: image })),
-                  ask:
-                    assistantEnabled && !published
-                      ? async (id, text) =>
-                          (await askRef.current?.(id, text)) ?? {
-                            ok: false,
-                            reason: "failed",
-                          }
-                      : undefined,
+                  ask: assistant.ask,
                 }}
                 cover={
                   showCoverTools
@@ -450,19 +445,7 @@ export function Editor({
               pages={pages}
               onAdd={importer.add}
               dropRef={dropRef}
-              assistant={{
-                issueId: issue.id,
-                published,
-                snapshot: assistantSnapshot,
-                tools: assistantTools,
-                target: {
-                  page: curPage + 1,
-                  blockId: page?.blocks.some((b) => b.id === sel) ? sel : null,
-                },
-                undo,
-                historyTop,
-                askRef,
-              }}
+              assistant={assistant.side}
             />
           </div>
           <DragOutGhost

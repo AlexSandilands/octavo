@@ -19,6 +19,7 @@ import {
   type AiProjectionData,
 } from "@/lib/ai-chat-contract";
 import type { AiToolInput, AiToolName, AiToolOutput } from "@/lib/ai-tools";
+import { attachedText } from "./attached";
 import { BREAKER_MESSAGE, type RunSummary } from "./executor";
 import type { AssistantIssue } from "./issue-context";
 import { projection } from "./projection";
@@ -39,10 +40,22 @@ export type AssistantMessage = UIMessage<
   { [N in AiToolName]: { input: AiToolInput<N>; output: AiToolOutput } }
 >;
 
-/** Whether a send was taken, and if not, why: nothing was sent (#311). */
+/** Whether a send was taken, and if not, why: nothing was sent (#311). The
+ *  cost question (#312) adds `confirming` (the message waits on it in the
+ *  panel) and `waiting` (another message does). */
 export type SendResult =
   | { ok: true }
-  | { ok: false; reason: "invalid" | "busy" | "full" | "spent" | "failed" };
+  | {
+      ok: false;
+      reason:
+        | "invalid"
+        | "busy"
+        | "full"
+        | "spent"
+        | "failed"
+        | "confirming"
+        | "waiting";
+    };
 
 /** The issue as it stands, with every page's fill measured, and the page open now. */
 export type AssistantSnapshot = () => Promise<{
@@ -136,6 +149,10 @@ export function useAssistantChat({
   const [summary, setSummary] = useState<RunSummary | null>(null);
   const [stuck, setStuck] = useState<string | null>(null);
   const [reviewing, setReviewing] = useState(false);
+  // Photos attached to this run's message (#343); once it ends, the panel
+  // counts those no page places.
+  const attached = useRef<string[]>([]);
+  const [runPhotos, setRunPhotos] = useState<string[]>([]);
 
   // Idempotent: a failed stream reports through both onError and onFinish.
   const endRun = () => {
@@ -144,6 +161,7 @@ export function useAssistantChat({
     if (!runOpen.current) return;
     runOpen.current = false;
     setSummary(latest.current.tools.endRun());
+    setRunPhotos(attached.current);
     latest.current.onRunEnd();
   };
 
@@ -244,11 +262,17 @@ export function useAssistantChat({
   const busy =
     running || chat.status === "submitted" || chat.status === "streaming";
 
-  /** Sends a run, or says (before any request) why it wasn't taken. */
-  const send = async (request: string): Promise<SendResult> => {
+  /**
+   * Sends a run, or says (before any request) why it wasn't taken. `photos`:
+   * ids of photos the author attached (#343), already uploaded to the issue.
+   */
+  const send = async (
+    request: string,
+    photos: string[] = [],
+  ): Promise<SendResult> => {
     // The composer holds anything longer back; the route would refuse it.
     const text = request.trim();
-    if (!text || text.length > AI_MAX_TEXT_CHARS)
+    if (!(text || photos.length) || text.length > AI_MAX_TEXT_CHARS)
       return { ok: false, reason: "invalid" };
     if (busy) return { ok: false, reason: "busy" };
     if (full) return { ok: false, reason: "full" };
@@ -263,13 +287,20 @@ export function useAssistantChat({
     setRunning(true);
     setSummary(null);
     setStuck(null);
+    setRunPhotos([]);
+    attached.current = photos;
+    const words = [
+      ...(text ? [text] : []),
+      ...(photos.length ? [attachedText(photos)] : []),
+    ];
     const room = AI_MAX_IMAGES_PER_REQUEST - conversationImages(chat.messages);
     // Before anything can end the run, so its summary is never the last run's.
-    latest.current.tools.beginRun(room);
+    latest.current.tools.beginRun(room, photos);
     try {
       const { issue, currentPage } = await latest.current.snapshot();
       const view = projection(issue, currentPage);
-      const size = conversationChars(chat.messages) + view.length + text.length;
+      const size =
+        conversationChars(chat.messages) + view.length + words.join("").length;
       if (
         size + RUN_CHARS > AI_MAX_CONVERSATION_CHARS ||
         room < MIN_PICTURE_ROOM
@@ -283,7 +314,7 @@ export function useAssistantChat({
         .sendMessage({
           parts: [
             { type: AI_PROJECTION_PART, data: { text: view } },
-            { type: "text", text },
+            ...words.map((t) => ({ type: "text" as const, text: t })),
           ],
         })
         // useChat reports request failures through `error` and onError.
@@ -322,10 +353,13 @@ export function useAssistantChat({
     stuck,
     /** The pages it changed are being pictured for its review (#342). */
     reviewing,
+    /** Photos attached to the last run's message (#343). */
+    runPhotos,
     /** The run was undone: its line goes. */
     dismissRun: () => {
       setSummary(null);
       setStuck(null);
+      setRunPhotos([]);
     },
     send,
     stop,

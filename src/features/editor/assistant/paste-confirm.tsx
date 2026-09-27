@@ -8,6 +8,7 @@ import { estimatePasteUsd } from "./paste-estimate";
 // Asked before a long message goes (#312): laying a paste out costs more than
 // a normal request, and pasting it onto the page by hand is free. Nothing is
 // sent until Continue; Cancel hands the text back to the composer as it was.
+// The question is the panel's, whichever surface asked (use-confirmed-send.ts).
 export function PasteConfirm({
   chars,
   model,
@@ -24,9 +25,11 @@ export function PasteConfirm({
   onCancel: () => void;
 }) {
   const box = useRef<HTMLDivElement>(null);
-  useEffect(() => box.current?.focus(), []);
-  // Escape cancels wherever focus is (the read-only box, say), before the
-  // panel's own Escape can close it.
+  const cancelButton = useRef<HTMLButtonElement>(null);
+  // The least costly answer takes the focus, so a second Enter spends nothing.
+  useEffect(() => cancelButton.current?.focus(), []);
+  // Escape cancels wherever focus is in the panel (the read-only box, say),
+  // before the panel's own Escape can close it; the canvas keeps its own.
   const cancel = useRef(onCancel);
   useEffect(() => {
     cancel.current = onCancel;
@@ -34,6 +37,8 @@ export function PasteConfirm({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
+      const panel = box.current?.closest("[data-assistant-panel]");
+      if (!panel?.contains(e.target as Node)) return;
       e.stopPropagation();
       cancel.current();
     };
@@ -64,7 +69,12 @@ export function PasteConfirm({
         <Button size="compact" disabled={blocked} onClick={onContinue}>
           Continue
         </Button>
-        <Button size="compact" variant="secondary" onClick={onCancel}>
+        <Button
+          ref={cancelButton}
+          size="compact"
+          variant="secondary"
+          onClick={onCancel}
+        >
           Cancel
         </Button>
       </div>

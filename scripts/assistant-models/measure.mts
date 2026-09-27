@@ -140,6 +140,11 @@ export class MeasureBrowser {
         if (report.fill) this.reports.set(key, report);
         return report;
       },
+      cover: (page: Page, pages: Page[]) =>
+        this.tab.evaluate(([p, ps]) => window.__assistant.cover(p, ps), [
+          page,
+          pages,
+        ] as const),
       textFlow: (blocks: Block[], id: string) =>
         this.tab.evaluate(([b, i]) => window.__assistant.textFlow(b, i), [
           blocks,
