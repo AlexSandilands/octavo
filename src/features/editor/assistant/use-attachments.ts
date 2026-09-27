@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
+import { AI_VIEWS_PER_RUN } from "@/lib/ai-tools";
+import { imageUploadRefusal } from "@/lib/image-upload-limits";
 import type { ResolvedImage } from "@/lib/images";
 
 // Photos attached in the assistant's composer (#343). Each goes through the
@@ -9,7 +11,8 @@ import type { ResolvedImage } from "@/lib/images";
 // issue photo, unplaced until the model (or the author) places it. The message
 // carries only their ids; the model looks at them with view_photo.
 
-export const MAX_ATTACHMENTS = 10;
+/** As many as the model can look at in one run, until #365 decides otherwise. */
+export const MAX_ATTACHMENTS = AI_VIEWS_PER_RUN;
 
 export type Attachment = {
   key: string;
@@ -88,14 +91,29 @@ export function useAttachments({
         ? `Up to ${MAX_ATTACHMENTS} photos a message. ${files.length - taken.length === 1 ? "One wasn't" : `${files.length - taken.length} weren't`} attached.`
         : null,
     );
-    const added = taken.map((file) => ({
-      key: crypto.randomUUID(),
-      name: file.name || "Pasted photo",
-      preview: URL.createObjectURL(file),
-      status: "uploading" as const,
-    }));
+    // Pasted images all arrive as "image.png": number the repeats, so each
+    // thumbnail and remove button says which it is.
+    const names = latest.current.items.map((a) => a.name);
+    const added = taken.map((file): Attachment => {
+      const base = file.name || "Pasted photo";
+      let name = base;
+      for (let n = 2; names.includes(name); n++) name = `${base} (${n})`;
+      names.push(name);
+      const refused = imageUploadRefusal(file);
+      return {
+        key: crypto.randomUUID(),
+        name,
+        preview: URL.createObjectURL(file),
+        // A file the route would refuse isn't sent; it says why in the same words.
+        ...(refused
+          ? { status: "failed", error: refused }
+          : { status: "uploading" }),
+      };
+    });
     setItems((all) => [...all, ...added]);
-    added.forEach((a, i) => void upload(a.key, taken[i]!));
+    added.forEach((a, i) => {
+      if (a.status === "uploading") void upload(a.key, taken[i]!);
+    });
   };
 
   const remove = (key: string) => {
@@ -105,10 +123,13 @@ export function useAttachments({
     setNote(null);
   };
 
-  /** After sending: the photos are the issue's now, and the composer empties. */
-  const clear = () => {
-    latest.current.items.forEach((a) => revoke(a.preview));
-    setItems([]);
+  /** After sending: the photos sent are the issue's now, and leave the tray.
+   *  (One attached meanwhile stays for the next message.) */
+  const clear = (sent: string[]) => {
+    const gone = (a: Attachment) =>
+      Boolean(a.imageId && sent.includes(a.imageId));
+    latest.current.items.filter(gone).forEach((a) => revoke(a.preview));
+    setItems((all) => all.filter((a) => !gone(a)));
     setNote(null);
   };
 
@@ -127,8 +148,12 @@ export function useAttachments({
 
 const revoke = (url: string) => URL.revokeObjectURL(url);
 
-/** The files in a paste or a drop. Every one goes to the upload route, which
- *  answers a file it won't take in its own words. */
+/** The files in a drop; one the route won't take is refused in its words. */
 export const filesOf = (data: DataTransfer | null): File[] => [
   ...(data?.files ?? []),
 ];
+
+/** The files in a paste, only when it carries no text: Office pastes a picture
+ *  of the text beside the text itself, and the text is what was meant. */
+export const pastedFiles = (data: DataTransfer | null): File[] =>
+  data?.types.includes("text/plain") ? [] : filesOf(data);

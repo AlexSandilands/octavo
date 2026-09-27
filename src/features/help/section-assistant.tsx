@@ -32,7 +32,7 @@ export function SectionAssistant() {
       <P>
         You can give it photos too. Press <strong>Attach photos</strong> (the
         picture button beside Send), paste a photo into the box, or drop photos
-        onto the panel, up to ten a message. Each one is added to the
+        onto the panel, up to six a message. Each one is added to the
         issue&rsquo;s photos as it uploads, and shows as a small picture you can
         remove before sending. Then say what you&rsquo;d like, such as
         &ldquo;put these beside the stories they belong to&rdquo;. It looks at

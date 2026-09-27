@@ -8,7 +8,6 @@ import {
 } from "@/lib/ai-tools";
 import type { AiRenderedPage } from "@/lib/ai-vision-contract";
 import type { Page } from "@/lib/blocks";
-import { collectImageIds } from "@/lib/images";
 import type { MeasurementOptions } from "../pdf-import/measure";
 import type { EditorSnapshot } from "../use-editor-history";
 import {
@@ -48,8 +47,6 @@ export type AssistantTools = {
   picture(pages: number[], issue: AssistantIssue): Promise<AiRenderedPage[]>;
   /** Pictures the conversation still has room for, after this run's views. */
   pictureRoom(): number;
-  /** Which of these photos no page places (#343's attached photos). */
-  unplaced(ids: string[]): string[];
 };
 
 export function readPage(input: unknown, issue: AssistantIssue): AiToolOutput {
@@ -165,9 +162,5 @@ export function useAssistantTools({
     summary: () => executor.current?.summary() ?? null,
     picture: (pages, issue) => picturePages(pictured.current, issue, pages),
     pictureRoom: vision.room,
-    unplaced: (ids) => {
-      const placed = new Set(collectImageIds(latest.current.state));
-      return ids.filter((id) => !placed.has(id));
-    },
   };
 }

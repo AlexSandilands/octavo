@@ -132,9 +132,10 @@ export function useAssistantChat({
   const [summary, setSummary] = useState<RunSummary | null>(null);
   const [stuck, setStuck] = useState<string | null>(null);
   const [reviewing, setReviewing] = useState(false);
-  // Photos attached to this run's message (#343), and how many it left unplaced.
+  // Photos attached to this run's message (#343); once it ends, the panel
+  // counts those no page places.
   const attached = useRef<string[]>([]);
-  const [unplaced, setUnplaced] = useState(0);
+  const [runPhotos, setRunPhotos] = useState<string[]>([]);
 
   // Idempotent: a failed stream reports through both onError and onFinish.
   const endRun = () => {
@@ -143,7 +144,7 @@ export function useAssistantChat({
     if (!runOpen.current) return;
     runOpen.current = false;
     setSummary(latest.current.tools.endRun());
-    setUnplaced(latest.current.tools.unplaced(attached.current).length);
+    setRunPhotos(attached.current);
     latest.current.onRunEnd();
   };
 
@@ -244,15 +245,23 @@ export function useAssistantChat({
   const busy =
     running || chat.status === "submitted" || chat.status === "streaming";
 
-  /** `photos`: ids of photos the author attached, already uploaded to the issue. */
-  const send = async (request: string, photos: string[] = []) => {
+  /**
+   * `photos`: ids of photos the author attached, already uploaded to the issue.
+   * True once the message is in the conversation; false when it was held back
+   * (empty, too long, busy, or the conversation is full), so the composer keeps it.
+   */
+  const send = async (
+    request: string,
+    photos: string[] = [],
+  ): Promise<boolean> => {
     // The composer holds anything longer back; the route would refuse it.
     const text = request.trim();
-    if (!(text || photos.length) || text.length > AI_MAX_TEXT_CHARS) return;
-    if (busy || full) return;
+    if (!(text || photos.length) || text.length > AI_MAX_TEXT_CHARS)
+      return false;
+    if (busy || full) return false;
     if (chat.messages.length + RUN_MESSAGES > AI_MAX_MESSAGES) {
       setFull(true);
-      return;
+      return false;
     }
     runId.current = crypto.randomUUID();
     stopped.current = false;
@@ -261,12 +270,13 @@ export function useAssistantChat({
     setRunning(true);
     setSummary(null);
     setStuck(null);
-    setUnplaced(0);
+    setRunPhotos([]);
     attached.current = photos;
     const words = [
       ...(text ? [text] : []),
       ...(photos.length ? [attachedText(photos)] : []),
     ];
+    let handed = false;
     const room = AI_MAX_IMAGES_PER_REQUEST - conversationImages(chat.messages);
     // Before anything can end the run, so its summary is never the last run's.
     latest.current.tools.beginRun(room);
@@ -281,8 +291,9 @@ export function useAssistantChat({
       ) {
         setFull(true);
         endRun();
-        return;
+        return false;
       }
+      handed = true;
       await chat.sendMessage({
         parts: [
           { type: AI_PROJECTION_PART, data: { text: view } },
@@ -293,6 +304,7 @@ export function useAssistantChat({
       // useChat reports request failures through `error` and onError.
       endRun();
     }
+    return handed;
   };
 
   const stop = async () => {
@@ -322,13 +334,13 @@ export function useAssistantChat({
     stuck,
     /** The pages it changed are being pictured for its review (#342). */
     reviewing,
+    /** Photos attached to the last run's message (#343). */
+    runPhotos,
     /** The run was undone: its line goes. */
-    /** Attached photos the last run didn't place (#343). */
-    unplaced,
     dismissRun: () => {
       setSummary(null);
       setStuck(null);
-      setUnplaced(0);
+      setRunPhotos([]);
     },
     send,
     stop,

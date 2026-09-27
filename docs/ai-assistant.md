@@ -202,8 +202,8 @@ client-safe.
     message (see Runs).
 - **The composer.** A growing textarea (Enter sends, Shift+Enter is a new line) and one 44px button that is Send, or
   Stop while a reply is on its way. Nothing is cut silently: from 18,000 characters a count shows, and past the
-  route's 20,000 it says how far over and Send is off until the text is shortened. The row under the text is left
-  free for #343's attach button. Above it sit #310's four presets (see Runs); on a cover they're off, with a tooltip
+  route's 20,000 it says how far over and Send is off until the text is shortened. The row under the text starts
+  with #343's Attach photos button, and attached photos show as thumbnails above the text. Above it sit #310's four presets (see Runs); on a cover they're off, with a tooltip
   saying they work on the inside pages. Replies render as plain paragraphs with markdown
   lists and bold only, never HTML.
 - **The conversation** lives above the panel (`editor-side.tsx`), so closing the panel keeps it. It ends when the editor
@@ -380,23 +380,32 @@ don't redesign it.
 - **Alt text can be written from what the photo shows.** This was out of scope before; it's worth having for this audience.
 - Photos attached but never placed follow the same rule as any unplaced issue photo.
 - **As built (#343):**
-  - **Attaching:** the composer's **Attach photos** button (keyboard: Tab from the box), pasting an image into the box, or
-    dropping files anywhere on the panel. Each file is uploaded at once through `POST /api/admin/images` and becomes an
-    issue photo; the editor learns it, so the projection's header lists it with the unplaced photos and `insert_blocks`
-    can place it. At most **10 a message** (an eleventh is left out with a note), and the route's own limits (12 MB,
-    image types; its refusal shows beside the thumbnail in its own words, and Send waits until the file is removed).
-    Send also waits while any upload is running. Removing a thumbnail doesn't delete the uploaded photo.
+  - **Attaching:** the composer's **Attach photos** button (keyboard: Tab from the box), pasting an image into the box
+    (only a paste with no text: Office puts a picture of the text beside the text, and the text is what was meant), or
+    dropping files anywhere on the panel. The tray lives with the conversation, so closing the panel keeps it. Each
+    file is uploaded at once through `POST /api/admin/images` and becomes an issue photo; the editor learns it, so the
+    projection's header lists it with the unplaced photos and `insert_blocks` can place it.
+  - **Limits:** at most **six a message** for now, the views one run has (`AI_VIEWS_PER_RUN`), so the model can look
+    at every one; a seventh is left out with a note. Whether attached photos should get views of their own is #365,
+    the owner's call. The route's limits (12 MB, image types, in `src/lib/image-upload-limits.ts`) are checked in the
+    browser first and refused there in the route's words, never sent; Send waits until a refused file is removed, and
+    while any upload runs. Removing a thumbnail doesn't delete the uploaded photo. Repeated names (every pasted image
+    is "image.png") are numbered, so each remove button says which it is.
   - **What's sent:** the author's words, then `Attached N photos: <id>, <id>` as a text part of its own (so the fake
     provider's scripts and the author's words stay whole). No bytes, ever: the model calls `view_photo` for the ones it
-    needs. The author's bubble reads "3 photos attached". Photos alone, with no words, can be sent.
+    needs. The author's bubble reads "3 photos attached" (only for that exact line, ids and count agreeing). Photos
+    alone, with no words, can be sent. The tray empties only once the message is in the conversation, and only of the
+    photos that went with it.
   - **Prompt:** `vision.md` tells the model to look at each attached photo before placing it, write its alt text from
     what it shows and a caption only when the text supports one, and say which it left unplaced.
-  - **Run line:** after the change line, "2 attached photos weren't placed. They're with this issue's photos."
+  - **Run line:** after the change line, "2 attached photos weren't placed. They're with this issue's photos.",
+    counted from the pages as they stand, so a later placement or Undo keeps it true.
   - **Privacy:** the panel's first-use text says attached photos join the issue's photos and are seen by the provider;
     the help page says the same.
   - **The proxy:** Next truncates proxied bodies at 10 MB, so a 10–12 MB photo used to reach the upload route cut short
     and fail as "Expected multipart form data" (everywhere photos are uploaded). `/api/admin/images` is now excluded
-    from the proxy matcher by exact path, like the issue import; the route authenticates itself.
+    from the proxy matcher by exact path, like the issue import; the route authenticates itself and refuses a
+    `Content-Length` past 12 MB before reading the body, which the proxy's cut used to bound by accident.
   - **Gate:** `scripts/dev-assistant-attach-gate.mts` (fake provider).
 
 ### Budget, access and privacy (unchanged from the epic)

@@ -6,8 +6,10 @@
 // text alternatives and remove buttons the keyboard reaches; the request
 // carries the ids and no image bytes; a scripted insert_blocks places one and
 // the run's line names the other two as unplaced; one Undo takes the placement
-// back. A wrong type and a file too large show the route's words and send
-// nothing; an eleventh photo is refused with a note. (Its own gate rather than
+// back. A wrong type and a file too large are refused in the browser in the
+// route's words, and the route refuses a 13 MB body by its length; a paste
+// carrying text is text; a seventh photo is refused with a note, repeated names
+// are numbered, and closing the panel keeps the tray. (Its own gate rather than
 // more of dev-assistant-tools-gate.mts, which is at the 500-line limit.)
 //
 // SAFETY: shared dev database. It mints its own admin, session and draft; the
@@ -17,6 +19,7 @@ import assert from "node:assert/strict";
 import { chromium, type Page } from "playwright";
 import postgres from "postgres";
 import sharp from "sharp";
+import { AI_PROJECTION_PART } from "../src/lib/ai-chat-contract";
 import { deleteByPrefix } from "../src/lib/storage";
 import {
   content,
@@ -106,18 +109,26 @@ async function attachByKeyboard(page: Page, files: object[]) {
   await page.focus(INPUT);
   await page.keyboard.press("Tab");
   ok((await focused(page)) === "Attach photos", "Tab from the box: Attach");
-  const [chooser] = await Promise.all([
-    page.waitForEvent("filechooser"),
-    page.keyboard.press("Enter"),
-  ]);
-  await chooser.setFiles(files as never);
+  // The input's click always fires, but headless Chromium now and then raises
+  // no chooser for it: press again once rather than fail on the harness.
+  const chooser = async () => {
+    const [c] = await Promise.all([
+      page.waitForEvent("filechooser", { timeout: 5_000 }),
+      page.keyboard.press("Enter"),
+    ]);
+    return c;
+  };
+  const opened = await chooser().catch(chooser);
+  await opened.setFiles(files as never);
 }
 
 async function checks(page: Page) {
   const chat = watchChat(page);
   const bodies: string[] = [];
+  let uploaded = 0;
   page.on("request", (req) => {
     if (req.url().endsWith("/api/admin/ai/chat")) bodies.push(req.postData()!);
+    if (req.url().endsWith("/api/admin/images")) uploaded++;
   });
   await page.goto(`${base}/admin/issues/${draftId}/edit`);
   await page.click(BUTTON);
@@ -199,9 +210,20 @@ async function checks(page: Page) {
     chat.asked[0]?.endsWith(`Attached 3 photos: ${ids.join(", ")}`),
     "the message carries the three ids",
   );
+  const asked = JSON.parse(bodies[from]!) as {
+    messages: { role: string; parts: { type: string }[] }[];
+  };
   ok(
-    bodies.slice(from).every((b) => !/data:image|;base64,/.test(b)),
-    "and no image bytes, in any of the run's requests",
+    asked.messages
+      .at(-1)!
+      .parts.map((p) => p.type)
+      .join() === `${AI_PROJECTION_PART},text,text` &&
+      bodies.slice(from).every((b) => !/data:image|;base64,/.test(b)),
+    "as [projection, words, ids]: no image bytes in any of the run's requests",
+  );
+  ok(
+    (await page.textContent(LOG))?.includes("Step 1: insert_blocks."),
+    "(the server runs the fake provider)",
   );
   ok((await page.$$(THUMB)).length === 0, "the tray emptied");
   const bubble = await page.textContent(`${LOG} .self-end`);
@@ -225,29 +247,22 @@ async function checks(page: Page) {
   );
   ok(true, "one Undo took the placement back");
 
-  heading("a refused file shows the route's words and sends nothing");
+  heading("a refused file: the route's words, never sent, nothing sent");
   const sent = bodies.length;
+  const uploads = () => uploaded;
+  const before = uploads();
   await attachByKeyboard(page, [
     file("notes.png", "text/plain", Buffer.from("not a picture")),
-  ]);
-  await settled(page, 1);
-  await page.waitForSelector("[data-attachment-alert]");
-  ok(
-    (await page.textContent("[data-attachment-alert]"))?.includes(
-      "notes.png: Unsupported image type.",
-    ),
-    "a wrong type: the route's words",
-  );
-  await attachByKeyboard(page, [
     file("huge.jpg", "image/jpeg", Buffer.alloc(13 * 1024 * 1024, 1)),
   ]);
   await settled(page, 2);
+  const alert = await page.textContent("[data-attachment-alert]");
   ok(
-    (await page.textContent("[data-attachment-alert]"))?.includes(
-      "huge.jpg: Image is too large (max 12 MB).",
-    ),
-    "too large: the route's words",
+    alert?.includes("notes.png: Unsupported image type.") &&
+      alert.includes("huge.jpg: Image is too large (max 12 MB)."),
+    "a wrong type and one too large: the route's words",
   );
+  ok(uploads() === before, "checked in the browser: neither was uploaded");
   await page.fill(INPUT, "Place these");
   await page.keyboard.press("Enter");
   await page.waitForTimeout(1_000);
@@ -257,23 +272,68 @@ async function checks(page: Page) {
   );
   for (const name of ["notes.png", "huge.jpg"])
     await page.click(`button[aria-label="Remove ${name}"]`);
+  await page.fill(INPUT, "");
+  // The route itself, outside the proxy: too big is refused on its length.
+  const direct = await page.evaluate(async (issueId) => {
+    const body = new FormData();
+    body.append("file", new File([new Uint8Array(13 * 1024 * 1024)], "x.jpg"));
+    body.append("issueId", issueId);
+    const res = await fetch("/api/admin/images", { method: "POST", body });
+    return { status: res.status, error: (await res.json()).error as string };
+  }, draftId);
+  ok(
+    direct.status === 413 && direct.error === "Image is too large (max 12 MB).",
+    `the route refuses a 13 MB body by its length (${direct.status})`,
+  );
 
-  heading("ten a message");
-  const eleven = await Promise.all(
-    Array.from({ length: 11 }, (_, i) => png(i * 20, 90, 90)),
+  heading("a paste with text is text");
+  await page.focus(INPUT);
+  await page.evaluate((b64) => {
+    const bin = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const data = new DataTransfer();
+    data.setData("text/plain", "An article pasted from Word.");
+    data.items.add(new File([bin], "image.png", { type: "image/png" }));
+    document
+      .querySelector("#assistant-input")!
+      .dispatchEvent(
+        new ClipboardEvent("paste", { clipboardData: data, bubbles: true }),
+      );
+  }, red.toString("base64"));
+  await page.waitForTimeout(500);
+  ok(
+    (await page.$$(THUMB)).length === 0,
+    "Office's picture beside the text isn't attached",
+  );
+
+  heading("six a message, numbered names, kept when the panel closes");
+  const seven = await Promise.all(
+    Array.from({ length: 7 }, (_, i) => png(i * 30, 90, 90)),
   );
   await attachByKeyboard(
     page,
-    eleven.map((b, i) => file(`p${i}.png`, "image/png", b)),
+    seven.map((b) => file("image.png", "image/png", b)),
   );
-  await settled(page, 10);
+  await settled(page, 6);
   ok(
     (await page.textContent("[data-attachment-alert]"))?.includes(
-      "Up to 10 photos a message. One wasn't attached.",
+      "Up to 6 photos a message. One wasn't attached.",
     ),
-    "the eleventh is left out, with a note",
+    "the seventh is left out, with a note",
   );
   ok(await page.$eval(ATTACH, (el) => el.hasAttribute("disabled")), "full");
+  const names = await page.$$eval(`${THUMB} img`, (els) =>
+    els.map((el) => el.getAttribute("alt")),
+  );
+  ok(
+    names[0] === "image.png" && names[1] === "image.png (2)",
+    `repeated names are numbered (${names.slice(0, 3).join(", ")}…)`,
+  );
+  await page.click(
+    'nav[aria-label="Editor panels"] button[aria-label="Close panel"]',
+  );
+  await page.click(BUTTON);
+  await page.waitForSelector(INPUT);
+  ok((await page.$$(THUMB)).length === 6, "closing the panel kept the tray");
 
   console.log("\nassistant attach gate: all checks passed");
 }

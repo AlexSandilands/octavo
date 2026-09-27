@@ -3,7 +3,7 @@
 import { useRef, useState, type ComponentProps, type RefObject } from "react";
 import dynamic from "next/dynamic";
 import type { Page } from "@/lib/blocks";
-import type { ResolvedImage } from "@/lib/images";
+import { collectImageIds, type ResolvedImage } from "@/lib/images";
 import { AssistantPanel } from "./assistant/assistant-panel";
 import {
   useAssistantChat,
@@ -13,6 +13,7 @@ import type { PresetTarget } from "./assistant/presets";
 import type { EditorSnapshot } from "./use-editor-history";
 import type { AssistantTools } from "./assistant/tools";
 import { useAssistantUsage } from "./assistant/use-assistant-usage";
+import { useAttachments } from "./assistant/use-attachments";
 import { SidePanel } from "./side-panel/side-panel";
 import {
   ToolRail,
@@ -86,6 +87,14 @@ export function EditorSide({
     tools: assistant.tools,
     onRunEnd: () => void usage.refresh(),
   });
+  // Photos waiting in the composer (#343): here with the conversation, so
+  // closing the panel keeps them. The last run's that no page places now.
+  const attachments = useAttachments({
+    issueId: assistant.issueId,
+    onUploaded: assistant.registerImage,
+  });
+  const placed = new Set(collectImageIds({ pages }));
+  const unplaced = chat.runPhotos.filter((id) => !placed.has(id)).length;
   // Import PDF steps aside on a cover (#287); the assistant stays.
   const shown = tool === "pdf" && cover ? null : tool;
   // A closing panel keeps its content while it slides out. Each opening counts,
@@ -130,8 +139,8 @@ export function EditorSide({
           <AssistantPanel
             key={opened.count}
             chat={chat}
-            issueId={assistant.issueId}
-            registerImage={assistant.registerImage}
+            attachments={attachments}
+            unplaced={unplaced}
             published={assistant.published}
             cover={cover}
             usage={usage.usage}

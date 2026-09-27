@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, type DragEvent } from "react";
 import { Button } from "@/components/ui";
 import { AI_ERROR_COPY } from "@/lib/ai-chat-contract";
 import { usageLine, type AiUsageSummary } from "@/lib/ai-usage-summary";
-import type { ResolvedImage } from "@/lib/images";
 import { unplacedText } from "./attached";
 import { AssistantComposer } from "./assistant-composer";
 import { AssistantThread } from "./assistant-thread";
@@ -18,7 +17,7 @@ import {
   type PresetTarget,
 } from "./presets";
 import type { useAssistantChat } from "./use-assistant-chat";
-import { filesOf, useAttachments } from "./use-attachments";
+import { filesOf, type useAttachments } from "./use-attachments";
 
 const DRAFTS_ONLY =
   "The assistant only works on drafts. Start a new issue to use it.";
@@ -35,8 +34,8 @@ const COVER_PRESETS = "Presets work on the inside pages, not the cover.";
 // dropped anywhere on the panel attach to the next message (#343).
 export function AssistantPanel({
   chat,
-  issueId,
-  registerImage,
+  attachments,
+  unplaced,
   published,
   cover,
   usage,
@@ -45,8 +44,9 @@ export function AssistantPanel({
   onUndo,
 }: {
   chat: ReturnType<typeof useAssistantChat>;
-  issueId: string;
-  registerImage: (imageId: string, image: ResolvedImage) => void;
+  attachments: ReturnType<typeof useAttachments>;
+  /** Photos attached to the last run's message that no page places now. */
+  unplaced: number;
   published: boolean;
   /** On a cover the inspector steps aside while the panel is out. */
   cover: boolean;
@@ -63,7 +63,6 @@ export function AssistantPanel({
     chat.error?.code === "budget_spent" ||
     (usage !== null && usage.remaining <= 0);
   const blocked = published || spent || chat.full;
-  const attachments = useAttachments({ issueId, onUploaded: registerImage });
   const [dropping, setDropping] = useState(false);
   const dragging = (e: DragEvent) => {
     if (blocked || !e.dataTransfer.types.includes("Files")) return false;
@@ -135,7 +134,7 @@ export function AssistantPanel({
                   chat.summary?.step === historyTop ? chat.summary : null
                 }
                 stuck={chat.stuck}
-                unplaced={chat.unplaced}
+                unplaced={unplaced}
                 onUndo={onUndo}
               />
             }
@@ -170,9 +169,11 @@ export function AssistantPanel({
               busy={chat.busy}
               disabled={spent || chat.full}
               attachments={attachments}
-              onSend={(text) => {
-                void chat.send(text, attachments.ids);
-                attachments.clear();
+              onSend={async (text) => {
+                // The ids as they were on sending; the tray empties only once
+                // the message is in the conversation.
+                const ids = attachments.ids;
+                if (await chat.send(text, ids)) attachments.clear(ids);
               }}
               onStop={chat.stop}
             />

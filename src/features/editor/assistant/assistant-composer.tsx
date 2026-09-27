@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import { Icon } from "@/components/icons";
 import { AI_MAX_TEXT_CHARS } from "@/lib/ai-chat-contract";
 import { AttachButton, AttachmentTray } from "./attachment-tray";
-import { filesOf, type useAttachments } from "./use-attachments";
+import { pastedFiles, type useAttachments } from "./use-attachments";
 
 // The author's side of the chat (#309): a box that grows with what is typed,
 // Enter to send and Shift+Enter for a new line, and one 44px button that sends
@@ -88,7 +88,7 @@ export function AssistantComposer({
         }
         onChange={(e) => setValue(e.target.value)}
         onPaste={(e) => {
-          const files = filesOf(e.clipboardData);
+          const files = pastedFiles(e.clipboardData);
           if (!files.length) return;
           e.preventDefault();
           attachments.add(files);

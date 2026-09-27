@@ -6,10 +6,15 @@ export const photos = (n: number) => (n === 1 ? "1 photo" : `${n} photos`);
 export const attachedText = (ids: string[]) =>
   `Attached ${photos(ids.length)}: ${ids.join(", ")}`;
 
-/** How many photos a text part says were attached, or 0 when it isn't that line. */
+const ID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+const LINE = new RegExp(`^Attached (\\d+) photos?: (${ID}(?:, ${ID})*)$`);
+
+/** How many photos a text part says were attached, or 0 when it isn't exactly
+ *  that line (words an author typed that merely start the same way). */
 export function attachedCount(text: string): number {
-  const match = /^Attached (\d+) photos?: /.exec(text);
-  return match ? Number(match[1]) : 0;
+  const match = LINE.exec(text);
+  const n = Number(match?.[1] ?? 0);
+  return match && match[2]!.split(", ").length === n ? n : 0;
 }
 
 /** The run's line when attached photos were left unplaced. */
