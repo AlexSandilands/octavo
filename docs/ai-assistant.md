@@ -3,7 +3,7 @@
 An assistant in the editor that edits the issue on the author's behalf. It can tidy a page, lay out pasted articles and
 photos, compose a cover, and rewrite when asked. **Built so far, dormant until a provider is set:** the spend ledger
 (#307), the chat route (#308), the editor's panel (#309), the page-editing tools (#310), the per-block Ask box (#311),
-cover composition (#313) and the model-selection fixture (#315). This note holds the decisions every child issue assumes. Read it with the epic before
+vision (#342), the model-selection fixture (#315) and cover composition (#313). This note holds the decisions every child issue assumes. Read it with the epic before
 working any child. Each child's PR updates it to match what shipped, and the epic's closing issue (#344) turns it into
 the feature doc (the `docs/pdf-import.md` shape).
 
