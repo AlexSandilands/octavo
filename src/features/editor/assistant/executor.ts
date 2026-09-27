@@ -97,18 +97,19 @@ export function createAssistantExecutor({
   let queue: Promise<unknown> = Promise.resolve();
 
   const edit = async (
+    mine: RunState,
     name: Exclude<AiToolName, "read_page">,
     input: unknown,
     photos: ReadonlySet<string>,
   ): Promise<string> => {
     const before = handle.state();
-    const mine = run;
     // A call that outlives its run (Stop, or a new message) lands nowhere.
     const gone = () => run !== mine || mine.abort.signal.aborted;
+    if (gone()) return STOPPED;
     // One run is one undo step only while nothing else has changed the pages
     // since its last edit: a change between calls stops the run.
-    if (run.interrupted || (run.last && before.pages !== run.last)) {
-      run.interrupted = true;
+    if (mine.interrupted || (mine.last && before.pages !== mine.last)) {
+      mine.interrupted = true;
       return CHANGED_UNDER_RUN;
     }
     try {
@@ -125,12 +126,12 @@ export function createAssistantExecutor({
       if (!valid.success)
         return `Error: that edit would make the issue invalid (${valid.error.issues[0]?.message}); nothing changed.`;
       if (handle.state().pages !== before.pages) {
-        run.interrupted = true;
+        mine.interrupted = true;
         return CHANGED_UNDER_RUN;
       }
 
-      const record = run.step ? null : before;
-      run.step ??= before;
+      const record = mine.step ? null : before;
+      mine.step ??= before;
       const current = before.pages[before.curPage]?.id;
       const curPage = result.pages.findIndex((p) => p.id === current);
       const selKept = result.pages.some((p) =>
@@ -147,10 +148,10 @@ export function createAssistantExecutor({
         },
         record,
       );
-      run.last = result.pages;
-      run.notes.push(...(result.notes ?? []));
+      mine.last = result.pages;
+      mine.notes.push(...(result.notes ?? []));
       if (result.moved)
-        run.moves.set(result.moved, (run.moves.get(result.moved) ?? 0) + 1);
+        mine.moves.set(result.moved, (mine.moves.get(result.moved) ?? 0) + 1);
 
       const lines: string[] = [];
       for (const id of result.report) {
@@ -172,17 +173,18 @@ export function createAssistantExecutor({
   };
 
   const runOne = async (
+    mine: RunState,
     name: string,
     input: unknown,
     call: CallContext,
   ): Promise<AiToolOutput> => {
-    run.calls++;
+    mine.calls++;
     if (!Object.hasOwn(aiToolSchemas, name))
       return { text: `Error: there is no tool "${name}".` };
     const tool = name as AiToolName;
     if (tool === "read_page") return call.read(input);
     return {
-      text: clip(await edit(tool, input, call.photos), AI_MAX_TOOL_TEXT),
+      text: clip(await edit(mine, tool, input, call.photos), AI_MAX_TOOL_TEXT),
     };
   };
 
@@ -201,7 +203,9 @@ export function createAssistantExecutor({
       input: unknown,
       call: CallContext,
     ): Promise<AiToolOutput> {
-      const next = queue.then(() => runOne(name, input, call));
+      // A call belongs to the run it was made in, even if it waits its turn.
+      const mine = run;
+      const next = queue.then(() => runOne(mine, name, input, call));
       queue = next.catch(() => undefined);
       return next;
     },

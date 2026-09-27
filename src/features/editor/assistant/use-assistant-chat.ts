@@ -185,13 +185,14 @@ export function useAssistantChat({
   const busy =
     running || chat.status === "submitted" || chat.status === "streaming";
 
-  const send = async (request: string) => {
+  /** Resolves true once the message is in the thread; false if it wasn't taken. */
+  const send = async (request: string): Promise<boolean> => {
     // The composer holds anything longer back; the route would refuse it.
     const text = request.trim();
-    if (!text || text.length > AI_MAX_TEXT_CHARS || busy || full) return;
+    if (!text || text.length > AI_MAX_TEXT_CHARS || busy || full) return false;
     if (chat.messages.length + RUN_MESSAGES > AI_MAX_MESSAGES) {
       setFull(true);
-      return;
+      return false;
     }
     runId.current = crypto.randomUUID();
     stopped.current = false;
@@ -208,17 +209,22 @@ export function useAssistantChat({
       if (size + RUN_CHARS > AI_MAX_CONVERSATION_CHARS) {
         setFull(true);
         endRun();
-        return;
+        return false;
       }
-      await chat.sendMessage({
-        parts: [
-          { type: AI_PROJECTION_PART, data: { text: view } },
-          { type: "text", text },
-        ],
-      });
+      // Taken once it's in the thread; the reply streams on without us.
+      void chat
+        .sendMessage({
+          parts: [
+            { type: AI_PROJECTION_PART, data: { text: view } },
+            { type: "text", text },
+          ],
+        })
+        // useChat reports request failures through `error` and onError.
+        .catch(endRun);
+      return true;
     } catch {
-      // useChat reports request failures through `error` and onError.
       endRun();
+      return false;
     }
   };
 

@@ -146,11 +146,13 @@ export function AssistantPanel({
                 // A run under way or a full conversation would drop the send:
                 // the question and the text wait instead.
                 blocked={chat.busy || chat.full}
-                onContinue={() => {
+                onContinue={async () => {
                   if (chat.busy || chat.full) return;
+                  // The paste goes only once the chat has taken it: a full
+                  // conversation leaves it in the box.
+                  if (!(await chat.send(paste.text))) return;
                   paste.clear();
                   setPaste(null);
-                  void chat.send(paste.text);
                   input.current?.focus();
                 }}
                 onCancel={() => {
