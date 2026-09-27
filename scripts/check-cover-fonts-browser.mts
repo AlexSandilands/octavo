@@ -404,7 +404,7 @@ await withCoverFixture(base, async (f) => {
   await page.mouse.wheel(200, 80);
   await page.waitForFunction(() => {
     const row = document.querySelector(
-      '[aria-label="Selected text formatting"] > div',
+      '[aria-label="Selected text formatting"] .overflow-x-auto',
     );
     return row && row.scrollLeft > 0;
   });

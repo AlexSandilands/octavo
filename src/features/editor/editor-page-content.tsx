@@ -96,6 +96,7 @@ export function EditorPageContent({
           onMove={(dir) => moveElement(element.id, dir)}
           onRemove={() => removeElement(element.id)}
           overflow={overflow?.id === element.id}
+          onAsk={ask && ((text) => ask(element.id, text))}
         />
       )}
       trailing={
@@ -131,7 +132,7 @@ export function EditorPageContent({
             onFlow={() => flow(b.id)}
             onFillPage={(a) => fillPage(b.id, a)}
             onRegisterImage={registerImage}
-            onAsk={ask && !page.cover ? (text) => ask(b.id, text) : undefined}
+            onAsk={ask && ((text) => ask(b.id, text))}
           />
         </Fragment>
       )}

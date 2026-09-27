@@ -126,7 +126,7 @@ export function EditorSide({
       const now = usage.usage ?? (await usage.refresh());
       if (budgetSpent(chat, now)) return { ok: false, reason: "spent" };
       return chat.send(
-        askMessage({ page: assistant.target.page, blockId }, text),
+        askMessage({ page: assistant.target.page, blockId, cover }, text),
       );
     };
   });

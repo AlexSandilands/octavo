@@ -59,9 +59,7 @@ const model = createAssistantModel({ provider, modelId: values.model, apiKey });
 const repeat = Math.max(1, Number(values.repeat) || 1);
 
 // Tool families the route doesn't declare yet; their cases wait for them.
-const MISSING: Record<string, string> = {
-  cover: "needs the cover tools (#313)",
-};
+const MISSING: Record<string, string> = {};
 const wanted = values.case?.split(",").map((s) => s.trim());
 const cases = loadCases().filter(
   (c) => !wanted || wanted.some((w) => c.id.startsWith(w)),

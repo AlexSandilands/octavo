@@ -26,62 +26,9 @@ export function useCoverLayoutWarnings(
   const previous = useRef("");
   const enabled = Boolean(page && hasCoverLayout(page));
   const measure = useEffectEvent(() => {
-    const root = canvas.current,
-      frame = root?.closest<HTMLElement>("[data-page-frame]");
-    const next: CoverWarning[] = [];
-    const items = page ? coverItems(page) : [];
-    const label = (id: string) => {
-      const item = items.find((i) => i.id === id);
-      return item ? coverItemLabel(item) : "An item";
-    };
-    const ids = new Set(sources.map((s) => s.id));
-    for (const e of page?.coverElements ?? []) {
-      const broken =
-        e.type === "story" &&
-        e.items.some((i) => i.headingId && !ids.has(i.headingId));
-      if (broken)
-        next.push({
-          ids: [e.id],
-          text: `${coverItemLabel(e)} links to a section that no longer exists.`,
-        });
-    }
-    if (enabled && root && frame) {
-      const pageRect = frame.getBoundingClientRect();
-      const scale = pageRect.width / frame.offsetWidth;
-      const pad = (40 - MARGIN_SLACK) * scale;
-      const entries = [
-        ...root.querySelectorAll<HTMLElement>("[data-cover-entry]"),
-      ]
-        .map((el) => ({
-          id: el.dataset.coverEntry!,
-          r: el.getBoundingClientRect(),
-        }))
-        .filter(({ r }) => r.height > 0 && r.width > 0);
-      for (const { id, r } of entries) {
-        if (
-          r.left < pageRect.left + pad - 1 ||
-          r.right > pageRect.right - pad + 1 ||
-          r.top < pageRect.top + pad - 1 ||
-          r.bottom > pageRect.bottom - pad + 1
-        )
-          next.push({
-            ids: [id],
-            text: `${label(id)} runs past the page margin.`,
-          });
-      }
-      entries.forEach((a, i) => {
-        for (const b of entries.slice(i + 1)) {
-          if (
-            Math.min(a.r.right, b.r.right) - Math.max(a.r.left, b.r.left) > 2 &&
-            Math.min(a.r.bottom, b.r.bottom) - Math.max(a.r.top, b.r.top) > 2
-          )
-            next.push({
-              ids: [a.id, b.id],
-              text: `${label(a.id)} overlaps ${label(b.id).toLowerCase()}.`,
-            });
-        }
-      });
-    }
+    const root = canvas.current;
+    const frame = root?.closest<HTMLElement>("[data-page-frame]");
+    const next = page ? readCoverWarnings(page, sources, root, frame) : [];
     const serialized = JSON.stringify(next);
     if (serialized !== previous.current) {
       previous.current = serialized;
@@ -100,4 +47,73 @@ export function useCoverLayoutWarnings(
     return () => observer.disconnect();
   }, [canvas, page, enabled]);
   return warnings;
+}
+
+/**
+ * What's wrong with a cover's layout, in words: stories linked to headings
+ * that are gone and, once laid out (the canvas, or the assistant's off-screen
+ * cover), items past the page margin or overlapping each other.
+ */
+export function readCoverWarnings(
+  page: Page,
+  sources: CoverSource[],
+  root?: HTMLElement | null,
+  frame?: HTMLElement | null,
+): CoverWarning[] {
+  const enabled = hasCoverLayout(page);
+  const next: CoverWarning[] = [];
+  const items = coverItems(page);
+  const label = (id: string) => {
+    const item = items.find((i) => i.id === id);
+    return item ? coverItemLabel(item) : "An item";
+  };
+  const ids = new Set(sources.map((s) => s.id));
+  for (const e of page.coverElements ?? []) {
+    const broken =
+      e.type === "story" &&
+      e.items.some((i) => i.headingId && !ids.has(i.headingId));
+    if (broken)
+      next.push({
+        ids: [e.id],
+        text: `${coverItemLabel(e)} links to a section that no longer exists.`,
+      });
+  }
+  if (enabled && root && frame) {
+    const pageRect = frame.getBoundingClientRect();
+    const scale = pageRect.width / frame.offsetWidth;
+    const pad = (40 - MARGIN_SLACK) * scale;
+    const entries = [
+      ...root.querySelectorAll<HTMLElement>("[data-cover-entry]"),
+    ]
+      .map((el) => ({
+        id: el.dataset.coverEntry!,
+        r: el.getBoundingClientRect(),
+      }))
+      .filter(({ r }) => r.height > 0 && r.width > 0);
+    for (const { id, r } of entries) {
+      if (
+        r.left < pageRect.left + pad - 1 ||
+        r.right > pageRect.right - pad + 1 ||
+        r.top < pageRect.top + pad - 1 ||
+        r.bottom > pageRect.bottom - pad + 1
+      )
+        next.push({
+          ids: [id],
+          text: `${label(id)} runs past the page margin.`,
+        });
+    }
+    entries.forEach((a, i) => {
+      for (const b of entries.slice(i + 1)) {
+        if (
+          Math.min(a.r.right, b.r.right) - Math.max(a.r.left, b.r.left) > 2 &&
+          Math.min(a.r.bottom, b.r.bottom) - Math.max(a.r.top, b.r.top) > 2
+        )
+          next.push({
+            ids: [a.id, b.id],
+            text: `${label(a.id)} overlaps ${label(b.id).toLowerCase()}.`,
+          });
+      }
+    });
+  }
+  return next;
 }

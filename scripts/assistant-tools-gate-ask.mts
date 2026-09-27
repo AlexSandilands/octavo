@@ -234,6 +234,45 @@ export async function checkAsk(d: {
   }
 }
 
+/** Until the stage and a block hold still across two frames, with no transition
+ * running: a click right after a resize can land before the canvas re-fits. */
+const settled = (page: Page, id: string) =>
+  page.waitForFunction(
+    // No named functions in here: tsx's __name helper doesn't exist in the page.
+    (sels) =>
+      new Promise<boolean>((done) => {
+        const first = JSON.stringify(
+          sels.map((sel) =>
+            document.querySelector(sel)?.getBoundingClientRect(),
+          ),
+        );
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() =>
+            done(
+              first ===
+                JSON.stringify(
+                  sels.map((sel) =>
+                    document.querySelector(sel)?.getBoundingClientRect(),
+                  ),
+                ) &&
+                document
+                  .getAnimations()
+                  .every(
+                    (a) =>
+                      a.playState !== "running" ||
+                      a.effect?.getTiming().iterations === Infinity,
+                  ),
+            ),
+          ),
+        );
+      }),
+    [
+      "[data-editor-canvas-stage]",
+      `[data-block-id="${id}"]`,
+      "[data-bar-placement]",
+    ],
+  );
+
 /** Every bar's Ask and its open box stay inside the canvas and clear of its
  * standing tools, panel open or not. */
 async function checkReach(page: Page, ok: (c: unknown, m: string) => void) {
@@ -275,8 +314,23 @@ async function checkReach(page: Page, ok: (c: unknown, m: string) => void) {
       await page.setViewportSize({ width, height: 900 });
       for (const [name, id, position] of blocks) {
         const ask = `[data-block-id="${id}"] [data-ask] > button`;
-        await page.click(`[data-block-id="${id}"]`, { position, force: true });
-        await page.waitForSelector(ask);
+        // The layout can still shift after it settles (the tools stand on end
+        // a beat later); selecting again is harmless, so retry a missed click.
+        for (let tries = 1; ; tries++) {
+          await settled(page, id);
+          await page.click(`[data-block-id="${id}"]`, {
+            position,
+            force: true,
+          });
+          const shown = await page
+            .waitForSelector(ask, { timeout: tries < 3 ? 3000 : 30_000 })
+            .catch(() => null);
+          if (shown) break;
+          console.log(
+            `  (retry ${tries}: ${name}'s Ask didn't show at ${width}px)`,
+          );
+          if (tries === 3) throw new Error(`FAIL: ${name}'s Ask never showed`);
+        }
         await page.waitForTimeout(300);
         await page.click(ask);
         await page.waitForSelector(DIALOG);

@@ -59,7 +59,11 @@ export async function assistantIssue(
       ]),
     ),
     uploads: issue.uploads,
-    logos: issue.logos.map((l) => ({ id: l.id, name: l.name })),
+    logos: issue.logos.map((l) => ({
+      id: l.id,
+      name: l.name,
+      imageId: l.imageId,
+    })),
     sponsorNames: issue.sponsorNames,
     fills: await browser.fills(pages),
   };
