@@ -7,7 +7,7 @@
 // canvas at 768). A real click there opens the box, whose Send is on top too. Runs on a scratch copy of
 // the Regatta cover (masthead, story, details, logo) plus a sponsor, in the
 // caller's signed-in context; the caller deletes the issue.
-import type { BrowserContext, Page } from "playwright";
+import type { BrowserContext } from "playwright";
 import type postgres from "postgres";
 import { makeBlock } from "../src/lib/blocks";
 import { settled } from "./assistant-tools-gate-ask.mts";
