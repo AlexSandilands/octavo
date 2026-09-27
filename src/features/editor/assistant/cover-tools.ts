@@ -459,11 +459,11 @@ export async function applyCoverTool(
 ): Promise<EditResult> {
   const edit: { pageIdx: number; page: Page; text: string; moved?: string } =
     ITEM_TOOLS.has(name)
-    ? itemEdit(ctx.pages, name, input)
-    : (() => {
-        const pageIdx = targetCover(ctx);
-        return { pageIdx, ...compose(ctx, name, input, ctx.pages[pageIdx]!) };
-      })();
+      ? itemEdit(ctx.pages, name, input)
+      : (() => {
+          const pageIdx = targetCover(ctx);
+          return { pageIdx, ...compose(ctx, name, input, ctx.pages[pageIdx]!) };
+        })();
   const pages = ctx.pages.map((p, i) => (i === edit.pageIdx ? edit.page : p));
   const warnings = await ctx.measure.cover(edit.page, pages);
   const said = warnings.length
