@@ -214,9 +214,25 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
     off, drafts only) and are limited to 120 requests per admin per 10 minutes;
   - `scripts/check-assistant-render.mts` checks all of it against a running server: every seed page's measured fill
     against the editor's overflow marker, an unsaved edit, and the refusals.
-- **Planning tool for long pastes (#312, in review):** takes the whole plan in one call, and each section has **separate `headline`,
-  `kicker?`, `standfirst?`** fields with a worked example in the description. A prompt line alone did not stop the model turning
-  an all-caps headline into the kicker and the standfirst into the title.
+- **Planning tool for long pastes (#312):** `propose_sections({ after, sections })` takes the whole plan in one
+  call: up to 40 sections, each `{ headline, kicker?, standfirst?, body, photos? }` with a body of at most 20,000
+  characters. Headline, kicker and standfirst are **separate fields**, and the description carries a worked example
+  (the line in capitals is the headline, the sentence under it the standfirst, a kicker only when the author wrote one).
+  A prompt line alone did not stop the model turning an all-caps headline into the kicker and the standfirst into the
+  title. A body line starting `#`/`##` is a section heading and `###` a run-in sub-head. A photo is an issue photo's id
+  (an attached one included), after the standfirst or after the body's nth paragraph or list (`left`/`right` wrap at
+  45%); a photo with no id is a suggestion, which goes into the result and the author's run line ("Suggested a photo
+  for "Spring show"."). An unknown id refuses the whole plan. `base.md` tells the model to use it for several articles
+  or more than about a page of text, instead of inserting block by block. Covers are out of scope.
+- **Placement** (`assistant/plan-sections.ts`) builds each section's blocks with `markdownToDoc` and hands them to
+  Import PDF's paginator (`pdf-import/paginate.ts`'s `paginateImport`, fitted by `createMeasurer`'s page test, the one
+  Import PDF uses): each section from the top of a new page after `after` (an empty non-cover page there takes the
+  first), continuation pages added by measurement, a heading never left at a page's foot. The paginator's failures are
+  a typed `PaginateError`, so Import PDF keeps its wording and the assistant refuses with its own. Only the pages it
+  wrote are new objects; the rest keep their identity. The result names each section's pages and every written page's
+  fill, so "make the second one shorter" works as a normal follow-up, and the run's end-of-run review applies. A
+  placement belongs to its run: the run's `AbortController` (aborted by Stop, the run's end or the next message)
+  reaches the paginator and the measurer, and a call whose run is over lands nothing.
 
 ## Runs and the review
 
@@ -243,6 +259,17 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
   word; Rewrite and Shorten say the wording may change and to keep the facts and the voice. A cover gets one preset
   instead (#313), _Compose cover_: "Compose the cover on page N. Use the issue's strongest story as the lead and keep the
   current background."
+- **A long paste asks first (#312).** A message over **4,000 characters** isn't sent: the panel shows "That's a lot
+  of content. Laying it out will cost more than a normal request (about US$X on the current model). You could paste it
+  onto the page yourself and use me to tidy it. Continue?", with **Continue** and **Cancel**. It's code, not prompt, so
+  the question comes before anything is spent. Every sending surface — the composer, the presets, each block's and cover
+  item's Ask box — goes through one seam, `assistant/use-confirmed-send.ts`, so none can skip it: while the question is
+  up nothing else goes (a preset is refused), Continue sends the held message with its attached photos, and the
+  surface clears only once the chat has taken it; Cancel (or Escape) sends nothing and hands the text back to the box it
+  came from. The estimate (`assistant/paste-estimate.ts`) prices the paste on the model `GET /api/admin/ai/usage` names
+  (the fake provider is estimated as the default model) from the pricing table: a run's own prompt, replies and
+  thinking, the paste written to cache once, returned as the plan's arguments, and read back from cache by each later
+  turn and the review; rounded up to the cent.
 - **Automatic end-of-run review (#342):** when a run's changes touched the cover or more than one page, the panel
   pictures those pages (the cover first, at most 8) and sends them as one user message. The message is the review text
   (`assistant/review.ts`), then "Page N (fits, ~X% full)" and the picture for each
@@ -308,6 +335,9 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
 - **Alt text from the picture.** `vision.md` tells the model to look at each attached photo before placing it, write its
   alt text from what it shows and a caption only when the text supports one, and say which it left unplaced. Photos
   attached but never placed stay with the issue's photos, like any upload, and the run's line says how many.
+- **The cost question counts typed text only (#312).** A long message asks first (see Runs); the estimate is the
+  text's. Attached photos add their ids, not their bytes, and cost what the model spends looking at them, which isn't
+  known at send time.
 - **Privacy:** the panel's first-use text says attached photos join the issue's photos and are seen by the provider; the
   help page says the same.
 - **The proxy:** Next truncates proxied bodies at 10 MB, so a 10–12 MB photo used to reach the upload route cut short and
@@ -570,6 +600,8 @@ stalled-reply cases in the proxy and panel gates take seconds rather than a minu
 ```sh
 # in memory: the tool contract, edits, refusals, runs, split, feedback, breaker, vision budget, the cover tools
 npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-tools.mts
+# the long-paste plan: placement, fresh pages, photos and suggestions, refusals (the schema's bounds are in check-ai-tools)
+npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-plan.mts
 # the ledger and budget arithmetic; runs and their spend
 npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-budget.mts
 npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-runs.mts
@@ -580,7 +612,7 @@ npx tsx --tsconfig scripts/tsconfig.json scripts/check-assistant-projection.mts
 # against a running dev server
 npx tsx scripts/dev-ai-proxy-gate.mts <base-url> [<off-base-url>] [--log <server log>]
 npx tsx --tsconfig scripts/tsconfig.json scripts/check-assistant-render.mts <base-url>
-npx tsx --tsconfig scripts/tsconfig.json scripts/dev-assistant-tools-gate.mts <base-url>   # with its Ask, breaker and cover parts
+npx tsx --tsconfig scripts/tsconfig.json scripts/dev-assistant-tools-gate.mts <base-url>   # with its Ask, breaker, cover and long-paste parts
 npx tsx --tsconfig scripts/tsconfig.json scripts/dev-assistant-panel-gate.mts <base-url> [--off]
 npx tsx --tsconfig scripts/tsconfig.json scripts/dev-assistant-attach-gate.mts <base-url>   # photos attached in the chat
 npx tsx --tsconfig scripts/tsconfig.json scripts/dev-assistant-presets.mts <base-url> --fake [shots-dir]
