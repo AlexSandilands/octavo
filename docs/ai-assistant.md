@@ -21,9 +21,9 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
   or the panel never ends it; an inactive tab stays mounted, so unsent words wait. The assistant's tab takes
   **400px** (min 300) rather than half the row, and opens at its minimum wherever 400px would leave the canvas under
   520px. Each surface remembers its own width, so switching tabs animates between them. On a 768px tablet that leaves
-  about 358px of canvas beside the standing tool bar. Once there are messages, a **New conversation** text action
-  (icon and words) sits at the panel's foot beside the Usage link, distinct from the hints; Replace PDF is the
-  strip's only action.
+  about 358px of canvas beside the standing tool bar. Once there are messages, a **New conversation** button (an
+  icon, named for assistive tech, with a tooltip) sits in the composer's row beside the Attach paperclip; Replace
+  PDF is the strip's only action.
 - **The per-block Ask (#311).** A selected block on an inside page of a draft has **Ask** (the sparkle and
   the word) as the last control in its own tool bar, after a rule, and last in the bar's tab order. That's the text
   format bar, the heading, photo, montage, video and sponsor bars, or beside a bare type label. The owner's first browser

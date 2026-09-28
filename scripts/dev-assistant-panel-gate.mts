@@ -254,12 +254,10 @@ async function onChecks(page: Page, pageCount: number) {
     `the strip is unchanged by the chat: ${withChat}`,
   );
   ok(
-    (
-      await page.textContent(
-        '[data-assistant-panel] button:has-text("New conversation")',
-      )
-    )?.trim() === "New conversation",
-    "New conversation sits at the panel's foot, with its words",
+    (await page.$(
+      '[data-assistant-panel] button[aria-label="New conversation"]',
+    )) !== null,
+    "New conversation sits in the composer's row, named",
   );
   ok(
     bodies.every(

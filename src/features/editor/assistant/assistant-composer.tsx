@@ -37,6 +37,7 @@ export function AssistantComposer({
   holding,
   putRef,
   suggestion,
+  onRestart,
   onStop,
 }: {
   inputRef: RefObject<HTMLTextAreaElement | null>;
@@ -53,6 +54,8 @@ export function AssistantComposer({
   putRef: RefObject<((text: string) => void) | null>;
   /** The assistant's suggested next message, offered while the box is empty. */
   suggestion: string | null;
+  /** Starts a fresh conversation (#353); null while there is nothing to leave. */
+  onRestart: (() => void) | null;
   onStop: () => void;
 }) {
   const [value, setValue] = useState("");
@@ -180,6 +183,20 @@ export function AssistantComposer({
             </p>
           )}
         </div>
+        {onRestart && (
+          // Beside the paperclip, in the same quiet style: an icon with its
+          // name for assistive tech and a tooltip.
+          <button
+            type="button"
+            disabled={busy || disabled || holding}
+            onClick={onRestart}
+            aria-label="New conversation"
+            title="New conversation"
+            className="text-muted enabled:hover:text-accent-strong enabled:hover:bg-accent-wash flex h-11 w-11 flex-none cursor-pointer items-center justify-center rounded-lg transition-colors disabled:cursor-default disabled:opacity-45"
+          >
+            <Icon name="refresh" size={19} strokeWidth={1.8} />
+          </button>
+        )}
         <AttachButton
           attachments={attachments}
           disabled={disabled || holding}

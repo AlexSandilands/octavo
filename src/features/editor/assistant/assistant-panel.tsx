@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import { Button } from "@/components/ui";
-import { Icon } from "@/components/icons";
 import { AI_ERROR_COPY } from "@/lib/ai-chat-contract";
 import { usageLine, type AiUsageSummary } from "@/lib/ai-usage-summary";
 import { AssistantComposer } from "./assistant-composer";
@@ -232,6 +231,7 @@ export function AssistantPanel({
               holding={pending !== null}
               putRef={composerPut}
               suggestion={chat.followUp?.message ?? null}
+              onRestart={onRestart}
               onSend={(text, taken) => {
                 // The ids as they were on sending; the tray empties only once
                 // the message is taken, now or on Continue.
@@ -243,35 +243,15 @@ export function AssistantPanel({
               }}
               onStop={chat.stop}
             />
-            {(usage || onRestart) && (
-              // Narrow: the actions take a line of their own rather than
-              // break mid-phrase.
-              <p className="text-faint flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-1 font-sans text-[13px]">
-                <span data-assistant-usage className="whitespace-nowrap">
-                  {usage ? usageLine(usage) : ""}
-                </span>
-                <span className="ml-auto flex items-baseline gap-4 whitespace-nowrap">
-                  {onRestart && (
-                    // A quiet text action, not a hint: the foot's own style.
-                    <button
-                      type="button"
-                      disabled={chat.busy}
-                      onClick={onRestart}
-                      className="text-accent enabled:hover:text-accent-strong -my-2 inline-flex cursor-pointer items-center gap-1 py-2 font-medium enabled:hover:underline disabled:cursor-default disabled:opacity-45"
-                    >
-                      <Icon name="refresh" size={13} strokeWidth={2} />
-                      New conversation
-                    </button>
-                  )}
-                  {usage && (
-                    <a
-                      href="/admin/ai"
-                      className="text-accent hover:text-accent-strong font-medium hover:underline"
-                    >
-                      Usage
-                    </a>
-                  )}
-                </span>
+            {usage && (
+              <p className="text-faint flex items-baseline justify-between gap-3 px-1 font-sans text-[13px]">
+                <span data-assistant-usage>{usageLine(usage)}</span>
+                <a
+                  href="/admin/ai"
+                  className="text-accent hover:text-accent-strong font-medium hover:underline"
+                >
+                  Usage
+                </a>
               </p>
             )}
           </div>

@@ -118,6 +118,9 @@ async function paste(page: Page, name: string, bytes: Buffer) {
 async function attachByKeyboard(page: Page, files: object[]) {
   await page.focus(INPUT);
   await page.keyboard.press("Tab");
+  // Once there are messages, New conversation sits before Attach (#353).
+  if ((await focused(page)) === "New conversation")
+    await page.keyboard.press("Tab");
   ok((await focused(page)) === "Attach photos", "Tab from the box: Attach");
   // Enter on Attach clicks the file input, as a person's would. The files then
   // go to the input directly: headless Chromium doesn't reliably raise its
