@@ -136,7 +136,7 @@ export function EditorHeader({
           className="w-10 px-0"
           onClick={panel.onToggle}
         >
-          <Icon name="panel" size={19} />
+          <Icon name="panel" size={22} strokeWidth={2} />
         </Button>
       </div>
     </header>
