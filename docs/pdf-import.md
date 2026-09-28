@@ -202,9 +202,9 @@ source transmission, retyping through the pill, the selection list, zoom-stable 
 targets, failure atomicity, duplicate clicks, an oversized paragraph split across
 continuation pages in order, undo/redo/added marks, reload, keyboard selection and
 split, rotation, bad-input states, an import landing after the issue is published
-mid-session, both readers and the exported PDF. The two gates that fetch the exported PDF (core and legacy) switch downloads on for that
-last step and restore the setting they found, so they pass on a database where the owner has
-turned downloads off. The failure gate checks
+mid-session, both readers and the exported PDF. The two gates that fetch the exported PDF
+(core and legacy) switch downloads on for that last step and restore the setting they found, so
+they pass on a database where the owner has turned downloads off. The failure gate checks
 successful-upload retry reuse, cancelling and closing the panel mid-upload, worker teardown on Close
 PDF and on closing the panel, locked/page-limit/
 signature refusals, and compensation when publication races between storage and

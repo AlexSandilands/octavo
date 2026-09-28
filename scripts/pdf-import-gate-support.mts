@@ -81,8 +81,8 @@ async function restorePdfDownloads() {
   else await sql`delete from settings where id = 1`;
 }
 export async function cleanup() {
-  await browser.close();
   await restorePdfDownloads();
+  await browser.close();
   await (await import("../src/server/issues.ts")).deleteIssue(iid);
   await sql`delete from users where id=${uid}`;
   await sql.end();
