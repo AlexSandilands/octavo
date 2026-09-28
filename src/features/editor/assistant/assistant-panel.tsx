@@ -41,7 +41,9 @@ export function AssistantPanel({
   target,
   context,
   historyTop,
+  focusKey = 0,
   onUndo,
+  onRestart,
 }: {
   chat: ReturnType<typeof useAssistantChat>;
   gate: ConfirmedSend;
@@ -58,7 +60,12 @@ export function AssistantPanel({
   context: Omit<HintContext, "cover">;
   /** The step Ctrl+Z would restore: a run's line stands while it's the run's. */
   historyTop: EditorSnapshot | null;
+  /** Counts the openings that take the focus (#353): the composer takes it on
+   *  each change, as it does on mount. Focusing a hidden tab is a no-op. */
+  focusKey?: number;
   onUndo: () => void;
+  /** Starts a fresh conversation; null while there is nothing to leave (#353). */
+  onRestart: (() => void) | null;
 }) {
   const input = useRef<HTMLTextAreaElement>(null);
   const notice = useRef<HTMLDivElement>(null);
@@ -88,9 +95,10 @@ export function AssistantPanel({
     if (blocked) notice.current?.focus();
     // A question up as the panel opens has taken the focus itself.
     else if (!gate.pending) input.current?.focus();
-    // Only on opening: the panel's content mounts as it slides in.
+    // Only on opening: the panel's content mounts as it slides in, or its tab
+    // is opened again while it is already mounted.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [focusKey]);
   // A fresh conversation hands the focus back to the composer.
   const wasFull = useRef(chat.full);
   useEffect(() => {
@@ -115,11 +123,6 @@ export function AssistantPanel({
       }}
     >
       <h2 className="sr-only">Assistant</h2>
-      {cover && !published && (
-        <p className="border-line bg-paper text-muted border-b px-5 py-2.5 font-sans text-[13px] leading-snug">
-          The cover inspector is hidden while the assistant is open.
-        </p>
-      )}
       {published ? (
         <div
           ref={notice}
@@ -223,6 +226,7 @@ export function AssistantPanel({
               holding={pending !== null}
               putRef={composerPut}
               suggestion={chat.followUp?.message ?? null}
+              onRestart={onRestart}
               onSend={(text, taken) => {
                 // The ids as they were on sending; the tray empties only once
                 // the message is taken, now or on Continue.

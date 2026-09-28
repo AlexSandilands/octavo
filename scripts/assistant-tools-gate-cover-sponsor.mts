@@ -12,9 +12,9 @@ import type { BrowserContext } from "playwright";
 import type postgres from "postgres";
 import { makeBlock } from "../src/lib/blocks";
 import { settled } from "./assistant-tools-gate-ask.mts";
+import { PANEL_BUTTON, openSurface } from "./editor-panel-gate-support.mts";
 
 type Doc = { pages: { blocks: { id: string }[] }[] };
-const RAIL = 'nav[aria-label="Editor panels"]';
 const DIALOG =
   '[role="dialog"][aria-label="Ask the assistant about this block"]';
 
@@ -57,10 +57,10 @@ export async function checkCoverSponsorAsk(d: {
     });
   try {
     await tab.goto(`${d.base}/admin/issues/${d.id}/edit`);
-    await tab.waitForSelector(RAIL);
+    await tab.waitForSelector(PANEL_BUTTON);
     for (const panel of [false, true]) {
       if (panel) {
-        await tab.click(`${RAIL} button[aria-label="Assistant"]`);
+        await openSurface(tab, "Assistant");
         await tab.waitForSelector("#assistant-input");
       }
       for (const width of [1440, 900, 768]) {

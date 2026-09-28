@@ -28,6 +28,7 @@ import {
   PRESETS,
   type PresetId,
 } from "../src/features/editor/assistant/presets";
+import { PANEL_BUTTON, openSurface } from "./editor-panel-gate-support.mts";
 
 process.loadEnvFile?.(".env.local");
 const [base, mode, shots = ".data/assistant-presets"] = process.argv.slice(2);
@@ -126,7 +127,7 @@ async function runCase(page: Page, c: Case, issueId: string, pageNo: number) {
     `\n── ${label} (case ${c.fixture}, page ${pageNo}) `.padEnd(74, "─"),
   );
   await page.goto(`${base}/admin/issues/${issueId}/edit`);
-  await page.waitForSelector('button[aria-label="Assistant"]');
+  await page.waitForSelector(PANEL_BUTTON);
   await page.click(`button[aria-label="Page ${pageNo}"]`);
   const before = await saved(issueId);
   if (c.select) {
@@ -137,7 +138,7 @@ async function runCase(page: Page, c: Case, issueId: string, pageNo: number) {
     await page.click(`[data-block-id="${target.id}"]`);
     await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
   }
-  await page.click('button[aria-label="Assistant"]');
+  await openSurface(page, "Assistant");
   await page.waitForSelector("#assistant-input");
   await page.waitForTimeout(800); // the panel's slide
   await page.screenshot({ path: join(shots, `${c.preset}-before.png`) });

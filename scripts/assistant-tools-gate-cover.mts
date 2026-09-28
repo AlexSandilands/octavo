@@ -17,6 +17,7 @@ import type postgres from "postgres";
 import { watchChat, until } from "./fixtures/assistant/tools-gate-kit.mts";
 import { checkCoverSponsorAsk } from "./assistant-tools-gate-cover-sponsor.mts";
 import { makeBlock } from "../src/lib/blocks";
+import { openSurface } from "./editor-panel-gate-support.mts";
 
 type Doc = {
   pages: {
@@ -98,9 +99,7 @@ export async function checkCover(d: {
     heading("cover: composed by a run, one step");
     const chat = watchChat(tab);
     await tab.goto(`${base}/admin/issues/${id}/edit`);
-    await tab.click(
-      'nav[aria-label="Editor panels"] button[aria-label="Assistant"]',
-    );
+    await openSurface(tab, "Assistant");
     await tab.waitForSelector("#assistant-input");
     ok(
       (await tab.$('button:text-is("Compose cover")')) !== null &&

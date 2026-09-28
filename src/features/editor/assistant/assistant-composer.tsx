@@ -9,8 +9,8 @@ import type { SendResult } from "./use-assistant-chat";
 
 // The author's side of the chat (#309): a box that grows with what is typed,
 // Enter to send and Shift+Enter for a new line, and one 44px button that sends
-// or, while a reply is on its way, stops it. Photos attach by the button at the
-// row's left end or a paste (#343; the panel takes drops) and show as
+// or, while a reply is on its way, stops it. Photos attach by the paperclip
+// beside Send or a paste (#343; the panel takes drops) and show as
 // thumbnails above the text; Send waits for their uploads. Nothing is ever
 // cut silently: near the route's limit a count shows, and past it Send is off
 // until the text is shortened. A long message asks first (#312): while the
@@ -37,6 +37,7 @@ export function AssistantComposer({
   holding,
   putRef,
   suggestion,
+  onRestart,
   onStop,
 }: {
   inputRef: RefObject<HTMLTextAreaElement | null>;
@@ -53,6 +54,8 @@ export function AssistantComposer({
   putRef: RefObject<((text: string) => void) | null>;
   /** The assistant's suggested next message, offered while the box is empty. */
   suggestion: string | null;
+  /** Starts a fresh conversation (#353); null while there is nothing to leave. */
+  onRestart: (() => void) | null;
   onStop: () => void;
 }) {
   const [value, setValue] = useState("");
@@ -165,11 +168,6 @@ export function AssistantComposer({
         </p>
       )}
       <div className="flex items-center gap-2 px-2 pb-2">
-        <AttachButton
-          attachments={attachments}
-          disabled={disabled || holding}
-          buttonRef={attachButton}
-        />
         <div className="min-w-0 flex-1">
           {value.length > COUNT_FROM && (
             <p
@@ -185,6 +183,25 @@ export function AssistantComposer({
             </p>
           )}
         </div>
+        {onRestart && (
+          // Beside the paperclip, in the same quiet style: an icon with its
+          // name for assistive tech and a tooltip.
+          <button
+            type="button"
+            disabled={busy || disabled || holding}
+            onClick={onRestart}
+            aria-label="New conversation"
+            title="New conversation"
+            className="text-muted enabled:hover:text-accent-strong enabled:hover:bg-accent-wash flex h-11 w-11 flex-none cursor-pointer items-center justify-center rounded-lg transition-colors disabled:cursor-default disabled:opacity-45"
+          >
+            <Icon name="refresh" size={19} strokeWidth={1.8} />
+          </button>
+        )}
+        <AttachButton
+          attachments={attachments}
+          disabled={disabled || holding}
+          buttonRef={attachButton}
+        />
         {busy ? (
           <button
             type="button"

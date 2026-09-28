@@ -37,6 +37,7 @@ import {
   type Doc,
 } from "./fixtures/assistant/tools-gate-kit.mts";
 import { attachSeamChecks } from "./fixtures/assistant/seam-attach-checks.mts";
+import { openSurface, PANEL_BUTTON } from "./editor-panel-gate-support.mts";
 
 process.loadEnvFile?.(".env.local");
 const [base] = process.argv.slice(2);
@@ -53,7 +54,6 @@ const adminId = crypto.randomUUID();
 const token = crypto.randomUUID();
 const draftId = crypto.randomUUID();
 
-const BUTTON = 'nav[aria-label="Editor panels"] button[aria-label="Assistant"]';
 const INPUT = "#assistant-input";
 const ATTACH = 'button[aria-label="Attach photos"]';
 const THUMB = "[data-attachment]";
@@ -118,6 +118,9 @@ async function paste(page: Page, name: string, bytes: Buffer) {
 async function attachByKeyboard(page: Page, files: object[]) {
   await page.focus(INPUT);
   await page.keyboard.press("Tab");
+  // Once there are messages, New conversation sits before Attach (#353).
+  if ((await focused(page)) === "New conversation")
+    await page.keyboard.press("Tab");
   ok((await focused(page)) === "Attach photos", "Tab from the box: Attach");
   // Enter on Attach clicks the file input, as a person's would. The files then
   // go to the input directly: headless Chromium doesn't reliably raise its
@@ -135,7 +138,7 @@ async function attachByKeyboard(page: Page, files: object[]) {
 /** Opens the panel and waits out its slide: a key pressed mid-slide opens no
  *  file chooser (Folio's finding, as the panel gate waits since #349). */
 async function openPanel(page: Page) {
-  await page.click(BUTTON);
+  await openSurface(page, "Assistant");
   await page.waitForSelector(INPUT);
   await page.waitForFunction(() => {
     const el = document.querySelector("aside#editor-side-panel");
@@ -408,9 +411,7 @@ async function checks(page: Page) {
     names[0] === "image.png" && names[1] === "image.png (2)",
     `repeated names are numbered (${names.slice(0, 3).join(", ")}…)`,
   );
-  await page.click(
-    'nav[aria-label="Editor panels"] button[aria-label="Close panel"]',
-  );
+  await page.click(PANEL_BUTTON);
   await openPanel(page);
   ok((await page.$$(THUMB)).length === 10, "closing the panel kept the tray");
 

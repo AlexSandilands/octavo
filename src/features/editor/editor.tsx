@@ -53,8 +53,8 @@ import {
 import { FooterUpdateNotice } from "./footer-update-notice";
 import { useEditorAutosave } from "./use-editor-autosave";
 import { useEditorFlows } from "./use-editor-flows";
-import type { EditorTool } from "./side-panel/tool-rail";
 import { usePanelWidth } from "./side-panel/use-panel-width";
+import { useSurfaces } from "./side-panel/use-surfaces";
 import { useEditorAssistant } from "./assistant/use-editor-assistant";
 import { AssistantEditingNote } from "./assistant/editing-note";
 
@@ -167,18 +167,13 @@ export function Editor({
   // page footer updates the moment it changes — no reload, no second query.
   const [logoId, setLogoId] = useState<string | null>(issue.logoId);
   const logo = logos.find((l) => l.id === logoId)?.image ?? null;
-  // Which side-panel tool is out, if any. The row ref sizes the panel.
-  const [tool, setTool] = useState<EditorTool | null>(null);
-  const toolPageKey = `${page?.id ?? ""}:${page?.cover ? "cover" : "interior"}`;
-  const [previousToolPageKey, setPreviousToolPageKey] = useState(toolPageKey);
-  // Preserve an open panel across interior pages, but close Import PDF before a
-  // cover renders; the assistant stays, and the inspector steps aside for it.
-  if (toolPageKey !== previousToolPageKey) {
-    setPreviousToolPageKey(toolPageKey);
-    if (page?.cover && tool === "pdf") setTool(null);
-  }
+  // The side panel's tabs (#353); an open panel takes the cover inspector's room.
+  const surfaces = useSurfaces();
   const rowRef = useRef<HTMLDivElement>(null);
-  const panel = usePanelWidth(rowRef, tool);
+  const panel = usePanelWidth(
+    rowRef,
+    surfaces.open ? (surfaces.active?.kind ?? "none") : null,
+  );
   // The canvas column: its width, not the window's, decides how the tool bar
   // lays out — labels, icons only, or standing at the left edge.
   const columnRef = useRef<HTMLDivElement>(null);
@@ -322,6 +317,8 @@ export function Editor({
             onReload={() => window.location.reload()}
             onPreview={flows.preview}
             onPublish={() => setPub(true)}
+            panel={{ open: surfaces.open, onToggle: surfaces.togglePanel }}
+            panelButton={surfaces.trigger}
           />
         </div>
         <DndContext
@@ -409,7 +406,8 @@ export function Editor({
                         hint,
                         onHint: setHint,
                         docking,
-                        inspector: tool !== "assistant",
+                        // The inspector steps aside while the panel is out.
+                        inspector: !surfaces.open,
                         updateOverlay: updateCoverOverlay,
                         updateElement: updateCoverElement,
                         removeElement: removeCoverElement,
@@ -440,9 +438,7 @@ export function Editor({
               />
             </div>
             <EditorSide
-              tool={tool}
-              onToggle={(next) => setTool(tool === next ? null : next)}
-              onClose={() => setTool(null)}
+              surfaces={surfaces}
               pending={importer.pending}
               cover={Boolean(page?.cover)}
               panel={panel}

@@ -109,7 +109,7 @@ async function readContent(id: string): Promise<Content> {
 /** The editor's overflow marker on each page (1-based), as the author sees it. */
 async function editorMarkers(page: Page, id: string, count: number) {
   await page.goto(`${base}/admin/issues/${id}/edit`);
-  await page.waitForSelector('nav[aria-label="Editor panels"]');
+  await page.waitForSelector('button[aria-controls="editor-side-panel"]');
   const marked: boolean[] = [];
   for (let n = 1; n <= count; n++) {
     await page.click(`button[aria-label^="Page ${n}"]`);

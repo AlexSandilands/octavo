@@ -84,7 +84,7 @@ try {
   });
   await addButton(page).click();
   await responseReady;
-  // The rail is inert during Add; the panel's Cancel unlocks it.
+  // The strip is inert during Add; the panel's Cancel unlocks it.
   await panel(page)
     .getByRole("button", { name: "Cancel", exact: true })
     .click();

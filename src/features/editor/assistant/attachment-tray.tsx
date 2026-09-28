@@ -34,9 +34,10 @@ export function AttachButton({
         title={
           full ? `Up to ${MAX_ATTACHMENTS} photos a message` : "Attach photos"
         }
-        className="border-hair-warm text-ink enabled:hover:border-accent enabled:hover:bg-accent-wash flex h-11 w-11 flex-none cursor-pointer items-center justify-center rounded-lg border-[1.5px] bg-white transition-colors disabled:cursor-default disabled:opacity-45"
+        // Borderless beside Send (#353): a paperclip, the same 44px hit area.
+        className="text-muted enabled:hover:text-accent-strong enabled:hover:bg-accent-wash flex h-11 w-11 flex-none cursor-pointer items-center justify-center rounded-lg transition-colors disabled:cursor-default disabled:opacity-45"
       >
-        <Icon name="image" size={19} />
+        <Icon name="paperclip" size={20} strokeWidth={1.8} />
       </button>
       <input
         ref={input}

@@ -249,6 +249,17 @@ const ICONS: Record<string, ReactNode> = {
       <path d="M4 17h16M12 10v6m0 0-2.5-2.5M12 16l2.5-2.5" />
     </>
   ),
+  // Attach a file: the assistant composer's photos (#353).
+  paperclip: (
+    <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+  ),
+  // A frame with a column on its right: the editor's side panel (#353).
+  panel: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="1.5" />
+      <path d="M15 4v16M17.5 8h1M17.5 11h1" />
+    </>
+  ),
 };
 
 export type IconName = keyof typeof ICONS;
