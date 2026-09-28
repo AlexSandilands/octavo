@@ -5,6 +5,7 @@ import { Icon } from "@/components/icons";
 import { AI_ERROR_COPY, AI_MAX_TEXT_CHARS } from "@/lib/ai-chat-contract";
 import type { SendResult } from "./use-assistant-chat";
 import { useBarFit } from "../use-bar-fit";
+import { useLoneRule } from "../use-lone-rule";
 
 // The per-block Ask (#311): the last control in the selected block's own tool
 // bar, opening a one-line box under the bar's right end. Sending posts to the
@@ -59,6 +60,7 @@ export function AskControl({
   // Kept inside the canvas like the bar: on a wrapped bar Ask may sit far left.
   const box = useBarFit<HTMLDivElement>();
   const boxId = useId();
+  const rule = useLoneRule<HTMLSpanElement>();
 
   useEffect(() => {
     if (open) input.current?.focus();
@@ -103,7 +105,7 @@ export function AskControl({
 
   return (
     <>
-      {divider && <span className="bg-line h-5 w-px flex-none" />}
+      {divider && <span ref={rule} className="bg-line h-5 w-px flex-none" />}
       <div
         ref={root}
         data-ask
