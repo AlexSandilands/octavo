@@ -13,8 +13,10 @@ import {
 } from "./hints";
 import { PRESETS, type PresetId } from "./presets";
 
+// Each pill fills its column, so the row keeps its shape whatever the labels
+// say; the panel's width sets one column or two.
 const PILL =
-  "border-hair-warm text-ink inline-flex h-9 items-center gap-1.5 rounded-full border bg-white px-3 font-sans text-[13px] font-semibold";
+  "border-hair-warm text-ink inline-flex h-9 w-full items-center justify-center overflow-hidden rounded-full border bg-white px-3 font-sans text-[13px] font-semibold whitespace-nowrap";
 const label = (id: PresetId) => PRESETS.find((p) => p.id === id)!.label;
 
 // The quick requests above the composer (#310), four at a time from a longer
@@ -73,22 +75,25 @@ export function AssistantHints({
   ].slice(0, HINTS_SHOWN);
 
   return (
-    <div data-assistant-hints className="flex flex-wrap gap-1.5">
-      {shown.map((id) => (
-        <button
-          key={id}
-          type="button"
-          data-hint={id}
-          aria-disabled={disabled || undefined}
-          onClick={() => {
-            if (!disabled) onPick(id);
-          }}
-          className={`${PILL} ${disabled ? "cursor-default opacity-45" : "hover:border-accent hover:text-accent-strong"}`}
-        >
-          {label(id)}
-        </button>
-      ))}
+    <div data-assistant-hints className="flex flex-col gap-1.5">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-1.5">
+        {shown.map((id) => (
+          <button
+            key={id}
+            type="button"
+            data-hint={id}
+            aria-disabled={disabled || undefined}
+            onClick={() => {
+              if (!disabled) onPick(id);
+            }}
+            className={`${PILL} ${disabled ? "cursor-default opacity-45" : "hover:border-accent hover:text-accent-strong"}`}
+          >
+            {label(id)}
+          </button>
+        ))}
+      </div>
       {moreThanShown(context) && (
+        // Not a hint itself: a plain control beside them, no border.
         <button
           type="button"
           data-more-ideas
@@ -98,7 +103,7 @@ export function AssistantHints({
             const next = deal(false);
             setTold(`New ideas: ${next.map(label).join(", ")}.`);
           }}
-          className={`${PILL} text-muted ${disabled ? "cursor-default opacity-45" : "hover:border-accent hover:text-accent-strong"}`}
+          className={`text-muted inline-flex h-9 items-center gap-1.5 self-start rounded-md px-1.5 font-sans text-[13px] font-medium ${disabled ? "cursor-default opacity-45" : "hover:text-accent-strong cursor-pointer hover:underline"}`}
         >
           <Icon name="refresh" size={14} strokeWidth={2} />
           More ideas
