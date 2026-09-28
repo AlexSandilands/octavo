@@ -9,8 +9,8 @@ import type { SendResult } from "./use-assistant-chat";
 
 // The author's side of the chat (#309): a box that grows with what is typed,
 // Enter to send and Shift+Enter for a new line, and one 44px button that sends
-// or, while a reply is on its way, stops it. Photos attach by the button at the
-// row's left end or a paste (#343; the panel takes drops) and show as
+// or, while a reply is on its way, stops it. Photos attach by the paperclip
+// beside Send or a paste (#343; the panel takes drops) and show as
 // thumbnails above the text; Send waits for their uploads. Nothing is ever
 // cut silently: near the route's limit a count shows, and past it Send is off
 // until the text is shortened. A long message asks first (#312): while the
@@ -165,11 +165,6 @@ export function AssistantComposer({
         </p>
       )}
       <div className="flex items-center gap-2 px-2 pb-2">
-        <AttachButton
-          attachments={attachments}
-          disabled={disabled || holding}
-          buttonRef={attachButton}
-        />
         <div className="min-w-0 flex-1">
           {value.length > COUNT_FROM && (
             <p
@@ -185,6 +180,11 @@ export function AssistantComposer({
             </p>
           )}
         </div>
+        <AttachButton
+          attachments={attachments}
+          disabled={disabled || holding}
+          buttonRef={attachButton}
+        />
         {busy ? (
           <button
             type="button"

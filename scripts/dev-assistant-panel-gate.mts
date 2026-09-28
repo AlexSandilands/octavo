@@ -250,16 +250,16 @@ async function onChecks(page: Page, pageCount: number) {
   );
   const withChat = await stripOrder(page);
   ok(
-    withChat === "Assistant, Close Assistant, New conversation, Open a surface",
-    `New conversation joins the strip: ${withChat}`,
+    withChat === "Assistant, Close Assistant, Open a surface",
+    `the strip is unchanged by the chat: ${withChat}`,
   );
   ok(
     (
       await page.textContent(
-        '[data-surface-strip] button:has-text("New conversation")',
+        '[data-assistant-panel] button:has-text("New conversation")',
       )
     )?.trim() === "New conversation",
-    "with its word, not an icon alone",
+    "New conversation sits at the panel's foot, with its words",
   );
   ok(
     bodies.every(

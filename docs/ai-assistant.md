@@ -21,8 +21,9 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
   or the panel never ends it; an inactive tab stays mounted, so unsent words wait. The assistant's tab takes
   **400px** (min 300) rather than half the row, and opens at its minimum wherever 400px would leave the canvas under
   520px. Each surface remembers its own width, so switching tabs animates between them. On a 768px tablet that leaves
-  about 358px of canvas beside the standing tool bar. Once there are messages, a **New conversation** control (icon
-  and words) joins the strip after the tabs, for the active tab only.
+  about 358px of canvas beside the standing tool bar. Once there are messages, a **New conversation** text action
+  (icon and words) sits at the panel's foot beside the Usage link, distinct from the hints; Replace PDF is the
+  strip's only action.
 - **The per-block Ask (#311).** A selected block on an inside page of a draft has **Ask** (the sparkle and
   the word) as the last control in its own tool bar, after a rule, and last in the bar's tab order. That's the text
   format bar, the heading, photo, montage, video and sponsor bars, or beside a bare type label. The owner's first browser
@@ -59,8 +60,9 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
     message (see Runs).
 - **The composer.** A growing textarea (Enter sends, Shift+Enter is a new line) and one 44px button that is Send, or
   Stop while a reply is on its way. Nothing is cut silently: from 18,000 characters a count shows, and past the
-  route's 20,000 it says how far over and Send is off until the text is shortened. The row under the text starts
-  with the Attach photos button, and attached photos show as thumbnails above the text (see Photos and text in the
+  route's 20,000 it says how far over and Send is off until the text is shortened. The row under the text ends
+  with the Attach photos paperclip beside Send (borderless, the same 44px hit area), and attached photos show as
+  thumbnails above the text (see Photos and text in the
   chat). Above it sit four of the hints (#310, #366; see Hints and follow-ups), a cover's led by _Compose cover_
   (#313). Replies render as plain paragraphs with markdown lists and bold only, never HTML.
 - **The conversation** lives above the panel (`editor-side.tsx`), so closing the panel keeps it. It ends when the editor

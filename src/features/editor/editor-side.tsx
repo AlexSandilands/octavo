@@ -146,24 +146,10 @@ export function EditorSide({
   // Import PDF steps aside on a cover (#287): its tab keeps the file, its body
   // says why until the author is back on an interior page.
   const unavailable = cover ? { pdf: PDF_COVER_DESCRIPTION } : undefined;
+  // The strip's actions belong to the file; the assistant's New conversation
+  // sits at its panel's foot instead.
   const actions: SurfaceAction[] =
-    active?.kind === "pdf"
-      ? cover
-        ? []
-        : pdfActions
-      : active?.kind === "assistant" &&
-          chat.messages.length > 0 &&
-          !assistant.published
-        ? [
-            {
-              id: "restart",
-              icon: "refresh",
-              label: "New conversation",
-              disabled: chat.busy,
-              onClick: chat.restart,
-            },
-          ]
-        : [];
+    active?.kind === "pdf" && !cover ? pdfActions : [];
 
   return (
     <SidePanel
@@ -221,6 +207,11 @@ export function EditorSide({
                   assistant.undo();
                   chat.dismissRun();
                 }}
+                onRestart={
+                  chat.messages.length > 0 && !assistant.published
+                    ? chat.restart
+                    : null
+                }
               />
             ) : (
               <>

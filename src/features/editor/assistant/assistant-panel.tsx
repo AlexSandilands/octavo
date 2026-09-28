@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import { Button } from "@/components/ui";
+import { Icon } from "@/components/icons";
 import { AI_ERROR_COPY } from "@/lib/ai-chat-contract";
 import { usageLine, type AiUsageSummary } from "@/lib/ai-usage-summary";
 import { AssistantComposer } from "./assistant-composer";
@@ -43,6 +44,7 @@ export function AssistantPanel({
   historyTop,
   focusKey = 0,
   onUndo,
+  onRestart,
 }: {
   chat: ReturnType<typeof useAssistantChat>;
   gate: ConfirmedSend;
@@ -63,6 +65,8 @@ export function AssistantPanel({
    *  each change, as it does on mount. Focusing a hidden tab is a no-op. */
   focusKey?: number;
   onUndo: () => void;
+  /** Starts a fresh conversation; null while there is nothing to leave (#353). */
+  onRestart: (() => void) | null;
 }) {
   const input = useRef<HTMLTextAreaElement>(null);
   const notice = useRef<HTMLDivElement>(null);
@@ -239,15 +243,33 @@ export function AssistantPanel({
               }}
               onStop={chat.stop}
             />
-            {usage && (
+            {(usage || onRestart) && (
               <p className="text-faint flex items-baseline justify-between gap-3 px-1 font-sans text-[13px]">
-                <span data-assistant-usage>{usageLine(usage)}</span>
-                <a
-                  href="/admin/ai"
-                  className="text-accent hover:text-accent-strong font-medium hover:underline"
-                >
-                  Usage
-                </a>
+                <span data-assistant-usage>
+                  {usage ? usageLine(usage) : ""}
+                </span>
+                <span className="flex items-baseline gap-4">
+                  {onRestart && (
+                    // A quiet text action, not a hint: the foot's own style.
+                    <button
+                      type="button"
+                      disabled={chat.busy}
+                      onClick={onRestart}
+                      className="text-accent enabled:hover:text-accent-strong -my-2 inline-flex cursor-pointer items-center gap-1 py-2 font-medium enabled:hover:underline disabled:cursor-default disabled:opacity-45"
+                    >
+                      <Icon name="refresh" size={13} strokeWidth={2} />
+                      New conversation
+                    </button>
+                  )}
+                  {usage && (
+                    <a
+                      href="/admin/ai"
+                      className="text-accent hover:text-accent-strong font-medium hover:underline"
+                    >
+                      Usage
+                    </a>
+                  )}
+                </span>
               </p>
             )}
           </div>
