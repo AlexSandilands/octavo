@@ -46,13 +46,6 @@ export function useSurfaces() {
     if (activeId === id)
       setActiveId((rest[index - 1] ?? rest[index] ?? null)?.id ?? null);
   };
-  /** A surface that can't show here (Import PDF on a cover) lets another open
-   *  tab take over; with none it stays, saying why. */
-  const stepAside = (kind: SurfaceKind) => {
-    if (active?.kind !== kind) return;
-    const other = surfaces.find((s) => s.kind !== kind);
-    if (other) setActiveId(other.id);
-  };
 
   return {
     surfaces,
@@ -66,6 +59,5 @@ export function useSurfaces() {
     openSurface,
     closeSurface,
     activate: setActiveId,
-    stepAside,
   };
 }

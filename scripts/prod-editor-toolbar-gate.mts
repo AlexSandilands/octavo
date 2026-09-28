@@ -25,8 +25,6 @@ import {
 const editorBar = (page: Page) =>
   page.getByRole("group", { name: "Editor tools" });
 const pdfBar = (page: Page) => page.getByRole("group", { name: "PDF tools" });
-const PDF_COVER =
-  "PDF import is available on interior pages. Move to another page to use it.";
 
 async function box(locator: Locator) {
   const bounds = await locator.boundingBox();
@@ -171,63 +169,36 @@ try {
   await page.reload();
   await editorBar(page).waitFor();
 
-  // PDF content belongs on interior pages (#353). On the cover the panel's
-  // choice keeps Import PDF readable, explains the restriction, and won't
-  // open it; the + menu says the same.
+  // Import PDF works on the cover too (#353): the panel takes the cover
+  // inspector's room whatever surface is open, and the paginator sends the
+  // blocks to the page after the cover.
   await page.click(PANEL_BUTTON);
   const coverImport = page.locator(`${CHOICE} button`, {
     hasText: "Import PDF",
   });
   await coverImport.waitFor();
-  assert.equal(await coverImport.getAttribute("aria-disabled"), "true");
-  const descriptionId = await coverImport.getAttribute("aria-describedby");
-  assert(
-    descriptionId,
-    "The unavailable choice has an accessible description.",
-  );
-  assert.equal(
-    await page.locator(`#${descriptionId}`).textContent(),
-    PDF_COVER,
-  );
-  await coverImport.click({ force: true });
-  assert.equal(await tab(page, "Import PDF").count(), 0, "No tab opens.");
-  await page.click(PLUS);
-  const item = page.locator('[role="menu"] [role="menuitem"]', {
-    hasText: "Import PDF",
-  });
-  assert.equal(await item.getAttribute("aria-disabled"), "true");
-  assert((await item.textContent())?.includes(PDF_COVER));
-  await page.keyboard.press("Escape");
-  await page.locator('[role="menu"]').waitFor({ state: "detached" });
+  assert.equal(await coverImport.getAttribute("aria-disabled"), null);
+  await coverImport.click();
+  await page.locator("[data-pdf-private]").waitFor({ state: "visible" });
+  assert(!(await page.locator("[data-cover-inspector]").isVisible()));
   await closeTool(page);
+  await page.locator("[data-cover-inspector]").waitFor({ state: "visible" });
 
   // Off the cover (page 1): its mandatory overlay inspector reserves its own
   // canvas width, a separate concern from the toolbar placement under test.
   await magazinePage(page, 2).click();
-  await page.click(PANEL_BUTTON);
-  await coverImport.waitFor();
-  assert.equal(await coverImport.getAttribute("aria-disabled"), null);
-  await closeTool(page);
-
-  // An open importer keeps its tab when the author moves back onto the cover
-  // — its body says why — and is back as soon as they return to an interior
-  // page.
   await openTool(page);
   assert.equal(await page.locator(PANEL).getAttribute("aria-hidden"), null);
+  // An open importer keeps its tab and its stage across the cover.
   await magazinePage(page, 1).click();
   assert.equal(await page.locator(PANEL).getAttribute("aria-hidden"), null);
   assert.equal(
     await tab(page, "Import PDF").getAttribute("aria-selected"),
     "true",
   );
-  assert.equal(
-    (await page.locator("[data-pdf-cover-note]").textContent())?.trim(),
-    PDF_COVER,
-  );
-  assert(!(await page.locator("[data-pdf-private]").isVisible()));
+  assert(await page.locator("[data-pdf-private]").isVisible());
   await magazinePage(page, 2).click();
   await page.locator("[data-pdf-private]").waitFor({ state: "visible" });
-  assert.equal(await page.locator("[data-pdf-cover-note]").count(), 0);
   await closeTool(page);
 
   // Without a manual choice, resizing the panel still drives the existing

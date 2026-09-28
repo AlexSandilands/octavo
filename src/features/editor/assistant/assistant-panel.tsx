@@ -123,11 +123,6 @@ export function AssistantPanel({
       }}
     >
       <h2 className="sr-only">Assistant</h2>
-      {cover && !published && (
-        <p className="border-line bg-paper text-muted border-b px-5 py-2.5 font-sans text-[13px] leading-snug">
-          The cover inspector is hidden while the assistant is open.
-        </p>
-      )}
       {published ? (
         <div
           ref={notice}

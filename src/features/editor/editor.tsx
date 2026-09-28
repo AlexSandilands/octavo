@@ -167,11 +167,8 @@ export function Editor({
   // page footer updates the moment it changes — no reload, no second query.
   const [logoId, setLogoId] = useState<string | null>(issue.logoId);
   const logo = logos.find((l) => l.id === logoId)?.image ?? null;
-  // The side panel's tabs (#353). Import PDF can't show on a cover: another
-  // open tab takes over before the cover renders, else its tab says why.
+  // The side panel's tabs (#353); an open panel takes the cover inspector's room.
   const surfaces = useSurfaces();
-  if (page?.cover) surfaces.stepAside("pdf");
-  const assistantOut = surfaces.open && surfaces.active?.kind === "assistant";
   const rowRef = useRef<HTMLDivElement>(null);
   const panel = usePanelWidth(
     rowRef,
@@ -409,8 +406,8 @@ export function Editor({
                         hint,
                         onHint: setHint,
                         docking,
-                        // The inspector steps aside for an open assistant tab.
-                        inspector: !assistantOut,
+                        // The inspector steps aside while the panel is out.
+                        inspector: !surfaces.open,
                         updateOverlay: updateCoverOverlay,
                         updateElement: updateCoverElement,
                         removeElement: removeCoverElement,

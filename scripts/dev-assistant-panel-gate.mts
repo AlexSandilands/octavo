@@ -115,7 +115,7 @@ async function onChecks(page: Page, pageCount: number) {
   );
   ok(
     (await page.textContent(PANEL))?.includes(
-      "The cover inspector is hidden while the assistant is open.",
+      "The cover inspector is hidden while the panel is open.",
     ),
     "the cover note says so",
   );

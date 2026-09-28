@@ -22,8 +22,6 @@ const INPUT = "#assistant-input";
 const PDF = "[data-pdf-private]";
 const MENU = '[role="menu"][aria-label="Open a surface"]';
 const ITEM = `${MENU} [role="menuitem"]`;
-const PDF_COVER =
-  "PDF import is available on interior pages. Move to another page to use it.";
 const FULL =
   "Assistant, Close Assistant, Import PDF, Close Import PDF, Open a surface";
 
@@ -285,37 +283,41 @@ export async function checkSurfaces(d: {
     "reopened: the same tabs, the same one active, the focus on it",
   );
 
-  heading("The cover hand-off");
+  heading("The cover: the panel takes the inspector's room");
   await page.click('button[aria-label="Page 1 (cover)"]');
   await settled();
   ok(
-    (await selected()) === "Assistant" &&
+    (await selected()) === "Import PDF" &&
+      (await page.isVisible(PDF)) &&
       !(await page.isVisible("[data-cover-inspector]")),
-    "on a cover the Assistant tab takes over and the inspector steps aside",
+    "on a cover the Import PDF tab stays and works, and the inspector steps aside",
   );
-  const greyed = tab(page, "Import PDF");
   ok(
-    (await greyed.getAttribute("aria-disabled")) === "true" &&
-      (await greyed.getAttribute("title")) === PDF_COVER,
-    "the Import PDF tab is greyed with the reason",
+    (await page.locator("[data-cover-note]").textContent())?.trim() ===
+      "The cover inspector is hidden while the panel is open.",
+    "the panel says so",
   );
-  await greyed.click({ force: true });
-  ok((await selected()) === "Assistant", "and a click on it changes nothing");
-  await page.click(`${STRIP} button[aria-label="Close Assistant"]`);
+  await selectTab("Assistant");
+  ok(
+    !(await page.isVisible("[data-cover-inspector]")),
+    "and so with the Assistant tab",
+  );
+  await page.click(PANEL_BUTTON);
+  await page.waitForFunction(
+    () => !document.querySelector("aside#editor-side-panel")?.clientWidth,
+  );
   await settled();
   ok(
-    (await selected()) === "Import PDF" &&
-      (await page.locator("[data-pdf-cover-note]").textContent())?.trim() ===
-        PDF_COVER &&
-      !(await page.isVisible(PDF)) &&
-      (await page.isVisible("[data-cover-inspector]")),
-    "alone, the Import PDF tab says why, and the inspector is back",
+    await page.isVisible("[data-cover-inspector]"),
+    "closed, the inspector is back",
   );
+  await page.click(PANEL_BUTTON);
+  await page.waitForSelector(STRIP);
   await page.click('button[aria-label="Page 2"]');
-  await page.locator(PDF).waitFor({ state: "visible" });
+  await settled();
   ok(
-    (await page.$("[data-pdf-cover-note]")) === null,
-    "back on an interior page the importer is back",
+    (await selected()) === "Assistant" && (await stripOrder(page)) === FULL,
+    "back on an interior page: the same tabs",
   );
   await page.click(PANEL_BUTTON);
   await page.waitForFunction(

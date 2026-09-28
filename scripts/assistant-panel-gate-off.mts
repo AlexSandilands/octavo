@@ -34,9 +34,8 @@ export async function checkOff(d: {
   const items = await page.$$eval('[role="menu"] [role="menuitem"]', (els) =>
     els.map((el) => el.textContent?.trim()),
   );
-  // On the cover the row carries its reason under the name.
   ok(
-    items.length === 1 && items[0]?.startsWith("Import PDF"),
+    items.length === 1 && items[0] === "Import PDF",
     `and so does the + menu (${items.join(", ")})`,
   );
   await page.keyboard.press("Escape");

@@ -8,14 +8,10 @@ import { SURFACES, type SurfaceKind } from "./surfaces";
 // styling. It is a menu of actions rather than a choice of one value, so it
 // is its own small control with the same keyboard contract: opens on click or
 // ArrowDown, arrow keys and Home/End move, Enter/Space chooses, Escape and an
-// outside press close (Escape returning the focus to +), Tab moves on. A
-// surface that can't open here is greyed with its reason under it, still
-// focusable so the reason is heard.
+// outside press close (Escape returning the focus to +), Tab moves on.
 export function SurfaceMenu({
-  unavailable,
   onOpen,
 }: {
-  unavailable?: Partial<Record<SurfaceKind, string>>;
   onOpen: (kind: SurfaceKind) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -80,7 +76,6 @@ export function SurfaceMenu({
           className="border-hair absolute top-full right-0 z-30 mt-1.5 min-w-[220px] rounded-lg border bg-white p-1 shadow-[0_8px_24px_rgba(40,36,28,0.18)]"
         >
           {SURFACES.map((surface, i) => {
-            const reason = unavailable?.[surface.kind];
             return (
               <button
                 key={surface.kind}
@@ -89,32 +84,19 @@ export function SurfaceMenu({
                 }}
                 type="button"
                 role="menuitem"
-                aria-disabled={reason ? true : undefined}
                 onClick={() => {
-                  if (reason) return;
                   onOpen(surface.kind);
                   close(false);
                 }}
                 onKeyDown={(e) => onItemKeyDown(e, i)}
-                className={`flex w-full items-start gap-2.5 rounded-md px-2.5 py-2.5 text-left font-sans text-sm transition-[background-color,color] duration-150 ${
-                  reason
-                    ? "text-ink cursor-default opacity-50"
-                    : "text-ink hover:bg-accent-wash cursor-pointer"
-                }`}
+                className="text-ink hover:bg-accent-wash flex w-full cursor-pointer items-start gap-2.5 rounded-md px-2.5 py-2.5 text-left font-sans text-sm transition-[background-color,color] duration-150"
               >
                 <Icon
                   name={surface.icon}
                   size={16}
                   className="text-accent mt-0.5 shrink-0"
                 />
-                <span className="flex min-w-0 flex-col gap-0.5">
-                  <span className="font-medium">{surface.label}</span>
-                  {reason && (
-                    <span className="text-faint text-xs leading-snug">
-                      {reason}
-                    </span>
-                  )}
-                </span>
+                <span className="font-medium">{surface.label}</span>
               </button>
             );
           })}

@@ -293,7 +293,7 @@ limits, lifecycle and reproducible browser gates: [PDF import](pdf-import.md).
 The same panel hosts the **editing assistant** (epic #306, dormant unless
 `NEXT_PUBLIC_AI_ASSISTANT=1` and `AI_PROVIDER` are set), its second surface
 (`src/features/editor/assistant/`). It stays open on a cover, where the inspector steps
-aside for it while it is the active tab. Each message carries a plain-text projection of the issue, with every
+aside while the panel is out (for Import PDF too). Each message carries a plain-text projection of the issue, with every
 page's fill measured off screen by the overflow marker's own geometry. The model's tool
 calls run here, in the browser. Details: [AI assistant](ai-assistant.md) → Where it appears.
 

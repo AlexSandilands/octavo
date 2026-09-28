@@ -47,8 +47,8 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
   reason. The chat's `send` reports that before any request (`SendResult`), so the panel's composer also keeps a
   refused message rather than clearing it. The issue text named `floating-bar.tsx`, which is the canvas's tool pill,
   not the block's chrome; Ask lives in the block's own bar instead.
-- **On a cover** the assistant stays open (Import PDF doesn't). Opening it hides the cover inspector, closing it
-  brings the inspector back, and a line at the top of the panel says so.
+- **On a cover** the panel takes the cover inspector's room whatever surface is open (#353): opening the panel
+  hides the inspector, closing it brings the inspector back, and a line at the top of the panel says so.
 - **States.**
   - A published issue shows one message ("The assistant only works on drafts. Start a new issue to use it.") and no
     composer. The app has no Unpublish, so the issue's original wording ("Unpublish or…") was corrected.

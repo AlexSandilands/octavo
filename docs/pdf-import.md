@@ -7,11 +7,11 @@ other — opened from the empty panel's choice or the strip's **+** menu, each t
 own small Close, and Close panel last in the strip. The panel slides in beside the canvas,
 takes half the editor row by default while Import PDF is the active tab (each surface
 remembers its own width), and its left edge is a drag handle (also a keyboard separator:
-arrow keys, Home, End) with bounds that keep the canvas usable. PDF import is unavailable
-while a cover page is showing: the choice and the + menu keep it readable and explain that
-the author should move to an interior page, and an open Import PDF tab keeps its file but
-its body says the same until the author is back on an interior page (another open tab
-takes over meanwhile). The canvas re-fits to whatever is left.
+arrow keys, Home, End) with bounds that keep the canvas usable. Import PDF works on a cover
+page too: while the panel is out the cover inspector steps aside, whatever surface is
+open (a line at the top of the panel says so), and content added from the cover goes to
+the page after it (the paginator treats a cover as full). The canvas re-fits to whatever
+is left.
 Inside, the PDF page sits on a
 stage of its own that mirrors the magazine canvas: laid out at the magazine's page width,
 fitted to the panel with the same margins, wheel-zoomed and dragged with the same engine

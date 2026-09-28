@@ -28,7 +28,6 @@ export function SurfaceStrip({
   activeId,
   tabpanelId,
   actions,
-  unavailable,
   onActivate,
   onCloseSurface,
   onOpenSurface,
@@ -37,7 +36,6 @@ export function SurfaceStrip({
   activeId: string | null;
   tabpanelId: string;
   actions: SurfaceAction[];
-  unavailable?: Partial<Record<SurfaceKind, string>>;
   onActivate: (id: string) => void;
   onCloseSurface: (id: string) => void;
   onOpenSurface: (kind: SurfaceKind) => void;
@@ -56,26 +54,18 @@ export function SurfaceStrip({
     refocus.current = true;
     onCloseSurface(id);
   };
-  // A tab that can't show here (Import PDF on a cover) while another holds
-  // the panel is greyed with its reason; the keys step over it.
-  const inert = (surface: Surface) =>
-    Boolean(unavailable?.[surface.kind]) && surface.id !== activeId;
   const onTabKeyDown = (e: React.KeyboardEvent, index: number) => {
     const n = surfaces.length;
-    const go = (i: number, step: number) => {
+    const go = (i: number) => {
       e.preventDefault();
-      for (let tries = 0; tries < n; tries++, i = (i + step + n) % n) {
-        const target = surfaces[i]!;
-        if (inert(target)) continue;
-        onActivate(target.id);
-        tabs.current[target.id]?.focus();
-        return;
-      }
+      const target = surfaces[i]!;
+      onActivate(target.id);
+      tabs.current[target.id]?.focus();
     };
-    if (e.key === "ArrowRight") go((index + 1) % n, 1);
-    else if (e.key === "ArrowLeft") go((index - 1 + n) % n, -1);
-    else if (e.key === "Home") go(0, 1);
-    else if (e.key === "End") go(n - 1, -1);
+    if (e.key === "ArrowRight") go((index + 1) % n);
+    else if (e.key === "ArrowLeft") go((index - 1 + n) % n);
+    else if (e.key === "Home") go(0);
+    else if (e.key === "End") go(n - 1);
     else if (e.key === "Delete") {
       e.preventDefault();
       close(surfaces[index]!.id);
@@ -95,7 +85,6 @@ export function SurfaceStrip({
         {surfaces.map((surface, i) => {
           const active = surface.id === activeId;
           const meta = SURFACES.find((s) => s.kind === surface.kind)!;
-          const reason = inert(surface) ? unavailable?.[surface.kind] : null;
           return (
             <div
               key={surface.id}
@@ -115,14 +104,10 @@ export function SurfaceStrip({
                 id={tabId(surface.id)}
                 aria-selected={active}
                 aria-controls={active ? tabpanelId : undefined}
-                aria-disabled={reason ? true : undefined}
-                title={reason ?? undefined}
                 tabIndex={active ? 0 : -1}
-                onClick={reason ? undefined : () => onActivate(surface.id)}
+                onClick={() => onActivate(surface.id)}
                 onKeyDown={(e) => onTabKeyDown(e, i)}
-                className={`flex h-7 min-w-0 items-center gap-1.5 rounded-md px-1.5 font-sans text-[13px] font-semibold select-none ${
-                  reason ? "cursor-default opacity-50" : "cursor-pointer"
-                }`}
+                className="flex h-7 min-w-0 cursor-pointer items-center gap-1.5 rounded-md px-1.5 font-sans text-[13px] font-semibold select-none"
               >
                 <Icon
                   name={meta.icon}
@@ -163,7 +148,7 @@ export function SurfaceStrip({
           </div>
         ))}
         <div ref={plus}>
-          <SurfaceMenu unavailable={unavailable} onOpen={onOpenSurface} />
+          <SurfaceMenu onOpen={onOpenSurface} />
         </div>
       </div>
     </div>

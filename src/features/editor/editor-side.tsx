@@ -41,8 +41,7 @@ const TABPANEL_ID = "editor-surface";
 const ASSISTANT_INPUT_ID = "assistant-input";
 /** A question already up takes the focus on its first button (#312). */
 const QUESTION_FOCUS = "[data-assistant-paste-confirm] button";
-export const PDF_COVER_DESCRIPTION =
-  "PDF import is available on interior pages. Move to another page to use it.";
+const COVER_NOTE = "The cover inspector is hidden while the panel is open.";
 
 // The editor's right-hand side (#353): the sliding panel, with a strip of
 // tabs along its top — one per open surface — and the active surface below.
@@ -143,13 +142,9 @@ export function EditorSide({
     // Only on an opening, not on every change of tab.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [surfaces.focusKey]);
-  // Import PDF steps aside on a cover (#287): its tab keeps the file, its body
-  // says why until the author is back on an interior page.
-  const unavailable = cover ? { pdf: PDF_COVER_DESCRIPTION } : undefined;
   // The strip's actions belong to the file; the assistant's New conversation
-  // sits at its panel's foot instead.
-  const actions: SurfaceAction[] =
-    active?.kind === "pdf" && !cover ? pdfActions : [];
+  // sits in its composer's row instead.
+  const actions: SurfaceAction[] = active?.kind === "pdf" ? pdfActions : [];
 
   return (
     <SidePanel
@@ -167,17 +162,22 @@ export function EditorSide({
           activeId={active?.id ?? null}
           tabpanelId={TABPANEL_ID}
           actions={actions}
-          unavailable={unavailable}
           onActivate={surfaces.activate}
           onCloseSurface={surfaces.closeSurface}
           onOpenSurface={surfaces.openSurface}
         />
       </div>
+      {/* On a cover the panel takes the inspector's room, whatever is open. */}
+      {cover && !assistant.published && (
+        <p
+          data-cover-note
+          className="border-line bg-paper text-muted border-b px-5 py-2.5 font-sans text-[13px] leading-snug"
+        >
+          {COVER_NOTE}
+        </p>
+      )}
       {surfaces.surfaces.length === 0 && (
-        <SurfaceChoice
-          unavailable={unavailable}
-          onOpen={surfaces.openSurface}
-        />
+        <SurfaceChoice onOpen={surfaces.openSurface} />
       )}
       {surfaces.surfaces.map((surface) => {
         const isActive = surface.id === active?.id;
@@ -214,24 +214,12 @@ export function EditorSide({
                 }
               />
             ) : (
-              <>
-                {cover && (
-                  <p
-                    data-pdf-cover-note
-                    className="text-muted flex flex-1 items-center justify-center px-8 text-center font-serif text-[17px] leading-snug"
-                  >
-                    {PDF_COVER_DESCRIPTION}
-                  </p>
-                )}
-                <div hidden={cover} className="flex min-h-0 flex-1 flex-col">
-                  <PdfImportPanel
-                    pages={pages}
-                    onAdd={onAdd}
-                    onActions={setPdfActions}
-                    dropRef={dropRef}
-                  />
-                </div>
-              </>
+              <PdfImportPanel
+                pages={pages}
+                onAdd={onAdd}
+                onActions={setPdfActions}
+                dropRef={dropRef}
+              />
             )}
           </div>
         );
