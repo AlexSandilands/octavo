@@ -84,6 +84,7 @@ export function EditorSide({
     tools: AssistantTools;
     /** The page open now and its selected block, for the presets. */
     target: PresetTarget;
+    context: ComponentProps<typeof AssistantPanel>["context"];
     /** The editor's own Undo: a run is one step. */
     undo: () => void;
     historyTop: EditorSnapshot | null;
@@ -190,6 +191,7 @@ export function EditorSide({
             cover={cover}
             usage={usage.usage}
             target={assistant.target}
+            context={assistant.context}
             historyTop={assistant.historyTop}
             onUndo={() => {
               assistant.undo();

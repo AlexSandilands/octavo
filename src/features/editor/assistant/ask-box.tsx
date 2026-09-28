@@ -30,15 +30,21 @@ const REFUSED: Record<Refusal, string> = {
     "The assistant panel is asking about a long message. Answer it there, then send again.",
 };
 
+/** The box's example request, suited to what is selected. */
+export const ASK_EXAMPLE = "Make this a bulleted list";
+
 export function AskControl({
   onSend,
   compact = false,
   divider = true,
+  placeholder = ASK_EXAMPLE,
 }: {
   /** Icon only (with its name as a tooltip), where the bar is tight. */
   compact?: boolean;
   /** A rule between the bar's own controls and Ask. */
   divider?: boolean;
+  /** An example request for this kind of block, ghosted in the empty box. */
+  placeholder?: string;
   /** Says whether the conversation took it (not when full, spent, busy). */
   onSend: (text: string) => Promise<SendResult>;
 }) {
@@ -147,7 +153,7 @@ export function AskControl({
                 aria-label="What should the assistant do with this block?"
                 aria-invalid={over || undefined}
                 aria-describedby={over || refused ? `${boxId}-note` : undefined}
-                placeholder="Make this a bulleted list"
+                placeholder={placeholder}
                 onChange={(e) => {
                   setValue(e.target.value);
                   setRefused(null);

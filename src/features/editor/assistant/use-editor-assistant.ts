@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import type { Page } from "@/lib/blocks";
+import { isPageOwning, type Page } from "@/lib/blocks";
 import type { ResolvedImage } from "@/lib/images";
 import type { LogoListItem } from "@/lib/logos";
 import type { SponsorListItem } from "@/lib/sponsors";
@@ -22,6 +22,7 @@ export function useEditorAssistant({
   pages,
   curPage,
   sel,
+  overflowing,
   logos,
   logoId,
   sponsors,
@@ -39,6 +40,8 @@ export function useEditorAssistant({
   pages: Page[];
   curPage: number;
   sel: string | null;
+  /** The id of the page the canvas finds running over, if it does. */
+  overflowing: string | null;
   logos: LogoListItem[];
   logoId: string | null;
   sponsors: SponsorListItem[];
@@ -71,6 +74,7 @@ export function useEditorAssistant({
           (await askRef.current?.(id, text)) ?? { ok: false, reason: "failed" }
       : undefined;
   const page = pages[curPage];
+  const selected = page?.blocks.find((b) => b.id === sel);
   return {
     tools,
     ask,
@@ -84,7 +88,15 @@ export function useEditorAssistant({
       tools,
       target: {
         page: curPage + 1,
-        blockId: page?.blocks.some((b) => b.id === sel) ? sel : null,
+        blockId: selected ? selected.id : null,
+      },
+      /** What the open page has, for the hints the panel offers (#366). */
+      context: {
+        overflow: Boolean(page && overflowing === page.id),
+        photo: Boolean(
+          page?.blocks.some((b) => b.type === "image" && !isPageOwning(b)),
+        ),
+        block: selected?.type === "text",
       },
       undo,
       historyTop,

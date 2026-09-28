@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 import type { AiError } from "@/lib/ai-chat-contract";
+import { withoutFollowUp } from "@/lib/ai-follow-up";
 import { Icon } from "@/components/icons";
 import { attachedCount, photos } from "./attached";
 import { withoutBlockIds } from "./presets";
@@ -58,9 +59,12 @@ function toolLine(part: Part): string | null {
   return part.state === "output-available" ? words[1] : `${words[0]}…`;
 }
 
+/** A reply's words as shown: its suggestion line is the panel's button (#366). */
+const replyWords = (text: string) => withoutFollowUp(text).trim();
+
 /** Whether a part shows anything; a reply opens with an empty reasoning part. */
 const shows = (part: Part) =>
-  part.type === "text" ? part.text.trim() !== "" : toolLine(part) !== null;
+  part.type === "text" ? replyWords(part.text) !== "" : toolLine(part) !== null;
 
 function Message({ message }: { message: AssistantMessage }) {
   if (message.role === "user" && isReview(message.parts)) {
@@ -101,10 +105,10 @@ function Message({ message }: { message: AssistantMessage }) {
     <div className="text-ink flex flex-col gap-2 font-serif text-[16px] leading-relaxed">
       <span className="sr-only">Assistant: </span>
       {message.parts.map((part, i) => {
-        if (part.type === "text")
-          return part.text.trim() ? (
-            <ReplyText key={i} text={part.text} />
-          ) : null;
+        if (part.type === "text") {
+          const words = replyWords(part.text);
+          return words ? <ReplyText key={i} text={words} /> : null;
+        }
         const line = toolLine(part);
         return line ? (
           <p key={i} className="text-faint font-sans text-[13px]">

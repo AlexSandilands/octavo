@@ -14,6 +14,7 @@ import {
   type Doc,
   type watchChat,
 } from "./fixtures/assistant/tools-gate-kit.mts";
+import { showHint } from "./fixtures/assistant/show-hint.mts";
 
 const INPUT = "#assistant-input";
 const CONFIRM = "[data-assistant-paste-confirm]";
@@ -71,6 +72,7 @@ export async function planChecks({
     );
   // An inside page, where the presets would otherwise be on.
   await page.click('button[aria-label="Page 2"]');
+  await showHint(page, "Tidy this page");
   const ledger = await rows();
   const asked = chat.asked.length;
   await page.fill(INPUT, message);

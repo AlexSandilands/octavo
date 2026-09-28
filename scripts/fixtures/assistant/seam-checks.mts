@@ -7,6 +7,7 @@
 // assistant-tools-gate-cover.mts (a cover story).
 import type { Page } from "playwright";
 import { CONFIRM_FROM_CHARS } from "../../../src/features/editor/assistant/paste-estimate";
+import { showHint } from "./show-hint.mts";
 
 const INPUT = "#assistant-input";
 const CONFIRM = "[data-assistant-paste-confirm]";
@@ -30,6 +31,8 @@ export async function askSeamChecks(
 ) {
   const { label, ok } = d;
   d.heading(`${label}: a long Ask asks in the panel`);
+  // The hints rotate (#366): the one checked below is brought up first.
+  await showHint(page, d.preset);
   let requests = 0;
   const count = (req: { url(): string; method(): string }) => {
     if (req.url().endsWith("/api/admin/ai/chat") && req.method() === "POST")

@@ -109,6 +109,17 @@ const cases: [string, string[], string | null][] = [
     ["insert_blocks"],
     "added pages",
   ],
+  // The suggested next message (#366) is what the author may say next.
+  [
+    "Page 2 overflows by about six lines. Want me to split it?\n[[next: Split page 2 | Yes, split page 2 onto a new page.]]",
+    ["read_page"],
+    null,
+  ],
+  [
+    "Split page 2 so the last paragraphs continue on page 3.\n[[next: Tidy page 3 | Tidy page 3 as well.]]",
+    ["read_page"],
+    "split a page",
+  ],
 ];
 
 for (const [reply, names, want] of cases) {

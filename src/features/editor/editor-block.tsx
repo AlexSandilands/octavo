@@ -23,6 +23,16 @@ import { CoverItemTools } from "./cover-item-tools";
 import { EditorBlockBar } from "./editor-block-bar";
 import { RichTextEditor } from "./rich-text-editor";
 import { AskControl } from "./assistant/ask-box";
+
+// The Ask box's example, one a block of this kind could take.
+const ASK_EXAMPLES: Record<Block["type"], string> = {
+  text: "Make this a bulleted list",
+  heading: "Make this shorter",
+  image: "Wrap the text round this photo",
+  montage: "Put the widest photo first",
+  video: "Add a caption saying what this shows",
+  sponsor: "Move this to the foot of the page",
+};
 import type { SendResult } from "./assistant/use-assistant-chat";
 
 // One block in the editor canvas: the themed BlockView (editable) wrapped in the
@@ -143,7 +153,11 @@ export function EditorBlock({
   // label, without one. Not on a full-page photo or a cover's background.
   const ask =
     selected && onAsk && !bleed ? (
-      <AskControl onSend={onAsk} divider={BARRED.has(block.type)} />
+      <AskControl
+        onSend={onAsk}
+        divider={BARRED.has(block.type)}
+        placeholder={ASK_EXAMPLES[block.type]}
+      />
     ) : null;
 
   return (

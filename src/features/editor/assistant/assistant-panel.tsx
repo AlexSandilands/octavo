@@ -4,19 +4,15 @@ import { useEffect, useRef, useState, type DragEvent } from "react";
 import { Button } from "@/components/ui";
 import { AI_ERROR_COPY } from "@/lib/ai-chat-contract";
 import { usageLine, type AiUsageSummary } from "@/lib/ai-usage-summary";
-import { unplacedText } from "./attached";
 import { AssistantComposer } from "./assistant-composer";
+import { AssistantHints } from "./assistant-hints";
 import { AssistantThread } from "./assistant-thread";
+import { FollowUpButton } from "./follow-up-button";
+import type { HintContext } from "./hints";
 import { PasteConfirm } from "./paste-confirm";
-import { Icon } from "@/components/icons";
 import type { EditorSnapshot } from "../use-editor-history";
-import type { RunSummary } from "./executor";
-import {
-  PRESETS,
-  presetMessage,
-  type PresetId,
-  type PresetTarget,
-} from "./presets";
+import { presetMessage, type PresetTarget } from "./presets";
+import { RunResult } from "./run-result";
 import type { useAssistantChat } from "./use-assistant-chat";
 import { filesOf, type useAttachments } from "./use-attachments";
 import type { ConfirmedSend } from "./use-confirmed-send";
@@ -43,6 +39,7 @@ export function AssistantPanel({
   cover,
   usage,
   target,
+  context,
   historyTop,
   onUndo,
 }: {
@@ -57,6 +54,8 @@ export function AssistantPanel({
   usage: AiUsageSummary | null;
   /** The page open now and its selected block, for the presets. */
   target: PresetTarget;
+  /** What the open page has, for choosing the hints (#366). */
+  context: Omit<HintContext, "cover">;
   /** The step Ctrl+Z would restore: a run's line stands while it's the run's. */
   historyTop: EditorSnapshot | null;
   onUndo: () => void;
@@ -68,6 +67,10 @@ export function AssistantPanel({
   // A long message waiting on the cost question (#312): nothing else goes, and
   // the tray takes no photos in or out.
   const { pending } = gate;
+  // The presets and the suggested follow-up (#366) wait while anything would
+  // refuse them; each is an ordinary send with no photos.
+  const quiet = chat.busy || spent || chat.full || pending !== null;
+  const sendFixed = (text: string) => void gate.ask({ text, attachments: [] });
   const composerPut = useRef<((text: string) => void) | null>(null);
   const handBack = () => {
     const back = gate.cancel();
@@ -141,16 +144,25 @@ export function AssistantPanel({
             }
             intro={`${INTRO}\n\n${PHOTOS_NOTE}`}
             after={
-              <RunResult
-                // Anything else recorded since means the run is no longer one
-                // Undo away: its line goes.
-                summary={
-                  chat.summary?.step === historyTop ? chat.summary : null
-                }
-                stuck={chat.stuck}
-                unplaced={unplaced}
-                onUndo={onUndo}
-              />
+              <>
+                <RunResult
+                  // Anything else recorded since means the run is no longer
+                  // one Undo away: its line goes.
+                  summary={
+                    chat.summary?.step === historyTop ? chat.summary : null
+                  }
+                  stuck={chat.stuck}
+                  unplaced={unplaced}
+                  onUndo={onUndo}
+                />
+                {chat.followUp && (
+                  <FollowUpButton
+                    followUp={chat.followUp}
+                    disabled={quiet}
+                    onSend={() => sendFixed(chat.followUp!.message)}
+                  />
+                )}
+              </>
             }
           />
           <div className="border-line flex flex-col gap-3 border-t px-4 pt-3 pb-3">
@@ -180,15 +192,12 @@ export function AssistantPanel({
                 )}
               </div>
             )}
-            <Presets
-              disabled={chat.busy || spent || chat.full || pending !== null}
-              cover={cover}
-              onPick={(id) =>
-                void gate.ask({
-                  text: presetMessage(id, target),
-                  attachments: [],
-                })
-              }
+            <AssistantHints
+              context={{ ...context, cover }}
+              page={target.page}
+              busy={chat.busy}
+              disabled={quiet}
+              onPick={(id) => sendFixed(presetMessage(id, target))}
             />
             {pending && (
               <PasteConfirm
@@ -213,6 +222,7 @@ export function AssistantPanel({
               attachments={attachments}
               holding={pending !== null}
               putRef={composerPut}
+              suggestion={chat.followUp?.message ?? null}
               onSend={(text, taken) => {
                 // The ids as they were on sending; the tray empties only once
                 // the message is taken, now or on Continue.
@@ -261,72 +271,3 @@ export const budgetSpent = (
 ) =>
   chat.error?.code === "budget_spent" ||
   (usage !== null && usage.remaining <= 0);
-
-// The quick requests (#310): one tap sends a fixed message for the page open
-// now (see presets.ts). A cover gets its own (#313).
-function Presets({
-  disabled,
-  cover,
-  onPick,
-}: {
-  disabled: boolean;
-  cover: boolean;
-  onPick: (id: PresetId) => void;
-}) {
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {PRESETS.filter((preset) => preset.cover === cover).map((preset) => (
-        <button
-          key={preset.id}
-          type="button"
-          aria-disabled={disabled || undefined}
-          onClick={() => {
-            if (!disabled) onPick(preset.id);
-          }}
-          className={`border-hair-warm text-ink h-9 rounded-full border bg-white px-3 font-sans text-[13px] font-semibold ${disabled ? "cursor-default opacity-45" : "hover:border-accent hover:text-accent-strong"}`}
-        >
-          {preset.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-// What the last run did, with its one-step Undo while that is still the step
-// Ctrl+Z would take; or, when the circuit-breaker stopped it, why.
-function RunResult({
-  summary,
-  stuck,
-  unplaced,
-  onUndo,
-}: {
-  summary: RunSummary | null;
-  stuck: string | null;
-  /** Attached photos the run left unplaced (#343). */
-  unplaced: number;
-  onUndo: () => void;
-}) {
-  if (!summary && !stuck && !unplaced) return null;
-  return (
-    <div
-      data-assistant-run
-      className="border-line flex flex-col gap-2.5 rounded-lg border bg-white px-3.5 py-3 font-sans text-[15px] leading-snug"
-    >
-      {stuck && <p className="text-warn font-medium">{stuck}</p>}
-      {summary && (
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-          <p className="text-ink">{summary.text}</p>
-          <button
-            type="button"
-            onClick={onUndo}
-            className="border-hair-warm text-ink hover:border-accent hover:bg-accent-wash inline-flex h-11 flex-none cursor-pointer items-center gap-2 rounded-lg border-[1.5px] bg-white px-4 font-sans text-[15px] font-semibold transition-colors motion-safe:active:scale-95"
-          >
-            <Icon name="undo" size={17} />
-            Undo
-          </button>
-        </div>
-      )}
-      {unplaced > 0 && <p className="text-ink">{unplacedText(unplaced)}</p>}
-    </div>
-  );
-}

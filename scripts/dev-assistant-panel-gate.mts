@@ -7,7 +7,9 @@
 // budget-spent states, a streamed reply with a read_page round trip (fills vs the
 // canvas's overflow marker), Stop, an inline error, a stalled reply that keeps
 // its edit (#358; quick with AI_IDLE_TIMEOUT_MS=3000 on the server), the usage
-// footer, the log's announcements, a full conversation and a tablet's width.
+// footer, the log's announcements, a full conversation and a tablet's width,
+// and the rotating hints and suggested follow-up (#366,
+// assistant-panel-gate-hints.mts; `--shots=<dir>` saves its screens).
 // With `--off`, against a server with neither variable set, it checks the
 // button, the Ask on a block, the help section and the usage route are all
 // absent (assistant-panel-gate-off.mts).
@@ -23,9 +25,11 @@ import { railOrder } from "./editor-rail-gate-support.mts";
 import { stopChecks } from "./fixtures/assistant/panel-stop-checks.mts";
 import { checkOff } from "./assistant-panel-gate-off.mts";
 import { checkStall } from "./assistant-panel-gate-stall.mts";
+import { checkHints } from "./assistant-panel-gate-hints.mts";
 
 process.loadEnvFile?.(".env.local");
 const [base, flag] = process.argv.slice(2);
+const shots = process.argv.find((a) => a.startsWith("--shots="))?.slice(8);
 if (!base) throw new Error("usage: dev-assistant-panel-gate.mts <url> [--off]");
 const sql = postgres(process.env.DATABASE_URL!, { max: 1 });
 const ok = (cond: unknown, msg: string) => {
@@ -294,6 +298,8 @@ async function onChecks(page: Page, pageCount: number) {
   ok(true, "a route error shows inline in its own words");
   page.off("request", onRequest);
   await checkStall({ page, sql, draftId, ok, heading });
+  const hintsCase = { page, base: base!, sql, draftId, pageCount, shots };
+  await checkHints({ ...hintsCase, ok, heading });
 
   heading("Budget spent");
   await sql`insert into ai_usage (id, user_id, run_id, model, provider, prompt_tokens,

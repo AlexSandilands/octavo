@@ -200,6 +200,8 @@ export function Editor({
   const issueNo = number ?? suggestedNumber;
   // Items a pointed-at layout warning is lighting up on the page.
   const [hint, setHint] = useState<string[]>([]);
+  // The page the canvas finds running over, for the assistant's hints (#366).
+  const [overPage, setOverPage] = useState<string | null>(null);
 
   const { status, setStatus, enqueueSave, flushSave } = useEditorAutosave({
     issueId: issue.id,
@@ -285,6 +287,7 @@ export function Editor({
     pages,
     curPage,
     sel,
+    overflowing: overPage,
     logos,
     logoId,
     sponsors,
@@ -391,6 +394,7 @@ export function Editor({
                   registerImage: (imageId, image) =>
                     setImages((m) => ({ ...m, [imageId]: image })),
                   ask: assistant.ask,
+                  reportOverflow: setOverPage,
                 }}
                 cover={
                   showCoverTools

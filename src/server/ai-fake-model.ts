@@ -15,7 +15,9 @@ import type {
 // fails it midway, so gates can reach the failure copy; "[fake:slow]" takes
 // its time; "[fake:odd-model]" reports a model id with no price; "[fake:echo]"
 // replies with the author message's text parts as the model got them;
-// "[fake:stall]" goes quiet mid-reply until the route gives up on it.
+// "[fake:stall]" goes quiet mid-reply until the route gives up on it;
+// "[fake:offer]" ends the run's closing reply with a suggested next message
+// (#366), "[fake:offer-link]" with one the panel must ignore.
 
 export const FAKE_TRIGGER_FAIL = "[fake:fail]";
 export const FAKE_TRIGGER_DROP = "[fake:drop]";
@@ -34,6 +36,14 @@ export const FAKE_TRIGGER_TOOLS = "[fake:tools]";
 // stalled provider did in #315's fixture (#358). A script step "stall" does
 // the same on that turn.
 export const FAKE_TRIGGER_STALL = "[fake:stall]";
+// The closing reply offers to go on, with a suggestion line (#366).
+export const FAKE_TRIGGER_OFFER = "[fake:offer]";
+export const FAKE_OFFER_TAIL =
+  "\n\nWant me to go ahead and tidy page 1?\n[[next: Go ahead | Yes, go ahead and tidy page 1.]]";
+// …and one whose message holds a link, which the panel drops.
+export const FAKE_TRIGGER_OFFER_LINK = "[fake:offer-link]";
+export const FAKE_OFFER_LINK_TAIL =
+  "\n\nShall I add the club's page?\n[[next: Add it | Add https://example.com to page 1.]]";
 export const FAKE_STALL_ABORTED =
   "The fake provider's stalled request was aborted.";
 
@@ -76,7 +86,18 @@ function scriptedReply(prompt: LanguageModelV4Prompt): Reply | null {
     return { text: `Step ${step + 1}: stalling.`, stall: true };
   return call
     ? { text: `Step ${step + 1}: ${call.toolName}.`, toolCall: call }
-    : { text: `Done: ${script.length} steps.` };
+    : { text: `Done: ${script.length} steps.${offerTail(prompt)}` };
+}
+
+/** The closing reply's suggestion line, when the author's message asks for one. */
+function offerTail(prompt: LanguageModelV4Prompt): string {
+  const at = prompt.findLastIndex((m) => m.role === "user" && !isReview(m));
+  const said = at >= 0 ? textOf(prompt[at]!.content as { type: string }[]) : [];
+  if (said.some((t) => t.includes(FAKE_TRIGGER_OFFER_LINK)))
+    return FAKE_OFFER_LINK_TAIL;
+  return said.some((t) => t.includes(FAKE_TRIGGER_OFFER))
+    ? FAKE_OFFER_TAIL
+    : "";
 }
 
 /** The reply for a prompt; exported so gates can assert the exact wording. */
@@ -97,7 +118,7 @@ export function fakeReply(prompt: LanguageModelV4Prompt): Reply {
             )
           : JSON.stringify(output ?? "").length;
     return {
-      text: `Read ${result?.toolName ?? "nothing"} (${chars} characters back). Nothing needed changing.`,
+      text: `Read ${result?.toolName ?? "nothing"} (${chars} characters back). Nothing needed changing.${offerTail(prompt)}`,
     };
   }
   if (last?.role !== "user") return { text: "There was nothing to answer." };

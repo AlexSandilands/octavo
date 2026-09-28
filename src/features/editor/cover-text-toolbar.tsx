@@ -170,7 +170,10 @@ export function CoverTextToolbar({
             aria-label="Assistant"
             className="flex items-center gap-1.5"
           >
-            <AskControl onSend={onAsk} />
+            <AskControl
+              onSend={onAsk}
+              placeholder="Move this to the foot of the cover"
+            />
           </div>
         )}
       </div>

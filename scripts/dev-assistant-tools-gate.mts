@@ -36,6 +36,7 @@ import { checkAsk } from "./assistant-tools-gate-ask.mts";
 import { planChecks } from "./assistant-tools-gate-plan.mts";
 import { askSeamChecks } from "./fixtures/assistant/seam-checks.mts";
 import { checkCover } from "./assistant-tools-gate-cover.mts";
+import { showHint } from "./fixtures/assistant/show-hint.mts";
 
 process.loadEnvFile?.(".env.local");
 // An optional folder for screenshots of the held canvas and the run's line.
@@ -80,18 +81,19 @@ async function checks(page: Page) {
   await page.waitForSelector(INPUT);
 
   heading("presets");
-  const tidy = page.locator(PRESET("Tidy this page"));
+  await page.waitForSelector("[data-assistant-hints]");
   ok(
-    (await page.$(PRESET("Compose cover"))) !== null &&
-      (await tidy.count()) === 0,
-    "on the cover the panel offers Compose cover only",
+    (await page.textContent("[data-assistant-hints] [data-hint]")) ===
+      "Compose cover" && (await page.$(PRESET("Tidy this page"))) === null,
+    "on the cover the panel leads with Compose cover, no page hints",
   );
   await page.click('button[aria-label="Page 2"]');
-  await tidy.waitFor();
+  // The hints rotate (#366): More ideas brings Tidy up.
+  const tidy = await showHint(page, "Tidy this page");
   ok(
     (await tidy.getAttribute("aria-disabled")) === null &&
       (await page.$(PRESET("Compose cover"))) === null,
-    "on an inside page the four page presets, on",
+    "on an inside page the page hints, on",
   );
   await page.click(`[data-block-id="${ids.head}"]`);
   await tidy.click();

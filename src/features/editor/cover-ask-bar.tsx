@@ -28,7 +28,11 @@ export function CoverAskBar({
       onPointerDown={(e) => e.stopPropagation()}
       className={`${COVER_BAR} items-center`}
     >
-      <AskControl onSend={onAsk} divider={false} />
+      <AskControl
+        onSend={onAsk}
+        divider={false}
+        placeholder="Move this to the top right"
+      />
     </div>
   );
 }

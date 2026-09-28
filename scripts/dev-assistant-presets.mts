@@ -23,6 +23,7 @@ import { SEED_IMAGES, type SeedImages } from "../src/db/seed/images";
 import type { Block, IssueContent } from "../src/lib/blocks";
 import { markdownToDoc } from "../src/lib/markdown-doc";
 import { richTextToPlain } from "../src/lib/rich-text-doc";
+import { showHint } from "./fixtures/assistant/show-hint.mts";
 import {
   PRESETS,
   type PresetId,
@@ -140,8 +141,10 @@ async function runCase(page: Page, c: Case, issueId: string, pageNo: number) {
   await page.waitForSelector("#assistant-input");
   await page.waitForTimeout(800); // the panel's slide
   await page.screenshot({ path: join(shots, `${c.preset}-before.png`) });
+  // The hints rotate (#366): More ideas brings this one up.
+  const hint = await showHint(page, label);
   const started = Date.now();
-  await page.click(`button:text-is("${label}")`);
+  await hint.click();
   await page.waitForFunction(
     (sel) => document.querySelector(sel)?.getAttribute("aria-busy") === "true",
     LOG,

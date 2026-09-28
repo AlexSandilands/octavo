@@ -18,6 +18,7 @@ import {
   type AiError,
   type AiProjectionData,
 } from "@/lib/ai-chat-contract";
+import { splitFollowUp, type FollowUp } from "@/lib/ai-follow-up";
 import type { AiToolInput, AiToolName, AiToolOutput } from "@/lib/ai-tools";
 import { attachedText } from "./attached";
 import { BREAKER_MESSAGE, type RunSummary } from "./executor";
@@ -119,6 +120,12 @@ function closeStoppedTail(messages: AssistantMessage[]): AssistantMessage[] {
   return [...messages.slice(0, -1), { ...last, parts }];
 }
 
+/** A reply's closing suggestion: its last text part's `[[next: …]]` line. */
+function suggestionOf(message: AssistantMessage): FollowUp | null {
+  const text = message.parts.findLast((p) => p.type === "text");
+  return text?.type === "text" ? splitFollowUp(text.text).followUp : null;
+}
+
 export function useAssistantChat({
   issueId,
   snapshot,
@@ -152,6 +159,8 @@ export function useAssistantChat({
   // counts those no page places.
   const attached = useRef<string[]>([]);
   const [runPhotos, setRunPhotos] = useState<string[]>([]);
+  // The reply whose suggestion went with its run's Undo (#366).
+  const [undoneReply, setUndoneReply] = useState<string | null>(null);
 
   // Idempotent: a failed stream reports through both onError and onFinish.
   const endRun = () => {
@@ -260,6 +269,13 @@ export function useAssistantChat({
     : null;
   const busy =
     running || chat.status === "submitted" || chat.status === "streaming";
+  // The latest reply's suggested next message (#366): only once the run is
+  // over, and gone as soon as anything else is sent or the run is undone.
+  const last = chat.messages.at(-1);
+  const followUp: FollowUp | null =
+    !busy && !error && last?.role === "assistant" && last.id !== undoneReply
+      ? suggestionOf(last)
+      : null;
 
   /**
    * Sends a run, or says (before any request) why it wasn't taken. `photos`:
@@ -355,7 +371,10 @@ export function useAssistantChat({
     /** Photos attached to the last run's message (#343). */
     runPhotos,
     /** The run was undone: its line goes. */
+    /** The suggestion that ends the latest reply, if it offers one (#366). */
+    followUp,
     dismissRun: () => {
+      setUndoneReply(chat.messages.at(-1)?.id ?? null);
       setSummary(null);
       setStuck(null);
       setRunPhotos([]);

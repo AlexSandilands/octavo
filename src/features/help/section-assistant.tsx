@@ -1,9 +1,10 @@
 import { AssistantUsageHelp } from "./assistant-usage";
 import { Bullets, Callout, GuideSection, P } from "./guide-ui";
 
-// The editing assistant (epic #306): what it can do, the presets (#310), the
-// per-block Ask (#311), the cover (#313), photos attached in the chat (#343),
-// Undo, and a long paste (#312). Shown only where the deployment offers it. It
+// The editing assistant (epic #306): what it can do, the presets (#310) and
+// their rotating hints and suggested follow-ups (#366), the per-block Ask
+// (#311), the cover (#313), photos attached in the chat (#343), Undo, and a
+// long paste (#312). Shown only where the deployment offers it. It
 // closes with what the assistant has cost this month (#314).
 export function SectionAssistant() {
   return (
@@ -44,7 +45,10 @@ export function SectionAssistant() {
       </P>
       <P>
         Four quick buttons sit above the box where you type. Each asks about the
-        page you have open, or only the block you have selected on it:
+        page you have open, or only the block you have selected on it. They
+        change as you work, suggesting things that suit the page (such as
+        captions when it has photos), and <strong>More ideas</strong> shows
+        others. Among them:
       </P>
       <Bullets>
         <li>
@@ -61,9 +65,17 @@ export function SectionAssistant() {
         </li>
         <li>
           <strong>Shorten to fit</strong> trims a page that runs over until it
-          fits. The wording will change here too.
+          fits. The wording will change here too. It is always there while the
+          page runs over.
         </li>
       </Bullets>
+      <P>
+        When the assistant offers to do something more, a button under its
+        answer, marked <em>Suggested by the assistant</em>, sends its offer on
+        for you; the words it will send are printed beneath it. The same words
+        show faintly in the empty box where you type: press Tab to use them, or
+        just type your own.
+      </P>
       <P>
         To ask about one block without opening the panel, select the block and
         press <strong>Ask</strong> at the end of its tool bar. Type what you
@@ -73,7 +85,7 @@ export function SectionAssistant() {
         but not on a full-page photo or the cover&rsquo;s background.
       </P>
       <P>
-        On the cover the four buttons give way to one,{" "}
+        On the cover the buttons give way to the cover&rsquo;s own, led by{" "}
         <strong>Compose cover</strong>, which leads with the issue&rsquo;s
         strongest story and keeps the photo already there. You can also ask for
         a cover in your own words, such as &ldquo;put the evening photo on the

@@ -14,11 +14,20 @@ import type { SendResult } from "./use-assistant-chat";
 // thumbnails above the text; Send waits for their uploads. Nothing is ever
 // cut silently: near the route's limit a count shows, and past it Send is off
 // until the text is shortened. A long message asks first (#312): while the
-// question is up the text waits, read-only, and the tray is locked.
+// question is up the text waits, read-only, and the tray is locked. While the
+// box is empty the assistant's suggested next message (#366) shows ghosted in
+// it, and Tab takes it into the box; any other Tab moves on as usual.
 
 /** The count shows from here, so a long paste is never a surprise. */
 const COUNT_FROM = AI_MAX_TEXT_CHARS - 2_000;
 const chars = (n: number) => n.toLocaleString("en-NZ");
+/** Shift+Tab, or Tab with a modifier, always does what it would anyway. */
+const modifiedTab = (e: {
+  shiftKey: boolean;
+  altKey: boolean;
+  ctrlKey: boolean;
+  metaKey: boolean;
+}) => e.shiftKey || e.altKey || e.ctrlKey || e.metaKey;
 export function AssistantComposer({
   inputRef,
   busy,
@@ -27,6 +36,7 @@ export function AssistantComposer({
   onSend,
   holding,
   putRef,
+  suggestion,
   onStop,
 }: {
   inputRef: RefObject<HTMLTextAreaElement | null>;
@@ -41,6 +51,8 @@ export function AssistantComposer({
   holding: boolean;
   /** Set here: puts a message handed back by Cancel into the box. */
   putRef: RefObject<((text: string) => void) | null>;
+  /** The assistant's suggested next message, offered while the box is empty. */
+  suggestion: string | null;
   onStop: () => void;
 }) {
   const [value, setValue] = useState("");
@@ -54,6 +66,12 @@ export function AssistantComposer({
   }, [value, inputRef]);
 
   const over = value.length > AI_MAX_TEXT_CHARS;
+  // Tab takes the suggestion only into an empty box that can take it.
+  const ghost = value === "" && !disabled && !holding ? suggestion : null;
+  const described = [
+    ghost ? "assistant-input-suggestion" : null,
+    value.length > COUNT_FROM ? "assistant-input-count" : null,
+  ].filter(Boolean);
   // Photos can go on their own; one still uploading, or refused, holds Send.
   const canSend =
     !busy &&
@@ -106,12 +124,16 @@ export function AssistantComposer({
         value={value}
         disabled={disabled}
         readOnly={holding}
-        placeholder={disabled ? "" : "Ask about this issue…"}
+        placeholder={
+          disabled
+            ? ""
+            : ghost
+              ? `${ghost} (Tab to use)`
+              : "Ask about this issue…"
+        }
         aria-keyshortcuts="Enter"
         aria-invalid={over || undefined}
-        aria-describedby={
-          value.length > COUNT_FROM ? "assistant-input-count" : undefined
-        }
+        aria-describedby={described.join(" ") || undefined}
         onChange={(e) => setValue(e.target.value)}
         onPaste={(e) => {
           const files = pastedFiles(e.clipboardData);
@@ -120,13 +142,28 @@ export function AssistantComposer({
           if (!holding) attachments.add(files);
         }}
         onKeyDown={(e) => {
-          if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing)
+          if (e.nativeEvent.isComposing) return;
+          if (e.key === "Tab" && ghost && !modifiedTab(e)) {
+            e.preventDefault();
+            const el = e.currentTarget;
+            setValue(ghost);
+            // The caret at the end, ready to add to it or send.
+            requestAnimationFrame(() =>
+              el.setSelectionRange(ghost.length, ghost.length),
+            );
             return;
+          }
+          if (e.key !== "Enter" || e.shiftKey) return;
           e.preventDefault();
           submit();
         }}
-        className="text-ink placeholder:text-faint scrollbar-soft max-h-60 min-h-[3.5rem] w-full resize-none rounded-t-xl bg-transparent px-3.5 pt-3 pb-1 font-sans text-[16px] leading-snug [--scrollbar-surface:white] disabled:cursor-not-allowed"
+        className={`${ghost ? "placeholder:text-muted placeholder:italic" : "placeholder:text-faint"} text-ink scrollbar-soft max-h-60 min-h-[3.5rem] w-full resize-none rounded-t-xl bg-transparent px-3.5 pt-3 pb-1 font-sans text-[16px] leading-snug [--scrollbar-surface:white] disabled:cursor-not-allowed`}
       />
+      {ghost && (
+        <p id="assistant-input-suggestion" className="sr-only">
+          Suggested: {ghost.replace(/[.!?]$/, "")}. Press Tab to use it.
+        </p>
+      )}
       <div className="flex items-center gap-2 px-2 pb-2">
         <AttachButton
           attachments={attachments}

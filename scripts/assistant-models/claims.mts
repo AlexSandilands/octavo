@@ -6,6 +6,8 @@
 // inside a block ("removed a sentence from each paragraph"), which is
 // set_text's.
 
+import { withoutFollowUp } from "../../src/lib/ai-follow-up";
+
 const WORD = String.raw`[\p{L}\p{N}'’-]+`;
 /** Words between a verb and its object: never a preposition, so the object
  *  is the verb's own ("removed a clause from the paragraph" isn't). */
@@ -76,11 +78,13 @@ function withdrawn(reply: string, at: number): boolean {
   return NOT_DONE.test(clause.trim().split(/\s+/).slice(-3).join(" "));
 }
 
-/** Edits the reply says it made that no tool made, as "reply claims …". */
+/** Edits the reply says it made that no tool made, as "reply claims …". The
+ *  suggested next message (#366) is the author's words to come, not a claim. */
 export function claimFailures(
-  reply: string,
+  said: string,
   calls: { name: string; mutated: boolean }[],
 ): string[] {
+  const reply = withoutFollowUp(said);
   const made = new Set(calls.filter((c) => c.mutated).map((c) => c.name));
   return CLAIMS.filter(
     (c) =>
