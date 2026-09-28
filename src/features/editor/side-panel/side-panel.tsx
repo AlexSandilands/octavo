@@ -122,9 +122,11 @@ export function SidePanel({
         onPointerCancel={endDrag}
         onKeyDown={onKeyDown}
         style={{ width: HANDLE, left: -HANDLE / 2 }}
-        className={`absolute inset-y-0 z-10 cursor-col-resize touch-none rounded-sm transition-colors duration-150 select-none ${
+        // The hit area is HANDLE wide; what shows is a 2px line down its
+        // middle, faint under the pointer and full while dragging or focused.
+        className={`after:bg-accent absolute inset-y-0 z-10 cursor-col-resize touch-none select-none after:absolute after:inset-y-0 after:left-1/2 after:w-0.5 after:-translate-x-1/2 after:transition-opacity after:duration-150 after:content-[''] focus-visible:outline-none focus-visible:after:opacity-100 ${
           mounted ? "block" : "hidden"
-        } ${dragging ? "bg-accent/30" : "hover:bg-accent/15"}`}
+        } ${dragging ? "after:opacity-100" : "after:opacity-0 hover:after:opacity-40"}`}
       />
     </aside>
   );

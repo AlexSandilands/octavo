@@ -33,10 +33,10 @@ export function SurfaceChoice({
                 aria-disabled={reason ? true : undefined}
                 aria-describedby={reason ? descriptionId : undefined}
                 onClick={reason ? undefined : () => onOpen(surface.kind)}
-                className={`text-ink flex h-11 w-full items-center gap-3 rounded-lg px-3 font-sans text-[14px] font-medium transition-colors duration-150 select-none ${
+                className={`text-ink border-hair flex h-11 w-full items-center gap-3 rounded-lg border bg-white px-3 font-sans text-[14px] font-medium shadow-[0_1px_2px_rgba(40,36,28,0.05)] transition-colors duration-150 select-none ${
                   reason
                     ? "cursor-default opacity-50"
-                    : "hover:bg-accent-wash cursor-pointer"
+                    : "hover:border-accent hover:bg-accent-wash cursor-pointer"
                 }`}
               >
                 <Icon name={surface.icon} size={16} className="text-accent" />
