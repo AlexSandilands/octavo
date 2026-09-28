@@ -98,7 +98,7 @@ export function SidePanel({
       <div className="absolute inset-0 overflow-hidden">
         <div
           aria-hidden
-          className="bg-line absolute inset-y-0 left-0 z-10 w-px"
+          className="bg-muted/25 absolute inset-y-0 left-0 z-10 w-px"
         />
         <div
           style={{ width }}
