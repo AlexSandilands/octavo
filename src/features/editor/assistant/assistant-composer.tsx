@@ -161,7 +161,7 @@ export function AssistantComposer({
       />
       {ghost && (
         <p id="assistant-input-suggestion" className="sr-only">
-          Suggested: {ghost} Press Tab to use it.
+          Suggested: {ghost.replace(/[.!?]$/, "")}. Press Tab to use it.
         </p>
       )}
       <div className="flex items-center gap-2 px-2 pb-2">
