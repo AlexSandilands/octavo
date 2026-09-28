@@ -30,10 +30,15 @@ export async function checkOff(d: {
     `the panel offers Import PDF alone (${choices.join(", ")})`,
   );
   await page.click(PLUS);
+  await page.waitForSelector('[role="menu"] [role="menuitem"]');
   const items = await page.$$eval('[role="menu"] [role="menuitem"]', (els) =>
     els.map((el) => el.textContent?.trim()),
   );
-  ok(items.join() === "Import PDF", "and so does the + menu");
+  // On the cover the row carries its reason under the name.
+  ok(
+    items.length === 1 && items[0]?.startsWith("Import PDF"),
+    `and so does the + menu (${items.join(", ")})`,
+  );
   await page.keyboard.press("Escape");
   await closePanel(page);
   await page.click('button[aria-label="Page 2"]');
