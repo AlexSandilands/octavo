@@ -15,6 +15,7 @@ import {
   initial,
   setup,
   cleanup,
+  enablePdfDownloads,
   readDocument,
   settle,
   openFile,
@@ -264,6 +265,7 @@ try {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto(`${base}/read/${number}/print?token=${printToken()}`);
   await assertRenderedFits(page);
+  await enablePdfDownloads();
   const pdf = await context.request.get(`${base}/api/issues/${number}/pdf`, {
     timeout: 120000,
   });
