@@ -133,10 +133,10 @@ export function EditorHeader({
           title={panel.open ? "Close the panel" : "Open the panel"}
           aria-pressed={panel.open}
           aria-controls={PANEL_ID}
-          className="w-10 px-0"
+          className="w-10 px-0!"
           onClick={panel.onToggle}
         >
-          <Icon name="panel" size={22} strokeWidth={2} />
+          <Icon name="panel" size={20} strokeWidth={1.8} className="shrink-0" />
         </Button>
       </div>
     </header>
