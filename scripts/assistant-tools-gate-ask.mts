@@ -236,7 +236,7 @@ export async function checkAsk(d: {
 
 /** Until the stage and a block hold still across two frames, with no transition
  * running: a click right after a resize can land before the canvas re-fits. */
-const settled = (page: Page, id: string) =>
+export const settled = (page: Page, id: string) =>
   page.waitForFunction(
     // No named functions in here: tsx's __name helper doesn't exist in the page.
     (sels) =>
