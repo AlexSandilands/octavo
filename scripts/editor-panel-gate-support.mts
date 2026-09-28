@@ -50,6 +50,7 @@ export const stripOrder = (page: Page) =>
 /** Opens the surface the way an author would: its tab if it has one, else the
  *  panel (from the header) and then the choice or the + menu. */
 export async function openSurface(page: Page, name: SurfaceName) {
+  await page.waitForSelector(PANEL_BUTTON);
   if (!(await panelOpen(page))) {
     await page.click(PANEL_BUTTON);
     await page.waitForSelector(STRIP);
