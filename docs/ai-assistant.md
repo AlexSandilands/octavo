@@ -13,14 +13,17 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
 
 ## Where it appears: the editor's side panel (#309)
 
-- **The rail's second tool.** An **Assistant** button (a sparkle) sits under Import PDF on the editor's right-hand rail,
-  only when the build sets `NEXT_PUBLIC_AI_ASSISTANT=1`. It opens the same side panel Import PDF uses: slide-in,
-  drag-to-resize, the canvas re-fits beside it, one panel at a time. Close is a smaller square at the foot of the rail,
-  under every tool. The assistant's panel defaults to **400px** (min 300) rather than half the row, and opens at its
-  minimum wherever 400px would leave the canvas under 520px. Each tool remembers its own width. On a 768px tablet that
-  leaves about 305px of canvas, and the page in it is about 173px wide beside the standing tool bar. Once there are
-  messages, a **New conversation** action hangs under the Assistant button.
-- **The per-block Ask (#311).** A selected block on an inside page of a draft has **Ask** (the rail's sparkle and
+- **A tab of the side panel (#353).** The editor header ends in one **Panel** button (pressed while the panel is
+  out; Close hands the focus back to it). The panel's surfaces are tabs along its top: **Assistant** (a sparkle) is
+  offered — in the empty panel's choice and the strip's **+** menu — only when the build sets
+  `NEXT_PUBLIC_AI_ASSISTANT=1`, and can be open beside Import PDF, switched by a click or the arrow keys. Same panel:
+  slide-in, drag-to-resize, the canvas re-fits beside it. The conversation lives above the panel, so closing the tab
+  or the panel never ends it; an inactive tab stays mounted, so unsent words wait. The assistant's tab takes
+  **400px** (min 300) rather than half the row, and opens at its minimum wherever 400px would leave the canvas under
+  520px. Each surface remembers its own width, so switching tabs animates between them. On a 768px tablet that leaves
+  about 358px of canvas beside the standing tool bar. Once there are messages, a **New conversation** control (icon
+  and words) joins the strip after the tabs, for the active tab only.
+- **The per-block Ask (#311).** A selected block on an inside page of a draft has **Ask** (the sparkle and
   the word) as the last control in its own tool bar, after a rule, and last in the bar's tab order. That's the text
   format bar, the heading, photo, montage, video and sponsor bars, or beside a bare type label. The owner's first browser
   pass found a free-floating pill above the bar awkward. A bar wider than the canvas used to run off its right edge (the
@@ -73,8 +76,9 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
 - **Usage footer.** "US$1.21 of US$20.00 used this month" (spend rounded up to the cent, as `/admin/ai` shows it), from `GET /api/admin/ai/usage` (admin-only, 404 while off,
   `resolveBudget()`'s figures), with a link to `/admin/ai`. It is fetched when the editor opens with the assistant on (so a spent month is known before the first send from either the panel or the Ask box), when the panel opens, and after every run.
 - **Accessibility.** The thread is a `role="log"` region that is `aria-busy` while a reply streams, so the finished
-  reply is announced once. Opening puts focus in the composer (or on the drafts-only message), and Close hands it back
-  to the rail button. "Thinking…" shows from Send until the reply has words or a tool line to show. A reply opens with
+  reply is announced once. Opening puts focus in the composer (or on the drafts-only message) — a tab click or an
+  arrow key leaves it on the tab — and Close panel hands it back to the header's Panel button. "Thinking…" shows from
+  Send until the reply has words or a tool line to show. A reply opens with
   an empty reasoning part, and hiding the line on that alone left the panel looking dead, most visibly after a Stop.
 - **Photos uploaded but not placed** are the issue's own `images` rows. With the flag on, the editor page also loads
   them. With it off, the page runs exactly the queries it did before.
@@ -681,7 +685,7 @@ delete their own rows.
 
 ## Turning it on and off
 
-- **Off by default.** With `AI_PROVIDER` unset the rail button is hidden, every `/api/admin/ai/*` route 404s and
+- **Off by default.** With `AI_PROVIDER` unset the Assistant surface is not offered, every `/api/admin/ai/*` route 404s and
   `/admin/ai` says the assistant isn't enabled. Unsetting it is the kill switch, with no redeploy; the env vars are in
   `docs/infrastructure.md`.
 - **Switching it on is an env change, not a merge:**

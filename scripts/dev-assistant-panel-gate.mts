@@ -3,13 +3,14 @@
 //   AI_PROVIDER=fake AI_MONTHLY_BUDGET_USD=5 NEXT_PUBLIC_AI_ASSISTANT=1 PORT=3309 npm run dev
 //   npx tsx --tsconfig scripts/tsconfig.json scripts/dev-assistant-panel-gate.mts http://localhost:3309
 // It opens and closes the panel with the mouse and the keyboard, checks focus in
-// and out, the rail's order, the cover inspector's hand-off, the drafts-only and
+// and out, the strip's order, the cover inspector's hand-off, the drafts-only and
 // budget-spent states, a streamed reply with a read_page round trip (fills vs the
 // canvas's overflow marker), Stop, an inline error, a stalled reply that keeps
 // its edit (#358; quick with AI_IDLE_TIMEOUT_MS=3000 on the server), the usage
 // footer, the log's announcements, a full conversation and a tablet's width,
-// and the rotating hints and suggested follow-up (#366,
-// assistant-panel-gate-hints.mts; `--shots=<dir>` saves its screens).
+// the rotating hints and suggested follow-up (#366,
+// assistant-panel-gate-hints.mts; `--shots=<dir>` saves its screens), and the
+// panel's strip of tabs (#353, assistant-panel-gate-surfaces.mts).
 // With `--off`, against a server with neither variable set, it checks the
 // button, the Ask on a block, the help section and the usage route are all
 // absent (assistant-panel-gate-off.mts).
@@ -21,7 +22,15 @@ import assert from "node:assert/strict";
 import { chromium, type Page, type Request } from "playwright";
 import postgres from "postgres";
 import { AI_ERROR_COPY } from "../src/lib/ai-chat-contract";
-import { railOrder } from "./editor-rail-gate-support.mts";
+import {
+  CLOSE_PANEL,
+  PANEL,
+  PANEL_BUTTON,
+  openSurface,
+  panelOpen,
+  stripOrder,
+} from "./editor-panel-gate-support.mts";
+import { checkSurfaces } from "./assistant-panel-gate-surfaces.mts";
 import { stopChecks } from "./fixtures/assistant/panel-stop-checks.mts";
 import { checkOff } from "./assistant-panel-gate-off.mts";
 import { checkStall } from "./assistant-panel-gate-stall.mts";
@@ -45,10 +54,6 @@ const draftId = crypto.randomUUID();
 const publishedId = crypto.randomUUID();
 const spendId = crypto.randomUUID();
 
-const RAIL = 'nav[aria-label="Editor panels"]';
-const BUTTON = `${RAIL} button[aria-label="Assistant"]`;
-const CLOSE = `${RAIL} button[aria-label="Close panel"]`;
-const PANEL = "aside#editor-side-panel";
 const INPUT = "#assistant-input";
 const LOG = '[role="log"]';
 
@@ -60,17 +65,15 @@ const para = (text: string) => ({
 
 async function openEditor(page: Page, id: string) {
   await page.goto(`${base}/admin/issues/${id}/edit`);
-  await page.waitForSelector(RAIL);
+  await page.waitForSelector(PANEL_BUTTON);
 }
-const panelOpen = (page: Page) =>
-  page.$eval(
-    PANEL,
-    (el) => !el.hasAttribute("aria-hidden") && el.clientWidth > 0,
-  );
 const focusedId = (page: Page) =>
   page.evaluate(() => document.activeElement?.id);
-const focusedLabel = (page: Page) =>
-  page.evaluate(() => document.activeElement?.getAttribute("aria-label"));
+const onPanelButton = (page: Page) =>
+  page.evaluate(
+    (sel) => document.activeElement === document.querySelector(sel),
+    PANEL_BUTTON,
+  );
 const logText = (page: Page) => page.$eval(LOG, (el) => el.textContent ?? "");
 async function waitIdle(page: Page) {
   await page.waitForFunction(
@@ -84,22 +87,25 @@ async function waitIdle(page: Page) {
 async function onChecks(page: Page, pageCount: number) {
   heading("Open and close");
   await openEditor(page, draftId);
-  ok(await page.isVisible(BUTTON), "Assistant button on the rail");
+  ok(await page.isVisible(PANEL_BUTTON), "the Panel button in the header");
   ok(!(await panelOpen(page)), "panel starts closed");
   ok(
     await page.isVisible("[data-cover-inspector]"),
     "the cover opens with its inspector",
   );
-  await page.click(BUTTON);
+  await openSurface(page, "Assistant");
   await page.waitForSelector(INPUT);
   // Waited for, not read once: a cold dev compile can land mid-slide.
   await page.waitForFunction((sel) => {
     const el = document.querySelector(sel);
     return el && !el.hasAttribute("aria-hidden") && el.clientWidth > 0;
   }, PANEL);
-  ok(await panelOpen(page), "a click opens the panel");
-  const rail = await railOrder(page);
-  ok(rail.endsWith("Assistant, Close panel"), `Close at the foot: ${rail}`);
+  ok(await panelOpen(page), "Assistant, chosen in the panel, opens it");
+  const strip = await stripOrder(page);
+  ok(
+    strip === "Assistant, Close Assistant, Open a surface, Close panel",
+    `the strip: ${strip}`,
+  );
   ok(
     (await focusedId(page)) === "assistant-input",
     "focus goes to the composer",
@@ -114,14 +120,14 @@ async function onChecks(page: Page, pageCount: number) {
     ),
     "the cover note says so",
   );
-  await page.click(CLOSE);
+  await page.click(CLOSE_PANEL);
   await page.waitForFunction(
     (sel) => document.querySelector(sel)?.hasAttribute("aria-hidden"),
     PANEL,
   );
   ok(
-    (await focusedLabel(page)) === "Assistant",
-    "Close hands focus back to the rail button",
+    await onPanelButton(page),
+    "Close hands focus back to the header's Panel button",
   );
   await page.waitForSelector("[data-cover-inspector]");
   ok(true, "the inspector comes back");
@@ -142,16 +148,16 @@ async function onChecks(page: Page, pageCount: number) {
   );
   ok(
     await panelOpen(page),
-    "Enter on the rail button opens it, focus in the composer",
+    "Enter on the Panel button opens it on the Assistant tab, focus in the composer",
   );
-  await page.focus(BUTTON);
+  await page.focus(PANEL_BUTTON);
   await page.keyboard.press("Space");
   await page.waitForFunction(
     (sel) => document.querySelector(sel)?.hasAttribute("aria-hidden"),
     PANEL,
   );
   ok(
-    (await focusedLabel(page)) === "Assistant",
+    await onPanelButton(page),
     "Space closes it again, focus stays on the button",
   );
 
@@ -170,7 +176,7 @@ async function onChecks(page: Page, pageCount: number) {
       usageFetches.push(bodies.length);
   };
   page.on("request", onRequest);
-  await page.click(BUTTON);
+  await openSurface(page, "Assistant");
   await page.waitForSelector("[data-assistant-usage]");
   const before = await page.textContent("[data-assistant-usage]");
   ok(
@@ -243,8 +249,20 @@ async function onChecks(page: Page, pageCount: number) {
     ),
     "the second turn arrived",
   );
-  const withChat = await railOrder(page);
-  ok(withChat.endsWith("Assistant, New conversation, Close panel"), withChat);
+  const withChat = await stripOrder(page);
+  ok(
+    withChat ===
+      "Assistant, Close Assistant, New conversation, Open a surface, Close panel",
+    `New conversation joins the strip: ${withChat}`,
+  );
+  ok(
+    (
+      await page.textContent(
+        '[data-surface-strip] button:has-text("New conversation")',
+      )
+    )?.trim() === "New conversation",
+    "with its word, not an icon alone",
+  );
   ok(
     bodies.every(
       (b) =>
@@ -307,7 +325,7 @@ async function onChecks(page: Page, pageCount: number) {
     values (${spendId}, ${adminId}, ${spendId}, 'fake', 'fake', 0, 0, 0, 0, 9999)`;
   try {
     await openEditor(page, draftId);
-    await page.click(BUTTON);
+    await openSurface(page, "Assistant");
     await page.waitForFunction(
       () =>
         (
@@ -326,7 +344,7 @@ async function onChecks(page: Page, pageCount: number) {
 
   heading("Drafts only");
   await openEditor(page, publishedId);
-  await page.click(BUTTON);
+  await openSurface(page, "Assistant");
   await page.waitForSelector(
     `${PANEL} >> text=The assistant only works on drafts.`,
   );
@@ -345,7 +363,7 @@ async function onChecks(page: Page, pageCount: number) {
 
   heading("A full conversation");
   await openEditor(page, draftId);
-  await page.click(BUTTON);
+  await openSurface(page, "Assistant");
   const filler = "A long note to fill the conversation. "
     .repeat(500)
     .slice(0, 19_000);
@@ -404,7 +422,7 @@ async function onChecks(page: Page, pageCount: number) {
   await page.setViewportSize({ width: 768, height: 1024 });
   await openEditor(page, draftId);
   await page.click('button[aria-label="Page 2"]');
-  await page.click(BUTTON);
+  await openSurface(page, "Assistant");
   await page.waitForSelector(INPUT);
   await page.waitForTimeout(600);
   const widths = await page.evaluate(() => ({
@@ -416,10 +434,13 @@ async function onChecks(page: Page, pageCount: number) {
     ),
   }));
   ok(widths.panel === 300, `the panel opens at its ${widths.panel}px minimum`);
+  // 768 less the 150px page rail and the panel: the old tool rail's 48px are
+  // the canvas's now (#353).
   ok(
-    widths.canvas >= 250,
+    widths.canvas >= 300,
     `the canvas keeps ${widths.canvas}px, the page ${widths.page}px wide`,
   );
+  await checkSurfaces({ page, base: base!, draftId, ok, heading });
 
   console.log("\nassistant panel gate: all checks passed");
 }

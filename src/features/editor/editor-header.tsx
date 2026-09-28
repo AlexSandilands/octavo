@@ -1,5 +1,6 @@
 "use client";
 
+import type { RefObject } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui";
@@ -9,14 +10,16 @@ import type {
 } from "@/features/blocks/themes/registry";
 import type { LogoListItem } from "@/lib/logos";
 import { LogoPicker } from "./logo-picker";
+import { PANEL_ID } from "./side-panel/surfaces";
 import { ThemeMenu } from "./theme-menu";
 
 export type SaveStatus = "saved" | "saving" | "error" | "conflict";
 
 // The editor's top bar: back link, editable title, draft badge, the autosave
-// status pill (with retry/reload affordances), and the theme / Preview / Publish
-// actions. All state and side effects live in the editor; this renders and
-// delegates via callbacks.
+// status pill (with retry/reload affordances), the theme / Preview / Publish
+// actions and, last, the one button that opens the side panel (#353). All
+// state and side effects live in the editor; this renders and delegates via
+// callbacks.
 export function EditorHeader({
   title,
   onTitleChange,
@@ -32,6 +35,8 @@ export function EditorHeader({
   onReload,
   onPreview,
   onPublish,
+  panel,
+  panelButton,
 }: {
   title: string;
   onTitleChange: (v: string) => void;
@@ -51,6 +56,10 @@ export function EditorHeader({
   onReload: () => void;
   onPreview: () => void;
   onPublish: () => void;
+  /** The side panel: pressed while it is out. */
+  panel: { open: boolean; onToggle: () => void };
+  /** The Panel button, so the panel's Close can hand the focus back to it. */
+  panelButton: RefObject<HTMLButtonElement | null>;
 }) {
   return (
     <header className="border-line flex h-[60px] flex-none items-center justify-between gap-4 border-b px-6">
@@ -114,6 +123,18 @@ export function EditorHeader({
         </Button>
         <Button size="sm" onClick={onPublish}>
           Publish
+        </Button>
+        <Button
+          ref={panelButton}
+          variant={panel.open ? "primary" : "secondary"}
+          size="sm"
+          icon="panel"
+          iconPosition="left"
+          aria-pressed={panel.open}
+          aria-controls={PANEL_ID}
+          onClick={panel.onToggle}
+        >
+          Panel
         </Button>
       </div>
     </header>

@@ -37,6 +37,7 @@ import { planChecks } from "./assistant-tools-gate-plan.mts";
 import { askSeamChecks } from "./fixtures/assistant/seam-checks.mts";
 import { checkCover } from "./assistant-tools-gate-cover.mts";
 import { showHint } from "./fixtures/assistant/show-hint.mts";
+import { PANEL_BUTTON, openSurface } from "./editor-panel-gate-support.mts";
 
 process.loadEnvFile?.(".env.local");
 // An optional folder for screenshots of the held canvas and the run's line.
@@ -57,8 +58,6 @@ const token = crypto.randomUUID();
 const draftId = crypto.randomUUID();
 const publishedId = crypto.randomUUID();
 
-const RAIL = 'nav[aria-label="Editor panels"]';
-const BUTTON = `${RAIL} button[aria-label="Assistant"]`;
 const INPUT = "#assistant-input";
 const LOG = '[role="log"]';
 const RUN = "[data-assistant-run]";
@@ -76,8 +75,8 @@ async function checks(page: Page) {
   const runScript = (_: Page, ...args: Parameters<typeof chat.runScript>) =>
     chat.runScript(...args);
   await page.goto(`${base}/admin/issues/${draftId}/edit`);
-  await page.waitForSelector(RAIL);
-  await page.click(BUTTON);
+  await page.waitForSelector(PANEL_BUTTON);
+  await openSurface(page, "Assistant");
   await page.waitForSelector(INPUT);
 
   heading("presets");

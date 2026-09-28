@@ -8,10 +8,10 @@
 // the button with the run. `shots` saves the screens the PR describes.
 import type { Page, Request } from "playwright";
 import type postgres from "postgres";
+import { PANEL_BUTTON, openSurface } from "./editor-panel-gate-support.mts";
 
 const LOG = '[role="log"]';
 const INPUT = "#assistant-input";
-const BUTTON = 'nav[aria-label="Editor panels"] button[aria-label="Assistant"]';
 const HINTS = "[data-assistant-hints] button[data-hint]";
 const MORE = "[data-more-ideas]";
 const FOLLOW = "[data-assistant-follow-up]";
@@ -71,8 +71,8 @@ export async function checkHints(d: {
   try {
     heading("Hints (#366)");
     await page.goto(`${d.base}/admin/issues/${d.draftId}/edit`);
-    await page.waitForSelector(BUTTON);
-    await page.click(BUTTON);
+    await page.waitForSelector(PANEL_BUTTON);
+    await openSurface(page, "Assistant");
     await page.waitForSelector(INPUT);
     await page.waitForSelector(HINTS);
     const cover = await hints();

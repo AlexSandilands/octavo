@@ -75,7 +75,7 @@ export async function visionChecks(
   try {
     // A fresh conversation: the gate's earlier runs fill the history, and
     // pictures count against the route's per-conversation cap.
-    const restart = page.locator('button[aria-label="New conversation"]');
+    const restart = page.getByRole("button", { name: "New conversation" });
     if (await restart.isVisible()) await restart.click();
 
     heading("view_photo answers with a picture");

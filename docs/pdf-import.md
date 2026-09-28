@@ -1,23 +1,27 @@
 # Assisted PDF import
 
-The editor's right-hand **side panel** (`src/features/editor/side-panel/`) is opened from
-the tool rail on the editor's right edge; its first tool is **Import PDF**. The panel
-slides in beside the canvas, takes half the editor row by default, and its left edge is
-a drag handle (also a keyboard separator: arrow keys, Home, End) with bounds that keep
-the canvas usable. PDF import is unavailable while a cover page is showing: the rail
-button stays focusable and explains that the author should move to an interior page,
-and an open panel closes on arrival at a cover. The canvas re-fits to whatever is left.
+The editor's right-hand **side panel** (`src/features/editor/side-panel/`) is opened by
+the one **Panel** button at the end of the editor header (#353). Inside, the surfaces the
+panel can show sit as **tabs along its top** — **Import PDF** is one, the assistant the
+other — opened from the empty panel's choice or the strip's **+** menu, each tab with its
+own small Close, and Close panel last in the strip. The panel slides in beside the canvas,
+takes half the editor row by default while Import PDF is the active tab (each surface
+remembers its own width), and its left edge is a drag handle (also a keyboard separator:
+arrow keys, Home, End) with bounds that keep the canvas usable. PDF import is unavailable
+while a cover page is showing: the choice and the + menu keep it readable and explain that
+the author should move to an interior page, and an open Import PDF tab keeps its file but
+its body says the same until the author is back on an interior page (another open tab
+takes over meanwhile). The canvas re-fits to whatever is left.
 Inside, the PDF page sits on a
 stage of its own that mirrors the magazine canvas: laid out at the magazine's page width,
 fitted to the panel with the same margins, wheel-zoomed and dragged with the same engine
 (`useCanvasPanZoom`), and reset to the fitted view on every page change. Panning starts
 on the page's blank areas or the stage around it; a drag on a region lifts it for the
-magazine (below), and a plain press still selects. Closing the panel unmounts
+magazine (below), and a plain press still selects. Closing the tab or the panel unmounts
 the tool, which releases the PDF, its worker and any selection; magazine content is
-untouched. The panel has no chrome of its own: the rail button stays pressed while it is
-out, and the tool's actions slide down out of it as smaller buttons — _Close panel_ at
-once, _Replace PDF_ once a file is open. The same desktop editor gate applies (768px
-minimum). Import works on drafts
+untouched. The panel's only chrome is the strip: the Panel button stays pressed while it
+is out, and _Replace PDF_ joins the strip after the tabs once a file is open, for the
+active tab only. The same desktop editor gate applies (768px minimum). Import works on drafts
 and published issues alike: it is an ordinary edit, saved and re-published like any other.
 
 ## The import flow
@@ -132,7 +136,7 @@ before committing.
 Uploads are sequential through the existing authenticated `/api/admin/images` route,
 with its format sniffing, sharp processing, 12 MB cap and 30/minute limit. Successful
 uploads are cached for retry. A failed batch inserts nothing. **Cancel** stops the
-Add and unlocks the rail so the panel can close; an already-sent upload may finish as an ordinary
+Add and unlocks the strip so the panel can close; an already-sent upload may finish as an ordinary
 issue-owned image. Storage-success/record-failure compensates through
 `sweepOrphanedObjects`. Issue delete uses the normal reference-safe asset cleanup; Undo
 does not delete images that Redo may need.

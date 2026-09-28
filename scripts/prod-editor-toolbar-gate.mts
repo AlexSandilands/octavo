@@ -14,14 +14,19 @@ import {
   settle,
   token,
 } from "./pdf-import-gate-support.mts";
+import {
+  CHOICE,
+  PANEL,
+  PANEL_BUTTON,
+  PLUS,
+  tab,
+} from "./editor-panel-gate-support.mts";
 
 const editorBar = (page: Page) =>
   page.getByRole("group", { name: "Editor tools" });
 const pdfBar = (page: Page) => page.getByRole("group", { name: "PDF tools" });
-const importTool = (page: Page) =>
-  page
-    .getByRole("navigation", { name: "Editor panels" })
-    .getByRole("button", { name: "Import PDF", exact: true });
+const PDF_COVER =
+  "PDF import is available on interior pages. Move to another page to use it.";
 
 async function box(locator: Locator) {
   const bounds = await locator.boundingBox();
@@ -166,56 +171,64 @@ try {
   await page.reload();
   await editorBar(page).waitFor();
 
-  // PDF content belongs on interior pages. The cover keeps the rail control
-  // readable, explains the restriction, and cannot open the panel.
-  const coverImport = importTool(page);
+  // PDF content belongs on interior pages (#353). On the cover the panel's
+  // choice keeps Import PDF readable, explains the restriction, and won't
+  // open it; the + menu says the same.
+  await page.click(PANEL_BUTTON);
+  const coverImport = page.locator(`${CHOICE} button`, {
+    hasText: "Import PDF",
+  });
+  await coverImport.waitFor();
   assert.equal(await coverImport.getAttribute("aria-disabled"), "true");
   const descriptionId = await coverImport.getAttribute("aria-describedby");
-  assert(descriptionId, "The unavailable tool has an accessible description.");
-  const description = page.locator(`#${descriptionId}`);
+  assert(
+    descriptionId,
+    "The unavailable choice has an accessible description.",
+  );
   assert.equal(
-    await description.textContent(),
-    "PDF import is available on interior pages. Move to another page to use it.",
-  );
-  await coverImport.focus();
-  await page.waitForFunction(
-    (id) => getComputedStyle(document.getElementById(id)!).opacity === "1",
-    descriptionId,
-  );
-  await page.evaluate(() =>
-    (document.activeElement as HTMLElement | null)?.blur(),
-  );
-  await coverImport.hover();
-  await page.waitForFunction(
-    (id) => getComputedStyle(document.getElementById(id)!).opacity === "1",
-    descriptionId,
+    await page.locator(`#${descriptionId}`).textContent(),
+    PDF_COVER,
   );
   await coverImport.click({ force: true });
-  assert.equal(
-    await page.locator("#editor-side-panel").getAttribute("aria-hidden"),
-    "true",
-  );
+  assert.equal(await tab(page, "Import PDF").count(), 0, "No tab opens.");
+  await page.click(PLUS);
+  const item = page.locator('[role="menu"] [role="menuitem"]', {
+    hasText: "Import PDF",
+  });
+  assert.equal(await item.getAttribute("aria-disabled"), "true");
+  assert((await item.textContent())?.includes(PDF_COVER));
+  await page.keyboard.press("Escape");
+  await page.locator('[role="menu"]').waitFor({ state: "detached" });
+  await closeTool(page);
 
   // Off the cover (page 1): its mandatory overlay inspector reserves its own
   // canvas width, a separate concern from the toolbar placement under test.
   await magazinePage(page, 2).click();
-  assert.equal(await importTool(page).getAttribute("aria-disabled"), null);
+  await page.click(PANEL_BUTTON);
+  await coverImport.waitFor();
+  assert.equal(await coverImport.getAttribute("aria-disabled"), null);
+  await closeTool(page);
 
-  // An open importer closes when the author moves back onto the cover, then
-  // becomes available again as soon as they return to an interior page.
+  // An open importer keeps its tab when the author moves back onto the cover
+  // — its body says why — and is back as soon as they return to an interior
+  // page.
   await openTool(page);
-  assert.equal(
-    await page.locator("#editor-side-panel").getAttribute("aria-hidden"),
-    null,
-  );
+  assert.equal(await page.locator(PANEL).getAttribute("aria-hidden"), null);
   await magazinePage(page, 1).click();
-  assert.equal(await importTool(page).getAttribute("aria-disabled"), "true");
+  assert.equal(await page.locator(PANEL).getAttribute("aria-hidden"), null);
   assert.equal(
-    await page.locator("#editor-side-panel").getAttribute("aria-hidden"),
+    await tab(page, "Import PDF").getAttribute("aria-selected"),
     "true",
   );
+  assert.equal(
+    (await page.locator("[data-pdf-cover-note]").textContent())?.trim(),
+    PDF_COVER,
+  );
+  assert(!(await page.locator("[data-pdf-private]").isVisible()));
   await magazinePage(page, 2).click();
-  assert.equal(await importTool(page).getAttribute("aria-disabled"), null);
+  await page.locator("[data-pdf-private]").waitFor({ state: "visible" });
+  assert.equal(await page.locator("[data-pdf-cover-note]").count(), 0);
+  await closeTool(page);
 
   // Without a manual choice, resizing the panel still drives the existing
   // automatic bottom/left behavior in both directions.

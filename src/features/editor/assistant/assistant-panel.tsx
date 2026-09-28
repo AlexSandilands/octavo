@@ -41,6 +41,7 @@ export function AssistantPanel({
   target,
   context,
   historyTop,
+  focusKey = 0,
   onUndo,
 }: {
   chat: ReturnType<typeof useAssistantChat>;
@@ -58,6 +59,9 @@ export function AssistantPanel({
   context: Omit<HintContext, "cover">;
   /** The step Ctrl+Z would restore: a run's line stands while it's the run's. */
   historyTop: EditorSnapshot | null;
+  /** Counts the openings that take the focus (#353): the composer takes it on
+   *  each change, as it does on mount. Focusing a hidden tab is a no-op. */
+  focusKey?: number;
   onUndo: () => void;
 }) {
   const input = useRef<HTMLTextAreaElement>(null);
@@ -88,9 +92,10 @@ export function AssistantPanel({
     if (blocked) notice.current?.focus();
     // A question up as the panel opens has taken the focus itself.
     else if (!gate.pending) input.current?.focus();
-    // Only on opening: the panel's content mounts as it slides in.
+    // Only on opening: the panel's content mounts as it slides in, or its tab
+    // is opened again while it is already mounted.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [focusKey]);
   // A fresh conversation hands the focus back to the composer.
   const wasFull = useRef(chat.full);
   useEffect(() => {

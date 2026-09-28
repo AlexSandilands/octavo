@@ -2,7 +2,6 @@
 
 import {
   useEffect,
-  useRef,
   useState,
   type ComponentProps,
   type RefObject,
@@ -27,38 +26,32 @@ import { useAssistantUsage } from "./assistant/use-assistant-usage";
 import { useAttachments } from "./assistant/use-attachments";
 import { useConfirmedSend } from "./assistant/use-confirmed-send";
 import { SidePanel } from "./side-panel/side-panel";
-import {
-  ToolRail,
-  type EditorTool,
-  type RailAction,
-} from "./side-panel/tool-rail";
+import { SurfaceChoice } from "./side-panel/surface-choice";
+import { SurfaceStrip, tabId } from "./side-panel/surface-strip";
+import { PANEL_ID, type SurfaceAction } from "./side-panel/surfaces";
 import type { usePanelWidth } from "./side-panel/use-panel-width";
+import type { useSurfaces } from "./side-panel/use-surfaces";
 import type { DropHandler } from "./use-pdf-drag-out";
 
-// The importer and its parser load only when the tool is opened.
+// The importer and its parser load only when the surface is opened.
 const PdfImportPanel = dynamic(() => import("./pdf-import/panel"), {
   ssr: false,
 });
-const PANEL_ID = "editor-side-panel";
+const TABPANEL_ID = "editor-surface";
 const ASSISTANT_INPUT_ID = "assistant-input";
 /** A question already up takes the focus on its first button (#312). */
 const QUESTION_FOCUS = "[data-assistant-paste-confirm] button";
-const PDF_COVER_DESCRIPTION =
+export const PDF_COVER_DESCRIPTION =
   "PDF import is available on interior pages. Move to another page to use it.";
-const TITLES: Record<EditorTool, string> = {
-  pdf: "Import PDF",
-  assistant: "Assistant",
-};
 
-// The editor's right-hand side: the sliding panel and the rail that opens it.
-// The open tool hangs its actions under its rail button (the PDF panel reports
-// its Replace once a file is open); Close is the rail's own, under every tool.
-// The assistant's conversation lives here rather than in its panel, so closing
-// the panel doesn't end it.
+// The editor's right-hand side (#353): the sliding panel, with a strip of
+// tabs along its top — one per open surface — and the active surface below.
+// Every open surface stays mounted (an inactive Import PDF keeps its file, an
+// inactive Assistant its unsent words) until its tab or the panel closes. The
+// assistant's conversation lives here rather than in its panel, so neither
+// ends it.
 export function EditorSide({
-  tool,
-  onToggle,
-  onClose,
+  surfaces,
   pending,
   cover,
   panel,
@@ -67,10 +60,8 @@ export function EditorSide({
   dropRef,
   assistant,
 }: {
-  tool: EditorTool | null;
-  onToggle: (tool: EditorTool) => void;
-  onClose: () => void;
-  /** An import is landing: the rail sits out until it has. */
+  surfaces: ReturnType<typeof useSurfaces>;
+  /** An import is landing: the strip sits out until it has. */
   pending: boolean;
   cover: boolean;
   panel: ReturnType<typeof usePanelWidth>;
@@ -94,13 +85,12 @@ export function EditorSide({
     askRef: RefObject<AskHandler | null>;
   };
 }) {
-  const [toolActions, setToolActions] = useState<RailAction[]>([]);
-  const buttons = useRef<Partial<Record<EditorTool, HTMLButtonElement | null>>>(
-    {},
-  );
+  const [pdfActions, setPdfActions] = useState<SurfaceAction[]>([]);
+  const { active, open } = surfaces;
+  const assistantShown = open && active?.kind === "assistant";
   const usage = useAssistantUsage(
     assistantEnabled && !assistant.published,
-    tool === "assistant",
+    assistantShown,
   );
   const chat = useAssistantChat({
     issueId: assistant.issueId,
@@ -118,15 +108,13 @@ export function EditorSide({
   const gate = useConfirmedSend(chat);
   const placed = new Set(collectImageIds({ pages }));
   const unplaced = chat.runPhotos.filter((id) => !placed.has(id)).length;
-  // Import PDF steps aside on a cover (#287); the assistant stays.
-  const shown = tool === "pdf" && cover ? null : tool;
-  // An Ask opens the panel on the run (or on why it can't take one, or on the
-  // long-paste question); an open panel takes the focus, as it does on opening,
-  // with Stop at hand.
+  // An Ask opens the assistant on the run (or on why it can't take one, or on
+  // the long-paste question); an open one takes the focus, as it does on
+  // opening, with Stop at hand.
   const { askRef } = assistant;
   useEffect(() => {
     askRef.current = async (blockId, text) => {
-      if (shown !== "assistant") onToggle("assistant");
+      if (!assistantShown) surfaces.openSurface("assistant");
       else
         document
           .querySelector<HTMLElement>(
@@ -142,82 +130,122 @@ export function EditorSide({
       });
     };
   });
-  // A closing panel keeps its content while it slides out. Each opening counts,
-  // so a panel reopened mid-slide still mounts afresh and takes the focus.
-  const [last, setLast] = useState<EditorTool>(shown ?? "pdf");
-  const [opened, setOpened] = useState({ shown, count: 0 });
-  if (shown !== opened.shown)
-    setOpened({ shown, count: opened.count + (shown ? 1 : 0) });
-  if (shown && shown !== last) setLast(shown);
-  const content = shown ?? last;
-  // Closing hands focus back to the tool's own rail button.
-  const close = () => {
-    const button = tool ? buttons.current[tool] : null;
-    onClose();
-    button?.focus();
-  };
-  const assistantActions: RailAction[] =
-    shown === "assistant" && chat.messages.length > 0 && !assistant.published
-      ? [
-          {
-            id: "restart",
-            icon: "refresh",
-            label: "New conversation",
-            disabled: chat.busy,
-            onClick: chat.restart,
-          },
-        ]
-      : [];
+  // Each opening takes the focus into the panel: the assistant's composer
+  // takes it itself; the choice's first button or Import PDF's tab here.
+  useEffect(() => {
+    if (!open) return;
+    const target = active
+      ? active.kind === "pdf"
+        ? document.getElementById(tabId(active.id))
+        : null
+      : document.querySelector<HTMLElement>("[data-surface-choice] button");
+    target?.focus();
+    // Only on an opening, not on every change of tab.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [surfaces.focusKey]);
+  // Import PDF steps aside on a cover (#287): its tab keeps the file, its body
+  // says why until the author is back on an interior page.
+  const unavailable = cover ? { pdf: PDF_COVER_DESCRIPTION } : undefined;
+  const actions: SurfaceAction[] =
+    active?.kind === "pdf"
+      ? cover
+        ? []
+        : pdfActions
+      : active?.kind === "assistant" &&
+          chat.messages.length > 0 &&
+          !assistant.published
+        ? [
+            {
+              id: "restart",
+              icon: "refresh",
+              label: "New conversation",
+              disabled: chat.busy,
+              onClick: chat.restart,
+            },
+          ]
+        : [];
 
   return (
-    <>
-      <SidePanel
-        id={PANEL_ID}
-        open={shown !== null}
-        title={TITLES[content]}
-        width={panel.width}
-        min={panel.min}
-        max={panel.max}
-        onResize={panel.setWidth}
-      >
-        {content === "assistant" ? (
-          <AssistantPanel
-            key={opened.count}
-            chat={chat}
-            gate={gate}
-            attachments={attachments}
-            unplaced={unplaced}
-            published={assistant.published}
-            cover={cover}
-            usage={usage.usage}
-            target={assistant.target}
-            context={assistant.context}
-            historyTop={assistant.historyTop}
-            onUndo={() => {
-              assistant.undo();
-              chat.dismissRun();
-            }}
-          />
-        ) : (
-          <PdfImportPanel
-            pages={pages}
-            onAdd={onAdd}
-            onRailActions={setToolActions}
-            dropRef={dropRef}
-          />
-        )}
-      </SidePanel>
-      <div inert={pending} className="flex">
-        <ToolRail
-          active={shown}
-          panelId={PANEL_ID}
-          buttons={buttons}
-          actions={shown === "pdf" ? toolActions : assistantActions}
-          unavailable={cover ? { pdf: PDF_COVER_DESCRIPTION } : undefined}
-          onToggle={onToggle}
-          onClose={close}
+    <SidePanel
+      id={PANEL_ID}
+      open={open}
+      title="Side panel"
+      width={panel.width}
+      min={panel.min}
+      max={panel.max}
+      onResize={panel.setWidth}
+    >
+      <div inert={pending} className="flex-none">
+        <SurfaceStrip
+          surfaces={surfaces.surfaces}
+          activeId={active?.id ?? null}
+          tabpanelId={TABPANEL_ID}
+          actions={actions}
+          unavailable={unavailable}
+          onActivate={surfaces.activate}
+          onCloseSurface={surfaces.closeSurface}
+          onOpenSurface={surfaces.openSurface}
+          onClosePanel={surfaces.closePanel}
         />
       </div>
-    </>
+      {surfaces.surfaces.length === 0 && (
+        <SurfaceChoice
+          unavailable={unavailable}
+          onOpen={surfaces.openSurface}
+        />
+      )}
+      {surfaces.surfaces.map((surface) => {
+        const isActive = surface.id === active?.id;
+        return (
+          <div
+            key={surface.id}
+            role={isActive ? "tabpanel" : undefined}
+            id={isActive ? TABPANEL_ID : undefined}
+            aria-labelledby={isActive ? tabId(surface.id) : undefined}
+            hidden={!isActive}
+            className="flex min-h-0 flex-1 flex-col"
+          >
+            {surface.kind === "assistant" ? (
+              <AssistantPanel
+                chat={chat}
+                gate={gate}
+                attachments={attachments}
+                unplaced={unplaced}
+                published={assistant.published}
+                cover={cover}
+                usage={usage.usage}
+                target={assistant.target}
+                context={assistant.context}
+                historyTop={assistant.historyTop}
+                focusKey={surfaces.focusKey}
+                onUndo={() => {
+                  assistant.undo();
+                  chat.dismissRun();
+                }}
+              />
+            ) : (
+              <>
+                {cover && (
+                  <p
+                    data-pdf-cover-note
+                    className="text-muted flex flex-1 items-center justify-center px-8 text-center font-serif text-[17px] leading-snug"
+                  >
+                    {PDF_COVER_DESCRIPTION}
+                  </p>
+                )}
+                <div hidden={cover} className="flex min-h-0 flex-1 flex-col">
+                  <PdfImportPanel
+                    pages={pages}
+                    onAdd={onAdd}
+                    onActions={setPdfActions}
+                    dropRef={dropRef}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        );
+      })}
+    </SidePanel>
   );
 }

@@ -55,7 +55,7 @@ src/
     magazine/          the magazine-details settings form + its live page preview
     ai-usage/          the /admin/ai usage page: figures, the day table, notes
     editor/            the page-based editor (client) + per-block edit controls;
-                       side-panel/ (the rail), pdf-import/, assistant/ (#306)
+                       side-panel/ (the tabbed panel), pdf-import/, assistant/ (#306)
     reader/            desktop-reader, mobile-reader (client)
     discussion/        the members' thread (client): one thread component in
                        two shells — the desktop drawer and the phone sheet —
@@ -280,9 +280,10 @@ mirrored automatic position on the panel's right edge. Issue #259.
 
 ## Assisted PDF authoring
 
-The editor's right-hand side panel (`src/features/editor/side-panel/`, opened from a
-tool rail on the editor's edge and resizable by drag or keyboard) hosts the Import PDF
-tool, which lazy-loads a browser-only PDF parser; source files never upload.
+The editor's right-hand side panel (`src/features/editor/side-panel/`, opened by the
+header's one Panel button, its surfaces as tabs along its top, resizable by drag or
+keyboard) hosts the Import PDF tool, which lazy-loads a browser-only PDF parser; source
+files never upload.
 Selected regions become ordinary v6 blocks through bounded measured fitting and one
 history commit. Import is an ordinary edit on drafts and published issues alike,
 refused only by the same revision check as any other save, and accepted photos use
@@ -290,9 +291,9 @@ the existing issue-owned image pipeline. Details,
 limits, lifecycle and reproducible browser gates: [PDF import](pdf-import.md).
 
 The same panel hosts the **editing assistant** (epic #306, dormant unless
-`NEXT_PUBLIC_AI_ASSISTANT=1` and `AI_PROVIDER` are set), the rail's second tool
+`NEXT_PUBLIC_AI_ASSISTANT=1` and `AI_PROVIDER` are set), its second surface
 (`src/features/editor/assistant/`). It stays open on a cover, where the inspector steps
-aside for it. Each message carries a plain-text projection of the issue, with every
+aside for it while it is the active tab. Each message carries a plain-text projection of the issue, with every
 page's fill measured off screen by the overflow marker's own geometry. The model's tool
 calls run here, in the browser. Details: [AI assistant](ai-assistant.md) → Where it appears.
 

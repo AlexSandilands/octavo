@@ -249,6 +249,13 @@ const ICONS: Record<string, ReactNode> = {
       <path d="M4 17h16M12 10v6m0 0-2.5-2.5M12 16l2.5-2.5" />
     </>
   ),
+  // A frame with a column on its right: the editor's side panel (#353).
+  panel: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="1.5" />
+      <path d="M15 4v16M17.5 8h1M17.5 11h1" />
+    </>
+  ),
 };
 
 export type IconName = keyof typeof ICONS;

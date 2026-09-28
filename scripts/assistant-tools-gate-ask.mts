@@ -18,10 +18,13 @@ import {
   type Doc,
   type watchChat,
 } from "./fixtures/assistant/tools-gate-kit.mts";
+import {
+  CLOSE_PANEL,
+  PANEL,
+  openSurface,
+} from "./editor-panel-gate-support.mts";
 
-const PANEL = "aside#editor-side-panel";
-const CLOSE =
-  'nav[aria-label="Editor panels"] button[aria-label="Close panel"]';
+const CLOSE = CLOSE_PANEL;
 const RUN = "[data-assistant-run]";
 const LOG = '[role="log"]';
 const DIALOG =
@@ -297,12 +300,10 @@ async function checkReach(page: Page, ok: (c: unknown, m: string) => void) {
       return r.left >= s.left && r.right <= s.right && r.top >= s.top && clear;
     });
   for (const withPanel of [false, true]) {
-    if ((await panelOpen(page)) !== withPanel)
-      await page.click(
-        withPanel
-          ? 'nav[aria-label="Editor panels"] button[aria-label="Assistant"]'
-          : CLOSE,
-      );
+    if ((await panelOpen(page)) !== withPanel) {
+      if (withPanel) await openSurface(page, "Assistant");
+      else await page.click(CLOSE);
+    }
     await page.waitForFunction(
       ([sel, want]) => {
         const el = document.querySelector(sel as string);

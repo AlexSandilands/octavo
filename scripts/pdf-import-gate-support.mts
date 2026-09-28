@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import postgres from "postgres";
 import { chromium, type Page as BrowserPage } from "playwright";
 import { issueContentSchema, type Block } from "../src/lib/blocks.ts";
+import { closePanel, openSurface } from "./editor-panel-gate-support.mts";
 process.loadEnvFile(existsSync(".env.local") ? ".env.local" : ".env");
 export const base = process.argv[2] ?? "http://localhost:3223";
 assert(
@@ -83,14 +84,11 @@ export const magazinePage = (page: BrowserPage, n: number) =>
   page.getByRole("button", {
     name: new RegExp(`^Page ${n}( \\(cover\\))?$`),
   });
-export const openTool = (page: BrowserPage) =>
-  page.getByRole("button", { name: "Import PDF", exact: true }).click();
-/** The rail button that opened the panel is pressed while it is out; it closes it. */
-export const closeTool = (page: BrowserPage) =>
-  page
-    .getByRole("navigation", { name: "Editor panels" })
-    .getByRole("button", { name: "Import PDF", exact: true })
-    .click();
+/** Import PDF as a tab of the side panel (#353): from the header's Panel
+ * button and the choice or + menu, or its tab when it is already open. */
+export const openTool = (page: BrowserPage) => openSurface(page, "Import PDF");
+/** The strip's Close panel: the panel slides out and its surfaces unmount. */
+export const closeTool = (page: BrowserPage) => closePanel(page);
 export const fileInput = (page: BrowserPage) =>
   panel(page).locator('input[type="file"]');
 /** Region press targets by kind, e.g. `region(page, "Image")`; the kind

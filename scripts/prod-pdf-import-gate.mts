@@ -30,7 +30,7 @@ import {
   selectedRegions,
   addedRegions,
 } from "./pdf-import-gate-support.mts";
-import { railOrder } from "./editor-rail-gate-support.mts";
+import { CLOSE_PANEL, stripOrder } from "./editor-panel-gate-support.mts";
 const number = await setup();
 async function zoomSource(page: BrowserPage) {
   const canvas = page.locator("[data-pdf-private] canvas");
@@ -145,12 +145,14 @@ try {
   assert((await canvas.boundingBox())!.width < canvasBefore, "Canvas re-fits.");
   const beforeOpen = requests.length;
   await openFile(page);
-  // Replace PDF hangs under its tool; Close sits under every tool.
+  // Replace PDF joins the strip after the tabs, with its word; Close panel last.
   await page.getByRole("button", { name: "Replace PDF" }).waitFor();
-  const order = await railOrder(page);
+  const order = await stripOrder(page);
   assert(
-    /^Import PDF, Replace PDF, (Assistant, )?Close panel$/.test(order),
-    `Rail order: ${order}`,
+    /^Import PDF, Close Import PDF, Replace PDF, Open a surface, Close panel$/.test(
+      order,
+    ),
+    `Strip order: ${order}`,
   );
   assert.equal(await region(page, "Image").count(), 1);
   assert.equal(workers.length, 1);
@@ -342,10 +344,8 @@ try {
   await page.setViewportSize({ width: 768, height: 1000 });
   await page.waitForTimeout(500);
   await page.screenshot({ path: "/tmp/pdf-import-min-width.png" });
-  const rail = await page
-    .getByRole("button", { name: "Import PDF", exact: true })
-    .boundingBox();
-  assert(rail && rail.x + rail.width <= 768, "Tool rail stays on screen.");
+  const strip = await page.locator(CLOSE_PANEL).boundingBox();
+  assert(strip && strip.x + strip.width <= 768, "The strip stays on screen.");
   assert(
     await page
       .getByRole("button", { name: "Publish", exact: true })
