@@ -244,11 +244,13 @@ export function AssistantPanel({
               onStop={chat.stop}
             />
             {(usage || onRestart) && (
-              <p className="text-faint flex items-baseline justify-between gap-3 px-1 font-sans text-[13px]">
-                <span data-assistant-usage>
+              // Narrow: the actions take a line of their own rather than
+              // break mid-phrase.
+              <p className="text-faint flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-1 font-sans text-[13px]">
+                <span data-assistant-usage className="whitespace-nowrap">
                   {usage ? usageLine(usage) : ""}
                 </span>
-                <span className="flex items-baseline gap-4">
+                <span className="ml-auto flex items-baseline gap-4 whitespace-nowrap">
                   {onRestart && (
                     // A quiet text action, not a hint: the foot's own style.
                     <button
