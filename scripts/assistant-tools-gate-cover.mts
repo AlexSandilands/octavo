@@ -4,16 +4,18 @@
 // a story linking three real headings, details, the club's logo, two items
 // placed and styled. The run is one step (the panel's Undo empties the cover,
 // Ctrl+Y puts it back), Ask ends a cover item's bar (a logo's bar of its own),
-// and once published
-// the composed cover renders in both readers, the print route and the library
-// thumbnail. Its own admin, session, tab and chat watch; its own scratch issue,
-// all deleted after.
+// a sponsor's Ask on the Regatta cover is on top at every width (#369,
+// assistant-tools-gate-cover-sponsor.mts), and once published the composed
+// cover renders in both readers, the print route and the library thumbnail.
+// Its own admin, session, tab and chat watch; its own scratch issues, all
+// deleted after.
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import type { Page } from "playwright";
 import { askSeamChecks } from "./fixtures/assistant/seam-checks.mts";
 import type postgres from "postgres";
 import { watchChat, until } from "./fixtures/assistant/tools-gate-kit.mts";
+import { checkCoverSponsorAsk } from "./assistant-tools-gate-cover-sponsor.mts";
 import { makeBlock } from "../src/lib/blocks";
 
 type Doc = {
@@ -44,6 +46,7 @@ export async function checkCover(d: {
     order by number limit 1`;
   assert(seed, "the Regatta seed issue is in the database");
   const id = crypto.randomUUID();
+  const sponsorIssue = crypto.randomUUID();
   const coverId = crypto.randomUUID();
   // A sponsor on the cover: the cover tools refuse to place it (it has no
   // placement to store), then remove it.
@@ -238,6 +241,14 @@ export async function checkCover(d: {
       heading,
     });
 
+    await checkCoverSponsorAsk({
+      ...d,
+      ctx,
+      id: sponsorIssue,
+      title: `${d.tag}-cover-sponsor`,
+      seed,
+    });
+
     heading("cover: one Undo, and back");
     // The placing run is its own step: Undo it, then the compose run.
     await tab.click(`${RUN} button:text-is("Undo")`);
@@ -308,7 +319,7 @@ export async function checkCover(d: {
   } finally {
     await ctx.close();
     await sql`delete from ai_usage where issue_id = ${id} or user_id = ${adminId}`;
-    await sql`delete from issues where id = ${id}`;
+    await sql`delete from issues where id in (${id}, ${sponsorIssue})`;
     await sql`delete from sessions where user_id = ${adminId}`;
     await sql`delete from users where id = ${adminId}`;
   }

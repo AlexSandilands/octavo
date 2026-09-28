@@ -6,7 +6,7 @@ import { blockFontContext } from "@/lib/cover-fonts";
 import type { CoverAppearance } from "@/lib/cover-appearance";
 import { useCoverSortable } from "./use-cover-sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Icon, type IconName } from "@/components/icons";
+import { Icon } from "@/components/icons";
 import { BlockView } from "@/features/blocks/block-view";
 import type { LayoutTheme } from "@/features/blocks/themes/registry";
 import {
@@ -19,16 +19,10 @@ import type { ImageMap, ResolvedImage } from "@/lib/images";
 import { richDocBlocks } from "@/lib/rich-text-split";
 import type { SponsorListItem, SponsorMap } from "@/lib/sponsors";
 import { OverflowNotice } from "./overflow-notice";
-import { ImageBlockControl } from "./image-upload";
-import { ImageLayoutControls } from "./image-layout";
-import { HeadingLevelControl } from "./heading-level-control";
-import { MontageBlockControl } from "./montage-control";
-import { VideoBlockControl } from "./video-control";
-import { SponsorPicker } from "./sponsor-picker";
 import { CoverItemTools } from "./cover-item-tools";
+import { EditorBlockBar } from "./editor-block-bar";
 import { RichTextEditor } from "./rich-text-editor";
 import { AskControl } from "./assistant/ask-box";
-import { useBarFit } from "./use-bar-fit";
 import type { SendResult } from "./assistant/use-assistant-chat";
 
 // One block in the editor canvas: the themed BlockView (editable) wrapped in the
@@ -123,9 +117,6 @@ export function EditorBlock({
   // A full-bleed photo covers the page, so its chrome moves inside the page and
   // scales from its own top edge rather than hanging off the top-left corner.
   const bleed = isFillPage(block);
-  const chromeTop = bleed
-    ? "top-2 [transform-origin:top_left]"
-    : "bottom-full mb-2";
 
   // What the marker offers once this block is flagged (#93). Body text with more
   // than one top-level node is split at a node boundary; anything else moves
@@ -150,7 +141,6 @@ export function EditorBlock({
 
   // The last control in the block's own bar, after a rule; beside a bare type
   // label, without one. Not on a full-page photo or a cover's background.
-  const barRef = useBarFit<HTMLDivElement>();
   const ask =
     selected && onAsk && !bleed ? (
       <AskControl onSend={onAsk} divider={BARRED.has(block.type)} />
@@ -235,170 +225,22 @@ export function EditorBlock({
         />
       )}
       {selected && !coverItem && (
-        <>
-          {block.type === "image" ? (
-            <div
-              data-block-bar
-              ref={barRef}
-              className={`border-hair chrome-unscaled absolute z-20 flex w-max flex-wrap items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap shadow-[0_4px_14px_rgba(40,36,28,0.16)] ${chromeTop} ${bleed ? "left-11" : "left-0"}`}
-            >
-              <ImageBlockControl
-                issueId={issueId}
-                hasImage={Boolean(block.imageId)}
-                onUploaded={(imageId, image) => {
-                  onChange({ imageId });
-                  onRegisterImage(imageId, image);
-                }}
-              />
-              {block.imageId && (
-                <>
-                  <span className="bg-line h-5 w-px" />
-                  <ImageLayoutControls
-                    align={block.align ?? "full"}
-                    width={block.width ?? 100}
-                    onChange={onChange}
-                    onFillPage={onFillPage}
-                  />
-                  <span className="bg-line h-5 w-px" />
-                  <label className="flex items-center gap-1.5">
-                    <span className="text-faint2 font-sans text-[9px] font-semibold tracking-[0.14em] uppercase">
-                      Alt
-                    </span>
-                    <input
-                      type="text"
-                      value={block.alt ?? ""}
-                      onChange={(e) => onChange({ alt: e.target.value })}
-                      onClick={(e) => e.stopPropagation()}
-                      aria-label="Describe this photo for screen readers"
-                      placeholder="Describe this photo for screen readers"
-                      className="border-hair text-ink w-56 rounded-[6px] border bg-white px-2 py-1 font-sans text-[12px]"
-                    />
-                  </label>
-                </>
-              )}
-              {ask}
-            </div>
-          ) : block.type === "montage" ? (
-            <div
-              data-block-bar
-              ref={barRef}
-              className="border-hair chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex w-max flex-wrap items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap shadow-[0_4px_14px_rgba(40,36,28,0.16)]"
-            >
-              <MontageBlockControl
-                items={block.items}
-                caption={block.caption}
-                interval={block.interval}
-                issueId={issueId}
-                images={images}
-                onChange={onChange}
-                onRegisterImage={onRegisterImage}
-              />
-              {block.items.length > 0 && (
-                <>
-                  <span className="bg-line h-5 w-px" />
-                  {/* Placement/size are the image block's controls verbatim —
-                      a montage occupies a photo slot, so it sizes like one. */}
-                  <ImageLayoutControls
-                    align={block.align ?? "full"}
-                    width={block.width ?? 100}
-                    onChange={onChange}
-                  />
-                </>
-              )}
-              {ask}
-            </div>
-          ) : block.type === "video" ? (
-            <div
-              data-block-bar
-              ref={barRef}
-              className="border-hair chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex w-max flex-wrap items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 whitespace-nowrap shadow-[0_4px_14px_rgba(40,36,28,0.16)]"
-            >
-              <VideoBlockControl
-                videoId={block.videoId}
-                posterImageId={block.posterImageId}
-                issueId={issueId}
-                images={images}
-                onChange={onChange}
-                onRegisterImage={onRegisterImage}
-              />
-              {block.videoId && (
-                <>
-                  <span className="bg-line h-5 w-px" />
-                  {/* Placement/size are the image block's controls verbatim —
-                      a video occupies a photo slot, so it sizes like one. */}
-                  <ImageLayoutControls
-                    align={block.align ?? "full"}
-                    width={block.width ?? 100}
-                    onChange={onChange}
-                  />
-                </>
-              )}
-              {ask}
-            </div>
-          ) : block.type === "text" && !cover ? (
-            // The text block's toolbar (size + formatting) lives inside the
-            // rich-text editor below, so nothing is rendered here.
-            <></>
-          ) : block.type === "heading" && !cover ? (
-            <div
-              data-block-bar
-              ref={barRef}
-              className="chrome-unscaled absolute bottom-full left-0 z-20 mb-2 w-max"
-            >
-              <HeadingLevelControl
-                level={block.level ?? "main"}
-                onChange={onChange}
-                trailing={ask}
-              />
-            </div>
-          ) : block.type === "sponsor" ? (
-            <div
-              data-block-bar
-              ref={barRef}
-              className="border-hair chrome-unscaled absolute bottom-full left-0 z-20 mb-2 flex w-max flex-wrap items-center gap-2.5 rounded-[8px] border bg-white px-2.5 py-1.5 shadow-[0_4px_14px_rgba(40,36,28,0.16)]"
-            >
-              <SponsorPicker
-                sponsorId={block.sponsorId}
-                sponsors={sponsors}
-                onChange={onChange}
-              />
-              {ask}
-            </div>
-          ) : (
-            // A bare type label: Ask sits right beside it, in the same chrome.
-            <div
-              data-block-bar
-              className="chrome-unscaled absolute bottom-full left-0 z-10 mb-2 flex items-center gap-1.5"
-            >
-              <span className="bg-accent text-paper rounded-[3px] px-1.5 py-[3px] font-sans text-[9px] font-semibold tracking-[0.1em] uppercase">
-                {block.type}
-              </span>
-              {ask}
-            </div>
-          )}
-          <div
-            className={`absolute z-10 ${
-              // Bottom corner on a filled page: the top one is where the
-              // block's own tool bar lands, at whatever zoom.
-              bleed ? "right-2 bottom-2.5" : "top-1/2 -right-9 -translate-y-1/2"
-            }`}
-          >
-            <div
-              className="chrome-unscaled flex flex-col gap-1"
-              style={{
-                transformOrigin: bleed ? "bottom right" : "center left",
-              }}
-            >
-              <Ctrl icon="arrowUp" title="Move up" onClick={() => onMove(-1)} />
-              <Ctrl
-                icon="arrowDown"
-                title="Move down"
-                onClick={() => onMove(1)}
-              />
-              <Ctrl icon="trash" title="Delete" danger onClick={onRemove} />
-            </div>
-          </div>
-        </>
+        <EditorBlockBar
+          // A cover's bar carries the placement its hook wrote; start afresh.
+          key={cover ? "cover" : "page"}
+          block={block}
+          cover={cover}
+          bleed={bleed}
+          issueId={issueId}
+          images={images}
+          sponsors={sponsors}
+          ask={ask}
+          onChange={onChange}
+          onMove={onMove}
+          onRemove={onRemove}
+          onFillPage={onFillPage}
+          onRegisterImage={onRegisterImage}
+        />
       )}
 
       {block.type === "text" && !cover ? (
@@ -464,35 +306,5 @@ export function EditorBlock({
         />
       )}
     </div>
-  );
-}
-
-function Ctrl({
-  icon,
-  title,
-  onClick,
-  danger,
-}: {
-  icon: IconName;
-  title: string;
-  onClick: () => void;
-  danger?: boolean;
-}) {
-  return (
-    <button
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick();
-      }}
-      title={title}
-      aria-label={title}
-      className={`border-hair-warm flex h-6 w-6 items-center justify-center rounded-[5px] border bg-white ${
-        danger
-          ? "text-warn hover:border-warn"
-          : "text-muted hover:border-accent hover:text-accent"
-      }`}
-    >
-      <Icon name={icon} size={13} strokeWidth={1.9} />
-    </button>
   );
 }
