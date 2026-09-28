@@ -145,7 +145,7 @@ try {
   assert((await canvas.boundingBox())!.width < canvasBefore, "Canvas re-fits.");
   const beforeOpen = requests.length;
   await openFile(page);
-  // Replace PDF joins the strip after the tabs, with its word; Close panel last.
+  // Replace PDF joins the strip after the tabs, with its word; + last.
   await page.getByRole("button", { name: "Replace PDF" }).waitFor();
   const order = await stripOrder(page);
   assert(

@@ -86,15 +86,17 @@ export function SidePanel({
       aria-hidden={!open || undefined}
       inert={!open}
       style={{ width: open ? width : 0 }}
-      className={`bg-card border-line relative flex-none ${open ? "border-l" : ""} ${
+      className={`bg-card relative flex-none ${
         dragging
           ? ""
           : "motion-safe:transition-[width] motion-safe:duration-300 motion-safe:ease-out"
       }`}
     >
       {/* The clip lives here, not on the aside, so the handle can overhang the
-          edge while the sliding content is still cut at it. */}
+          edge while the sliding content is still cut at it. The hairline is
+          drawn inside, so the panel's width is exactly what it is set to. */}
       <div className="absolute inset-0 overflow-hidden">
+        <div aria-hidden className="bg-line absolute inset-y-0 left-0 w-px" />
         <div
           style={{ width }}
           className="absolute inset-y-0 right-0 flex flex-col"
