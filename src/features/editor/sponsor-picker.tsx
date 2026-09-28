@@ -63,9 +63,11 @@ export function SponsorPicker({
   ];
 
   return (
-    <div className="flex items-center gap-2 whitespace-nowrap">
+    // Wraps inside a narrowed bar; past that, the trigger truncates its value.
+    <div className="flex min-w-0 flex-wrap items-center gap-2 [&>div]:min-w-0">
       <MenuSelect
         label="Sponsor"
+        className="max-w-full"
         current={current}
         ariaLabel="Block sponsor"
         items={items}
@@ -76,7 +78,7 @@ export function SponsorPicker({
         <Link
           href="/admin/sponsors"
           target="_blank"
-          className="text-accent font-sans text-[12px] font-medium underline underline-offset-2"
+          className="text-accent font-sans text-[12px] font-medium whitespace-nowrap underline underline-offset-2"
         >
           Add sponsors
         </Link>
