@@ -96,7 +96,10 @@ export function SidePanel({
           edge while the sliding content is still cut at it. The hairline is
           drawn inside, so the panel's width is exactly what it is set to. */}
       <div className="absolute inset-0 overflow-hidden">
-        <div aria-hidden className="bg-line absolute inset-y-0 left-0 w-px" />
+        <div
+          aria-hidden
+          className="bg-line absolute inset-y-0 left-0 z-10 w-px"
+        />
         <div
           style={{ width }}
           className="absolute inset-y-0 right-0 flex flex-col"
