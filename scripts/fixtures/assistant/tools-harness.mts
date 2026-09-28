@@ -93,6 +93,16 @@ export const measurer: EditMeasurer = {
     }
     return null;
   },
+  // The paginator's page test (#312): the same fixed heights.
+  async fitter(signal: AbortSignal) {
+    return {
+      fits: async (blocks: Block[], bleed = false) => {
+        signal.throwIfAborted();
+        return bleed || blocks.reduce((y, b) => y + height(b), 0) <= AVAIL;
+      },
+      dispose() {},
+    };
+  },
 };
 
 // ── The seed, with opaque photo ids ────────────────────────────────────────

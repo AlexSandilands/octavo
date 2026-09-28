@@ -13,6 +13,8 @@ import { applyEdit, Refusal } from "./edit-tools";
 import { applyCoverTool, isCoverTool } from "./cover-tools";
 import { describeReport, type EditMeasurer } from "./page-report";
 import { clip } from "./projection-text";
+import { formatPages } from "./page-numbers";
+export { formatPages };
 
 // Runs the model's editing tools against the editor's state (#310). Every call
 // is validated, applied to a copy, re-validated whole with the save path's
@@ -51,6 +53,10 @@ type RunState = {
   last: Page[] | null;
   /** Something else changed the pages mid-run: it stops. */
   interrupted: boolean;
+  /** Lines the author's run summary adds (a photo a plan suggested). */
+  notes: string[];
+  /** Aborted when the run ends or is stopped: a call still working gives up. */
+  abort: AbortController;
   /** The cover this run's compose calls edit, once one has (#313). */
   cover: { id?: string };
   stall: Stall;
@@ -84,9 +90,14 @@ const fresh = (): RunState => ({
   step: null,
   last: null,
   interrupted: false,
+  notes: [],
+  abort: new AbortController(),
   cover: {},
   stall: noStall(),
 });
+
+const STOPPED =
+  "Error: this run was stopped before the edit landed; nothing changed.";
 
 /** Every object in the issue before an edit: the executor copies only what it
  *  edits, so an object seen here is one the edit didn't write. */
@@ -166,15 +177,19 @@ export function createAssistantExecutor({
   let queue: Promise<unknown> = Promise.resolve();
 
   const edit = async (
+    mine: RunState,
     name: Exclude<AiToolName, AiReadOnlyTool>,
     input: unknown,
     call: CallContext,
   ): Promise<string> => {
     const before = handle.state();
+    // A call that outlives its run (Stop, or a new message) lands nowhere.
+    const gone = () => run !== mine || mine.abort.signal.aborted;
+    if (gone()) return STOPPED;
     // One run is one undo step only while nothing else has changed the pages
     // since its last edit: a change between calls stops the run.
-    if (run.interrupted || (run.last && before.pages !== run.last)) {
-      run.interrupted = true;
+    if (mine.interrupted || (mine.last && before.pages !== mine.last)) {
+      mine.interrupted = true;
       return CHANGED_UNDER_RUN;
     }
     try {
@@ -187,16 +202,17 @@ export function createAssistantExecutor({
               photos,
               logos,
               measure,
-              pin: run.cover,
+              pin: mine.cover,
             },
             name,
             input,
           )
         : await applyEdit(
-            { pages: before.pages, photos, measure },
+            { pages: before.pages, photos, measure, signal: mine.abort.signal },
             name,
             input,
           );
+      if (gone()) return STOPPED;
       const valid = issueContentSchema.safeParse({
         version: CONTENT_VERSION,
         pages: result.pages,
@@ -211,12 +227,12 @@ export function createAssistantExecutor({
       if (dropped)
         return `Error: that edit sets something the issue can't store (${dropped}); nothing changed.`;
       if (handle.state().pages !== before.pages) {
-        run.interrupted = true;
+        mine.interrupted = true;
         return CHANGED_UNDER_RUN;
       }
 
-      const record = run.step ? null : before;
-      run.step ??= before;
+      const record = mine.step ? null : before;
+      mine.step ??= before;
       const current = before.pages[before.curPage]?.id;
       const curPage = result.pages.findIndex((p) => p.id === current);
       const selKept = result.pages.some(
@@ -235,9 +251,10 @@ export function createAssistantExecutor({
         },
         record,
       );
-      run.last = result.pages;
+      mine.last = result.pages;
+      mine.notes.push(...(result.notes ?? []));
       if (result.moved)
-        run.moves.set(result.moved, (run.moves.get(result.moved) ?? 0) + 1);
+        mine.moves.set(result.moved, (mine.moves.get(result.moved) ?? 0) + 1);
 
       const lines: string[] = [];
       let over = false;
@@ -249,9 +266,10 @@ export function createAssistantExecutor({
         over ||= report.fill?.kind === "flow" && report.fill.overflowLines > 0;
         lines.push(describeReport(index + 1, page, report));
       }
-      run.stall = trackStall(run.stall, name, input, result.report[0], over);
+      mine.stall = trackStall(mine.stall, name, input, result.report[0], over);
       return [result.text, lines.join("; ")].filter(Boolean).join(" ");
     } catch (error) {
+      if (gone()) return STOPPED;
       if (error instanceof Refusal)
         return `Error: ${error.message}. Nothing changed.`;
       if (error instanceof ZodError) return argumentError(name, error);
@@ -260,11 +278,12 @@ export function createAssistantExecutor({
   };
 
   const runOne = async (
+    mine: RunState,
     name: string,
     input: unknown,
     call: CallContext,
   ): Promise<AiToolOutput> => {
-    run.calls++;
+    mine.calls++;
     if (!Object.hasOwn(aiToolSchemas, name))
       return { text: `Error: there is no tool "${name}".` };
     const tool = name as AiToolName;
@@ -272,24 +291,31 @@ export function createAssistantExecutor({
     if (tool === "view_page" || tool === "view_photo")
       return call.view(tool, input);
     return {
-      text: clip(await edit(tool, input, call), AI_MAX_TOOL_TEXT),
+      text: clip(await edit(mine, tool, input, call), AI_MAX_TOOL_TEXT),
     };
   };
 
   return {
     /** A new author message: counters reset, and the next change records a step. */
     beginRun() {
+      run.abort.abort();
       run = fresh();
       // A cover open as the author asks is the run's cover from the start.
       const { pages, curPage } = handle.state();
       if (pages[curPage]?.cover) run.cover.id = pages[curPage].id;
+    },
+    /** The run is over (it ended or was stopped): a call still working gives up. */
+    abort() {
+      run.abort.abort();
     },
     run(
       name: string,
       input: unknown,
       call: CallContext,
     ): Promise<AiToolOutput> {
-      const next = queue.then(() => runOne(name, input, call));
+      // A call belongs to the run it was made in, even if it waits its turn.
+      const mine = run;
+      const next = queue.then(() => runOne(mine, name, input, call));
       queue = next.catch(() => undefined);
       return next;
     },
@@ -306,27 +332,18 @@ export function createAssistantExecutor({
     summary(): RunSummary | null {
       if (!run.step || !run.last) return null;
       const change = summarizeRun(run.step.pages, run.last);
-      return change && { ...change, step: run.step };
+      if (!change) return null;
+      const text = [change.text, ...run.notes].join(". ");
+      return {
+        ...change,
+        text: run.notes.length ? `${text}.` : text,
+        step: run.step,
+      };
     },
   };
 }
 
 export type AssistantExecutor = ReturnType<typeof createAssistantExecutor>;
-
-/** "4–5", "2, 4–5 and 7". */
-export function formatPages(numbers: number[]): string {
-  const sorted = [...new Set(numbers)].sort((a, b) => a - b);
-  const runs: string[] = [];
-  for (let i = 0; i < sorted.length; ) {
-    let j = i;
-    while (sorted[j + 1] === sorted[j]! + 1) j++;
-    runs.push(i === j ? `${sorted[i]}` : `${sorted[i]}–${sorted[j]}`);
-    i = j + 1;
-  }
-  return runs.length > 1
-    ? `${runs.slice(0, -1).join(", ")} and ${runs.at(-1)}`
-    : (runs[0] ?? "");
-}
 
 /**
  * The blocks of `ids` that moved within a page: every one not on its longest

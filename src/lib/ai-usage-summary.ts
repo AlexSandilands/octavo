@@ -10,6 +10,8 @@ export const aiUsageSummarySchema = z.object({
   granted: z.number(),
   spent: z.number(),
   remaining: z.number(),
+  /** The model a long paste's cost is estimated on (#312). */
+  model: z.string(),
 });
 export type AiUsageSummary = z.infer<typeof aiUsageSummarySchema>;
 
@@ -21,6 +23,9 @@ const money = new Intl.NumberFormat("en-NZ", {
 });
 const spendUp = (usd: number) =>
   Math.ceil(Math.round(usd * 1_000_000) / 10_000) / 100;
+
+/** A figure rounded up to the cent: "US$0.13". */
+export const usdUp = (usd: number) => money.format(spendUp(usd));
 
 /** "US$1.21 of US$20.00 used this month". */
 export function usageLine({ spent, allowance, granted }: AiUsageSummary) {

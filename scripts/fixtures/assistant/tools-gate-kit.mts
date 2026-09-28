@@ -4,6 +4,7 @@
 // on the chat's requests that runs `[fake:tools]` scripts and reads what went
 // back.
 import type { Page } from "playwright";
+import { CONFIRM_FROM_CHARS } from "../../../src/features/editor/assistant/paste-estimate";
 
 /** The issue photo the page places; its row has no file behind it. */
 export const photoId = crypto.randomUUID();
@@ -132,9 +133,10 @@ export function watchChat(page: Page) {
       if (
         part.type.startsWith("tool-") &&
         part.output &&
-        !seen.has(part.toolCallId!)
+        // The fake numbers calls by prompt length: a stopped run can repeat one.
+        !seen.has(`${body.runId}:${part.toolCallId}`)
       ) {
-        seen.add(part.toolCallId!);
+        seen.add(`${body.runId}:${part.toolCallId}`);
         outputs.push(part.output.text);
       }
   });
@@ -151,21 +153,27 @@ export function watchChat(page: Page) {
     asked,
     /** The run id of the latest request. */
     runId: () => runId,
-    /** Send a scripted run and wait for it to finish: what it sent back. */
-    async runScript(
-      calls: { toolName: string; input: object }[],
-      prefix = "Please",
-    ) {
+    /** Start a run with `start` and wait for it to finish: what it sent back. */
+    async awaitRun(start: () => Promise<void>) {
       const from = outputs.length;
       const sent = requests;
-      await page.fill(
-        "#assistant-input",
-        `${prefix} [fake:tools]${JSON.stringify(calls)}`,
-      );
-      await page.keyboard.press("Enter");
+      await start();
       await busy("true");
       await busy("false");
       return { outputs: outputs.slice(from), requests: requests - sent };
+    },
+    /** Send a scripted run and wait for it to finish: what it sent back. A
+     *  script long enough to ask first (#312) is continued. */
+    runScript(calls: { toolName: string; input: object }[], prefix = "Please") {
+      const message = `${prefix} [fake:tools]${JSON.stringify(calls)}`;
+      return this.awaitRun(async () => {
+        await page.fill("#assistant-input", message);
+        await page.keyboard.press("Enter");
+        if (message.length > CONFIRM_FROM_CHARS)
+          await page.click(
+            '[data-assistant-paste-confirm] button:text-is("Continue")',
+          );
+      });
     },
   };
 }

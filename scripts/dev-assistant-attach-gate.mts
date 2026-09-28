@@ -12,9 +12,10 @@
 // using a view, leaving the page views (#365); an eleventh photo is refused
 // with a note, repeated names are numbered, and closing the panel keeps the tray;
 // ten photos with less picture room than they need are refused before any
-// request, the tray keeps them and a new conversation takes them (#368). (Its
-// own gate rather than more of dev-assistant-tools-gate.mts, which is at the
-// 500-line limit.)
+// request, the tray keeps them and a new conversation takes them (#368). A long
+// message with photos asks first and Continue sends their ids once (#312,
+// fixtures/assistant/seam-attach-checks.mts). (Its own gate rather than more of
+// dev-assistant-tools-gate.mts, which is at the 500-line limit.)
 //
 // SAFETY: shared dev database. It mints its own admin, session and draft; the
 // finally deletes those, the photos uploaded to the draft (rows and objects)
@@ -35,6 +36,7 @@ import {
   until,
   type Doc,
 } from "./fixtures/assistant/tools-gate-kit.mts";
+import { attachSeamChecks } from "./fixtures/assistant/seam-attach-checks.mts";
 
 process.loadEnvFile?.(".env.local");
 const [base] = process.argv.slice(2);
@@ -359,6 +361,18 @@ async function checks(page: Page) {
       looks.outputs[8].includes("4 views left"),
     `a second look and a page view come from the six (${looks.outputs[8]?.slice(0, 60)})`,
   );
+
+  await attachSeamChecks(page, {
+    chat,
+    photos: [
+      file("fleet.png", "image/png", red),
+      file("dawn.png", "image/png", green),
+      file("late.png", "image/png", blue),
+    ],
+    settled: (n) => settled(page, n),
+    ok,
+    heading,
+  });
 
   // Six page views use up more of the room: what's left holds two pages but
   // not ten photos as well (checked after the next section attaches them).

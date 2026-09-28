@@ -75,7 +75,7 @@ export function useAssistantTools({
   /** The issue and its footer mark, for page pictures (#342). */
   source: VisionSource;
 }): AssistantTools {
-  const latest = useRef({ state, apply });
+  const latest = useRef({ state, apply, measure });
   const pictured = useRef(source);
   useEffect(() => {
     pictured.current = source;
@@ -83,7 +83,7 @@ export function useAssistantTools({
   const [vision] = useState(createVision);
   const waiters = useRef<{ pages: Page[]; done: () => void }[]>([]);
   useEffect(() => {
-    latest.current = { state, apply };
+    latest.current = { state, apply, measure };
     waiters.current = waiters.current.filter((w) => {
       if (w.pages !== state.pages) return true;
       w.done();
@@ -119,6 +119,11 @@ export function useAssistantTools({
       measure: {
         report: async (page) => (await measured()).report(page),
         textFlow: async (blocks, id) => (await measured()).textFlow(blocks, id),
+        // A section plan (#312) is fitted by Import PDF's own page test.
+        fitter: async (signal) => {
+          const { createMeasurer } = await import("../pdf-import/measure");
+          return createMeasurer(latest.current.measure, signal);
+        },
         cover: async (page, pages) => (await measured()).cover(page, pages),
       },
       handle: {
@@ -159,6 +164,7 @@ export function useAssistantTools({
         : { text: "Error: the editor isn't ready yet. Nothing changed." },
     endRun: () => {
       setRunning(false);
+      executor.current?.abort();
       return executor.current?.summary() ?? null;
     },
     breaker: () => executor.current?.breaker() ?? null,

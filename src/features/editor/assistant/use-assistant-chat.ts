@@ -41,10 +41,22 @@ export type AssistantMessage = UIMessage<
   { [N in AiToolName]: { input: AiToolInput<N>; output: AiToolOutput } }
 >;
 
-/** Whether a send was taken, and if not, why: nothing was sent (#311). */
+/** Whether a send was taken, and if not, why: nothing was sent (#311). The
+ *  cost question (#312) adds `confirming` (the message waits on it in the
+ *  panel) and `waiting` (another message does). */
 export type SendResult =
   | { ok: true }
-  | { ok: false; reason: "invalid" | "busy" | "full" | "spent" | "failed" };
+  | {
+      ok: false;
+      reason:
+        | "invalid"
+        | "busy"
+        | "full"
+        | "spent"
+        | "failed"
+        | "confirming"
+        | "waiting";
+    };
 
 /** The issue as it stands, with every page's fill measured, and the page open now. */
 export type AssistantSnapshot = () => Promise<{

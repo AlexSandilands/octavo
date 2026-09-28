@@ -97,6 +97,18 @@ const cases: [string, string[], string | null][] = [
     ["add_page", "insert_blocks"],
     null,
   ],
+  // A long paste laid out by the plan (#312): its pages are the plan's.
+  [
+    "I laid the three articles out on new pages 4–9, each starting on a fresh page, and carried the regatta report onto a continuation page.",
+    ["propose_sections"],
+    null,
+  ],
+  ["Added six new pages for the three articles.", ["propose_sections"], null],
+  [
+    "Created four new pages for the articles you pasted.",
+    ["insert_blocks"],
+    "added pages",
+  ],
 ];
 
 for (const [reply, names, want] of cases) {

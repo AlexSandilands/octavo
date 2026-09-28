@@ -150,6 +150,20 @@ export class MeasureBrowser {
           blocks,
           id,
         ] as const) as Promise<TextFlowMetrics | null>,
+      fitter: async (signal: AbortSignal) => {
+        await this.tab.evaluate(() => window.__assistant.openFitter());
+        return {
+          fits: (blocks: Block[], bleed = false) => {
+            signal.throwIfAborted();
+            return this.tab.evaluate(
+              ([b, x]) => window.__assistant.fits(b, x),
+              [blocks, bleed] as const,
+            );
+          },
+          dispose: () =>
+            void this.tab.evaluate(() => window.__assistant.closeFitter()),
+        };
+      },
     };
   }
 

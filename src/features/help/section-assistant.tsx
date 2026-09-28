@@ -3,8 +3,8 @@ import { Bullets, Callout, GuideSection, P } from "./guide-ui";
 
 // The editing assistant (epic #306): what it can do, the presets (#310), the
 // per-block Ask (#311), the cover (#313), photos attached in the chat (#343),
-// and Undo. Shown only where the deployment offers it. It closes with what the
-// assistant has cost this month (#314).
+// Undo, and a long paste (#312). Shown only where the deployment offers it. It
+// closes with what the assistant has cost this month (#314).
 export function SectionAssistant() {
   return (
     <GuideSection
@@ -20,14 +20,6 @@ export function SectionAssistant() {
         bullets, rewriting or shortening text, moving or resizing a photo,
         carrying the end of a full page onto a new one, or composing the cover.
         Its changes appear on the page as it makes them.
-      </P>
-      <P>
-        It can also look. It can open your photos to put each one beside the
-        story it belongs to, or to describe it for readers who use a screen
-        reader. It can also see a page as members will. When a change runs over
-        the cover or more than one page, it looks over those pages once more
-        before it finishes and tidies anything that reads badly, so a bigger job
-        takes a little longer.
       </P>
       <P>
         It can also look. It can open your photos to put each one beside the
@@ -98,6 +90,18 @@ export function SectionAssistant() {
         back everything it did in one step. If it goes round in circles it stops
         itself and says so; what it had done stays, and can be undone the same
         way.
+      </P>
+      <P>
+        <strong>Pasting a long document.</strong> You can paste several articles
+        into the chat at once and ask for them to be laid out as new pages. It
+        plans each article, with its headline, the small label above it and the
+        introduction under it, then places every one at the top of a fresh page,
+        adding pages where an article runs long. Anything over about 4,000
+        characters, typed in the chat or in an Ask box, asks first in the panel
+        with a rough cost, because laying it out costs more than a normal
+        question; you can always paste it onto the page yourself and ask the
+        assistant to tidy it. Where an article would suit a photo you
+        haven&rsquo;t uploaded, the line at the end says so.
       </P>
       <Bullets>
         <li>

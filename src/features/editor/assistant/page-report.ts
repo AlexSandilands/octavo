@@ -1,5 +1,6 @@
 import type { Block, Page } from "@/lib/blocks";
 import { richTextToPlain } from "@/lib/rich-text-doc";
+import type { Fits } from "../pdf-import/paginate";
 import type { TextFlowMetrics } from "../text-flow";
 import type { CoverWarning } from "../use-cover-layout-warnings";
 import { BODY_LINE_PX, describeFill, type PageFill } from "./page-fill";
@@ -27,6 +28,8 @@ export interface EditMeasurer {
   report(page: Page): Promise<PageReport>;
   /** The flow split's metrics for `blockId`, laid out after `blocks`' others. */
   textFlow(blocks: Block[], blockId: string): Promise<TextFlowMetrics | null>;
+  /** The paginator's page test (#312), live until `dispose` or `signal` aborts. */
+  fitter(signal: AbortSignal): Promise<{ fits: Fits; dispose(): void }>;
   /** A cover laid out as members see it, and the editor's layout warnings on it (#313). */
   cover(page: Page, pages: Page[]): Promise<CoverWarning[]>;
 }

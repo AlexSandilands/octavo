@@ -5,6 +5,7 @@ import { Icon } from "@/components/icons";
 import { AI_MAX_TEXT_CHARS } from "@/lib/ai-chat-contract";
 import { AttachButton, AttachmentTray } from "./attachment-tray";
 import { pastedFiles, type useAttachments } from "./use-attachments";
+import type { SendResult } from "./use-assistant-chat";
 
 // The author's side of the chat (#309): a box that grows with what is typed,
 // Enter to send and Shift+Enter for a new line, and one 44px button that sends
@@ -12,7 +13,8 @@ import { pastedFiles, type useAttachments } from "./use-attachments";
 // row's left end or a paste (#343; the panel takes drops) and show as
 // thumbnails above the text; Send waits for their uploads. Nothing is ever
 // cut silently: near the route's limit a count shows, and past it Send is off
-// until the text is shortened.
+// until the text is shortened. A long message asks first (#312): while the
+// question is up the text waits, read-only, and the tray is locked.
 
 /** The count shows from here, so a long paste is never a surprise. */
 const COUNT_FROM = AI_MAX_TEXT_CHARS - 2_000;
@@ -23,6 +25,8 @@ export function AssistantComposer({
   disabled,
   attachments,
   onSend,
+  holding,
+  putRef,
   onStop,
 }: {
   inputRef: RefObject<HTMLTextAreaElement | null>;
@@ -30,8 +34,13 @@ export function AssistantComposer({
   /** Nothing can be sent (the month's budget is spent, the conversation is full). */
   disabled: boolean;
   attachments: ReturnType<typeof useAttachments>;
-  /** Resolves whether it was taken; a refused message stays in the box. */
-  onSend: (text: string) => Promise<{ ok: boolean }>;
+  /** Sends, or holds it for the cost question; `taken` runs once the chat
+   *  has it. A refused message stays in the box. */
+  onSend: (text: string, taken: () => void) => Promise<SendResult>;
+  /** The cost question is up: the text waits, unchanged, and the tray is locked. */
+  holding: boolean;
+  /** Set here: puts a message handed back by Cancel into the box. */
+  putRef: RefObject<((text: string) => void) | null>;
   onStop: () => void;
 }) {
   const [value, setValue] = useState("");
@@ -49,17 +58,25 @@ export function AssistantComposer({
   const canSend =
     !busy &&
     !disabled &&
+    !holding &&
     !over &&
     !attachments.uploading &&
     !attachments.failed &&
     (value.trim() !== "" || attachments.ids.length > 0);
+  // Cancel hands a held message back (an Ask box's, or this box's after the
+  // panel was closed and opened); one already here isn't doubled.
+  useEffect(() => {
+    putRef.current = (text) =>
+      setValue((now) =>
+        now === text ? now : now.trim() ? `${now}\n\n${text}` : text,
+      );
+  });
   const submit = () => {
     if (!canSend) return;
     const sent = value;
-    // Cleared only once taken, and only if nothing new was typed meanwhile.
-    void onSend(sent).then(
-      (result) => result.ok && setValue((now) => (now === sent ? "" : now)),
-    );
+    // Cleared only once taken (now, or on Continue after the cost question),
+    // and only if nothing new was typed meanwhile.
+    void onSend(sent, () => setValue((now) => (now === sent ? "" : now)));
     // Send turns into Stop under a pointer; the box keeps the focus.
     inputRef.current?.focus();
   };
@@ -74,7 +91,11 @@ export function AssistantComposer({
         disabled ? "opacity-60" : ""
       }`}
     >
-      <AttachmentTray attachments={attachments} attachButton={attachButton} />
+      <AttachmentTray
+        attachments={attachments}
+        attachButton={attachButton}
+        locked={holding}
+      />
       <label htmlFor="assistant-input" className="sr-only">
         Message the assistant
       </label>
@@ -84,6 +105,7 @@ export function AssistantComposer({
         rows={2}
         value={value}
         disabled={disabled}
+        readOnly={holding}
         placeholder={disabled ? "" : "Ask about this issue…"}
         aria-keyshortcuts="Enter"
         aria-invalid={over || undefined}
@@ -95,7 +117,7 @@ export function AssistantComposer({
           const files = pastedFiles(e.clipboardData);
           if (!files.length) return;
           e.preventDefault();
-          attachments.add(files);
+          if (!holding) attachments.add(files);
         }}
         onKeyDown={(e) => {
           if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing)
@@ -108,7 +130,7 @@ export function AssistantComposer({
       <div className="flex items-center gap-2 px-2 pb-2">
         <AttachButton
           attachments={attachments}
-          disabled={disabled}
+          disabled={disabled || holding}
           buttonRef={attachButton}
         />
         <div className="min-w-0 flex-1">

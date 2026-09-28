@@ -25,6 +25,7 @@ import type { EditorSnapshot } from "./use-editor-history";
 import type { AssistantTools } from "./assistant/tools";
 import { useAssistantUsage } from "./assistant/use-assistant-usage";
 import { useAttachments } from "./assistant/use-attachments";
+import { useConfirmedSend } from "./assistant/use-confirmed-send";
 import { SidePanel } from "./side-panel/side-panel";
 import {
   ToolRail,
@@ -40,6 +41,8 @@ const PdfImportPanel = dynamic(() => import("./pdf-import/panel"), {
 });
 const PANEL_ID = "editor-side-panel";
 const ASSISTANT_INPUT_ID = "assistant-input";
+/** A question already up takes the focus on its first button (#312). */
+const QUESTION_FOCUS = "[data-assistant-paste-confirm] button";
 const PDF_COVER_DESCRIPTION =
   "PDF import is available on interior pages. Move to another page to use it.";
 const TITLES: Record<EditorTool, string> = {
@@ -110,24 +113,32 @@ export function EditorSide({
     issueId: assistant.issueId,
     onUploaded: assistant.registerImage,
   });
+  // Every surface sends through here, so a long message always asks first (#312).
+  const gate = useConfirmedSend(chat);
   const placed = new Set(collectImageIds({ pages }));
   const unplaced = chat.runPhotos.filter((id) => !placed.has(id)).length;
   // Import PDF steps aside on a cover (#287); the assistant stays.
   const shown = tool === "pdf" && cover ? null : tool;
-  // An Ask opens the panel on the run (or on why it can't take one); an open
-  // panel takes the focus, as it does on opening, with Stop at hand.
+  // An Ask opens the panel on the run (or on why it can't take one, or on the
+  // long-paste question); an open panel takes the focus, as it does on opening,
+  // with Stop at hand.
   const { askRef } = assistant;
   useEffect(() => {
     askRef.current = async (blockId, text) => {
-      if (shown === "assistant")
-        document.getElementById(ASSISTANT_INPUT_ID)?.focus();
-      else onToggle("assistant");
+      if (shown !== "assistant") onToggle("assistant");
+      else
+        document
+          .querySelector<HTMLElement>(
+            gate.pending ? QUESTION_FOCUS : `#${ASSISTANT_INPUT_ID}`,
+          )
+          ?.focus();
       // The editor fetches the figure on opening; if it hasn't landed, ask.
       const now = usage.usage ?? (await usage.refresh());
       if (budgetSpent(chat, now)) return { ok: false, reason: "spent" };
-      return chat.send(
-        askMessage({ page: assistant.target.page, blockId, cover }, text),
-      );
+      return gate.ask({
+        text: askMessage({ page: assistant.target.page, blockId, cover }, text),
+        attachments: [],
+      });
     };
   });
   // A closing panel keeps its content while it slides out. Each opening counts,
@@ -172,6 +183,7 @@ export function EditorSide({
           <AssistantPanel
             key={opened.count}
             chat={chat}
+            gate={gate}
             attachments={attachments}
             unplaced={unplaced}
             published={assistant.published}

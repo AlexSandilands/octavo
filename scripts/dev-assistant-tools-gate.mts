@@ -8,8 +8,9 @@
 // refused and reported; the per-block Ask box (#311,
 // assistant-tools-gate-ask.mts); each circuit-breaker condition stops a run
 // with its edits kept (assistant-tools-gate-breaker.mts). Then vision (#342,
-// fixtures/assistant/vision-checks.mts), and a cover composed by a run (#313,
-// assistant-tools-gate-cover.mts).
+// fixtures/assistant/vision-checks.mts), a cover composed by a run (#313,
+// assistant-tools-gate-cover.mts), and the long paste (#312,
+// assistant-tools-gate-plan.mts).
 //
 // SAFETY: shared dev database. It mints its own admin, session, a draft and a
 // published copy of it, and one photo row (a key with no file behind it); the finally deletes exactly those
@@ -32,6 +33,8 @@ import {
 import { visionChecks } from "./fixtures/assistant/vision-checks.mts";
 import { checkBreaker } from "./assistant-tools-gate-breaker.mts";
 import { checkAsk } from "./assistant-tools-gate-ask.mts";
+import { planChecks } from "./assistant-tools-gate-plan.mts";
+import { askSeamChecks } from "./fixtures/assistant/seam-checks.mts";
 import { checkCover } from "./assistant-tools-gate-cover.mts";
 
 process.loadEnvFile?.(".env.local");
@@ -369,6 +372,20 @@ async function checks(page: Page) {
     photoKey: `${tag}/photo.webp`,
     saved,
     runScript: (p, calls) => runScript(p, calls as never),
+    ok,
+    heading,
+  });
+  await planChecks({ page, chat, sql, adminId, saved, ok, heading });
+  await page.click('button[aria-label="Page 2"]');
+  await askSeamChecks(page, {
+    label: "block Ask",
+    select: () =>
+      page.click(`[data-block-id="${ids.story}"]`, {
+        position: { x: 200, y: 8 },
+      }),
+    ask: `[data-block-id="${ids.story}"] [data-ask] > button`,
+    dialog: '[role="dialog"][aria-label="Ask the assistant about this block"]',
+    preset: "Tidy this page",
     ok,
     heading,
   });

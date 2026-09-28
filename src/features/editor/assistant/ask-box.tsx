@@ -10,10 +10,15 @@ import { useBarFit } from "../use-bar-fit";
 // bar, opening a one-line box under the bar's right end. Sending posts to the
 // panel's conversation with the block targeted — an ordinary run — and the
 // panel opens to show it. The box slides to stay inside the canvas. Escape closes the box and hands focus back to Ask.
+// A long request goes to the panel's cost question (#312): the box closes and
+// the panel holds the words.
 
 /** Room left in the route's limit for the block id and page around the words. */
 const ASK_LIMIT = AI_MAX_TEXT_CHARS - 200;
-type Refusal = Extract<SendResult, { ok: false }>["reason"];
+type Refusal = Exclude<
+  Extract<SendResult, { ok: false }>["reason"],
+  "confirming"
+>;
 /** Why nothing was sent; the words stay in the box. */
 const REFUSED: Record<Refusal, string> = {
   invalid: "Type what you'd like the assistant to do.",
@@ -21,6 +26,8 @@ const REFUSED: Record<Refusal, string> = {
   full: "This conversation is full. Start a new one in the panel, then send again.",
   spent: AI_ERROR_COPY.budget_spent,
   failed: "That didn't send. Try again.",
+  waiting:
+    "The assistant panel is asking about a long message. Answer it there, then send again.",
 };
 
 export function AskControl({
@@ -71,7 +78,9 @@ export function AskControl({
     setSending(true);
     const result = await onSend(value);
     setSending(false);
-    if (!result.ok) return setRefused(result.reason);
+    // Held for the panel's question: the words are the panel's now.
+    if (!result.ok && result.reason !== "confirming")
+      return setRefused(result.reason);
     setValue("");
     setRefused(null);
     setOpen(false);

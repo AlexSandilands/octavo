@@ -46,7 +46,7 @@ const CLAIMS: { said: RegExp[]; what: string; tools: string[] }[] = [
       ),
     ],
     what: "split a page",
-    tools: ["split_page", "move_block", "add_page"],
+    tools: ["split_page", "move_block", "add_page", "propose_sections"],
   },
   {
     said: [
@@ -56,7 +56,7 @@ const CLAIMS: { said: RegExp[]; what: string; tools: string[] }[] = [
       ),
     ],
     what: "added pages",
-    tools: ["add_page", "split_page"],
+    tools: ["add_page", "split_page", "propose_sections"],
   },
 ];
 

@@ -59,10 +59,13 @@ export function AttachButton({
 export function AttachmentTray({
   attachments,
   attachButton,
+  locked,
 }: {
   attachments: Attachments;
   /** Where the focus goes when the last thumbnail is removed. */
   attachButton: React.RefObject<HTMLButtonElement | null>;
+  /** The message waits on the cost question (#312): its photos stay as they are. */
+  locked: boolean;
 }) {
   const { items, note } = attachments;
   const removes = useRef<(HTMLButtonElement | null)[]>([]);
@@ -104,13 +107,14 @@ export function AttachmentTray({
                   removes.current[i] = el;
                 }}
                 type="button"
+                disabled={locked}
                 onClick={() => {
                   refocus.current = i;
                   attachments.remove(a.key);
                 }}
                 aria-label={`Remove ${a.name}`}
                 title="Remove"
-                className="text-ink hover:text-warn absolute top-0 right-0 flex h-11 w-11 cursor-pointer items-start justify-end p-1"
+                className="text-ink enabled:hover:text-warn absolute top-0 right-0 flex h-11 w-11 cursor-pointer items-start justify-end p-1 disabled:cursor-default disabled:opacity-45"
               >
                 <span className="border-hair-warm flex h-6 w-6 items-center justify-center rounded-full border bg-white shadow-sm">
                   <Icon name="close" size={13} strokeWidth={2.2} />

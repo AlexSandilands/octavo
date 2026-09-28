@@ -347,6 +347,10 @@ async function onChecks(page: Page, pageCount: number) {
     if (await page.isVisible("text=This conversation is full.")) break;
     await page.fill(INPUT, `${i} ${filler}`);
     await page.keyboard.press("Enter");
+    // Past 4,000 characters it asks first (#312).
+    await page.click(
+      '[data-assistant-paste-confirm] button:text-is("Continue")',
+    );
     await waitIdle(page);
   }
   ok(
@@ -363,6 +367,12 @@ async function onChecks(page: Page, pageCount: number) {
     "Start a new one: an empty thread, focus in the composer",
   );
 
+  ok(
+    !(await page.$("[data-assistant-paste-confirm]")) &&
+      (await page.inputValue(INPUT)).includes("A long note") &&
+      (await page.isEditable(INPUT)),
+    "the note that didn't fit waits in the box, the question gone (#312)",
+  );
   heading("A long paste is held, never cut");
   await page.fill(INPUT, "x".repeat(20_500));
   ok(

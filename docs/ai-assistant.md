@@ -219,9 +219,25 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
     off, drafts only) and are limited to 120 requests per admin per 10 minutes;
   - `scripts/check-assistant-render.mts` checks all of it against a running server: every seed page's measured fill
     against the editor's overflow marker, an unsaved edit, and the refusals.
-- **Planning tool for long pastes (#312, in review):** takes the whole plan in one call, and each section has **separate `headline`,
-  `kicker?`, `standfirst?`** fields with a worked example in the description. A prompt line alone did not stop the model turning
-  an all-caps headline into the kicker and the standfirst into the title.
+- **Planning tool for long pastes (#312):** `propose_sections({ after, sections })` takes the whole plan in one
+  call: up to 40 sections, each `{ headline, kicker?, standfirst?, body, photos? }` with a body of at most 20,000
+  characters. Headline, kicker and standfirst are **separate fields**, and the description carries a worked example
+  (the line in capitals is the headline, the sentence under it the standfirst, a kicker only when the author wrote one).
+  A prompt line alone did not stop the model turning an all-caps headline into the kicker and the standfirst into the
+  title. A body line starting `#`/`##` is a section heading and `###` a run-in sub-head. A photo is an issue photo's id
+  (an attached one included), after the standfirst or after the body's nth paragraph or list (`left`/`right` wrap at
+  45%); a photo with no id is a suggestion, which goes into the result and the author's run line ("Suggested a photo
+  for "Spring show"."). An unknown id refuses the whole plan. `base.md` tells the model to use it for several articles
+  or more than about a page of text, instead of inserting block by block. Covers are out of scope.
+- **Placement** (`assistant/plan-sections.ts`) builds each section's blocks with `markdownToDoc` and hands them to
+  Import PDF's paginator (`pdf-import/paginate.ts`'s `paginateImport`, fitted by `createMeasurer`'s page test, the one
+  Import PDF uses): each section from the top of a new page after `after` (an empty non-cover page there takes the
+  first), continuation pages added by measurement, a heading never left at a page's foot. The paginator's failures are
+  a typed `PaginateError`, so Import PDF keeps its wording and the assistant refuses with its own. Only the pages it
+  wrote are new objects; the rest keep their identity. The result names each section's pages and every written page's
+  fill, so "make the second one shorter" works as a normal follow-up, and the run's end-of-run review applies. A
+  placement belongs to its run: the run's `AbortController` (aborted by Stop, the run's end or the next message)
+  reaches the paginator and the measurer, and a call whose run is over lands nothing.
 
 ## Runs and the review
 
@@ -249,6 +265,20 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
   out as many lines as the page is over in one round, one edit per block. A cover gets one preset
   instead (#313), _Compose cover_: "Compose the cover on page N. Use the issue's strongest story as the lead and keep the
   current background."
+- **A long paste asks first (#312).** A message over **4,000 characters** isn't sent: the panel shows "That's a lot
+  of content. Laying it out will cost more than a normal request (about US$X on the current model). You could paste it
+  onto the page yourself and use me to tidy it. Continue?", with **Continue** and **Cancel**. It's code, not prompt, so
+  the question comes before anything is spent. Every sending surface — the composer, the presets, each block's and cover
+  item's Ask box — goes through one seam, `assistant/use-confirmed-send.ts`, so none can skip it: while the question is
+  up nothing else goes (a preset is refused), Continue sends the held message with its attached photos, and the
+  surface clears only once the chat has taken it; Cancel (or Escape) sends nothing and hands the text back to the box it
+  came from. The estimate (`assistant/paste-estimate.ts`) prices the paste on the model `GET /api/admin/ai/usage` names
+  (the fake provider is estimated as the default model) from the pricing table: a run's own cold prompt, tool results,
+  replies and thinking; the paste written to cache twice (the message, then the plan in history), returned as the plan's
+  arguments and read back by each later turn; and a picture of each page written for the review; rounded up to the
+  cent. The constants are fitted to Sonnet 5's real runs (2026-09-28): case 08's 5,000-character paste is estimated at
+  about US$0.12 against $0.04 and $0.11 measured before the review, and a 20,000-character paste at about US$0.22. A
+  run that also looks at photos or composes a cover costs more than the question says (case 14: $0.23 against $0.12).
 - **Automatic end-of-run review (#342):** when a run's changes touched the cover or more than one page, the panel
   pictures those pages (the cover first, at most 8) and sends them as one user message. The message is the review text
   (`assistant/review.ts`), then "Page N (fits, ~X% full)" and the picture for each
@@ -319,6 +349,9 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
 - **Alt text from the picture.** `vision.md` tells the model to look at each attached photo before placing it, write its
   alt text from what it shows and a caption only when the text supports one, and say which it left unplaced. Photos
   attached but never placed stay with the issue's photos, like any upload, and the run's line says how many.
+- **The cost question counts typed text only (#312).** A long message asks first (see Runs); the estimate is the
+  text's. Attached photos add their ids, not their bytes, and cost what the model spends looking at them, which isn't
+  known at send time.
 - **Privacy:** the panel's first-use text says attached photos join the issue's photos and are seen by the provider; the
   help page says the same.
 - **The proxy:** Next truncates proxied bodies at 10 MB, so a 10–12 MB photo used to reach the upload route cut short and
@@ -585,6 +618,8 @@ stalled-reply cases in the proxy and panel gates take seconds rather than a minu
 ```sh
 # in memory: the tool contract, edits, refusals, runs, split, feedback, breaker, vision budget, the cover tools
 npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-tools.mts
+# the long-paste plan: placement, fresh pages, photos and suggestions, refusals (the schema's bounds are in check-ai-tools)
+npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-plan.mts
 # the ledger and budget arithmetic; runs and their spend
 npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-budget.mts
 npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-runs.mts
@@ -595,7 +630,7 @@ npx tsx --tsconfig scripts/tsconfig.json scripts/check-assistant-projection.mts
 # against a running dev server
 npx tsx scripts/dev-ai-proxy-gate.mts <base-url> [<off-base-url>] [--log <server log>]
 npx tsx --tsconfig scripts/tsconfig.json scripts/check-assistant-render.mts <base-url>
-npx tsx --tsconfig scripts/tsconfig.json scripts/dev-assistant-tools-gate.mts <base-url>   # with its Ask, breaker and cover parts
+npx tsx --tsconfig scripts/tsconfig.json scripts/dev-assistant-tools-gate.mts <base-url>   # with its Ask, breaker, cover and long-paste parts
 npx tsx --tsconfig scripts/tsconfig.json scripts/dev-assistant-panel-gate.mts <base-url> [--off]
 npx tsx --tsconfig scripts/tsconfig.json scripts/dev-assistant-attach-gate.mts <base-url>   # photos attached in the chat
 npx tsx --tsconfig scripts/tsconfig.json scripts/dev-assistant-presets.mts <base-url> --fake [shots-dir]
@@ -635,9 +670,12 @@ delete their own rows.
   ending 2–4 lines over; with the words too, 0/3, ending 1–2 lines over; with `base.md` sizing the first round too,
   **2/3** in 4 calls ($0.05–0.12), the miss stopped by the stall rule 1 line over. The model still cuts less than asked
   in each round, so a page far over can take a Shorten or two more.
-- **Order in long pastes.** Laying out a three-article paste, Sonnet 5 once put an article's last section ahead of its
-  own main heading: every word kept, one section in the wrong place (case 08). The scorer reports it as "order
-  changed".
+- **Order in long pastes (#312, improved).** Laying out a three-article paste block by block, Sonnet 5 once put an
+  article's last section ahead of its own main heading: every word kept, one section in the wrong place (case 08). With
+  `propose_sections` the paste goes in one call and the paginator keeps its order: case 08 passed both real runs (7 and
+  3 calls, $0.106 and $0.043) and case 14 its one ($0.227, cover included), headlines as titles and standfirsts under
+  them. The first run copied the description's example kicker onto all three articles; the example now shows a plan
+  with none, and the second run added none.
 - **Replies claiming edits that weren't made (#360, improved).** On "Make bullets" Sonnet 5 once wrote the list into
   the first block, then said it had removed the other three without calling `delete_block`, so the notices appeared
   twice (1 of 6 runs over the two #315 batches). `base.md` now says to describe only what the tool calls did and to say
@@ -646,7 +684,9 @@ delete their own rows.
   diff, so the panel stays honest whatever the reply says; a panel-side check of the reply's verbs against the run's
   changes wasn't needed. The fixture's claim check fails any run that regresses.
 - **Pages left mostly empty.** Starting every article on a fresh page leaves short pages half blank, and neither model enlarged
-  photos or rebalanced to fill them. The review didn't flag it either.
+  photos or rebalanced to fill them. The review didn't flag it either. The plan's paginator can also carry a sentence
+  or two onto a page of their own (case 08: page 12 at ~5%, the page before it full), and the model left it, reading
+  "fits" as done.
 - **Cover review misses.** Small cover text over busy photos (the issue-details line) was missed by the model and by
   the review. In #313's real run (case 13, Sonnet 5, $0.098) the "Also inside" panel sat over the sail and the review
   said it didn't.

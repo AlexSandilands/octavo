@@ -22,6 +22,7 @@ const TOOL_WORDS: Record<string, [doing: string, done: string]> = {
   split_page: ["Carrying text onto a new page", "Carried text onto a new page"],
   set_image_text: ["Changing a photo's words", "Changed a photo's words"],
   set_image_layout: ["Placing a photo", "Placed a photo"],
+  propose_sections: ["Laying out the sections", "Laid out the sections"],
   view_photo: ["Looking at a photo", "Looked at a photo"],
 };
 // Tools that name a page: [running, done, failed].

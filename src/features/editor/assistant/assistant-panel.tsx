@@ -7,6 +7,7 @@ import { usageLine, type AiUsageSummary } from "@/lib/ai-usage-summary";
 import { unplacedText } from "./attached";
 import { AssistantComposer } from "./assistant-composer";
 import { AssistantThread } from "./assistant-thread";
+import { PasteConfirm } from "./paste-confirm";
 import { Icon } from "@/components/icons";
 import type { EditorSnapshot } from "../use-editor-history";
 import type { RunSummary } from "./executor";
@@ -18,6 +19,7 @@ import {
 } from "./presets";
 import type { useAssistantChat } from "./use-assistant-chat";
 import { filesOf, type useAttachments } from "./use-attachments";
+import type { ConfirmedSend } from "./use-confirmed-send";
 
 const DRAFTS_ONLY =
   "The assistant only works on drafts. Start a new issue to use it.";
@@ -30,9 +32,11 @@ const PHOTOS_NOTE =
 // issue gets one message and no composer; a spent budget keeps the thread but
 // disables the composer; a full conversation offers a fresh one. On opening,
 // focus goes to the composer (or the message standing in for it). Photos
-// dropped anywhere on the panel attach to the next message (#343).
+// dropped anywhere on the panel attach to the next message (#343). Everything
+// sends through `gate`, which holds a long message for the cost question (#312).
 export function AssistantPanel({
   chat,
+  gate,
   attachments,
   unplaced,
   published,
@@ -43,6 +47,7 @@ export function AssistantPanel({
   onUndo,
 }: {
   chat: ReturnType<typeof useAssistantChat>;
+  gate: ConfirmedSend;
   attachments: ReturnType<typeof useAttachments>;
   /** Photos attached to the last run's message that no page places now. */
   unplaced: number;
@@ -60,15 +65,26 @@ export function AssistantPanel({
   const notice = useRef<HTMLDivElement>(null);
   const spent = budgetSpent(chat, usage);
   const blocked = published || spent || chat.full;
+  // A long message waiting on the cost question (#312): nothing else goes, and
+  // the tray takes no photos in or out.
+  const { pending } = gate;
+  const composerPut = useRef<((text: string) => void) | null>(null);
+  const handBack = () => {
+    const back = gate.cancel();
+    if (back) composerPut.current?.(back.text);
+    input.current?.focus();
+  };
   const [dropping, setDropping] = useState(false);
   const dragging = (e: DragEvent) => {
-    if (blocked || !e.dataTransfer.types.includes("Files")) return false;
+    if (blocked || pending || !e.dataTransfer.types.includes("Files"))
+      return false;
     e.preventDefault();
     return true;
   };
   useEffect(() => {
     if (blocked) notice.current?.focus();
-    else input.current?.focus();
+    // A question up as the panel opens has taken the focus itself.
+    else if (!gate.pending) input.current?.focus();
     // Only on opening: the panel's content mounts as it slides in.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -81,6 +97,7 @@ export function AssistantPanel({
 
   return (
     <div
+      data-assistant-panel
       className={`relative flex min-h-0 flex-1 flex-col ${dropping ? "bg-accent-wash" : ""}`}
       onDragOver={(e) => {
         if (dragging(e)) setDropping(true);
@@ -149,7 +166,14 @@ export function AssistantPanel({
                 ) : (
                   <>
                     <p>This conversation is full.</p>
-                    <Button size="compact" onClick={chat.restart}>
+                    <Button
+                      size="compact"
+                      onClick={() => {
+                        // A paste still asking goes back to the box, editable.
+                        handBack();
+                        chat.restart();
+                      }}
+                    >
                       Start a new one
                     </Button>
                   </>
@@ -157,22 +181,46 @@ export function AssistantPanel({
               </div>
             )}
             <Presets
-              disabled={chat.busy || spent || chat.full}
+              disabled={chat.busy || spent || chat.full || pending !== null}
               cover={cover}
-              onPick={(id) => void chat.send(presetMessage(id, target))}
+              onPick={(id) =>
+                void gate.ask({
+                  text: presetMessage(id, target),
+                  attachments: [],
+                })
+              }
             />
+            {pending && (
+              <PasteConfirm
+                chars={pending.text.length}
+                model={usage?.model ?? null}
+                // A run under way, a full conversation or a photo not ready
+                // would refuse the send: the question and the text wait instead.
+                blocked={continueHeld(chat, pending, attachments)}
+                onContinue={async () => {
+                  if (continueHeld(chat, pending, attachments)) return;
+                  // The message and its photos go once the chat takes them:
+                  // only then do the box and the tray clear.
+                  if ((await gate.confirm()).ok) input.current?.focus();
+                }}
+                onCancel={handBack}
+              />
+            )}
             <AssistantComposer
               inputRef={input}
               busy={chat.busy}
               disabled={spent || chat.full}
               attachments={attachments}
-              onSend={async (text) => {
+              holding={pending !== null}
+              putRef={composerPut}
+              onSend={(text, taken) => {
                 // The ids as they were on sending; the tray empties only once
-                // the message is taken.
+                // the message is taken, now or on Continue.
                 const ids = attachments.ids;
-                const result = await chat.send(text, ids);
-                if (result.ok) attachments.clear(ids);
-                return result;
+                return gate.ask({ text, attachments: ids }, () => {
+                  taken();
+                  attachments.clear(ids);
+                });
               }}
               onStop={chat.stop}
             />
@@ -193,6 +241,18 @@ export function AssistantPanel({
     </div>
   );
 }
+
+/** Continue waits while the chat can't take the message, or its photos aren't
+ *  all uploaded. */
+const continueHeld = (
+  chat: Pick<ReturnType<typeof useAssistantChat>, "busy" | "full">,
+  pending: { attachments: string[] },
+  attachments: Pick<ReturnType<typeof useAttachments>, "uploading" | "failed">,
+) =>
+  chat.busy ||
+  chat.full ||
+  (pending.attachments.length > 0 &&
+    (attachments.uploading || attachments.failed));
 
 /** The month's budget is spent: nothing more can be sent. */
 export const budgetSpent = (

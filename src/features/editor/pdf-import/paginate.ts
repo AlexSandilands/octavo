@@ -12,6 +12,15 @@ import { cutParagraph, paragraphLength } from "./synthesis";
 import { checkAbort } from "./model";
 
 type TextBlock = Extract<Block, { type: "text" }>;
+/** Why a batch couldn't be placed; each caller words it for its own surface. */
+export class PaginateError extends Error {
+  constructor(
+    readonly reason: "pages" | "slow" | "image" | "block" | "limits",
+    message: string,
+  ) {
+    super(message);
+  }
+}
 export type Fits = (blocks: Block[], bleed?: boolean) => Promise<boolean>;
 function safeOffset(text: string, at: number) {
   const c = text.charCodeAt(at - 1),
@@ -73,7 +82,11 @@ async function splitText(
   ];
 }
 
-/** Only the destination is flowed. Later authored pages remain untouched. */
+/**
+ * Flows `inserted` into a page by measurement, adding pages as it needs (Import
+ * PDF, and the assistant's section plans, #312). Only the destination is
+ * flowed; later authored pages remain untouched.
+ */
 export async function paginateImport({
   pages,
   index,
@@ -127,7 +140,8 @@ export async function paginateImport({
       current = makePage("blank");
     }
     if (output.length >= maxNew && queue.length)
-      throw new Error(
+      throw new PaginateError(
+        "pages",
         "This import needs more than 200 magazine pages. Add less content or remove a page first.",
       );
   };
@@ -138,7 +152,8 @@ export async function paginateImport({
   while (queue.length) {
     checkAbort(signal);
     if (++steps > 3000 || performance.now() - started > 30_000)
-      throw new Error(
+      throw new PaginateError(
+        "slow",
         "Could not finish fitting this batch. Select fewer regions and retry.",
       );
     const next = queue[0]!;
@@ -193,13 +208,17 @@ export async function paginateImport({
       }
       const fit = { ...image, align: "page-fit" as const, caption: "" };
       if (!(await fits([fit], true)))
-        throw new Error("This image cannot be fitted. Choose a smaller image.");
+        throw new PaginateError(
+          "image",
+          "This image cannot be fitted. Choose a smaller image.",
+        );
       append(fit, next.origin);
       queue.shift();
       finish();
       continue;
     }
-    throw new Error(
+    throw new PaginateError(
+      "block",
       "A block cannot fit on a page. Shorten its heading or split its text in the review tray.",
     );
   }
@@ -209,7 +228,8 @@ export async function paginateImport({
     : [...pages.slice(0, index), ...output, ...pages.slice(index + 1)];
   const parsed = issueContentSchema.safeParse({ pages: result });
   if (!parsed.success)
-    throw new Error(
+    throw new PaginateError(
+      "limits",
       "This batch exceeds magazine content limits. Select a smaller batch.",
     );
   const last = splitMap[inserted.at(-1)!.id]?.at(-1) ?? null;

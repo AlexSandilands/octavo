@@ -2,7 +2,10 @@
 // own measurers (#310, #309), exactly as the canvas runs them, reachable from
 // Node through page.evaluate. Nothing here measures on its own.
 import type { Block, Page } from "@/lib/blocks";
-import type { MeasurementOptions } from "@/features/editor/pdf-import/measure";
+import {
+  createMeasurer,
+  type MeasurementOptions,
+} from "@/features/editor/pdf-import/measure";
 import { createPageMeasurer } from "@/features/editor/assistant/measure-page";
 import { createFillMeasurer } from "@/features/editor/assistant/measure-fills";
 import { resolveTheme } from "@/features/blocks/themes/registry";
@@ -15,6 +18,8 @@ export type HarnessOptions = Omit<MeasurementOptions, "theme"> & {
 let options: MeasurementOptions | null = null;
 let page: ReturnType<typeof createPageMeasurer> | null = null;
 let fills: ReturnType<typeof createFillMeasurer> | null = null;
+// A section plan's page test (#312), open while one plan is placed.
+let fitter: Awaited<ReturnType<typeof createMeasurer>> | null = null;
 
 const need = () => {
   if (!page || !fills) throw new Error("configure() first");
@@ -35,6 +40,16 @@ const api = {
   /** A cover's layout warnings, laid out as the reader sets it (#313). */
   cover: (p: Page, pages: Page[]) => need().page.cover(p, pages),
   fills: (pages: Page[]) => need().fills.measure(pages),
+  async openFitter() {
+    fitter?.dispose();
+    if (!options) throw new Error("configure() first");
+    fitter = await createMeasurer(options, new AbortController().signal);
+  },
+  fits: (blocks: Block[], bleed: boolean) => fitter!.fits(blocks, bleed),
+  closeFitter() {
+    fitter?.dispose();
+    fitter = null;
+  },
 };
 
 (window as unknown as { __assistant: typeof api }).__assistant = api;
