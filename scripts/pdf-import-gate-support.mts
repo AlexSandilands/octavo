@@ -63,7 +63,25 @@ export async function setup() {
   }
   throw new Error("Could not allocate scratch issue number.");
 }
+// The PDF route answers 403 while downloads are off, so a gate that fetches it
+// switches them on first; cleanup() puts back exactly what was found.
+let downloads: { existed: boolean; value: boolean | null } | undefined;
+export async function enablePdfDownloads() {
+  const [row] = await sql<{ found: boolean | null }[]>`
+    select pdf_downloads_enabled as found from settings where id = 1`;
+  downloads ??= { existed: Boolean(row), value: row?.found ?? null };
+  await sql`
+    insert into settings (id, pdf_downloads_enabled) values (1, true)
+    on conflict (id) do update set pdf_downloads_enabled = true`;
+}
+async function restorePdfDownloads() {
+  if (!downloads) return;
+  if (downloads.existed)
+    await sql`update settings set pdf_downloads_enabled = ${downloads.value} where id = 1`;
+  else await sql`delete from settings where id = 1`;
+}
 export async function cleanup() {
+  await restorePdfDownloads();
   await browser.close();
   await (await import("../src/server/issues.ts")).deleteIssue(iid);
   await sql`delete from users where id=${uid}`;
