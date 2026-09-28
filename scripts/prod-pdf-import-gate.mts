@@ -30,7 +30,7 @@ import {
   selectedRegions,
   addedRegions,
 } from "./pdf-import-gate-support.mts";
-import { CLOSE_PANEL, stripOrder } from "./editor-panel-gate-support.mts";
+import { stripOrder, PANEL_BUTTON } from "./editor-panel-gate-support.mts";
 const number = await setup();
 async function zoomSource(page: BrowserPage) {
   const canvas = page.locator("[data-pdf-private] canvas");
@@ -149,9 +149,7 @@ try {
   await page.getByRole("button", { name: "Replace PDF" }).waitFor();
   const order = await stripOrder(page);
   assert(
-    /^Import PDF, Close Import PDF, Replace PDF, Open a surface, Close panel$/.test(
-      order,
-    ),
+    /^Import PDF, Close Import PDF, Replace PDF, Open a surface$/.test(order),
     `Strip order: ${order}`,
   );
   assert.equal(await region(page, "Image").count(), 1);
@@ -344,7 +342,7 @@ try {
   await page.setViewportSize({ width: 768, height: 1000 });
   await page.waitForTimeout(500);
   await page.screenshot({ path: "/tmp/pdf-import-min-width.png" });
-  const strip = await page.locator(CLOSE_PANEL).boundingBox();
+  const strip = await page.locator(PANEL_BUTTON).boundingBox();
   assert(strip && strip.x + strip.width <= 768, "The strip stays on screen.");
   assert(
     await page

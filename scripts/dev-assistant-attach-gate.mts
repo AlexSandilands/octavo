@@ -37,7 +37,7 @@ import {
   type Doc,
 } from "./fixtures/assistant/tools-gate-kit.mts";
 import { attachSeamChecks } from "./fixtures/assistant/seam-attach-checks.mts";
-import { CLOSE_PANEL, openSurface } from "./editor-panel-gate-support.mts";
+import { openSurface, PANEL_BUTTON } from "./editor-panel-gate-support.mts";
 
 process.loadEnvFile?.(".env.local");
 const [base] = process.argv.slice(2);
@@ -408,7 +408,7 @@ async function checks(page: Page) {
     names[0] === "image.png" && names[1] === "image.png (2)",
     `repeated names are numbered (${names.slice(0, 3).join(", ")}…)`,
   );
-  await page.click(CLOSE_PANEL);
+  await page.click(PANEL_BUTTON);
   await openPanel(page);
   ok((await page.$$(THUMB)).length === 10, "closing the panel kept the tray");
 

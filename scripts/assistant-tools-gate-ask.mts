@@ -19,12 +19,12 @@ import {
   type watchChat,
 } from "./fixtures/assistant/tools-gate-kit.mts";
 import {
-  CLOSE_PANEL,
   PANEL,
   openSurface,
+  PANEL_BUTTON,
 } from "./editor-panel-gate-support.mts";
 
-const CLOSE = CLOSE_PANEL;
+const CLOSE = PANEL_BUTTON;
 const RUN = "[data-assistant-run]";
 const LOG = '[role="log"]';
 const DIALOG =

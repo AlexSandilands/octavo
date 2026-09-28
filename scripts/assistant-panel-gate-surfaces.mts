@@ -7,7 +7,6 @@
 import type { Page } from "playwright";
 import {
   CHOICE,
-  CLOSE_PANEL,
   PANEL_BUTTON,
   PLUS,
   STRIP,
@@ -26,7 +25,7 @@ const ITEM = `${MENU} [role="menuitem"]`;
 const PDF_COVER =
   "PDF import is available on interior pages. Move to another page to use it.";
 const FULL =
-  "Assistant, Close Assistant, Import PDF, Close Import PDF, Open a surface, Close panel";
+  "Assistant, Close Assistant, Import PDF, Close Import PDF, Open a surface";
 
 export async function checkSurfaces(d: {
   page: Page;
@@ -100,10 +99,7 @@ export async function checkSurfaces(d: {
     "focus lands on the first choice",
   );
   const empty = await stripOrder(page);
-  ok(
-    empty === "Open a surface, Close panel",
-    `the strip holds + and Close alone (${empty})`,
-  );
+  ok(empty === "Open a surface", `the strip holds + alone (${empty})`);
 
   heading("The + menu");
   await page.click(PLUS);
@@ -224,7 +220,7 @@ export async function checkSurfaces(d: {
   const withReplace = await stripOrder(page);
   ok(
     withReplace ===
-      "Assistant, Close Assistant, Import PDF, Close Import PDF, Replace PDF, Open a surface, Close panel",
+      "Assistant, Close Assistant, Import PDF, Close Import PDF, Replace PDF, Open a surface",
     `after the tabs, before +: ${withReplace}`,
   );
   await selectTab("Assistant");
@@ -277,7 +273,7 @@ export async function checkSurfaces(d: {
       (sel) => document.activeElement === document.querySelector(sel),
       PANEL_BUTTON,
     ),
-    "Close panel hands the focus to the header's button",
+    "closing from the header leaves the focus on its button",
   );
   await page.click(PANEL_BUTTON);
   await page.waitForSelector(PDF);
@@ -321,7 +317,7 @@ export async function checkSurfaces(d: {
     (await page.$("[data-pdf-cover-note]")) === null,
     "back on an interior page the importer is back",
   );
-  await page.click(CLOSE_PANEL);
+  await page.click(PANEL_BUTTON);
   await page.waitForFunction(
     () => !document.querySelector("aside#editor-side-panel")?.clientWidth,
   );

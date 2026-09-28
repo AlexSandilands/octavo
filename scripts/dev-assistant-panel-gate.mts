@@ -23,7 +23,6 @@ import { chromium, type Page, type Request } from "playwright";
 import postgres from "postgres";
 import { AI_ERROR_COPY } from "../src/lib/ai-chat-contract";
 import {
-  CLOSE_PANEL,
   PANEL,
   PANEL_BUTTON,
   openSurface,
@@ -103,7 +102,7 @@ async function onChecks(page: Page, pageCount: number) {
   ok(await panelOpen(page), "Assistant, chosen in the panel, opens it");
   const strip = await stripOrder(page);
   ok(
-    strip === "Assistant, Close Assistant, Open a surface, Close panel",
+    strip === "Assistant, Close Assistant, Open a surface",
     `the strip: ${strip}`,
   );
   ok(
@@ -120,7 +119,7 @@ async function onChecks(page: Page, pageCount: number) {
     ),
     "the cover note says so",
   );
-  await page.click(CLOSE_PANEL);
+  await page.click(PANEL_BUTTON);
   await page.waitForFunction(
     (sel) => document.querySelector(sel)?.hasAttribute("aria-hidden"),
     PANEL,
@@ -251,8 +250,7 @@ async function onChecks(page: Page, pageCount: number) {
   );
   const withChat = await stripOrder(page);
   ok(
-    withChat ===
-      "Assistant, Close Assistant, New conversation, Open a surface, Close panel",
+    withChat === "Assistant, Close Assistant, New conversation, Open a surface",
     `New conversation joins the strip: ${withChat}`,
   );
   ok(

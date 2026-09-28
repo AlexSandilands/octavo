@@ -17,8 +17,9 @@ const SMALL =
 
 // The strip along the top of the side panel (#353): a tab per open surface
 // with its own small Close, then — for the active tab only — its actions
-// (Replace PDF, New conversation), the + that opens another surface, and Close
-// panel last. Arrow keys move between tabs and switch to them, Home/End reach
+// (Replace PDF, New conversation) and the + that opens another surface; the
+// header's Panel button is what closes the panel, so the strip carries no
+// Close. Arrow keys move between tabs and switch to them, Home/End reach
 // the ends, Delete closes the focused tab; closing a tab puts the focus on the
 // tab that takes over, or on + when none is left. On a narrow panel the
 // controls wrap under the tabs rather than lose their words.
@@ -31,7 +32,6 @@ export function SurfaceStrip({
   onActivate,
   onCloseSurface,
   onOpenSurface,
-  onClosePanel,
 }: {
   surfaces: Surface[];
   activeId: string | null;
@@ -41,7 +41,6 @@ export function SurfaceStrip({
   onActivate: (id: string) => void;
   onCloseSurface: (id: string) => void;
   onOpenSurface: (kind: SurfaceKind) => void;
-  onClosePanel: () => void;
 }) {
   const tabs = useRef<Record<string, HTMLButtonElement | null>>({});
   const plus = useRef<HTMLDivElement>(null);
@@ -86,7 +85,7 @@ export function SurfaceStrip({
   return (
     <div
       data-surface-strip
-      className="border-line bg-paper flex min-h-11 flex-none flex-wrap items-center gap-x-1 gap-y-1.5 border-b px-2 py-1.5"
+      className="flex min-h-11 flex-none flex-wrap items-center gap-x-1 gap-y-1.5 px-2 pt-2 pb-1"
     >
       <div
         role="tablist"
@@ -166,15 +165,6 @@ export function SurfaceStrip({
         <div ref={plus}>
           <SurfaceMenu unavailable={unavailable} onOpen={onOpenSurface} />
         </div>
-        <button
-          type="button"
-          aria-label="Close panel"
-          title="Close panel"
-          onClick={onClosePanel}
-          className={`${SMALL} w-8`}
-        >
-          <Icon name="close" size={14} />
-        </button>
       </div>
     </div>
   );

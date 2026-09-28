@@ -124,17 +124,20 @@ export function EditorHeader({
         <Button size="sm" onClick={onPublish}>
           Publish
         </Button>
+        {/* Icon only, square: the one control that opens and closes the panel. */}
         <Button
           ref={panelButton}
           variant={panel.open ? "primary" : "secondary"}
           size="sm"
           icon="panel"
-          iconPosition="left"
+          aria-label="Panel"
+          title={panel.open ? "Close the panel" : "Open the panel"}
           aria-pressed={panel.open}
           aria-controls={PANEL_ID}
+          className="w-10 px-0"
           onClick={panel.onToggle}
         >
-          Panel
+          {null}
         </Button>
       </div>
     </header>

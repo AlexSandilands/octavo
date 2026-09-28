@@ -185,7 +185,6 @@ export function EditorSide({
           onActivate={surfaces.activate}
           onCloseSurface={surfaces.closeSurface}
           onOpenSurface={surfaces.openSurface}
-          onClosePanel={surfaces.closePanel}
         />
       </div>
       {surfaces.surfaces.length === 0 && (

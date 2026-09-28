@@ -7,7 +7,6 @@ export const PANEL = "aside#editor-side-panel";
 /** The header's one button: pressed while the panel is out, `aria-controls` it. */
 export const PANEL_BUTTON = 'button[aria-controls="editor-side-panel"]';
 export const STRIP = "[data-surface-strip]";
-export const CLOSE_PANEL = `${STRIP} button[aria-label="Close panel"]`;
 export const PLUS = `${STRIP} button[aria-label="Open a surface"]`;
 export const CHOICE = "[data-surface-choice]";
 export type SurfaceName = "Assistant" | "Import PDF";
@@ -69,9 +68,10 @@ export async function openSurface(page: Page, name: SurfaceName) {
   }
 }
 
-/** The strip's Close panel: the panel slides out, focus goes to the header. */
+/** Closes the panel from the header's Panel button (the strip has no Close):
+ *  the panel slides out and the focus stays on the button. */
 export async function closePanel(page: Page) {
-  await page.click(CLOSE_PANEL);
+  await page.click(PANEL_BUTTON);
   await page.waitForFunction(
     (sel) => document.querySelector(sel)?.hasAttribute("aria-hidden"),
     PANEL,

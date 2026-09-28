@@ -87,7 +87,7 @@ export const magazinePage = (page: BrowserPage, n: number) =>
 /** Import PDF as a tab of the side panel (#353): from the header's Panel
  * button and the choice or + menu, or its tab when it is already open. */
 export const openTool = (page: BrowserPage) => openSurface(page, "Import PDF");
-/** The strip's Close panel: the panel slides out and its surfaces unmount. */
+/** Closing the panel (the header's Panel button): it slides out and its surfaces unmount. */
 export const closeTool = (page: BrowserPage) => closePanel(page);
 export const fileInput = (page: BrowserPage) =>
   panel(page).locator('input[type="file"]');
