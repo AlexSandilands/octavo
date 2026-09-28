@@ -13,6 +13,7 @@ import {
   initial,
   setup,
   cleanup,
+  enablePdfDownloads,
   readDocument,
   settle,
   openFile,
@@ -393,6 +394,7 @@ try {
     path: "/tmp/pdf-import-reader-mobile.png",
     fullPage: true,
   });
+  await enablePdfDownloads();
   const pdf = await context.request.get(`${base}/api/issues/${number}/pdf`, {
     timeout: 120000,
   });
