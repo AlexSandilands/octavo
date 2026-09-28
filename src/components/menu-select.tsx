@@ -279,6 +279,11 @@ export function MenuSelect<T>({
     </div>
   );
 
+  // A collapsed trigger shows only its mark, so the words move to its name.
+  const collapsedName = collapseBelowLg
+    ? `${label ? `${label}: ` : ""}${current}`
+    : undefined;
+
   return (
     <div
       ref={rootRef}
@@ -288,19 +293,8 @@ export function MenuSelect<T>({
         ref={btnRef}
         type="button"
         disabled={disabled}
-        aria-label={
-          triggerLabel ??
-          (collapseBelowLg
-            ? `${label ? `${label}: ` : ""}${current}`
-            : undefined)
-        }
-        title={
-          iconOnly
-            ? triggerLabel
-            : collapseBelowLg
-              ? `${label ? `${label}: ` : ""}${current}`
-              : undefined
-        }
+        aria-label={triggerLabel ?? collapsedName}
+        title={iconOnly ? triggerLabel : collapsedName}
         onPointerDown={() => {
           if (open || disabled) return;
           onBeforeOpen?.();
