@@ -29,7 +29,10 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
   format bar, the heading, photo, montage, video and sponsor bars, or beside a bare type label. The owner's first browser
   pass found a free-floating pill above the bar awkward. A bar wider than the canvas used to run off its right edge (the
   photo bar's Alt field was cut off at common widths); now it slides left to stay inside, and one wider than the whole
-  canvas wraps onto a second row (`use-bar-fit.ts`), so Ask and Alt are always in reach. Alt has since become a button that opens a box like Ask's (#379: "No alt text" behind a warm dot when empty, "Alt text" with a check once written), and both share one shell, `bar-popover.tsx`. A bar's rule steps out of the way rather than hang alone on a wrapped line (`bar-rule.tsx`, #377). On a cover (#313) Ask ends
+  canvas wraps onto a second row (`use-bar-fit.ts`), so Ask and Alt are always in reach. Alt has since become a button
+  that opens a box like Ask's (#379: "No alt text" behind a warm dot when empty, "Alt text" with a check once written),
+  and both share one shell, `bar-popover.tsx`. A bar's rule steps out of the way rather than hang alone on a wrapped
+  line (`bar-rule.tsx`, #377). On a cover (#313) Ask ends
   every selected cover item's bar the same way: a text item's format bar, the story and details bars, and a small bar
   of its own on a logo or a cover photo; the message says "the selected cover item". Ask sits outside the format bar's
   scrolling row, so its box is never clipped, and the cover's bars stay on the canvas, clear of the inspector and the

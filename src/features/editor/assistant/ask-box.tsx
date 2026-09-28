@@ -11,8 +11,8 @@ import { BarRule } from "../bar-rule";
 // bar, opening a one-line box under the bar's right end (the shared
 // `BarPopover`: Escape closes it and hands focus back to Ask). Sending posts to
 // the panel's conversation with the block targeted — an ordinary run — and the
-// panel opens to show it. A long request goes to the panel's cost question (#312): the box closes and
-// the panel holds the words.
+// panel opens to show it. A long request goes to the panel's cost question
+// (#312): the box closes and the panel holds the words.
 
 /** Room left in the route's limit for the block id and page around the words. */
 const ASK_LIMIT = AI_MAX_TEXT_CHARS - 200;
