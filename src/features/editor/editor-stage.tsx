@@ -49,6 +49,8 @@ export type StageActions = Pick<
   registerImage: (imageId: string, image: ResolvedImage) => void;
   /** The assistant's Ask on the selected block (#311), when it's offered. */
   ask?: AskHandler;
+  /** The page the canvas finds running over, for the assistant's hints (#366). */
+  reportOverflow?: (pageId: string | null) => void;
 };
 
 type PageEdits = ReturnType<typeof useEditorPages>;
@@ -135,6 +137,12 @@ export function EditorStage({
     onFlow: actions.flowText,
     onMove: actions.moveToNextPage,
   });
+  // Read against this page's blocks: a marker still left from the page before
+  // names a block that isn't here.
+  const overPage =
+    overflow && page?.blocks.some((b) => b.id === overflow.id) ? page.id : null;
+  const { reportOverflow } = actions;
+  useEffect(() => reportOverflow?.(overPage), [overPage, reportOverflow]);
 
   // Destructured: property access on the returned object would read through
   // the ref it carries, which the render can't do.
