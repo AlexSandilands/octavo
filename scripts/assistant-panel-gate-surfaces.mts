@@ -86,8 +86,9 @@ export async function checkSurfaces(d: {
     "the empty panel offers Assistant and Import PDF as 44px+ buttons",
   );
   ok(
-    choice[1]?.disabled === "true" && choice[1].reason === PDF_COVER,
-    "Import PDF is greyed on the cover, with the reason",
+    choice.every((c) => c.disabled === null && c.reason === null) &&
+      !(await page.isVisible("[data-cover-inspector]")),
+    "both open on the cover too, where the panel takes the inspector's room",
   );
   ok(
     await page.evaluate(
@@ -111,9 +112,9 @@ export async function checkSurfaces(d: {
   ok(
     items.length === 2 &&
       items[0]?.text === "Assistant" &&
-      items[1]?.text === `Import PDF${PDF_COVER}` &&
-      items[1].disabled === "true",
-    "the menu lists Assistant and Import PDF, the latter greyed with its reason",
+      items[1]?.text === "Import PDF" &&
+      items.every((i) => i.disabled === null),
+    "the menu lists Assistant and Import PDF",
   );
   ok(
     await page.evaluate(
@@ -123,11 +124,13 @@ export async function checkSurfaces(d: {
     "opening puts the focus on the first item",
   );
   await page.keyboard.press("ArrowDown");
-  await page.keyboard.press("Enter");
+  await page.keyboard.press("ArrowUp");
   ok(
-    (await tab(page, "Import PDF").count()) === 0 &&
-      (await page.$(MENU)) !== null,
-    "Enter on the greyed item opens nothing",
+    (await page.evaluate(
+      (sel) => document.activeElement === document.querySelector(sel),
+      ITEM,
+    )) && (await tab(page, "Import PDF").count()) === 0,
+    "the arrow keys move between the items without opening one",
   );
   await page.keyboard.press("Escape");
   ok(
