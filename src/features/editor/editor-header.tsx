@@ -129,7 +129,6 @@ export function EditorHeader({
           ref={panelButton}
           variant={panel.open ? "primary" : "secondary"}
           size="sm"
-          icon="panel"
           aria-label="Panel"
           title={panel.open ? "Close the panel" : "Open the panel"}
           aria-pressed={panel.open}
@@ -137,7 +136,7 @@ export function EditorHeader({
           className="w-10 px-0"
           onClick={panel.onToggle}
         >
-          {null}
+          <Icon name="panel" size={19} />
         </Button>
       </div>
     </header>
