@@ -93,13 +93,11 @@ function isGatedRoute(pathname: string): boolean {
 }
 
 // Next 16.3.1-16.3.4 emitted the scripts for a segment's loading/error
-// boundaries without a nonce, so this CSP blocked one chunk per page (#319);
-// fixed in 16.3.5, and scripts/prod-csp-gate.mts fails if it comes back. A
-// client transition (redirect() re-rendering from the root, or router.push()
-// after a server action) also silently never committed (#276, #296, #335),
-// and whether that shared the cause is unproven, so create-issue and sign-out
-// still navigate themselves with a real navigation, and Button's `reload`
-// does the same for links.
+// boundaries without a nonce, so this CSP blocked one chunk per page, and
+// server-action redirects and router.push() after an action intermittently
+// never committed (#276, #296, #319, #335). Fixed in 16.3.5;
+// scripts/prod-csp-gate.mts and prod-transition-stress-gate.mts fail if it
+// comes back, so ordinary client navigation is safe to use.
 function buildCsp(nonce: string): string {
   return [
     "default-src 'self'",
