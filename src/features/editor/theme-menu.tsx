@@ -4,6 +4,7 @@ import type {
   LayoutTheme,
   LayoutThemeId,
 } from "@/features/blocks/themes/registry";
+import { Icon } from "@/components/icons";
 import { MenuSelect, type MenuSelectItem } from "@/components/menu-select";
 
 // The editor header's layout-theme picker. It replaced a click-to-cycle control
@@ -30,6 +31,8 @@ export function ThemeMenu({
       label="Theme"
       current={themes.find((t) => t.id === themeId)?.name ?? ""}
       ariaLabel="Layout theme"
+      icon={<Icon name="palette" size={18} className="shrink-0" />}
+      collapseBelowLg
       items={items}
       value={themeId}
       onSelect={onSelect}
