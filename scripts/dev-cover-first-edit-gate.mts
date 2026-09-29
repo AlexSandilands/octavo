@@ -171,6 +171,24 @@ try {
       await settleLike(b, f.read, `${left}!`);
       ok("undo of the first edit keeps focus in the field; typing carries on");
 
+      // The caret keeps its place through the rebuild: typed mid-word, mid-word.
+      const m = await freshIssue();
+      box = await open(page, m, f.name);
+      const whole = f.read(await stored(m));
+      await box.click();
+      await page.keyboard.press("Home");
+      await page.keyboard.press("ArrowRight");
+      await page.keyboard.press("ArrowRight");
+      await page.keyboard.type("abc", { delay: 40 });
+      const mid = `${whole.slice(0, 2)}abc${whole.slice(2)}`;
+      assert(
+        same(await text(box), mid),
+        `mid-word typing (${await text(box)})`,
+      );
+      assert.equal(await focusedLabel(page), f.name, "focus stays mid-word");
+      await settle(m, f.read, mid);
+      ok("typing mid-word lands at the caret, in order");
+
       // Native replace over the whole paragraph (autocorrect / dictation / paste).
       const c = await freshIssue();
       box = await open(page, c, f.name);

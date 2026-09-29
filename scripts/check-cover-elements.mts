@@ -12,6 +12,7 @@ import {
   previewTitle,
   DEFAULT_COVER_PLACEMENT,
 } from "../src/lib/cover-elements";
+import { hasCoverLayout } from "../src/lib/cover-order";
 import { collectImageIds } from "../src/lib/images";
 import { PageBlocks } from "../src/features/blocks/page-blocks";
 import { resolveTheme } from "../src/features/blocks/themes/registry";
@@ -26,8 +27,12 @@ for (const template of [
 ] as const) {
   const page = makePage(template);
   assert.equal(page.coverElements, undefined);
+  // A new cover starts on the grid, so its first edit switches nothing.
+  assert(hasCoverLayout(page));
   assert(
-    page.blocks.every((b) => !("coverPlacement" in b) || !b.coverPlacement),
+    page.blocks
+      .filter((b) => b.type === "heading" || b.type === "text")
+      .every((b) => "coverPlacement" in b && b.coverPlacement),
   );
 }
 const body: Page = {
