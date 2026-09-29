@@ -92,12 +92,14 @@ function isGatedRoute(pathname: string): boolean {
   return false;
 }
 
-// Known Next 16 defect: the scripts Next emits for a segment's loading/error
-// boundaries carry no nonce, so this CSP blocks one per page — harmless on a
-// page load, but a client transition (redirect() re-rendering from the root,
-// or router.push() after a server action) can silently never commit (#276,
-// #296, #335), so create-issue and sign-out navigate themselves with a real
-// navigation instead, and Button's `reload` does the same for links.
+// Next 16.3.1-16.3.4 emitted the scripts for a segment's loading/error
+// boundaries without a nonce, so this CSP blocked one chunk per page (#319);
+// fixed in 16.3.5, and scripts/prod-csp-gate.mts fails if it comes back. A
+// client transition (redirect() re-rendering from the root, or router.push()
+// after a server action) also silently never committed (#276, #296, #335),
+// and whether that shared the cause is unproven, so create-issue and sign-out
+// still navigate themselves with a real navigation, and Button's `reload`
+// does the same for links.
 function buildCsp(nonce: string): string {
   return [
     "default-src 'self'",

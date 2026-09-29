@@ -8,6 +8,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { chromium } from "playwright";
 import postgres from "postgres";
 import { emptyIssueContent, type IssueContent } from "../src/lib/blocks.ts";
+import { DEFAULT_COVER_PLACEMENT } from "../src/lib/cover-elements.ts";
 import { gateServer } from "./editor-save-gate-server.mts";
 
 assert(process.env.DATABASE_URL && process.env.AUTH_SECRET);
@@ -36,6 +37,12 @@ const context = await browser.newContext({
 context.setDefaultTimeout(10_000);
 const page = await context.newPage();
 const content = emptyIssueContent();
+// A fresh cover is a stack until its first edit places the title, and that switch
+// remounts the title's rich editor and drops its focus. Start placed so this gate
+// exercises autosave, not that first-edit remount.
+const cover = content.pages[0]!.blocks[0]!;
+assert(cover.type === "heading");
+cover.coverPlacement = { ...DEFAULT_COVER_PLACEMENT };
 const ok = (message: string) => console.log(`ok — ${message}`);
 const row = async () => {
   const [result] = await sql<
@@ -66,10 +73,12 @@ const bodyTitle = (r: Awaited<ReturnType<typeof row>>) => {
   const block = r.content.pages[0]?.blocks[0];
   return block?.type === "heading" ? block.title : undefined;
 };
+// Typed like an author (select all, then keys): a cover title is a rich editor,
+// and Playwright's fill() replaces its text natively, which that editor drops.
 const editContent = async (title: string, p = page) => {
-  await p
-    .getByRole("textbox", { name: "Cover title", exact: true })
-    .fill(title);
+  await p.getByRole("textbox", { name: "Cover title", exact: true }).click();
+  await p.keyboard.press("ControlOrMeta+A");
+  await p.keyboard.type(title);
 };
 const request = (
   data: unknown,
