@@ -24,8 +24,9 @@
 // The editor's non-modal block-bar boxes (Alt, Ask) get their half of the
 // contract from dialog-a11y-bar-popovers.mts, run last (#379).
 //
-// It mints its own scratch admin + session + draft issue and removes them again
-// in the finally block — it never seeds and never touches existing rows.
+// It mints its own scratch admin + session + draft issue (and a scratch sponsor
+// when the table is empty) and removes them again in the finally block — it
+// never seeds and never touches existing rows.
 // Run: npx tsx scripts/dev-dialog-a11y-gate.mts <base-url>
 import postgres from "postgres";
 import { chromium, type Page } from "playwright";
@@ -33,6 +34,10 @@ import { expandMember } from "./check-member-disclosure.mts";
 import { checkBarPopovers } from "./dialog-a11y-bar-popovers.mts";
 import { checkDiscussionDialogs } from "./dialog-a11y-discussion.mts";
 import { checkReportsDialogs } from "./dialog-a11y-reports.mts";
+import {
+  ensureSponsorRow,
+  removeScratchSponsors,
+} from "./dialog-a11y-scratch-sponsor.mts";
 
 process.loadEnvFile?.(".env.local");
 const base = process.argv[2];
@@ -567,6 +572,12 @@ try {
 
   // ── 5. SponsorDialog — including the in-flight save lock ─────────────────
   heading("SponsorDialog");
+  const addedAnchor = await ensureSponsorRow(sql);
+  console.log(
+    addedAnchor
+      ? "  (no sponsors here — added a scratch one for the header button)"
+      : "  (sponsors exist — left untouched)",
+  );
   await page.goto(`${base}/admin/sponsors`);
   await page.waitForSelector("button:has-text('Add sponsor')");
   await page.click("button:has-text('Add sponsor')");
@@ -977,7 +988,7 @@ try {
   await browser.close();
   // By pattern, not just by id: a run that dies mid-way still has to leave the
   // shared dev database exactly as it found it.
-  await sql`delete from sponsors where name = ${"Scratch 130 Sponsor"}`;
+  await removeScratchSponsors(sql);
   await sql`delete from issues where id = ${issueId} or title = ${"Scratch 130"}`;
   await sql`delete from sessions where session_token = ${token}
               or user_id in (select id from users
