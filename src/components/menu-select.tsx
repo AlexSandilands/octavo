@@ -48,6 +48,7 @@ export function MenuSelect<T>({
   triggerLabel,
   icon,
   iconOnly = false,
+  collapseBelowLg = false,
   portal = false,
   disabled = false,
   onBeforeOpen,
@@ -78,6 +79,9 @@ export function MenuSelect<T>({
   icon?: ReactNode;
   /** Show only that mark while keeping `triggerLabel` as the accessible name. */
   iconOnly?: boolean;
+  /** Below `lg` (1024px) shrink to a square showing only `icon`; the label
+   *  and value stay as the accessible name and tooltip. Needs `icon`. */
+  collapseBelowLg?: boolean;
   /** Escape scrolling inspectors; constrain the menu to the viewport. */
   portal?: boolean;
   disabled?: boolean;
@@ -276,14 +280,22 @@ export function MenuSelect<T>({
     </div>
   );
 
+  // A collapsed trigger shows only its mark, so the words move to its name.
+  const collapsedName = collapseBelowLg
+    ? `${label ? `${label}: ` : ""}${current}`
+    : undefined;
+
   return (
-    <div ref={rootRef} className={`relative ${iconOnly ? "flex-none" : ""}`}>
+    <div
+      ref={rootRef}
+      className={`relative ${iconOnly ? "flex-none" : collapseBelowLg ? "max-lg:flex-none" : ""}`}
+    >
       <button
         ref={btnRef}
         type="button"
         disabled={disabled}
-        aria-label={triggerLabel}
-        title={iconOnly ? triggerLabel : undefined}
+        aria-label={triggerLabel ?? collapsedName}
+        title={iconOnly ? triggerLabel : collapsedName}
         onPointerDown={() => {
           if (open || disabled) return;
           onBeforeOpen?.();
@@ -318,14 +330,20 @@ export function MenuSelect<T>({
                   ? "h-[30px] w-[30px] justify-center rounded-[6px] text-[12px]"
                   : "h-[30px] gap-1 rounded-[6px] px-1.5 text-[12px]"
                 : iconOnly
-                  ? `w-10 justify-center ${size === "md" ? "h-11" : "h-10"}`
-                  : `gap-2 rounded-lg px-3.5 text-sm ${size === "md" ? "h-11" : "h-10"}`
+                  ? `w-10 justify-center ${size === "md" ? "h-11" : "h-10"} ${collapseBelowLg ? "max-lg:w-10 max-lg:justify-center max-lg:px-0!" : ""}`
+                  : `gap-2 rounded-lg px-3.5 text-sm ${size === "md" ? "h-11" : "h-10"} ${collapseBelowLg ? "max-lg:w-10 max-lg:justify-center max-lg:px-0!" : ""}`
         } ${className}`}
       >
-        {icon}
+        {collapseBelowLg ? (
+          <span className="contents lg:hidden">{icon}</span>
+        ) : (
+          icon
+        )}
         {!iconOnly && (
           <>
-            <span className="min-w-0 truncate">
+            <span
+              className={`min-w-0 truncate ${collapseBelowLg ? "max-lg:hidden" : ""}`}
+            >
               {label ? `${label}: ` : ""}
               {current}
             </span>
@@ -333,7 +351,7 @@ export function MenuSelect<T>({
               name="chevronDown"
               size={size === "sm" || size === "md" ? 14 : 12}
               strokeWidth={1.8}
-              className={`shrink-0 ${side === "top" ? "rotate-180" : ""}`}
+              className={`shrink-0 ${side === "top" ? "rotate-180" : ""} ${collapseBelowLg ? "max-lg:hidden" : ""}`}
             />
           </>
         )}

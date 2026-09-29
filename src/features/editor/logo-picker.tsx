@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { LogoListItem } from "@/lib/logos";
+import { Icon } from "@/components/icons";
 import { MenuSelect, type MenuSelectItem } from "@/components/menu-select";
 
 // The editor header's footer-mark control: choose one of the marks from the
@@ -55,6 +56,8 @@ export function LogoPicker({
       label="Logo"
       current={current}
       ariaLabel="Issue footer logo"
+      icon={<Icon name="image" size={18} className="shrink-0" />}
+      collapseBelowLg
       items={items}
       value={logoId}
       onSelect={onChange}
