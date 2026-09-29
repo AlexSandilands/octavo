@@ -72,7 +72,7 @@ export function EditorBlockBar({
           />
           {block.imageId && (
             <>
-              <span className="bg-line h-5 w-px" />
+              <BarRule />
               <ImageLayoutControls
                 align={block.align ?? "full"}
                 width={block.width ?? 100}
@@ -105,7 +105,7 @@ export function EditorBlockBar({
           />
           {block.items.length > 0 && (
             <>
-              <span className="bg-line h-5 w-px" />
+              <BarRule />
               {/* Placement/size are the image block's controls verbatim —
                   a montage occupies a photo slot, so it sizes like one. */}
               <ImageLayoutControls
@@ -133,7 +133,7 @@ export function EditorBlockBar({
           />
           {block.videoId && (
             <>
-              <span className="bg-line h-5 w-px" />
+              <BarRule />
               {/* Placement/size are the image block's controls verbatim —
                   a video occupies a photo slot, so it sizes like one. */}
               <ImageLayoutControls

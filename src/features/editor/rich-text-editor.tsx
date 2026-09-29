@@ -15,6 +15,7 @@ import {
 import { externalHref } from "@/lib/rich-text";
 import { stringToDoc, type RichTextValue } from "@/lib/rich-text-doc";
 import { Underline, Link } from "./rich-text-marks";
+import { BarRule } from "./bar-rule";
 import { useBarFit } from "./use-bar-fit";
 
 // The editing surface for a body-text block. A Tiptap editor styled to match the
@@ -198,7 +199,7 @@ function Toolbar({
             />
           ))}
         </div>
-        <span className="bg-line h-5 w-px" />
+        <BarRule />
         <TbBtn
           label="B"
           labelClass="font-bold"
@@ -221,7 +222,7 @@ function Toolbar({
           active={editor.isActive("underline")}
           onClick={() => editor.chain().focus().toggleMark("underline").run()}
         />
-        <span className="bg-line h-5 w-px" />
+        <BarRule />
         <TbBtn
           icon="listBullet"
           title="Bullet list"
@@ -234,7 +235,7 @@ function Toolbar({
           active={editor.isActive("orderedList")}
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
         />
-        <span className="bg-line h-5 w-px" />
+        <BarRule />
         <TbBtn
           icon="link"
           title="Link"

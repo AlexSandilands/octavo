@@ -10,7 +10,8 @@
 // with its edits kept (assistant-tools-gate-breaker.mts). Then vision (#342,
 // fixtures/assistant/vision-checks.mts), a cover composed by a run (#313,
 // assistant-tools-gate-cover.mts), and the long paste (#312,
-// assistant-tools-gate-plan.mts).
+// assistant-tools-gate-plan.mts). The bars' rules at widths that wrap them
+// (#388, assistant-tools-gate-bar-rules.mts).
 //
 // SAFETY: shared dev database. It mints its own admin, session, a draft and a
 // published copy of it, and one photo row (a key with no file behind it); the finally deletes exactly those
@@ -36,6 +37,7 @@ import { checkAsk } from "./assistant-tools-gate-ask.mts";
 import { planChecks } from "./assistant-tools-gate-plan.mts";
 import { askSeamChecks } from "./fixtures/assistant/seam-checks.mts";
 import { checkCover } from "./assistant-tools-gate-cover.mts";
+import { checkBarRules } from "./assistant-tools-gate-bar-rules.mts";
 import { showHint } from "./fixtures/assistant/show-hint.mts";
 import { PANEL_BUTTON, openSurface } from "./editor-panel-gate-support.mts";
 
@@ -390,6 +392,9 @@ async function checks(page: Page) {
     ok,
     heading,
   });
+
+  await page.click('button[aria-label="Page 2"]');
+  await checkBarRules({ page, ok, heading });
 
   await checkCover({ page, sql, base: base!, tag, ok, heading, shots });
 
