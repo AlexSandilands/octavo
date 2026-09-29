@@ -66,8 +66,9 @@ export function MenuSelect<T>({
   onSelect: (value: T) => void;
   /** Trigger height: "sm" (40px) suits dense chrome like the editor header;
    * "md" (44px) meets the tap-target floor; "toolbar" (30px) matches the text-tool box;
-   * "compact" (32px, a hairline pill) keeps a 44px hit area beyond its edge. */
-  size?: "sm" | "md" | "toolbar" | "compact";
+   * "compact" (32px, a hairline pill) keeps a 44px hit area beyond its edge;
+   * "bar" (28px) matches the buttons in a selected block's bar. */
+  size?: "sm" | "md" | "toolbar" | "compact" | "bar";
   /** Bottom toolbars open their menus upward, clear of the viewport edge. */
   side?: "top" | "bottom";
   /** Extra classes for the trigger — widths and placement only, as on Button. */
@@ -313,22 +314,24 @@ export function MenuSelect<T>({
             toggle();
           }
         }}
-        className={`border-hair-warm text-ink enabled:hover:border-accent enabled:hover:bg-accent-wash disabled:cursor-default disabled:opacity-40 flex cursor-pointer items-center bg-white font-sans font-medium transition-[transform,background-color,border-color] duration-150 ease-out select-none motion-safe:active:scale-[0.97] ${
+        className={`${size === "bar" ? "border-hair font-semibold" : "border-hair-warm font-medium"} text-ink enabled:hover:border-accent enabled:hover:bg-accent-wash disabled:cursor-default disabled:opacity-40 flex cursor-pointer items-center bg-white font-sans transition-[transform,background-color,border-color] duration-150 ease-out select-none motion-safe:active:scale-[0.97] ${
           iconOnly
             ? "rounded-[9px] border"
-            : size === "compact"
+            : size === "compact" || size === "bar"
               ? "border"
               : "border-[1.5px]"
         } ${
           size === "compact"
             ? "relative h-8 max-w-full gap-1.5 rounded-full px-2 text-[13px] before:absolute before:inset-x-0 before:-inset-y-1.5 before:content-['']"
-            : size === "toolbar"
-              ? iconOnly
-                ? "h-[30px] w-[30px] justify-center rounded-[6px] text-[12px]"
-                : "h-[30px] gap-1 rounded-[6px] px-1.5 text-[12px]"
-              : iconOnly
-                ? `w-10 justify-center ${size === "md" ? "h-11" : "h-10"}`
-                : `gap-2 rounded-lg px-3.5 text-sm ${size === "md" ? "h-11" : "h-10"} ${collapseBelowLg ? "max-lg:w-10 max-lg:justify-center max-lg:px-0!" : ""}`
+            : size === "bar"
+              ? "h-7 max-w-full gap-1.5 rounded-[6px] px-2.5 text-[12px]"
+              : size === "toolbar"
+                ? iconOnly
+                  ? "h-[30px] w-[30px] justify-center rounded-[6px] text-[12px]"
+                  : "h-[30px] gap-1 rounded-[6px] px-1.5 text-[12px]"
+                : iconOnly
+                  ? `w-10 justify-center ${size === "md" ? "h-11" : "h-10"} ${collapseBelowLg ? "max-lg:w-10 max-lg:justify-center max-lg:px-0!" : ""}`
+                  : `gap-2 rounded-lg px-3.5 text-sm ${size === "md" ? "h-11" : "h-10"} ${collapseBelowLg ? "max-lg:w-10 max-lg:justify-center max-lg:px-0!" : ""}`
         } ${className}`}
       >
         {collapseBelowLg ? (
@@ -346,7 +349,7 @@ export function MenuSelect<T>({
             </span>
             <Icon
               name="chevronDown"
-              size={size === "toolbar" || size === "compact" ? 12 : 14}
+              size={size === "sm" || size === "md" ? 14 : 12}
               strokeWidth={1.8}
               className={`shrink-0 ${side === "top" ? "rotate-180" : ""} ${collapseBelowLg ? "max-lg:hidden" : ""}`}
             />

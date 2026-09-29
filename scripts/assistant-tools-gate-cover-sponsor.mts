@@ -55,6 +55,7 @@ export async function checkCoverSponsorAsk(d: {
         hit: hit ? `${hit.tagName.toLowerCase()} in "${over}"` : "nothing",
       };
     });
+  let wrappedSeen = false;
   try {
     await tab.goto(`${d.base}/admin/issues/${d.id}/edit`);
     await tab.waitForSelector(PANEL_BUTTON);
@@ -92,6 +93,31 @@ export async function checkCoverSponsorAsk(d: {
           mouse.mine,
           `${at}: the sponsor's Ask (${mouse.at}) is on top at its centre (${mouse.hit})`,
         );
+        // #377: a rule that would hang alone on a wrapped line is hidden, and
+        // Ask then sits flush with the bar's left padding (the picker's edge).
+        const rule = await tab.$eval(ask, (el) => {
+          const wrap = el.parentElement!;
+          const picker = wrap.parentElement!.firstElementChild as HTMLElement;
+          const line = wrap.previousElementSibling as HTMLElement;
+          const shown =
+            line.classList.contains("bg-line") && !!line.offsetParent;
+          return {
+            shown,
+            wrapped: wrap.offsetTop >= picker.offsetTop + picker.offsetHeight,
+            hangs:
+              shown &&
+              (line.offsetLeft <= picker.offsetLeft ||
+                wrap.offsetLeft <= line.offsetLeft),
+            inset: wrap.offsetLeft - picker.offsetLeft,
+          };
+        });
+        ok(!rule.hangs, `${at}: no rule hangs alone beside Ask`);
+        if (rule.wrapped)
+          ok(
+            !rule.shown && rule.inset === 0,
+            `${at}: Ask on its own line has no rule and sits flush (inset ${rule.inset}px)`,
+          );
+        wrappedSeen ||= rule.wrapped;
         if (d.shots)
           await tab.screenshot({
             path: `${d.shots}/cover-sponsor-ask-${width}-panel-${panel ? "open" : "closed"}.png`,
@@ -130,6 +156,7 @@ export async function checkCoverSponsorAsk(d: {
         await tab.keyboard.press("Escape"); // deselects: the next width starts clean
       }
     }
+    ok(wrappedSeen, "a width wrapped Ask onto its own line (#377 exercised)");
   } finally {
     await tab.close();
   }
