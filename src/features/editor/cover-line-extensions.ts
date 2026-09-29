@@ -1,7 +1,7 @@
 import { Extension, Node, type Editor } from "@tiptap/core";
 import type { Node as PmNode } from "@tiptap/pm/model";
-import { Plugin, PluginKey } from "@tiptap/pm/state";
-import { Decoration, DecorationSet } from "@tiptap/pm/view";
+import { Plugin, PluginKey, Selection, TextSelection } from "@tiptap/pm/state";
+import { Decoration, DecorationSet, type EditorView } from "@tiptap/pm/view";
 
 // Each paragraph's text sits in the reader's `CoverLine` pair, so a panel that
 // fits the text bands the lines being typed exactly as it does when read.
@@ -82,6 +82,64 @@ export const CoverLineGaps = Extension.create({
         props: {
           decorations: (state) =>
             gapsKey.getState(state) ? gaps(state.doc) : null,
+        },
+      }),
+    ];
+  },
+});
+
+/** The selection the browser is about to replace. ProseMirror learns of a new
+ *  selection a beat after the browser makes it (fill(), dictation, autocorrect),
+ *  so its own state can still say "caret"; the DOM's is the truth here. */
+function pendingSelection(view: EditorView): Selection | null {
+  const dom = view.dom.ownerDocument.getSelection();
+  if (!dom || dom.isCollapsed || !dom.anchorNode || !dom.focusNode) return null;
+  if (!view.dom.contains(dom.anchorNode) || !view.dom.contains(dom.focusNode))
+    return null;
+  const { doc } = view.state;
+  const at = (n: globalThis.Node, o: number) =>
+    doc.resolve(Math.max(0, Math.min(doc.content.size, view.posAtDOM(n, o))));
+  const found = TextSelection.between(
+    at(dom.anchorNode, dom.anchorOffset),
+    at(dom.focusNode, dom.focusOffset),
+  );
+  return found.empty ? null : found;
+}
+
+/** Replaces a selection with typed or corrected text through ProseMirror. Left to
+ *  the browser, replacing a paragraph's whole text also removes its `cover-line`
+ *  spans, and the new text lands outside the editable content and is lost. Text
+ *  under composition (an IME) is not cancelable and is not handled here. */
+export const CoverReplaceSelection = Extension.create({
+  name: "coverReplaceSelection",
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        props: {
+          handleDOMEvents: {
+            beforeinput: (view, event) => {
+              const e = event as InputEvent;
+              if (
+                e.isComposing ||
+                (e.inputType !== "insertText" &&
+                  e.inputType !== "insertReplacementText")
+              )
+                return false;
+              const text = e.data ?? e.dataTransfer?.getData("text/plain");
+              const selection = view.state.selection.empty
+                ? pendingSelection(view)
+                : view.state.selection;
+              if (!text || !selection) return false;
+              e.preventDefault();
+              view.dispatch(
+                view.state.tr
+                  .setSelection(selection)
+                  .insertText(text)
+                  .scrollIntoView(),
+              );
+              return true;
+            },
+          },
         },
       }),
     ];
