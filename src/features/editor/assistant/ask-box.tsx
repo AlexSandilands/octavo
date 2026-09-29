@@ -1,18 +1,18 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import { useId, useState } from "react";
 import { Icon } from "@/components/icons";
 import { AI_ERROR_COPY, AI_MAX_TEXT_CHARS } from "@/lib/ai-chat-contract";
 import type { SendResult } from "./use-assistant-chat";
-import { useBarFit } from "../use-bar-fit";
-import { useLoneRule } from "../use-lone-rule";
+import { BarPopover } from "../bar-popover";
+import { BarRule } from "../bar-rule";
 
 // The per-block Ask (#311): the last control in the selected block's own tool
-// bar, opening a one-line box under the bar's right end. Sending posts to the
-// panel's conversation with the block targeted — an ordinary run — and the
-// panel opens to show it. The box slides to stay inside the canvas. Escape closes the box and hands focus back to Ask.
-// A long request goes to the panel's cost question (#312): the box closes and
-// the panel holds the words.
+// bar, opening a one-line box under the bar's right end (the shared
+// `BarPopover`: Escape closes it and hands focus back to Ask). Sending posts to
+// the panel's conversation with the block targeted — an ordinary run — and the
+// panel opens to show it. A long request goes to the panel's cost question
+// (#312): the box closes and the panel holds the words.
 
 /** Room left in the route's limit for the block id and page around the words. */
 const ASK_LIMIT = AI_MAX_TEXT_CHARS - 200;
@@ -49,39 +49,13 @@ export function AskControl({
   /** Says whether the conversation took it (not when full, spent, busy). */
   onSend: (text: string) => Promise<SendResult>;
 }) {
-  const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
   const [refused, setRefused] = useState<Refusal | null>(null);
   const [sending, setSending] = useState(false);
-  const root = useRef<HTMLDivElement>(null);
-  const trigger = useRef<HTMLButtonElement>(null);
-  const input = useRef<HTMLInputElement>(null);
-  const send = useRef<HTMLButtonElement>(null);
-  // Kept inside the canvas like the bar: on a wrapped bar Ask may sit far left.
-  const box = useBarFit<HTMLDivElement>();
-  const boxId = useId();
-  const rule = useLoneRule<HTMLSpanElement>();
+  const noteId = useId();
 
-  useEffect(() => {
-    if (open) input.current?.focus();
-  }, [open]);
-  // Like the pickers: a press anywhere else closes it.
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: PointerEvent) => {
-      if (!root.current?.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("pointerdown", onDown);
-    return () => document.removeEventListener("pointerdown", onDown);
-  }, [open]);
-
-  const close = () => {
-    setOpen(false);
-    setRefused(null);
-    trigger.current?.focus();
-  };
   const over = value.length > ASK_LIMIT;
-  const submit = async () => {
+  const submit = async (close: (refocus?: boolean) => void) => {
     if (!value.trim() || over || sending) return;
     setSending(true);
     const result = await onSend(value);
@@ -90,71 +64,48 @@ export function AskControl({
     if (!result.ok && result.reason !== "confirming")
       return setRefused(result.reason);
     setValue("");
-    setRefused(null);
-    setOpen(false);
-  };
-  // A small dialog keeps the focus: Tab cycles the box and Send.
-  const trap = (e: KeyboardEvent) => {
-    const stops = [input.current, send.current].filter(
-      (el) => el && !el.disabled,
-    ) as HTMLElement[];
-    const at = stops.findIndex((el) => el === document.activeElement);
-    e.preventDefault();
-    stops[(at + (e.shiftKey ? -1 : 1) + stops.length) % stops.length]?.focus();
+    close(false);
   };
 
   return (
     <>
-      {divider && <span ref={rule} className="bg-line h-5 w-px flex-none" />}
-      <div
-        ref={root}
-        data-ask
-        className="relative flex flex-none"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          ref={trigger}
-          type="button"
-          aria-expanded={open}
-          aria-controls={open ? boxId : undefined}
-          aria-haspopup="dialog"
-          aria-label="Ask"
-          title="Ask the assistant about this block"
-          onClick={() => (open ? close() : setOpen(true))}
-          className={`border-hair text-ink hover:border-accent flex h-7 cursor-pointer items-center gap-1.5 rounded-[6px] border bg-white font-sans text-[12px] font-semibold ${compact ? "w-7 justify-center" : "px-2.5"} ${open ? "border-accent" : ""}`}
-        >
-          <Icon name="sparkle" size={15} className="text-accent" />
-          {!compact && "Ask"}
-        </button>
-        {open && (
-          <div
-            ref={box}
-            id={boxId}
-            role="dialog"
-            aria-label="Ask the assistant about this block"
-            onKeyDown={(e) => {
-              if (e.key === "Tab") return trap(e);
-              if (e.key !== "Escape") return;
-              // The stage's Escape would deselect the block too.
-              e.stopPropagation();
-              close();
-            }}
-            className="border-hair absolute top-full right-0 z-40 mt-3 w-[20rem] rounded-[8px] border bg-white p-1.5 whitespace-normal shadow-[0_8px_24px_rgba(40,36,28,0.18)]"
+      {divider && <BarRule />}
+      <BarPopover
+        name="ask"
+        label="Ask the assistant about this block"
+        onClose={() => setRefused(null)}
+        trigger={({ open, toggle, boxId, triggerRef }) => (
+          <button
+            ref={triggerRef}
+            type="button"
+            aria-expanded={open}
+            aria-controls={open ? boxId : undefined}
+            aria-haspopup="dialog"
+            aria-label="Ask"
+            title="Ask the assistant about this block"
+            onClick={toggle}
+            className={`border-hair text-ink hover:border-accent flex h-7 cursor-pointer items-center gap-1.5 rounded-[6px] border bg-white font-sans text-[12px] font-semibold ${compact ? "w-7 justify-center" : "px-2.5"} ${open ? "border-accent" : ""}`}
           >
+            <Icon name="sparkle" size={15} className="text-accent" />
+            {!compact && "Ask"}
+          </button>
+        )}
+      >
+        {({ close }) => (
+          <>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                void submit();
+                void submit(close);
               }}
               className="flex items-stretch gap-1.5"
             >
               <input
-                ref={input}
                 type="text"
                 value={value}
                 aria-label="What should the assistant do with this block?"
                 aria-invalid={over || undefined}
-                aria-describedby={over || refused ? `${boxId}-note` : undefined}
+                aria-describedby={over || refused ? noteId : undefined}
                 placeholder={placeholder}
                 onChange={(e) => {
                   setValue(e.target.value);
@@ -164,7 +115,6 @@ export function AskControl({
                 className="boxed-field border-hair text-ink placeholder:text-faint min-w-0 flex-1 rounded-[6px] border bg-white px-2 py-1 font-sans text-[12px]"
               />
               <button
-                ref={send}
                 type="submit"
                 aria-label="Send"
                 title="Send (Enter)"
@@ -177,7 +127,7 @@ export function AskControl({
             </form>
             {(over || refused) && (
               <p
-                id={`${boxId}-note`}
+                id={noteId}
                 role="alert"
                 className="text-warn px-1 pt-1.5 font-sans text-[12px] leading-snug font-semibold"
               >
@@ -186,9 +136,9 @@ export function AskControl({
                   : refused && REFUSED[refused]}
               </p>
             )}
-          </div>
+          </>
         )}
-      </div>
+      </BarPopover>
     </>
   );
 }

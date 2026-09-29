@@ -21,12 +21,16 @@
 // already inert before the dialog opened is left alone on the way out, and
 // everything the sweep did mark is unmarked when it closes.
 //
+// The editor's non-modal block-bar boxes (Alt, Ask) get their half of the
+// contract from dialog-a11y-bar-popovers.mts, run last (#379).
+//
 // It mints its own scratch admin + session + draft issue and removes them again
 // in the finally block — it never seeds and never touches existing rows.
 // Run: npx tsx scripts/dev-dialog-a11y-gate.mts <base-url>
 import postgres from "postgres";
 import { chromium, type Page } from "playwright";
 import { expandMember } from "./check-member-disclosure.mts";
+import { checkBarPopovers } from "./dialog-a11y-bar-popovers.mts";
 import { checkDiscussionDialogs } from "./dialog-a11y-discussion.mts";
 import { checkReportsDialogs } from "./dialog-a11y-reports.mts";
 
@@ -964,6 +968,8 @@ try {
     afterClose.stillMarked.join(",") === "div#pre-inert",
     `the only thing left inert is the mark the sweep never made (got ${afterClose.stillMarked.join(", ") || "nothing"})`,
   );
+
+  await checkBarPopovers({ page, sql, base, heading, ok });
 
   await ctx.close();
   console.log("\nPASS — every converted dialog meets the #130 + #154 contract");

@@ -10,6 +10,8 @@ import { HeadingLevelControl } from "./heading-level-control";
 import { MontageBlockControl } from "./montage-control";
 import { VideoBlockControl } from "./video-control";
 import { SponsorPicker } from "./sponsor-picker";
+import { AltControl } from "./alt-control";
+import { BarRule } from "./bar-rule";
 import { useBarFit } from "./use-bar-fit";
 import { useCoverToolbarBounds } from "./use-cover-toolbar-bounds";
 
@@ -77,21 +79,11 @@ export function EditorBlockBar({
                 onChange={onChange}
                 onFillPage={onFillPage}
               />
-              <span className="bg-line h-5 w-px" />
-              <label className="flex items-center gap-1.5">
-                <span className="text-faint2 font-sans text-[9px] font-semibold tracking-[0.14em] uppercase">
-                  Alt
-                </span>
-                <input
-                  type="text"
-                  value={block.alt ?? ""}
-                  onChange={(e) => onChange({ alt: e.target.value })}
-                  onClick={(e) => e.stopPropagation()}
-                  aria-label="Describe this photo for screen readers"
-                  placeholder="Describe this photo for screen readers"
-                  className="border-hair text-ink w-56 rounded-[6px] border bg-white px-2 py-1 font-sans text-[12px]"
-                />
-              </label>
+              <BarRule />
+              <AltControl
+                alt={block.alt ?? ""}
+                onChange={(alt) => onChange({ alt })}
+              />
             </>
           )}
           {ask}
