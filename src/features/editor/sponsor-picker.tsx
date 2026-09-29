@@ -67,6 +67,7 @@ export function SponsorPicker({
     <div className="flex min-w-0 flex-wrap items-center gap-2 [&>div]:min-w-0">
       <MenuSelect
         label="Sponsor"
+        size="bar"
         className="max-w-full"
         current={current}
         ariaLabel="Block sponsor"
