@@ -1,7 +1,7 @@
 "use client";
 import { DEFAULT_FONT_CONTEXT, type CoverFontContext } from "@/lib/cover-fonts";
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
-import { Editor, EditorContent } from "@tiptap/react";
+import { useEffect, useLayoutEffect, useRef } from "react";
+import { useEditor, EditorContent } from "@tiptap/react";
 import { Extension } from "@tiptap/core";
 import { Plugin } from "@tiptap/pm/state";
 import StarterKit from "@tiptap/starter-kit";
@@ -22,55 +22,47 @@ import {
   setCoverLineGaps,
 } from "./cover-line-extensions";
 
-type Live = {
+// A cover with no placement (older ones) switches layout on its first edit, which
+// remounts its fields. The field that held the caret leaves its place here and
+// the remount takes it straight back.
+const CARET_SLOT_MS = 1000;
+let caretSlot: {
+  key: string;
+  from: number;
+  to: number;
+  at: number;
+} | null = null;
+
+export function CoverTextEditor({
+  id,
+  holdKey,
+  text,
+  doc,
+  label,
+  onChange,
+  placeholder,
+  maxLength = 8000,
+  font = DEFAULT_FONT_CONTEXT,
+  fitLines = false,
+}: {
   id: string;
-  maxLength: number;
-  activate: (target: {
-    id: string;
-    editor: Editor;
-    font: CoverFontContext;
-  }) => void;
-  font: CoverFontContext;
+  /** Names a canvas field, so the caret can follow it across a remount. */
+  holdKey?: string;
+  /** The field's panel fits its text (see CoverLineGaps). */
+  fitLines?: boolean;
+  font?: CoverFontContext;
+  text: string;
+  doc?: CoverRichDoc;
+  label: string;
+  placeholder?: string;
+  maxLength?: number;
   onChange: (text: string, doc: CoverRichDoc) => void;
-};
-type Held = { editor: Editor; live: Live; refocus: boolean; timer?: number };
-
-// Editors outlive the component that shows them for a moment: a cover's first
-// edit switches its layout, which remounts every field, and a fresh editor there
-// would drop the caret and the field's own undo history. The next mount takes the
-// same editor back and, if it held focus, puts focus and caret back.
-const held = new Map<string, Held>();
-const GRACE_MS = 300;
-
-const fieldAttributes = (label: string, placeholder?: string) => ({
-  class: "cover-text-editor outline-none",
-  role: "textbox",
-  "aria-label": label,
-  "data-placeholder": placeholder ?? label,
-});
-
-function acquire(
-  key: string,
-  label: string,
-  placeholder: string | undefined,
-  initial: () => unknown,
-  live: Live,
-): Held {
-  const found = held.get(key);
-  if (found && !found.editor.isDestroyed) {
-    window.clearTimeout(found.timer);
-    found.timer = undefined;
-    found.live = live;
-    return found;
-  }
-  const entry: Held = {
-    editor: undefined as unknown as Editor,
-    live,
-    refocus: false,
-  };
-  entry.editor = new Editor({
+}) {
+  const { activate, register, unregister } = useCoverText();
+  const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
-      CoverBoldShortcuts.configure({ font: live.font }),
+      CoverBoldShortcuts.configure({ font }),
       Extension.create({
         name: "coverLength",
         addProseMirrorPlugins() {
@@ -79,7 +71,7 @@ function acquire(
               filterTransaction: (tr) =>
                 !tr.docChanged ||
                 tr.doc.textBetween(0, tr.doc.content.size, "\n").length <=
-                  entry.live.maxLength,
+                  maxLength,
             }),
           ];
         },
@@ -102,100 +94,56 @@ function acquire(
       Underline,
       CoverPaint,
     ],
-    content: initial() as never,
-    editorProps: { attributes: fieldAttributes(label, placeholder) },
-    onFocus: ({ editor }) =>
-      entry.live.activate({ id: entry.live.id, editor, font: entry.live.font }),
+    content: coverDocFor(text, doc),
+    editorProps: {
+      attributes: {
+        class: "cover-text-editor outline-none",
+        role: "textbox",
+        "aria-label": label,
+        "data-placeholder": placeholder ?? label,
+      },
+    },
+    onFocus: ({ editor }) => activate({ id, editor, font }),
     onUpdate: ({ editor }) => {
       const parsed = coverRichDocSchema.safeParse(
         JSON.parse(JSON.stringify(editor.getJSON())),
       );
-      if (parsed.success)
-        entry.live.onChange(coverDocPlain(parsed.data), parsed.data);
+      if (parsed.success) onChange(coverDocPlain(parsed.data), parsed.data);
     },
   });
-  held.set(key, entry);
-  return entry;
-}
-
-function release(key: string, entry: Held) {
-  // Kept if set: a strict-mode remount releases again after focus is gone.
-  entry.refocus ||= entry.editor.view.hasFocus();
-  entry.timer = window.setTimeout(() => {
-    if (held.get(key) === entry) held.delete(key);
-    entry.editor.destroy();
-  }, GRACE_MS);
-}
-
-function takeRefocus(key: string, editor: Editor) {
-  const entry = held.get(key);
-  if (!entry || entry.editor !== editor || !entry.refocus) return false;
-  entry.refocus = false;
-  return true;
-}
-
-export function CoverTextEditor({
-  id,
-  holdKey,
-  text,
-  doc,
-  label,
-  onChange,
-  placeholder,
-  maxLength = 8000,
-  font = DEFAULT_FONT_CONTEXT,
-  fitLines = false,
-}: {
-  id: string;
-  /** Names the field on the canvas, so its editor survives a remount (a cover's
-   *  first edit switches layout). Never shared by two mounted fields. */
-  holdKey?: string;
-  /** The field's panel fits its text (see CoverLineGaps). */
-  fitLines?: boolean;
-  font?: CoverFontContext;
-  text: string;
-  doc?: CoverRichDoc;
-  label: string;
-  placeholder?: string;
-  maxLength?: number;
-  onChange: (text: string, doc: CoverRichDoc) => void;
-}) {
-  const { activate, register, unregister } = useCoverText();
-  const ownKey = useId();
-  const key = holdKey ?? ownKey;
-  const live = useRef<Live>({ id, maxLength, activate, font, onChange });
+  const focused = useRef(false);
+  useEffect(() => {
+    if (!editor || !holdKey) return;
+    const slot = caretSlot;
+    if (slot?.key !== holdKey) return;
+    caretSlot = null;
+    if (Date.now() - slot.at > CARET_SLOT_MS) return;
+    const max = editor.state.doc.content.size;
+    editor
+      .chain()
+      .focus()
+      .setTextSelection({
+        from: Math.min(slot.from, max),
+        to: Math.min(slot.to, max),
+      })
+      .run();
+  }, [editor, holdKey]);
+  // Leaving while focused (not just blurred) is what a remount looks like.
   useLayoutEffect(() => {
-    live.current = { id, maxLength, activate, font, onChange };
-    const entry = held.get(key);
-    if (entry) entry.live = live.current;
-  });
-  const [editor, setEditor] = useState<Editor | null>(null);
-  useLayoutEffect(() => {
-    const entry = acquire(
-      key,
-      label,
-      placeholder,
-      () => coverDocFor(text, doc),
-      live.current,
-    );
-    setEditor(entry.editor);
+    if (!editor || !holdKey) return;
+    const onFocus = () => (focused.current = true);
+    const onBlur = () => (focused.current = false);
+    editor.on("focus", onFocus);
+    editor.on("blur", onBlur);
     return () => {
-      setEditor(null);
-      release(key, entry);
+      editor.off("focus", onFocus);
+      editor.off("blur", onBlur);
+      if (focused.current && !editor.isDestroyed) {
+        const { from, to } = editor.state.selection;
+        caretSlot = { key: holdKey, from, to, at: Date.now() };
+      }
     };
-    // The editor is made once per field; later props reach it through `live`.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
-  // The inspector's one field is reused as the selection moves between items.
-  useEffect(() => {
-    editor?.setOptions({
-      editorProps: { attributes: fieldAttributes(label, placeholder) },
-    });
-  }, [editor, label, placeholder]);
-  // Once EditorContent has put the element back in: focus and caret return.
-  useEffect(() => {
-    if (editor && takeRefocus(key, editor)) editor.commands.focus();
-  }, [editor, key]);
+  }, [editor, holdKey]);
   const { family, weight } = font;
   useEffect(() => {
     if (!editor) return;

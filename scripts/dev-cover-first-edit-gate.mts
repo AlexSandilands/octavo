@@ -26,10 +26,19 @@ const FIELDS = [
 ];
 type Blk = Record<string, string>;
 
+// Masthead is set in capitals by CSS; compare case-insensitively on screen.
+const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
+// A new issue's cover is placed from the start; an older one has no placement
+// on any block and switches layout on its first edit.
+let older = false;
 async function freshIssue(): Promise<string> {
   const id = crypto.randomUUID();
+  const content = emptyIssueContent();
+  if (older)
+    for (const b of content.pages[0]!.blocks)
+      if ("coverPlacement" in b) delete b.coverPlacement;
   await sql`insert into issues (id, number, title, content)
-    values (${id}, null, ${tag}, ${sql.json(emptyIssueContent())})`;
+    values (${id}, null, ${tag}, ${sql.json(content)})`;
   return id;
 }
 const stored = async (id: string) => {
@@ -42,6 +51,8 @@ async function open(page: Page, id: string, name: string) {
   const box = page.getByRole("textbox", { name, exact: true }).first();
   await box.waitFor();
   await page.waitForTimeout(600);
+  const placed = (await page.locator(".cover-composition").count()) > 0;
+  assert.equal(placed, !older, `opens on the ${older ? "stack" : "grid"}`);
   return box;
 }
 const focusedLabel = (page: Page) =>
@@ -55,10 +66,20 @@ async function settle(id: string, read: (b: Blk[]) => string, want: string) {
   }
   assert.equal(read(await stored(id)), want, "saved value");
 }
+// As settle(), ignoring case (the masthead is capitalised on screen only).
+async function settleLike(
+  id: string,
+  read: (b: Blk[]) => string,
+  want: string,
+) {
+  for (let i = 0; i < 100; i++) {
+    if (same(read(await stored(id)), want)) return;
+    await delay(100);
+  }
+  assert.equal(read(await stored(id)).toLowerCase(), want.toLowerCase());
+}
 const text = async (box: ReturnType<Page["getByRole"]>) =>
   (await box.innerText()).replace(/\n$/, "");
-// Masthead is set in capitals by CSS; compare case-insensitively on screen.
-const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
 const browser = await chromium.launch();
 try {
@@ -81,109 +102,127 @@ try {
   ]);
   const page = await ctx.newPage();
 
-  for (const f of FIELDS) {
-    console.log(`\n── ${f.name}`);
-    // The first edit of an unplaced cover: typed over a selection, then at speed.
-    const a = await freshIssue();
-    let box = await open(page, a, f.name);
-    await box.click();
-    await page.keyboard.press("ControlOrMeta+A");
-    await page.keyboard.type("Hello world");
-    assert(
-      same(await text(box), "Hello world"),
-      `first edit typed (${await text(box)})`,
-    );
-    assert.equal(await focusedLabel(page), f.name, "focus stays in the field");
-    await settle(a, f.read, "Hello world");
-    ok(
-      "select all + type on a fresh cover: exactly 'Hello world', saved, focus kept",
-    );
-
-    // Caret in the middle of the existing words: the first character must not
-    // be joined to a second, freshly built editor.
-    const b = await freshIssue();
-    box = await open(page, b, f.name);
-    const before = f.read(await stored(b));
-    await box.click();
-    await page.keyboard.press("End");
-    await page.keyboard.type(" and more", { delay: 40 });
-    const want = `${before} and more`;
-    assert(same(await text(box), want), `caret typing (${await text(box)})`);
-    assert.equal(
-      await focusedLabel(page),
-      f.name,
-      "focus stays after caret typing",
-    );
-    await settle(b, f.read, want);
-    ok("typing at the caret keeps every character in order, focus kept");
-
-    // Undo of the first edit stays in the field, caret intact.
-    await page.keyboard.press("ControlOrMeta+Z");
-    await page.waitForTimeout(300);
-    assert(same(await text(box), before), `undo (${await text(box)})`);
-    assert.equal(await focusedLabel(page), f.name, "focus stays after undo");
-    // (Where PM history parks the caret after an undo is its own; End is explicit.)
-    await page.keyboard.press("End");
-    await page.keyboard.type("!");
-    assert(
-      same(await text(box), `${before}!`),
-      `typing after undo (${await text(box)})`,
-    );
-    await settle(b, f.read, `${before}!`);
-    ok("undo of the first edit keeps focus in the field; typing carries on");
-
-    // Native replace over the whole paragraph (autocorrect / dictation / paste).
-    const c = await freshIssue();
-    box = await open(page, c, f.name);
-    await box.click();
-    await page.keyboard.type("x"); // place the cover first: fill() alone is the case below
-    await page.keyboard.press("ControlOrMeta+A");
-    await page.keyboard.insertText("Replaced natively");
-    await page.waitForTimeout(300);
-    assert(
-      same(await text(box), "Replaced natively"),
-      `insertText (${await text(box)})`,
-    );
-    await settle(c, f.read, "Replaced natively");
-    await box.fill("Via fill");
-    await page.waitForTimeout(300);
-    assert(same(await text(box), "Via fill"), `fill (${await text(box)})`);
-    await settle(c, f.read, "Via fill");
-    await box.click();
-    await page.keyboard.press("ControlOrMeta+A");
-    await box.evaluate((el) => {
-      const data = new DataTransfer();
-      data.setData("text/plain", "Pasted over");
-      el.dispatchEvent(
-        new ClipboardEvent("paste", {
-          clipboardData: data,
-          bubbles: true,
-          cancelable: true,
-        }),
+  for (const isOlder of [false, true])
+    for (const f of FIELDS) {
+      older = isOlder;
+      console.log(
+        `\n── ${f.name} (${older ? "older, unplaced" : "new"} cover)`,
       );
-    });
-    await page.waitForTimeout(300);
-    assert(
-      same(await text(box), "Pasted over"),
-      `paste over (${await text(box)})`,
-    );
-    await settle(c, f.read, "Pasted over");
-    ok(
-      "insertText, fill() and paste over the whole paragraph all land and save",
-    );
+      // The first edit of an unplaced cover: typed over a selection, then at speed.
+      const a = await freshIssue();
+      let box = await open(page, a, f.name);
+      await box.evaluate((el) => Object.assign(el, { gateMark: 1 }));
+      await box.click();
+      await page.keyboard.press("ControlOrMeta+A");
+      await page.keyboard.type("Hello world");
+      if (!older)
+        assert(
+          await box.evaluate((el) => "gateMark" in el),
+          "a new cover's field is never remounted by its first edit",
+        );
+      assert(
+        same(await text(box), "Hello world"),
+        `first edit typed (${await text(box)})`,
+      );
+      assert.equal(
+        await focusedLabel(page),
+        f.name,
+        "focus stays in the field",
+      );
+      await settle(a, f.read, "Hello world");
+      ok(
+        "select all + type on a fresh cover: exactly 'Hello world', saved, focus kept",
+      );
 
-    // fill() as the very first edit of a fresh cover.
-    const d = await freshIssue();
-    box = await open(page, d, f.name);
-    await box.fill("Filled first");
-    await page.waitForTimeout(300);
-    assert(
-      same(await text(box), "Filled first"),
-      `first-edit fill (${await text(box)})`,
-    );
-    await settle(d, f.read, "Filled first");
-    ok("fill() as the first edit of a fresh cover lands and saves");
-  }
+      // Caret in the middle of the existing words: the first character must not
+      // be joined to a second, freshly built editor.
+      const b = await freshIssue();
+      box = await open(page, b, f.name);
+      const before = f.read(await stored(b));
+      await box.click();
+      await page.keyboard.press("End");
+      await page.keyboard.type(" and more", { delay: 40 });
+      const want = `${before} and more`;
+      assert(same(await text(box), want), `caret typing (${await text(box)})`);
+      assert.equal(
+        await focusedLabel(page),
+        f.name,
+        "focus stays after caret typing",
+      );
+      await settle(b, f.read, want);
+      ok("typing at the caret keeps every character in order, focus kept");
+
+      // Undo of the first edit stays in the field, caret intact.
+      await page.keyboard.press("ControlOrMeta+Z");
+      await page.waitForTimeout(300);
+      // On an older cover the field is rebuilt after its first character, so that
+      // one character (here the space) is no longer in the field's own undo stack.
+      const undone = older ? (await text(box)).trimEnd() : await text(box);
+      assert(same(undone, before), `undo (${await text(box)})`);
+      const left = await text(box);
+      assert.equal(await focusedLabel(page), f.name, "focus stays after undo");
+      // (Where PM history parks the caret after an undo is its own; End is explicit.)
+      await page.keyboard.press("End");
+      await page.keyboard.type("!");
+      assert(
+        same(await text(box), `${left}!`),
+        `typing after undo (${await text(box)})`,
+      );
+      await settleLike(b, f.read, `${left}!`);
+      ok("undo of the first edit keeps focus in the field; typing carries on");
+
+      // Native replace over the whole paragraph (autocorrect / dictation / paste).
+      const c = await freshIssue();
+      box = await open(page, c, f.name);
+      await box.click();
+      await page.keyboard.type("x"); // place the cover first: fill() alone is the case below
+      await page.keyboard.press("ControlOrMeta+A");
+      await page.keyboard.insertText("Replaced natively");
+      await page.waitForTimeout(300);
+      assert(
+        same(await text(box), "Replaced natively"),
+        `insertText (${await text(box)})`,
+      );
+      await settle(c, f.read, "Replaced natively");
+      await box.fill("Via fill");
+      await page.waitForTimeout(300);
+      assert(same(await text(box), "Via fill"), `fill (${await text(box)})`);
+      await settle(c, f.read, "Via fill");
+      await box.click();
+      await page.keyboard.press("ControlOrMeta+A");
+      await box.evaluate((el) => {
+        const data = new DataTransfer();
+        data.setData("text/plain", "Pasted over");
+        el.dispatchEvent(
+          new ClipboardEvent("paste", {
+            clipboardData: data,
+            bubbles: true,
+            cancelable: true,
+          }),
+        );
+      });
+      await page.waitForTimeout(300);
+      assert(
+        same(await text(box), "Pasted over"),
+        `paste over (${await text(box)})`,
+      );
+      await settle(c, f.read, "Pasted over");
+      ok(
+        "insertText, fill() and paste over the whole paragraph all land and save",
+      );
+
+      // fill() as the very first edit of a fresh cover.
+      const d = await freshIssue();
+      box = await open(page, d, f.name);
+      await box.fill("Filled first");
+      await page.waitForTimeout(300);
+      assert(
+        same(await text(box), "Filled first"),
+        `first-edit fill (${await text(box)})`,
+      );
+      await settle(d, f.read, "Filled first");
+      ok("fill() as the first edit of a fresh cover lands and saves");
+    }
   console.log("\nPASS — cover first edit and native replace");
 } finally {
   await browser.close();
