@@ -7,9 +7,9 @@ const ANCHOR_NAME = "Scratch 130 Anchor Sponsor";
 
 /** Adds the anchor sponsor when there are no sponsors; returns whether it did. */
 export async function ensureSponsorRow(sql: postgres.Sql): Promise<boolean> {
-  const [{ n }] = await sql<{ n: number }[]>`
+  const [row] = await sql<{ n: number }[]>`
     select count(*)::int as n from sponsors`;
-  if (n > 0) return false;
+  if (row!.n > 0) return false;
   await sql`
     insert into sponsors (id, name) values (${crypto.randomUUID()}, ${ANCHOR_NAME})`;
   return true;
