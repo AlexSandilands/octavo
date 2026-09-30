@@ -32,7 +32,9 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
   canvas wraps onto a second row (`use-bar-fit.ts`), so Ask and Alt are always in reach. Alt has since become a button
   that opens a box like Ask's (#379: "No alt text" behind a warm dot when empty, "Alt text" with a check once written),
   and both share one shell, `bar-popover.tsx`. A bar's rule steps out of the way rather than hang alone on a wrapped
-  line (`bar-rule.tsx`, #377). On a cover (#313) Ask ends
+  line (`bar-rule.tsx`, #377; every rule in a wrapping bar is one, #388). A bar near the top of the canvas slides down over
+  its block rather than be clipped by the canvas, and the canvas's "Magazine" label sits under the page and its bars, so
+  no bar is ever drawn over (#387). On a cover (#313) Ask ends
   every selected cover item's bar the same way: a text item's format bar, the story and details bars, and a small bar
   of its own on a logo or a cover photo; the message says "the selected cover item". Ask sits outside the format bar's
   scrolling row, so its box is never clipped, and the cover's bars stay on the canvas, clear of the inspector and the

@@ -9,7 +9,7 @@ const EDGE = 8;
  * Keeps a selected block's tool bar (or the Ask box under it) inside the
  * canvas and clear of the canvas's standing tools and a cover's inspector, so
  * its last controls (Alt, Ask, Send) are always in reach: one that would run
- * past either side slides back in, and one wider than the room wraps onto a
+ * past either side or the top slides back in, and one wider than the room wraps onto a
  * second row. Bars keep one screen size at every zoom (a transform
  * ResizeObserver doesn't see), so this measures on every render as well as on
  * resize, and writes the two styles itself rather than round-trip through
@@ -59,10 +59,14 @@ export function useBarFit<T extends HTMLElement>(active = true) {
           : own.left < lo
             ? Math.min(lo - own.left, Math.max(0, hi - own.right))
             : 0;
-      if (!shift) return;
+      // A bar above a block near the canvas's top (two rows once it wraps)
+      // would be clipped by it: slide it down over the block instead.
+      const drop = Math.max(0, room.top + EDGE - own.top);
+      if (!shift && !drop) return;
       // `translate` sits outside the element's own scale: its parent's px.
-      const scale = parent.getBoundingClientRect().width / parent.offsetWidth;
-      bar.style.translate = `${shift / (scale || 1)}px 0`;
+      const scale =
+        parent.getBoundingClientRect().width / parent.offsetWidth || 1;
+      bar.style.translate = `${shift / scale}px ${drop / scale}px`;
     };
     fit();
     const observer = new ResizeObserver(fit);
