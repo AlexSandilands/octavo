@@ -226,13 +226,20 @@ assert(cut.includes("[…]"));
     for (const [i, b] of blocks.entries())
       assert.equal(read.text.includes(`end${i}`), printed.includes(b));
     assert(
-      read.text.endsWith("read_page can show.") &&
+      read.text.endsWith("onto new pages.") &&
+        read.text.includes("read_page for page 1 has more room") &&
         read.text.includes(
           `[…] ${blocks.length - printed.length} more blocks not shown`,
         ),
     );
   }
   assert(projection(crowded, 1).length <= PROJECTION_MAX);
+  // Room is kept for that line only while blocks follow: a page that fits to
+  // the character is printed whole, and one character less drops its last.
+  const exact = readView(crowded, 1, VIEW_TEXT_CAP, 1e6).text.length;
+  assert.equal(readView(crowded, 1, VIEW_TEXT_CAP, exact).whole.length, 40);
+  const short = readView(crowded, 1, VIEW_TEXT_CAP, exact - 1);
+  assert(short.whole.length < 40 && short.text.length < exact);
   // A block past its own cap is printed cut, and isn't among the whole.
   const mixed = {
     ...huge,

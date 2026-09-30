@@ -119,7 +119,7 @@ function describeBlock(
 export type PageRead = { text: string; whole: TextBlock[] };
 
 /** Room kept for the line that says a long page's view stops short. */
-const MORE_ROOM = 200;
+const MORE_ROOM = 300;
 
 /**
  * One page in full: every block with its id, text as markdown. A text block
@@ -151,10 +151,11 @@ export function readView(
       block.type === "text"
         ? describeText(block, clip(md, textCap))
         : describeBlock(block, issue);
-    if (length + 1 + line.length > room - MORE_ROOM) {
-      const left = page.blocks.length - i;
+    // The last block needs no room kept after it.
+    const left = page.blocks.length - i;
+    if (length + 1 + line.length > room - (left > 1 ? MORE_ROOM : 0)) {
       lines.push(
-        `[…] ${left === 1 ? "1 more block" : `${left} more blocks`} not shown: this page is too long to show whole. split_page carries its end onto new pages, which read_page can show.`,
+        `[…] ${left === 1 ? "1 more block" : `${left} more blocks`} not shown: this view has no room for ${left === 1 ? "it" : "them"}. read_page for page ${pageNo} has more room; if ${left === 1 ? "it is" : "they are"} still missing there, split_page carries the page's end onto new pages.`,
       );
       break;
     }

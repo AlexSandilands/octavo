@@ -196,6 +196,30 @@ export async function seenTextChecks() {
     );
   }
 
+  heading("set_text: a block read_page has no room for");
+  {
+    // A read_page that prints nothing whole, whatever the blocks' size.
+    const lead = long(VIEW_TEXT_CAP + 500);
+    const later = long(VIEW_TEXT_CAP + 500);
+    const x = harness([cover, page(lead, later)]);
+    x.executor.beginRun();
+    const blind = (blockId: string) =>
+      x.executor.run(
+        "set_text",
+        { blockId, markdown: "x" },
+        { ...call, read: () => ({ text: "", whole: [] }) },
+      );
+    ok(
+      refused(await blind(later.id), "page 2 is too long", "move blocks off"),
+      "behind other blocks: make room on the page",
+    );
+    ok(
+      refused(await blind(lead.id), "split_page can't divide it") &&
+        x.history.length === 0,
+      "leading its page, nothing can be moved out of its way",
+    );
+  }
+
   heading("set_text: a cover's text is the cover tools' to refuse");
   {
     const a = long(VIEW_TEXT_CAP + 500);

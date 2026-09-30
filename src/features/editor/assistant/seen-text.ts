@@ -74,25 +74,27 @@ export function unseenText(
     if (shown && had.reply < reply) return null;
     const why = shown
       ? `you wrote this rewrite of block ${block.id} before read_page answered, from a view that cut it with […]; write it again from what read_page showed`
-      : nextStep(block, length, i + 1, readable);
+      : nextStep(block, length, i + 1, page.blocks[0] === block, readable);
     return `Error: ${why}. Nothing changed.`;
   }
   return null;
 }
 
-/** What would let the model see `block` whole, if anything can. */
+/** What would let the model see `block` whole, if anything can. `first`: it
+ *  leads its page, so nothing before it is taking read_page's room. */
 function nextStep(
   block: TextBlock,
   length: number,
   pageNo: number,
+  first: boolean,
   readable: (pageNo: number) => readonly TextBlock[],
 ): string {
   const id = block.id;
   if (readable(pageNo).some((b) => b.id === id))
-    return `you have only seen the start of block ${id} (the view cut it with […]); call read_page for page ${pageNo}, and rewrite it once you have the answer`;
-  if (length <= READ_TEXT_CAP)
+    return `you haven't had block ${id} whole (a view cuts long text with […]); call read_page for page ${pageNo}, and rewrite it once you have the answer`;
+  if (length <= READ_TEXT_CAP && !first)
     return `page ${pageNo} is too long for read_page to show block ${id}; split_page on page ${pageNo} or move blocks off it first, then read_page and rewrite it`;
   if (richDocBlocks(block.text).length > 1)
-    return `block ${id} is too long to be shown whole (${length} characters; read_page shows ${READ_TEXT_CAP}), so it can't be rewritten in one piece; split_page on page ${pageNo} divides it between paragraphs, then read_page the new pages and rewrite the parts`;
-  return `block ${id} is a single paragraph or list of ${length} characters, too long to be shown whole, and split_page can't divide it, so it can't be rewritten; leave it, and tell the author it needs breaking into shorter paragraphs by hand`;
+    return `block ${id} is too long for read_page to show whole (${length} characters), so it can't be rewritten in one piece; split_page on page ${pageNo} divides it between paragraphs, then read_page the new pages and rewrite the parts`;
+  return `block ${id} is a single paragraph or list of ${length} characters, too long for read_page to show whole, and split_page can't divide it, so it can't be rewritten; leave it, and tell the author it needs breaking into shorter paragraphs by hand`;
 }

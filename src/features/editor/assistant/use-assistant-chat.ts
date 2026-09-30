@@ -189,7 +189,7 @@ export function useAssistantChat({
       !stopped.current && lastAssistantMessageIsCompleteWithToolCalls(options),
     onToolCall: async ({ toolCall }) => {
       if (toolCall.dynamic) return;
-      // Read before anything is awaited: the reply may finish meanwhile.
+      // Read before the awaits, so it is this reply's whenever they resolve.
       const reply = replies.current;
       try {
         const { issue } = await latest.current.snapshot();
