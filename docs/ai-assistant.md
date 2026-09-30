@@ -138,9 +138,20 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
   (`measure-fills.tsx`). The outline reads "fits, ~80% full", "overflows by ~6 lines" (lines of body text) or "a
   full-page photo".
 - **Bounds.** The projection and a `read_page` result are each at most 60,000 characters. A text block is cut at
-  2,500 characters in the current-page view and 12,000 in `read_page`, marked `[…]`. The outline stops listing pages
-  past 24,000 characters and says `read_page` shows the rest. `scripts/check-assistant-projection.mts` checks every
-  seed issue.
+  2,500 characters in the current-page view and 12,000 in `read_page`, marked `[…]`. An inside page too long for its
+  view stops at a block boundary and says how many blocks are left, so a block a view prints is whole, cut at its own
+  cap, or absent, never cut by the page's limit (a cover's view, which `set_text` can't touch, is still clipped). The
+  outline stops listing pages past 24,000 characters and says `read_page` shows the rest.
+  `scripts/check-assistant-projection.mts` checks every seed issue.
+- **A rewrite sees what it replaces.** `set_text` replaces a block whole, so it refuses a block past the view's cut
+  until the model has had it whole this run: a `read_page` printed it uncut in an **earlier reply** (calls made in one
+  reply were all written before any was answered, so a rewrite beside its own `read_page` is refused too), or the
+  run wrote it itself with `set_text` or `insert_blocks`. The parts a `split_page` or `propose_sections` makes are
+  new text and are read before they are rewritten. A block no `read_page` can print whole is refused with the step
+  that can work: `split_page` when it has paragraphs to divide or the blocks before it take the page's room, and the
+  author when it is one paragraph or list too long to show, which no tool can divide
+  (`src/features/editor/assistant/seen-text.ts`, checked by `check-ai-runs.mts`). Without this, a "Shorten to fit"
+  could drop the tail the model never saw and still look like a successful trim.
 
 ## Tools
 
@@ -221,7 +232,7 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
     still counts toward the conversation's room, and a second look at the same photo is an ordinary view;
   - **the draft render.** `/read/[n]/print` looks issues up by published number, so the render route takes the issue as
     the editor holds it (unsaved edits too), validated by `issueContentSchema` within the save cap. It stashes it in memory
-    under a one-time nonce (60 s, swept on each new stash, dropped when done) and has headless Chromium (the PDF's
+    under a short-lived nonce (60 s, swept on each new stash, dropped when done) and has headless Chromium (the PDF's
     `launchPrintBrowser`) load `/read/draft/[nonce]/print` with the internal print token. That page renders the PDF's own
     `PrintDocument`. Each requested `.pdf-page` is screenshotted at 1.5× (960×1350, PNG, or JPEG when a photo-heavy page
     passes the tool result's 1.5 MB), and its fill is read with the overflow marker's geometry. The app runs as one

@@ -12,7 +12,9 @@ import type { EditorSnapshot } from "../use-editor-history";
 import { applyEdit, Refusal } from "./edit-tools";
 import { applyCoverTool, isCoverTool } from "./cover-tools";
 import { describeReport, type EditMeasurer } from "./page-report";
+import type { PageRead } from "./projection";
 import { clip } from "./projection-text";
+import { markRead, markWritten, unseenText, type SeenText } from "./seen-text";
 import { formatPages } from "./page-numbers";
 export { formatPages };
 
@@ -60,6 +62,8 @@ type RunState = {
   /** The cover this run's compose calls edit, once one has (#313). */
   cover: { id?: string };
   stall: Stall;
+  /** Long text blocks the model has had whole this run: see seen-text.ts. */
+  seen: SeenText;
 };
 
 /** set_text calls in a row on one page that still overflows after each; a
@@ -94,6 +98,7 @@ const fresh = (): RunState => ({
   abort: new AbortController(),
   cover: {},
   stall: noStall(),
+  seen: new Map(),
 });
 
 const STOPPED =
@@ -160,7 +165,10 @@ export type CallContext = {
   /** The logo library, for add_logo (#313). */
   logos: readonly { id: string; name: string; imageId: string }[];
   /** read_page, answered from the projection's own view of the issue. */
-  read: (input: unknown) => AiToolOutput;
+  read: (input: unknown) => PageRead;
+  /** Which of the model's replies made this call: one reply's calls were all
+   *  written before any was answered (seen-text.ts). Counts up, never back. */
+  reply: number;
   /** view_page / view_photo (#342): a picture, within the run's view budget. */
   view: (tool: AiViewTool, input: unknown) => Promise<AiToolOutput>;
 };
@@ -219,11 +227,8 @@ export function createAssistantExecutor({
       });
       if (!valid.success)
         return `Error: that edit would make the issue invalid (${valid.error.issues[0]?.message}); nothing changed.`;
-      const dropped = droppedKey(
-        result.pages,
-        valid.data.pages,
-        objectsIn(before.pages),
-      );
+      const was = objectsIn(before.pages);
+      const dropped = droppedKey(result.pages, valid.data.pages, was);
       if (dropped)
         return `Error: that edit sets something the issue can't store (${dropped}); nothing changed.`;
       if (handle.state().pages !== before.pages) {
@@ -252,6 +257,8 @@ export function createAssistantExecutor({
         record,
       );
       mine.last = result.pages;
+      if (name === "set_text" || name === "insert_blocks")
+        markWritten(mine.seen, result.pages, was);
       mine.notes.push(...(result.notes ?? []));
       if (result.moved)
         mine.moves.set(result.moved, (mine.moves.get(result.moved) ?? 0) + 1);
@@ -287,7 +294,21 @@ export function createAssistantExecutor({
     if (!Object.hasOwn(aiToolSchemas, name))
       return { text: `Error: there is no tool "${name}".` };
     const tool = name as AiToolName;
-    if (tool === "read_page") return call.read(input);
+    if (tool === "read_page") {
+      const { text, whole } = call.read(input);
+      markRead(mine.seen, whole, call.reply);
+      return { text };
+    }
+    if (tool === "set_text") {
+      const refused = unseenText(
+        mine.seen,
+        handle.state().pages,
+        input,
+        call.reply,
+        (page) => call.read({ page }).whole,
+      );
+      if (refused) return { text: refused };
+    }
     if (tool === "view_page" || tool === "view_photo")
       return call.view(tool, input);
     return {

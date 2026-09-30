@@ -27,6 +27,7 @@ const REFUSED: Record<Refusal, string> = {
   full: "This conversation is full. Start a new one in the panel, then send again.",
   spent: AI_ERROR_COPY.budget_spent,
   failed: "That didn't send. Try again.",
+  stopped: "Stopped before it was sent. Send again when you're ready.",
   waiting:
     "The assistant panel is asking about a long message. Answer it there, then send again.",
 };

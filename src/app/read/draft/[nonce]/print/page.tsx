@@ -11,7 +11,7 @@ import { verifyPrintToken } from "@/lib/pdf-token";
 
 // The assistant's page pictures (#342): a draft as the editor holds it, unsaved
 // edits included, printed by the same PrintDocument the PDF uses. Only the
-// render route reaches it: it stashes the content under a one-time nonce and
+// render route reaches it: it stashes the content under a short-lived nonce and
 // self-fetches this page with the internal print token, like the PDF generator
 // does `/read/[n]/print`. Without both, it is a missing page.
 export const dynamic = "force-dynamic";

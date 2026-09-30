@@ -13,6 +13,7 @@ import {
   summarizeRun,
 } from "../src/features/editor/assistant/executor";
 import type { EditMeasurer } from "../src/features/editor/assistant/page-report";
+import { seenTextChecks } from "./fixtures/assistant/seen-text-checks.mts";
 import * as h from "./fixtures/assistant/tools-harness.mts";
 
 const { ok, heading, measurer, call, harness } = h;
@@ -267,6 +268,50 @@ heading("a change between a run's calls stops it");
   ok(
     h1.executor.summary()?.text === "Changed 1 block on page 2",
     "the summary counts only the run's own change",
+  );
+}
+
+await seenTextChecks();
+
+heading("propose_sections: sub-heads, and a long blank run is quick");
+{
+  const plan = (body: string) => ({
+    after: 2,
+    sections: [{ headline: "Spring show", body }],
+  });
+  const h1 = harness([cover, page()]);
+  h1.executor.beginRun();
+  const out = await h1.run(
+    "propose_sections",
+    plan("The doors opened.\n## Judging ##\nRosettes."),
+  );
+  const titles = h1.pages
+    .flatMap((p) => p.blocks)
+    .flatMap((b) => (b.type === "heading" ? [b.title] : []));
+  ok(
+    !out.text.startsWith("Error:") && titles.includes("Judging"),
+    "a sub-head becomes a heading, closing #s trimmed",
+  );
+  // Once cubic in the heading test: seconds per line of this.
+  const blank = `# a${" ".repeat(15_000)}x`;
+  const started = Date.now();
+  await h1.run("propose_sections", plan(blank));
+  const ms = Date.now() - started;
+  ok(ms < 500, `a heading line with a long blank run is quick (${ms}ms)`);
+  // A text block's markdown has its own heading test (markdown-doc.ts).
+  const bold = await h1.run("insert_blocks", {
+    after: { page: 2 },
+    blocks: [{ kind: "text", markdown: "## Judging ##" }],
+  });
+  const began = Date.now();
+  await h1.run("insert_blocks", {
+    after: { page: 2 },
+    blocks: [{ kind: "text", markdown: `# a${" ".repeat(39_000)}x` }],
+  });
+  const took = Date.now() - began;
+  ok(
+    bold.text.includes('"Judging" was a markdown heading') && took < 500,
+    `and in a text block's markdown (${took}ms)`,
   );
 }
 

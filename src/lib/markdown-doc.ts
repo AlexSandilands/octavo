@@ -23,7 +23,7 @@ export type MarkdownResult = { doc: RichDoc; notes: string[] };
 const MAX_LIST_DEPTH = 4;
 const BULLET = /^( *)([-*+])[ \t]+(.*)$/;
 const ORDERED = /^( *)(\d{1,9})[.)][ \t]+(.*)$/;
-const ATX = /^ {0,3}#{1,6}[ \t]+(.*?)[ \t#]*$/;
+const ATX_OPEN = /^ {0,3}#{1,6}[ \t]+/;
 
 type Marker = { indent: number; ordered: boolean; text: string };
 
@@ -34,6 +34,16 @@ function marker(line: string): Marker | null {
   const o = ORDERED.exec(line);
   if (o) return { indent: o[1]!.length, ordered: true, text: o[3]! };
   return null;
+}
+
+/** A `#` heading line's text, or null. The closing `#`s and blanks are trimmed
+ *  by hand: as a regex tail they backtrack badly on a long run of spaces. */
+function atxHeading(line: string): string | null {
+  const open = ATX_OPEN.exec(line)?.[0].length;
+  if (open === undefined) return null;
+  let end = line.length;
+  while (end > open && " \t#".includes(line[end - 1]!)) end--;
+  return line.slice(open, end);
 }
 
 const indentOf = (line: string) => line.length - line.trimStart().length;
@@ -82,12 +92,12 @@ function parseBlocks(
       i = next;
       continue;
     }
-    const heading = ATX.exec(line);
-    if (heading) {
+    const heading = atxHeading(line);
+    if (heading !== null) {
       notes.push(
-        `"${heading[1]}" was a markdown heading; it became a bold line (headings are separate blocks)`,
+        `"${heading}" was a markdown heading; it became a bold line (headings are separate blocks)`,
       );
-      const inline = parseInline(heading[1]!, [{ type: "bold" }]);
+      const inline = parseInline(heading, [{ type: "bold" }]);
       if (inline.length) out.push({ type: "paragraph", content: inline });
       i++;
       continue;
@@ -175,6 +185,8 @@ function linesToInline(lines: string[]): RichInline[] {
 // --- Inline ------------------------------------------------------------------
 
 const ESCAPABLE = /[\\`*_{}[\]()#+\-.!~<>|]/;
+/** A backslash escape, for unescaping a link's address. */
+const ESCAPED = new RegExp(`\\\\(${ESCAPABLE.source})`, "g");
 
 type Delim = {
   open: string;
@@ -294,17 +306,45 @@ function parseLink(
     if (s[j] === "[") depth++;
     else if (s[j] === "]" && --depth === 0) {
       if (s[j + 1] !== "(") return null;
-      const close = s.indexOf(")", j + 2);
+      const close = closingParen(s, j + 2);
       if (close === -1) return null;
       const href = s
         .slice(j + 2, close)
         .trim()
-        .replace(/^<|>$/g, "");
+        .replace(/^<|>$/g, "")
+        .replace(ESCAPED, "$1");
       if (!href || /\s/.test(href)) return null;
       return { text: s.slice(at + 1, j), href, end: close + 1 };
     }
   }
   return null;
+}
+
+/** The `)` closing a link's address: balanced brackets inside it belong to
+ *  it (`…/Fern_(plant)`), as in CommonMark, and an escaped one (`\(`) is
+ *  neither. -1 if it never closes. */
+function closingParen(s: string, from: number): number {
+  let open = 0;
+  for (let k = from; k < s.length; k++) {
+    if (s[k] === "\\") k++;
+    else if (s[k] === "(") open++;
+    else if (s[k] === ")" && open-- === 0) return k;
+  }
+  return -1;
+}
+
+/** An address as markdown writes it: brackets that don't pair are encoded,
+ *  or the first stray `)` would end the link early; a backslash is escaped,
+ *  or it would read as escaping what follows it. */
+function linkTarget(href: string): string {
+  let open = 0;
+  for (const c of href) {
+    if (c === "(") open++;
+    else if (c === ")" && --open < 0) break;
+  }
+  const paired =
+    open === 0 ? href : href.replace(/\(/g, "%28").replace(/\)/g, "%29");
+  return paired.replace(/\\/g, "\\\\");
 }
 
 const markKey = (marks: RichMark[] | undefined) =>
@@ -369,7 +409,7 @@ function inlineToMarkdown(nodes: RichInline[]): string {
     let j = i + 1;
     while (j < nodes.length && linkOf(nodes[j]!) === href) j++;
     const body = styledRuns(nodes.slice(i, j));
-    out += href ? `[${body}](${href})` : body;
+    out += href ? `[${body}](${linkTarget(href)})` : body;
     i = j;
   }
   return out;
