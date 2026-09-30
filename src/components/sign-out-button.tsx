@@ -1,34 +1,32 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useFormStatus } from "react-dom";
 import { signOutAction } from "@/app/signin/actions";
 import { Icon } from "./icons";
 
-// Shared by the library header, footer and admin sidebar. A full page load after
-// the action, as a server-action redirect never commits under this app's CSP in
-// production (src/proxy.ts, #335); the transition keeps the error boundary.
+// The sign-out control, shared by the library header, the footer and the admin
+// sidebar. Posts to signOutAction (deletes the session row, clears the cookie,
+// redirects to /signin); the variants differ only in chrome.
 export function SignOutButton({
   variant = "inline",
 }: {
   variant?: "inline" | "sidebar";
 }) {
-  const [pending, startTransition] = useTransition();
-  const [leaving, setLeaving] = useState(false);
-  const busy = pending || leaving;
-  const sidebar = variant === "sidebar";
+  return (
+    <form action={signOutAction}>
+      <SignOutSubmit sidebar={variant === "sidebar"} />
+    </form>
+  );
+}
+
+// Disabled while the request is out, so a slow sign-out isn't pressed twice.
+function SignOutSubmit({ sidebar }: { sidebar: boolean }) {
+  const { pending } = useFormStatus();
   return (
     <button
-      type="button"
-      disabled={busy}
-      aria-busy={busy || undefined}
-      onClick={() =>
-        startTransition(async () => {
-          await signOutAction();
-          setLeaving(true);
-          // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- the client navigation this rule wants is the bug (see comment above)
-          window.location.assign("/signin");
-        })
-      }
+      type="submit"
+      disabled={pending}
+      aria-busy={pending || undefined}
       className={`text-muted hover:text-accent flex h-11 cursor-pointer items-center font-sans font-medium hover:underline disabled:cursor-wait disabled:opacity-60 ${
         sidebar ? "w-full gap-2 text-[14px]" : "text-sm whitespace-nowrap"
       }`}
