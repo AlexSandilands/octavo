@@ -277,6 +277,7 @@ export function EditorBlock({
                 ? (field, text, label) => (
                     <CoverTextEditor
                       id={block.id}
+                      holdKey={`${block.id}:${field}`}
                       font={blockFontContext(field)}
                       fitLines={
                         appearance?.panel && appearance.panelShape === "text"

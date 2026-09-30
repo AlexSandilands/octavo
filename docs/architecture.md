@@ -222,7 +222,9 @@ so legacy pages retain their appearance; see [cover typography](cover-typography
 `coverSources` derives section titles and page numbers from live headings;
 only an explicitly authored cover title overrides that reference. Logos use the ordinary ImageMap
 and asset reference traversal, with an additional library deletion guard. Heading/text blocks
-can independently opt into `coverPlacement`; otherwise their original cover flow remains.
+can independently opt into `coverPlacement`; otherwise their original cover flow remains. A new
+cover (`makePage`'s templates) starts placed, so its first edit changes neither layout nor look;
+older covers stay stacked until their first edit.
 `MobileCover` uses the same entries in row/column reading order, reflowing to a full-width column
 at the member's text size. Direct canvas selection controls the inspector target, including existing
 headings, text and images. A photo on the cover takes its size as the entry's width, so its frame,

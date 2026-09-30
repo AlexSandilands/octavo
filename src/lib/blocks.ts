@@ -5,6 +5,7 @@ import { YOUTUBE_ID_RE } from "./youtube";
 import {
   coverElementSchema,
   coverOverlaySchema,
+  DEFAULT_COVER_PLACEMENT,
   coverPlacementSchema,
   MAX_COVER_ELEMENTS,
 } from "./cover-elements";
@@ -191,6 +192,7 @@ export const blockSchema = z.discriminatedUnion("type", [
 // The cover's own settings live with the rest of the cover model.
 export {
   coverOverlaySchema,
+  DEFAULT_COVER_PLACEMENT,
   DEFAULT_COVER_OVERLAY,
   type CoverOverlay,
 } from "./cover-elements";
@@ -419,6 +421,9 @@ export const PAGE_TEMPLATES: {
 export function makePage(template: PageTemplate = "blank"): Page {
   const id = createId();
   const bid = () => createId();
+  // A cover starts on the anchor grid, as it would after its first edit, so
+  // that edit changes neither layout nor look (and remounts nothing).
+  const placed = () => ({ ...DEFAULT_COVER_PLACEMENT });
   switch (template) {
     case "cover-classic":
       return {
@@ -428,12 +433,23 @@ export function makePage(template: PageTemplate = "blank"): Page {
           {
             id: bid(),
             type: "heading",
+            coverPlacement: placed(),
             kicker: "The Members' Magazine",
             title: "Spring Issue",
           },
           { id: bid(), type: "image", caption: "", align: "full", width: 55 },
-          { id: bid(), type: "text", text: "Official Club Newsletter" },
-          { id: bid(), type: "text", text: "Spring 2026" },
+          {
+            id: bid(),
+            type: "text",
+            text: "Official Club Newsletter",
+            coverPlacement: placed(),
+          },
+          {
+            id: bid(),
+            type: "text",
+            text: "Spring 2026",
+            coverPlacement: placed(),
+          },
         ],
       };
     case "cover-feature":
@@ -444,6 +460,7 @@ export function makePage(template: PageTemplate = "blank"): Page {
           {
             id: bid(),
             type: "heading",
+            coverPlacement: placed(),
             kicker: "In this issue",
             title: "The Headline Story",
           },
@@ -452,6 +469,7 @@ export function makePage(template: PageTemplate = "blank"): Page {
             id: bid(),
             type: "text",
             text: "A standfirst that draws the reader into the lead feature.",
+            coverPlacement: placed(),
           },
         ],
       };
@@ -463,10 +481,16 @@ export function makePage(template: PageTemplate = "blank"): Page {
           {
             id: bid(),
             type: "heading",
+            coverPlacement: placed(),
             kicker: "Volume One",
             title: "The Issue Title",
           },
-          { id: bid(), type: "text", text: "Spring 2026" },
+          {
+            id: bid(),
+            type: "text",
+            text: "Spring 2026",
+            coverPlacement: placed(),
+          },
         ],
       };
     case "blank":
