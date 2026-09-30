@@ -44,7 +44,8 @@ export type AssistantMessage = UIMessage<
 
 /** Whether a send was taken, and if not, why: nothing was sent (#311). The
  *  cost question (#312) adds `confirming` (the message waits on it in the
- *  panel) and `waiting` (another message does). */
+ *  panel) and `waiting` (another message does); `stopped` is the author's own
+ *  Stop, landing before the message went. */
 export type SendResult =
   | { ok: true }
   | {
@@ -55,6 +56,7 @@ export type SendResult =
         | "full"
         | "spent"
         | "failed"
+        | "stopped"
         | "confirming"
         | "waiting";
     };
@@ -144,6 +146,8 @@ export function useAssistantChat({
   const runOpen = useRef(false);
   // The run has had its end-of-run review (#342): at most one.
   const reviewed = useRef(false);
+  // The model's replies so far: a tool call carries the number of its own.
+  const replies = useRef(0);
   // The Chat is made once; its callbacks read the latest props through these.
   const latest = useRef({ snapshot, tools, onRunEnd });
   useEffect(() => {
@@ -185,12 +189,15 @@ export function useAssistantChat({
       !stopped.current && lastAssistantMessageIsCompleteWithToolCalls(options),
     onToolCall: async ({ toolCall }) => {
       if (toolCall.dynamic) return;
+      // Read before anything is awaited: the reply may finish meanwhile.
+      const reply = replies.current;
       try {
         const { issue } = await latest.current.snapshot();
         const output = await latest.current.tools.run(
           toolCall.toolName,
           toolCall.input,
           issue,
+          reply,
         );
         chat.addToolOutput({
           tool: toolCall.toolName,
@@ -214,6 +221,7 @@ export function useAssistantChat({
     // The run goes on while a tool call awaits its answer or has one to send.
     // A quick tool can answer before the stream finishes, so both count (#351).
     onFinish: ({ message, messages, isAbort, isError }) => {
+      replies.current++;
       const continues =
         message.parts.some(
           (p) =>
@@ -304,7 +312,7 @@ export function useAssistantChat({
     setSummary(null);
     setStuck(null);
     setRunPhotos([]);
-    attached.current = photos;
+    attached.current = [];
     const words = [
       ...(text ? [text] : []),
       ...(photos.length ? [attachedText(photos)] : []),
@@ -316,7 +324,7 @@ export function useAssistantChat({
       const { issue, currentPage } = await latest.current.snapshot();
       // Stop may land while the pages are measured: it has ended this run.
       if (stopped.current || runId.current !== id)
-        return { ok: false, reason: "busy" };
+        return { ok: false, reason: "stopped" };
       const view = projection(issue, currentPage);
       const size =
         conversationChars(chat.messages) + view.length + words.join("").length;
@@ -329,6 +337,7 @@ export function useAssistantChat({
         return { ok: false, reason: "full" };
       }
       // Taken: the reply streams on without holding the caller.
+      attached.current = photos;
       chat
         .sendMessage({
           parts: [

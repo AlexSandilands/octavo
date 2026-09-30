@@ -49,15 +49,17 @@ function blockKinds(page: Page): string {
   );
 }
 
+export type TextBlock = Extract<Block, { type: "text" }>;
+
 /** A text block as the model reads and writes it. */
-export function textMarkdown(block: Extract<Block, { type: "text" }>): string {
+export function textMarkdown(block: TextBlock): string {
   const doc =
     typeof block.text === "string" ? stringToDoc(block.text) : block.text;
   return docToMarkdown(doc);
 }
 
 /** A text block's markdown as a page view prints it, indented under its id. */
-export const textBody = (md: string) =>
+const textBody = (md: string) =>
   md
     ? md
         .split("\n")
@@ -65,10 +67,20 @@ export const textBody = (md: string) =>
         .join("\n")
     : "    (empty)";
 
+/** A text block's entry in a page view; `md` is its markdown, cut or whole. */
+function describeText(block: TextBlock, md: string): string {
+  const opts = [
+    block.size && block.size !== "m" ? `size ${block.size}` : "",
+    block.align ? `align ${block.align}` : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  return `[${block.id}] text${opts ? ` · ${opts}` : ""}\n${textBody(md)}`;
+}
+
 function describeBlock(
-  block: Block,
+  block: Exclude<Block, TextBlock>,
   issue: AssistantIssue,
-  textCap: number,
 ): string {
   const head = `[${block.id}]`;
   switch (block.type) {
@@ -77,16 +89,6 @@ function describeBlock(
         ? ` · kicker ${quote(clip(block.kicker, 200))}`
         : "";
       return `${head} heading ${block.level ?? "main"}${kicker} · ${quote(clip(block.title, 500))}`;
-    }
-    case "text": {
-      const md = clip(textMarkdown(block), textCap);
-      const opts = [
-        block.size && block.size !== "m" ? `size ${block.size}` : "",
-        block.align ? `align ${block.align}` : "",
-      ]
-        .filter(Boolean)
-        .join(" · ");
-      return `${head} text${opts ? ` · ${opts}` : ""}\n${textBody(md)}`;
     }
     case "image": {
       const img = block.imageId
@@ -113,25 +115,63 @@ function describeBlock(
   }
 }
 
-/** One page in full: every block with its id, text as markdown. */
-export function pageView(
+/** A page as a view printed it, and the text blocks it printed uncut. */
+export type PageRead = { text: string; whole: TextBlock[] };
+
+/** Room kept for the line that says a long page's view stops short. */
+const MORE_ROOM = 200;
+
+/**
+ * One page in full: every block with its id, text as markdown. A text block
+ * past `textCap` is cut with `[…]`. A page past `room` stops at a block
+ * boundary and says how many blocks are left, so no block is ever cut by the
+ * page's own limit: one a view prints is whole, cut at `textCap`, or absent.
+ */
+export function readView(
   issue: AssistantIssue,
   pageNo: number,
   textCap = READ_TEXT_CAP,
-): string {
+  room = PROJECTION_MAX,
+): PageRead {
   const page = issue.pages[pageNo - 1];
   if (!page)
-    return `There is no page ${pageNo}; this issue has ${issue.pages.length} pages.`;
-  const text = page.cover
-    ? coverView(issue, pageNo, page)
-    : [
-        `PAGE ${pageNo} — ${describeFill(issue.fills[page.id])}`,
-        ...(page.blocks.length
-          ? page.blocks.map((b) => describeBlock(b, issue, textCap))
-          : ["(empty page)"]),
-      ].join("\n");
-  return clip(text, PROJECTION_MAX);
+    return {
+      text: `There is no page ${pageNo}; this issue has ${issue.pages.length} pages.`,
+      whole: [],
+    };
+  if (page.cover)
+    return { text: clip(coverView(issue, pageNo, page), room), whole: [] };
+  const lines = [`PAGE ${pageNo} — ${describeFill(issue.fills[page.id])}`];
+  if (!page.blocks.length) lines.push("(empty page)");
+  const whole: TextBlock[] = [];
+  let length = lines[0]!.length;
+  for (const [i, block] of page.blocks.entries()) {
+    const md = block.type === "text" ? textMarkdown(block) : "";
+    const line =
+      block.type === "text"
+        ? describeText(block, clip(md, textCap))
+        : describeBlock(block, issue);
+    if (length + 1 + line.length > room - MORE_ROOM) {
+      const left = page.blocks.length - i;
+      lines.push(
+        `[…] ${left === 1 ? "1 more block" : `${left} more blocks`} not shown: this page is too long to show whole. split_page carries its end onto new pages, which read_page can show.`,
+      );
+      break;
+    }
+    lines.push(line);
+    length += 1 + line.length;
+    if (block.type === "text" && md.length <= textCap) whole.push(block);
+  }
+  return { text: lines.join("\n"), whole };
 }
+
+/** A page view's text alone. */
+export const pageView = (
+  issue: AssistantIssue,
+  pageNo: number,
+  textCap = READ_TEXT_CAP,
+  room = PROJECTION_MAX,
+) => readView(issue, pageNo, textCap, room).text;
 
 export function outline(issue: AssistantIssue): string {
   const lines: string[] = [];
@@ -179,9 +219,6 @@ export function projection(issue: AssistantIssue, currentPage: number): string {
   // The current page gets whatever room the header and outline leave.
   return (
     top +
-    clip(
-      pageView(issue, currentPage, VIEW_TEXT_CAP),
-      PROJECTION_MAX - top.length,
-    )
+    pageView(issue, currentPage, VIEW_TEXT_CAP, PROJECTION_MAX - top.length)
   );
 }

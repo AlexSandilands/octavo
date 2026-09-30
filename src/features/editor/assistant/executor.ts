@@ -12,8 +12,9 @@ import type { EditorSnapshot } from "../use-editor-history";
 import { applyEdit, Refusal } from "./edit-tools";
 import { applyCoverTool, isCoverTool } from "./cover-tools";
 import { describeReport, type EditMeasurer } from "./page-report";
+import type { PageRead } from "./projection";
 import { clip } from "./projection-text";
-import { markRead, unseenText, type SeenText } from "./seen-text";
+import { markRead, markWritten, unseenText, type SeenText } from "./seen-text";
 import { formatPages } from "./page-numbers";
 export { formatPages };
 
@@ -164,7 +165,10 @@ export type CallContext = {
   /** The logo library, for add_logo (#313). */
   logos: readonly { id: string; name: string; imageId: string }[];
   /** read_page, answered from the projection's own view of the issue. */
-  read: (input: unknown) => AiToolOutput;
+  read: (input: unknown) => PageRead;
+  /** Which of the model's replies made this call: one reply's calls were all
+   *  written before any was answered (seen-text.ts). Counts up, never back. */
+  reply: number;
   /** view_page / view_photo (#342): a picture, within the run's view budget. */
   view: (tool: AiViewTool, input: unknown) => Promise<AiToolOutput>;
 };
@@ -223,11 +227,8 @@ export function createAssistantExecutor({
       });
       if (!valid.success)
         return `Error: that edit would make the issue invalid (${valid.error.issues[0]?.message}); nothing changed.`;
-      const dropped = droppedKey(
-        result.pages,
-        valid.data.pages,
-        objectsIn(before.pages),
-      );
+      const was = objectsIn(before.pages);
+      const dropped = droppedKey(result.pages, valid.data.pages, was);
       if (dropped)
         return `Error: that edit sets something the issue can't store (${dropped}); nothing changed.`;
       if (handle.state().pages !== before.pages) {
@@ -256,12 +257,8 @@ export function createAssistantExecutor({
         record,
       );
       mine.last = result.pages;
-      if (name === "set_text") {
-        const id = (input as { blockId: string }).blockId;
-        for (const page of result.pages)
-          for (const b of page.blocks)
-            if (b.id === id && b.type === "text") mine.seen.set(id, b.text);
-      }
+      if (name === "set_text" || name === "insert_blocks")
+        markWritten(mine.seen, result.pages, was);
       mine.notes.push(...(result.notes ?? []));
       if (result.moved)
         mine.moves.set(result.moved, (mine.moves.get(result.moved) ?? 0) + 1);
@@ -298,12 +295,18 @@ export function createAssistantExecutor({
       return { text: `Error: there is no tool "${name}".` };
     const tool = name as AiToolName;
     if (tool === "read_page") {
-      const output = call.read(input);
-      markRead(mine.seen, handle.state().pages, output.text);
-      return output;
+      const { text, whole } = call.read(input);
+      markRead(mine.seen, whole, call.reply);
+      return { text };
     }
     if (tool === "set_text") {
-      const refused = unseenText(mine.seen, handle.state().pages, input);
+      const refused = unseenText(
+        mine.seen,
+        handle.state().pages,
+        input,
+        call.reply,
+        (page) => call.read({ page }).whole,
+      );
       if (refused) return { text: refused };
     }
     if (tool === "view_page" || tool === "view_photo")

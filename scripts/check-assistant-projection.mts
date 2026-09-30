@@ -22,8 +22,10 @@ import {
 } from "../src/features/editor/assistant/page-fill";
 import {
   PROJECTION_MAX,
+  VIEW_TEXT_CAP,
   outline,
   pageView,
+  readView,
   projection,
 } from "../src/features/editor/assistant/projection";
 
@@ -155,6 +157,13 @@ for (const seed of buildIssues(ids)) {
     ],
   });
   assert.deepEqual(hrefs(odd), ["https://x.org/a%29b"]);
+  // An escaped bracket is the address's own, not one to pair or close on.
+  assert.deepEqual(hrefs("A [map](https://x.org/a\\(b) and (more)."), [
+    "https://x.org/a(b",
+  ]);
+  const slash = "See [it](https://x.org/a\\\\(b)).";
+  assert.deepEqual(hrefs(slash), ["https://x.org/a\\(b)"]);
+  assert.equal(docToMarkdown(markdownToDoc(slash).doc), slash);
 }
 
 // The fill wording against the measurement it comes from.
@@ -199,6 +208,40 @@ const huge: AssistantIssue = {
 const cut = projection(huge, 1);
 assert(cut.length <= PROJECTION_MAX && cut.startsWith("ISSUE"));
 assert(cut.includes("[…]"));
+
+// A page past a view's room stops at a block boundary: every text block it
+// prints is whole to its last word, and `whole` names exactly those.
+{
+  const blocks = Array.from({ length: 40 }, (_, i) => ({
+    id: `s${i}`,
+    type: "text" as const,
+    text: stringToDoc(`${"word ".repeat(450)}end${i}`),
+  }));
+  const crowded = { ...huge, pages: [{ id: "p", blocks }] };
+  for (const room of [PROJECTION_MAX, 20_000]) {
+    const read = readView(crowded, 1, VIEW_TEXT_CAP, room);
+    const printed = blocks.filter((b) => read.text.includes(`[${b.id}]`));
+    assert(read.text.length <= room && printed.length < blocks.length);
+    assert.deepEqual(read.whole, printed);
+    for (const [i, b] of blocks.entries())
+      assert.equal(read.text.includes(`end${i}`), printed.includes(b));
+    assert(
+      read.text.endsWith("read_page can show.") &&
+        read.text.includes(
+          `[…] ${blocks.length - printed.length} more blocks not shown`,
+        ),
+    );
+  }
+  assert(projection(crowded, 1).length <= PROJECTION_MAX);
+  // A block past its own cap is printed cut, and isn't among the whole.
+  const mixed = {
+    ...huge,
+    pages: [
+      { id: "p", blocks: [...huge.pages[0]!.blocks.slice(0, 1), blocks[0]!] },
+    ],
+  };
+  assert.deepEqual(readView(mixed, 1, VIEW_TEXT_CAP).whole, [blocks[0]]);
+}
 
 console.log(
   `projection: ${pages} pages over ${buildIssues(ids).length} seed issues, ${textBlocks} text blocks round-tripped`,

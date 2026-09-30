@@ -118,7 +118,8 @@ export const logos = [
 export const call = {
   photos,
   logos,
-  read: () => ({ text: "(read_page)" }),
+  read: () => ({ text: "(read_page)", whole: [] }),
+  reply: 0,
   view: async () => ({ text: "(view)" }),
 };
 

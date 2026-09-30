@@ -17,8 +17,7 @@ import {
 } from "./executor";
 import type { AssistantIssue } from "./issue-context";
 import { createPageMeasurer } from "./measure-page";
-import { pageView } from "./projection";
-import { clip } from "./projection-text";
+import { READ_TEXT_CAP, readView, type PageRead } from "./projection";
 import { createVision, picturePages, type VisionSource } from "./vision";
 
 // The model's tools as the chat runs them (#306, #310): read_page from the
@@ -31,10 +30,12 @@ export type AssistantTools = {
   /** `pictures`: how many more images the conversation has room for;
    *  `photos`: the ones attached to this message (#343). */
   beginRun(pictures: number, photos?: string[]): void;
+  /** `reply`: which of the model's replies made the call (executor.ts). */
   run(
     name: string,
     input: unknown,
     issue: AssistantIssue,
+    reply: number,
   ): Promise<AiToolOutput>;
   /** The run's change, for the panel's one line and its Undo; null if none. */
   endRun(): RunSummary | null;
@@ -50,11 +51,14 @@ export type AssistantTools = {
   pictureRoom(): number;
 };
 
-export function readPage(input: unknown, issue: AssistantIssue): AiToolOutput {
+export function readPage(input: unknown, issue: AssistantIssue): PageRead {
   const args = aiToolSchemas.read_page.safeParse(input);
   if (!args.success)
-    return { text: "read_page needs a page number, like { page: 3 }." };
-  return { text: clip(pageView(issue, args.data.page), AI_MAX_TOOL_TEXT) };
+    return {
+      text: "read_page needs a page number, like { page: 3 }.",
+      whole: [],
+    };
+  return readView(issue, args.data.page, READ_TEXT_CAP, AI_MAX_TOOL_TEXT);
 }
 
 // A committed edit shows up in `pages` on the next render; give up waiting
@@ -152,11 +156,12 @@ export function useAssistantTools({
       executor.current?.beginRun();
       vision.beginRun(pictures, photos);
     },
-    run: async (name, input, issue) =>
+    run: async (name, input, issue, reply) =>
       executor.current
         ? executor.current.run(name, input, {
             photos: new Set(issue.uploads),
             logos: issue.logos,
+            reply,
             read: (args) => readPage(args, issue),
             view: (tool, args) =>
               vision.view(tool, args, issue, pictured.current),
