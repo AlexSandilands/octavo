@@ -48,7 +48,9 @@ export async function checkStall(d: {
       select content from issues where id = ${draftId}`
   )[0]!;
   const blockId = content.pages.at(-1)!.blocks[0]!.id;
+  // The block is past the view's cut: set_text needs it read whole first.
   const script = [
+    { toolName: "read_page", input: { page: content.pages.length } },
     {
       toolName: "set_text",
       input: { blockId, markdown: "Written before the stall." },

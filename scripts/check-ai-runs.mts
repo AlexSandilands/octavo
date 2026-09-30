@@ -13,6 +13,13 @@ import {
   summarizeRun,
 } from "../src/features/editor/assistant/executor";
 import type { EditMeasurer } from "../src/features/editor/assistant/page-report";
+import {
+  READ_TEXT_CAP,
+  VIEW_TEXT_CAP,
+  textBody,
+  textMarkdown,
+} from "../src/features/editor/assistant/projection";
+import { clip } from "../src/features/editor/assistant/projection-text";
 import * as h from "./fixtures/assistant/tools-harness.mts";
 
 const { ok, heading, measurer, call, harness } = h;
@@ -268,6 +275,94 @@ heading("a change between a run's calls stops it");
     h1.executor.summary()?.text === "Changed 1 block on page 2",
     "the summary counts only the run's own change",
   );
+}
+
+heading("set_text needs a long block seen whole first");
+{
+  // One paragraph past the view's cut: the model was shown only its start.
+  const long = (chars: number, label = "Long") => ({
+    ...textBlock(1, label),
+    text: {
+      type: "doc" as const,
+      content: [h.para("word ".repeat(chars / 5))],
+    },
+  });
+  const a = long(VIEW_TEXT_CAP + 500);
+  const h1 = harness([cover, page(a)]);
+  const shown = (text: string) => ({
+    ...call,
+    read: () => ({ text: `PAGE 2 — fits\n[${a.id}] text\n${textBody(text)}` }),
+  });
+  h1.executor.beginRun();
+  const blind = await h1.run("set_text", { blockId: a.id, markdown: "Short." });
+  ok(
+    blind.text.includes("read_page for page 2") &&
+      h1.history.length === 0 &&
+      h1.pages[1]!.blocks[0] === a,
+    "refused before a read: nothing changes",
+  );
+  const cut = clip(textMarkdown(a), VIEW_TEXT_CAP);
+  await h1.executor.run("read_page", { page: 2 }, shown(cut));
+  const still = await h1.run("set_text", { blockId: a.id, markdown: "Short." });
+  ok(still.text.startsWith("Error:"), "a read that cut it short doesn't count");
+  await h1.executor.run("read_page", { page: 2 }, shown(textMarkdown(a)));
+  const after = await h1.run("set_text", {
+    blockId: a.id,
+    markdown: "word ".repeat(VIEW_TEXT_CAP / 4),
+  });
+  ok(
+    !after.text.startsWith("Error:"),
+    "a read that showed it whole lets it through",
+  );
+  const again = await h1.run("set_text", {
+    blockId: a.id,
+    markdown: "Shorter.",
+  });
+  ok(
+    !again.text.startsWith("Error:"),
+    "its own long rewrite needs no fresh read",
+  );
+  h1.executor.beginRun();
+  const b = long(VIEW_TEXT_CAP + 500, "Other");
+  h1.set({ pages: [cover, page(b)], curPage: 1, sel: null });
+  await h1.executor.run("read_page", { page: 2 }, shown(textMarkdown(a)));
+  const other = await h1.run("set_text", { blockId: b.id, markdown: "x" });
+  ok(other.text.startsWith("Error:"), "a new run, another block: seen afresh");
+
+  const huge = long(READ_TEXT_CAP + 500);
+  const h2 = harness([cover, page(huge)]);
+  h2.executor.beginRun();
+  const whole = await h2.run("set_text", { blockId: huge.id, markdown: "x" });
+  ok(
+    whole.text.includes("split_page on page 2") && h2.history.length === 0,
+    "past what read_page shows, it asks for a split",
+  );
+}
+
+heading("propose_sections: sub-heads, and a long blank run is quick");
+{
+  const plan = (body: string) => ({
+    after: 2,
+    sections: [{ headline: "Spring show", body }],
+  });
+  const h1 = harness([cover, page()]);
+  h1.executor.beginRun();
+  const out = await h1.run(
+    "propose_sections",
+    plan("The doors opened.\n## Judging ##\nRosettes."),
+  );
+  const titles = h1.pages
+    .flatMap((p) => p.blocks)
+    .flatMap((b) => (b.type === "heading" ? [b.title] : []));
+  ok(
+    !out.text.startsWith("Error:") && titles.includes("Judging"),
+    "a sub-head becomes a heading, closing #s trimmed",
+  );
+  // Once cubic in the heading test: seconds per line of this.
+  const started = Date.now();
+  await h1.run("propose_sections", plan(`# a${" ".repeat(15_000)}x`));
+  const ms = Date.now() - started;
+  ok(ms < 500, `a heading line with a long blank run is quick (${ms}ms)`);
 }
 
 console.log(h.failures ? `\n${h.failures} failed` : "\nall passed");

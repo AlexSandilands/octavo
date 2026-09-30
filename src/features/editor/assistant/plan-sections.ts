@@ -21,8 +21,17 @@ import { refuse } from "./refusal";
 // top of a fresh page, adding pages as it needs. One call, so one tool result
 // and — like any run — one undo step.
 
-/** A body line that is a heading: `#`/`##` a section title, `###` a run-in sub-head. */
-const SUBHEAD = /^(#{1,3})\s+(.+?)\s*#*\s*$/;
+/** A body line that is a heading: `#`/`##` a section title, `###` a run-in
+ *  sub-head. The closing `#`s are trimmed by hand: a regex tail backtracks
+ *  badly on a long run of spaces. */
+function subhead(line: string): { level: number; title: string } | null {
+  const hashes = /^(#{1,3})\s/.exec(line)?.[1];
+  if (!hashes) return null;
+  let end = line.length;
+  while (end > hashes.length && /[\s#]/.test(line[end - 1]!)) end--;
+  const title = line.slice(hashes.length, end).trim();
+  return title ? { level: hashes.length, title } : null;
+}
 
 type Where = "standfirst" | number;
 
@@ -108,7 +117,7 @@ function sectionBlocks(
   };
   let lines: string[] = [];
   for (const line of section.body.split("\n")) {
-    const sub = SUBHEAD.exec(line);
+    const sub = subhead(line);
     if (!sub) {
       lines.push(line);
       continue;
@@ -116,9 +125,7 @@ function sectionBlocks(
     text(lines);
     lines = [];
     flush();
-    blocks.push(
-      heading(sub[2]!, sub[1]!.length === 3 ? "paragraph" : "section"),
-    );
+    blocks.push(heading(sub.title, sub.level === 3 ? "paragraph" : "section"));
   }
   text(lines);
   flush();

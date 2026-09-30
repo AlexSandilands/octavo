@@ -13,6 +13,7 @@ import { applyEdit, Refusal } from "./edit-tools";
 import { applyCoverTool, isCoverTool } from "./cover-tools";
 import { describeReport, type EditMeasurer } from "./page-report";
 import { clip } from "./projection-text";
+import { markRead, unseenText, type SeenText } from "./seen-text";
 import { formatPages } from "./page-numbers";
 export { formatPages };
 
@@ -60,6 +61,8 @@ type RunState = {
   /** The cover this run's compose calls edit, once one has (#313). */
   cover: { id?: string };
   stall: Stall;
+  /** Long text blocks the model has had whole this run: see seen-text.ts. */
+  seen: SeenText;
 };
 
 /** set_text calls in a row on one page that still overflows after each; a
@@ -94,6 +97,7 @@ const fresh = (): RunState => ({
   abort: new AbortController(),
   cover: {},
   stall: noStall(),
+  seen: new Map(),
 });
 
 const STOPPED =
@@ -252,6 +256,12 @@ export function createAssistantExecutor({
         record,
       );
       mine.last = result.pages;
+      if (name === "set_text") {
+        const id = (input as { blockId: string }).blockId;
+        for (const page of result.pages)
+          for (const b of page.blocks)
+            if (b.id === id && b.type === "text") mine.seen.set(id, b.text);
+      }
       mine.notes.push(...(result.notes ?? []));
       if (result.moved)
         mine.moves.set(result.moved, (mine.moves.get(result.moved) ?? 0) + 1);
@@ -287,7 +297,15 @@ export function createAssistantExecutor({
     if (!Object.hasOwn(aiToolSchemas, name))
       return { text: `Error: there is no tool "${name}".` };
     const tool = name as AiToolName;
-    if (tool === "read_page") return call.read(input);
+    if (tool === "read_page") {
+      const output = call.read(input);
+      markRead(mine.seen, handle.state().pages, output.text);
+      return output;
+    }
+    if (tool === "set_text") {
+      const refused = unseenText(mine.seen, handle.state().pages, input);
+      if (refused) return { text: refused };
+    }
     if (tool === "view_page" || tool === "view_photo")
       return call.view(tool, input);
     return {

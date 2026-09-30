@@ -49,6 +49,22 @@ function blockKinds(page: Page): string {
   );
 }
 
+/** A text block as the model reads and writes it. */
+export function textMarkdown(block: Extract<Block, { type: "text" }>): string {
+  const doc =
+    typeof block.text === "string" ? stringToDoc(block.text) : block.text;
+  return docToMarkdown(doc);
+}
+
+/** A text block's markdown as a page view prints it, indented under its id. */
+export const textBody = (md: string) =>
+  md
+    ? md
+        .split("\n")
+        .map((l) => `    ${l}`)
+        .join("\n")
+    : "    (empty)";
+
 function describeBlock(
   block: Block,
   issue: AssistantIssue,
@@ -63,22 +79,14 @@ function describeBlock(
       return `${head} heading ${block.level ?? "main"}${kicker} · ${quote(clip(block.title, 500))}`;
     }
     case "text": {
-      const doc =
-        typeof block.text === "string" ? stringToDoc(block.text) : block.text;
-      const md = clip(docToMarkdown(doc), textCap);
+      const md = clip(textMarkdown(block), textCap);
       const opts = [
         block.size && block.size !== "m" ? `size ${block.size}` : "",
         block.align ? `align ${block.align}` : "",
       ]
         .filter(Boolean)
         .join(" · ");
-      const body = md
-        ? md
-            .split("\n")
-            .map((l) => `    ${l}`)
-            .join("\n")
-        : "    (empty)";
-      return `${head} text${opts ? ` · ${opts}` : ""}\n${body}`;
+      return `${head} text${opts ? ` · ${opts}` : ""}\n${textBody(md)}`;
     }
     case "image": {
       const img = block.imageId

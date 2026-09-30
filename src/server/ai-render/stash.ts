@@ -3,12 +3,12 @@ import { randomUUID } from "node:crypto";
 import type { IssueContent } from "@/lib/blocks";
 
 // The draft a render request carries (#342), held in memory for the moment it
-// takes Chromium to fetch the print page, under a one-time nonce. Unsaved edits
-// never touch the database this way. On globalThis because Next bundles the
-// route handler and the page separately; both run in the same server process,
-// and the app runs as one instance (Railway), so the page always finds it.
-// Entries expire, and every new one sweeps the expired, so a crashed render
-// can't leak one; the route drops its own the moment it is done.
+// takes Chromium to fetch the print page, under a short-lived nonce. Unsaved
+// edits never touch the database this way. On globalThis because Next bundles
+// the route handler and the page separately; both run in the same server
+// process, and the app runs as one instance (Railway), so the page always
+// finds it. Entries expire, and every new one sweeps the expired, so a crashed
+// render can't leak one; the route drops its own the moment it is done.
 
 export type StashedDraft = {
   issueId: string;

@@ -294,7 +294,7 @@ function parseLink(
     if (s[j] === "[") depth++;
     else if (s[j] === "]" && --depth === 0) {
       if (s[j + 1] !== "(") return null;
-      const close = s.indexOf(")", j + 2);
+      const close = closingParen(s, j + 2);
       if (close === -1) return null;
       const href = s
         .slice(j + 2, close)
@@ -305,6 +305,28 @@ function parseLink(
     }
   }
   return null;
+}
+
+/** The `)` closing a link's address: balanced brackets inside it belong to
+ *  it (`…/Fern_(plant)`), as in CommonMark. -1 if it never closes. */
+function closingParen(s: string, from: number): number {
+  let open = 0;
+  for (let k = from; k < s.length; k++) {
+    if (s[k] === "(") open++;
+    else if (s[k] === ")" && open-- === 0) return k;
+  }
+  return -1;
+}
+
+/** An address as markdown writes it: brackets that don't pair are encoded,
+ *  or the first stray `)` would end the link early. */
+function linkTarget(href: string): string {
+  let open = 0;
+  for (const c of href) {
+    if (c === "(") open++;
+    else if (c === ")" && --open < 0) break;
+  }
+  return open === 0 ? href : href.replace(/\(/g, "%28").replace(/\)/g, "%29");
 }
 
 const markKey = (marks: RichMark[] | undefined) =>
@@ -369,7 +391,7 @@ function inlineToMarkdown(nodes: RichInline[]): string {
     let j = i + 1;
     while (j < nodes.length && linkOf(nodes[j]!) === href) j++;
     const body = styledRuns(nodes.slice(i, j));
-    out += href ? `[${body}](${href})` : body;
+    out += href ? `[${body}](${linkTarget(href)})` : body;
     i = j;
   }
   return out;

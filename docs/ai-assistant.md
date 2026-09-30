@@ -141,6 +141,10 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
   2,500 characters in the current-page view and 12,000 in `read_page`, marked `[…]`. The outline stops listing pages
   past 24,000 characters and says `read_page` shows the rest. `scripts/check-assistant-projection.mts` checks every
   seed issue.
+- **A rewrite sees what it replaces.** `set_text` replaces a block whole, so it refuses a block past the view's cut
+  until a `read_page` in the same run has shown it uncut (or the run wrote it itself), and one past `read_page`'s cut
+  until it is split (`src/features/editor/assistant/seen-text.ts`, checked by `check-ai-runs.mts`). Without this, a
+  "Shorten to fit" could drop the tail the model never saw and still look like a successful trim.
 
 ## Tools
 
@@ -221,7 +225,7 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
     still counts toward the conversation's room, and a second look at the same photo is an ordinary view;
   - **the draft render.** `/read/[n]/print` looks issues up by published number, so the render route takes the issue as
     the editor holds it (unsaved edits too), validated by `issueContentSchema` within the save cap. It stashes it in memory
-    under a one-time nonce (60 s, swept on each new stash, dropped when done) and has headless Chromium (the PDF's
+    under a short-lived nonce (60 s, swept on each new stash, dropped when done) and has headless Chromium (the PDF's
     `launchPrintBrowser`) load `/read/draft/[nonce]/print` with the internal print token. That page renders the PDF's own
     `PrintDocument`. Each requested `.pdf-page` is screenshotted at 1.5× (960×1350, PNG, or JPEG when a photo-heavy page
     passes the tool result's 1.5 MB), and its fill is read with the overflow marker's geometry. The app runs as one

@@ -117,6 +117,46 @@ for (const seed of buildIssues(ids)) {
   assert.match(pageView(issue, 999), /^There is no page 999; this issue has/);
 }
 
+// Brackets in a link's address survive a rewrite; unpaired ones are encoded.
+{
+  type Node = {
+    marks?: { type: string; attrs?: { href?: string } }[];
+    content?: Node[];
+  };
+  const hrefs = (md: string) => {
+    const out: string[] = [];
+    const walk = (n: Node): void => {
+      for (const m of n.marks ?? [])
+        if (m.type === "link" && m.attrs?.href) out.push(m.attrs.href);
+      n.content?.forEach(walk);
+    };
+    walk(markdownToDoc(md).doc as Node);
+    return out;
+  };
+  const wiki = "See [ferns](https://en.wikipedia.org/wiki/Fern_(plant)) today.";
+  assert.deepEqual(hrefs(wiki), ["https://en.wikipedia.org/wiki/Fern_(plant)"]);
+  assert.equal(docToMarkdown(markdownToDoc(wiki).doc), wiki);
+  assert.deepEqual(hrefs("A [link](https://x.org/a) (aside)."), [
+    "https://x.org/a",
+  ]);
+  const odd = docToMarkdown({
+    type: "doc",
+    content: [
+      {
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: "odd",
+            marks: [{ type: "link", attrs: { href: "https://x.org/a)b" } }],
+          },
+        ],
+      },
+    ],
+  });
+  assert.deepEqual(hrefs(odd), ["https://x.org/a%29b"]);
+}
+
 // The fill wording against the measurement it comes from.
 assert.equal(
   describeFill(fillFromMeasure({ used: 640, avail: 800 })),

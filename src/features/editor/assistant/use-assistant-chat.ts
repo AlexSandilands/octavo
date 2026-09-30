@@ -295,7 +295,8 @@ export function useAssistantChat({
       setFull(true);
       return { ok: false, reason: "full" };
     }
-    runId.current = crypto.randomUUID();
+    const id = crypto.randomUUID();
+    runId.current = id;
     stopped.current = false;
     runOpen.current = true;
     reviewed.current = false;
@@ -313,6 +314,9 @@ export function useAssistantChat({
     latest.current.tools.beginRun(room, photos);
     try {
       const { issue, currentPage } = await latest.current.snapshot();
+      // Stop may land while the pages are measured: it has ended this run.
+      if (stopped.current || runId.current !== id)
+        return { ok: false, reason: "busy" };
       const view = projection(issue, currentPage);
       const size =
         conversationChars(chat.messages) + view.length + words.join("").length;
