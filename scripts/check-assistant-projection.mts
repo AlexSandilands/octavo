@@ -219,26 +219,31 @@ assert(cut.includes("[…]"));
   }));
   const crowded = { ...huge, pages: [{ id: "p", blocks }] };
   for (const room of [PROJECTION_MAX, 20_000]) {
-    const read = readView(crowded, 1, VIEW_TEXT_CAP, room);
+    const read = readView(crowded, 1, { textCap: VIEW_TEXT_CAP, room });
     const printed = blocks.filter((b) => read.text.includes(`[${b.id}]`));
     assert(read.text.length <= room && printed.length < blocks.length);
     assert.deepEqual(read.whole, printed);
     for (const [i, b] of blocks.entries())
       assert.equal(read.text.includes(`end${i}`), printed.includes(b));
     assert(
-      read.text.endsWith("onto new pages.") &&
-        read.text.includes("read_page for page 1 has more room") &&
+      read.text.endsWith("which read_page can show.") &&
+        !read.text.includes("has more room") &&
         read.text.includes(
           `[…] ${blocks.length - printed.length} more blocks not shown`,
         ),
     );
   }
-  assert(projection(crowded, 1).length <= PROJECTION_MAX);
+  // The projection's own view has less room than read_page: it says so.
+  const open = projection(crowded, 1);
+  assert(open.length <= PROJECTION_MAX);
+  assert(open.includes("read_page for page 1 has more room"));
   // Room is kept for that line only while blocks follow: a page that fits to
   // the character is printed whole, and one character less drops its last.
-  const exact = readView(crowded, 1, VIEW_TEXT_CAP, 1e6).text.length;
-  assert.equal(readView(crowded, 1, VIEW_TEXT_CAP, exact).whole.length, 40);
-  const short = readView(crowded, 1, VIEW_TEXT_CAP, exact - 1);
+  const at = (room: number) =>
+    readView(crowded, 1, { textCap: VIEW_TEXT_CAP, room });
+  const exact = at(1e6).text.length;
+  assert.equal(at(exact).whole.length, 40);
+  const short = at(exact - 1);
   assert(short.whole.length < 40 && short.text.length < exact);
   // A block past its own cap is printed cut, and isn't among the whole.
   const mixed = {
@@ -247,7 +252,10 @@ assert(cut.includes("[…]"));
       { id: "p", blocks: [...huge.pages[0]!.blocks.slice(0, 1), blocks[0]!] },
     ],
   };
-  assert.deepEqual(readView(mixed, 1, VIEW_TEXT_CAP).whole, [blocks[0]]);
+  assert.deepEqual(
+    readView(mixed, 1, { textCap: VIEW_TEXT_CAP, room: PROJECTION_MAX }).whole,
+    [blocks[0]],
+  );
 }
 
 console.log(

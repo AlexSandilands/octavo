@@ -58,7 +58,10 @@ export function readPage(input: unknown, issue: AssistantIssue): PageRead {
       text: "read_page needs a page number, like { page: 3 }.",
       whole: [],
     };
-  return readView(issue, args.data.page, READ_TEXT_CAP, AI_MAX_TOOL_TEXT);
+  return readView(issue, args.data.page, {
+    textCap: READ_TEXT_CAP,
+    room: AI_MAX_TOOL_TEXT,
+  });
 }
 
 // A committed edit shows up in `pages` on the next render; give up waiting

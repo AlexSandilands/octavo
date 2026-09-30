@@ -121,6 +121,22 @@ export type PageRead = { text: string; whole: TextBlock[] };
 /** Room kept for the line that says a long page's view stops short. */
 const MORE_ROOM = 300;
 
+/** A view's limits. `current`: the projection's view of the page open now,
+ *  which read_page has more room than. */
+export type ViewLimits = { textCap: number; room: number; current?: boolean };
+const READ: ViewLimits = { textCap: READ_TEXT_CAP, room: PROJECTION_MAX };
+
+/** The line that ends a view with no room for a page's last `left` blocks. */
+function moreLine(left: number, pageNo: number, current = false): string {
+  const [blocks, them, are] =
+    left === 1
+      ? ["1 more block", "it", "it is"]
+      : [`${left} more blocks`, "them", "they are"];
+  return current
+    ? `[…] ${blocks} not shown: this view has no room for ${them}. read_page for page ${pageNo} has more room; if ${are} still missing there, split_page carries the page's end onto new pages.`
+    : `[…] ${blocks} not shown: read_page has no room for ${them}. split_page carries the page's end onto new pages, which read_page can show.`;
+}
+
 /**
  * One page in full: every block with its id, text as markdown. A text block
  * past `textCap` is cut with `[…]`. A page past `room` stops at a block
@@ -130,8 +146,7 @@ const MORE_ROOM = 300;
 export function readView(
   issue: AssistantIssue,
   pageNo: number,
-  textCap = READ_TEXT_CAP,
-  room = PROJECTION_MAX,
+  { textCap, room, current }: ViewLimits = READ,
 ): PageRead {
   const page = issue.pages[pageNo - 1];
   if (!page)
@@ -154,9 +169,7 @@ export function readView(
     // The last block needs no room kept after it.
     const left = page.blocks.length - i;
     if (length + 1 + line.length > room - (left > 1 ? MORE_ROOM : 0)) {
-      lines.push(
-        `[…] ${left === 1 ? "1 more block" : `${left} more blocks`} not shown: this view has no room for ${left === 1 ? "it" : "them"}. read_page for page ${pageNo} has more room; if ${left === 1 ? "it is" : "they are"} still missing there, split_page carries the page's end onto new pages.`,
-      );
+      lines.push(moreLine(left, pageNo, current));
       break;
     }
     lines.push(line);
@@ -166,13 +179,9 @@ export function readView(
   return { text: lines.join("\n"), whole };
 }
 
-/** A page view's text alone. */
-export const pageView = (
-  issue: AssistantIssue,
-  pageNo: number,
-  textCap = READ_TEXT_CAP,
-  room = PROJECTION_MAX,
-) => readView(issue, pageNo, textCap, room).text;
+/** What read_page prints for a page: the view's text alone. */
+export const pageView = (issue: AssistantIssue, pageNo: number) =>
+  readView(issue, pageNo).text;
 
 export function outline(issue: AssistantIssue): string {
   const lines: string[] = [];
@@ -220,6 +229,10 @@ export function projection(issue: AssistantIssue, currentPage: number): string {
   // The current page gets whatever room the header and outline leave.
   return (
     top +
-    pageView(issue, currentPage, VIEW_TEXT_CAP, PROJECTION_MAX - top.length)
+    readView(issue, currentPage, {
+      textCap: VIEW_TEXT_CAP,
+      room: PROJECTION_MAX - top.length,
+      current: true,
+    }).text
   );
 }
