@@ -66,6 +66,8 @@ const bodyTitle = (r: Awaited<ReturnType<typeof row>>) => {
   const block = r.content.pages[0]?.blocks[0];
   return block?.type === "heading" ? block.title : undefined;
 };
+// fill() over a fresh cover: a native whole-paragraph replace as the first edit,
+// which used to lose its text (see dev-cover-first-edit-gate.mts).
 const editContent = async (title: string, p = page) => {
   await p
     .getByRole("textbox", { name: "Cover title", exact: true })

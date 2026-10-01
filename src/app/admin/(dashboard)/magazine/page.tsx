@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { MagazineSettings } from "@/features/magazine/magazine-settings";
 import { SettingsUnavailable } from "@/features/magazine/settings-unavailable";
+import { isAssistantEnabled } from "@/lib/ai";
 import { listLogos } from "@/server/logos";
 import { requireAdminOrRedirect } from "@/server/session";
 import { getSettingsForAdmin } from "@/server/settings";
@@ -27,6 +29,18 @@ export default async function MagazinePage() {
         whether members can download an issue. Changes go live as soon as you
         save — nothing needs rebuilding.
       </p>
+      {isAssistantEnabled() && (
+        <p className="text-faint mt-1 font-sans text-sm">
+          The editing assistant&rsquo;s spend is under{" "}
+          <Link
+            href="/admin/ai"
+            className="text-accent hover:text-accent-strong font-medium underline"
+          >
+            Assistant usage
+          </Link>
+          .
+        </p>
+      )}
 
       {/* The form is only ever mounted with a row we actually read. That is
           the whole guarantee behind issue #126: the save sends every field,

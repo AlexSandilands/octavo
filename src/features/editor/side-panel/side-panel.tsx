@@ -1,22 +1,22 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { SplitGrip } from "@/components/split-grip";
 
 const SLIDE_MS = 320;
 const STEP = 24;
-/** The gutter between canvas and panel: a visible strip with a grip, part of `width`. */
-const GUTTER = 14;
+/** The resize handle straddles the panel's left edge, invisible until focused. */
+const HANDLE = 10;
 
 // The editor's right-hand panel. Hidden until a tool on the rail asks for it,
 // then it slides in from the right edge and the canvas re-fits beside it. The
 // content sits at its full width anchored to the right, so it slides rather than
-// unfolds. Its left edge is a gutter with a grip in the middle — the visible
-// seam between the two stages, and the drag handle (and keyboard separator)
-// that resizes the panel. There is no header: the rail button that opened the panel is
-// pressed while it is out and closes it again, and the tool owns the whole
-// height. The content stays mounted through the closing slide and unmounts
-// after, so an open PDF releases its worker when the panel is dismissed.
+// unfolds. Its left edge is a hairline; the drag handle (and keyboard
+// separator) that resizes the panel straddles it, unseen until it is focused
+// or dragged, so the seam between the two stages stays quiet (#353). There is
+// no header: the Panel button that opened it is pressed while it is out and
+// closes it again, and the strip of tabs owns the top. The content stays
+// mounted through the closing slide and unmounts after, so an open PDF
+// releases its worker when the panel is dismissed.
 export function SidePanel({
   id,
   open,
@@ -92,11 +92,16 @@ export function SidePanel({
           : "motion-safe:transition-[width] motion-safe:duration-300 motion-safe:ease-out"
       }`}
     >
-      {/* The clip lives here, not on the aside, so the grip can overhang the
-          gutter's edges while the sliding content is still cut at them. */}
+      {/* The clip lives here, not on the aside, so the handle can overhang the
+          edge while the sliding content is still cut at it. The hairline is
+          drawn inside, so the panel's width is exactly what it is set to. */}
       <div className="absolute inset-0 overflow-hidden">
         <div
-          style={{ width: width - GUTTER }}
+          aria-hidden
+          className="bg-muted/25 absolute inset-y-0 left-0 z-10 w-px"
+        />
+        <div
+          style={{ width }}
           className="absolute inset-y-0 right-0 flex flex-col"
         >
           <div className="flex min-h-0 flex-1 flex-col">
@@ -119,13 +124,13 @@ export function SidePanel({
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
         onKeyDown={onKeyDown}
-        style={{ width: GUTTER }}
-        className={`border-line group absolute inset-y-0 left-0 z-10 cursor-col-resize touch-none items-center justify-center border-x transition-colors duration-150 select-none focus-visible:outline-offset-[-2px] ${
-          mounted ? "flex" : "hidden"
-        } ${dragging ? "bg-accent-wash" : "bg-paper hover:bg-accent-wash"}`}
-      >
-        <SplitGrip dragging={dragging} />
-      </div>
+        style={{ width: HANDLE, left: -HANDLE / 2 }}
+        // The hit area is HANDLE wide; what shows is a 2px line down its
+        // middle, faint under the pointer and full while dragging or focused.
+        className={`after:bg-accent absolute inset-y-0 z-10 cursor-col-resize touch-none select-none after:absolute after:inset-y-0 after:left-1/2 after:w-0.5 after:-translate-x-1/2 after:transition-opacity after:duration-150 after:content-[''] focus-visible:outline-none focus-visible:after:opacity-100 ${
+          mounted ? "block" : "hidden"
+        } ${dragging ? "after:opacity-100" : "after:opacity-0 hover:after:opacity-40"}`}
+      />
     </aside>
   );
 }

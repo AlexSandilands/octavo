@@ -13,6 +13,7 @@ import {
   initial,
   setup,
   cleanup,
+  enablePdfDownloads,
   readDocument,
   settle,
   openFile,
@@ -30,6 +31,7 @@ import {
   selectedRegions,
   addedRegions,
 } from "./pdf-import-gate-support.mts";
+import { stripOrder, PANEL_BUTTON } from "./editor-panel-gate-support.mts";
 const number = await setup();
 async function zoomSource(page: BrowserPage) {
   const canvas = page.locator("[data-pdf-private] canvas");
@@ -144,6 +146,13 @@ try {
   assert((await canvas.boundingBox())!.width < canvasBefore, "Canvas re-fits.");
   const beforeOpen = requests.length;
   await openFile(page);
+  // Replace PDF joins the strip after the tabs, with its word; + last.
+  await page.getByRole("button", { name: "Replace PDF" }).waitFor();
+  const order = await stripOrder(page);
+  assert(
+    /^Import PDF, Close Import PDF, Replace PDF, Open a surface$/.test(order),
+    `Strip order: ${order}`,
+  );
   assert.equal(await region(page, "Image").count(), 1);
   assert.equal(workers.length, 1);
   assert(workers[0]?.startsWith(base + "/pdfjs/"));
@@ -334,10 +343,8 @@ try {
   await page.setViewportSize({ width: 768, height: 1000 });
   await page.waitForTimeout(500);
   await page.screenshot({ path: "/tmp/pdf-import-min-width.png" });
-  const rail = await page
-    .getByRole("button", { name: "Import PDF", exact: true })
-    .boundingBox();
-  assert(rail && rail.x + rail.width <= 768, "Tool rail stays on screen.");
+  const strip = await page.locator(PANEL_BUTTON).boundingBox();
+  assert(strip && strip.x + strip.width <= 768, "The strip stays on screen.");
   assert(
     await page
       .getByRole("button", { name: "Publish", exact: true })
@@ -387,6 +394,7 @@ try {
     path: "/tmp/pdf-import-reader-mobile.png",
     fullPage: true,
   });
+  await enablePdfDownloads();
   const pdf = await context.request.get(`${base}/api/issues/${number}/pdf`, {
     timeout: 120000,
   });

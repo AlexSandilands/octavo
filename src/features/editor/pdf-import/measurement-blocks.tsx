@@ -7,9 +7,12 @@ import type { MeasurementOptions } from "./measure";
 export function MeasurementBlocks({
   blocks,
   options,
+  ids = false,
 }: {
   blocks: Block[];
-  options: MeasurementOptions;
+  options: Omit<MeasurementOptions, "settings" | "logo" | "issueNo">;
+  /** Mark each block as the canvas does, for `page-metrics.ts` (the assistant's fill, #309). */
+  ids?: boolean;
 }) {
   return (
     <div className="relative flow-root">
@@ -17,6 +20,7 @@ export function MeasurementBlocks({
         <div
           key={block.id}
           data-reader-block
+          data-block-id={ids ? block.id : undefined}
           className="relative"
           style={blockFlowStyle(block)}
         >

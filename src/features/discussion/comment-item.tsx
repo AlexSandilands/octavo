@@ -5,6 +5,7 @@ import type { ThreadComment } from "@/lib/discussion-thread";
 import { CommentActions } from "./comment-actions";
 import { CommentEditForm } from "./comment-edit-form";
 import { CommentMeta } from "./comment-meta";
+import { Highlight } from "./highlight";
 import styles from "./discussion.module.css";
 import type { Moderate } from "./moderation-buttons";
 
@@ -23,6 +24,7 @@ export function CommentItem({
   reply,
   editing,
   tag,
+  query = "",
   onReply,
   onEdit,
   onCancelEdit,
@@ -37,6 +39,8 @@ export function CommentItem({
   editing: boolean;
   /** The page chip, for a comment tagged to a page. */
   tag?: React.ReactNode;
+  /** The thread's search, marked in the words. */
+  query?: string;
   onReply?: () => void;
   onEdit: () => void;
   onCancelEdit: () => void;
@@ -53,7 +57,7 @@ export function CommentItem({
       data-moderation={state ?? undefined}
       className={`${styles.comment} -mx-2 px-2 py-2 focus:outline-none focus-visible:outline-2 ${state === "hidden" ? "bg-chip-soft" : ""}`}
     >
-      <CommentMeta comment={comment} now={now} reply={reply} />
+      <CommentMeta comment={comment} now={now} reply={reply} query={query} />
       <div className={reply ? "pl-[38px]" : "pl-[46px]"}>
         {editing ? (
           <CommentEditForm
@@ -74,7 +78,7 @@ export function CommentItem({
             <p
               className={`${state === "hidden" ? "text-muted" : "text-body"} mt-1 font-sans text-[16px] leading-relaxed [overflow-wrap:anywhere] whitespace-pre-wrap`}
             >
-              {comment.body}
+              <Highlight text={comment.body} query={query} />
             </p>
             <CommentActions
               comment={comment}

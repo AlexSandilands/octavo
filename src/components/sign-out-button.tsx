@@ -1,26 +1,38 @@
+"use client";
+
+import { useFormStatus } from "react-dom";
 import { signOutAction } from "@/app/signin/actions";
 import { Icon } from "./icons";
 
-// The sign-out control, shared by the library header and the admin sidebar.
-// Both post to signOutAction (deletes the session row, clears the cookie);
-// they differ only in chrome, so the layout picks a variant.
+// The sign-out control, shared by the library header, the footer and the admin
+// sidebar. Posts to signOutAction (deletes the session row, clears the cookie,
+// redirects to /signin); the variants differ only in chrome.
 export function SignOutButton({
   variant = "inline",
 }: {
   variant?: "inline" | "sidebar";
 }) {
-  const sidebar = variant === "sidebar";
   return (
     <form action={signOutAction}>
-      <button
-        type="submit"
-        className={`text-muted hover:text-accent flex h-11 cursor-pointer items-center font-sans font-medium hover:underline ${
-          sidebar ? "w-full gap-2 text-[14px]" : "text-sm whitespace-nowrap"
-        }`}
-      >
-        {sidebar && <Icon name="chevronLeft" size={16} />}
-        Sign out
-      </button>
+      <SignOutSubmit sidebar={variant === "sidebar"} />
     </form>
+  );
+}
+
+// Disabled while the request is out, so a slow sign-out isn't pressed twice.
+function SignOutSubmit({ sidebar }: { sidebar: boolean }) {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      aria-busy={pending || undefined}
+      className={`text-muted hover:text-accent flex h-11 cursor-pointer items-center font-sans font-medium hover:underline disabled:cursor-wait disabled:opacity-60 ${
+        sidebar ? "w-full gap-2 text-[14px]" : "text-sm whitespace-nowrap"
+      }`}
+    >
+      {sidebar && <Icon name="chevronLeft" size={16} />}
+      Sign out
+    </button>
   );
 }

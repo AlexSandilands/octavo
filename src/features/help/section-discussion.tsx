@@ -41,12 +41,16 @@ export function SectionDiscussion() {
         tag the page in front of them or one they read earlier. The comment then
         shows a small <em>Page 12</em> button that takes anyone reading it to
         that page — on a computer the discussion stays open beside it, on a
-        phone it closes onto the page. <em>This page only</em>, at the top of
-        the discussion, shows just the comments on the open page and says how
-        many there are. The button follows the page, not its number: if you add
-        or split pages in the editor after a comment was posted, it still names
-        the right page, and if you delete the page it reads{" "}
-        <em>Page removed</em> — the comment itself is kept.
+        phone it closes onto the page. The <strong>filter</strong> button (a
+        funnel) at the top of the discussion opens a search over the words and
+        names, a <em>Show</em> choice — every comment, just the page open, the
+        member&rsquo;s own, or any page of the issue — and a <em>Sort</em>{" "}
+        choice: oldest first, newest first or most replies. When a list is
+        narrowed, a line above it says how many comments it holds, with{" "}
+        <em>Show all</em> beside it. The button follows the page, not its
+        number: if you add or split pages in the editor after a comment was
+        posted, it still names the right page, and if you delete the page it
+        reads <em>Page removed</em> — the comment itself is kept.
       </P>
       <P>
         When someone replies to a member&rsquo;s comment, the member sees it on

@@ -53,8 +53,10 @@ import {
 import { FooterUpdateNotice } from "./footer-update-notice";
 import { useEditorAutosave } from "./use-editor-autosave";
 import { useEditorFlows } from "./use-editor-flows";
-import type { EditorTool } from "./side-panel/tool-rail";
 import { usePanelWidth } from "./side-panel/use-panel-width";
+import { useSurfaces } from "./side-panel/use-surfaces";
+import { useEditorAssistant } from "./assistant/use-editor-assistant";
+import { AssistantEditingNote } from "./assistant/editing-note";
 
 // Extends FooterReserve: the footer this issue's pages were laid out against
 // (issue #128) is what the canvas draws and measures overflow against, whatever
@@ -112,6 +114,7 @@ export function Editor({
   const {
     pages,
     applyImport,
+    applyAssistant,
     curPage,
     sel,
     setSel,
@@ -121,6 +124,7 @@ export function Editor({
     page,
     canUndo,
     canRedo,
+    historyTop,
     historyNotice,
     undo,
     redo,
@@ -144,8 +148,12 @@ export function Editor({
     deletePage,
   } = useEditorPages(issue.content);
   // imageId → resolved image, seeded from the server and grown as uploads land,
-  // so the canvas previews an image the moment it's uploaded.
-  const [images, setImages] = useState<ImageMap>(initialImages);
+  // so the canvas previews an image the moment it's uploaded. The library's
+  // marks are in it too, for a logo the assistant places (#313).
+  const [images, setImages] = useState<ImageMap>(() => ({
+    ...Object.fromEntries(logos.map((l) => [l.imageId, l.image])),
+    ...initialImages,
+  }));
   const [title, setTitle] = useState(issue.title);
   // The issue's stored layout theme, normalised to an enabled theme id so the
   // picker (which offers only enabled themes) and the state stay in sync; an
@@ -159,17 +167,13 @@ export function Editor({
   // page footer updates the moment it changes — no reload, no second query.
   const [logoId, setLogoId] = useState<string | null>(issue.logoId);
   const logo = logos.find((l) => l.id === logoId)?.image ?? null;
-  // Which side-panel tool is out, if any. The row ref sizes the panel.
-  const [tool, setTool] = useState<EditorTool | null>(null);
-  const toolPageKey = `${page?.id ?? ""}:${page?.cover ? "cover" : "interior"}`;
-  const [previousToolPageKey, setPreviousToolPageKey] = useState(toolPageKey);
-  // Preserve an open panel across interior pages, but close it before a cover renders.
-  if (toolPageKey !== previousToolPageKey) {
-    setPreviousToolPageKey(toolPageKey);
-    if (page?.cover) setTool(null);
-  }
+  // The side panel's tabs (#353); an open panel takes the cover inspector's room.
+  const surfaces = useSurfaces();
   const rowRef = useRef<HTMLDivElement>(null);
-  const panel = usePanelWidth(rowRef);
+  const panel = usePanelWidth(
+    rowRef,
+    surfaces.open ? (surfaces.active?.kind ?? "none") : null,
+  );
   // The canvas column: its width, not the window's, decides how the tool bar
   // lays out — labels, icons only, or standing at the left edge.
   const columnRef = useRef<HTMLDivElement>(null);
@@ -186,9 +190,13 @@ export function Editor({
   // Null until published (issue #270), then whatever the publish allocated —
   // which is also what defaults the modal's email off on a re-publish.
   const [number, setNumber] = useState(issue.number);
+  // Published here or before: the assistant only works on drafts (#306).
+  const [published, setPublished] = useState(issue.status === "published");
   const issueNo = number ?? suggestedNumber;
   // Items a pointed-at layout warning is lighting up on the page.
   const [hint, setHint] = useState<string[]>([]);
+  // The page the canvas finds running over, for the assistant's hints (#366).
+  const [overPage, setOverPage] = useState<string | null>(null);
 
   const { status, setStatus, enqueueSave, flushSave } = useEditorAutosave({
     issueId: issue.id,
@@ -202,7 +210,10 @@ export function Editor({
     issueId: issue.id,
     flushSave,
     onSaveError: () => setStatus("error"),
-    onPublished: setNumber,
+    onPublished: (n) => {
+      setNumber(n);
+      setPublished(true);
+    },
   });
 
   const importer = usePdfInsertion({
@@ -263,14 +274,34 @@ export function Editor({
   // the canvas (and the reader) draw the smaller one it was made with until the
   // author says otherwise — see FooterUpdateNotice.
   const footerBehind = footerHeldBack(magazineFooter, issue);
+  const assistant = useEditorAssistant({
+    issueId: issue.id,
+    published,
+    title,
+    theme: themeId,
+    pages,
+    curPage,
+    sel,
+    overflowing: overPage,
+    logos,
+    logoId,
+    sponsors,
+    measure: { theme, images, sponsors: sponsorMap, settings, logo, issueNo },
+    apply: applyAssistant,
+    undo,
+    historyTop,
+    registerImage: (id, image) => setImages((m) => ({ ...m, [id]: image })),
+  });
+  const assistantTools = assistant.tools;
 
   return (
     <CoverTextProvider selectedId={sel}>
       <div
         className="bg-card relative flex h-dvh flex-col"
         data-import-pending={importer.pending}
+        data-assistant-running={assistantTools.running}
       >
-        <div inert={importer.pending}>
+        <div inert={importer.pending || assistantTools.running}>
           <EditorHeader
             title={title}
             onTitleChange={setTitle}
@@ -286,6 +317,8 @@ export function Editor({
             onReload={() => window.location.reload()}
             onPreview={flows.preview}
             onPublish={() => setPub(true)}
+            panel={{ open: surfaces.open, onToggle: surfaces.togglePanel }}
+            panelButton={surfaces.trigger}
           />
         </div>
         <DndContext
@@ -314,9 +347,10 @@ export function Editor({
             </div>
             <div
               ref={columnRef}
-              inert={importer.pending}
+              inert={importer.pending || assistantTools.running}
               className="bg-canvas relative flex min-w-0 flex-1 flex-col overflow-hidden"
             >
+              {assistantTools.running && <AssistantEditingNote />}
               {/* Not while the inspector is up: it spans the stage's height. */}
               {footerBehind &&
                 page &&
@@ -356,6 +390,8 @@ export function Editor({
                   moveToNextPage,
                   registerImage: (imageId, image) =>
                     setImages((m) => ({ ...m, [imageId]: image })),
+                  ask: assistant.ask,
+                  reportOverflow: setOverPage,
                 }}
                 cover={
                   showCoverTools
@@ -370,6 +406,8 @@ export function Editor({
                         hint,
                         onHint: setHint,
                         docking,
+                        // The inspector steps aside while the panel is out.
+                        inspector: !surfaces.open,
                         updateOverlay: updateCoverOverlay,
                         updateElement: updateCoverElement,
                         removeElement: removeCoverElement,
@@ -400,15 +438,14 @@ export function Editor({
               />
             </div>
             <EditorSide
-              tool={tool}
-              onToggle={(next) => setTool(tool === next ? null : next)}
-              onClose={() => setTool(null)}
+              surfaces={surfaces}
               pending={importer.pending}
               cover={Boolean(page?.cover)}
               panel={panel}
               pages={pages}
               onAdd={importer.add}
               dropRef={dropRef}
+              assistant={assistant.side}
             />
           </div>
           <DragOutGhost

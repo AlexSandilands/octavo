@@ -5,7 +5,8 @@
 // non-admin member, asserting no DB write happens either way.
 // Also the moderation actions (issue #302) — the reports inbox's and the
 // thread's Hide / Unhide / Delete — replayed the same way; see
-// admin-gate-moderation.mts.
+// admin-gate-moderation.mts. And the assistant usage page (issue #314); see
+// admin-gate-ai-usage.mts, which needs the server's AI_MONTHLY_BUDGET_USD.
 // Run: npx tsx scripts/dev-admin-gate.mts <base-url> <dev-log-path>
 //
 // SAFETY: it writes to the shared dev database, and owns every row it touches.
@@ -26,6 +27,7 @@ import {
   checkModerationRefused,
   checkThreadModerationRefused,
 } from "./admin-gate-moderation.mts";
+import { checkAiUsagePage } from "./admin-gate-ai-usage.mts";
 
 process.loadEnvFile?.(".env.local");
 const [base, logPath] = process.argv.slice(2);
@@ -262,6 +264,9 @@ try {
     adminCookie: await cookieHeader(admin),
     ok,
   });
+
+  // ── The assistant usage page (#314) ──────────────────────────────────────
+  await checkAiUsagePage({ sql, base, anon, member, adminPage, ok });
 
   // ── Shell identity + sign-out ──────────────────────────────────────────────
   await adminPage.goto(`${base}/admin`);

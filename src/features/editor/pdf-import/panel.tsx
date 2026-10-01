@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type RefObject } from "react";
 import type { Page } from "@/lib/blocks";
-import type { RailAction } from "../side-panel/tool-rail";
+import type { SurfaceAction } from "../side-panel/surfaces";
 import { StageBadge } from "../stage-badge";
 import { useBarLayout } from "../use-bar-layout";
 import type { DropHandler } from "../use-pdf-drag-out";
@@ -27,20 +27,20 @@ export type PdfImportPanelProps = {
     uploads: UploadCache,
     target?: DropTarget,
   ) => Promise<SourceMapping>;
-  /** The tool's rail actions, as they change: Replace PDF while a file is open. */
-  onRailActions: (actions: RailAction[]) => void;
+  /** The surface's strip actions, as they change: Replace PDF while a file is open. */
+  onActions: (actions: SurfaceAction[]) => void;
   /** Where the editor finds this panel's Add when a region is dropped on the page. */
   dropRef: RefObject<DropHandler | null>;
 };
 
 // The Import PDF tool: open a local PDF, pick regions on its pages, add them to
 // the issue. Once a file is open the panel is a stage like the editor's canvas
-// with the tools floating at the foot; the file's own controls live on the rail.
+// with the tools floating at the foot; the file's own controls sit in the strip.
 // `data-pdf-private` keeps browser telemetry quiet while it is open.
 export default function PdfImportPanel({
   pages,
   onAdd,
-  onRailActions,
+  onActions,
   dropRef,
 }: PdfImportPanelProps) {
   const source = usePdfSource();
@@ -62,7 +62,7 @@ export default function PdfImportPanel({
   const { loaded, name } = source;
   const adding = batch.adding;
   useEffect(() => {
-    onRailActions(
+    onActions(
       loaded
         ? [
             {
@@ -76,8 +76,8 @@ export default function PdfImportPanel({
           ]
         : [],
     );
-    return () => onRailActions([]);
-  }, [loaded, name, adding, onRailActions]);
+    return () => onActions([]);
+  }, [loaded, name, adding, onActions]);
   const add = () =>
     void batch.add(selection.items, (added) => {
       selection.markAdded(added);

@@ -68,7 +68,8 @@ function hasSessionCookie(req: NextRequest): boolean {
 
 // The members-only prefixes the auth gate covers (`/`, `/archive`, `/profile`,
 // `/read/:path*`, `/admin/:path*`). The one
-// carve-out is the PDF print route (`/read/[n]/print`): it carries no session
+// carve-out is the print routes (`/read/[n]/print`, and the assistant's draft
+// pictures at `/read/draft/[nonce]/print`, #342): they carry no session
 // cookie (the generator self-fetches over localhost) and would be redirected to
 // /signin here, so it is let through the gate and guarded instead by the
 // internal print token it validates in-route (src/lib/pdf-token.ts) — without a
@@ -91,11 +92,12 @@ function isGatedRoute(pathname: string): boolean {
   return false;
 }
 
-// Known Next 16 defect: the scripts Next emits for a segment's loading/error
-// boundaries carry no nonce, so this CSP blocks one per page — harmless on a
-// page load, but a client transition (redirect() re-rendering from the root,
-// or router.push() after a server action) can silently never commit (#276,
-// #296), so create-issue navigates itself with a real navigation instead.
+// Next 16.3.1-16.3.4 emitted the scripts for a segment's loading/error
+// boundaries without a nonce, so this CSP blocked one chunk per page, and
+// server-action redirects and router.push() after an action intermittently
+// never committed (#276, #296, #319, #335). Fixed in 16.3.5;
+// scripts/prod-csp-gate.mts and prod-transition-stress-gate.mts fail if it
+// comes back, so ordinary client navigation is safe to use.
 function buildCsp(nonce: string): string {
   return [
     "default-src 'self'",
@@ -166,11 +168,12 @@ export function proxy(req: NextRequest) {
 // stays scoped to the gated prefixes in code (isGatedRoute), so broadening the
 // matcher for the CSP does not gate any new route.
 //
-// `/api/admin/issues/import` is excluded by exact path: Next truncates proxied
-// request bodies at 10 MB and that handler authenticates itself. See
-// docs/issue-transfer.md#transport.
+// `/api/admin/issues/import` and `/api/admin/images` are excluded by exact
+// path: Next truncates proxied request bodies at 10 MB (a 10–12 MB photo
+// reached the upload route cut short) and both handlers authenticate
+// themselves. See docs/issue-transfer.md#transport.
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api/admin/issues/import$|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/admin/issues/import$|api/admin/images$|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$).*)",
   ],
 };

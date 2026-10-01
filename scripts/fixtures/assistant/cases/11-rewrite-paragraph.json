@@ -1,0 +1,37 @@
+{
+  "id": "11-rewrite-paragraph",
+  "description": "Rewrite one named paragraph clearer and shorter; leave the rest.",
+  "expectation": "Only the second paragraph changes: clearer and a little shorter, same facts and voice; everything else is untouched.",
+  "issue": 3,
+  "page": 2,
+  "estimate": {
+    "input": 4,
+    "cacheRead": 10900,
+    "cacheWrite": 2100,
+    "output": 268
+  },
+  "instruction": "Rewrite the second paragraph so it's clearer and a little shorter. Leave everything else as it is.",
+  "expect": {
+    "preserve": "none",
+    "tools": ["set_text"],
+    "maxCalls": 3,
+    "noOverflow": true,
+    "maxChangedBlocks": 1,
+    "done": [
+      {
+        "check": "onlyText",
+        "page": 2,
+        "text": 2
+      }
+    ]
+  },
+  "fake": [
+    {
+      "toolName": "set_text",
+      "input": {
+        "blockId": "@p2.text2",
+        "markdown": "New members, note the studio's two rules: the last person out checks the kiln switches, and nobody touches another potter's ware board. Everything else is negotiable."
+      }
+    }
+  ]
+}

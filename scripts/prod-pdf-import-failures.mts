@@ -12,6 +12,7 @@ import {
   openFile,
   waitAdded,
   openTool,
+  magazinePage,
   closeTool,
   fileInput,
   region,
@@ -36,6 +37,8 @@ try {
   ]);
   const page = await context.newPage();
   await page.goto(`${base}/admin/issues/${iid}/edit`);
+  // Import PDF steps aside on the cover the editor opens on (#287).
+  await magazinePage(page, 2).click();
   await openTool(page);
   await openFile(page);
   await region(page, "Image").click();
@@ -81,7 +84,7 @@ try {
   });
   await addButton(page).click();
   await responseReady;
-  // The rail is inert during Add; the panel's Cancel unlocks it.
+  // The strip is inert during Add; the panel's Cancel unlocks it.
   await panel(page)
     .getByRole("button", { name: "Cancel", exact: true })
     .click();

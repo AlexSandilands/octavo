@@ -5,8 +5,8 @@ import type { ThreadPayload } from "@/lib/discussion-thread";
 
 // The thread's data (issue #301): fetched when the shell opens and again after
 // every write — no realtime. A failed refresh keeps the list already shown and
-// says so beside it. With "This page only" on (#304) it asks for the open
-// pages' comments, and asks again whenever the filter or the pages change.
+// says so beside it. With Show on a page or the open ones (#304) it asks for
+// those pages' comments, and asks again whenever the filter or the pages change.
 
 export type ThreadState = {
   payload: ThreadPayload | null;

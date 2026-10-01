@@ -281,7 +281,7 @@ export async function browserPass(base: string, cover: Page) {
         c.pages[0]!.blocks[1]!.type === "image" &&
         c.pages[0]!.blocks[1]!.align === "page-fit",
     );
-    await page.getByRole("button", { name: "3", exact: true }).click();
+    await page.getByRole("button", { name: /^Page 3\b/ }).click();
     await canvas.locator('[data-block-id="back-photo"] img').click();
     await page
       .getByRole("button", { name: "Placement: fill page", exact: true })
@@ -291,14 +291,14 @@ export async function browserPass(base: string, cover: Page) {
     assert.equal(await canvas.locator("[data-block-id]").count(), 3);
     await page.getByRole("button", { name: "Undo", exact: true }).click();
     await page.locator(".cover-composition").waitFor();
-    await page.getByRole("button", { name: "1", exact: true }).click();
+    await page.getByRole("button", { name: /^Page 1\b/ }).click();
     console.log("Checking cover reorder");
     // Demoting the front cover via the rail must preserve its content too.
     const from = await page
-      .getByRole("button", { name: "1", exact: true })
+      .getByRole("button", { name: /^Page 1\b/ })
       .boundingBox();
     const to = await page
-      .getByRole("button", { name: "2", exact: true })
+      .getByRole("button", { name: /^Page 2\b/ })
       .boundingBox();
     assert(from && to);
     await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);

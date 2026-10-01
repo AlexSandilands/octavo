@@ -8,8 +8,9 @@
 // the lazy fetch; and the admin's thread (#302) — hidden and deleted comments
 // marked, the account line, Hide / Unhide / Delete in the drawer and the sheet,
 // the member's payload held to the members' rule; and page tags (#304) — the
-// open page(s) on both readers, the tag controls, chips, "This page only",
-// renumbering and removed pages (discussion-gate-tags*.mts).
+// open page(s) on both readers, the tag controls, chips, Show → This page,
+// renumbering and removed pages (discussion-gate-tags*.mts); and the filter
+// panel — search, sort, My comments, a chosen page (discussion-gate-filter.mts).
 //
 // Against a demo-mode server (NEXT_PUBLIC_DEMO_MODE=1, detected: the reader
 // answers a signed-out visitor) it runs the signed-out visitor's checks
@@ -32,6 +33,7 @@ import { desktopGate, type Cast } from "./discussion-gate-desktop.mts";
 import { discussionKit } from "./discussion-gate-kit.mts";
 import { mobileGate } from "./discussion-gate-mobile.mts";
 import { composerStates } from "./discussion-gate-composer.mts";
+import { filterGate } from "./discussion-gate-filter.mts";
 import { deepLinks, demoGate, offSwitch } from "./discussion-gate-states.mts";
 import { tagsGate } from "./discussion-gate-tags.mts";
 
@@ -168,6 +170,50 @@ try {
       pageId: pages[4],
     });
     await tagsGate(k, { issue: tagged, pages, tess, tom, ada, adaName });
+
+    // The filter panel, on a fresh issue: three comments and two replies.
+    const sifted = await k.issue(true, 4);
+    const fay = await k.member("fay", { name: "Fay Check" });
+    const fayName = await k.name(fay.id, "Fay Finder");
+    const c1 = await k.comment(
+      sifted.id,
+      tom,
+      tomName,
+      "check-filter the garden roses",
+      { ago: "3 days", pageId: pages[1] },
+    );
+    const c2 = await k.comment(
+      sifted.id,
+      ada,
+      adaName,
+      "check-filter about the harbour walk",
+      { ago: "2 days" },
+    );
+    const fayReply = await k.comment(
+      sifted.id,
+      fay,
+      fayName,
+      "check-filter a reply about roses too",
+      { ago: "1 day", parentId: c2 },
+    );
+    await k.comment(sifted.id, tom, tomName, "check-filter another reply", {
+      ago: "20 hours",
+      parentId: c2,
+    });
+    const c3 = await k.comment(
+      sifted.id,
+      fay,
+      fayName,
+      "check-filter my own note",
+      { ago: "1 hour", pageId: pages[4] },
+    );
+    await filterGate(k, {
+      issue: sifted,
+      pages,
+      fay,
+      tops: [c1, c2, c3],
+      fayReply,
+    });
   }
 } finally {
   await browser.close();

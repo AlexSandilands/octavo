@@ -1,6 +1,6 @@
 "use client";
 import { DEFAULT_FONT_CONTEXT, type CoverFontContext } from "@/lib/cover-fonts";
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import { Extension } from "@tiptap/core";
 import { Plugin } from "@tiptap/pm/state";
@@ -18,11 +18,24 @@ import { CoverPaint } from "./cover-paint-mark";
 import {
   CoverLineGaps,
   CoverParagraph,
+  CoverReplaceSelection,
   setCoverLineGaps,
 } from "./cover-line-extensions";
 
+// A cover with no placement (older ones) switches layout on its first edit, which
+// remounts its fields. The field that held the caret leaves its place here and
+// the remount takes it straight back.
+const CARET_SLOT_MS = 1000;
+let caretSlot: {
+  key: string;
+  from: number;
+  to: number;
+  at: number;
+} | null = null;
+
 export function CoverTextEditor({
   id,
+  holdKey,
   text,
   doc,
   label,
@@ -33,6 +46,8 @@ export function CoverTextEditor({
   fitLines = false,
 }: {
   id: string;
+  /** Names a canvas field, so the caret can follow it across a remount. */
+  holdKey?: string;
   /** The field's panel fits its text (see CoverLineGaps). */
   fitLines?: boolean;
   font?: CoverFontContext;
@@ -63,6 +78,7 @@ export function CoverTextEditor({
       }),
       CoverParagraph,
       CoverLineGaps,
+      CoverReplaceSelection,
       StarterKit.configure({
         paragraph: false,
         heading: false,
@@ -95,6 +111,39 @@ export function CoverTextEditor({
       if (parsed.success) onChange(coverDocPlain(parsed.data), parsed.data);
     },
   });
+  const focused = useRef(false);
+  useEffect(() => {
+    if (!editor || !holdKey) return;
+    const slot = caretSlot;
+    if (slot?.key !== holdKey) return;
+    caretSlot = null;
+    if (Date.now() - slot.at > CARET_SLOT_MS) return;
+    const max = editor.state.doc.content.size;
+    editor
+      .chain()
+      .focus()
+      .setTextSelection({
+        from: Math.min(slot.from, max),
+        to: Math.min(slot.to, max),
+      })
+      .run();
+  }, [editor, holdKey]);
+  // Leaving while focused (not just blurred) is what a remount looks like.
+  useLayoutEffect(() => {
+    if (!editor || !holdKey) return;
+    const onFocus = () => (focused.current = true);
+    const onBlur = () => (focused.current = false);
+    editor.on("focus", onFocus);
+    editor.on("blur", onBlur);
+    return () => {
+      editor.off("focus", onFocus);
+      editor.off("blur", onBlur);
+      if (focused.current && !editor.isDestroyed) {
+        const { from, to } = editor.state.selection;
+        caretSlot = { key: holdKey, from, to, at: Date.now() };
+      }
+    };
+  }, [editor, holdKey]);
   const { family, weight } = font;
   useEffect(() => {
     if (!editor) return;

@@ -30,13 +30,18 @@ export function useEditorHistory() {
   const future = useRef<EditorSnapshot[]>([]);
   const stream = useRef<{ name: string; at: number } | null>(null);
   const [ends, setEnds] = useState({ canUndo: false, canRedo: false });
+  // The step Ctrl+Z would restore: the assistant offers its run's Undo only
+  // while that is its own (#310).
+  const [top, setTop] = useState<EditorSnapshot | null>(null);
   const [notice, setNotice] = useState<HistoryNotice>({ text: "", n: 0 });
 
-  const sync = () =>
+  const sync = () => {
     setEnds({
       canUndo: past.current.length > 0,
       canRedo: future.current.length > 0,
     });
+    setTop(past.current.at(-1) ?? null);
+  };
 
   // The counter moves even when the text repeats, so pressing Ctrl+Z again at
   // the end of the stack still changes the live region and is announced again.
@@ -81,6 +86,7 @@ export function useEditorHistory() {
 
   return {
     ...ends,
+    top,
     /** Announced politely when there is nothing left to undo or redo. */
     notice,
     record,
@@ -138,7 +144,9 @@ export function useUndoShortcuts({
       // asking the DOM is cheaper than threading a flag down to this hook.
       if (
         typing ||
-        document.querySelector('[role="dialog"], [data-import-pending="true"]')
+        document.querySelector(
+          '[role="dialog"], [data-import-pending="true"], [data-assistant-running="true"]',
+        )
       )
         return;
       e.preventDefault();

@@ -73,7 +73,8 @@ Member ── Cloudflare (DNS/CDN) ── Railway (Next.js + Postgres)
    are sent by one member's request to someone else, so they never take a link's
    origin from the request, and without `APP_URL` they are skipped (and reported
    to Sentry).
-   **Origin secret** (only when Cloudflare proxies the domain): generate one with
+   **Origin secret** (every deployment Cloudflare proxies — production and the demo,
+   each with its own value): generate one with
    `openssl rand -hex 32`, add a Cloudflare **Transform Rule** (Rules → Transform
    Rules → Modify Request Header, scoped to the site's hostname, e.g.
    `http.host eq "clubmag.org"`, so no other origin on the zone receives it) that sets
@@ -84,8 +85,8 @@ Member ── Cloudflare (DNS/CDN) ── Railway (Next.js + Postgres)
    with the variable set, or every sign-in is refused. Afterwards, check that a
    sign-in through the public domain works and one sent straight to Railway's edge is
    refused. To rotate: point the rule at the new value, then change the variable,
-   back to back — sign-in is refused in between. Without the secret (the demo, which
-   Cloudflare doesn't proxy) sign-in keys on `X-Real-IP`.
+   back to back — sign-in is refused in between. Without the secret (local dev) sign-in
+   keys on `X-Real-IP`.
 6. **First admin** — `/admin` only admits users with `is_admin`, and only an admin
    can manage members, so bootstrap the first one from the command line:
    `railway run npm run db:admin -- you@example.com` (drop the `railway run` prefix
@@ -98,6 +99,23 @@ Member ── Cloudflare (DNS/CDN) ── Railway (Next.js + Postgres)
    [Uptime monitoring](#uptime-monitoring-uptimerobot).
 8. **Deploy** — confirm a test magic-link email arrives, signing in works, and an
    image upload lands in R2.
+
+### AI assistant budget
+
+The AI assistant (epic #306, [ai-assistant.md](ai-assistant.md)) spends against a monthly
+budget: `AI_MONTHLY_BUDGET_USD` is the standing allowance (unset is $0), and the owner tops a
+month up with a one-off grant, beside `db:admin` and run the same way:
+
+```bash
+railway run npm run ai:grant -- 25 "Spring issue layout"   # drop `railway run` locally
+```
+
+Under `railway run` the script reads only Railway's variables (it loads `.env.local` only when
+`DATABASE_URL` isn't already set), so the budget it prints is production's. The amount is dollars and
+cents, above $0 and at most $1,000; the note (≤ 200 characters) is the
+record of what the grant was for. It counts in the current calendar month (UTC) only and prints the
+month's budget afterwards — allowance + grants − spent = remaining. Grants can't be edited or
+withdrawn from the app; the arithmetic is in [database.md](database.md#ai-assistant-spend-issue-307).
 
 ### PDF generation
 
@@ -122,6 +140,11 @@ downloads of the same revision are cache hits. Generation is coalesced per key
 within an instance, so the first click after a publish launches one Chromium even
 if several members click at once. Chromium is a transient, on-demand cost — not
 held between requests.
+
+The AI assistant's page pictures (#342, `POST /api/admin/ai/render`) use the
+same Chromium the same way: one launch per request, a draft's print view over
+localhost, a screenshot per page. They're admin-only, rate-limited, and happen
+only while an admin uses the assistant (a view, or a run's one review).
 
 **Container deps — [`nixpacks.toml`](../nixpacks.toml)** installs the shared
 libraries Chromium needs (`aptPkgs`) and downloads Playwright's pinned Chromium
@@ -201,10 +224,17 @@ fully isolated from the members' site:
    `/admin` on the demo, which stays fully gated.
 4. **Seed content from the deployed app.** Open an SSH shell in the demo project's
    **app service**, using the dashboard's **Copy SSH Command** (right-click the
-   service). Follow the [demo content refresh runbook](demo-content.md) to run
-   `npm run db:seed -- --force` inside the app, replacing the demo issues and
-   writing their generated images straight to its configured R2 bucket. `npm run db:admin -- you@example.com` in the same app shell
+   service). Follow the [demo reset runbook](demo-content.md) to run
+   `npm run demo:reset` inside the app, loading the demo issues and writing their
+   generated images straight to its configured R2 bucket — run it again whenever
+   testing has left the demo untidy. `npm run db:admin -- you@example.com` in the same app shell
    creates/promotes the owner who can sign into `/admin`.
+
+5. **Front it with Cloudflare, as production is.** The demo is the pre-prod smoke test,
+   so it takes the same path: the `demo` record proxied (orange cloud), SSL/TLS mode
+   and edge settings matching the production zone's, and its own origin secret (Auth
+   step 5) in a Transform Rule scoped to `http.host eq "demo.octavo.dev"` — the zone
+   also serves the R2 image domain, which mustn't receive it.
 
 Set the usual `DATABASE_URL`, `AUTH_SECRET`, `R2_*` and `NEXT_PUBLIC_*` branding as
 below — only the demo flag differs from a normal deploy.
@@ -252,7 +282,25 @@ ORIGIN_AUTH_SECRET=      # openssl rand -hex 32; the same value as the Cloudflar
 
 SENTRY_DSN=              # Sentry project DSN (server-side). Optional — app runs fine unset.
 NEXT_PUBLIC_SENTRY_DSN=  # SAME DSN, browser copy (public ingest key; build-time inlined).
+
+AI_PROVIDER=             # the AI assistant: anthropic | openai | openrouter | fake. UNSET = OFF.
+AI_MODEL=                # optional on anthropic (claude-sonnet-5); required on openai/openrouter
+ANTHROPIC_API_KEY=       # the key AI_PROVIDER needs (or OPENAI_API_KEY / OPENROUTER_API_KEY). Secret.
+AI_MONTHLY_BUDGET_USD=   # the AI assistant's monthly allowance in USD (e.g. 20 or 12.50, ≤ 10000); unset = 0 (top up with ai:grant)
+NEXT_PUBLIC_AI_ASSISTANT=  # "1" shows the editor's assistant button (build-time; set with AI_PROVIDER)
 ```
+
+**The AI assistant** (epic #306, [`docs/ai-assistant.md`](ai-assistant.md)) is off unless
+`AI_PROVIDER` is set, and **unsetting `AI_PROVIDER` is the kill switch**: the chat route
+404s at once, with no redeploy (set `NEXT_PUBLIC_AI_ASSISTANT` back to unset on the next
+build to hide the button too). With a provider set, the boot refuses to start without its
+key, refuses a model with no price in `src/lib/ai-pricing.ts` (its spend couldn't be
+metered), and refuses an Anthropic model missing from `src/lib/ai-thinking.ts` (it would
+refuse the wrong thinking mode on every request). The key is a server secret; never give it a `NEXT_PUBLIC_` name. `fake` streams
+canned replies at no cost and is for gates and the demo. Set a spend limit at the provider
+too; it's the backstop behind the monthly budget. Switching it on goes local smoke run → demo →
+members' site with a release tag, and any model or provider change needs a fixture run first:
+[AI assistant](ai-assistant.md) → Turning it on and off, and Model selection.
 
 Both Sentry vars are optional everywhere: with them unset, `Sentry.init` is
 skipped and every capture call is a no-op, so the app boots and behaves

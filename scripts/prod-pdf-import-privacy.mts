@@ -8,6 +8,7 @@ import {
   cleanup,
   openFile,
   openTool,
+  magazinePage,
   closeTool,
   fileInput,
   region,
@@ -29,6 +30,8 @@ try {
   });
   const page = await context.newPage();
   await page.goto(`${base}/admin/issues/${iid}/edit`);
+  // Import PDF steps aside on the cover the editor opens on (#287).
+  await magazinePage(page, 2).click();
   await openTool(page);
   await openFile(page);
   await region(page, "Text").nth(1).click();
@@ -115,6 +118,8 @@ try {
     });
   });
   await deadline.goto(`${base}/admin/issues/${iid}/edit`);
+  // Import PDF steps aside on the cover the editor opens on (#287).
+  await magazinePage(deadline, 2).click();
   await openTool(deadline);
   await deadline.clock.install();
   let release: () => void = () => {};

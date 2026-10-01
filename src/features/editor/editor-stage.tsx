@@ -1,5 +1,6 @@
 "use client";
 
+import type { AskHandler } from "./assistant/presets";
 import { useEffect, useEffectEvent, type RefObject } from "react";
 import {
   SortableContext,
@@ -44,7 +45,13 @@ export type StageActions = Pick<
   | "fillPage"
   | "flowText"
   | "moveToNextPage"
-> & { registerImage: (imageId: string, image: ResolvedImage) => void };
+> & {
+  registerImage: (imageId: string, image: ResolvedImage) => void;
+  /** The assistant's Ask on the selected block (#311), when it's offered. */
+  ask?: AskHandler;
+  /** The page the canvas finds running over, for the assistant's hints (#366). */
+  reportOverflow?: (pageId: string | null) => void;
+};
 
 type PageEdits = ReturnType<typeof useEditorPages>;
 /** What a cover page brings to the stage: its inspector and its item edits. */
@@ -57,6 +64,8 @@ export type CoverStageProps = {
   hint: string[];
   onHint: (ids: string[]) => void;
   docking: ReturnType<typeof usePanelDock>;
+  /** False while the assistant's panel is out: the inspector steps aside (#309). */
+  inspector: boolean;
   updateOverlay: PageEdits["updateCoverOverlay"];
   updateElement: PageEdits["updateCoverElement"];
   removeElement: PageEdits["removeCoverElement"];
@@ -128,6 +137,12 @@ export function EditorStage({
     onFlow: actions.flowText,
     onMove: actions.moveToNextPage,
   });
+  // Read against this page's blocks: a marker still left from the page before
+  // names a block that isn't here.
+  const overPage =
+    overflow && page?.blocks.some((b) => b.id === overflow.id) ? page.id : null;
+  const { reportOverflow } = actions;
+  useEffect(() => reportOverflow?.(overPage), [overPage, reportOverflow]);
 
   // Destructured: property access on the returned object would read through
   // the ref it carries, which the render can't do.
@@ -147,7 +162,10 @@ export function EditorStage({
     // The stage's own padding, the tool bar's reserve included on its side,
     // and the cover inspector's column while it shows.
     fitMargin: {
-      x: padding.left + padding.right + (cover ? INSPECTOR_RESERVE : 0),
+      x:
+        padding.left +
+        padding.right +
+        (cover?.inspector ? INSPECTOR_RESERVE : 0),
       y: padding.top + padding.bottom,
     },
     // Small enough that the page still clears a standing tool bar at the
@@ -159,7 +177,7 @@ export function EditorStage({
 
   // The inspector floats over the stage; the page slides away from it only as
   // far as the two would otherwise meet. Layout checks name the items concerned.
-  const dodge = useStageDodge(stageRef, scale, Boolean(cover));
+  const dodge = useStageDodge(stageRef, scale, Boolean(cover?.inspector));
   const warnings = useCoverLayoutWarnings(
     page,
     canvasRef,
@@ -298,6 +316,7 @@ export function EditorStage({
                     flow={flow}
                     fillPage={actions.fillPage}
                     registerImage={actions.registerImage}
+                    ask={actions.ask}
                     preview={
                       preview
                         ? { index: preview.index, node: dropPreview }
@@ -310,7 +329,7 @@ export function EditorStage({
           </ScaledPage>
         </PageDropZone>
       </div>
-      {cover && page && (
+      {cover?.inspector && page && (
         <CoverOverlayControls
           docking={cover.docking}
           hasMasthead={cover.hasMasthead}

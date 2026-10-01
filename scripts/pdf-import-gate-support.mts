@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import postgres from "postgres";
 import { chromium, type Page as BrowserPage } from "playwright";
 import { issueContentSchema, type Block } from "../src/lib/blocks.ts";
+import { closePanel, openSurface } from "./editor-panel-gate-support.mts";
 process.loadEnvFile(existsSync(".env.local") ? ".env.local" : ".env");
 export const base = process.argv[2] ?? "http://localhost:3223";
 assert(
@@ -62,7 +63,25 @@ export async function setup() {
   }
   throw new Error("Could not allocate scratch issue number.");
 }
+// The PDF route answers 403 while downloads are off, so a gate that fetches it
+// switches them on first; cleanup() puts back exactly what was found.
+let downloads: { existed: boolean; value: boolean | null } | undefined;
+export async function enablePdfDownloads() {
+  const [row] = await sql<{ found: boolean | null }[]>`
+    select pdf_downloads_enabled as found from settings where id = 1`;
+  downloads ??= { existed: Boolean(row), value: row?.found ?? null };
+  await sql`
+    insert into settings (id, pdf_downloads_enabled) values (1, true)
+    on conflict (id) do update set pdf_downloads_enabled = true`;
+}
+async function restorePdfDownloads() {
+  if (!downloads) return;
+  if (downloads.existed)
+    await sql`update settings set pdf_downloads_enabled = ${downloads.value} where id = 1`;
+  else await sql`delete from settings where id = 1`;
+}
 export async function cleanup() {
+  await restorePdfDownloads();
   await browser.close();
   await (await import("../src/server/issues.ts")).deleteIssue(iid);
   await sql`delete from users where id=${uid}`;
@@ -78,16 +97,16 @@ export async function settle(page: BrowserPage) {
 
 // The panel's controls, named the way the UI names them.
 export const panel = (page: BrowserPage) => page.locator("[data-pdf-private]");
+// The page rail names its thumbs "Page 2", "Page 1 (cover)".
 export const magazinePage = (page: BrowserPage, n: number) =>
-  page.getByRole("button", { name: String(n), exact: true });
-export const openTool = (page: BrowserPage) =>
-  page.getByRole("button", { name: "Import PDF", exact: true }).click();
-/** The rail button that opened the panel is pressed while it is out; it closes it. */
-export const closeTool = (page: BrowserPage) =>
-  page
-    .getByRole("navigation", { name: "Editor panels" })
-    .getByRole("button", { name: "Import PDF", exact: true })
-    .click();
+  page.getByRole("button", {
+    name: new RegExp(`^Page ${n}( \\(cover\\))?$`),
+  });
+/** Import PDF as a tab of the side panel (#353): from the header's Panel
+ * button and the choice or + menu, or its tab when it is already open. */
+export const openTool = (page: BrowserPage) => openSurface(page, "Import PDF");
+/** Closing the panel (the header's Panel button): it slides out and its surfaces unmount. */
+export const closeTool = (page: BrowserPage) => closePanel(page);
 export const fileInput = (page: BrowserPage) =>
   panel(page).locator('input[type="file"]');
 /** Region press targets by kind, e.g. `region(page, "Image")`; the kind

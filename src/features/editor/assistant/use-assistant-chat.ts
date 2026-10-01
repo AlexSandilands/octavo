@@ -1,0 +1,399 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { useChat } from "@ai-sdk/react";
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithToolCalls,
+  type UIMessage,
+} from "ai";
+import {
+  AI_CHAT_PATH,
+  AI_MAX_CONVERSATION_CHARS,
+  AI_MAX_IMAGES_PER_REQUEST,
+  AI_MAX_MESSAGES,
+  AI_MAX_TEXT_CHARS,
+  AI_PROJECTION_PART,
+  readAiError,
+  type AiError,
+  type AiProjectionData,
+} from "@/lib/ai-chat-contract";
+import { splitFollowUp, type FollowUp } from "@/lib/ai-follow-up";
+import type { AiToolInput, AiToolName, AiToolOutput } from "@/lib/ai-tools";
+import { attachedText } from "./attached";
+import { BREAKER_MESSAGE, type RunSummary } from "./executor";
+import type { AssistantIssue } from "./issue-context";
+import { projection } from "./projection";
+import { reviewPages, reviewParts } from "./review";
+import type { AssistantTools } from "./tools";
+import { roomForRun } from "./vision";
+
+// The assistant's conversation (#309): the only file that knows the AI SDK's
+// client side — `useChat`, the transport and the stream's parts — so leaving the
+// SDK means rewriting this and the route (docs/ai-assistant.md → Architecture).
+//
+// One author message and everything the model does in answer is a run, sent
+// under one `runId`. The history is append-only (caching depends on it): never
+// trimmed or edited, and at the route's message cap the conversation ends.
+
+export type AssistantMessage = UIMessage<
+  unknown,
+  { projection: AiProjectionData },
+  { [N in AiToolName]: { input: AiToolInput<N>; output: AiToolOutput } }
+>;
+
+/** Whether a send was taken, and if not, why: nothing was sent (#311). The
+ *  cost question (#312) adds `confirming` (the message waits on it in the
+ *  panel) and `waiting` (another message does); `stopped` is the author's own
+ *  Stop, landing before the message went. */
+export type SendResult =
+  | { ok: true }
+  | {
+      ok: false;
+      reason:
+        | "invalid"
+        | "busy"
+        | "full"
+        | "spent"
+        | "failed"
+        | "stopped"
+        | "confirming"
+        | "waiting";
+    };
+
+/** The issue as it stands, with every page's fill measured, and the page open now. */
+export type AssistantSnapshot = () => Promise<{
+  issue: AssistantIssue;
+  currentPage: number;
+}>;
+
+/** Room for one more run: the author's message and the reply to it… */
+const RUN_MESSAGES = 2;
+/** …and the characters that reply and its tool results may add. */
+const RUN_CHARS = 20_000;
+
+/** Pictures the route counts against AI_MAX_IMAGES_PER_REQUEST: the history's
+ *  own, since it is never trimmed. A run's views and review take what's left. */
+function conversationImages(messages: AssistantMessage[]): number {
+  let images = 0;
+  for (const m of messages)
+    for (const part of m.parts) {
+      if (part.type === "file") images++;
+      else if ("toolCallId" in part)
+        images +=
+          (part.output as AiToolOutput | undefined)?.images?.length ?? 0;
+    }
+  return images;
+}
+
+/** Characters the route counts against AI_MAX_CONVERSATION_CHARS (#308). */
+function conversationChars(messages: AssistantMessage[]): number {
+  let chars = 0;
+  for (const m of messages)
+    for (const part of m.parts) {
+      if (part.type === "text" || part.type === "reasoning")
+        chars += part.text.length;
+      else if (part.type === AI_PROJECTION_PART) chars += part.data.text.length;
+      else if ("toolCallId" in part)
+        chars +=
+          JSON.stringify(part.input ?? null).length +
+          ((part.output as AiToolOutput | undefined)?.text.length ?? 0) +
+          (part.errorText?.length ?? 0);
+    }
+  return chars;
+}
+
+/**
+ * A stopped reply can end mid tool call. That tail was never answered, so it is
+ * closed off rather than replayed half-made: a call still arriving is dropped,
+ * one that arrived unanswered is marked stopped. Earlier turns are untouched.
+ */
+function closeStoppedTail(messages: AssistantMessage[]): AssistantMessage[] {
+  const last = messages[messages.length - 1];
+  if (last?.role !== "assistant") return messages;
+  const parts = last.parts.flatMap((part): AssistantMessage["parts"] => {
+    if (!("toolCallId" in part)) return [part];
+    if (part.state === "input-streaming") return [];
+    if (part.state !== "input-available") return [part];
+    return [
+      { ...part, state: "output-error", errorText: "Stopped by the editor." },
+    ];
+  });
+  return [...messages.slice(0, -1), { ...last, parts }];
+}
+
+/** A reply's closing suggestion: its last text part's `[[next: …]]` line. */
+function suggestionOf(message: AssistantMessage): FollowUp | null {
+  const text = message.parts.findLast((p) => p.type === "text");
+  return text?.type === "text" ? splitFollowUp(text.text).followUp : null;
+}
+
+export function useAssistantChat({
+  issueId,
+  snapshot,
+  tools,
+  onRunEnd,
+}: {
+  issueId: string;
+  snapshot: AssistantSnapshot;
+  /** Runs the model's tool calls against the editor (#310). */
+  tools: AssistantTools;
+  /** A run finished, stopped or failed: its spend is on the ledger now. */
+  onRunEnd: () => void;
+}) {
+  const runId = useRef("");
+  const stopped = useRef(false);
+  const runOpen = useRef(false);
+  // The run has had its end-of-run review (#342): at most one.
+  const reviewed = useRef(false);
+  // The model's replies so far: a tool call carries the number of its own.
+  const replies = useRef(0);
+  // The Chat is made once; its callbacks read the latest props through these.
+  const latest = useRef({ snapshot, tools, onRunEnd });
+  useEffect(() => {
+    latest.current = { snapshot, tools, onRunEnd };
+  });
+  const [running, setRunning] = useState(false);
+  const [full, setFull] = useState(false);
+  // What the last run changed, and why it was stopped if the breaker tripped.
+  const [summary, setSummary] = useState<RunSummary | null>(null);
+  const [stuck, setStuck] = useState<string | null>(null);
+  const [reviewing, setReviewing] = useState(false);
+  // Photos attached to this run's message (#343); once it ends, the panel
+  // counts those no page places.
+  const attached = useRef<string[]>([]);
+  const [runPhotos, setRunPhotos] = useState<string[]>([]);
+  // The reply whose suggestion went with its run's Undo (#366).
+  const [undoneReply, setUndoneReply] = useState<string | null>(null);
+
+  // Idempotent: a failed stream reports through both onError and onFinish.
+  const endRun = () => {
+    setRunning(false);
+    setReviewing(false);
+    if (!runOpen.current) return;
+    runOpen.current = false;
+    setSummary(latest.current.tools.endRun());
+    setRunPhotos(attached.current);
+    latest.current.onRunEnd();
+  };
+
+  const chat = useChat<AssistantMessage>({
+    // The Chat calls these when it sends, never during render.
+    // eslint-disable-next-line react-hooks/refs
+    transport: new DefaultChatTransport({
+      api: AI_CHAT_PATH,
+      body: () => ({ runId: runId.current, issueId }),
+    }),
+    // Tool results go straight back, same run — unless the author pressed Stop.
+    sendAutomaticallyWhen: (options) =>
+      !stopped.current && lastAssistantMessageIsCompleteWithToolCalls(options),
+    onToolCall: async ({ toolCall }) => {
+      if (toolCall.dynamic) return;
+      // Read before the awaits, so it is this reply's whenever they resolve.
+      const reply = replies.current;
+      try {
+        const { issue } = await latest.current.snapshot();
+        const output = await latest.current.tools.run(
+          toolCall.toolName,
+          toolCall.input,
+          issue,
+          reply,
+        );
+        chat.addToolOutput({
+          tool: toolCall.toolName,
+          toolCallId: toolCall.toolCallId,
+          output,
+        });
+        const breaker = latest.current.tools.breaker();
+        if (breaker && !stopped.current) {
+          setStuck(breaker);
+          stop();
+        }
+      } catch (error) {
+        chat.addToolOutput({
+          state: "output-error",
+          tool: toolCall.toolName,
+          toolCallId: toolCall.toolCallId,
+          errorText: error instanceof Error ? error.message : "Tool failed",
+        });
+      }
+    },
+    // The run goes on while a tool call awaits its answer or has one to send.
+    // A quick tool can answer before the stream finishes, so both count (#351).
+    onFinish: ({ message, messages, isAbort, isError }) => {
+      replies.current++;
+      const continues =
+        message.parts.some(
+          (p) =>
+            p.type.startsWith("tool-") &&
+            "state" in p &&
+            p.state === "input-available",
+        ) || lastAssistantMessageIsCompleteWithToolCalls({ messages });
+      if (isAbort || isError || stopped.current) return endRun();
+      if (continues) return;
+      if (reviewed.current) return endRun();
+      reviewed.current = true;
+      void review();
+    },
+    onError: (error) => {
+      const code = readAiError(error.message).code;
+      if (code === "too_long") setFull(true);
+      // The run's $0.50 cap is the circuit-breaker's third condition (#310).
+      if (code === "run_cap") setStuck(BREAKER_MESSAGE);
+      endRun();
+    },
+  });
+
+  // One more turn, same run, when the run touched the cover or several pages:
+  // those pages as members will see them, then the model looks them over.
+  // Rendering takes seconds: a Stop, or a Stop and a new message, may land
+  // meanwhile. Stop has ended this run already, and a new run isn't ours to end.
+  const review = async () => {
+    const id = runId.current;
+    const live = () =>
+      runId.current === id && runOpen.current && !stopped.current;
+    try {
+      const { tools, snapshot } = latest.current;
+      const { issue } = await snapshot();
+      if (!live()) return;
+      // The review's pages come out of what the run's views left.
+      const pages = reviewPages(tools.summary(), issue.pages).slice(
+        0,
+        tools.pictureRoom(),
+      );
+      if (!pages.length) return endRun();
+      setReviewing(true);
+      const shots = await tools.picture(pages, issue);
+      if (!live()) return;
+      if (!shots.length) return endRun();
+      await chat.sendMessage({ parts: reviewParts(shots, issue) });
+    } catch {
+      if (live()) endRun();
+    }
+  };
+
+  const error: AiError | null = chat.error
+    ? readAiError(chat.error.message)
+    : null;
+  const busy =
+    running || chat.status === "submitted" || chat.status === "streaming";
+  // The latest reply's suggested next message (#366): only once the run is
+  // over, and gone as soon as anything else is sent or the run is undone.
+  const last = chat.messages.at(-1);
+  const followUp: FollowUp | null =
+    !busy && !error && last?.role === "assistant" && last.id !== undoneReply
+      ? suggestionOf(last)
+      : null;
+
+  /**
+   * Sends a run, or says (before any request) why it wasn't taken. `photos`:
+   * ids of photos the author attached (#343), already uploaded to the issue.
+   */
+  const send = async (
+    request: string,
+    photos: string[] = [],
+  ): Promise<SendResult> => {
+    // The composer holds anything longer back; the route would refuse it.
+    const text = request.trim();
+    if (!(text || photos.length) || text.length > AI_MAX_TEXT_CHARS)
+      return { ok: false, reason: "invalid" };
+    if (busy) return { ok: false, reason: "busy" };
+    if (full) return { ok: false, reason: "full" };
+    if (chat.messages.length + RUN_MESSAGES > AI_MAX_MESSAGES) {
+      setFull(true);
+      return { ok: false, reason: "full" };
+    }
+    const id = crypto.randomUUID();
+    runId.current = id;
+    stopped.current = false;
+    runOpen.current = true;
+    reviewed.current = false;
+    setRunning(true);
+    setSummary(null);
+    setStuck(null);
+    setRunPhotos([]);
+    attached.current = [];
+    const words = [
+      ...(text ? [text] : []),
+      ...(photos.length ? [attachedText(photos)] : []),
+    ];
+    const room = AI_MAX_IMAGES_PER_REQUEST - conversationImages(chat.messages);
+    // Before anything can end the run, so its summary is never the last run's.
+    latest.current.tools.beginRun(room, photos);
+    try {
+      const { issue, currentPage } = await latest.current.snapshot();
+      // Stop may land while the pages are measured: it has ended this run.
+      if (stopped.current || runId.current !== id)
+        return { ok: false, reason: "stopped" };
+      const view = projection(issue, currentPage);
+      const size =
+        conversationChars(chat.messages) + view.length + words.join("").length;
+      if (
+        size + RUN_CHARS > AI_MAX_CONVERSATION_CHARS ||
+        !roomForRun(room, photos.length)
+      ) {
+        setFull(true);
+        endRun();
+        return { ok: false, reason: "full" };
+      }
+      // Taken: the reply streams on without holding the caller.
+      attached.current = photos;
+      chat
+        .sendMessage({
+          parts: [
+            { type: AI_PROJECTION_PART, data: { text: view } },
+            ...words.map((t) => ({ type: "text" as const, text: t })),
+          ],
+        })
+        // useChat reports request failures through `error` and onError.
+        .catch(endRun);
+      return { ok: true };
+    } catch {
+      endRun();
+      return { ok: false, reason: "failed" };
+    }
+  };
+
+  const stop = async () => {
+    stopped.current = true;
+    await chat.stop();
+    chat.setMessages(closeStoppedTail);
+    endRun();
+  };
+
+  /** A fresh conversation (the old one is full, or the author asked). */
+  const restart = () => {
+    if (busy) return;
+    chat.setMessages([]);
+    chat.clearError();
+    setFull(false);
+  };
+
+  return {
+    messages: chat.messages,
+    streaming: chat.status === "streaming",
+    busy,
+    error,
+    full,
+    /** The last run's change ("Changed 3 blocks on pages 4–5"), for its Undo. */
+    summary,
+    /** The circuit-breaker's message, when it stopped the last run. */
+    stuck,
+    /** The pages it changed are being pictured for its review (#342). */
+    reviewing,
+    /** Photos attached to the last run's message (#343). */
+    runPhotos,
+    /** The run was undone: its line goes. */
+    /** The suggestion that ends the latest reply, if it offers one (#366). */
+    followUp,
+    dismissRun: () => {
+      setUndoneReply(chat.messages.at(-1)?.id ?? null);
+      setSummary(null);
+      setStuck(null);
+      setRunPhotos([]);
+    },
+    send,
+    stop,
+    restart,
+  };
+}

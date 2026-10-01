@@ -1,60 +1,19 @@
-// Seed the database with six sample issues — visibly distinct magazine
-// archetypes across both layout themes (see seed-data.ts) — and the images they
-// reference. Every image is generated placeholder art (seed/art.ts): SVG
-// rasterized with sharp through the same pipeline the editor applies to uploads
-// (WebP, longest edge ≤ 2000px), then stored where the app's storage facade
-// would store it — Cloudflare R2 when configured, local disk otherwise (see
-// seed-storage.ts) — so the reader serves the seeded issues on any machine and
-// any deploy, with no repo binaries and no cloud required.
+// Seed the database with the six sample issues and their generated images
+// (seed-issues.ts), replacing every issue, image and logo. To return the demo
+// site to a clean state, members aside, use `npm run demo:reset` instead.
 //
 // Run: npm run db:seed  (after `docker compose up -d` and `npm run db:migrate`)
-import sharp from "sharp";
-import { issueContentSchema } from "../lib/blocks";
-import {
-  DEFAULT_FOOTER_STYLE,
-  MARK_SIZE,
-  TEXT_SIZE,
-  clampSize,
-  type FooterReserve,
-} from "../lib/branding";
-import { buildIssues } from "./seed-data";
-import { renderArtSvg, type SeedArtSpec } from "./seed/art";
-import { SEED_LOGOS } from "./seed/cover-elements";
-import { SEED_IMAGES, type SeedImages } from "./seed/images";
-import { putSeedObject, seedStorageTarget } from "./seed-storage";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+import { hasPublishedIssues, seedIssues } from "./seed-issues";
+import { seedStorageTarget } from "./seed-storage";
 
-// Load .env.local before anything reads process.env (all env reads below are
-// inside functions, so the hoisted imports don't beat this).
+// Load .env.local before anything reads process.env (all env reads are inside
+// functions, so the hoisted imports don't beat this).
 try {
   process.loadEnvFile?.(".env.local");
 } catch {
   // env may already be set in the shell — fine.
-}
-
-const id = () => crypto.randomUUID();
-
-// Mirror src/lib/image-processing.ts (can't import it: it pulls in
-// `server-only`, which throws outside a React Server environment). WebP,
-// EXIF-rotated, capped — identical treatment to an editor upload, so the
-// recorded width/height always match the stored bytes.
-async function processAndStore(spec: SeedArtSpec) {
-  const svg = Buffer.from(renderArtSvg(spec));
-  const { data, info } = await sharp(svg, { failOn: "error" })
-    .rotate()
-    .resize({
-      width: 2000,
-      height: 2000,
-      fit: "inside",
-      withoutEnlargement: true,
-    })
-    .webp({ quality: 82 })
-    .toBuffer({ resolveWithObject: true });
-
-  // Same key shape the app uses; served at the R2 public URL when R2 is
-  // configured, at /api/images/<key> in local mode.
-  const key = `seed/${spec.key}.webp`;
-  await putSeedObject(key, data, "image/webp");
-  return { key, width: info.width, height: info.height };
 }
 
 async function main() {
@@ -73,10 +32,6 @@ async function main() {
   // the same DATABASE_URL instead.
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL is not set.");
-  const { drizzle } = await import("drizzle-orm/postgres-js");
-  const { default: postgres } = await import("postgres");
-  const { eq } = await import("drizzle-orm");
-  const { issues, images, settings, logos } = await import("./schema");
   const client = postgres(url, { max: 1 });
   const db = drizzle({ client });
 
@@ -89,85 +44,15 @@ async function main() {
       "Refusing to seed with NODE_ENV=production (it wipes all issues). Pass --force to override.",
     );
   }
-  if (!force) {
-    const [published] = await db
-      .select({ id: issues.id })
-      .from(issues)
-      .where(eq(issues.status, "published"))
-      .limit(1);
-    if (published) {
-      throw new Error(
-        "Refusing to seed: this database already holds published issues (it would wipe them). Pass --force to override.",
-      );
-    }
-  }
-
-  // Pre-mint an id per logical image so the content blocks can reference them.
-  const imageIds = Object.fromEntries(
-    SEED_IMAGES.map((spec) => [spec.key, id()]),
-  ) as SeedImages;
-
-  // Generate + store each image up front (storage work stays outside the
-  // transaction), then wipe + insert atomically so a crash can't leave a
-  // half-empty database.
-  const imageRows: {
-    id: string;
-    key: string;
-    width: number;
-    height: number;
-    issueId: string | null;
-  }[] = [];
-  for (const spec of SEED_IMAGES) {
-    const { key, width, height } = await processAndStore(spec);
-    imageRows.push({
-      id: imageIds[spec.key],
-      key,
-      width,
-      height,
-      issueId: null,
-    });
-  }
-  // Record the footer in force as each issue's reserve, as createIssue does
-  // (#128); the column default is the smallest preset and would hold the demo
-  // issues below the footer they were designed for.
-  const [stored] = await db
-    .select({
-      footerMarkSize: settings.footerMarkSize,
-      footerTextSize: settings.footerTextSize,
-    })
-    .from(settings)
-    .limit(1);
-  const reserve: FooterReserve = {
-    footerMarkSize: clampSize(
-      MARK_SIZE,
-      stored?.footerMarkSize ?? DEFAULT_FOOTER_STYLE.markSize,
-    ),
-    footerTextSize: clampSize(
-      TEXT_SIZE,
-      stored?.footerTextSize ?? DEFAULT_FOOTER_STYLE.textSize,
-    ),
-  };
-  const rows = buildIssues(imageIds).map((issue) => ({ ...issue, ...reserve }));
-
-  for (const row of rows) issueContentSchema.parse(row.content);
-
-  await db.transaction(async (tx) => {
-    // Wipe (images first — they FK onto issues; all logos cascade with them).
-    await tx.delete(images);
-    await tx.delete(issues);
-    await tx.insert(images).values(imageRows);
-    await tx.insert(logos).values(
-      SEED_LOGOS.map((logo) => ({
-        id: logo.id,
-        name: logo.name,
-        imageId: imageIds[logo.imageKey],
-      })),
+  if (!force && (await hasPublishedIssues(db))) {
+    throw new Error(
+      "Refusing to seed: this database already holds published issues (it would wipe them). Pass --force to override.",
     );
-    await tx.insert(issues).values(rows);
-  });
+  }
 
+  const seeded = await seedIssues(db);
   console.log(
-    `Seeded ${rows.length} published issues and ${imageRows.length} generated images.`,
+    `Seeded ${seeded.issues} published issues and ${seeded.images} generated images.`,
   );
   process.exit(0);
 }

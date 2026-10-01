@@ -34,14 +34,14 @@ import { footerReserveOf } from "@/lib/branding";
 
 const idSchema = z.string().uuid();
 
-// Returns the new issue's id; CreateIssueButton hard-navigates to it (#276,
-// #296), so no revalidatePath — the dashboard is force-dynamic.
+// Returns the new issue's id for CreateIssueButton to navigate to.
 export async function createIssueAction(): Promise<string> {
   await requireAdmin();
   // The new issue's pages will be authored against the footer that is set right
   // now, so it starts with that as its reserve (issue #128).
   const settings = await getSettings();
   const issue = await createIssue(footerReserveOf(settings.footer));
+  revalidatePath("/admin");
   return issue.id;
 }
 

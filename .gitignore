@@ -55,3 +55,7 @@ yarn-error.log*
 
 # Generated from the pinned browser PDF parser.
 /public/pdfjs/
+
+# model-selection fixture output and generated art (#315)
+/scripts/assistant-models/results/
+/scripts/assistant-models/.cache/

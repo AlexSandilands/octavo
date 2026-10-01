@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@/components/icons";
 
@@ -42,9 +48,11 @@ export function MenuSelect<T>({
   triggerLabel,
   icon,
   iconOnly = false,
+  collapseBelowLg = false,
   portal = false,
   disabled = false,
   onBeforeOpen,
+  onOpen,
   returnFocusOnSelect = true,
 }: {
   /** Trigger prefix — the control names itself, e.g. "Theme". */
@@ -58,8 +66,9 @@ export function MenuSelect<T>({
   onSelect: (value: T) => void;
   /** Trigger height: "sm" (40px) suits dense chrome like the editor header;
    * "md" (44px) meets the tap-target floor; "toolbar" (30px) matches the text-tool box;
-   * "compact" (32px, a hairline pill) keeps a 44px hit area beyond its edge. */
-  size?: "sm" | "md" | "toolbar" | "compact";
+   * "compact" (32px, a hairline pill) keeps a 44px hit area beyond its edge;
+   * "bar" (28px) matches the buttons in a selected block's bar. */
+  size?: "sm" | "md" | "toolbar" | "compact" | "bar";
   /** Bottom toolbars open their menus upward, clear of the viewport edge. */
   side?: "top" | "bottom";
   /** Extra classes for the trigger — widths and placement only, as on Button. */
@@ -70,11 +79,17 @@ export function MenuSelect<T>({
   icon?: ReactNode;
   /** Show only that mark while keeping `triggerLabel` as the accessible name. */
   iconOnly?: boolean;
+  /** Below `lg` (1024px) shrink to a square showing only `icon`; the label
+   *  and value stay as the accessible name and tooltip. Needs `icon`. */
+  collapseBelowLg?: boolean;
   /** Escape scrolling inspectors; constrain the menu to the viewport. */
   portal?: boolean;
   disabled?: boolean;
   /** Snapshot a text selection before the menu moves focus. */
   onBeforeOpen?: () => void;
+  /** The menu has opened and focused its option — e.g. to scroll it into view
+   *  inside a scrolling list, which would otherwise clip it. */
+  onOpen?: (menu: HTMLDivElement) => void;
   /** Editors can restore their selection/focus from onSelect instead. */
   returnFocusOnSelect?: boolean;
 }) {
@@ -116,12 +131,34 @@ export function MenuSelect<T>({
     );
   });
 
+  const onOpenRef = useRef(onOpen);
+  useEffect(() => {
+    onOpenRef.current = onOpen;
+  });
+
   // On open, move focus to the checked option so keyboard users land on it.
   // Only on open: from there the menu's own key handling owns focus.
   useEffect(() => {
     if (!open) return;
     itemsRef.current[checkedRef.current]?.focus();
+    if (menuRef.current) onOpenRef.current?.(menuRef.current);
   }, [open]);
+
+  // An in-place menu hangs from one side of its trigger; slide it back inside
+  // its clipping ancestors before it paints (a pill at a panel's far edge).
+  useLayoutEffect(() => {
+    const menu = menuRef.current;
+    if (!open || portal || !menu) return;
+    const r = menu.getBoundingClientRect();
+    const { left, right } = clipBox(menu);
+    let shift = Math.min(0, right - r.right);
+    // Wider than the box: keep its start in view.
+    if (r.left + shift < left) shift = left - r.left;
+    // `translate` is in the menu's own px; a scaled ancestor (the editor page)
+    // makes those differ from the viewport px measured here.
+    if (shift)
+      menu.style.translate = `${(shift * menu.offsetWidth) / r.width}px`;
+  }, [open, portal]);
 
   // A mouse press snapshots on pointerdown, before the button takes focus from
   // an editor; a keyboard open has no pointerdown, so toggle snapshots instead.
@@ -243,14 +280,22 @@ export function MenuSelect<T>({
     </div>
   );
 
+  // A collapsed trigger shows only its mark, so the words move to its name.
+  const collapsedName = collapseBelowLg
+    ? `${label ? `${label}: ` : ""}${current}`
+    : undefined;
+
   return (
-    <div ref={rootRef} className={`relative ${iconOnly ? "flex-none" : ""}`}>
+    <div
+      ref={rootRef}
+      className={`relative ${iconOnly ? "flex-none" : collapseBelowLg ? "max-lg:flex-none" : ""}`}
+    >
       <button
         ref={btnRef}
         type="button"
         disabled={disabled}
-        aria-label={triggerLabel}
-        title={iconOnly ? triggerLabel : undefined}
+        aria-label={triggerLabel ?? collapsedName}
+        title={iconOnly ? triggerLabel : collapsedName}
         onPointerDown={() => {
           if (open || disabled) return;
           onBeforeOpen?.();
@@ -269,36 +314,44 @@ export function MenuSelect<T>({
             toggle();
           }
         }}
-        className={`border-hair-warm text-ink enabled:hover:border-accent enabled:hover:bg-accent-wash disabled:cursor-default disabled:opacity-40 flex cursor-pointer items-center bg-white font-sans font-medium transition-[transform,background-color,border-color] duration-150 ease-out select-none motion-safe:active:scale-[0.97] ${
+        className={`${size === "bar" ? "border-hair font-semibold" : "border-hair-warm font-medium"} text-ink enabled:hover:border-accent enabled:hover:bg-accent-wash disabled:cursor-default disabled:opacity-40 flex cursor-pointer items-center bg-white font-sans transition-[transform,background-color,border-color] duration-150 ease-out select-none motion-safe:active:scale-[0.97] ${
           iconOnly
             ? "rounded-[9px] border"
-            : size === "compact"
+            : size === "compact" || size === "bar"
               ? "border"
               : "border-[1.5px]"
         } ${
           size === "compact"
             ? "relative h-8 max-w-full gap-1.5 rounded-full px-2 text-[13px] before:absolute before:inset-x-0 before:-inset-y-1.5 before:content-['']"
-            : size === "toolbar"
-              ? iconOnly
-                ? "h-[30px] w-[30px] justify-center rounded-[6px] text-[12px]"
-                : "h-[30px] gap-1 rounded-[6px] px-1.5 text-[12px]"
-              : iconOnly
-                ? `w-10 justify-center ${size === "md" ? "h-11" : "h-10"}`
-                : `gap-2 rounded-lg px-3.5 text-sm ${size === "md" ? "h-11" : "h-10"}`
+            : size === "bar"
+              ? "h-7 max-w-full gap-1.5 rounded-[6px] px-2.5 text-[12px]"
+              : size === "toolbar"
+                ? iconOnly
+                  ? "h-[30px] w-[30px] justify-center rounded-[6px] text-[12px]"
+                  : "h-[30px] gap-1 rounded-[6px] px-1.5 text-[12px]"
+                : iconOnly
+                  ? `w-10 justify-center ${size === "md" ? "h-11" : "h-10"} ${collapseBelowLg ? "max-lg:w-10 max-lg:justify-center max-lg:px-0!" : ""}`
+                  : `gap-2 rounded-lg px-3.5 text-sm ${size === "md" ? "h-11" : "h-10"} ${collapseBelowLg ? "max-lg:w-10 max-lg:justify-center max-lg:px-0!" : ""}`
         } ${className}`}
       >
-        {icon}
+        {collapseBelowLg ? (
+          <span className="contents lg:hidden">{icon}</span>
+        ) : (
+          icon
+        )}
         {!iconOnly && (
           <>
-            <span className="min-w-0 truncate">
+            <span
+              className={`min-w-0 truncate ${collapseBelowLg ? "max-lg:hidden" : ""}`}
+            >
               {label ? `${label}: ` : ""}
               {current}
             </span>
             <Icon
               name="chevronDown"
-              size={size === "toolbar" || size === "compact" ? 12 : 14}
+              size={size === "sm" || size === "md" ? 14 : 12}
               strokeWidth={1.8}
-              className={`shrink-0 ${side === "top" ? "rotate-180" : ""}`}
+              className={`shrink-0 ${side === "top" ? "rotate-180" : ""} ${collapseBelowLg ? "max-lg:hidden" : ""}`}
             />
           </>
         )}
@@ -307,4 +360,19 @@ export function MenuSelect<T>({
       {open && (portal ? createPortal(menu, document.body) : menu)}
     </div>
   );
+}
+
+/** The horizontal span `el` can show in: the viewport, narrowed by every
+ *  ancestor that clips its overflow, less a small margin. */
+function clipBox(el: HTMLElement) {
+  const MARGIN = 8;
+  let left = 0;
+  let right = document.documentElement.clientWidth;
+  for (let p = el.parentElement; p; p = p.parentElement) {
+    if (getComputedStyle(p).overflowX === "visible") continue;
+    const r = p.getBoundingClientRect();
+    left = Math.max(left, r.left);
+    right = Math.min(right, r.right);
+  }
+  return { left: left + MARGIN, right: right - MARGIN };
 }

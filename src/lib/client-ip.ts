@@ -8,7 +8,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 // X-Origin-Auth), CF-Connecting-IP counts only beside that secret, and a
 // request without it skipped Cloudflare: null, which the caller refuses.
 //
-// Otherwise (the demo, local dev) it is X-Real-IP, which Railway's edge sets.
+// Otherwise (local dev) it is X-Real-IP, which Railway's edge sets.
 // X-Forwarded-For is never read: Railway documents nothing about it, and its
 // last hop varies from one request to the next there.
 export function clientIp(

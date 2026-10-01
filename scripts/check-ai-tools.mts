@@ -1,0 +1,480 @@
+// The assistant's editing tools (#310), in memory: every tool's zod and the
+// executor's refusals, markdown round trips over the seed's text, one history
+// step per run with undo back to the exact pages, the photo layout defaults,
+// split_page, the overflow feedback, whole-issue validation, the
+// circuit-breaker and the run summary; the cover tools (#313,
+// fixtures/assistant/cover-checks.mts). The measurer is a stand-in with fixed
+// block heights (fixtures/assistant/tools-harness.mts); the real one is the
+// editor's (dev-assistant-tools-gate.mts).
+//   npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-tools.mts
+import { collectImageIds } from "../src/lib/images";
+import type { Block } from "../src/lib/blocks";
+import {
+  AI_PLAN_MAX_BODY,
+  AI_PLAN_MAX_SECTIONS,
+  aiToolSchemas,
+  AI_TOOL_NAMES,
+} from "../src/lib/ai-tools";
+import { docToMarkdown, markdownToDoc } from "../src/lib/markdown-doc";
+import { richDocSchema, richTextToPlain } from "../src/lib/rich-text-doc";
+import { richDocBlocks } from "../src/lib/rich-text-split";
+import * as h from "./fixtures/assistant/tools-harness.mts";
+import {
+  createVision,
+  roomForRun,
+} from "../src/features/editor/assistant/vision";
+import type { AssistantIssue } from "../src/features/editor/assistant/issue-context";
+import { coverChecks } from "./fixtures/assistant/cover-checks.mts";
+import { describeReport } from "../src/features/editor/assistant/page-report";
+
+const { ok, heading, docOf, issues, photos, harness } = h;
+const { textBlock, headingBlock, photo, cover, page } = h;
+
+heading("the tool contract");
+ok(
+  AI_TOOL_NAMES.join() ===
+    "read_page,set_text,set_heading,insert_blocks,delete_block,move_block,add_page,split_page,set_image_text,set_image_layout,view_page,view_photo," +
+      "set_cover_background,clear_cover_background,set_masthead,add_story,add_details,add_logo,remove_cover_item,place_cover_item,style_cover_item,style_cover_page,propose_sections",
+  "every tool is declared, read_page first (the cached order)",
+);
+const refused = (tool: keyof typeof aiToolSchemas, input: unknown) =>
+  !aiToolSchemas[tool].safeParse(input).success;
+for (const [tool, input, why] of [
+  ["read_page", { page: 0 }, "page 0"],
+  ["set_text", { blockId: "", markdown: "x" }, "an empty id"],
+  ["set_heading", { blockId: "a", title: "T", level: "huge" }, "a level"],
+  ["insert_blocks", { after: { page: 2 }, blocks: [] }, "no blocks"],
+  [
+    "insert_blocks",
+    { after: { page: 2 }, blocks: [{ kind: "video" }] },
+    "a kind",
+  ],
+  [
+    "insert_blocks",
+    { after: { block: "a" }, blocks: [{ kind: "text", markdown: "x" }] },
+    "an anchor",
+  ],
+  ["delete_block", { blockId: "a", extra: 1 }, "an extra field"],
+  ["move_block", { blockId: "a", after: { page: 1.5 } }, "a fractional page"],
+  ["add_page", { after: 201 }, "past 200 pages"],
+  ["split_page", {}, "no page"],
+  [
+    "set_image_text",
+    { blockId: "a", alt: "x".repeat(301) },
+    "a 301-character alt",
+  ],
+  ["set_image_layout", { blockId: "a", align: "center" }, "an align"],
+  [
+    "set_image_layout",
+    { blockId: "a", align: "left", width: 10 },
+    "a width under 20",
+  ],
+] as const)
+  ok(refused(tool, input), `${tool}'s zod refuses ${why}`);
+
+// propose_sections' bounds (#312): 40 sections, a 20,000-character body.
+const section = { headline: "H", body: "Text." };
+const plan = (sections: unknown[], extra = {}) =>
+  aiToolSchemas.propose_sections.safeParse({ after: 2, sections, ...extra })
+    .success;
+ok(
+  plan(Array(AI_PLAN_MAX_SECTIONS).fill(section)) &&
+    plan([{ ...section, body: "x".repeat(AI_PLAN_MAX_BODY) }]) &&
+    plan([
+      {
+        ...section,
+        kicker: "Club Notes",
+        standfirst: "S.",
+        photos: [{ imageId: "p" }, { after: "standfirst" }, { after: 3 }],
+      },
+    ]),
+  "propose_sections takes 40 sections, a 20,000-character body, kicker, standfirst and photos",
+);
+for (const [input, why] of [
+  [[], "no sections"],
+  [Array(AI_PLAN_MAX_SECTIONS + 1).fill(section), "41 sections"],
+  [[{ ...section, body: "x".repeat(AI_PLAN_MAX_BODY + 1) }], "a longer body"],
+  [[{ ...section, body: "" }], "an empty body"],
+  [[{ ...section, headline: "" }], "no headline"],
+  [[{ ...section, kicker: "k".repeat(301) }], "a 301-character kicker"],
+  [[{ ...section, standfirst: "s".repeat(1_001) }], "a long standfirst"],
+  [[{ ...section, photos: [{ after: 0 }] }], "a photo after paragraph 0"],
+  [
+    [{ ...section, photos: [{ after: "headline" }] }],
+    "a photo after the headline",
+  ],
+  [[{ ...section, photos: Array(13).fill({}) }], "13 photos"],
+  [[{ ...section, title: "T" }], "an extra field"],
+] as const)
+  ok(!plan(input as unknown[]), `propose_sections' zod refuses ${why}`);
+ok(!plan([section], { after: 0 }), "propose_sections' zod refuses page 0");
+
+heading("unknown ids and places are refused, nothing changes");
+{
+  const h = harness([cover, page(textBlock(3), photo())]);
+  const before = JSON.stringify(h.pages);
+  for (const [tool, input, want] of [
+    ["set_text", { blockId: "nope", markdown: "x" }, 'no block has id "nope"'],
+    [
+      "set_heading",
+      { blockId: "nope", title: "T", level: "main" },
+      "no block has id",
+    ],
+    ["delete_block", { blockId: "nope" }, "no block has id"],
+    ["move_block", { blockId: "nope", after: { page: 2 } }, "no block has id"],
+    ["set_image_text", { blockId: "nope", alt: "x" }, "no block has id"],
+    ["set_image_layout", { blockId: "nope", align: "full" }, "no block has id"],
+    [
+      "insert_blocks",
+      { after: { blockId: "nope" }, blocks: [{ kind: "text", markdown: "x" }] },
+      "no block has id",
+    ],
+    [
+      "insert_blocks",
+      { after: { page: 2 }, blocks: [{ kind: "image", imageId: "img-leeks" }] },
+      "isn't a photo uploaded",
+    ],
+    [
+      "insert_blocks",
+      { after: { page: 9 }, blocks: [{ kind: "text", markdown: "x" }] },
+      "there is no page 9",
+    ],
+    [
+      "insert_blocks",
+      { after: { page: 1 }, blocks: [{ kind: "text", markdown: "x" }] },
+      "is a cover; use the cover tools",
+    ],
+    ["add_page", { after: 9 }, "there is no page 9"],
+    ["split_page", { page: 9 }, "there is no page 9"],
+    ["split_page", { page: 2 }, "already fits"],
+    [
+      "set_image_text",
+      { blockId: h.pages[1]!.blocks[1]!.id },
+      "give alt, caption or both",
+    ],
+    [
+      "set_heading",
+      { blockId: h.pages[1]!.blocks[0]!.id, title: "T", level: "main" },
+      "is a text, not a heading",
+    ],
+    ["no_such_tool", {}, 'there is no tool "no_such_tool"'],
+    [
+      "set_heading",
+      { blockId: "a", title: "T", level: "huge" },
+      "invalid arguments for set_heading",
+    ],
+  ] as const) {
+    const out = await h.run(tool, input);
+    ok(
+      out.text.startsWith("Error:") && out.text.includes(want),
+      `${tool}: ${out.text}`,
+    );
+  }
+  ok(JSON.stringify(h.pages) === before, "the pages are untouched");
+  ok(h.history.length === 0, "and no history step was taken");
+  ok(h.executor.summary() === null, "and the run has nothing to summarise");
+}
+
+heading("markdown round trips over the seed's text");
+{
+  let blocks = 0;
+  let exact = 0;
+  for (const issue of issues)
+    for (const p of issue.content.pages)
+      for (const b of p.blocks) {
+        if (b.type !== "text") continue;
+        blocks++;
+        const doc = docOf(b);
+        // Empty paragraphs don't survive markdown; everything else must.
+        const kept = {
+          ...doc,
+          content: doc.content.filter(
+            (n) => n.type !== "paragraph" || (n.content?.length ?? 0) > 0,
+          ),
+        };
+        const back = markdownToDoc(docToMarkdown(doc)).doc;
+        if (JSON.stringify(back) === JSON.stringify(kept)) exact++;
+      }
+  ok(
+    blocks > 50 && exact === blocks,
+    `${exact} of ${blocks} seed text blocks round-trip`,
+  );
+  const odd = markdownToDoc(
+    "# A heading\n\n> a quote\n\n| a | b |\n|---|---|\n\n```\ncode\n```\n\n<b>html</b> and ![img](x.png)",
+  );
+  ok(
+    richDocSchema.safeParse(odd.doc).success &&
+      richTextToPlain(odd.doc).includes("A heading") &&
+      richTextToPlain(odd.doc).includes("a quote") &&
+      richTextToPlain(odd.doc).includes("code"),
+    "unknown syntax degrades to text and still validates",
+  );
+}
+
+heading("photo layout");
+{
+  const h = harness([cover, page(photo(60, "left"), textBlock(2))]);
+  const id = h.pages[1]!.blocks[0]!.id;
+  const width = () => (h.pages[1]!.blocks[0] as { width: number }).width;
+  await h.run("set_image_layout", { blockId: id, align: "full" });
+  ok(width() === 100, "full with no width is full width (100%)");
+  await h.run("set_image_layout", { blockId: id, align: "right" });
+  ok(width() === 45, "a float from full width takes 45%");
+  await h.run("set_image_layout", { blockId: id, align: "left", width: 38 });
+  await h.run("set_image_layout", { blockId: id, align: "right" });
+  ok(width() === 38, "a float keeps a float's width");
+  await h.run("insert_blocks", {
+    after: { page: 2 },
+    blocks: [
+      {
+        kind: "image",
+        imageId: [...photos][1]!,
+        caption: "The quay",
+        alt: "Boats at the quay",
+      },
+    ],
+  });
+  const placed = h.pages[1]!.blocks[0] as {
+    caption: string;
+    alt: string;
+    width: number;
+  };
+  ok(
+    placed.caption === "The quay" &&
+      placed.alt === "Boats at the quay" &&
+      placed.width === 100,
+    "an inserted photo takes its caption and alt",
+  );
+  const out = await h.run("set_image_text", { blockId: id, caption: "" });
+  ok(
+    out.text.startsWith("Updated the photo's caption"),
+    "a caption can be cleared",
+  );
+}
+
+heading("split_page and the overflow feedback");
+{
+  // 60 + 18 × 40 = 780 fits; the 8-paragraph text after it doesn't.
+  const intro = textBlock(18, "Intro");
+  const long = textBlock(8, "Long");
+  const after = photo(40);
+  const h = harness([
+    cover,
+    page(headingBlock("Regatta"), intro, headingBlock("Results"), long, after),
+    page(textBlock(1)),
+  ]);
+  const out = await h.run("set_text", {
+    blockId: long.id,
+    markdown:
+      "One.\n\nTwo.\n\nThree.\n\nFour.\n\nFive.\n\nSix.\n\nSeven.\n\nEight.",
+  });
+  ok(
+    /page 2: overflows by ~\d+ lines/.test(out.text),
+    "an overflow is reported",
+  );
+  ok(
+    out.text.includes(
+      `[${intro.id}] 36 lines, its paragraphs' last lines hold 3`,
+    ),
+    "with each text block's lines and last lines",
+  );
+  ok(out.text.includes("split_page 2"), "and offers split_page");
+  ok(
+    out.text.includes(
+      `To fit by trimming, the text must lose ${/overflows by ~(\d+)/.exec(out.text)?.[1]} lines in all. A paragraph whose last line is short frees that line for fewer words: [${intro.id}] (3 words), [${long.id}] (3 words).`,
+    ) && out.text.includes("in one round, one set_text per block"),
+    "the deficit comes first: the whole cut, the quickest lines, one call a block (#355)",
+  );
+  {
+    // 32 words on 4 lines, 2 on the last: ~10 words on each full line.
+    const blk = textBlock(1);
+    const words = Array.from({ length: 32 }, (_, i) => `w${i}`).join(" ");
+    const told = describeReport(
+      3,
+      page({ ...blk, text: docOf({ ...blk, text: words }) }),
+      {
+        fill: { kind: "flow", percent: 104, overflowLines: 1 },
+        overflowAt: null,
+        overflowPx: 30,
+        heights: {},
+        text: [{ id: blk.id, lines: 4, lastLines: [2] }],
+      },
+    );
+    ok(
+      told.includes(
+        `[${blk.id}] 4 lines of ~10 words, its last line holds 2 words`,
+      ) &&
+        told.includes(
+          "must lose 1 line in all: at least 10 words at ~10 a line.",
+        ),
+      `a text block's full lines are counted in words (${told.slice(0, 160)}…)`,
+    );
+  }
+  const split = await h.run("split_page", { page: 2 });
+  const [p2, p3, p4] = [h.pages[1]!, h.pages[2]!, h.pages[3]!];
+  ok(
+    p2.blocks.map((b) => b.id).join() ===
+      `${h.pages[1]!.blocks[0]!.id},${intro.id}`,
+    "the page keeps what fits",
+  );
+  ok(
+    p3.blocks[0]?.type === "heading" &&
+      p3.blocks[1]?.id === long.id &&
+      p3.blocks[2]?.id === after.id,
+    "the stranded heading, the text and the photo after it move on, in order",
+  );
+  ok(p4.blocks.length === 1, "the next page is untouched and renumbered");
+  ok(
+    /Moved 3 blocks onto a new page 3.*page 2: fits.*page 3: fits/.test(
+      split.text,
+    ),
+    `the result names both pages (${split.text})`,
+  );
+
+  // A text block that crosses the foot is split between paragraphs.
+  const flowing = textBlock(24, "Flow");
+  const h2 = harness([cover, page(headingBlock("Notes"), flowing, photo(40))]);
+  await h2.run("split_page", { page: 2 });
+  const kept = h2.pages[1]!.blocks[1] as Extract<Block, { type: "text" }>;
+  const moved = h2.pages[2]!.blocks;
+  ok(
+    richDocBlocks(kept.text).length === 18,
+    `the text keeps the paragraphs that fit (${richDocBlocks(kept.text).length})`,
+  );
+  ok(
+    moved[0]?.type === "text" &&
+      richDocBlocks((moved[0] as typeof kept).text).length === 6 &&
+      moved[1]?.type === "image",
+    "the rest continues on the new page, the photo after it",
+  );
+  ok(
+    richTextToPlain(kept.text) +
+      "\n" +
+      richTextToPlain((moved[0] as typeof kept).text) ===
+      richTextToPlain(flowing.text),
+    "no words are lost or changed",
+  );
+  const alone = harness([cover, page(photo(100), textBlock(30))]);
+  ok(
+    (await alone.run("split_page", { page: 2 })).text.startsWith("Moved"),
+    "a page led by a photo splits its text",
+  );
+
+  // 60 + 17 × 40 + 180 = 920: a 120px overflow the 180px photo would clear.
+  const small = textBlock(17);
+  const tallPhoto = photo(60);
+  const h3 = harness([
+    cover,
+    page(headingBlock("Club news"), small, tallPhoto),
+  ]);
+  const told = await h3.run("set_image_text", {
+    blockId: tallPhoto.id,
+    alt: "Dinghies",
+  });
+  ok(
+    told.text.includes(`Moving [${tallPhoto.id}] (photo, ~`) &&
+      !told.text.includes(`Moving [${small.id}]`),
+    `names a block tall enough to move off (${told.text})`,
+  );
+}
+
+heading("covers, full-page photos and whole-issue validation");
+{
+  const fullPhoto = { ...photo(), align: "page-fill" } as Block;
+  const h = harness([cover, page(fullPhoto), page(textBlock(2))]);
+  const t = h.pages[2]!.blocks[0]!.id;
+  ok(
+    (
+      await h.run("move_block", { blockId: t, after: { page: 2 } })
+    ).text.includes("full-page photo"),
+    "nothing goes onto a full-page photo",
+  );
+  ok(
+    (
+      await h.run("set_image_layout", { blockId: fullPhoto.id, align: "full" })
+    ).text.includes("full-page photos can't"),
+    "a full-page photo keeps its layout",
+  );
+  // A block the save path would refuse anywhere in the issue blocks every edit.
+  const broken = { ...headingBlock("x"), title: "x".repeat(301) } as Block;
+  const bad = harness([cover, page(broken), page(textBlock(2))]);
+  const before = JSON.stringify(bad.pages);
+  const out = await bad.run("add_page", { after: 3 });
+  ok(
+    out.text.includes("would make the issue invalid") &&
+      JSON.stringify(bad.pages) === before &&
+      bad.history.length === 0,
+    "an edit that leaves the issue invalid is rolled back",
+  );
+}
+
+heading("vision: views within the run's six and the conversation's room");
+{
+  // The photo route, stubbed: every view succeeds unless refused first.
+  globalThis.fetch = async () =>
+    Response.json({ mediaType: "image/jpeg", data: "x", width: 8, height: 6 });
+  const issue = {
+    uploads: ["img-1"],
+    images: { "img-1": { width: 8, height: 6 } },
+  } as unknown as AssistantIssue;
+  const source = { issueId: "i", logoId: null };
+  const vision = createVision();
+  const look = () =>
+    vision.view("view_photo", { imageId: "img-1" }, issue, source);
+  vision.beginRun(3);
+  const three = [await look(), await look(), await look()];
+  ok(
+    three.map((o) => o.text.split(". ").at(-1)).join() ===
+      "2 views left.,1 view left.,0 views left.",
+    "with room for 3, the views count down from 3",
+  );
+  const fourth = await look();
+  ok(
+    fourth.text.startsWith("Error: this conversation has no room") &&
+      !fourth.images &&
+      vision.room() === 0,
+    "the 4th is refused for the conversation's room, and the review gets none",
+  );
+  vision.beginRun(24);
+  for (let i = 0; i < 6; i++) await look();
+  const seventh = await look();
+  ok(
+    seventh.text.includes("all 6 views") &&
+      seventh.text.includes("room for 18 more pictures") &&
+      vision.room() === 18,
+    "with room for 24: six views, the 7th refused, 18 left for the review",
+  );
+  // Send's room check (#368): two pages, plus a first look at each attached photo.
+  ok(
+    roomForRun(2, 0) &&
+      !roomForRun(1, 0) &&
+      roomForRun(12, 10) &&
+      !roomForRun(11, 10) &&
+      !roomForRun(4, 10),
+    "a run needs room for two pages and a look at each attached photo",
+  );
+  const ten = Array.from({ length: 10 }, (_, i) => `img-${i + 1}`);
+  const tenIssue = {
+    uploads: ten,
+    images: Object.fromEntries(ten.map((id) => [id, { width: 8, height: 6 }])),
+  } as unknown as AssistantIssue;
+  vision.beginRun(12, ten);
+  const looks = [];
+  for (const imageId of ten)
+    looks.push(await vision.view("view_photo", { imageId }, tenIssue, source));
+  looks.push(await look(), await look());
+  ok(
+    looks.every((o) => o.images?.length === 1) && vision.room() === 0,
+    "room for 12 lets ten attached photos and two more views all be seen",
+  );
+}
+
+await coverChecks();
+
+ok(
+  h.measured > 0 && collectImageIds(issues[0]!.content).length > 0,
+  "the stand-in measurer and seed were used",
+);
+
+console.log(h.failures ? `\n${h.failures} failed` : "\nall passed");
+process.exit(h.failures ? 1 : 0);

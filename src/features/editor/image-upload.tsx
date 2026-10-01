@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Icon } from "@/components/icons";
+import { imageUploadRefusal } from "@/lib/image-upload-limits";
 import type { ResolvedImage } from "@/lib/images";
 
 // The editor-only affordance for an image block: pick a file, POST it to the
@@ -26,8 +27,11 @@ export function ImageBlockControl({
     const file = e.target.files?.[0];
     e.target.value = ""; // let the same file be re-picked after an error
     if (!file) return;
+    // A file the route would refuse isn't sent; it says why in the same words.
+    const refused = imageUploadRefusal(file);
+    setError(refused);
+    if (refused) return;
     setBusy(true);
-    setError(null);
     try {
       const body = new FormData();
       body.append("file", file);

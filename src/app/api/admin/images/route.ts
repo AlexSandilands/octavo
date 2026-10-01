@@ -2,6 +2,12 @@ import * as Sentry from "@sentry/nextjs";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createId } from "@/lib/id";
+import {
+  IMAGE_TOO_LARGE,
+  IMAGE_UNSUPPORTED,
+  imageUploadRefusal,
+  IMAGE_UPLOAD_MAX_BYTES,
+} from "@/lib/image-upload-limits";
 import { processImage, UnsupportedImageError } from "@/lib/image-processing";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { keyToUrl, putObject, usingLocalStorage } from "@/lib/storage";
@@ -16,14 +22,8 @@ import { getAdminUser } from "@/server/session";
 // A route handler (not a server action) because file uploads exceed the server
 // action body limit and binary form data is a poor fit for actions.
 
-const MAX_BYTES = 12 * 1024 * 1024; // 12 MB raw upload
-const ACCEPTED = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-  "image/avif",
-];
+// The multipart wrapper around the file: boundaries, headers, the issue id.
+const FORM_OVERHEAD = 64 * 1024;
 
 const fieldsSchema = z.object({
   issueId: z.string().uuid().optional(),
@@ -54,6 +54,16 @@ export async function POST(request: Request) {
     );
   }
 
+  // The route is outside the proxy (whose 10 MB cut used to bound this by
+  // accident), so a body too big for any image is refused before it's read.
+  const length = Number(request.headers.get("content-length"));
+  if (!length || length > IMAGE_UPLOAD_MAX_BYTES + FORM_OVERHEAD) {
+    return NextResponse.json(
+      { error: length ? IMAGE_TOO_LARGE : "Upload size unknown." },
+      { status: length ? 413 : 411 },
+    );
+  }
+
   let form: FormData;
   try {
     form = await request.formData();
@@ -68,16 +78,11 @@ export async function POST(request: Request) {
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "No file provided." }, { status: 400 });
   }
-  if (file.size > MAX_BYTES) {
+  const refused = imageUploadRefusal(file);
+  if (refused) {
     return NextResponse.json(
-      { error: "Image is too large (max 12 MB)." },
-      { status: 413 },
-    );
-  }
-  if (file.type && !ACCEPTED.includes(file.type)) {
-    return NextResponse.json(
-      { error: "Unsupported image type." },
-      { status: 415 },
+      { error: refused },
+      { status: refused === IMAGE_TOO_LARGE ? 413 : 415 },
     );
   }
 
@@ -98,10 +103,7 @@ export async function POST(request: Request) {
     processed = await processImage(input);
   } catch (err) {
     if (err instanceof UnsupportedImageError) {
-      return NextResponse.json(
-        { error: "Unsupported image type." },
-        { status: 415 },
-      );
+      return NextResponse.json({ error: IMAGE_UNSUPPORTED }, { status: 415 });
     }
     // A file that passed the size/MIME checks but sharp still couldn't decode:
     // either a corrupt upload or a real decode bug. Report it — the admin only

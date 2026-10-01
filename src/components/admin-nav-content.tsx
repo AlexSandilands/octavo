@@ -17,9 +17,11 @@ export type AdminNavUser = {
 export function AdminNavContent({
   user,
   openReports,
+  assistant,
 }: {
   user: AdminNavUser;
   openReports?: number;
+  assistant?: boolean;
 }) {
   return (
     <>
@@ -38,7 +40,7 @@ export function AdminNavContent({
         <Icon name="chevronLeft" size={16} />
         View library
       </Link>
-      <AdminNavLinks openReports={openReports} />
+      <AdminNavLinks openReports={openReports} assistant={assistant} />
       <div className="border-line mt-auto border-t px-6 pt-4">
         <Link
           href="/profile"

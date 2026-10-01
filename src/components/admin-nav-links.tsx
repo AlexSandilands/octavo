@@ -9,6 +9,8 @@ const ADMIN_NAV: {
   label: string;
   href: string;
   icon: IconName;
+  /** Shown only while the server offers the assistant (#314). */
+  assistant?: boolean;
 }[] = [
   { key: "issues", label: "Issues", href: "/admin", icon: "grid" },
   { key: "members", label: "Members", href: "/admin/members", icon: "users" },
@@ -25,16 +27,31 @@ const ADMIN_NAV: {
     href: "/admin/magazine",
     icon: "image",
   },
+  {
+    key: "assistant",
+    label: "Assistant",
+    href: "/admin/ai",
+    icon: "sparkle",
+    assistant: true,
+  },
   { key: "help", label: "Guide", href: "/admin/help", icon: "help" },
 ];
 
 // `openReports` badges the Reports entry (issue #302); it comes from the
-// dashboard layout, which every row action revalidates.
-export function AdminNavLinks({ openReports = 0 }: { openReports?: number }) {
+// dashboard layout, which every row action revalidates. `assistant` is the
+// server's isAssistantEnabled().
+export function AdminNavLinks({
+  openReports = 0,
+  assistant = false,
+}: {
+  openReports?: number;
+  assistant?: boolean;
+}) {
   const pathname = usePathname();
+  const links = assistant ? ADMIN_NAV : ADMIN_NAV.filter((n) => !n.assistant);
   return (
     <nav className="mt-5 flex flex-col">
-      {ADMIN_NAV.map((n) => {
+      {links.map((n) => {
         const on =
           pathname === n.href ||
           (n.href !== "/admin" && pathname.startsWith(`${n.href}/`));
