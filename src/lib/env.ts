@@ -149,6 +149,16 @@ const runtimeBaseSchema = z.object({
   ANTHROPIC_API_KEY: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
   OPENROUTER_API_KEY: z.string().optional(),
+  // The secret a Cloudflare Transform Rule adds to every proxied request as
+  // X-Origin-Auth. Set, it is the only way sign-in trusts CF-Connecting-IP, and
+  // a sign-in request without it (straight to Railway) is refused. Unset only
+  // where Cloudflare doesn't proxy (local dev). See src/lib/client-ip.ts.
+  ORIGIN_AUTH_SECRET: unsetIfBlank(
+    z
+      .string()
+      .min(32, "too short — generate one with: openssl rand -hex 32")
+      .optional(),
+  ),
 });
 
 const runtimeSchema = runtimeBaseSchema.superRefine((vars, ctx) => {

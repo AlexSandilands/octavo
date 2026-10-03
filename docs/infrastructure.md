@@ -73,6 +73,20 @@ Member ── Cloudflare (DNS/CDN) ── Railway (Next.js + Postgres)
    are sent by one member's request to someone else, so they never take a link's
    origin from the request, and without `APP_URL` they are skipped (and reported
    to Sentry).
+   **Origin secret** (every deployment Cloudflare proxies — production and the demo,
+   each with its own value): generate one with
+   `openssl rand -hex 32`, add a Cloudflare **Transform Rule** (Rules → Transform
+   Rules → Modify Request Header, scoped to the site's hostname, e.g.
+   `http.host eq "clubmag.org"`, so no other origin on the zone receives it) that sets
+   `X-Origin-Auth` to it, and set the same value as `ORIGIN_AUTH_SECRET` on Railway.
+   Railway's edge also answers requests sent straight to it, around Cloudflare, so
+   sign-in trusts `CF-Connecting-IP` only beside that header and refuses a request
+   without it. The one hard rule: the Transform Rule must exist before the app runs
+   with the variable set, or every sign-in is refused. Afterwards, check that a
+   sign-in through the public domain works and one sent straight to Railway's edge is
+   refused. To rotate: point the rule at the new value, then change the variable,
+   back to back — sign-in is refused in between. Without the secret (local dev) sign-in
+   keys on `X-Real-IP`.
 6. **First admin** — `/admin` only admits users with `is_admin`, and only an admin
    can manage members, so bootstrap the first one from the command line:
    `railway run npm run db:admin -- you@example.com` (drop the `railway run` prefix
@@ -216,6 +230,12 @@ fully isolated from the members' site:
    testing has left the demo untidy. `npm run db:admin -- you@example.com` in the same app shell
    creates/promotes the owner who can sign into `/admin`.
 
+5. **Front it with Cloudflare, as production is.** The demo is the pre-prod smoke test,
+   so it takes the same path: the `demo` record proxied (orange cloud), SSL/TLS mode
+   and edge settings matching the production zone's, and its own origin secret (Auth
+   step 5) in a Transform Rule scoped to `http.host eq "demo.octavo.dev"` — the zone
+   also serves the R2 image domain, which mustn't receive it.
+
 Set the usual `DATABASE_URL`, `AUTH_SECRET`, `R2_*` and `NEXT_PUBLIC_*` branding as
 below — only the demo flag differs from a normal deploy.
 
@@ -257,6 +277,8 @@ R2_PUBLIC_URL=           # https://images.clubmag.org (Cloudflare-proxied)
 
 EMAIL_API_KEY=           # Resend/Postmark key
 EMAIL_FROM=              # "Club Magazine <hello@clubmag.org>"
+
+ORIGIN_AUTH_SECRET=      # openssl rand -hex 32; the same value as the Cloudflare rule (step 5)
 
 SENTRY_DSN=              # Sentry project DSN (server-side). Optional — app runs fine unset.
 NEXT_PUBLIC_SENTRY_DSN=  # SAME DSN, browser copy (public ingest key; build-time inlined).
