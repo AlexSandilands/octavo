@@ -55,7 +55,7 @@ export const AI_PROVIDERS = [
 // A blank line in .env (`AI_PROVIDER=`) means unset, not an invalid value.
 const unsetIfBlank = <T extends z.ZodTypeAny>(schema: T) =>
   z.preprocess((value) => (value === "" ? undefined : value), schema);
-export const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-5";
+export const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-5-5";
 const AI_KEYS = {
   anthropic: "ANTHROPIC_API_KEY",
   openai: "OPENAI_API_KEY",

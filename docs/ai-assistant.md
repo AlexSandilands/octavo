@@ -560,7 +560,7 @@ client-safe.
     Months are calendar months in UTC and nothing carries over.
   - **Ledger (#307):** every request writes an `ai_usage` row through `recordUsage()` in
     `src/server/ai-budget.ts`, with uncached input, cache reads, cache writes and output counted apart and priced
-    from the table in `src/lib/ai-pricing.ts` (`claude-sonnet-5` and `claude-haiku-4-5`, checked 2026-09-25; cache
+    from the table in `src/lib/ai-pricing.ts` (`claude-sonnet-5-5`, checked 2026-10-04; `claude-sonnet-5` and `claude-haiku-4-5`, checked 2026-09-25; cache
     writes at the 5-minute rate). A model with no price is refused rather than metered at $0. `resolveBudget()`,
     `runSpend()` and `usageByDay()` give the route, the circuit-breaker and the usage page their figures; the
     arithmetic is in `docs/database.md` → AI assistant spend.
@@ -596,7 +596,7 @@ run** on the new pairing, and the run's table goes in the PR that changes it.
   PORT=3315 npm run dev
   npx tsx --tsconfig scripts/tsconfig.json scripts/check-assistant-models.mts --app http://localhost:3315 --provider fake
   npx tsx --tsconfig scripts/tsconfig.json scripts/check-assistant-models.mts --app http://localhost:3315 \
-    --provider anthropic --model claude-sonnet-5 --repeat 3
+    --provider anthropic --model claude-sonnet-5-5 --repeat 3
   ```
 
   Options: `--provider anthropic|openai|openrouter|fake` (**required**, no default, so a bare run with `--yes` can't
@@ -635,9 +635,24 @@ run** on the new pairing, and the run's table goes in the PR that changes it.
   so the free run covers vision too. The route and the fixture send one system prompt, `assistantInstructions()` in
   `src/server/ai-chat-stream.ts`, with vision on.
 
-### The pick, 2026-09-26
+### The pick, 2026-10-04
 
-`AI_MODEL` stays **`claude-sonnet-5`** (the Anthropic default; leave the variable unset). Both Anthropic candidates ran
+`AI_MODEL` is **`claude-sonnet-5-5`** (the Anthropic default; leave the variable unset). Both Sonnets ran all 14 cases
+three times each, with covers and vision on, the same day and at the same list price ($2 / $10 per million tokens):
+
+| model               | runs passed | calls | cost (42 runs) | per run | what failed                                                                                                                                         |
+| ------------------- | ----------- | ----- | -------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `claude-sonnet-5-5` | 41/42       | 243   | $1.27          | ~$0.03  | 14 new issue with photos 2/3 (one run stuck at 48 calls, breaker trip)                                                                              |
+| `claude-sonnet-5`   | 35/42       | 232   | $1.95          | ~$0.05  | 12 new issue 0/3 and 14 new issue with photos 0/3 (`propose_sections` photos sent with a `width` key the schema refuses; 16 calls invalid); 06 2/3 |
+
+Sonnet 5.5 is cheaper per run on the same price: case 04 (shorten to fit) took 4 calls and 11–14s where Sonnet 5 took
+3–6 calls and 32–60s, and case 08's paste went in one `propose_sections` call every time. Its notes between tool calls
+come back as empty thinking blocks rather than text, so the panel shows tool lines and the reply but less narration.
+`claude-sonnet-5` stays priced, for a site that pins it with `AI_MODEL`.
+
+### The previous pick, 2026-09-26
+
+`AI_MODEL` stayed **`claude-sonnet-5`**. Both Anthropic candidates ran
 the 11 page cases three times each, after the issue-view boundary fix (#356) and before vision (#342) was offered.
 Neither earns the strict verdict:
 

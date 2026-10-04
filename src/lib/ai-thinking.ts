@@ -9,6 +9,7 @@ export type AnthropicThinking =
   | { type: "enabled"; budgetTokens: number };
 
 export const ANTHROPIC_THINKING: Readonly<Record<string, AnthropicThinking>> = {
+  "claude-sonnet-5-5": { type: "adaptive" },
   "claude-sonnet-5": { type: "adaptive" },
   "claude-haiku-4-5": { type: "enabled", budgetTokens: 4000 },
 };
