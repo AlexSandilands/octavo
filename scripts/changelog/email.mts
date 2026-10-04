@@ -144,7 +144,8 @@ function highlightSectionHtml(section: NotesSection, order: number): string {
 function detailRowHtml(item: ChangelogItem): string {
   const cell = `valign="top" style="padding:9px 0 0 0;border-top:1px solid ${COLORS.line};font-family:${SANS};line-height:1.5;`;
   const title = item.url
-    ? `<a href="${esc(item.url)}" style="color:${COLORS.ink};text-decoration:none;">${esc(item.title)}</a>`
+    ? // The span holds the colour where a mail client restyles links (Proton paints them blue).
+      `<a href="${esc(item.url)}" style="color:${COLORS.ink};text-decoration:none;"><span style="color:${COLORS.ink};">${esc(item.title)}</span></a>`
     : esc(item.title);
   const reference = item.pullRequest
     ? `<td align="right" ${cell}padding-left:12px;white-space:nowrap;font-size:12px;color:${COLORS.faint};">#${item.pullRequest}</td>`
