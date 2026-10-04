@@ -12,6 +12,13 @@ export type ModelPrice = {
 };
 
 export const AI_PRICES: Readonly<Record<string, ModelPrice>> = {
+  "claude-sonnet-5-5": {
+    inputPerMillion: 2,
+    cacheReadPerMillion: 0.2,
+    cacheWritePerMillion: 2.5,
+    outputPerMillion: 10,
+    checked: "2026-10-04",
+  },
   "claude-sonnet-5": {
     inputPerMillion: 2,
     cacheReadPerMillion: 0.2,
