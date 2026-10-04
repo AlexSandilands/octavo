@@ -28,11 +28,15 @@ The command writes two files under `.data/` and opens the preview in the default
 Notes file format: `# Heading` starts a section (any title; the draft uses _New features_ and
 _Fixes and improvements_), `## Headline` starts a highlight, the lines beneath are its prose
 (blank line for a new paragraph, `**bold**` for emphasis), and `<!-- -->` comments are ignored.
+A line `![caption](shots/thread.jpg)` adds a screenshot beneath the highlight's prose, its path
+relative to the notes file; `![caption|240](shots/phone.jpg)` shows it at 240px instead of the
+full 480. Screenshots are embedded in the HTML, so they travel with the copied email. Keep them
+small: JPEGs about 960px wide (twice the shown width) come to 30–70 KB each.
 
 Use **Copy email & open Proton** to put the rich HTML on the clipboard and open a Proton Mail
 composer with the subject filled in. Paste into the message body with Ctrl+V or Cmd+V, add the
 recipients and send. Proton must be in rich-text mode for the formatting to remain visible.
-Screenshots go on as ordinary attachments.
+Embedded screenshots paste with the rest; send yourself a test first to check that they arrived.
 
 Useful options:
 

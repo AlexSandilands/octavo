@@ -102,6 +102,12 @@ function highlightHtml(
         `<p style="margin:6px 0 0 0;font-family:${SANS};font-size:15px;line-height:1.6;color:${COLORS.body};">${inline(paragraph)}</p>`,
     )
     .join("\n");
+  const images = highlight.images
+    .map(
+      (image) =>
+        `<img src="${esc(image.src)}" alt="${esc(image.alt)}" width="${image.width}" style="display:block;width:100%;max-width:${image.width}px;height:auto;margin:12px 0 0 0;border:1px solid ${COLORS.line};border-radius:8px;">`,
+    )
+    .join("\n");
   return `<tr>
     <td width="34" valign="top" style="padding:${index ? 18 : 0}px 0 ${last ? 0 : 18}px 0;">
       <div style="width:26px;height:26px;border-radius:13px;background:${color};color:#ffffff;font-family:${SANS};font-size:12px;font-weight:bold;line-height:26px;text-align:center;">${index + 1}</div>
@@ -109,6 +115,7 @@ function highlightHtml(
     <td valign="top" style="padding:${index ? 18 : 0}px 0 ${last ? 0 : 18}px 4px;${last ? "" : `border-bottom:1px solid ${COLORS.line};`}">
       <div style="font-family:${SANS};font-size:17px;font-weight:bold;line-height:1.35;color:${COLORS.ink};">${inline(highlight.headline)}</div>
       ${paragraphs}
+      ${images}
     </td>
   </tr>`;
 }
@@ -225,6 +232,8 @@ export function plainText(input: ChangelogEmailInput): string {
       lines.push(`- ${highlight.headline}`);
       for (const paragraph of highlight.paragraphs)
         lines.push(`  ${paragraph}`);
+      for (const image of highlight.images)
+        lines.push(`  [Screenshot: ${image.alt}]`);
       lines.push("");
     }
   }

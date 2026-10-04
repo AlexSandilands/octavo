@@ -1,9 +1,11 @@
 import type { ChangelogItem } from "./git.mts";
 
-/** One client-facing highlight: a bold lead sentence and the prose beneath it. */
+/** One client-facing highlight: a bold lead sentence, the prose beneath it and
+ *  any screenshots (`src` is the notes file's path until generate embeds it). */
 export type Highlight = {
   headline: string;
   paragraphs: string[];
+  images: { alt: string; src: string; width: number }[];
 };
 
 export type NotesSection = {
@@ -22,6 +24,9 @@ const HEADER = `<!--
 
   "# Heading" starts a section, "## Headline" starts a highlight and the lines
   beneath it are its prose (a blank line starts a new paragraph, **bold** works).
+  A line "![caption](shot.png)" adds a screenshot under the highlight, embedded
+  in the email; the path is relative to this file. "![caption|240](phone.png)"
+  shows it 240px wide instead of the full 480.
   Each highlight was drafted from a pull request title; the commits inside it
   are listed in a comment for reference. Rewrite the headline as one plain
   sentence and say beneath it what the change means for readers or the editor.
@@ -46,6 +51,8 @@ export function draftNotes(changes: ChangelogItem[]): string {
   return `${blocks.join("\n\n")}\n`;
 }
 
+const IMAGE = /^!\[([^\]|]*)(?:\|(\d+))?\]\(([^)]+)\)$/;
+
 export function parseNotes(text: string): NotesSection[] {
   const sections: NotesSection[] = [];
   let section: NotesSection | null = null;
@@ -59,7 +66,11 @@ export function parseNotes(text: string): NotesSection[] {
         section = { title: SECTION_TITLES.feature, highlights: [] };
         sections.push(section);
       }
-      highlight = { headline: line.slice(3).trim(), paragraphs: [] };
+      highlight = {
+        headline: line.slice(3).trim(),
+        paragraphs: [],
+        images: [],
+      };
       section.highlights.push(highlight);
       paragraphOpen = false;
     } else if (line.startsWith("# ")) {
@@ -67,6 +78,14 @@ export function parseNotes(text: string): NotesSection[] {
       sections.push(section);
       highlight = null;
     } else if (!line) {
+      paragraphOpen = false;
+    } else if (highlight && IMAGE.test(line)) {
+      const [, caption, width, src] = line.match(IMAGE)!;
+      highlight.images.push({
+        alt: caption!.trim(),
+        src: src!.trim(),
+        width: Math.min(Number(width ?? 480), 480),
+      });
       paragraphOpen = false;
     } else if (highlight) {
       if (paragraphOpen) {
