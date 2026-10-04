@@ -7,7 +7,6 @@ export type ChangelogItem = {
   scope: string | null;
   title: string;
   pullRequest: number | null;
-  url: string | null;
   /** Commits inside the pull request, oldest first, minus the headline itself. */
   commits: string[];
 };
@@ -147,7 +146,6 @@ export function collectChanges(
   to: string,
   includeInternal: boolean,
 ): ChangelogItem[] {
-  const repositoryUrl = githubRepositoryUrl();
   return logCommits(`${from}..${to}`, true).flatMap((commit) => {
     const mergeMatch = commit.subject.match(/^Merge pull request #(\d+)\b/);
     // A squash merge carries its pull request as a trailing "(#N)" instead.
@@ -172,10 +170,6 @@ export function collectChanges(
         scope,
         title,
         pullRequest,
-        url:
-          pullRequest && repositoryUrl
-            ? `${repositoryUrl}/pull/${pullRequest}`
-            : null,
         commits: mergeMatch ? branchCommits(commit, title) : [],
       },
     ];
