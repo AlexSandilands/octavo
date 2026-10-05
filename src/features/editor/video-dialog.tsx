@@ -14,7 +14,7 @@ import {
 } from "@/lib/youtube";
 
 const captionItems: MenuSelectItem<CaptionSourceLanguage | null>[] = [
-  { key: "off", value: null, content: "Off" },
+  { key: "unset", value: null, content: "Not set" },
   ...CAPTION_SOURCE_LANGUAGES.map((l) => ({
     key: l.code,
     value: l.code,
@@ -23,7 +23,7 @@ const captionItems: MenuSelectItem<CaptionSourceLanguage | null>[] = [
 ];
 
 function captionLabel(code: CaptionSourceLanguage | undefined): string {
-  if (!code) return "Off";
+  if (!code) return "Not set";
   if (code === "en") return "Already in English";
   return `From ${CAPTION_SOURCE_LANGUAGES.find((l) => l.code === code)?.label}`;
 }
@@ -234,9 +234,8 @@ export function VideoDialog({
           </div>
 
           {/* Outside the scrolling area, like the montage's interval, so the
-              menu isn't clipped by it. YouTube's embedded player can't offer
-              English itself (its Auto-translate list leaves it out) and never
-              says what language a video's captions are in, so the author names it. */}
+              menu isn't clipped by it. Why the author names the language:
+              see CAPTION_SOURCE_LANGUAGES. */}
           {videoId && (
             <div className="flex-none px-8 pt-5">
               <MenuSelect
@@ -249,10 +248,15 @@ export function VideoDialog({
                 side="top"
                 // Thirteen rows would run off the top of a laptop screen.
                 menuClassName="max-h-[min(320px,50vh)] overflow-y-auto"
+                describedBy={`${titleId}-captions`}
               />
-              <p className="text-faint2 pt-2 font-sans text-[12px]">
+              <p
+                id={`${titleId}-captions`}
+                className="text-faint2 pt-2 font-sans text-[12px]"
+              >
                 Pick the language the video&rsquo;s captions are in, and they
-                start in English when a member presses play.
+                start in English when a member presses play. Not set leaves
+                captions to YouTube.
               </p>
             </div>
           )}

@@ -58,10 +58,11 @@ export function VideoBlockControl({
             captionsFrom={captionsFrom}
             issueId={issueId}
             images={images}
-            // A removed video takes its caption setting with it.
+            // A different (or removed) video drops the old one's caption
+            // language; refreshing the same video's image keeps it.
             onChangeVideo={(next) =>
               onChange(
-                next.videoId
+                next.videoId === videoId
                   ? next
                   : { ...next, englishCaptionsFrom: undefined },
               )

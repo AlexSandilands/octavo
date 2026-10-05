@@ -54,6 +54,7 @@ export function MenuSelect<T>({
   onBeforeOpen,
   onOpen,
   returnFocusOnSelect = true,
+  describedBy,
 }: {
   /** Trigger prefix — the control names itself, e.g. "Theme". */
   label: string;
@@ -92,6 +93,8 @@ export function MenuSelect<T>({
   onOpen?: (menu: HTMLDivElement) => void;
   /** Editors can restore their selection/focus from onSelect instead. */
   returnFocusOnSelect?: boolean;
+  /** Id of help text read out with the trigger. */
+  describedBy?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<React.CSSProperties>({});
@@ -303,6 +306,7 @@ export function MenuSelect<T>({
         }}
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-describedby={describedBy}
         onClick={toggle}
         onKeyDown={(e) => {
           if (

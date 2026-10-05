@@ -154,8 +154,7 @@ export const videoBlockSchema = z.object({
   // someone presses play — and it is what makes the poster printable, since the
   // PDF container already reaches R2 and reaches nothing else.
   posterImageId: z.string().max(ID_MAX).optional(),
-  // The language the video's captions are in; set, the player shows them in
-  // English on play. Optional, so no version bump: absent means YouTube's default.
+  // Captions shown in English on play, from this language (lib/youtube.ts).
   englishCaptionsFrom: z.enum(CAPTION_SOURCE_CODES).optional(),
   caption: z.string().max(SHORT_TEXT_MAX).default(""),
   // Placement/sizing are the image block's fields verbatim (same flow rules in

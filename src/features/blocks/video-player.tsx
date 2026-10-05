@@ -52,17 +52,20 @@ export function VideoPlayer({
   captionsFrom?: CaptionSourceLanguage;
 }) {
   const [playing, setPlaying] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const frameRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     if (playing) frameRef.current?.focus();
   }, [playing]);
 
+  // Waits for the frame's load: until then it holds a blank page, and on a slow
+  // phone connection the player can take longer than the handshake allows.
   useEffect(() => {
     const frame = frameRef.current;
-    if (!playing || !captionsFrom || !frame) return;
+    if (!loaded || !captionsFrom || !frame) return;
     return sendEnglishCaptions(frame, videoId, captionsFrom);
-  }, [playing, captionsFrom, videoId]);
+  }, [loaded, captionsFrom, videoId]);
 
   // enablejsapi lets the page talk to the player; origin is the page it accepts
   // commands from. Only asked for when there is something to say.
@@ -81,6 +84,7 @@ export function VideoPlayer({
       {playing ? (
         <iframe
           ref={frameRef}
+          onLoad={() => setLoaded(true)}
           // autoplay because the press *was* the play; the rest keeps YouTube's
           // own chrome as quiet as it lets us (rel=0 confines the end-screen
           // suggestions to this channel, playsinline stops iOS taking the video
@@ -97,8 +101,8 @@ export function VideoPlayer({
           allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
           allowFullScreen
           // Laid out at its on-screen size, then shrunk back by the page's scale:
-          // otherwise YouTube sees a phone-sized player inside the 640px canvas
-          // and serves its touch menus, which the page scale then enlarges.
+          // otherwise YouTube sizes its menus to the unscaled layout box, which
+          // the page scale then enlarges.
           className="absolute top-0 left-0 origin-top-left border-0"
           style={{
             width: "calc(100% * var(--page-scale, 1))",
@@ -135,11 +139,11 @@ function sendEnglishCaptions(
   const target = new URL(youtubeEmbedUrl(videoId)).origin;
   const post = (message: string) =>
     frame.contentWindow?.postMessage(message, target);
-  // The player only reports to a page that has said it is listening, and
-  // can't hear that until it has loaded; ask until it answers (or 10s pass).
+  // The player only reports to a page that has said it is listening; ask
+  // until it answers (or 10s pass).
   let asks = 0;
   const listen = window.setInterval(() => {
-    if (++asks > 40) window.clearInterval(listen);
+    if (++asks > 40) return window.clearInterval(listen);
     post(JSON.stringify({ event: "listening", id: 1, channel: "widget" }));
   }, 250);
   let sent = false;

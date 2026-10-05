@@ -90,19 +90,37 @@ export function youtubeWatchLabel(videoId: string): string {
 // Languages a video's captions can be shown in English from. The embedded
 // player's own Auto-translate menu omits English, and it never reports which
 // language a video's captions are in, so the author names it in the editor.
+// `regions` are the tagged forms a track may carry instead (a talk can have
+// pt-BR and no plain pt), since the player matches a track's code exactly.
 export const CAPTION_SOURCE_LANGUAGES = [
-  { code: "en", label: "English" },
-  { code: "fr", label: "French" },
-  { code: "es", label: "Spanish" },
-  { code: "it", label: "Italian" },
-  { code: "de", label: "German" },
-  { code: "pt", label: "Portuguese" },
-  { code: "nl", label: "Dutch" },
-  { code: "ca", label: "Catalan" },
-  { code: "ja", label: "Japanese" },
-  { code: "ko", label: "Korean" },
-  { code: "zh-Hans", label: "Chinese" },
-  { code: "th", label: "Thai" },
+  {
+    code: "en",
+    label: "English",
+    regions: ["en-US", "en-GB", "en-AU", "en-CA", "en-NZ", "en-IE", "en-IN"],
+  },
+  {
+    code: "fr",
+    label: "French",
+    regions: ["fr-CA", "fr-FR", "fr-BE", "fr-CH"],
+  },
+  {
+    code: "es",
+    label: "Spanish",
+    regions: ["es-419", "es-MX", "es-US", "es-ES"],
+  },
+  { code: "it", label: "Italian", regions: ["it-IT"] },
+  { code: "de", label: "German", regions: ["de-AT", "de-CH", "de-DE"] },
+  { code: "pt", label: "Portuguese", regions: ["pt-PT", "pt-BR"] },
+  { code: "nl", label: "Dutch", regions: ["nl-BE", "nl-NL"] },
+  { code: "ca", label: "Catalan", regions: ["ca-ES"] },
+  { code: "ja", label: "Japanese", regions: ["ja-JP"] },
+  { code: "ko", label: "Korean", regions: ["ko-KR"] },
+  {
+    code: "zh",
+    label: "Chinese",
+    regions: ["zh-HK", "zh-TW", "zh-Hant", "zh-CN", "zh-Hans"],
+  },
+  { code: "th", label: "Thai", regions: ["th-TH"] },
 ] as const;
 
 export type CaptionSourceLanguage =
@@ -114,15 +132,21 @@ export const CAPTION_SOURCE_CODES = CAPTION_SOURCE_LANGUAGES.map(
 
 // The embed's postMessage commands (the protocol behind YouTube's iframe API)
 // that show a video's `from` captions in English, translated unless they
-// already are. Undocumented by YouTube: if they stop working, the video simply
-// plays without captions.
+// already are. One setOption per form of the language: the player ignores a
+// code the video has no track for, so the last one it has wins. Undocumented
+// by YouTube: if they stop working, the video simply plays without captions.
 export function englishCaptionsMessages(from: CaptionSourceLanguage): string[] {
-  const track =
+  const language = CAPTION_SOURCE_LANGUAGES.find((l) => l.code === from)!;
+  const tracks = [...language.regions, from].map((languageCode) =>
     from === "en"
-      ? { languageCode: "en" }
-      : { languageCode: from, translationLanguage: { languageCode: "en" } };
+      ? { languageCode }
+      : { languageCode, translationLanguage: { languageCode: "en" } },
+  );
   return [
     { func: "loadModule", args: ["captions"] },
-    { func: "setOption", args: ["captions", "track", track] },
+    ...tracks.map((t) => ({
+      func: "setOption",
+      args: ["captions", "track", t],
+    })),
   ].map((c) => JSON.stringify({ event: "command", ...c, channel: "widget" }));
 }
