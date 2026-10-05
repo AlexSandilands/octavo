@@ -238,18 +238,22 @@ export function VideoDialog({
               see CAPTION_SOURCE_LANGUAGES. */}
           {videoId && (
             <div className="flex-none px-8 pt-5">
-              <MenuSelect
-                label="English captions"
-                current={captionLabel(captionsFrom)}
-                ariaLabel="English captions"
-                items={captionItems}
-                value={captionsFrom ?? null}
-                onSelect={(v) => onChangeCaptions(v ?? undefined)}
-                side="top"
-                // Thirteen rows would run off the top of a laptop screen.
-                menuClassName="max-h-[min(320px,50vh)] overflow-y-auto"
-                describedBy={`${titleId}-captions`}
-              />
+              {/* A flex row so the menu's box is the trigger's, not the row's:
+                  the menu hangs from it, starting at its left edge. */}
+              <div className="flex">
+                <MenuSelect
+                  label="English captions"
+                  current={captionLabel(captionsFrom)}
+                  ariaLabel="English captions"
+                  items={captionItems}
+                  value={captionsFrom ?? null}
+                  onSelect={(v) => onChangeCaptions(v ?? undefined)}
+                  side="top"
+                  // Thirteen rows would run off the top of a laptop screen.
+                  menuClassName="scrollbar-soft left-0 right-auto max-h-[min(320px,50vh)] overflow-y-auto [--scrollbar-surface:white]"
+                  describedBy={`${titleId}-captions`}
+                />
+              </div>
               <p
                 id={`${titleId}-captions`}
                 className="text-faint2 pt-2 font-sans text-[12px]"
