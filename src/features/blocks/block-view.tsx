@@ -380,6 +380,7 @@ export function BlockView({
           videoId={block.videoId}
           poster={poster}
           label={block.caption}
+          captionsFrom={block.englishCaptionsFrom}
         />
       ) : (
         <VideoStill poster={poster} priority={priority} />

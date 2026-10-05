@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { Icon } from "@/components/icons";
 import type { BlockPatch } from "@/lib/blocks";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
-import { youtubeWatchLabel } from "@/lib/youtube";
+import { youtubeWatchLabel, type CaptionSourceLanguage } from "@/lib/youtube";
 import { VideoDialog } from "./video-dialog";
 
 // The video block's entry in the selected-block toolbar: what it is showing, and
@@ -19,6 +19,7 @@ import { VideoDialog } from "./video-dialog";
 export function VideoBlockControl({
   videoId,
   posterImageId,
+  captionsFrom,
   issueId,
   images,
   onChange,
@@ -26,6 +27,7 @@ export function VideoBlockControl({
 }: {
   videoId: string | undefined;
   posterImageId: string | undefined;
+  captionsFrom: CaptionSourceLanguage | undefined;
   issueId: string;
   images: ImageMap;
   onChange: (patch: BlockPatch) => void;
@@ -53,9 +55,18 @@ export function VideoBlockControl({
           <VideoDialog
             videoId={videoId}
             posterImageId={posterImageId}
+            captionsFrom={captionsFrom}
             issueId={issueId}
             images={images}
-            onChangeVideo={(next) => onChange(next)}
+            // A removed video takes its caption setting with it.
+            onChangeVideo={(next) =>
+              onChange(
+                next.videoId
+                  ? next
+                  : { ...next, englishCaptionsFrom: undefined },
+              )
+            }
+            onChangeCaptions={(from) => onChange({ englishCaptionsFrom: from })}
             onRegisterImage={onRegisterImage}
             onClose={() => setOpen(false)}
           />,

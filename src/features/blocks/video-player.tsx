@@ -2,7 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { ResolvedImage } from "@/lib/images";
-import { youtubeEmbedUrl } from "@/lib/youtube";
+import {
+  englishCaptionsMessages,
+  youtubeEmbedUrl,
+  type CaptionSourceLanguage,
+} from "@/lib/youtube";
 import { PlayMark, VideoPoster, VIDEO_ASPECT } from "./video";
 
 // The playable video (issue #161), rendered only on the read path — both the
@@ -38,11 +42,14 @@ export function VideoPlayer({
   videoId,
   poster,
   label,
+  captionsFrom,
 }: {
   videoId: string;
   poster: ResolvedImage | undefined;
   /** The block's caption, used to name the video when there is one. */
   label?: string;
+  /** Show the video's captions, in this language, in English on play. */
+  captionsFrom?: CaptionSourceLanguage;
 }) {
   const [playing, setPlaying] = useState(false);
   const frameRef = useRef<HTMLIFrameElement>(null);
@@ -50,6 +57,19 @@ export function VideoPlayer({
   useEffect(() => {
     if (playing) frameRef.current?.focus();
   }, [playing]);
+
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!playing || !captionsFrom || !frame) return;
+    return sendEnglishCaptions(frame, videoId, captionsFrom);
+  }, [playing, captionsFrom, videoId]);
+
+  // enablejsapi lets the page talk to the player; origin is the page it accepts
+  // commands from. Only asked for when there is something to say.
+  const api =
+    captionsFrom && typeof window !== "undefined"
+      ? `&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`
+      : "";
 
   const name = label ? `${label} (video)` : "Video";
 
@@ -65,7 +85,7 @@ export function VideoPlayer({
           // own chrome as quiet as it lets us (rel=0 confines the end-screen
           // suggestions to this channel, playsinline stops iOS taking the video
           // fullscreen out from under the reader).
-          src={`${youtubeEmbedUrl(videoId)}?autoplay=1&rel=0&modestbranding=1&playsinline=1`}
+          src={`${youtubeEmbedUrl(videoId)}?autoplay=1&rel=0&modestbranding=1&playsinline=1${api}`}
           title={name}
           // Only what a video player needs. `allow-same-origin` is safe here
           // precisely because the frame is cross-origin: it grants the frame its
@@ -76,7 +96,15 @@ export function VideoPlayer({
           sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox"
           allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
           allowFullScreen
-          className="absolute inset-0 h-full w-full border-0"
+          // Laid out at its on-screen size, then shrunk back by the page's scale:
+          // otherwise YouTube sees a phone-sized player inside the 640px canvas
+          // and serves its touch menus, which the page scale then enlarges.
+          className="absolute top-0 left-0 origin-top-left border-0"
+          style={{
+            width: "calc(100% * var(--page-scale, 1))",
+            height: "calc(100% * var(--page-scale, 1))",
+            transform: "scale(calc(1 / var(--page-scale, 1)))",
+          }}
         />
       ) : (
         <>
@@ -95,4 +123,48 @@ export function VideoPlayer({
       )}
     </div>
   );
+}
+
+// Registers with the embedded player and, once it starts playing, switches its
+// captions to English. Returns the cleanup for the effect that calls it.
+function sendEnglishCaptions(
+  frame: HTMLIFrameElement,
+  videoId: string,
+  from: CaptionSourceLanguage,
+): () => void {
+  const target = new URL(youtubeEmbedUrl(videoId)).origin;
+  const post = (message: string) =>
+    frame.contentWindow?.postMessage(message, target);
+  // The player only reports to a page that has said it is listening, and
+  // can't hear that until it has loaded; ask until it answers (or 10s pass).
+  let asks = 0;
+  const listen = window.setInterval(() => {
+    if (++asks > 40) window.clearInterval(listen);
+    post(JSON.stringify({ event: "listening", id: 1, channel: "widget" }));
+  }, 250);
+  let sent = false;
+  const onMessage = (e: MessageEvent) => {
+    if (e.source !== frame.contentWindow || e.origin !== target) return;
+    window.clearInterval(listen);
+    let data: { event?: string; info?: { playerState?: number } } | null;
+    try {
+      data = typeof e.data === "string" ? JSON.parse(e.data) : null;
+    } catch {
+      return;
+    }
+    // Captions can only be chosen once the video is playing (state 1).
+    if (
+      !sent &&
+      data?.event === "infoDelivery" &&
+      data.info?.playerState === 1
+    ) {
+      sent = true;
+      englishCaptionsMessages(from).forEach(post);
+    }
+  };
+  window.addEventListener("message", onMessage);
+  return () => {
+    window.clearInterval(listen);
+    window.removeEventListener("message", onMessage);
+  };
 }

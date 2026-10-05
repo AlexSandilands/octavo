@@ -3,9 +3,30 @@
 import { useState } from "react";
 import { DialogShell } from "@/components/dialog-shell";
 import { Icon } from "@/components/icons";
+import { MenuSelect, type MenuSelectItem } from "@/components/menu-select";
 import { Button, IconButton } from "@/components/ui";
 import type { ImageMap, ResolvedImage } from "@/lib/images";
-import { parseYouTubeId, youtubeWatchLabel } from "@/lib/youtube";
+import {
+  CAPTION_SOURCE_LANGUAGES,
+  parseYouTubeId,
+  youtubeWatchLabel,
+  type CaptionSourceLanguage,
+} from "@/lib/youtube";
+
+const captionItems: MenuSelectItem<CaptionSourceLanguage | null>[] = [
+  { key: "off", value: null, content: "Off" },
+  ...CAPTION_SOURCE_LANGUAGES.map((l) => ({
+    key: l.code,
+    value: l.code,
+    content: captionLabel(l.code),
+  })),
+];
+
+function captionLabel(code: CaptionSourceLanguage | undefined): string {
+  if (!code) return "Off";
+  if (code === "en") return "Already in English";
+  return `From ${CAPTION_SOURCE_LANGUAGES.find((l) => l.code === code)?.label}`;
+}
 
 // The video block's settings panel (issue #161): paste a YouTube link, see what
 // it resolved to, and keep the poster frame that gets captured from it. A dialog
@@ -29,20 +50,24 @@ import { parseYouTubeId, youtubeWatchLabel } from "@/lib/youtube";
 export function VideoDialog({
   videoId,
   posterImageId,
+  captionsFrom,
   issueId,
   images,
   onChangeVideo,
+  onChangeCaptions,
   onRegisterImage,
   onClose,
 }: {
   videoId: string | undefined;
   posterImageId: string | undefined;
+  captionsFrom: CaptionSourceLanguage | undefined;
   issueId: string;
   images: ImageMap;
   onChangeVideo: (next: {
     videoId: string | undefined;
     posterImageId: string | undefined;
   }) => void;
+  onChangeCaptions: (from: CaptionSourceLanguage | undefined) => void;
   onRegisterImage: (imageId: string, image: ResolvedImage) => void;
   onClose: () => void;
 }) {
@@ -207,6 +232,30 @@ export function VideoDialog({
               )}
             </div>
           </div>
+
+          {/* Outside the scrolling area, like the montage's interval, so the
+              menu isn't clipped by it. YouTube's embedded player can't offer
+              English itself (its Auto-translate list leaves it out) and never
+              says what language a video's captions are in, so the author names it. */}
+          {videoId && (
+            <div className="flex-none px-8 pt-5">
+              <MenuSelect
+                label="English captions"
+                current={captionLabel(captionsFrom)}
+                ariaLabel="English captions"
+                items={captionItems}
+                value={captionsFrom ?? null}
+                onSelect={(v) => onChangeCaptions(v ?? undefined)}
+                side="top"
+                // Thirteen rows would run off the top of a laptop screen.
+                menuClassName="max-h-[min(320px,50vh)] overflow-y-auto"
+              />
+              <p className="text-faint2 pt-2 font-sans text-[12px]">
+                Pick the language the video&rsquo;s captions are in, and they
+                start in English when a member presses play.
+              </p>
+            </div>
+          )}
 
           {error && (
             <p className="text-warn flex-none px-8 pt-4 font-sans text-[13px] font-semibold">

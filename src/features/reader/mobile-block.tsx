@@ -232,6 +232,7 @@ export function MobileBlock({
               videoId={block.videoId}
               poster={poster}
               label={block.caption}
+              captionsFrom={block.englishCaptionsFrom}
             />
           ) : (
             <div className="photo-fill border-placeholder-line flex h-[180px] items-center justify-center border">

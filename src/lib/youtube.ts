@@ -86,3 +86,43 @@ export function youtubeWatchUrl(videoId: string): string {
 export function youtubeWatchLabel(videoId: string): string {
   return `youtu.be/${videoId}`;
 }
+
+// Languages a video's captions can be shown in English from. The embedded
+// player's own Auto-translate menu omits English, and it never reports which
+// language a video's captions are in, so the author names it in the editor.
+export const CAPTION_SOURCE_LANGUAGES = [
+  { code: "en", label: "English" },
+  { code: "fr", label: "French" },
+  { code: "es", label: "Spanish" },
+  { code: "it", label: "Italian" },
+  { code: "de", label: "German" },
+  { code: "pt", label: "Portuguese" },
+  { code: "nl", label: "Dutch" },
+  { code: "ca", label: "Catalan" },
+  { code: "ja", label: "Japanese" },
+  { code: "ko", label: "Korean" },
+  { code: "zh-Hans", label: "Chinese" },
+  { code: "th", label: "Thai" },
+] as const;
+
+export type CaptionSourceLanguage =
+  (typeof CAPTION_SOURCE_LANGUAGES)[number]["code"];
+
+export const CAPTION_SOURCE_CODES = CAPTION_SOURCE_LANGUAGES.map(
+  (l) => l.code,
+) as [CaptionSourceLanguage, ...CaptionSourceLanguage[]];
+
+// The embed's postMessage commands (the protocol behind YouTube's iframe API)
+// that show a video's `from` captions in English, translated unless they
+// already are. Undocumented by YouTube: if they stop working, the video simply
+// plays without captions.
+export function englishCaptionsMessages(from: CaptionSourceLanguage): string[] {
+  const track =
+    from === "en"
+      ? { languageCode: "en" }
+      : { languageCode: from, translationLanguage: { languageCode: "en" } };
+  return [
+    { func: "loadModule", args: ["captions"] },
+    { func: "setOption", args: ["captions", "track", track] },
+  ].map((c) => JSON.stringify({ event: "command", ...c, channel: "widget" }));
+}
