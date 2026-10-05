@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { dirname, extname, resolve } from "node:path";
 import { z } from "zod";
 import {
   assertValidRange,
@@ -9,7 +9,7 @@ import {
   latestReleaseTag,
   refDate,
 } from "./git.mts";
-import { draftNotes, parseNotes } from "./notes.mts";
+import { draftNotes, parseNotes, type NotesSection } from "./notes.mts";
 import { renderChangelogPage } from "./template.mts";
 
 const refSchema = z
@@ -154,6 +154,7 @@ function main(): void {
   if (notesDrafted) writeFileSync(notesPath, draftNotes(changes));
   let sections = parseNotes(readFileSync(notesPath, "utf8"));
   if (!sections.length) sections = parseNotes(draftNotes(changes));
+  embedImages(sections, dirname(notesPath));
 
   const html = renderChangelogPage({
     product: options.product,
@@ -194,4 +195,24 @@ try {
     console.error(error instanceof Error ? error.message : error);
   }
   process.exitCode = 1;
+}
+
+/** Screenshots travel inside the HTML as data URIs, so the copied email carries them. */
+function embedImages(sections: NotesSection[], baseDir: string) {
+  const IMAGE_TYPES: Record<string, string> = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".webp": "image/webp",
+  };
+  for (const image of sections.flatMap((s) =>
+    s.highlights.flatMap((h) => h.images),
+  )) {
+    const path = resolve(baseDir, image.src);
+    const type = IMAGE_TYPES[extname(path).toLowerCase()];
+    if (!type)
+      throw new Error(`Screenshot must be PNG, JPEG or WebP: ${image.src}`);
+    if (!existsSync(path)) throw new Error(`Screenshot not found: ${path}`);
+    image.src = `data:${type};base64,${readFileSync(path).toString("base64")}`;
+  }
 }

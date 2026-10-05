@@ -7,7 +7,6 @@ export type ChangelogItem = {
   scope: string | null;
   title: string;
   pullRequest: number | null;
-  url: string | null;
   /** Commits inside the pull request, oldest first, minus the headline itself. */
   commits: string[];
 };
@@ -113,6 +112,10 @@ const MERGE_SUBJECT = /^(merge\b|merge:)/i;
 const DEVELOPER_SUBJECT =
   /\b(review (round|feedback|comments)|address review|\w+\.(tsx?|mts|css))\b/i;
 
+/** Issue and PR references ("(#355)", "(#387, #388)") read as noise in the email. */
+const withoutReferences = (text: string) =>
+  text.replace(/\s*\(#\d+(?:,\s*#\d+)*\)/g, "").trim();
+
 /** Plain-language commit subjects from inside a merged branch. */
 function branchCommits(merge: Commit, headline: string): string[] {
   const seen = new Set<string>([headline]);
@@ -122,7 +125,9 @@ function branchCommits(merge: Commit, headline: string): string[] {
       const conventional = commit.subject.match(CONVENTIONAL_TITLE);
       const type = conventional?.[1]?.toLowerCase() ?? null;
       const scope = conventional?.[2]?.trim().toLowerCase() || null;
-      const subject = sentenceCase(conventional?.[3] ?? commit.subject);
+      const subject = sentenceCase(
+        withoutReferences(conventional?.[3] ?? commit.subject),
+      );
       if (
         type === "refactor" ||
         classify(type, scope, subject) === "internal" ||
@@ -141,19 +146,21 @@ export function collectChanges(
   to: string,
   includeInternal: boolean,
 ): ChangelogItem[] {
-  const repositoryUrl = githubRepositoryUrl();
   return logCommits(`${from}..${to}`, true).flatMap((commit) => {
-    const pullRequestMatch = commit.subject.match(
-      /^Merge pull request #(\d+)\b/,
-    );
-    const pullRequest = pullRequestMatch ? Number(pullRequestMatch[1]) : null;
+    const mergeMatch = commit.subject.match(/^Merge pull request #(\d+)\b/);
+    // A squash merge carries its pull request as a trailing "(#N)" instead.
+    const squashMatch = mergeMatch
+      ? null
+      : commit.subject.match(/\(#(\d+)\)\s*$/);
+    const pullRequest = Number(mergeMatch?.[1] ?? squashMatch?.[1]) || null;
     const mergeTitle = commit.body.split("\n").find((line) => line.trim());
-    const rawTitle =
-      pullRequest && mergeTitle ? mergeTitle.trim() : commit.subject;
-    const conventional = rawTitle.match(CONVENTIONAL_TITLE);
+    const cleanTitle = withoutReferences(
+      mergeMatch && mergeTitle ? mergeTitle.trim() : commit.subject,
+    );
+    const conventional = cleanTitle.match(CONVENTIONAL_TITLE);
     const type = conventional?.[1]?.toLowerCase() ?? null;
     const scope = conventional?.[2]?.trim().toLowerCase() || null;
-    const title = sentenceCase(conventional?.[3] ?? rawTitle);
+    const title = sentenceCase(conventional?.[3] ?? cleanTitle);
     const kind = classify(type, scope, title);
     if (kind === "internal" && !includeInternal) return [];
 
@@ -163,11 +170,7 @@ export function collectChanges(
         scope,
         title,
         pullRequest,
-        url:
-          pullRequest && repositoryUrl
-            ? `${repositoryUrl}/pull/${pullRequest}`
-            : null,
-        commits: pullRequest ? branchCommits(commit, title) : [],
+        commits: mergeMatch ? branchCommits(commit, title) : [],
       },
     ];
   });
