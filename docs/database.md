@@ -201,6 +201,15 @@ and re-pasting the link refreshes it. `collectImageIds` resolves `posterImageId`
 montage ids — it is the single traversal feeding the `ImageMap`, so a poster missed there would be
 missing on every surface at once.
 
+**`englishCaptionsFrom`** (optional, no version bump) names the language a video's captions are in;
+set, the player shows them in English on play. YouTube's embedded Auto-translate menu leaves English
+out and the player never reports a video's caption language, so the author picks it in the video
+dialog. Once the frame has loaded and the video is playing, `VideoPlayer` sends the embed an
+undocumented `setOption("captions", "track", …)` over postMessage (`enablejsapi=1`, only on such
+videos), once per form of the language (`fr`, `fr-CA`, …), because the player matches a track's code
+exactly and ignores one it lacks. Changing the video clears the setting. If YouTube drops the command,
+the video just plays without captions.
+
 **Content v6 (issue #227) — the page-owning image placements.** The image block's `align` gained two
 values, `"page-fill"` and `"page-fit"`. Both take the whole `PAGE_W × PAGE_H` canvas, reaching back
 over the page's own margin (see `blockFlowStyle` and `PAGE_PAD`); they differ only in how the photo

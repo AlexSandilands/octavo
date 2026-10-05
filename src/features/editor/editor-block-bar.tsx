@@ -126,6 +126,7 @@ export function EditorBlockBar({
           <VideoBlockControl
             videoId={block.videoId}
             posterImageId={block.posterImageId}
+            captionsFrom={block.englishCaptionsFrom}
             issueId={issueId}
             images={images}
             onChange={onChange}
