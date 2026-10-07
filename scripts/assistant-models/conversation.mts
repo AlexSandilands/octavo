@@ -16,7 +16,11 @@ import {
   AI_MAX_IMAGES_PER_REQUEST,
   AI_PROJECTION_PART,
 } from "../../src/lib/ai-chat-contract.ts";
-import { priceFor, RUN_SPEND_CAP_USD } from "../../src/lib/ai-pricing.ts";
+import {
+  priceFor,
+  priceUsage,
+  RUN_SPEND_CAP_USD,
+} from "../../src/lib/ai-pricing.ts";
 import { aiToolSchemas, type AiToolOutput } from "../../src/lib/ai-tools.ts";
 import { parseChatBody } from "../../src/server/ai-chat-request.ts";
 import {
@@ -90,14 +94,15 @@ function priced(
     d.noCacheTokens ??
     Math.max(0, (u.inputTokens ?? 0) - cacheRead - cacheWrite);
   const output = u.outputTokens ?? 0;
-  const price = priceFor(reported ?? "") ?? priceFor(model.modelId);
-  const costUsd = price
-    ? (input * price.inputPerMillion +
-        cacheRead * price.cacheReadPerMillion +
-        cacheWrite * price.cacheWritePerMillion +
-        output * price.outputPerMillion) /
-      1_000_000
-    : 0;
+  const tokens = {
+    promptTokens: input,
+    cacheReadTokens: cacheRead,
+    cacheWriteTokens: cacheWrite,
+    completionTokens: output,
+  };
+  const priceModel = priceFor(reported ?? "") ? reported : model.modelId;
+  const costUsd =
+    priceModel && priceFor(priceModel) ? priceUsage(priceModel, tokens) : 0;
   return {
     ms,
     model: reported ?? model.modelId,

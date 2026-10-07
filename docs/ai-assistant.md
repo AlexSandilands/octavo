@@ -513,7 +513,7 @@ client-safe.
   (`src/lib/ai.ts`) is the on/off answer, and `NEXT_PUBLIC_AI_ASSISTANT=1` mirrors it for the button. Thinking and
   effort are explicit: Anthropic runs adaptive thinking at `effort: "medium"` with `sendReasoning`, the others take
   `reasoning: "medium"`. A model that refuses adaptive thinking takes a fixed budget instead, listed in
-  `src/lib/ai-thinking.ts` (keyed like the price table): Haiku 4.5 answers every adaptive request with a 400, so it runs
+  `src/lib/ai-thinking.ts` (keyed like the price table; Haiku 5.5 takes adaptive): Haiku 4.5 answers every adaptive request with a 400, so it runs
   `{ type: "enabled", budgetTokens: 4000 }` with no effort. The boot refuses a provider with no key, a model with no price
   in `src/lib/ai-pricing.ts`, and an Anthropic model missing from `ai-thinking.ts`; a new `AI_MODEL` is added there
   after a smoke run (`scripts/dev-ai-smoke.mts`). Haiku's smoke run can't show cache reads: its minimum cacheable prompt
@@ -560,8 +560,10 @@ client-safe.
     Months are calendar months in UTC and nothing carries over.
   - **Ledger (#307):** every request writes an `ai_usage` row through `recordUsage()` in
     `src/server/ai-budget.ts`, with uncached input, cache reads, cache writes and output counted apart and priced
-    from the table in `src/lib/ai-pricing.ts` (`claude-sonnet-5-5`, checked 2026-10-04; `claude-sonnet-5` and `claude-haiku-4-5`, checked 2026-09-25; cache
-    writes at the 5-minute rate). A model with no price is refused rather than metered at $0. `resolveBudget()`,
+    from the table in `src/lib/ai-pricing.ts` (`claude-sonnet-5-5`, checked 2026-10-04; `claude-haiku-5-5`, checked 2026-10-08; `claude-sonnet-5` and
+    `claude-haiku-4-5`, checked 2026-09-25; cache writes at the 5-minute rate). Haiku 5.5 is priced by prompt length: a
+    request whose prompt (input plus cache reads and writes) is over 100,000 tokens pays its `longPrompt` rates, five
+    times the base. A model with no price is refused rather than metered at $0. `resolveBudget()`,
     `runSpend()` and `usageByDay()` give the route, the circuit-breaker and the usage page their figures; the
     arithmetic is in `docs/database.md` → AI assistant spend.
   - **When it runs out:** once the month's spend reaches allowance plus grants, the panel says so and the route refuses.
@@ -635,14 +637,34 @@ run** on the new pairing, and the run's table goes in the PR that changes it.
   so the free run covers vision too. The route and the fixture send one system prompt, `assistantInstructions()` in
   `src/server/ai-chat-stream.ts`, with vision on.
 
+### Haiku 5.5 trial, 2026-10-08
+
+`AI_MODEL` stays **`claude-sonnet-5-5`**. `claude-haiku-5-5` (adaptive thinking at `medium`, like the Sonnets; $0.10 /
+$0.50 per million tokens up to a 100,000-token prompt) ran all 14 cases three times beside Sonnet 5.5, same day, same
+app:
+
+| model               | runs passed | calls | cost (42 runs) | per run | what failed                                                                                                                                                                                               |
+| ------------------- | ----------- | ----- | -------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `claude-sonnet-5-5` | 39/42       | 241   | $1.37          | ~$0.03  | 01 tidy 2/3 (notice line reordered); 13 cover 2/3 (breaker at 21 calls); 14 new issue with photos 2/3 (43 words lost)                                                                                     |
+| `claude-haiku-5-5`  | 33/42       | 285   | $0.14          | ~$0.003 | 12 new issue 0/3 (`propose_sections` photos sent with `width`, refused, reported to it as `provider_down`, so it gave up); 13 cover 1/3 (two breaker trips); 01 1/3; 02 2/3 (four one-item lists); 08 2/3 |
+
+A tenth of Sonnet's cost, and unlike Haiku 4.5 it **kept the author's words** in every run but one, the same
+case-01 reorder Sonnet made. Cases 03–11, the single-page edits, passed 26 of 27 runs. Two of its failures are the claim check's: case
+08's "With Thanks has moved to page 13" is true (pages were inserted before it), and case 01's "split the notices into
+five items… moved the line into a heading" describes the `insert_blocks` + `set_text` it made. Counted fairly that is
+35/42. What holds it back is the long jobs: a whole new issue, and covers (case 14 passed 3/3, but at 36–42 calls and
+~100s against Sonnet's 22–32 and ~50s). Case 12 is partly the app's fault: an invalid tool input is reported to
+the model as the service being down, so it stops instead of correcting the call (Sonnet 5 hit the same `width` key
+on 2026-10-04).
+
 ### The pick, 2026-10-04
 
 `AI_MODEL` is **`claude-sonnet-5-5`** (the Anthropic default; leave the variable unset). Both Sonnets ran all 14 cases
 three times each, with covers and vision on, the same day and at the same list price ($2 / $10 per million tokens):
 
-| model               | runs passed | calls | cost (42 runs) | per run | what failed                                                                                                                                         |
-| ------------------- | ----------- | ----- | -------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `claude-sonnet-5-5` | 41/42       | 243   | $1.27          | ~$0.03  | 14 new issue with photos 2/3 (one run stuck at 48 calls, breaker trip)                                                                              |
+| model               | runs passed | calls | cost (42 runs) | per run | what failed                                                                                                                                        |
+| ------------------- | ----------- | ----- | -------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `claude-sonnet-5-5` | 41/42       | 243   | $1.27          | ~$0.03  | 14 new issue with photos 2/3 (one run stuck at 48 calls, breaker trip)                                                                             |
 | `claude-sonnet-5`   | 35/42       | 232   | $1.95          | ~$0.05  | 12 new issue 0/3 and 14 new issue with photos 0/3 (`propose_sections` photos sent with a `width` key the schema refuses; 16 calls invalid); 06 2/3 |
 
 Sonnet 5.5 is cheaper per run on the same price: case 04 (shorten to fit) took 4 calls and 11–14s where Sonnet 5 took

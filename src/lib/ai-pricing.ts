@@ -9,7 +9,18 @@ export type ModelPrice = {
   cacheWritePerMillion: number;
   outputPerMillion: number;
   checked: string;
+  /** Dearer rates for a request whose whole prompt (input + cache reads and
+   *  writes) is over `overTokens` (Haiku 5.5: 100,000). */
+  longPrompt?: Rates & { overTokens: number };
 };
+
+type Rates = Pick<
+  ModelPrice,
+  | "inputPerMillion"
+  | "cacheReadPerMillion"
+  | "cacheWritePerMillion"
+  | "outputPerMillion"
+>;
 
 export const AI_PRICES: Readonly<Record<string, ModelPrice>> = {
   "claude-sonnet-5-5": {
@@ -25,6 +36,20 @@ export const AI_PRICES: Readonly<Record<string, ModelPrice>> = {
     cacheWritePerMillion: 2.5,
     outputPerMillion: 10,
     checked: "2026-09-25",
+  },
+  "claude-haiku-5-5": {
+    inputPerMillion: 0.1,
+    cacheReadPerMillion: 0.01,
+    cacheWritePerMillion: 0.125,
+    outputPerMillion: 0.5,
+    checked: "2026-10-08",
+    longPrompt: {
+      overTokens: 100_000,
+      inputPerMillion: 0.5,
+      cacheReadPerMillion: 0.05,
+      cacheWritePerMillion: 0.625,
+      outputPerMillion: 2.5,
+    },
   },
   "claude-haiku-4-5": {
     inputPerMillion: 1,
@@ -82,12 +107,21 @@ export function modelEntry<T>(
 // The request's cost in USD, rounded to the ledger's six places. Price per
 // million tokens is micro-dollars per token, so the sum is in micro-dollars.
 export function priceUsage(model: string, tokens: TokenCounts): number {
-  const price = priceFor(model);
-  if (!price) throw new Error(`No price for AI model "${model}".`);
+  const found = priceFor(model);
+  if (!found) throw new Error(`No price for AI model "${model}".`);
+  const price = ratesFor(found, tokens);
   const micros =
     tokens.promptTokens * price.inputPerMillion +
     tokens.cacheReadTokens * price.cacheReadPerMillion +
     tokens.cacheWriteTokens * price.cacheWritePerMillion +
     tokens.completionTokens * price.outputPerMillion;
   return Math.round(micros) / 1_000_000;
+}
+
+/** The rates one request pays: the long-prompt tier once its prompt is past it. */
+export function ratesFor(price: ModelPrice, tokens: TokenCounts): Rates {
+  const prompt =
+    tokens.promptTokens + tokens.cacheReadTokens + tokens.cacheWriteTokens;
+  const long = price.longPrompt;
+  return long && prompt > long.overTokens ? long : price;
 }
