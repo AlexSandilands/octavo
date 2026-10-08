@@ -284,7 +284,7 @@ SENTRY_DSN=              # Sentry project DSN (server-side). Optional — app ru
 NEXT_PUBLIC_SENTRY_DSN=  # SAME DSN, browser copy (public ingest key; build-time inlined).
 
 AI_PROVIDER=             # the AI assistant: anthropic | openai | openrouter | fake. UNSET = OFF.
-AI_MODEL=                # optional on anthropic (claude-sonnet-5-5); required on openai/openrouter
+AI_MODEL=                # optional on anthropic (claude-haiku-5-5); required on openai/openrouter
 ANTHROPIC_API_KEY=       # the key AI_PROVIDER needs (or OPENAI_API_KEY / OPENROUTER_API_KEY). Secret.
 AI_MONTHLY_BUDGET_USD=   # the AI assistant's monthly allowance in USD (e.g. 20 or 12.50, ≤ 10000); unset = 0 (top up with ai:grant)
 NEXT_PUBLIC_AI_ASSISTANT=  # "1" shows the editor's assistant button (build-time; set with AI_PROVIDER)
