@@ -15,6 +15,7 @@ export function estimate(
   model: string,
   cases: Case[],
   repeat: number,
+  runCapUsd = RUN_SPEND_CAP_USD,
 ): Estimate {
   const price = priceFor(model);
   if (!price)
@@ -34,7 +35,7 @@ export function estimate(
   const runs = cases.length * repeat;
   return {
     usd: perRun * repeat * MARGIN,
-    ceilingUsd: runs * RUN_SPEND_CAP_USD,
+    ceilingUsd: runs * runCapUsd,
     runs,
   };
 }
@@ -42,7 +43,7 @@ export function estimate(
 const usd = (n: number) => `$${n.toFixed(n < 1 ? 3 : 2)}`;
 
 export function describeEstimate(model: string, e: Estimate): string {
-  return `${model}: ${e.runs} case runs, about ${usd(e.usd)} (at most ${usd(e.ceilingUsd)}, the $0.50 per-run cap)`;
+  return `${model}: ${e.runs} case runs, about ${usd(e.usd)} (at most ${usd(e.ceilingUsd)}, at the per-run cap)`;
 }
 
 /** Ask before spending; `yes` skips the question. Refuses without a TTY. */

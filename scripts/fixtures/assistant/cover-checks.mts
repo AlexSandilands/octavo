@@ -13,7 +13,7 @@ import {
 import { makeBlock, type Block, type Page } from "../../../src/lib/blocks";
 import { plainCoverDoc } from "../../../src/lib/cover-rich-text";
 import {
-  RUN_MOVE_LIMIT,
+  RUN_COVER_MOVE_LIMIT,
   droppedKey,
   objectsIn,
 } from "../../../src/features/editor/assistant/executor";
@@ -496,27 +496,58 @@ async function reviewChecks(lead: Block) {
     );
   }
 
-  heading("cover tools: placing counts as a move for the breaker");
+  heading("cover tools: the breaker stops a cover item put back where it was");
   {
     const x = harness([{ ...cover, blocks: [] }, page(lead)]);
     x.executor.beginRun();
     await x.run("add_details", { text: "Spring" });
     const id = x.pages[0]!.coverElements![0]!.id;
-    const place = (column: string) =>
+    const place = (column: string, row = "top", textSize = "normal") =>
       x.run("place_cover_item", {
         id,
         column,
-        row: "top",
+        row,
+        width: "narrow",
+        align: "left",
+        textSize,
+      });
+    await place("right");
+    await place("right", "top", "large");
+    await place("center");
+    await place("right", "bottom");
+    const refining = x.executor.breaker();
+    await place("right");
+    ok(
+      refining === null && x.executor.tripped() === "moves",
+      "three placements to new spots (a text size alone isn't one) don't trip it; going back to one does",
+    );
+  }
+  {
+    const x = harness([{ ...cover, blocks: [] }, page(lead)]);
+    x.executor.beginRun();
+    await x.run("add_details", { text: "Spring" });
+    const id = x.pages[0]!.coverElements![0]!.id;
+    const spots = [
+      ["right", "top"],
+      ["center", "top"],
+      ["right", "bottom"],
+      ["center", "bottom"],
+      ["left", "center"],
+    ];
+    let early: string | null = null;
+    for (const [i, [column, row]] of spots.entries()) {
+      if (i === RUN_COVER_MOVE_LIMIT) early = x.executor.breaker();
+      await x.run("place_cover_item", {
+        id,
+        column,
+        row,
         width: "narrow",
         align: "left",
       });
-    for (const column of ["left", "right"].slice(0, RUN_MOVE_LIMIT))
-      await place(column);
-    const early = x.executor.breaker();
-    await place("center");
+    }
     ok(
-      early === null && x.executor.breaker() !== null,
-      `placing the same item a ${RUN_MOVE_LIMIT + 1}rd time trips the breaker`,
+      early === null && x.executor.tripped() === "moves",
+      `a ${RUN_COVER_MOVE_LIMIT + 1}th placement of one item trips it, new spots or not`,
     );
   }
 

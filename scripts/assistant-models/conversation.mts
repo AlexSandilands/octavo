@@ -16,7 +16,11 @@ import {
   AI_MAX_IMAGES_PER_REQUEST,
   AI_PROJECTION_PART,
 } from "../../src/lib/ai-chat-contract.ts";
-import { priceFor, RUN_SPEND_CAP_USD } from "../../src/lib/ai-pricing.ts";
+import {
+  priceFor,
+  priceUsage,
+  RUN_SPEND_CAP_USD,
+} from "../../src/lib/ai-pricing.ts";
 import { aiToolSchemas, type AiToolOutput } from "../../src/lib/ai-tools.ts";
 import { parseChatBody } from "../../src/server/ai-chat-request.ts";
 import {
@@ -27,8 +31,15 @@ import { assistantTools } from "../../src/server/ai-chat-tools.ts";
 import { FAKE_TRIGGER_TOOLS } from "../../src/server/ai-fake-model.ts";
 import type { AssistantModel } from "../../src/server/ai-provider.ts";
 import type { EditorSnapshot } from "../../src/features/editor/use-editor-history.ts";
-import { createAssistantExecutor } from "../../src/features/editor/assistant/executor.ts";
+import {
+  createAssistantExecutor,
+  RUN_CALL_LIMIT,
+} from "../../src/features/editor/assistant/executor.ts";
 import { projection } from "../../src/features/editor/assistant/projection.ts";
+import {
+  reviewPages,
+  reviewParts,
+} from "../../src/features/editor/assistant/review.ts";
 import { readPage } from "../../src/features/editor/assistant/tools.ts";
 import {
   authorText,
@@ -69,10 +80,15 @@ export type CaseRun = {
   reply: string;
   /** Why the run ended early: the breaker, the run cap or an error. */
   stopped?: string;
+  /** The pages the end-of-run review showed the model, as the panel does. */
+  reviewed: number[];
+  /** The breaker rule that stopped it, when one did. */
+  tripped?: "calls" | "moves" | "stall";
   ms: number;
 };
 
-const REQUEST_LIMIT = 60;
+/** Requests past the call limit, for replies that make no calls. */
+const REQUEST_HEADROOM = 20;
 // A backstop on a whole reply: streamAssistant's idle timeout (#358) ends a
 // stalled one first, as a stream error.
 const REQUEST_TIMEOUT_MS = 180_000;
@@ -90,14 +106,15 @@ function priced(
     d.noCacheTokens ??
     Math.max(0, (u.inputTokens ?? 0) - cacheRead - cacheWrite);
   const output = u.outputTokens ?? 0;
-  const price = priceFor(reported ?? "") ?? priceFor(model.modelId);
-  const costUsd = price
-    ? (input * price.inputPerMillion +
-        cacheRead * price.cacheReadPerMillion +
-        cacheWrite * price.cacheWritePerMillion +
-        output * price.outputPerMillion) /
-      1_000_000
-    : 0;
+  const tokens = {
+    promptTokens: input,
+    cacheReadTokens: cacheRead,
+    cacheWriteTokens: cacheWrite,
+    completionTokens: output,
+  };
+  const priceModel = priceFor(reported ?? "") ? reported : model.modelId;
+  const costUsd =
+    priceModel && priceFor(priceModel) ? priceUsage(priceModel, tokens) : 0;
   return {
     ms,
     model: reported ?? model.modelId,
@@ -156,12 +173,18 @@ export async function runCase({
   browser,
   renderer,
   model,
+  callLimit = RUN_CALL_LIMIT,
+  runCapUsd = RUN_SPEND_CAP_USD,
 }: {
   c: Case;
   issue: FixtureIssue;
   browser: MeasureBrowser;
   renderer: PageRenderer;
   model: AssistantModel;
+  /** The breaker's call ceiling and the run's spend cap: the product's unless
+   *  a sweep (--call-limit, --run-cap) says otherwise. */
+  callLimit?: number;
+  runCapUsd?: number;
 }): Promise<CaseRun> {
   const started = Date.now();
   let state: EditorSnapshot = {
@@ -170,6 +193,7 @@ export async function runCase({
     sel: null,
   };
   const executor = createAssistantExecutor({
+    callLimit,
     measure: browser.measurer(),
     handle: {
       state: () => state,
@@ -199,16 +223,19 @@ export async function runCase({
   const calls: LoggedCall[] = [];
   const requests: RequestLog[] = [];
   const answered = new Set<string>();
+  // Finished turns: the author's message, then a reply and the review's.
+  const history: UIMessage[] = [author];
   let reply: UIMessage | undefined;
   let stopped: string | undefined;
+  let reviewed: number[] | undefined;
 
-  for (let n = 0; n < REQUEST_LIMIT; n++) {
+  for (let n = 0; n < callLimit + REQUEST_HEADROOM; n++) {
     const spent = requests.reduce((sum, r) => sum + r.costUsd, 0);
-    if (spent >= RUN_SPEND_CAP_USD) {
-      stopped = "run cap ($0.50)";
+    if (spent >= runCapUsd) {
+      stopped = `run cap ($${runCapUsd.toFixed(2)})`;
       break;
     }
-    const messages = reply ? [author, reply] : [author];
+    const messages = reply ? [...history, reply] : history;
     // The route's own body check: the conversation must be one it accepts.
     const body = await parseChatBody(
       { runId, issueId: "fixture", messages },
@@ -289,15 +316,40 @@ export async function runCase({
       const breaker = executor.breaker();
       if (breaker) stopped = `circuit-breaker: ${breaker}`;
     }
-    if (stopped || newCalls === 0) break;
+    if (stopped) break;
+    if (newCalls > 0) continue;
+    // The panel's end-of-run review (#342): once, from the room views left.
+    if (reviewed) break;
+    const now = await assistantIssue(issue, state.pages, browser);
+    reviewed = reviewPages(executor.summary(), now.pages).slice(
+      0,
+      vision.room(),
+    );
+    if (!reviewed.length || !reply) break;
+    const shots = await vision.eyes.pages(
+      { issueId: "fixture", logoId: null },
+      now,
+      reviewed,
+    );
+    history.push(reply, {
+      id: crypto.randomUUID(),
+      role: "user",
+      parts: reviewParts(shots, now),
+    });
+    reply = undefined;
   }
+  const replies = [...history.slice(1), ...(reply ? [reply] : [])].filter(
+    (m) => m.role === "assistant",
+  );
   return {
     projection: view,
     pages: state.pages,
     calls,
     requests,
-    reply: textOf(reply),
+    reply: replies.map(textOf).filter(Boolean).join("\n\n"),
+    reviewed: reviewed ?? [],
     stopped,
+    tripped: executor.tripped() ?? undefined,
     ms: Date.now() - started,
   };
 }

@@ -42,7 +42,10 @@ export let measured = 0;
 export const measurer: EditMeasurer = {
   // No layout here: only the warnings a cover's data can show (broken links).
   async cover(page, pages) {
-    return readCoverWarnings(page, coverSources(pages));
+    return {
+      warnings: readCoverWarnings(page, coverSources(pages)),
+      boxes: [],
+    };
   },
   async report(page: Page): Promise<PageReport> {
     measured++;

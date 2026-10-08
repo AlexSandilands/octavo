@@ -46,7 +46,7 @@ const { db } = await import("../src/db/index.ts");
 const { users } = await import("../src/db/schema.ts");
 const { aiGrants, aiUsage } = await import("../src/db/schema-ai.ts");
 const budget = await import("../src/server/ai-budget.ts");
-const { priceFor } = await import("../src/lib/ai-pricing.ts");
+const { priceFor, priceUsage } = await import("../src/lib/ai-pricing.ts");
 
 let failures = 0;
 const ok = (cond: unknown, msg: string) => {
@@ -209,6 +209,19 @@ try {
     "an estimated (~) id prices as its model",
   );
   ok(priceFor("fake")?.outputPerMillion === 0, "the fake provider costs $0");
+  // Haiku 5.5: a prompt (input + cache reads + writes) over 100,000 tokens pays
+  // five times the rates, on every kind of token in the request.
+  const haikuAt = (cacheReadTokens: number) =>
+    priceUsage("claude-haiku-5-5", {
+      promptTokens: 0,
+      cacheReadTokens,
+      cacheWriteTokens: 0,
+      completionTokens: 1_000_000,
+    });
+  ok(
+    close(haikuAt(100_000), 0.501) && close(haikuAt(100_001), 2.505),
+    `a Haiku 5.5 prompt over 100,000 tokens pays the long rates ($${haikuAt(100_000)}, $${haikuAt(100_001)})`,
+  );
   for (const model of [
     "claude-opus-5",
     "claude-sonnet-5-1",

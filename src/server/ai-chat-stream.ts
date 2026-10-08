@@ -15,7 +15,11 @@ import {
   type AiProjectionData,
 } from "@/lib/ai-chat-contract";
 import { assistantTools } from "@/server/ai-chat-tools";
-import { aiError, classifyProviderError } from "@/server/ai-errors";
+import {
+  aiError,
+  classifyProviderError,
+  toolCallErrorText,
+} from "@/server/ai-errors";
 import { systemPrompt, type PromptFeatures } from "@/server/ai-prompt";
 import type { AssistantModel } from "@/server/ai-provider";
 
@@ -169,6 +173,9 @@ export function streamAssistant({
     stream: result.stream,
     sendReasoning: true,
     onError: (error) => {
+      // Also a tool part's error text: a refused call goes back to the model.
+      const refused = toolCallErrorText(error);
+      if (refused) return refused;
       const code = classifyProviderError(error);
       if (code === "provider_down") console.error("AI chat failed", error);
       return JSON.stringify(aiError(code));

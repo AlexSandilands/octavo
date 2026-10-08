@@ -212,9 +212,20 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
     issue details, 1 logo.") and the editor's own layout warnings in words: a story linked to a heading that's gone,
     an item past the page margin, two items overlapping. The cover is laid out off screen with the reader's
     `PageBlocks` (`measure-page.tsx`) and read with `readCoverWarnings()`, the function the inspector's warnings use.
+    Then the **cover map** (`assistant/cover-map.ts`): each item by kind and id, its cell and width, and where it
+    measured as shares of the page across and down; the cells nothing touches; what overlaps what, by id. Before it
+    the model heard only "Story overlaps logo" and moved items back and forth until the move rule stopped it; with it
+    (2026-10-08, cases 12–14 ×3, Haiku 5.5) 8 of 9 covers ended with nothing overlapping (5 of 9 before) in under half
+    the placements.
+  - **Clear spots.** A story lands center left, the details line top right (the masthead has top left) and a logo
+    bottom right, as the tool descriptions say; an item that lands on another moves to the first clear cell for its kind (details top right, then the bottom corners; a logo bottom
+    right, then the other corners; a story center left, then down the left and right), sized as it measured: the
+    details line no longer lands on the masthead. Only cells no other item is placed in, since a stack's height moves.
+  - **Widths** are shares of the whole page (narrow 31%, medium 47%, wide 100%), so a wide item fills its row. The
+    schema and `cover.md` say so, with the layout that follows from it.
   - **The run's line** counts cover items and cover-wide changes like blocks, so a cover run gets its Undo line and
-    the review. `place_cover_item` counts as a move for the circuit-breaker, and a selected cover item stays selected
-    through a run.
+    the review. `place_cover_item` reports where the item was and went for the circuit-breaker (below), and a
+    selected cover item stays selected through a run.
   - **Checked** by `check-ai-tools.mts` (`fixtures/assistant/cover-checks.mts`) and the tools gate's cover sequence
     (`assistant-tools-gate-cover.mts`): a Regatta copy with its cover emptied, composed by a fake-provider run, undone
     in one step and redone, then rendered by both readers, the print route and the library thumbnail.
@@ -315,6 +326,10 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
   happens:
   - more than **40 tool calls** in the run (`RUN_CALL_LIMIT`; the 41st call's result is never sent);
   - the **same block is moved more than twice** (`RUN_MOVE_LIMIT`);
+  - a **cover item goes back to a spot** (cell and width) it already had this run, or is placed more than four
+    times (`RUN_COVER_MOVE_LIMIT`). Laying a cover out, fixing an overlap and the review's touch are three placements
+    of one item, which the block rule stopped; a flip-flop between two corners or two widths is what it was for. A
+    placement that only changes text size or order isn't a move;
   - **trimming stalls** (#355): in a streak of `set_text` calls on one page that still overflows after each, the
     fourth call on a block already trimmed in the streak (`RUN_STALL_LIMIT`). One pass over many blocks is progress, and any
     other call, or the page fitting, starts the count again. Trimming a line a call makes progress every few calls, so
@@ -513,7 +528,7 @@ client-safe.
   (`src/lib/ai.ts`) is the on/off answer, and `NEXT_PUBLIC_AI_ASSISTANT=1` mirrors it for the button. Thinking and
   effort are explicit: Anthropic runs adaptive thinking at `effort: "medium"` with `sendReasoning`, the others take
   `reasoning: "medium"`. A model that refuses adaptive thinking takes a fixed budget instead, listed in
-  `src/lib/ai-thinking.ts` (keyed like the price table): Haiku 4.5 answers every adaptive request with a 400, so it runs
+  `src/lib/ai-thinking.ts` (keyed like the price table; Haiku 5.5 takes adaptive): Haiku 4.5 answers every adaptive request with a 400, so it runs
   `{ type: "enabled", budgetTokens: 4000 }` with no effort. The boot refuses a provider with no key, a model with no price
   in `src/lib/ai-pricing.ts`, and an Anthropic model missing from `ai-thinking.ts`; a new `AI_MODEL` is added there
   after a smoke run (`scripts/dev-ai-smoke.mts`). Haiku's smoke run can't show cache reads: its minimum cacheable prompt
@@ -560,8 +575,10 @@ client-safe.
     Months are calendar months in UTC and nothing carries over.
   - **Ledger (#307):** every request writes an `ai_usage` row through `recordUsage()` in
     `src/server/ai-budget.ts`, with uncached input, cache reads, cache writes and output counted apart and priced
-    from the table in `src/lib/ai-pricing.ts` (`claude-sonnet-5-5`, checked 2026-10-04; `claude-sonnet-5` and `claude-haiku-4-5`, checked 2026-09-25; cache
-    writes at the 5-minute rate). A model with no price is refused rather than metered at $0. `resolveBudget()`,
+    from the table in `src/lib/ai-pricing.ts` (`claude-sonnet-5-5`, checked 2026-10-04; `claude-haiku-5-5`, checked 2026-10-08; `claude-sonnet-5` and
+    `claude-haiku-4-5`, checked 2026-09-25; cache writes at the 5-minute rate). Haiku 5.5 is priced by prompt length: a
+    request whose prompt (input plus cache reads and writes) is over 100,000 tokens pays its `longPrompt` rates, five
+    times the base. A model with no price is refused rather than metered at $0. `resolveBudget()`,
     `runSpend()` and `usageByDay()` give the route, the circuit-breaker and the usage page their figures; the
     arithmetic is in `docs/database.md` → AI assistant spend.
   - **When it runs out:** once the month's spend reaches allowance plus grants, the panel says so and the route refuses.
@@ -589,20 +606,24 @@ run** on the new pairing, and the run's table goes in the PR that changes it.
 - **The script** is `scripts/check-assistant-models.mts`. It runs each case the way the panel does: the route's own body
   check and model call (`src/server/ai-chat-stream.ts`, the same function the route calls), the editor's real executor
   (`createAssistantExecutor`) and its real measurer, bundled with esbuild into headless Chromium with the app's CSS and
-  fonts, answering until the model stops, the circuit-breaker trips or the run's $0.50 cap is reached. It needs a
-  running app for the CSS and fonts:
+  fonts, answering until the model stops, the circuit-breaker trips or the run's $0.50 cap is reached. Then, as the
+  panel does, a run that touched the cover or several pages gets the end-of-run review with those pages as pictures
+  (since 2026-10-08; earlier batches scored the run before it). It needs a running app for the CSS and fonts:
 
   ```sh
   PORT=3315 npm run dev
   npx tsx --tsconfig scripts/tsconfig.json scripts/check-assistant-models.mts --app http://localhost:3315 --provider fake
   npx tsx --tsconfig scripts/tsconfig.json scripts/check-assistant-models.mts --app http://localhost:3315 \
-    --provider anthropic --model claude-sonnet-5-5 --repeat 3
+    --provider anthropic --model claude-haiku-5-5 --repeat 3
   ```
 
   Options: `--provider anthropic|openai|openrouter|fake` (**required**, no default, so a bare run with `--yes` can't
   spend), `--model <id>`, `--repeat N` (the spread matters: one case swung between 4 and 14 calls),
   `--case 03,08`, `--photos <dir>`, `--yes`, and `--resume <results dir>`, which finishes a batch that stopped, reusing
-  its saved runs. A request with no reply in three minutes stops its run with a reason rather than the batch. Keys come
+  its saved runs. For a sweep, `--effort low|medium|high`, `--call-limit N` (the breaker's call ceiling) and
+  `--run-cap <usd>` replace the product's values for that batch and are named in its results directory;
+  `npx tsx scripts/assistant-models-sweep.mts <results dir>…` puts batches side by side and re-scores each at lower
+  ceilings (`--ceilings 40,60,100`), which is sound because the model is never told the ceiling. A request with no reply in three minutes stops its run with a reason rather than the batch. Keys come
   from `.env.local`; a provider without its key is skipped (OpenRouter exits 0 so a batch carries on).
 
 - **It spends real money** on any provider but `fake`. Before starting it prints an estimate (each case's tokens from a
@@ -635,14 +656,75 @@ run** on the new pairing, and the run's table goes in the PR that changes it.
   so the free run covers vision too. The route and the fixture send one system prompt, `assistantInstructions()` in
   `src/server/ai-chat-stream.ts`, with vision on.
 
-### The pick, 2026-10-04
+### The pick, 2026-10-08
 
-`AI_MODEL` is **`claude-sonnet-5-5`** (the Anthropic default; leave the variable unset). Both Sonnets ran all 14 cases
+`AI_MODEL` is **`claude-haiku-5-5`** (the Anthropic default; leave the variable unset) at `medium` effort, the same
+as the Sonnets. `claude-sonnet-5-5` stays priced and supported for a site that pins it. Both ran all 14 cases three
+times on the finished branch: the cover map and clear spots, the cover move rule, and the fixture's end-of-run review:
+
+| model               | runs passed | calls | cost (42 runs) | per run | what failed                                                                                                                                 |
+| ------------------- | ----------- | ----- | -------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `claude-haiku-5-5`  | 37/42       | 318   | $0.16          | ~$0.004 | 01 tidy 0/3 (the notices line moved above its items, every word kept); 12 new issue 2/3 and 13 cover 2/3 (one stuck trip each)              |
+| `claude-sonnet-5-5` | 38/42       | 307   | $2.01          | ~$0.048 | 14 new issue with photos 1/3 (twice the headline taken for the kicker, no words lost; once 41 calls); 01 2/3 (the claim check's page split) |
+
+Within a run of each other at a twelfth of the cost. On the cover cases Haiku made 23 placements where it made 54
+before the map, and 8 of 9 covers ended with nothing overlapping. The review is what makes covers readable: on a
+light photo Haiku put paper panels behind its stories once it saw the cover. A masthead left light on a light photo
+is the weakness still seen.
+
+### Effort and call-ceiling sweep, 2026-10-08
+
+After two fixes — a refused tool call now goes back to the model as a correctable error naming the field
+(`toolCallErrorText()` in `src/server/ai-errors.ts`), and `propose_sections` photos take a `width` like
+`insert_blocks`' — both models ran all 14 cases three times at each effort, with a 100-call ceiling and a $1 run cap
+(`assistant-models-sweep.mts`; "strict" keeps each case's own call budget, the ceilings replace it):
+
+| batch               | strict | ≤40 calls | ≤60   | ≤100  | cost (42 runs) | per run | stuck trips |
+| ------------------- | ------ | --------- | ----- | ----- | -------------- | ------- | ----------- |
+| `haiku-5-5` low     | 36/42  | 36/42     | 36/42 | 36/42 | $0.09          | $0.002  | 2           |
+| `haiku-5-5` medium  | 36/42  | 37/42     | 37/42 | 37/42 | $0.11          | $0.003  | 3           |
+| `haiku-5-5` high    | 34/42  | 37/42     | 37/42 | 37/42 | $0.17          | $0.004  | 5           |
+| `sonnet-5-5` low    | 37/42  | 37/42     | 37/42 | 37/42 | $0.99          | $0.023  | 0           |
+| `sonnet-5-5` medium | 38/42  | 38/42     | 38/42 | 38/42 | $1.32          | $0.032  | 1           |
+| `sonnet-5-5` high   | 30/42  | 33/42     | 34/42 | 35/42 | $2.41          | $0.057  | 3           |
+
+- **The call ceiling isn't a quality lever.** Raising it past 40 changed one batch (Sonnet at high, which spent its
+  calls second-guessing). Every stuck trip was the move rule, never the ceiling: a cover item placed a third time,
+  flip-flopping between two corners or two widths. That rule is doing its job.
+- **More effort isn't better.** Medium is the best of each model; high costs up to twice as much and moves more.
+- **Haiku 5.5 at medium is within a run of Sonnet 5.5 at medium for a twelfth of the cost.** Neither lost a word: on
+  case 14 the author's text is all there in every run of every batch, and its "words changed" failures are Sonnet
+  taking the capitalised headline for the kicker. What's left is shared: cover layouts that flip-flop (12, 13, 14),
+  and the claim check reading "split the notices into items" as a page split (01).
+
+### Haiku 5.5 trial, 2026-10-08
+
+The first look; `AI_MODEL` was still **`claude-sonnet-5-5`**. `claude-haiku-5-5` (adaptive thinking at `medium`, like the Sonnets; $0.10 /
+$0.50 per million tokens up to a 100,000-token prompt) ran all 14 cases three times beside Sonnet 5.5, same day, same
+app:
+
+| model               | runs passed | calls | cost (42 runs) | per run | what failed                                                                                                                                                                                               |
+| ------------------- | ----------- | ----- | -------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `claude-sonnet-5-5` | 39/42       | 241   | $1.37          | ~$0.03  | 01 tidy 2/3 (notice line reordered); 13 cover 2/3 (breaker at 21 calls); 14 new issue with photos 2/3 (headline taken for the kicker; no words lost)                                                      |
+| `claude-haiku-5-5`  | 33/42       | 285   | $0.14          | ~$0.003 | 12 new issue 0/3 (`propose_sections` photos sent with `width`, refused, reported to it as `provider_down`, so it gave up); 13 cover 1/3 (two breaker trips); 01 1/3; 02 2/3 (four one-item lists); 08 2/3 |
+
+A tenth of Sonnet's cost, and unlike Haiku 4.5 it **kept the author's words** in every run but one, the same
+case-01 reorder Sonnet made. Cases 03–11, the single-page edits, passed 26 of 27 runs. Two of its failures are the claim check's: case
+08's "With Thanks has moved to page 13" is true (pages were inserted before it), and case 01's "split the notices into
+five items… moved the line into a heading" describes the `insert_blocks` + `set_text` it made. Counted fairly that is
+35/42. What holds it back is the long jobs: a whole new issue, and covers (case 14 passed 3/3, but at 36–42 calls and
+~100s against Sonnet's 22–32 and ~50s). Case 12 was partly the app's fault: an invalid tool input was reported to
+the model as the service being down, so it stopped instead of correcting the call (Sonnet 5 hit the same `width` key
+on 2026-10-04). Both are fixed (above).
+
+### The previous pick, 2026-10-04
+
+`AI_MODEL` was **`claude-sonnet-5-5`**. Both Sonnets ran all 14 cases
 three times each, with covers and vision on, the same day and at the same list price ($2 / $10 per million tokens):
 
-| model               | runs passed | calls | cost (42 runs) | per run | what failed                                                                                                                                         |
-| ------------------- | ----------- | ----- | -------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `claude-sonnet-5-5` | 41/42       | 243   | $1.27          | ~$0.03  | 14 new issue with photos 2/3 (one run stuck at 48 calls, breaker trip)                                                                              |
+| model               | runs passed | calls | cost (42 runs) | per run | what failed                                                                                                                                        |
+| ------------------- | ----------- | ----- | -------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `claude-sonnet-5-5` | 41/42       | 243   | $1.27          | ~$0.03  | 14 new issue with photos 2/3 (one run stuck at 48 calls, breaker trip)                                                                             |
 | `claude-sonnet-5`   | 35/42       | 232   | $1.95          | ~$0.05  | 12 new issue 0/3 and 14 new issue with photos 0/3 (`propose_sections` photos sent with a `width` key the schema refuses; 16 calls invalid); 06 2/3 |
 
 Sonnet 5.5 is cheaper per run on the same price: case 04 (shorten to fit) took 4 calls and 11–14s where Sonnet 5 took
@@ -650,7 +732,7 @@ Sonnet 5.5 is cheaper per run on the same price: case 04 (shorten to fit) took 4
 come back as empty thinking blocks rather than text, so the panel shows tool lines and the reply but less narration.
 `claude-sonnet-5` stays priced, for a site that pins it with `AI_MODEL`.
 
-### The previous pick, 2026-09-26
+### An earlier pick, 2026-09-26
 
 `AI_MODEL` stayed **`claude-sonnet-5`**. Both Anthropic candidates ran
 the 11 page cases three times each, after the issue-view boundary fix (#356) and before vision (#342) was offered.
@@ -693,6 +775,10 @@ npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-budget.mts
 npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-runs.mts
 # the chat route's idle timeout: the timer, stalls before and during a reply, slow replies, Stop, the override
 npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-idle-timeout.mts
+# a tool call with input the SDK refused goes back to the model as a correctable error, through the panel's resend
+npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-tool-refusal.mts
+# the cover map and the clear spot a new cover item moves to
+npx tsx --tsconfig scripts/tsconfig.json scripts/check-assistant-cover-map.mts
 # the projection over every seed issue
 npx tsx --tsconfig scripts/tsconfig.json scripts/check-assistant-projection.mts
 # the hints' deck and the suggestion line's parsing and refusals (#366)

@@ -14,6 +14,7 @@ import {
   measureTextFlow,
 } from "../page-metrics";
 import { readCoverWarnings } from "../use-cover-layout-warnings";
+import { readCoverBoxes } from "./cover-map";
 import { fillFromMeasure } from "./page-fill";
 import type { EditMeasurer, PageReport, TextLines } from "./page-report";
 
@@ -235,12 +236,17 @@ export function createPageMeasurer(options: MeasurementOptions): Omit<
             />
           </PageFrame>,
         );
-        return readCoverWarnings(
-          page,
-          sources,
-          laid.querySelector<HTMLElement>(".cover-composition"),
-          laid.querySelector<HTMLElement>("[data-page-frame]"),
-        );
+        const composition =
+          laid.querySelector<HTMLElement>(".cover-composition");
+        return {
+          warnings: readCoverWarnings(
+            page,
+            sources,
+            composition,
+            laid.querySelector<HTMLElement>("[data-page-frame]"),
+          ),
+          boxes: readCoverBoxes(composition),
+        };
       } finally {
         clear();
       }

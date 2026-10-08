@@ -15,12 +15,13 @@ import { createFakeModel } from "@/server/ai-fake-model";
 
 // Adaptive thinking at a moderate effort: the spike's runs were tuned on it.
 const REASONING = "medium";
+export type AssistantEffort = "low" | "medium" | "high";
 
 export type AssistantModel = {
   provider: string;
   modelId: string;
   model: LanguageModel;
-  reasoning: typeof REASONING;
+  reasoning: AssistantEffort;
   providerOptions: SharedV4ProviderOptions;
   /** Overrides the chat route's idle timeout (fake provider, gates only). */
   idleTimeoutMs?: number;
@@ -53,10 +54,13 @@ export function createAssistantModel({
   provider,
   modelId,
   apiKey,
+  effort = REASONING,
 }: {
   provider: AssistantProvider;
   modelId?: string;
   apiKey?: string;
+  /** The fixture's sweep varies it; the route always takes the default. */
+  effort?: AssistantEffort;
 }): AssistantModel {
   switch (provider) {
     case "anthropic": {
@@ -65,10 +69,10 @@ export function createAssistantModel({
         provider,
         modelId: id,
         model: createAnthropic({ apiKey })(id),
-        reasoning: REASONING,
+        reasoning: effort,
         providerOptions: {
           anthropic: {
-            ...anthropicOptions(id),
+            ...anthropicOptions(id, effort),
             // Thinking blocks go back with the history, as the API requires on
             // a tool turn.
             sendReasoning: true,
@@ -82,8 +86,8 @@ export function createAssistantModel({
         provider,
         modelId: id,
         model: createOpenAI({ apiKey })(id),
-        reasoning: REASONING,
-        providerOptions: { openai: { reasoningEffort: REASONING } },
+        reasoning: effort,
+        providerOptions: { openai: { reasoningEffort: effort } },
       };
     }
     case "openrouter": {
@@ -92,9 +96,9 @@ export function createAssistantModel({
         provider,
         modelId: id,
         model: createOpenRouter({ apiKey })(id, {
-          reasoning: { effort: REASONING },
+          reasoning: { effort },
         }),
-        reasoning: REASONING,
+        reasoning: effort,
         providerOptions: {},
       };
     }
@@ -103,7 +107,7 @@ export function createAssistantModel({
         provider,
         modelId: "fake",
         model: createFakeModel(),
-        reasoning: REASONING,
+        reasoning: effort,
         providerOptions: {},
       };
   }
@@ -115,9 +119,9 @@ function required(provider: string, modelId: string | undefined): string {
 }
 
 /** Adaptive thinking at the effort, or the model's fixed budget (ai-thinking). */
-function anthropicOptions(modelId: string) {
+function anthropicOptions(modelId: string, effort: AssistantEffort) {
   const thinking = anthropicThinking(modelId) ?? { type: "adaptive" as const };
   return thinking.type === "adaptive"
-    ? ({ thinking, effort: REASONING } as const)
+    ? ({ thinking, effort } as const)
     : { thinking };
 }

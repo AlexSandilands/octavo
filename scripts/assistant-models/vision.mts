@@ -17,7 +17,17 @@ export function fixtureVision(
   renderer: PageRenderer,
   pages: () => Page[],
 ) {
-  const eyes: VisionEyes = {
+  const eyes = fixtureEyes(issue, renderer, pages);
+  return { ...createVision(eyes), eyes };
+}
+
+/** Pictures of the issue as it stands, and of the case's own photos. */
+function fixtureEyes(
+  issue: FixtureIssue,
+  renderer: PageRenderer,
+  pages: () => Page[],
+): VisionEyes {
+  return {
     pages: async (_source, _issue, numbers) => {
       const now = pages();
       return Promise.all(
@@ -49,5 +59,4 @@ export function fixtureVision(
       };
     },
   };
-  return createVision(eyes);
 }
