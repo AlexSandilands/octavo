@@ -122,7 +122,9 @@ export const aiCoverToolSchemas = {
       row: z.enum(["top", "center", "bottom"]).describe("Row."),
       width: z
         .enum(["narrow", "medium", "wide"])
-        .describe("How wide the item is."),
+        .describe(
+          "A share of the whole page's width: narrow about a third, medium just under half, wide all of it (nothing fits beside it in its row).",
+        ),
       align: z.enum(["left", "center", "right"]).describe("Text alignment."),
       textSize: z
         .enum(["small", "normal", "large", "xlarge"])
@@ -173,14 +175,15 @@ export const aiCoverToolDescriptions: Record<AiCoverToolName, string> = {
   set_masthead:
     "Set the cover's masthead: the magazine's big title, with an optional kicker line above it. Creates it top left if the cover has none; the automatic small magazine-name line is turned off.",
   add_story:
-    "Add a story panel to the cover: one to six cover lines, each linked to an interior heading (headingId, so it shows that page's number and follows renames) and/or with its own cover wording (title) and a short description. headlineSize: compact | list | large | display (display = one big lead story).",
+    "Add a story panel to the cover (it goes center left, or the first clear spot if something is there): one to six cover lines, each linked to an interior heading (headingId, so it shows that page's number and follows renames) and/or with its own cover wording (title) and a short description. headlineSize: compact | list | large | display (display = one big lead story).",
   add_details:
-    "Add the issue details line (e.g. season and edition), optionally with the issue number.",
-  add_logo: "Place a logo from the club's logo library on the cover.",
+    "Add the issue details line (e.g. season and edition), optionally with the issue number. It goes top right, or the first clear spot if something is there.",
+  add_logo:
+    "Place a logo from the club's logo library on the cover: bottom right, or the first clear spot if something is there.",
   remove_cover_item:
     "Remove a cover item (story, details, logo, masthead or other cover block).",
   place_cover_item:
-    "Place a cover item on the cover's 3×3 grid: column left|center|right, row top|center|bottom, width narrow|medium|wide, text align left|center|right. Items in the same cell stack in `order`. textSize scales its type.",
+    "Place a cover item on the cover's 3×3 grid: column left|center|right, row top|center|bottom, width narrow|medium|wide, text align left|center|right. Width is a share of the whole page: a wide item fills its row; two medium items fit side by side in the left and right columns, but a medium or wide item in the center column reaches into both sides. Items in the same cell stack top to bottom in `order`. textSize scales its type.",
   style_cover_item:
     "Style a cover item: its text colour, a panel behind it (panelShape block = a box, text = hugging each line) and the panel's colour, and a text shadow and its colour.",
   style_cover_page:

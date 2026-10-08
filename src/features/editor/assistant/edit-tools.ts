@@ -48,6 +48,9 @@ export type EditResult = {
   report: string[];
   /** The block a move_block moved, for the circuit-breaker. */
   moved?: string;
+  /** A cover item's cell and width before and after a placement, for the
+   *  breaker's rule against putting it back where it was. */
+  spot?: { id: string; from: string; to: string };
   /** Lines for the author's run summary (a photo the plan suggested, #312). */
   notes?: string[];
 };

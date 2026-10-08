@@ -2,7 +2,7 @@ import type { Block, Page } from "@/lib/blocks";
 import { richTextToPlain } from "@/lib/rich-text-doc";
 import type { Fits } from "../pdf-import/paginate";
 import type { TextFlowMetrics } from "../text-flow";
-import type { CoverWarning } from "../use-cover-layout-warnings";
+import type { CoverLayout } from "./cover-map";
 import { BODY_LINE_PX, describeFill, type PageFill } from "./page-fill";
 
 // What the executor learns about a page after an edit (#310), and how it's told
@@ -30,8 +30,9 @@ export interface EditMeasurer {
   textFlow(blocks: Block[], blockId: string): Promise<TextFlowMetrics | null>;
   /** The paginator's page test (#312), live until `dispose` or `signal` aborts. */
   fitter(signal: AbortSignal): Promise<{ fits: Fits; dispose(): void }>;
-  /** A cover laid out as members see it, and the editor's layout warnings on it (#313). */
-  cover(page: Page, pages: Page[]): Promise<CoverWarning[]>;
+  /** A cover laid out as members see it: the editor's layout warnings on it
+   *  (#313) and where each item landed. */
+  cover(page: Page, pages: Page[]): Promise<CoverLayout>;
 }
 
 const MAX_LAST_LINES = 12;

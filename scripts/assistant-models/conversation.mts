@@ -36,6 +36,10 @@ import {
   RUN_CALL_LIMIT,
 } from "../../src/features/editor/assistant/executor.ts";
 import { projection } from "../../src/features/editor/assistant/projection.ts";
+import {
+  reviewPages,
+  reviewParts,
+} from "../../src/features/editor/assistant/review.ts";
 import { readPage } from "../../src/features/editor/assistant/tools.ts";
 import {
   authorText,
@@ -76,6 +80,8 @@ export type CaseRun = {
   reply: string;
   /** Why the run ended early: the breaker, the run cap or an error. */
   stopped?: string;
+  /** The pages the end-of-run review showed the model, as the panel does. */
+  reviewed: number[];
   /** The breaker rule that stopped it, when one did. */
   tripped?: "calls" | "moves" | "stall";
   ms: number;
@@ -217,8 +223,11 @@ export async function runCase({
   const calls: LoggedCall[] = [];
   const requests: RequestLog[] = [];
   const answered = new Set<string>();
+  // Finished turns: the author's message, then a reply and the review's.
+  const history: UIMessage[] = [author];
   let reply: UIMessage | undefined;
   let stopped: string | undefined;
+  let reviewed: number[] | undefined;
 
   for (let n = 0; n < callLimit + REQUEST_HEADROOM; n++) {
     const spent = requests.reduce((sum, r) => sum + r.costUsd, 0);
@@ -226,7 +235,7 @@ export async function runCase({
       stopped = `run cap ($${runCapUsd.toFixed(2)})`;
       break;
     }
-    const messages = reply ? [author, reply] : [author];
+    const messages = reply ? [...history, reply] : history;
     // The route's own body check: the conversation must be one it accepts.
     const body = await parseChatBody(
       { runId, issueId: "fixture", messages },
@@ -307,14 +316,38 @@ export async function runCase({
       const breaker = executor.breaker();
       if (breaker) stopped = `circuit-breaker: ${breaker}`;
     }
-    if (stopped || newCalls === 0) break;
+    if (stopped) break;
+    if (newCalls > 0) continue;
+    // The panel's end-of-run review (#342): once, from the room views left.
+    if (reviewed) break;
+    const now = await assistantIssue(issue, state.pages, browser);
+    reviewed = reviewPages(executor.summary(), now.pages).slice(
+      0,
+      vision.room(),
+    );
+    if (!reviewed.length || !reply) break;
+    const shots = await vision.eyes.pages(
+      { issueId: "fixture", logoId: null },
+      now,
+      reviewed,
+    );
+    history.push(reply, {
+      id: crypto.randomUUID(),
+      role: "user",
+      parts: reviewParts(shots, now),
+    });
+    reply = undefined;
   }
+  const replies = [...history.slice(1), ...(reply ? [reply] : [])].filter(
+    (m) => m.role === "assistant",
+  );
   return {
     projection: view,
     pages: state.pages,
     calls,
     requests,
-    reply: textOf(reply),
+    reply: replies.map(textOf).filter(Boolean).join("\n\n"),
+    reviewed: reviewed ?? [],
     stopped,
     tripped: executor.tripped() ?? undefined,
     ms: Date.now() - started,

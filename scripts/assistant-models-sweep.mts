@@ -48,7 +48,7 @@ function passesAt(run: Run, limit: number): boolean {
 const usd = (n: number) => `$${n.toFixed(n < 1 ? 3 : 2)}`;
 const median = (xs: number[]) => {
   const s = [...xs].sort((a, b) => a - b);
-  return s.length ? s[Math.floor(s.length / 2)] : 0;
+  return s[Math.floor(s.length / 2)] ?? 0;
 };
 
 const rows: string[] = [];

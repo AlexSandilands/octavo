@@ -39,6 +39,9 @@ export type RunSummary = RunChange & {
 
 export const RUN_CALL_LIMIT = 40;
 export const RUN_MOVE_LIMIT = 2;
+/** Placements of one cover item a run may make, as long as none puts it back
+ *  where it was: laying out, fixing an overlap and the review's touch are three. */
+export const RUN_COVER_MOVE_LIMIT = 4;
 /** Re-trims of a block, in a row, on a page that still overflows (#355). */
 export const RUN_STALL_LIMIT = 4;
 export const BREAKER_MESSAGE =
@@ -49,6 +52,10 @@ export const INTERRUPTED_MESSAGE =
 type RunState = {
   calls: number;
   moves: Map<string, number>;
+  /** Each cover item's spots this run, oldest first. */
+  spots: Map<string, string[]>;
+  /** A cover item went back to a spot it had already had this run. */
+  flipped: boolean;
   /** The step recorded before the run's first change; null until it changes something. */
   step: EditorSnapshot | null;
   /** The pages as the run last left them. */
@@ -88,9 +95,23 @@ function trackStall(
   return { ...s, blocks: new Set(s.blocks).add(blockId) };
 }
 
+/** A cover item placed: back on a spot it had is a flip-flop; the same spot
+ *  (a text size or order changed) isn't a move at all. */
+function placed(
+  run: RunState,
+  { id, from, to }: { id: string; from: string; to: string },
+) {
+  const seen = run.spots.get(id) ?? [from];
+  if (to === seen.at(-1)) return;
+  if (seen.includes(to)) run.flipped = true;
+  run.spots.set(id, [...seen, to]);
+}
+
 const fresh = (): RunState => ({
   calls: 0,
   moves: new Map(),
+  spots: new Map(),
+  flipped: false,
   step: null,
   last: null,
   interrupted: false,
@@ -265,6 +286,7 @@ export function createAssistantExecutor({
       mine.notes.push(...(result.notes ?? []));
       if (result.moved)
         mine.moves.set(result.moved, (mine.moves.get(result.moved) ?? 0) + 1);
+      if (result.spot) placed(mine, result.spot);
 
       const lines: string[] = [];
       let over = false;
@@ -352,7 +374,11 @@ export function createAssistantExecutor({
     /** Which of the breaker's rules the run broke, or null. */
     tripped(): "calls" | "moves" | "stall" | null {
       if (run.calls > callLimit) return "calls";
-      if ([...run.moves.values()].some((n) => n > RUN_MOVE_LIMIT))
+      if (
+        run.flipped ||
+        [...run.moves.values()].some((n) => n > RUN_MOVE_LIMIT) ||
+        [...run.spots.values()].some((s) => s.length - 1 > RUN_COVER_MOVE_LIMIT)
+      )
         return "moves";
       return run.stall.repeats >= RUN_STALL_LIMIT ? "stall" : null;
     },

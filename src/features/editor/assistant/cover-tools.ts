@@ -19,6 +19,13 @@ import { coverItems, coverOverlayOf, placementOf } from "@/lib/cover-order";
 import { carryLettering, hasWordColour } from "@/lib/cover-rich-text";
 import { setCoverBackground } from "../cover-layout";
 import { Refusal, type EditResult } from "./edit-tools";
+import {
+  COVER_ADDS,
+  clearSpotFor,
+  coverMapText,
+  coverSummary,
+  moveElement,
+} from "./cover-map";
 import type { EditMeasurer } from "./page-report";
 
 // The assistant's cover edits (#313), lifted from the spike's cover-tools.ts:
@@ -361,11 +368,22 @@ function compose(
   }
 }
 
+/** Where an item sits, as the breaker compares placements. */
+const spotOf = (p: Pick<CoverPlacement, "row" | "column" | "width">) =>
+  `${p.row} ${p.column} ${p.width}`;
+const current = (item: Item, page: Page) =>
+  item.kind === "element" ? item.el.placement : placementOf(item.block, page);
+
 function itemEdit(
   pages: Page[],
   name: AiCoverToolName,
   input: unknown,
-): { pageIdx: number; page: Page; text: string; moved?: string } {
+): {
+  pageIdx: number;
+  page: Page;
+  text: string;
+  spot?: EditResult["spot"];
+} {
   const parsed =
     name === "remove_cover_item"
       ? schemas.remove_cover_item.parse(input)
@@ -401,7 +419,7 @@ function itemEdit(
         ...compact({ textSize: a.textSize, order: a.order }),
       })),
       text: `Placed it ${a.row} ${a.column}, ${a.width}, aligned ${a.align}.`,
-      moved: a.id,
+      spot: { id: a.id, from: spotOf(current(item, page)), to: spotOf(a) },
     };
   }
   const a = schemas.style_cover_item.parse(input);
@@ -431,23 +449,6 @@ function itemEdit(
 
 const ITEM_TOOLS: ReadonlySet<string> = new Set(AI_COVER_ITEM_TOOLS);
 
-/** "a background photo, a masthead, 2 stories, issue details and a logo". */
-export function coverSummary(page: Page): string {
-  const els = page.coverElements ?? [];
-  const n = (type: CoverElement["type"]) =>
-    els.filter((e) => e.type === type).length;
-  const stories = n("story");
-  const logos = n("logo");
-  const parts = [
-    page.blocks.some(isBackground) && "a background photo",
-    page.blocks.some((b) => b.type === "heading") && "a masthead",
-    stories && `${stories} stor${stories > 1 ? "ies" : "y"}`,
-    n("details") && "issue details",
-    logos && `${logos} logo${logos > 1 ? "s" : ""}`,
-  ].filter(Boolean) as string[];
-  return parts.length ? parts.join(", ") : "nothing on it";
-}
-
 export const isCoverTool = (name: string): name is AiCoverToolName =>
   Object.hasOwn(schemas, name);
 
@@ -457,22 +458,37 @@ export async function applyCoverTool(
   name: AiCoverToolName,
   input: unknown,
 ): Promise<EditResult> {
-  const edit: { pageIdx: number; page: Page; text: string; moved?: string } =
-    ITEM_TOOLS.has(name)
-      ? itemEdit(ctx.pages, name, input)
-      : (() => {
-          const pageIdx = targetCover(ctx);
-          return { pageIdx, ...compose(ctx, name, input, ctx.pages[pageIdx]!) };
-        })();
-  const pages = ctx.pages.map((p, i) => (i === edit.pageIdx ? edit.page : p));
-  const warnings = await ctx.measure.cover(edit.page, pages);
+  const edit: {
+    pageIdx: number;
+    page: Page;
+    text: string;
+    spot?: EditResult["spot"];
+  } = ITEM_TOOLS.has(name)
+    ? itemEdit(ctx.pages, name, input)
+    : (() => {
+        const pageIdx = targetCover(ctx);
+        return { pageIdx, ...compose(ctx, name, input, ctx.pages[pageIdx]!) };
+      })();
+  let pages = ctx.pages.map((p, i) => (i === edit.pageIdx ? edit.page : p));
+  let layout = await ctx.measure.cover(edit.page, pages);
+  // A new item that landed on another goes to the first clear spot for its kind.
+  const added = COVER_ADDS.has(name) && edit.text.match(/\[([^\]]+)\]/)?.[1];
+  const spot = added ? clearSpotFor(edit.page, added, layout) : null;
+  if (added && spot) {
+    edit.page = moveElement(edit.page, added, spot);
+    edit.text += ` It would have overlapped another item, so it went ${spot.row} ${spot.column}, the first clear spot.`;
+    pages = ctx.pages.map((p, i) => (i === edit.pageIdx ? edit.page : p));
+    layout = await ctx.measure.cover(edit.page, pages);
+  }
+  const { warnings } = layout;
   const said = warnings.length
     ? `Layout warnings: ${warnings.map((w) => w.text).join(" ")}`
     : "No layout warnings.";
+  const map = coverMapText(edit.page, layout);
   return {
     pages,
-    text: `${edit.text} The cover (page ${edit.pageIdx + 1}) now has ${coverSummary(edit.page)}. ${said}`,
+    text: `${edit.text} The cover (page ${edit.pageIdx + 1}) now has ${coverSummary(edit.page)}. ${said}${map ? ` ${map}` : ""}`,
     report: [],
-    moved: edit.moved,
+    spot: edit.spot,
   };
 }
