@@ -215,9 +215,10 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
     Then the **cover map** (`assistant/cover-map.ts`): each item by kind and id, its cell and width, and where it
     measured as shares of the page across and down; the cells nothing touches; what overlaps what, by id. Before it
     the model heard only "Story overlaps logo" and moved items back and forth until the move rule stopped it; with it
-    (2026-10-08, cases 12–14 ×3) every cover ended with no overlaps (5/9 before) in half the placements.
-  - **Clear spots.** `add_story`, `add_details` and `add_logo` land where they always have, and an item that lands on
-    another moves to the first clear cell for its kind (details top right, then the bottom corners; a logo bottom
+    (2026-10-08, cases 12–14 ×3, Haiku 5.5) 8 of 9 covers ended with nothing overlapping (5 of 9 before) in under half
+    the placements.
+  - **Clear spots.** A story lands center left, the details line top right (the masthead has top left) and a logo
+    bottom right, as the tool descriptions say; an item that lands on another moves to the first clear cell for its kind (details top right, then the bottom corners; a logo bottom
     right, then the other corners; a story center left, then down the left and right), sized as it measured: the
     details line no longer lands on the masthead. Only cells no other item is placed in, since a stack's height moves.
   - **Widths** are shares of the whole page (narrow 31%, medium 47%, wide 100%), so a wide item fills its row. The
@@ -714,7 +715,7 @@ five items… moved the line into a heading" describes the `insert_blocks` + `se
 35/42. What holds it back is the long jobs: a whole new issue, and covers (case 14 passed 3/3, but at 36–42 calls and
 ~100s against Sonnet's 22–32 and ~50s). Case 12 was partly the app's fault: an invalid tool input was reported to
 the model as the service being down, so it stopped instead of correcting the call (Sonnet 5 hit the same `width` key
-on 2026-10-04). Both are fixed (below).
+on 2026-10-04). Both are fixed (above).
 
 ### The previous pick, 2026-10-04
 
@@ -774,7 +775,7 @@ npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-budget.mts
 npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-runs.mts
 # the chat route's idle timeout: the timer, stalls before and during a reply, slow replies, Stop, the override
 npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-idle-timeout.mts
-# a refused tool call (bad input, no such tool) goes back to the model as a correctable error
+# a tool call with input the SDK refused goes back to the model as a correctable error, through the panel's resend
 npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-tool-refusal.mts
 # the cover map and the clear spot a new cover item moves to
 npx tsx --tsconfig scripts/tsconfig.json scripts/check-assistant-cover-map.mts

@@ -38,16 +38,19 @@ const page = {
       ...story,
       placement: { ...story.placement, row: "bottom", width: "medium" },
     },
-    details,
+    {
+      ...details,
+      placement: { ...details.placement, column: "right", align: "right" },
+    },
   ],
 } as unknown as Page;
 
 // A wide masthead across the top, a medium story bottom left, and details
-// that landed top left, on the masthead.
+// top right, below the masthead's line (no overlap).
 const boxes: CoverBox[] = [
   { id: masthead.id, x0: 0, x1: 1, y0: 0, y1: 0.18 },
   { id: story.id, x0: 0, x1: 0.47, y0: 0.7, y1: 1 },
-  { id: details.id, x0: 0, x1: 0.47, y0: 0.2, y1: 0.26 },
+  { id: details.id, x0: 0.53, x1: 1, y0: 0.2, y1: 0.26 },
 ];
 const warnings = [
   { ids: [masthead.id, details.id], text: "Heading overlaps details." },
@@ -60,9 +63,10 @@ ok(
   `a wide item takes its whole row; clear cells follow the boxes (${cells.join(", ")})`,
 );
 
+// Details added top right, under the wide masthead's reach.
 const overlapping = [
   ...boxes.slice(0, 2),
-  { id: details.id, x0: 0, x1: 0.47, y0: 0.05, y1: 0.12 },
+  { id: details.id, x0: 0.53, x1: 1, y0: 0.05, y1: 0.12 },
 ];
 const spot = clearSpotFor(page, details.id, {
   warnings,
@@ -70,7 +74,7 @@ const spot = clearSpotFor(page, details.id, {
 });
 ok(
   spot?.row === "bottom" && spot.column === "right",
-  `details on the masthead go to the first clear spot for details: top right is the masthead's, so bottom right (${spot?.row} ${spot?.column})`,
+  `details under a wide masthead go to the first clear spot for details: the masthead reaches over top right, so bottom right (${spot?.row} ${spot?.column})`,
 );
 ok(
   clearSpotFor(page, details.id, { warnings: [], boxes }) === null,

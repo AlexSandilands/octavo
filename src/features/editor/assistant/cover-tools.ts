@@ -20,7 +20,6 @@ import { carryLettering, hasWordColour } from "@/lib/cover-rich-text";
 import { setCoverBackground } from "../cover-layout";
 import { Refusal, type EditResult } from "./edit-tools";
 import {
-  COVER_ADDS,
   clearSpotFor,
   coverMapText,
   coverSummary,
@@ -169,7 +168,7 @@ function compose(
   name: AiCoverToolName,
   input: unknown,
   page: Page,
-): { page: Page; text: string } {
+): { page: Page; text: string; added?: string } {
   switch (name) {
     case "set_cover_background": {
       const a = schemas.set_cover_background.parse(input);
@@ -304,19 +303,23 @@ function compose(
       return {
         page: next,
         text: `Added a story [${el.id}] with ${n} item${n > 1 ? "s" : ""}.`,
+        added: el.id,
       };
     }
     case "add_details": {
       const a = schemas.add_details.parse(input);
       const el = makeCoverElement("details");
       return {
+        // Top right, as the tool says: top left is the masthead's.
         page: addElement(page, {
           ...el,
+          placement: { ...el.placement, column: "right", align: "right" },
           type: "details",
           text: a.text,
           showNumber: a.showNumber ?? true,
         }),
         text: `Added issue details [${el.id}].`,
+        added: el.id,
       };
     }
     case "add_logo": {
@@ -338,6 +341,7 @@ function compose(
           size: a.size ?? 100,
         }),
         text: `Added the logo "${logo.name}" [${el.id}].`,
+        added: el.id,
       };
     }
     case "style_cover_page": {
@@ -463,6 +467,7 @@ export async function applyCoverTool(
     page: Page;
     text: string;
     spot?: EditResult["spot"];
+    added?: string;
   } = ITEM_TOOLS.has(name)
     ? itemEdit(ctx.pages, name, input)
     : (() => {
@@ -472,7 +477,7 @@ export async function applyCoverTool(
   let pages = ctx.pages.map((p, i) => (i === edit.pageIdx ? edit.page : p));
   let layout = await ctx.measure.cover(edit.page, pages);
   // A new item that landed on another goes to the first clear spot for its kind.
-  const added = COVER_ADDS.has(name) && edit.text.match(/\[([^\]]+)\]/)?.[1];
+  const added = edit.added;
   const spot = added ? clearSpotFor(edit.page, added, layout) : null;
   if (added && spot) {
     edit.page = moveElement(edit.page, added, spot);

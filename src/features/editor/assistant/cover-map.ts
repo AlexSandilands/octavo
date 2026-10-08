@@ -6,7 +6,6 @@
 import type { Block, Page } from "@/lib/blocks";
 import type { CoverElement, CoverPlacement } from "@/lib/cover-elements";
 import { coverItems, placementOf, type CoverItem } from "@/lib/cover-order";
-import type { AiCoverToolName } from "@/lib/ai-cover-tools";
 import type { CoverWarning } from "../use-cover-layout-warnings";
 
 /** An item's box as fractions (0–1) of the cover grid. */
@@ -166,13 +165,6 @@ export function clearSpotFor(
     ) ?? null
   );
 }
-
-/** The tools that add an item, which a clear spot may move. */
-export const COVER_ADDS = new Set<AiCoverToolName>([
-  "add_story",
-  "add_details",
-  "add_logo",
-]);
 
 /** An element moved to `cell`, its text set to the cell's side. */
 export function moveElement(

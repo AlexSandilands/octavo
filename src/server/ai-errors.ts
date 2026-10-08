@@ -1,10 +1,5 @@
 import "server-only";
-import {
-  APICallError,
-  InvalidToolInputError,
-  NoSuchToolError,
-  RetryError,
-} from "ai";
+import { APICallError, InvalidToolInputError, RetryError } from "ai";
 import { NextResponse } from "next/server";
 import {
   AI_ERROR_COPY,
@@ -56,19 +51,12 @@ export function classifyProviderError(error: unknown): AiErrorCode {
   return "provider_down";
 }
 
-/** A call refused before it ran (bad input, no such tool), worded for the
- *  model so it corrects the call rather than reading an outage; else null.
- *  The SDK hands a tool part's error over as its message string, which holds
- *  the whole input, so only the tool's name and the schema's issues are kept. */
+/** A call whose input the SDK refused before it ran, worded for the model so
+ *  it corrects the call rather than reading an outage; else null. The SDK
+ *  hands a tool part's error over as its message string, which holds the
+ *  whole input, so only the tool's name and the schema's issues are kept. */
 export function toolCallErrorText(error: unknown): string | null {
   const message = typeof error === "string" ? error : null;
-  const missing = NoSuchToolError.isInstance(error)
-    ? error.toolName
-    : message?.match(
-        /^(?:AI_\w+: )?Model tried to call unavailable tool '([^']+)'/,
-      )?.[1];
-  if (missing)
-    return `There is no tool called "${missing}". Nothing was changed.`;
   const tool = InvalidToolInputError.isInstance(error)
     ? error.toolName
     : message?.match(/^(?:AI_\w+: )?Invalid input for tool ([\w-]+):/)?.[1];
