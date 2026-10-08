@@ -176,9 +176,12 @@ export type CallContext = {
 export function createAssistantExecutor({
   handle,
   measure,
+  callLimit = RUN_CALL_LIMIT,
 }: {
   handle: AssistantEditorHandle;
   measure: EditMeasurer;
+  /** The breaker's call ceiling; the model-selection fixture varies it. */
+  callLimit?: number;
 }) {
   let run = fresh();
   // Calls run one at a time, each on the state the one before it left.
@@ -344,10 +347,14 @@ export function createAssistantExecutor({
      *  forth, trimming that stalls, the issue changed under it), or null. */
     breaker(): string | null {
       if (run.interrupted) return INTERRUPTED_MESSAGE;
-      const thrashing =
-        [...run.moves.values()].some((n) => n > RUN_MOVE_LIMIT) ||
-        run.stall.repeats >= RUN_STALL_LIMIT;
-      return run.calls > RUN_CALL_LIMIT || thrashing ? BREAKER_MESSAGE : null;
+      return this.tripped() ? BREAKER_MESSAGE : null;
+    },
+    /** Which of the breaker's rules the run broke, or null. */
+    tripped(): "calls" | "moves" | "stall" | null {
+      if (run.calls > callLimit) return "calls";
+      if ([...run.moves.values()].some((n) => n > RUN_MOVE_LIMIT))
+        return "moves";
+      return run.stall.repeats >= RUN_STALL_LIMIT ? "stall" : null;
     },
     /** What the run itself changed, for the panel's one line and its Undo; null if nothing. */
     summary(): RunSummary | null {

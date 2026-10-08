@@ -31,7 +31,10 @@ import { assistantTools } from "../../src/server/ai-chat-tools.ts";
 import { FAKE_TRIGGER_TOOLS } from "../../src/server/ai-fake-model.ts";
 import type { AssistantModel } from "../../src/server/ai-provider.ts";
 import type { EditorSnapshot } from "../../src/features/editor/use-editor-history.ts";
-import { createAssistantExecutor } from "../../src/features/editor/assistant/executor.ts";
+import {
+  createAssistantExecutor,
+  RUN_CALL_LIMIT,
+} from "../../src/features/editor/assistant/executor.ts";
 import { projection } from "../../src/features/editor/assistant/projection.ts";
 import { readPage } from "../../src/features/editor/assistant/tools.ts";
 import {
@@ -73,10 +76,13 @@ export type CaseRun = {
   reply: string;
   /** Why the run ended early: the breaker, the run cap or an error. */
   stopped?: string;
+  /** The breaker rule that stopped it, when one did. */
+  tripped?: "calls" | "moves" | "stall";
   ms: number;
 };
 
-const REQUEST_LIMIT = 60;
+/** Requests past the call limit, for replies that make no calls. */
+const REQUEST_HEADROOM = 20;
 // A backstop on a whole reply: streamAssistant's idle timeout (#358) ends a
 // stalled one first, as a stream error.
 const REQUEST_TIMEOUT_MS = 180_000;
@@ -161,12 +167,18 @@ export async function runCase({
   browser,
   renderer,
   model,
+  callLimit = RUN_CALL_LIMIT,
+  runCapUsd = RUN_SPEND_CAP_USD,
 }: {
   c: Case;
   issue: FixtureIssue;
   browser: MeasureBrowser;
   renderer: PageRenderer;
   model: AssistantModel;
+  /** The breaker's call ceiling and the run's spend cap: the product's unless
+   *  a sweep (--call-limit, --run-cap) says otherwise. */
+  callLimit?: number;
+  runCapUsd?: number;
 }): Promise<CaseRun> {
   const started = Date.now();
   let state: EditorSnapshot = {
@@ -175,6 +187,7 @@ export async function runCase({
     sel: null,
   };
   const executor = createAssistantExecutor({
+    callLimit,
     measure: browser.measurer(),
     handle: {
       state: () => state,
@@ -207,10 +220,10 @@ export async function runCase({
   let reply: UIMessage | undefined;
   let stopped: string | undefined;
 
-  for (let n = 0; n < REQUEST_LIMIT; n++) {
+  for (let n = 0; n < callLimit + REQUEST_HEADROOM; n++) {
     const spent = requests.reduce((sum, r) => sum + r.costUsd, 0);
-    if (spent >= RUN_SPEND_CAP_USD) {
-      stopped = "run cap ($0.50)";
+    if (spent >= runCapUsd) {
+      stopped = `run cap ($${runCapUsd.toFixed(2)})`;
       break;
     }
     const messages = reply ? [author, reply] : [author];
@@ -303,6 +316,7 @@ export async function runCase({
     requests,
     reply: textOf(reply),
     stopped,
+    tripped: executor.tripped() ?? undefined,
     ms: Date.now() - started,
   };
 }

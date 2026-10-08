@@ -604,7 +604,10 @@ run** on the new pairing, and the run's table goes in the PR that changes it.
   Options: `--provider anthropic|openai|openrouter|fake` (**required**, no default, so a bare run with `--yes` can't
   spend), `--model <id>`, `--repeat N` (the spread matters: one case swung between 4 and 14 calls),
   `--case 03,08`, `--photos <dir>`, `--yes`, and `--resume <results dir>`, which finishes a batch that stopped, reusing
-  its saved runs. A request with no reply in three minutes stops its run with a reason rather than the batch. Keys come
+  its saved runs. For a sweep, `--effort low|medium|high`, `--call-limit N` (the breaker's call ceiling) and
+  `--run-cap <usd>` replace the product's values for that batch and are named in its results directory;
+  `npx tsx scripts/assistant-models-sweep.mts <results dir>…` puts batches side by side and re-scores each at lower
+  ceilings (`--ceilings 40,60,100`), which is sound because the model is never told the ceiling. A request with no reply in three minutes stops its run with a reason rather than the batch. Keys come
   from `.env.local`; a provider without its key is skipped (OpenRouter exits 0 so a batch carries on).
 
 - **It spends real money** on any provider but `fake`. Before starting it prints an estimate (each case's tokens from a
@@ -637,6 +640,31 @@ run** on the new pairing, and the run's table goes in the PR that changes it.
   so the free run covers vision too. The route and the fixture send one system prompt, `assistantInstructions()` in
   `src/server/ai-chat-stream.ts`, with vision on.
 
+### Effort and call-ceiling sweep, 2026-10-08
+
+After two fixes — a refused tool call now goes back to the model as a correctable error naming the field
+(`toolCallErrorText()` in `src/server/ai-errors.ts`), and `propose_sections` photos take a `width` like
+`insert_blocks`' — both models ran all 14 cases three times at each effort, with a 100-call ceiling and a $1 run cap
+(`assistant-models-sweep.mts`; "strict" keeps each case's own call budget, the ceilings replace it):
+
+| batch               | strict | ≤40 calls | ≤60   | ≤100  | cost (42 runs) | per run | stuck trips |
+| ------------------- | ------ | --------- | ----- | ----- | -------------- | ------- | ----------- |
+| `haiku-5-5` low     | 36/42  | 36/42     | 36/42 | 36/42 | $0.09          | $0.002  | 2           |
+| `haiku-5-5` medium  | 36/42  | 37/42     | 37/42 | 37/42 | $0.11          | $0.003  | 3           |
+| `haiku-5-5` high    | 34/42  | 37/42     | 37/42 | 37/42 | $0.17          | $0.004  | 5           |
+| `sonnet-5-5` low    | 37/42  | 37/42     | 37/42 | 37/42 | $0.99          | $0.023  | 0           |
+| `sonnet-5-5` medium | 38/42  | 38/42     | 38/42 | 38/42 | $1.32          | $0.032  | 1           |
+| `sonnet-5-5` high   | 30/42  | 33/42     | 34/42 | 35/42 | $2.41          | $0.057  | 3           |
+
+- **The call ceiling isn't a quality lever.** Raising it past 40 changed one batch (Sonnet at high, which spent its
+  calls second-guessing). Every stuck trip was the move rule, never the ceiling: a cover item placed a third time,
+  flip-flopping between two corners or two widths. That rule is doing its job.
+- **More effort isn't better.** Medium is the best of each model; high costs up to twice as much and moves more.
+- **Haiku 5.5 at medium is within a run of Sonnet 5.5 at medium for a twelfth of the cost.** Neither lost a word: on
+  case 14 the author's text is all there in every run of every batch, and its "words changed" failures are Sonnet
+  taking the capitalised headline for the kicker. What's left is shared: cover layouts that flip-flop (12, 13, 14),
+  and the claim check reading "split the notices into items" as a page split (01).
+
 ### Haiku 5.5 trial, 2026-10-08
 
 `AI_MODEL` stays **`claude-sonnet-5-5`**. `claude-haiku-5-5` (adaptive thinking at `medium`, like the Sonnets; $0.10 /
@@ -645,7 +673,7 @@ app:
 
 | model               | runs passed | calls | cost (42 runs) | per run | what failed                                                                                                                                                                                               |
 | ------------------- | ----------- | ----- | -------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `claude-sonnet-5-5` | 39/42       | 241   | $1.37          | ~$0.03  | 01 tidy 2/3 (notice line reordered); 13 cover 2/3 (breaker at 21 calls); 14 new issue with photos 2/3 (43 words lost)                                                                                     |
+| `claude-sonnet-5-5` | 39/42       | 241   | $1.37          | ~$0.03  | 01 tidy 2/3 (notice line reordered); 13 cover 2/3 (breaker at 21 calls); 14 new issue with photos 2/3 (headline taken for the kicker; no words lost)                                                      |
 | `claude-haiku-5-5`  | 33/42       | 285   | $0.14          | ~$0.003 | 12 new issue 0/3 (`propose_sections` photos sent with `width`, refused, reported to it as `provider_down`, so it gave up); 13 cover 1/3 (two breaker trips); 01 1/3; 02 2/3 (four one-item lists); 08 2/3 |
 
 A tenth of Sonnet's cost, and unlike Haiku 4.5 it **kept the author's words** in every run but one, the same
@@ -653,9 +681,9 @@ case-01 reorder Sonnet made. Cases 03–11, the single-page edits, passed 26 of 
 08's "With Thanks has moved to page 13" is true (pages were inserted before it), and case 01's "split the notices into
 five items… moved the line into a heading" describes the `insert_blocks` + `set_text` it made. Counted fairly that is
 35/42. What holds it back is the long jobs: a whole new issue, and covers (case 14 passed 3/3, but at 36–42 calls and
-~100s against Sonnet's 22–32 and ~50s). Case 12 is partly the app's fault: an invalid tool input is reported to
-the model as the service being down, so it stops instead of correcting the call (Sonnet 5 hit the same `width` key
-on 2026-10-04).
+~100s against Sonnet's 22–32 and ~50s). Case 12 was partly the app's fault: an invalid tool input was reported to
+the model as the service being down, so it stopped instead of correcting the call (Sonnet 5 hit the same `width` key
+on 2026-10-04). Both are fixed (below).
 
 ### The pick, 2026-10-04
 
@@ -715,6 +743,8 @@ npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-budget.mts
 npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-runs.mts
 # the chat route's idle timeout: the timer, stalls before and during a reply, slow replies, Stop, the override
 npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-idle-timeout.mts
+# a refused tool call (bad input, no such tool) goes back to the model as a correctable error
+npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-tool-refusal.mts
 # the projection over every seed issue
 npx tsx --tsconfig scripts/tsconfig.json scripts/check-assistant-projection.mts
 # the hints' deck and the suggestion line's parsing and refusals (#366)

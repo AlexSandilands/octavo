@@ -95,6 +95,7 @@ const planPhoto = z
       ])
       .optional(),
     align: align.optional(),
+    width: width.optional(),
   })
   .strict();
 export const aiPlanSectionSchema = z

@@ -81,7 +81,7 @@ function sectionBlocks(
       ...makeBlock("image"),
       imageId: photo.imageId,
       align,
-      width: align === "full" ? 100 : 45,
+      width: photo.width ?? (align === "full" ? 100 : 45),
     } as Block);
     placed.set(at, [...(placed.get(at) ?? []), block]);
   }
