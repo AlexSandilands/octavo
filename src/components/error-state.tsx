@@ -14,6 +14,7 @@ export function ErrorState({
   body,
   onRetry,
   retryLabel = "Try again",
+  fullLoad = false,
   contained = false,
 }: {
   kicker: string;
@@ -21,9 +22,12 @@ export function ErrorState({
   body: string;
   onRetry: () => void;
   retryLabel?: string;
+  /** Leave by a full page load: the bundle on screen is out of date. */
+  fullLoad?: boolean;
   contained?: boolean;
 }) {
   const Container = contained ? "div" : "main";
+  const LibraryLink = fullLoad ? "a" : Link;
   return (
     <Container
       className={`flex ${contained ? "min-h-full" : "min-h-screen"} items-center justify-center px-5 py-12`}
@@ -41,12 +45,12 @@ export function ErrorState({
         </div>
         <div className="flex items-center gap-4">
           <Button onClick={onRetry}>{retryLabel}</Button>
-          <Link
+          <LibraryLink
             href="/"
             className="text-accent font-sans text-[15px] font-medium underline underline-offset-[3px]"
           >
             Back to the library
-          </Link>
+          </LibraryLink>
         </div>
       </div>
     </Container>
@@ -90,6 +94,7 @@ export function RouteErrorState({
       title="Please reload this page."
       body="A new version went live while this page was open, so what you just did wasn't saved. Reload the page and do it again."
       retryLabel="Reload page"
+      fullLoad
       onRetry={() => window.location.reload()}
     />
   );
