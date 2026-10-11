@@ -57,10 +57,11 @@ export function PublishModal({
   // Each phase says where focus goes, because each one takes away the control
   // the admin was standing on: pressing Publish switches that button off under
   // their hands (#131), and the result swaps both buttons for a single Done
-  // (#133; Reload page after a deploy, #401). Either way focus would land on <body> — and with the page behind
-  // held inert (#154) that is nowhere at all, for a publish + blast that can run
-  // for seconds. The shell's trap would pull it back, but only on the next Tab,
-  // and nobody should have to press a key to find out where they are.
+  // (#133; Reload page after a deploy, #401). Either way focus would land on
+  // <body> — and with the page behind held inert (#154) that is nowhere at all,
+  // for a publish + blast that can run for seconds. The shell's trap would pull
+  // it back, but only on the next Tab, and nobody should have to press a key to
+  // find out where they are.
   //
   // Which is why "Keep as draft" is `unavailable` rather than `disabled` while
   // the publish is in flight: it looks and behaves exactly as disabled did, but
