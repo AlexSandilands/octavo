@@ -75,6 +75,7 @@ export function RouteErrorState({
   body: string;
   contained?: boolean;
 }) {
+  // Annotated: as a bare type guard it narrows `error` to never in the effect.
   const stale: boolean = unstable_isUnrecognizedActionError(error);
 
   useEffect(() => {
