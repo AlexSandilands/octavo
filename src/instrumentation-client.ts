@@ -24,6 +24,9 @@ if (dsn) {
     tracesSampleRate: 0,
     sendDefaultPii: false,
     enableLogs: false,
+    // Microsoft Safe Links' scanner throws this from its injected script while
+    // checking emailed links.
+    ignoreErrors: [/Object Not Found Matching Id:\d+/],
     // Source PDFs and unaccepted selections are private browser memory.
     beforeBreadcrumb: (breadcrumb) =>
       document.querySelector("[data-pdf-private]") ? null : breadcrumb,

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { DialogShell } from "@/components/dialog-shell";
 import { Button } from "@/components/ui";
 import { ISSUE_NUMBER_HINT, issueNumberSchema } from "@/lib/issue-number";
-import type { PublishResult } from "@/app/admin/actions";
+import type { PublishOutcome } from "./use-editor-flows";
 import { PublishNumber, PublishedNumber } from "./publish-number";
 
 // Confirmation dialog shown before publishing an issue. Pulled out of the editor
@@ -34,7 +34,7 @@ export function PublishModal({
   suggestedNumber: number;
   subscriberCount: number;
   onClose: () => void;
-  onPublish: (sendEmail: boolean, number: number) => Promise<PublishResult>;
+  onPublish: (sendEmail: boolean, number: number) => Promise<PublishOutcome>;
 }) {
   // Re-publishing an already-live issue defaults the email OFF, so a small
   // correction can't accidentally re-blast the whole list.
@@ -44,7 +44,7 @@ export function PublishModal({
   );
   const [numberError, setNumberError] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>("confirm");
-  const [result, setResult] = useState<PublishResult | null>(null);
+  const [result, setResult] = useState<PublishOutcome | null>(null);
   const draftRef = useRef<HTMLButtonElement>(null);
   const doneRef = useRef<HTMLButtonElement>(null);
   const numberRef = useRef<HTMLInputElement>(null);
@@ -52,14 +52,16 @@ export function PublishModal({
   const canEmail = subscriberCount > 0;
   const willEmail = sendEmail && canEmail;
   const working = phase === "working";
+  const stale = result?.ok === false && result.reason === "stale";
 
   // Each phase says where focus goes, because each one takes away the control
   // the admin was standing on: pressing Publish switches that button off under
   // their hands (#131), and the result swaps both buttons for a single Done
-  // (#133). Either way focus would land on <body> — and with the page behind
-  // held inert (#154) that is nowhere at all, for a publish + blast that can run
-  // for seconds. The shell's trap would pull it back, but only on the next Tab,
-  // and nobody should have to press a key to find out where they are.
+  // (#133; Reload page after a deploy, #401). Either way focus would land on
+  // <body> — and with the page behind held inert (#154) that is nowhere at all,
+  // for a publish + blast that can run for seconds. The shell's trap would pull
+  // it back, but only on the next Tab, and nobody should have to press a key to
+  // find out where they are.
   //
   // Which is why "Keep as draft" is `unavailable` rather than `disabled` while
   // the publish is in flight: it looks and behaves exactly as disabled did, but
@@ -175,7 +177,16 @@ export function PublishModal({
           </div>
 
           <div className="flex justify-end gap-3 px-8 pt-6 pb-6">
-            {phase === "done" ? (
+            {phase === "done" && stale ? (
+              <>
+                <Button variant="secondary" onClick={onClose}>
+                  Close
+                </Button>
+                <Button ref={doneRef} onClick={() => window.location.reload()}>
+                  Reload page
+                </Button>
+              </>
+            ) : phase === "done" ? (
               <Button ref={doneRef} onClick={onClose}>
                 Done
               </Button>
@@ -217,8 +228,25 @@ function ResultBody({
   result,
 }: {
   titleId: string;
-  result: PublishResult | null;
+  result: PublishOutcome | null;
 }) {
+  if (result?.ok === false && result.reason === "stale") {
+    return (
+      <>
+        <h2
+          id={titleId}
+          className="text-warn mt-3 font-serif text-[27px] leading-tight"
+        >
+          Please reload the page.
+        </h2>
+        <p className="text-muted mt-2.5 font-sans text-[15px] leading-relaxed">
+          A new version of the site went live while the editor was open, so the
+          issue wasn&rsquo;t published and nothing was sent. Your changes are
+          saved — reload the page, then publish again.
+        </p>
+      </>
+    );
+  }
   if (!result || !result.ok) {
     return (
       <>

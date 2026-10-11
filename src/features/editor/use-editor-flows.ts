@@ -1,7 +1,11 @@
 "use client";
-import { useRouter } from "next/navigation";
+import { unstable_isUnrecognizedActionError, useRouter } from "next/navigation";
 import { publishIssueAction, type PublishResult } from "@/app/admin/actions";
 import { reportEditorError } from "./report-error";
+
+/** A publish from a page that outlived a deploy: the action no longer exists
+ *  on the server, so only a reload can publish (#401). */
+export type PublishOutcome = PublishResult | { ok: false; reason: "stale" };
 
 // The two flows that leave the editor: opening the preview and publishing.
 // Both flush the autosave first; stale content is never previewed or shipped.
@@ -39,7 +43,7 @@ export function useEditorFlows({
   const publish = async (
     sendEmail: boolean,
     number: number,
-  ): Promise<PublishResult> => {
+  ): Promise<PublishOutcome> => {
     try {
       // A failed flush surfaces in the status pill and blocks the publish.
       const ok = await flushSave();
@@ -50,6 +54,9 @@ export function useEditorFlows({
       else if (res.reason !== "taken") onSaveError();
       return res;
     } catch (error) {
+      // The flush above saved through the JSON route, so the pill stays clean.
+      if (unstable_isUnrecognizedActionError(error))
+        return { ok: false, reason: "stale" };
       reportEditorError(error, "publish", { issueId, sendEmail, number });
       onSaveError();
       return { ok: false, reason: "failed" };
