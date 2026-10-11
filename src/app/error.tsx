@@ -9,8 +9,6 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  // Server-side details stay in the server logs; the logged digest lets a
-  // member's report ("it said try again") be matched to them.
   return (
     <RouteErrorState
       error={error}

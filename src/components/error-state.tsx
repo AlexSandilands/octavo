@@ -75,8 +75,9 @@ export function RouteErrorState({
 
   useEffect(() => {
     if (stale) return;
-    // The digest ties this to the server event Sentry already captured via
-    // onRequestError; capture again so a client-only render error is reported.
+    // Server details stay in the server logs; the digest matches a report
+    // ("it said try again") to them and to the event onRequestError captured.
+    // Capture again so a client-only render error is reported too.
     console.error(logLabel, error.digest ?? error);
     Sentry.captureException(error);
   }, [error, logLabel, stale]);
