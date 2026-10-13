@@ -28,7 +28,7 @@ const readMatrix = (raw: unknown): Matrix =>
     ArrayBuffer.isView(raw) ? Array.from(raw as Float32Array) : raw,
   );
 const identity: Matrix = [1, 0, 0, 1, 0, 0];
-const clipped =
+const clippedWarning =
   "Clipped, masked or composite artwork stays visible but cannot be faithfully extracted.";
 function multiply(a: Matrix, b: Matrix): Matrix {
   return [
@@ -135,6 +135,8 @@ export async function imageRegions(
     encodedBytes = 0,
     occurrences = 0;
   const decoded = new Map<string, Awaited<ReturnType<typeof encode>>>();
+  // Each source counts against the pixel budget once, however many crops.
+  const charged = new Set<string>();
   const add = async (raw: unknown, key: string, placement: Matrix) => {
     checkAbort(signal);
     if (++occurrences % 20 === 0) await yieldTask();
@@ -145,7 +147,7 @@ export async function imageRegions(
       return;
     }
     if (unsupported) {
-      warnings.add(clipped);
+      warnings.add(clippedWarning);
       return;
     }
     try {
@@ -158,7 +160,7 @@ export async function imageRegions(
       );
       // Rotated or skewed artwork can't be cut to a rectangle of its pixels.
       if (crop === "skewed") {
-        warnings.add(clipped);
+        warnings.add(clippedWarning);
         return;
       }
       if (!crop) return;
@@ -168,7 +170,9 @@ export async function imageRegions(
         : key;
       let img = decoded.get(cacheKey);
       if (!img) {
-        const pixels = dimensions.width * dimensions.height;
+        const pixels = charged.has(key)
+          ? 0
+          : dimensions.width * dimensions.height;
         if (decodedPixels + pixels > PDF_LIMITS.pageImagePixels) {
           warnings.add(
             "This page exceeds the 32 megapixel decoded-image budget. Some images remain preview-only.",
@@ -183,6 +187,7 @@ export async function imageRegions(
           return;
         }
         decodedPixels += pixels;
+        charged.add(key);
         encodedBytes += img.blob.size;
         decoded.set(cacheKey, img);
       }

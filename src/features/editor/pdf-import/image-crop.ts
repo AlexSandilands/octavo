@@ -9,8 +9,10 @@ export type Crop = { rect: Rect; pixels: Pixels | null };
 
 // A clip within a point of the image's edge doesn't count as a crop.
 const TOLERANCE = 1;
+// Float noise in a nominally unrotated matrix or a pixel edge.
+const EPSILON = 1e-6;
 
-export function placementBounds(placement: Matrix): Rect {
+function placementBounds(placement: Matrix): Rect {
   const [a, b, c, d, e, f] = placement;
   const xs = [e, e + a, e + c, e + a + c];
   const ys = [f, f + b, f + d, f + b + d];
@@ -46,15 +48,19 @@ export function cropOf(
     visible.y1 < bounds.y1 - TOLERANCE;
   if (!cut) return { rect: bounds, pixels: null };
   const [a, b, c, d, e, f] = placement;
-  if (b !== 0 || c !== 0 || a === 0 || d === 0) return "skewed";
+  if (Math.abs(b) > EPSILON || Math.abs(c) > EPSILON || !a || !d)
+    return "skewed";
   // Image space: u runs left to right, v bottom to top; row 0 is the top (v = 1).
   const us = [(visible.x0 - e) / a, (visible.x1 - e) / a];
   const vs = [(visible.y0 - f) / d, (visible.y1 - f) / d];
+  // Edges round inward: a pixel the page hides never comes along.
   const clamp = (n: number, max: number) => Math.min(max, Math.max(0, n));
-  const left = clamp(Math.round(Math.min(...us) * width), width);
-  const right = clamp(Math.round(Math.max(...us) * width), width);
-  const top = clamp(Math.round((1 - Math.max(...vs)) * height), height);
-  const bottom = clamp(Math.round((1 - Math.min(...vs)) * height), height);
+  const inward = (n: number, max: number, up: boolean) =>
+    clamp(up ? Math.ceil(n - EPSILON) : Math.floor(n + EPSILON), max);
+  const left = inward(Math.min(...us) * width, width, true);
+  const right = inward(Math.max(...us) * width, width, false);
+  const top = inward((1 - Math.max(...vs)) * height, height, true);
+  const bottom = inward((1 - Math.min(...vs)) * height, height, false);
   if (right - left < 1 || bottom - top < 1) return null;
   // The region follows the rounded pixels so its shape matches the export.
   const xs = [e + (a * left) / width, e + (a * right) / width];

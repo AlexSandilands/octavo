@@ -1,7 +1,7 @@
 // Cropped photos (#404): a photo under a rectangular clip, and one bleeding off
 // the page, import as what the page shows. Run like prod-pdf-import-gate.mts;
 // extra PDF paths after the URL are opened, their image regions reported and
-// each page shot to /tmp/pdf-import-crop-p<n>.png.
+// each page shot to /tmp/pdf-import-crop-<file>-p<n>.png.
 import assert from "node:assert/strict";
 import sharp from "sharp";
 import type { Page as BrowserPage } from "playwright";
@@ -151,7 +151,7 @@ try {
   assert(close(await band(half!.png, 0, 100), blue), "Top is blue.");
   assert(close(await band(half!.png, 100, 100), yellow), "Bottom is yellow.");
   // Any extra PDFs: report each page's selectable photos and notes.
-  for (const file of process.argv.slice(3)) {
+  for (const [f, file] of process.argv.slice(3).entries()) {
     await openFile(page, file);
     const counter = await panel(page)
       .getByText(/^\d+ \/ \d+$/)
@@ -161,13 +161,20 @@ try {
       if (n > 1) {
         await nextPage(page);
         await panel(page).getByText(`${n} / ${pages}`).waitFor();
-        await page.waitForTimeout(500);
+        // Paging is busy until the page's regions are in.
+        await page
+          .locator(
+            'button[aria-label="Previous PDF page"]:not([aria-disabled])',
+          )
+          .waitFor();
       }
       const notes = await panel(page)
         .getByText(/cannot|unsupported|exceeds/)
         .allTextContents();
       console.log(`${file} p${n}: ${await images.count()} photos`, notes);
-      await panel(page).screenshot({ path: `/tmp/pdf-import-crop-p${n}.png` });
+      await panel(page).screenshot({
+        path: `/tmp/pdf-import-crop-${f + 1}-p${n}.png`,
+      });
     }
   }
   assert.deepEqual(errors, []);
