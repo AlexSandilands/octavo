@@ -110,8 +110,14 @@ import. Repeated headers/footers remain selectable.
 
 Ordinary RGB/RGBA raster occurrences are recovered with graphics transforms and
 per-occurrence bounds. Reused objects retain separate placements and share locally
-encoded bytes. Containing rectangular clips are supported; arbitrary clips, masks,
-composite groups and unsupported encodings are visibly warned and remain preview-only.
+encoded bytes. A photo cropped by rectangular clips, the way Pages and most layout apps
+crop (the whole photo embedded, a clip over it), imports as what the page shows: the
+region covers the visible rectangle and only those source pixels are encoded
+(`pdf-import/image-crop.ts`, #404). The page's crop box cuts like any clip, so a photo
+bleeding off the edge imports as its on-page part. A clip within a point of the edge
+leaves the photo whole and unresampled. A rotated or skewed photo under a cutting clip,
+arbitrary clips, masks, composite groups and unsupported encodings are visibly warned
+and remain preview-only.
 
 ## Layout and image ownership
 
@@ -195,6 +201,7 @@ npx tsx --tsconfig scripts/tsconfig.json scripts/prod-pdf-import-failures.mts ht
 npx tsx --tsconfig scripts/tsconfig.json scripts/prod-pdf-import-privacy.mts http://localhost:3223
 npx tsx --tsconfig scripts/tsconfig.json scripts/prod-pdf-import-layout-gate.mts http://localhost:3223
 npx tsx --tsconfig scripts/tsconfig.json scripts/prod-pdf-import-legacy-gate.mts http://localhost:3223
+npx tsx --tsconfig scripts/tsconfig.json scripts/prod-pdf-import-crop-gate.mts http://localhost:3223 [pdf-paths...]
 ```
 
 The core gate checks lazy loading/CSP, the panel's resize handle and canvas re-fit, no
@@ -224,6 +231,13 @@ reload, both readers, print footer geometry and PDF export. An injected image-lo
 failure after upload also checks unchanged content/history and retry without a
 duplicate image record. It produces `/tmp/pdf-import-legacy-*.png` and
 `/tmp/pdf-import-legacy-output.pdf` for visual inspection.
+
+The crop gate (#404) opens `cropped.pdf`: a photo clipped to one colour quadrant and
+another bleeding off the page's left edge. Both regions must match the drawn pixels,
+and the uploaded images must be exactly the visible crops, in the right colours. Any
+extra PDF paths (a real Pages export, kept out of the repository) are opened after
+that, with each page's photo count and notes printed and a shot saved to
+`/tmp/pdf-import-crop-p<n>.png`.
 
 Repository lint, app/script typechecks, touched-file formatting and the production
 build remain required. The user's browser pass on the implementation PR is still a

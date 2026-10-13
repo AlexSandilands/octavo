@@ -15,6 +15,7 @@ import {
   type Page,
 } from "../src/lib/blocks.ts";
 import type { Run } from "../src/features/editor/pdf-import/model.ts";
+import { cropOf } from "../src/features/editor/pdf-import/image-crop.ts";
 const signal = new AbortController().signal;
 const run = (
   text: string,
@@ -350,6 +351,63 @@ for (const destination of [
   assert(!separated.pages[1]!.cover);
   assert.equal(separated.pages[1]!.blocks[0]!.id, "new-body");
 }
+// Crops: the page's own Pages export, a 360x640 photo clipped to a near square.
+const page = { x0: 0, y0: 0, x1: 595.28, y1: 892.91 };
+const square = { x0: 0, y0: 0, x1: 100, y1: 100 };
+const pixelsOf = (...args: Parameters<typeof cropOf>) => {
+  const crop = cropOf(...args);
+  return crop && crop !== "skewed" ? crop.pixels : crop;
+};
+const pages2 = cropOf(
+  [271.0655, 0, 0, 481.8942, 21.62296, -84.39162],
+  [{ x0: 56.74, y0: 113, x1: 292.69, y1: 344.15 }, page],
+  360,
+  640,
+);
+assert(pages2 && pages2 !== "skewed");
+assert.deepEqual(pages2.pixels, { x: 47, y: 71, width: 313, height: 307 });
+assert(Math.abs(pages2.rect.x0 - 56.74) < 0.5);
+assert(Math.abs(pages2.rect.y1 - 344.15) < 0.5);
+// Within a point of the edge: the whole image, unresampled.
+assert.deepEqual(
+  cropOf([100, 0, 0, 50, 10, 10], [{ x0: 9, y0: 9, x1: 111, y1: 61 }], 20, 10),
+  { rect: { x0: 10, y0: 10, x1: 110, y1: 60 }, pixels: null },
+);
+// PDF y runs up and image rows run down: the clip's top half is the top rows.
+assert.deepEqual(
+  pixelsOf([100, 0, 0, 100, 0, 0], [{ ...square, y0: 50 }], 10, 10),
+  { x: 0, y: 0, width: 10, height: 5 },
+);
+// A mirrored placement maps back to the right pixels.
+assert.deepEqual(
+  pixelsOf([-100, 0, 0, -100, 100, 100], [{ ...square, x1: 25 }], 8, 8),
+  { x: 6, y: 0, width: 2, height: 8 },
+);
+// Clips intersect, and the page box crops a photo bleeding off its edge.
+const bleed = cropOf(
+  [200, 0, 0, 100, -100, 0],
+  [{ x0: -50, y0: 0, x1: 300, y1: 80 }, page],
+  20,
+  10,
+);
+assert.deepEqual(bleed, {
+  rect: { x0: 0, y0: 0, x1: 100, y1: 80 },
+  pixels: { x: 10, y: 2, width: 10, height: 8 },
+});
+// Rotated artwork under a cutting clip falls back; uncut it still imports whole.
+const turned = [0, 100, -100, 0, 100, 0] as const;
+assert.equal(cropOf([...turned], [{ ...square, x1: 50 }], 10, 10), "skewed");
+assert.deepEqual(cropOf([...turned], [page], 10, 10), {
+  rect: square,
+  pixels: null,
+});
+// Nothing visible, or less than a pixel of it: no region.
+const plain = [100, 0, 0, 100, 0, 0] as const;
+assert.equal(
+  cropOf([...plain], [{ ...square, x0: 200, x1: 300 }], 10, 10),
+  null,
+);
+assert.equal(cropOf([...plain], [{ ...square, x1: 4 }], 10, 10), null);
 console.log(
-  "PDF import checks passed: ordering, corrections, alignment, Unicode/marks, schema limits, pagination progress/order, source/history states.",
+  "PDF import checks passed: ordering, corrections, alignment, Unicode/marks, schema limits, pagination progress/order, source/history states, image crops.",
 );

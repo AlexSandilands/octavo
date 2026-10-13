@@ -98,6 +98,40 @@ await writeFile(
     },
   ),
 );
+// Four colour quadrants, as layout apps crop: the whole photo under a clip.
+const quadrant = (background: string) => ({
+  input: {
+    create: { width: 200, height: 100, channels: 3 as const, background },
+  },
+});
+const quadrants = await sharp({
+  create: { width: 400, height: 200, channels: 3, background: "#000" },
+})
+  .composite([
+    { ...quadrant("#c0392b"), left: 0, top: 0 },
+    { ...quadrant("#2156a5"), left: 200, top: 0 },
+    { ...quadrant("#2e8b57"), left: 0, top: 100 },
+    { ...quadrant("#e0b020"), left: 200, top: 100 },
+  ])
+  .jpeg()
+  .toBuffer();
+await writeFile(
+  `${dir}/cropped.pdf`,
+  pdf(
+    [
+      [
+        text("A cropped photograph", 50, 740, "F2", 24),
+        // The top-right (blue) quadrant shows, at 160 × 80.
+        "q 210 400 160 80 re W n 320 0 0 160 50 320 cm /Im1 Do Q",
+        // Bleeding off the left edge: only the right half is on the page.
+        "q 240 0 0 120 -120 100 cm /Im1 Do Q",
+      ].join("\n"),
+    ],
+    0,
+    true,
+    { jpeg: quadrants, width: 400, height: 200 },
+  ),
+);
 await writeFile(
   `${dir}/single-column.pdf`,
   pdf(
