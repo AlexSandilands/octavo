@@ -15,7 +15,11 @@ import {
   type Page,
 } from "../src/lib/blocks.ts";
 import type { Run } from "../src/features/editor/pdf-import/model.ts";
-import { cropOf } from "../src/features/editor/pdf-import/image-crop.ts";
+import {
+  copyCropRow,
+  cropArea,
+  cropOf,
+} from "../src/features/editor/pdf-import/image-crop.ts";
 const signal = new AbortController().signal;
 const run = (
   text: string,
@@ -433,6 +437,23 @@ assert.equal(
   null,
 );
 assert.equal(cropOf([...plain], [{ ...square, x1: 4 }], 10, 10), null);
+// The budget charges each crop its own area, so many crops of one large
+// source can't each convert the whole of it for free.
+assert.equal(cropArea(pages2, 360, 640), 313 * 306);
+assert.equal(cropArea({ rect: square, pixels: null }, 360, 640), 360 * 640);
+// Raw rows: only the crop is copied, RGB gains opaque alpha, RGBA keeps its own.
+const rgb = Uint8Array.from({ length: 4 * 3 * 3 }, (_, i) => i);
+const rgbOut = new Uint8ClampedArray(2 * 2 * 4);
+const corner = { x: 1, y: 1, width: 2, height: 2 };
+for (const row of [0, 1]) copyCropRow(rgb, 3, 4, corner, row, rgbOut);
+assert.deepEqual(
+  [...rgbOut],
+  [15, 16, 17, 255, 18, 19, 20, 255, 27, 28, 29, 255, 30, 31, 32, 255],
+);
+const rgba = Uint8Array.from({ length: 3 * 2 * 4 }, (_, i) => i);
+const rgbaOut = new Uint8ClampedArray(4);
+copyCropRow(rgba, 4, 3, { x: 2, y: 1, width: 1, height: 1 }, 0, rgbaOut);
+assert.deepEqual([...rgbaOut], [20, 21, 22, 23]);
 console.log(
   "PDF import checks passed: ordering, corrections, alignment, Unicode/marks, schema limits, pagination progress/order, source/history states, image crops.",
 );

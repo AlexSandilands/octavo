@@ -11,7 +11,14 @@ import {
   type Region,
 } from "./model";
 import { union } from "./grouping";
-import { cropOf, type Matrix, type Pixels, type Rect } from "./image-crop";
+import {
+  copyCropRow,
+  cropArea,
+  cropOf,
+  type Matrix,
+  type Pixels,
+  type Rect,
+} from "./image-crop";
 
 const matrixSchema = z.tuple([
   z.number(),
@@ -56,12 +63,8 @@ async function encode(
   const img = imageSchema.parse(raw);
   if (img.width * img.height > PDF_LIMITS.imagePixels)
     throw new Error("Image exceeds 16 megapixels.");
-  const { x, y, width, height } = crop ?? {
-    x: 0,
-    y: 0,
-    width: img.width,
-    height: img.height,
-  };
+  const cut = crop ?? { x: 0, y: 0, width: img.width, height: img.height };
+  const { x, y, width, height } = cut;
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
@@ -74,23 +77,20 @@ async function encode(
       img.data instanceof Uint8Array ||
       img.data instanceof Uint8ClampedArray
     ) {
-      const source = img.data;
-      const pixels = new Uint8ClampedArray(img.width * img.height * 4);
       if (img.kind !== 2 && img.kind !== 3)
         throw new Error("Unsupported raster encoding.");
+      // Only the crop is converted, yielding about every 65,536 pixels.
       const stride = img.kind === 2 ? 3 : 4;
-      for (let i = 0; i < img.width * img.height; i++) {
-        if (i % 65536 === 0) {
+      const pixels = new Uint8ClampedArray(width * height * 4);
+      const rows = Math.max(1, Math.floor(65536 / width));
+      for (let row = 0; row < height; row++) {
+        if (row % rows === 0) {
           checkAbort(signal);
           await yieldTask();
         }
-        pixels[i * 4] = source[i * stride]!;
-        pixels[i * 4 + 1] = source[i * stride + 1]!;
-        pixels[i * 4 + 2] = source[i * stride + 2]!;
-        pixels[i * 4 + 3] = stride === 4 ? source[i * stride + 3]! : 255;
+        copyCropRow(img.data, stride, img.width, cut, row, pixels);
       }
-      const data = new ImageData(pixels, img.width, img.height);
-      ctx.putImageData(data, -x, -y, x, y, width, height);
+      ctx.putImageData(new ImageData(pixels, width, height), 0, 0);
     } else throw new Error("Unsupported raster image.");
     const blob = await boundedWait(
       new Promise<Blob>((resolve, reject) =>
@@ -135,8 +135,6 @@ export async function imageRegions(
     encodedBytes = 0,
     occurrences = 0;
   const decoded = new Map<string, Awaited<ReturnType<typeof encode>>>();
-  // Each source counts against the pixel budget once, however many crops.
-  const charged = new Set<string>();
   const add = async (raw: unknown, key: string, placement: Matrix) => {
     checkAbort(signal);
     if (++occurrences % 20 === 0) await yieldTask();
@@ -170,9 +168,7 @@ export async function imageRegions(
         : key;
       let img = decoded.get(cacheKey);
       if (!img) {
-        const pixels = charged.has(key)
-          ? 0
-          : dimensions.width * dimensions.height;
+        const pixels = cropArea(crop, dimensions.width, dimensions.height);
         if (decodedPixels + pixels > PDF_LIMITS.pageImagePixels) {
           warnings.add(
             "This page exceeds the 32 megapixel decoded-image budget. Some images remain preview-only.",
@@ -187,7 +183,6 @@ export async function imageRegions(
           return;
         }
         decodedPixels += pixels;
-        charged.add(key);
         encodedBytes += img.blob.size;
         decoded.set(cacheKey, img);
       }

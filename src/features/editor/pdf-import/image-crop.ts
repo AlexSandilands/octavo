@@ -75,3 +75,28 @@ export function cropOf(
     pixels: { x: left, y: top, width: right - left, height: bottom - top },
   };
 }
+
+// What a crop costs against the page's decoded-pixel budget: its own area.
+export const cropArea = (crop: Crop, width: number, height: number) =>
+  crop.pixels ? crop.pixels.width * crop.pixels.height : width * height;
+
+// Copies row `row` of `crop` from packed RGB (stride 3) or RGBA (4) to RGBA `out`.
+export function copyCropRow(
+  source: ArrayLike<number>,
+  stride: 3 | 4,
+  sourceWidth: number,
+  crop: Pixels,
+  row: number,
+  out: Uint8ClampedArray,
+) {
+  const from = ((crop.y + row) * sourceWidth + crop.x) * stride;
+  const to = row * crop.width * 4;
+  for (let col = 0; col < crop.width; col++) {
+    const s = from + col * stride,
+      o = to + col * 4;
+    out[o] = source[s]!;
+    out[o + 1] = source[s + 1]!;
+    out[o + 2] = source[s + 2]!;
+    out[o + 3] = stride === 4 ? source[s + 3]! : 255;
+  }
+}
