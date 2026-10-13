@@ -1,7 +1,7 @@
 // Cropped photos (#404): a photo under a rectangular clip, and one bleeding off
 // the page, import as what the page shows. Run like prod-pdf-import-gate.mts;
 // extra PDF paths after the URL are opened, their image regions reported and
-// each page shot to /tmp/pdf-import-crop-<file>-p<n>.png.
+// each page shot to /tmp/pdf-import-crop-<k>-p<n>.png (the k-th extra PDF).
 import assert from "node:assert/strict";
 import sharp from "sharp";
 import type { Page as BrowserPage } from "playwright";

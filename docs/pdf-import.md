@@ -237,7 +237,7 @@ another bleeding off the page's left edge. Both regions must match the drawn pix
 and the uploaded images must be exactly the visible crops, in the right colours. Any
 extra PDF paths (a real Pages export, kept out of the repository) are opened after
 that, with each page's photo count and notes printed and a shot saved to
-`/tmp/pdf-import-crop-<file>-p<n>.png`.
+`/tmp/pdf-import-crop-<k>-p<n>.png` (the k-th extra PDF).
 
 Repository lint, app/script typechecks, touched-file formatting and the production
 build remain required. The user's browser pass on the implementation PR is still a
