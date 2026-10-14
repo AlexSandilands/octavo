@@ -11,8 +11,15 @@ import {
   type Region,
 } from "./model";
 import { union } from "./grouping";
+import {
+  copyCropRow,
+  cropArea,
+  cropOf,
+  type Matrix,
+  type Pixels,
+  type Rect,
+} from "./image-crop";
 
-type Matrix = [number, number, number, number, number, number];
 const matrixSchema = z.tuple([
   z.number(),
   z.number(),
@@ -28,6 +35,8 @@ const readMatrix = (raw: unknown): Matrix =>
     ArrayBuffer.isView(raw) ? Array.from(raw as Float32Array) : raw,
   );
 const identity: Matrix = [1, 0, 0, 1, 0, 0];
+const clippedWarning =
+  "Clipped, masked or composite artwork stays visible but cannot be faithfully extracted.";
 function multiply(a: Matrix, b: Matrix): Matrix {
   return [
     a[0] * b[0] + a[2] * b[1],
@@ -45,40 +54,43 @@ const imageSchema = z.object({
   data: z.unknown().optional(),
   bitmap: z.unknown().optional(),
 });
+// Encodes the image, or only the `crop` of it the page shows.
 async function encode(
   raw: unknown,
+  crop: Pixels | null,
   signal: AbortSignal,
 ): Promise<{ blob: Blob; width: number; height: number }> {
   const img = imageSchema.parse(raw);
   if (img.width * img.height > PDF_LIMITS.imagePixels)
     throw new Error("Image exceeds 16 megapixels.");
+  const cut = crop ?? { x: 0, y: 0, width: img.width, height: img.height };
+  const { x, y, width, height } = cut;
   const canvas = document.createElement("canvas");
-  canvas.width = img.width;
-  canvas.height = img.height;
+  canvas.width = width;
+  canvas.height = height;
   try {
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Image canvas unavailable.");
-    if (img.bitmap instanceof ImageBitmap) ctx.drawImage(img.bitmap, 0, 0);
+    if (img.bitmap instanceof ImageBitmap)
+      ctx.drawImage(img.bitmap, x, y, width, height, 0, 0, width, height);
     else if (
       img.data instanceof Uint8Array ||
       img.data instanceof Uint8ClampedArray
     ) {
-      const source = img.data;
-      const pixels = new Uint8ClampedArray(img.width * img.height * 4);
       if (img.kind !== 2 && img.kind !== 3)
         throw new Error("Unsupported raster encoding.");
+      // Only the crop is converted, yielding about every 65,536 pixels.
       const stride = img.kind === 2 ? 3 : 4;
-      for (let i = 0; i < img.width * img.height; i++) {
-        if (i % 65536 === 0) {
+      const pixels = new Uint8ClampedArray(width * height * 4);
+      const rows = Math.max(1, Math.floor(65536 / width));
+      for (let row = 0; row < height; row++) {
+        if (row % rows === 0) {
           checkAbort(signal);
           await yieldTask();
         }
-        pixels[i * 4] = source[i * stride]!;
-        pixels[i * 4 + 1] = source[i * stride + 1]!;
-        pixels[i * 4 + 2] = source[i * stride + 2]!;
-        pixels[i * 4 + 3] = stride === 4 ? source[i * stride + 3]! : 255;
+        copyCropRow(img.data, stride, img.width, cut, row, pixels);
       }
-      ctx.putImageData(new ImageData(pixels, img.width, img.height), 0, 0);
+      ctx.putImageData(new ImageData(pixels, width, height), 0, 0);
     } else throw new Error("Unsupported raster image.");
     const blob = await boundedWait(
       new Promise<Blob>((resolve, reject) =>
@@ -89,7 +101,7 @@ async function encode(
       ),
       signal,
     );
-    return { blob, width: img.width, height: img.height };
+    return { blob, width, height };
   } finally {
     canvas.width = canvas.height = 0;
   }
@@ -107,8 +119,16 @@ export async function imageRegions(
   let matrix = identity;
   let unsupported = false;
   let clipping = false;
-  let clips: Matrix[] = [];
-  const stack: { matrix: Matrix; unsupported: boolean; clips: Matrix[] }[] = [];
+  let clips: Rect[] = [];
+  const stack: { matrix: Matrix; unsupported: boolean; clips: Rect[] }[] = [];
+  // The crop box crops like any clip: what lies beyond it is never seen.
+  const [vx0, vy0, vx1, vy1] = page.view;
+  const pageClip: Rect = {
+    x0: Math.min(vx0!, vx1!),
+    y0: Math.min(vy0!, vy1!),
+    x1: Math.max(vx0!, vx1!),
+    y1: Math.max(vy0!, vy1!),
+  };
   const regions: Region[] = [];
   const warnings = new Set<string>();
   let decodedPixels = 0,
@@ -124,44 +144,38 @@ export async function imageRegions(
       );
       return;
     }
-    const contained = clips.every((clip) => {
-      const xs = [
-        placement[4],
-        placement[4] + placement[0],
-        placement[4] + placement[2],
-        placement[4] + placement[0] + placement[2],
-      ];
-      const ys = [
-        placement[5],
-        placement[5] + placement[1],
-        placement[5] + placement[3],
-        placement[5] + placement[1] + placement[3],
-      ];
-      return (
-        Math.min(...xs) >= clip[4] - 1 &&
-        Math.max(...xs) <= clip[4] + clip[0] + 1 &&
-        Math.min(...ys) >= clip[5] - 1 &&
-        Math.max(...ys) <= clip[5] + clip[3] + 1
-      );
-    });
-    if (unsupported || !contained) {
-      warnings.add(
-        "Clipped, masked or composite artwork stays visible but cannot be faithfully extracted.",
-      );
+    if (unsupported) {
+      warnings.add(clippedWarning);
       return;
     }
     try {
-      let img = decoded.get(key);
+      const dimensions = imageSchema.parse(raw);
+      const crop = cropOf(
+        placement,
+        [...clips, pageClip],
+        dimensions.width,
+        dimensions.height,
+      );
+      // Rotated or skewed artwork can't be cut to a rectangle of its pixels.
+      if (crop === "skewed") {
+        warnings.add(clippedWarning);
+        return;
+      }
+      if (!crop) return;
+      const cut = crop.pixels;
+      const cacheKey = cut
+        ? `${key}#${cut.x},${cut.y},${cut.width},${cut.height}`
+        : key;
+      let img = decoded.get(cacheKey);
       if (!img) {
-        const dimensions = imageSchema.parse(raw);
-        const pixels = dimensions.width * dimensions.height;
+        const pixels = cropArea(crop, dimensions.width, dimensions.height);
         if (decodedPixels + pixels > PDF_LIMITS.pageImagePixels) {
           warnings.add(
             "This page exceeds the 32 megapixel decoded-image budget. Some images remain preview-only.",
           );
           return;
         }
-        img = await encode(raw, signal);
+        img = await encode(raw, cut, signal);
         if (encodedBytes + img.blob.size > PDF_LIMITS.pageImageBytes) {
           warnings.add(
             "This page exceeds the 32 MiB image-preview budget. Some images remain preview-only.",
@@ -170,33 +184,19 @@ export async function imageRegions(
         }
         decodedPixels += pixels;
         encodedBytes += img.blob.size;
-        decoded.set(key, img);
+        decoded.set(cacheKey, img);
       }
+      const { x0, y0, x1, y1 } = crop.rect;
       const points = [
-        [0, 0],
-        [1, 0],
-        [0, 1],
-        [1, 1],
+        [x0, y0],
+        [x1, y0],
+        [x0, y1],
+        [x1, y1],
       ].map(([x, y]) => {
-        const [px, py] = viewport.convertToViewportPoint(
-          placement[0] * x! + placement[2] * y! + placement[4],
-          placement[1] * x! + placement[3] * y! + placement[5],
-        );
+        const [px, py] = viewport.convertToViewportPoint(x!, y!);
         return { x: px!, y: py!, width: 0, height: 0 };
       });
       const box = union(points);
-      // A placement beyond the crop box is itself a crop, not the original photo.
-      if (
-        box.x < -1 ||
-        box.y < -1 ||
-        box.x + box.width > viewport.width + 1 ||
-        box.y + box.height > viewport.height + 1
-      ) {
-        warnings.add(
-          "A cropped image is unsupported; its original bounds extend beyond this page.",
-        );
-        return;
-      }
       regions.push({
         ...box,
         id: `${page.pageNumber}:i:${regions.length}`,
@@ -208,7 +208,7 @@ export async function imageRegions(
         level: "paragraph",
         size: "m",
         align: "left",
-        image: { ...img, key: `${page.pageNumber}:${key}` },
+        image: { ...img, key: `${page.pageNumber}:${cacheKey}` },
       });
     } catch (error) {
       if (signal.aborted) throw error;
@@ -265,14 +265,12 @@ export async function imageRegions(
         const rectangular = new Set(xs).size === 2 && new Set(ys).size === 2;
         if (!rectangular) unsupported = true;
         else
-          clips.push([
-            Math.max(...xs) - Math.min(...xs),
-            0,
-            0,
-            Math.max(...ys) - Math.min(...ys),
-            Math.min(...xs),
-            Math.min(...ys),
-          ]);
+          clips.push({
+            x0: Math.min(...xs),
+            y0: Math.min(...ys),
+            x1: Math.max(...xs),
+            y1: Math.max(...ys),
+          });
       }
     } else if (op === names.beginGroup) unsupported = true;
     else if (op === names.setGState) {

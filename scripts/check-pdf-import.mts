@@ -15,6 +15,11 @@ import {
   type Page,
 } from "../src/lib/blocks.ts";
 import type { Run } from "../src/features/editor/pdf-import/model.ts";
+import {
+  copyCropRow,
+  cropArea,
+  cropOf,
+} from "../src/features/editor/pdf-import/image-crop.ts";
 const signal = new AbortController().signal;
 const run = (
   text: string,
@@ -350,6 +355,105 @@ for (const destination of [
   assert(!separated.pages[1]!.cover);
   assert.equal(separated.pages[1]!.blocks[0]!.id, "new-body");
 }
+// Crops: a phone photo (360x640) from a real Pages export, clipped to a near square.
+const page = { x0: 0, y0: 0, x1: 595.28, y1: 892.91 };
+const square = { x0: 0, y0: 0, x1: 100, y1: 100 };
+const pixelsOf = (...args: Parameters<typeof cropOf>) => {
+  const crop = cropOf(...args);
+  return crop && crop !== "skewed" ? crop.pixels : crop;
+};
+const pages2 = cropOf(
+  [271.0655, 0, 0, 481.8942, 21.62296, -84.39162],
+  [{ x0: 56.74, y0: 113, x1: 292.69, y1: 344.15 }, page],
+  360,
+  640,
+);
+assert(pages2 && pages2 !== "skewed");
+assert.deepEqual(pages2.pixels, { x: 47, y: 71, width: 313, height: 306 });
+assert(Math.abs(pages2.rect.x0 - 56.74) < 0.5);
+assert(Math.abs(pages2.rect.y1 - 344.15) < 0.5);
+// Within a point of the edge: the whole image, unresampled.
+assert.deepEqual(
+  cropOf([100, 0, 0, 50, 10, 10], [{ x0: 9, y0: 9, x1: 111, y1: 61 }], 20, 10),
+  { rect: { x0: 10, y0: 10, x1: 110, y1: 60 }, pixels: null },
+);
+// PDF y runs up and image rows run down: the clip's top half is the top rows.
+assert.deepEqual(
+  pixelsOf([100, 0, 0, 100, 0, 0], [{ ...square, y0: 50 }], 10, 10),
+  { x: 0, y: 0, width: 10, height: 5 },
+);
+// A mirrored placement maps back to the right pixels.
+assert.deepEqual(
+  pixelsOf([-100, 0, 0, -100, 100, 100], [{ ...square, x1: 25 }], 8, 8),
+  { x: 6, y: 0, width: 2, height: 8 },
+);
+// Clips intersect, and the page box crops a photo bleeding off its edge.
+const bleed = cropOf(
+  [200, 0, 0, 100, -100, 0],
+  [{ x0: -50, y0: 0, x1: 300, y1: 80 }, page],
+  20,
+  10,
+);
+assert.deepEqual(bleed, {
+  rect: { x0: 0, y0: 0, x1: 100, y1: 80 },
+  pixels: { x: 10, y: 2, width: 10, height: 8 },
+});
+// Rotated artwork under a cutting clip falls back; uncut it still imports whole.
+const turned = [0, 100, -100, 0, 100, 0] as const;
+assert.equal(cropOf([...turned], [{ ...square, x1: 50 }], 10, 10), "skewed");
+assert.deepEqual(cropOf([...turned], [page], 10, 10), {
+  rect: square,
+  pixels: null,
+});
+// Edges round inward: 5pt pixels cut 12pt in keep from the third pixel on.
+const coarse = cropOf(
+  [500, 0, 0, 500, 0, 0],
+  [{ ...square, x0: 12, x1: 500, y1: 500 }],
+  100,
+  100,
+);
+assert(coarse && coarse !== "skewed");
+assert.deepEqual(coarse.pixels, { x: 3, y: 0, width: 97, height: 100 });
+assert.equal(coarse.rect.x0, 15);
+// A cut of over a point but under a pixel drops the partly hidden pixel.
+assert.deepEqual(
+  pixelsOf(
+    [300, 0, 0, 300, 0, 0],
+    [{ x0: 1.2, y0: 0, x1: 300, y1: 300 }],
+    100,
+    100,
+  ),
+  { x: 1, y: 0, width: 99, height: 100 },
+);
+// Float noise in a nominally unrotated matrix still crops.
+assert.deepEqual(
+  pixelsOf([100, 6e-17, -6e-17, 100, 0, 0], [{ ...square, y0: 50 }], 10, 10),
+  { x: 0, y: 0, width: 10, height: 5 },
+);
+// Nothing visible, or less than a pixel of it: no region.
+const plain = [100, 0, 0, 100, 0, 0] as const;
+assert.equal(
+  cropOf([...plain], [{ ...square, x0: 200, x1: 300 }], 10, 10),
+  null,
+);
+assert.equal(cropOf([...plain], [{ ...square, x1: 4 }], 10, 10), null);
+// The budget charges each crop its own area, so many crops of one large
+// source can't each convert the whole of it for free.
+assert.equal(cropArea(pages2, 360, 640), 313 * 306);
+assert.equal(cropArea({ rect: square, pixels: null }, 360, 640), 360 * 640);
+// Raw rows: only the crop is copied, RGB gains opaque alpha, RGBA keeps its own.
+const rgb = Uint8Array.from({ length: 4 * 3 * 3 }, (_, i) => i);
+const rgbOut = new Uint8ClampedArray(2 * 2 * 4);
+const corner = { x: 1, y: 1, width: 2, height: 2 };
+for (const row of [0, 1]) copyCropRow(rgb, 3, 4, corner, row, rgbOut);
+assert.deepEqual(
+  [...rgbOut],
+  [15, 16, 17, 255, 18, 19, 20, 255, 27, 28, 29, 255, 30, 31, 32, 255],
+);
+const rgba = Uint8Array.from({ length: 3 * 2 * 4 }, (_, i) => i);
+const rgbaOut = new Uint8ClampedArray(4);
+copyCropRow(rgba, 4, 3, { x: 2, y: 1, width: 1, height: 1 }, 0, rgbaOut);
+assert.deepEqual([...rgbaOut], [20, 21, 22, 23]);
 console.log(
-  "PDF import checks passed: ordering, corrections, alignment, Unicode/marks, schema limits, pagination progress/order, source/history states.",
+  "PDF import checks passed: ordering, corrections, alignment, Unicode/marks, schema limits, pagination progress/order, source/history states, image crops.",
 );
