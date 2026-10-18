@@ -12,6 +12,7 @@ import { VideoBlockControl } from "./video-control";
 import { SponsorPicker } from "./sponsor-picker";
 import { AltControl } from "./alt-control";
 import { BarRule } from "./bar-rule";
+import { MoveToPageMenu, type MoveToPage } from "./move-to-page-menu";
 import { useBarFit } from "./use-bar-fit";
 import { useCoverToolbarBounds } from "./use-cover-toolbar-bounds";
 
@@ -27,6 +28,7 @@ export function EditorBlockBar({
   ask,
   onChange,
   onMove,
+  moveTo,
   onRemove,
   onFillPage,
   onRegisterImage,
@@ -42,6 +44,8 @@ export function EditorBlockBar({
   ask: ReactNode;
   onChange: (patch: BlockPatch) => void;
   onMove: (dir: -1 | 1) => void;
+  /** Absent where a block can't leave its page. */
+  moveTo?: MoveToPage;
   onRemove: () => void;
   onFillPage: (align: PageAlign) => void;
   onRegisterImage: (imageId: string, image: ResolvedImage) => void;
@@ -191,17 +195,18 @@ export function EditorBlockBar({
         className={`absolute z-10 ${
           // Bottom corner on a filled page: the top one is where the
           // block's own tool bar lands, at whatever zoom.
-          bleed ? "right-2 bottom-2.5" : "top-1/2 -right-9 -translate-y-1/2"
+          bleed
+            ? "right-2 bottom-2.5"
+            : "inset-y-0 -right-9 w-6 [container-type:size]"
         }`}
       >
         <div
-          className="chrome-unscaled flex flex-col gap-1"
-          style={{
-            transformOrigin: bleed ? "bottom right" : "center left",
-          }}
+          className={`flex flex-col gap-1 ${bleed ? "chrome-unscaled" : "chrome-unscaled-side"}`}
+          style={bleed ? { transformOrigin: "bottom right" } : undefined}
         >
           <Ctrl icon="arrowUp" title="Move up" onClick={() => onMove(-1)} />
           <Ctrl icon="arrowDown" title="Move down" onClick={() => onMove(1)} />
+          {moveTo && <MoveToPageMenu {...moveTo} />}
           <Ctrl icon="trash" title="Delete" danger onClick={onRemove} />
         </div>
       </div>

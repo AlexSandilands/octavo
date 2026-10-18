@@ -138,6 +138,7 @@ export function Editor({
     addBlock,
     updateBlock,
     moveBlock,
+    moveBlockToPage,
     onDragEnd,
     removeBlock,
     flowText,
@@ -367,6 +368,7 @@ export function Editor({
                 issueId={issue.id}
                 issueNo={issueNo}
                 page={page}
+                pages={pages}
                 curPage={curPage}
                 sel={sel}
                 theme={theme}
@@ -384,6 +386,7 @@ export function Editor({
                 actions={{
                   updateBlock,
                   moveBlock,
+                  moveBlockToPage,
                   removeBlock,
                   fillPage,
                   flowText,

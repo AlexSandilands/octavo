@@ -265,6 +265,18 @@ The split cuts the structured document, never an HTML string (`lib/rich-text-spl
 and lists survive it. The result is ordinary fixed blocks on ordinary pages: nothing downstream
 knows it happened, and no block shape changed (`CONTENT_VERSION` unaffected). Issue #93.
 
+**A block can also be moved to another page by hand** (`features/editor/move-block.ts`, issue
+#406). The arrows down a selected block's side cross page edges: Move up on a page's first block
+puts it at the **end** of the page before, Move down on the last block at the **top** of the page
+after. "Move to page…" beside them (`move-to-page-menu.tsx`, the house `MenuSelect` listing every
+page with its first heading as a hint, the way the discussion's page tags do) puts the block at the
+end of the chosen page. Either way the editor follows the block, the move is one undo step, and
+nothing else changes: no page is added or removed (a page left empty stays), no block is trimmed,
+and a block that doesn't fit where it lands gets the page's ordinary overflow marker. Covers and
+pages a full-page photo owns are out of it in both directions — a cover orders its items on its own
+grid, a full-page photo moves with its page — so they list disabled in the menu, an arrow pointing
+at one is a no-op, and neither surface offers the menu.
+
 **Editing is undoable at the document level.** `features/editor/use-editor-history.ts` keeps a capped
 stack (100) of `{pages, curPage, sel}` snapshots — the whole document plus the author's place in it —
 and `useEditorPages` takes a step before every structural edit. Edits to one field in a run (typing,

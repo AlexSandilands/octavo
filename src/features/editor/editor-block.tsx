@@ -21,6 +21,7 @@ import type { SponsorListItem, SponsorMap } from "@/lib/sponsors";
 import { OverflowNotice } from "./overflow-notice";
 import { CoverItemTools } from "./cover-item-tools";
 import { EditorBlockBar } from "./editor-block-bar";
+import type { MoveToPage } from "./move-to-page-menu";
 import { RichTextEditor } from "./rich-text-editor";
 import { AskControl } from "./assistant/ask-box";
 
@@ -66,6 +67,7 @@ export function EditorBlock({
   onSelect,
   onChange,
   onMove,
+  moveTo,
   onRemove,
   onFlow,
   onFillPage,
@@ -93,6 +95,7 @@ export function EditorBlock({
   onSelect: () => void;
   onChange: (patch: BlockPatch) => void;
   onMove: (dir: -1 | 1) => void;
+  moveTo?: MoveToPage;
   onRemove: () => void;
   onFlow: () => void;
   /** Set this image to fill the whole page (issue #227). */
@@ -251,6 +254,7 @@ export function EditorBlock({
           ask={ask}
           onChange={onChange}
           onMove={onMove}
+          moveTo={cover || bleed ? undefined : moveTo}
           onRemove={onRemove}
           onFillPage={onFillPage}
           onRegisterImage={onRegisterImage}
