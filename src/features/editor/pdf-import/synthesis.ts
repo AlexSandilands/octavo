@@ -7,12 +7,18 @@ import {
   type RichInline,
   type Paragraph,
 } from "@/lib/rich-text-doc";
-import type { ImportKind, Region, ReviewItem, SourceMapping } from "./model";
+import type {
+  ImportChoice,
+  ImportKind,
+  Region,
+  ReviewItem,
+  SourceMapping,
+} from "./model";
 
-/** The block a region becomes; `kind` overrides the detector's suggestion. */
+/** The block a region becomes; `choice` overrides the detector's suggestions. */
 export function reviewItem(
   region: Region,
-  kind?: ImportKind,
+  { kind, width }: ImportChoice = {},
   id: string = createId(),
 ): ReviewItem {
   const as: ImportKind =
@@ -32,7 +38,7 @@ export function reviewItem(
           caption: "",
           alt: "",
           align: "full",
-          width: 100,
+          width: width ?? region.image?.column ?? 100,
         }
       : as === "heading"
         ? {

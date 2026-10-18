@@ -162,6 +162,19 @@ await writeFile(
     ].join("\n"),
   ]),
 );
+// A photo spanning the content over two at 40% of it, side by side (#407).
+await writeFile(
+  `${dir}/side-by-side.pdf`,
+  pdf([
+    [
+      text("Photos sized from the page", 50, 740, "F2", 24),
+      text("A full-width photo over two at forty percent each.", 50, 700),
+      "q 480 0 0 320 50 360 cm /Im1 Do Q",
+      "q 192 0 0 128 50 200 cm /Im1 Do Q",
+      "q 192 0 0 128 338 200 cm /Im1 Do Q",
+    ].join("\n"),
+  ]),
+);
 await writeFile(
   `${dir}/rotated.pdf`,
   pdf([text("Rotated selectable text", 50, 740) + "\n" + photo], 90),

@@ -1,5 +1,6 @@
 import { Icon, type IconName } from "@/components/icons";
 import {
+  IMAGE_SIZES,
   PAGE_ALIGNS,
   type BlockPatch,
   type ImageAlign,
@@ -28,13 +29,6 @@ const PAGE_PLACEMENTS: { value: PageAlign; icon: IconName; title: string }[] = [
     icon: "fitPage",
     title: "Fit page (the whole photo, with bars)",
   },
-];
-
-const SIZES: { value: number; label: string }[] = [
-  { value: 33, label: "S" },
-  { value: 50, label: "M" },
-  { value: 66, label: "L" },
-  { value: 100, label: "Full" },
 ];
 
 export function ImageLayoutControls({
@@ -83,22 +77,38 @@ export function ImageLayoutControls({
       {/* A page-owning photo has no text column to be a percentage of; the
           stored width is left alone so unsetting the placement restores it. */}
       {!filled && (
-        <Group label="Size">
-          {SIZES.map((s) => (
-            <Seg
-              key={s.value}
-              active={width === s.value}
-              title={`${s.value}%`}
-              onClick={() => onChange({ width: s.value })}
-            >
-              <span className="px-0.5 font-sans text-[12px] font-semibold">
-                {s.label}
-              </span>
-            </Seg>
-          ))}
-        </Group>
+        <ImageSizeControl
+          width={width}
+          onChange={(value) => onChange({ width: value })}
+        />
       )}
     </div>
+  );
+}
+
+// S / M / L / Full; also the PDF import's size override for a photo region.
+export function ImageSizeControl({
+  width,
+  onChange,
+}: {
+  width: number;
+  onChange: (width: number) => void;
+}) {
+  return (
+    <Group label="Size">
+      {IMAGE_SIZES.map((s) => (
+        <Seg
+          key={s.value}
+          active={width === s.value}
+          title={`${s.value}%`}
+          onClick={() => onChange(s.value)}
+        >
+          <span className="px-0.5 font-sans text-[12px] font-semibold">
+            {s.label}
+          </span>
+        </Seg>
+      ))}
+    </Group>
   );
 }
 
@@ -110,7 +120,7 @@ function Group({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-1.5">
+    <div role="group" aria-label={label} className="flex items-center gap-1.5">
       <span className="text-faint2 font-sans text-[9px] font-semibold tracking-[0.14em] uppercase">
         {label}
       </span>

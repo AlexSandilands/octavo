@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { ImportKind, Region, ReviewItem, SourcePage } from "./model";
+import type { ImportChoice, Region, ReviewItem, SourcePage } from "./model";
 import { RegionOverlay } from "./region-overlay";
 
 // The rendered PDF page with every detected region laid over it, filling the
@@ -15,7 +15,7 @@ export function PageView({
   itemFor,
   stateOf,
   onToggle,
-  onKind,
+  onChoose,
   onSplit,
   onAdd,
 }: {
@@ -25,7 +25,7 @@ export function PageView({
   itemFor: (regionId: string) => ReviewItem | undefined;
   stateOf: (regionId: string) => "imported" | "partial" | null;
   onToggle: (region: Region) => void;
-  onKind: (region: Region, kind: ImportKind) => void;
+  onChoose: (region: Region, choice: ImportChoice) => void;
   onSplit: (region: Region) => void;
   onAdd: () => void;
 }) {
@@ -50,7 +50,7 @@ export function PageView({
           addCount={addCount}
           disabled={disabled}
           onToggle={() => onToggle(region)}
-          onKind={(kind) => onKind(region, kind)}
+          onChoose={(choice) => onChoose(region, choice)}
           onSplit={() => onSplit(region)}
           onAdd={onAdd}
         />

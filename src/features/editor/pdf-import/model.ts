@@ -34,12 +34,21 @@ export type Region = Box & {
   level: "main" | "section" | "paragraph";
   size: TextSize;
   align: TextAlign;
-  image?: { blob: Blob; width: number; height: number; key: string };
+  image?: {
+    blob: Blob;
+    width: number;
+    height: number;
+    key: string;
+    /** The detected editor size (a block `width`), set once the page's regions are all known. */
+    column?: number;
+  };
   /** The grouped source lines, kept so a region can be split with real geometry. */
   lines?: Run[][];
   warning?: string;
 };
 export type ImportKind = "heading" | "text" | "image";
+/** The author's say over the detector: a text region's kind, a photo's size. */
+export type ImportChoice = { kind?: ImportKind; width?: number };
 export type SourcePage = {
   number: number;
   width: number;

@@ -329,6 +329,14 @@ export const TEXT_SIZES: { value: TextSize; label: string }[] = [
   { value: "xl", label: "XL" },
 ];
 
+// The per-image width choices offered in the editor, as percent of the text column.
+export const IMAGE_SIZES: { value: number; label: string }[] = [
+  { value: 33, label: "S" },
+  { value: 50, label: "M" },
+  { value: 66, label: "L" },
+  { value: 100, label: "Full" },
+];
+
 export function textSizePx(size: TextSize = "m"): number {
   // Absolute px on the ≈A4 design canvas (PAGE_W×PAGE_H ≈ A4 in points), so
   // these read like print point sizes: M ≈ normal 11pt A4 body, S a touch

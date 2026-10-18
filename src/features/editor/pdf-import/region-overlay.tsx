@@ -12,7 +12,13 @@ import { useDraggable } from "@dnd-kit/core";
 import { Icon } from "@/components/icons";
 import { blockKind } from "../block-kinds";
 import { pdfDragId } from "./drag-out";
-import type { ImportKind, Region, ReviewItem, SourcePage } from "./model";
+import type {
+  ImportChoice,
+  ImportKind,
+  Region,
+  ReviewItem,
+  SourcePage,
+} from "./model";
 import { RegionMenu } from "./region-menu";
 import { itemKind, regionLabel, suggestedKind } from "./region-text";
 import { reviewItem } from "./synthesis";
@@ -68,7 +74,7 @@ export function RegionOverlay({
   addCount,
   disabled,
   onToggle,
-  onKind,
+  onChoose,
   onSplit,
   onAdd,
 }: {
@@ -79,7 +85,7 @@ export function RegionOverlay({
   addCount: number;
   disabled: boolean;
   onToggle: () => void;
-  onKind: (kind: ImportKind) => void;
+  onChoose: (choice: ImportChoice) => void;
   onSplit: () => void;
   onAdd: () => void;
 }) {
@@ -169,9 +175,10 @@ export function RegionOverlay({
           region={region}
           page={page}
           kind={kind}
+          width={carried.block.type === "image" ? carried.block.width : 100}
           addCount={addCount}
           disabled={disabled}
-          onKind={onKind}
+          onChoose={onChoose}
           onSplit={onSplit}
           onAdd={onAdd}
         />
