@@ -38,9 +38,9 @@ and published issues alike: it is an ordinary edit, saved and re-published like 
    the Heading/Text toggle, **Split** for over-grouped text (cuts at the widest gap
    between its source lines, with real geometry for both halves), and **Add**. A photo's
    pill has the editor's own **S / M / L / Full** instead, with the size detected from
-   the page pressed (below); another size sets that region's, kept while the PDF is open
-   like a Heading/Text choice, and the selection list, Select all on page and a drag-out
-   all use it. Chips and pills cancel the stage's scale (`.chrome-unscaled`), so they read
+   the page pressed (below); another size sets that region's, kept while the region stays
+   selected like a Heading/Text choice, and the selection list, Select all on page and a
+   drag-out all use it. Chips and pills cancel the stage's scale (`.chrome-unscaled`), so they read
    the same at any zoom.
 3. **Add** — the panel's tool bar floats over the foot of the stage in the same pill as
    the editor's own tools: previous/next page with the page count, how many regions are
@@ -144,8 +144,8 @@ region is measured against the page width less a 12% margin each side (about an 
 a Letter page). The paginator keeps that width: a photo that does not fit beside the
 page's content goes whole onto the next page, never shrunk to squeeze in. Only a photo
 too big for an empty page shrinks, without distortion, within the normal width limits,
-and one too tall at the minimum width gets its own `page-fit` page. Existing page-photo invariants apply,
-including omitted caption on a page-owning photo. The accepted batch is validated and
+and one too tall at the minimum width gets its own `page-fit` page. Existing page-photo
+invariants apply, including omitted caption on a page-owning photo. The accepted batch is validated and
 fitted before any upload. Image-containing batches are then paginated again from
 the original destination and unsplit selection using the stored image URLs and
 server-returned dimensions. This lets upload resizing/rounding change page breaks
