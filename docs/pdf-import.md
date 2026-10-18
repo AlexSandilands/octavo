@@ -139,17 +139,17 @@ the page, text and photos, so page margins never make a photo look smaller than 
 rounded down to S 33 / M 50 / L 66 / Full 100 (`IMAGE_SIZES` in `src/lib/blocks.ts`),
 never below S. Down rather than nearest because the owner found nearest one size too big
 on nearly every photo: a 48% photo is S, a 97% one L. Only a photo spanning the content,
-or wider than it, is Full. A photo that is its page's only region is measured against
-the page width less a 12% margin each side (about an inch of a Letter page). The
-paginator keeps that width: a photo that does not fit beside the page's content goes
-whole onto the next page, never shrunk to squeeze in. Only a photo too big for an empty
-page shrinks, without distortion, within the normal width limits, and one too tall at
-the minimum width gets its own `page-fit` page. Existing page-photo invariants apply,
-including omitted caption on a page-owning photo. The accepted batch is validated and
-fitted before any upload. Image-containing batches are then paginated again from the
-original destination and unsplit selection using the stored image URLs and
-server-returned dimensions. This lets upload resizing/rounding change page breaks and
-image sizing safely; only the final pages and source mappings are committed. Pending
+or wider than it, is Full. The content counts as at least 60% of the page width, so a
+photo alone on its page, or beside only a caption or page number, isn't measured against
+itself. The paginator keeps that width: a photo that does not fit beside the page's
+content goes whole onto the next page, never shrunk to squeeze in. Only a photo too big
+for an empty page shrinks, without distortion, within the normal width limits, and one
+too tall at the minimum width gets its own `page-fit` page. Existing page-photo
+invariants apply, including omitted caption on a page-owning photo. The accepted batch
+is validated and fitted before any upload. Image-containing batches are then paginated
+again from the original destination and unsplit selection using the stored image URLs
+and server-returned dimensions. This lets upload resizing/rounding change page breaks
+and image sizing safely; only the final pages and source mappings are committed. Pending
 imports lock destination edits and check the captured document and geometry before
 committing.
 

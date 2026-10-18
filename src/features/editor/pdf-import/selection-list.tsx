@@ -71,6 +71,7 @@ export function SelectionList({
               <Thumb region={item.region} />
               <ImageSizeControl
                 width={item.block.width}
+                disabled={disabled}
                 onChange={(width) => onChoose(item.region, { width })}
               />
             </>

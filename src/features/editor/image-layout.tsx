@@ -89,9 +89,11 @@ export function ImageLayoutControls({
 // S / M / L / Full; also the PDF import's size override for a photo region.
 export function ImageSizeControl({
   width,
+  disabled,
   onChange,
 }: {
   width: number;
+  disabled?: boolean;
   onChange: (width: number) => void;
 }) {
   return (
@@ -101,6 +103,7 @@ export function ImageSizeControl({
           key={s.value}
           active={width === s.value}
           title={`${s.value}%`}
+          disabled={disabled}
           onClick={() => onChange(s.value)}
         >
           <span className="px-0.5 font-sans text-[12px] font-semibold">
@@ -134,11 +137,13 @@ function Group({
 function Seg({
   active,
   title,
+  disabled,
   onClick,
   children,
 }: {
   active: boolean;
   title: string;
+  disabled?: boolean;
   onClick: () => void;
   children: React.ReactNode;
 }) {
@@ -148,11 +153,12 @@ function Seg({
       title={title}
       aria-label={title}
       aria-pressed={active}
+      disabled={disabled}
       onClick={(e) => {
         e.stopPropagation();
         onClick();
       }}
-      className={`flex h-7 min-w-7 items-center justify-center px-1.5 ${
+      className={`flex h-7 min-w-7 items-center justify-center px-1.5 disabled:pointer-events-none disabled:opacity-50 ${
         active
           ? "bg-accent text-paper"
           : "text-muted hover:bg-accent-wash hover:text-accent bg-white"

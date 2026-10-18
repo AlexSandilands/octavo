@@ -1,20 +1,15 @@
 import { IMAGE_SIZES } from "@/lib/blocks";
 import type { Box } from "./model";
 
-/** A page's content, as a lone photo sees it: the page less an inch-ish margin each side. */
-export const LONE_PHOTO_MARGIN = 0.12;
+// The least share of the page that counts as its content, so a photo with only a caption
+// or page number beside it isn't measured against itself.
+const MIN_CONTENT_SHARE = 0.6;
 
-/**
- * The largest editor size (percent of the text column) within a photo's share
- * of its page's content: the horizontal span of every region on the page, text and
- * photos, so page margins don't shrink every photo. A photo that is the page's
- * only region is measured against the page width less typical margins instead.
- */
 export function photoWidth(photo: Box, regions: Box[], pageWidth: number) {
-  const span =
-    regions.length > 1
-      ? contentSpan([photo, ...regions])
-      : pageWidth * (1 - 2 * LONE_PHOTO_MARGIN);
+  const span = Math.max(
+    contentSpan([photo, ...regions]),
+    pageWidth * MIN_CONTENT_SHARE,
+  );
   return snapImageWidth(photo.width / Math.max(span, 1));
 }
 

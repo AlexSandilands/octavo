@@ -6,11 +6,10 @@ import { ToolButton } from "../tool-button";
 import { KindToggle } from "./kind-toggle";
 import type { ImportChoice, ImportKind, Region, SourcePage } from "./model";
 
-// The small tool pill that appears over a selected region: what it becomes
-// (a photo's size, detected from the page, pressed), a split for over-grouped
-// text, and Add. It sits above the region, or below when the region is at the
-// top of the page, and hangs from whichever side keeps it on the page. Padding
-// rather than a margin keeps the hover contiguous.
+// The small tool pill that appears over a selected region: what it becomes,
+// a split for over-grouped text, and Add. It sits above the region, or below
+// when the region is at the top of the page, and hangs from whichever side
+// keeps it on the page. Padding rather than a margin keeps the hover contiguous.
 export function RegionMenu({
   region,
   page,
