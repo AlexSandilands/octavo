@@ -11,17 +11,13 @@ import {
 } from "@/features/discussion/page-tags";
 import { acceptsMovedBlock } from "./move-block";
 
-/** What a block needs to offer "Move to page…": the issue and where it is. */
 export type MoveToPage = {
   pages: Page[];
   current: number;
   onMove: (index: number) => void;
 };
 
-// "Move to page…" beside a selected block's arrows (issue #406): every page in
-// order, named as the discussion's page tags name them and hinted by its first
-// heading, with this page checked and the pages a block can't land on (covers,
-// a full-page photo's) dimmed. The chosen page takes the block at its end.
+// Every page, named and hinted as the discussion's page tags are; the block lands at the end.
 export function MoveToPageMenu({ pages, current, onMove }: MoveToPage) {
   const index = useMemo(() => pageIndex(pages), [pages]);
   const items: MenuSelectItem<number>[] = pages.map((page, i) => {

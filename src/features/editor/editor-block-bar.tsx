@@ -44,7 +44,7 @@ export function EditorBlockBar({
   ask: ReactNode;
   onChange: (patch: BlockPatch) => void;
   onMove: (dir: -1 | 1) => void;
-  /** "Move to page…" (#406); absent where a block can't leave its page. */
+  /** Absent where a block can't leave its page. */
   moveTo?: MoveToPage;
   onRemove: () => void;
   onFillPage: (align: PageAlign) => void;

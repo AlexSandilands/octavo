@@ -95,7 +95,6 @@ export function EditorBlock({
   onSelect: () => void;
   onChange: (patch: BlockPatch) => void;
   onMove: (dir: -1 | 1) => void;
-  /** "Move to page…" (#406), offered off covers and full-page photos. */
   moveTo?: MoveToPage;
   onRemove: () => void;
   onFlow: () => void;

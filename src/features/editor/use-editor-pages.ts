@@ -209,8 +209,7 @@ export function useEditorPages(content: IssueContent) {
     }));
   };
 
-  // The editor follows the block: the page it lands on opens with it selected.
-  // A no-op (a cover, a full-page photo, the first or last page) commits nothing.
+  // The editor follows the block; a refused move commits nothing.
   const moveAcross = (id: string, to: number, at: "start" | "end") => {
     const next = moveBlockAcrossPages(pages, curPage, id, to, at);
     if (!next) return;
@@ -220,7 +219,6 @@ export function useEditorPages(content: IssueContent) {
     setSel(id);
   };
 
-  /** "Move to page…": onto the end of the chosen page. */
   const moveBlockToPage = (id: string, to: number) => moveAcross(id, to, "end");
 
   const moveBlock = (id: string, dir: -1 | 1) => {
@@ -243,8 +241,7 @@ export function useEditorPages(content: IssueContent) {
     const i = blocks.findIndex((b) => b.id === id);
     const j = i + dir;
     if (i < 0) return;
-    // Off the page's edge: onto the end of the page before, or the top of the
-    // page after (#406).
+    // Off the page's edge: the end of the page before, or the top of the page after.
     if (j < 0 || j >= blocks.length) {
       moveAcross(id, curPage + dir, dir < 0 ? "end" : "start");
       return;
