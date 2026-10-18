@@ -251,7 +251,8 @@ try {
   const contentText = all
     .filter((b) => b.type === "text")
     .map((b) => richTextToPlain(b.text))
-    .join(" ");
+    .join(" ")
+    .replace(/\s+/g, " "); // a cut keeps its space, so joining can double it
   for (let i = 1; i <= 60; i++)
     assert(
       contentText.includes(`Line ${String(i).padStart(2, "0")} measured`),
