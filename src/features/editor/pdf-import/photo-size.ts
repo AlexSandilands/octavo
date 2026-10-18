@@ -5,8 +5,8 @@ import type { Box } from "./model";
 export const LONE_PHOTO_MARGIN = 0.12;
 
 /**
- * The editor size (percent of the text column) nearest a photo's share of its
- * page's content: the horizontal span of every region on the page, text and
+ * The largest editor size (percent of the text column) within a photo's share
+ * of its page's content: the horizontal span of every region on the page, text and
  * photos, so page margins don't shrink every photo. A photo that is the page's
  * only region is measured against the page width less typical margins instead.
  */
@@ -24,10 +24,11 @@ export function contentSpan(regions: Box[]) {
   return right - left;
 }
 
-/** The nearest of S / M / L / Full to a share of the column (0–1, clamped). */
+/** The largest of S / M / L / Full within a share of the column (0–1); never below S. */
 export function snapImageWidth(share: number) {
-  const percent = Math.min(1, Math.max(0, share)) * 100;
-  return IMAGE_SIZES.reduce((best, s) =>
-    Math.abs(s.value - percent) < Math.abs(best.value - percent) ? s : best,
-  ).value;
+  const percent = share * 100 + 1e-6;
+  return IMAGE_SIZES.reduce(
+    (best, s) => (s.value <= percent ? s.value : best),
+    IMAGE_SIZES[0]!.value,
+  );
 }

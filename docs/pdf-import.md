@@ -133,25 +133,25 @@ Paragraph boundaries are preferred, then binary search finds measured word cuts;
 marks, whitespace and Unicode survive. Unbroken text that cannot fit is refused or
 split safely. No intermediate layout is committed or autosaved.
 
-A photo comes in at the editor size nearest its share of its PDF page's **content**
-(`pdf-import/photo-size.ts`, #407): the horizontal span of every region on the page,
-text and photos, so page margins never make a photo look smaller than it is, snapped to
-the nearest of S 33 / M 50 / L 66 / Full 100 (`IMAGE_SIZES` in `src/lib/blocks.ts`).
-Nearest rather than rounded up because it distorts the page least: rounding up would
-turn a two-thirds photo into Full, which is what pushed photos onto pages of their own.
-A photo spanning the content, or wider than it, is Full. A photo that is its page's only
-region is measured against the page width less a 12% margin each side (about an inch of
-a Letter page). The paginator keeps that width: a photo that does not fit beside the
-page's content goes whole onto the next page, never shrunk to squeeze in. Only a photo
-too big for an empty page shrinks, without distortion, within the normal width limits,
-and one too tall at the minimum width gets its own `page-fit` page. Existing page-photo
-invariants apply, including omitted caption on a page-owning photo. The accepted batch is validated and
-fitted before any upload. Image-containing batches are then paginated again from
-the original destination and unsplit selection using the stored image URLs and
-server-returned dimensions. This lets upload resizing/rounding change page breaks
-and image sizing safely; only the final pages and source mappings are committed.
-Pending imports lock destination edits and check the captured document and geometry
-before committing.
+A photo comes in at the largest editor size within its share of its PDF page's
+**content** (`pdf-import/photo-size.ts`, #407): the horizontal span of every region on
+the page, text and photos, so page margins never make a photo look smaller than it is,
+rounded down to S 33 / M 50 / L 66 / Full 100 (`IMAGE_SIZES` in `src/lib/blocks.ts`),
+never below S. Down rather than nearest because the owner found nearest one size too big
+on nearly every photo: a 48% photo is S, a 97% one L. Only a photo spanning the content,
+or wider than it, is Full. A photo that is its page's only region is measured against
+the page width less a 12% margin each side (about an inch of a Letter page). The
+paginator keeps that width: a photo that does not fit beside the page's content goes
+whole onto the next page, never shrunk to squeeze in. Only a photo too big for an empty
+page shrinks, without distortion, within the normal width limits, and one too tall at
+the minimum width gets its own `page-fit` page. Existing page-photo invariants apply,
+including omitted caption on a page-owning photo. The accepted batch is validated and
+fitted before any upload. Image-containing batches are then paginated again from the
+original destination and unsplit selection using the stored image URLs and
+server-returned dimensions. This lets upload resizing/rounding change page breaks and
+image sizing safely; only the final pages and source mappings are committed. Pending
+imports lock destination edits and check the captured document and geometry before
+committing.
 
 Uploads are sequential through the existing authenticated `/api/admin/images` route,
 with its format sniffing, sharp processing, 12 MB cap and 30/minute limit. Successful

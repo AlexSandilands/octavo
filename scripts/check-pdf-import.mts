@@ -459,7 +459,7 @@ const rgba = Uint8Array.from({ length: 3 * 2 * 4 }, (_, i) => i);
 const rgbaOut = new Uint8ClampedArray(4);
 copyCropRow(rgba, 4, 3, { x: 2, y: 1, width: 1, height: 1 }, 0, rgbaOut);
 assert.deepEqual([...rgbaOut], [20, 21, 22, 23]);
-// Photo sizes: a photo's share of the page's content, snapped to the nearest
+// Photo sizes: a photo's share of the page's content, rounded down to an
 // editor size; the content is every region's span, so margins don't count.
 const box = (x: number, width: number) => ({ x, y: 0, width, height: 10 });
 const column = [box(50, 460), box(50, 200), box(330, 180)];
@@ -470,17 +470,18 @@ const pair = [box(50, 184), box(326, 184)];
 for (const photo of pair)
   assert.equal(photoWidth(photo, [...column, ...pair], 612), 33, "40% is S");
 assert.equal(photoWidth(box(50, 120), [...column, box(50, 120)], 612), 33);
-assert.equal(photoWidth(box(50, 276), [...column, box(50, 276)], 612), 66);
+assert.equal(photoWidth(box(50, 276), [...column, box(50, 276)], 612), 50);
+assert.equal(photoWidth(box(50, 450), [...column, box(50, 450)], 612), 66);
 // Wider than the text (a bleed): the photo is the content, Full.
 assert.equal(photoWidth(box(0, 612), [...column, box(0, 612)], 612), 100);
 // The Club background's phone photo: 236pt of a 478pt column.
-assert.equal(photoWidth(box(57, 236), [box(57, 478), box(57, 236)], 595), 50);
+assert.equal(photoWidth(box(57, 236), [box(57, 478), box(57, 236)], 595), 33);
 // Alone on the page: against the page less an inch-ish margin each side.
 assert.equal(photoWidth(box(50, 240), [box(50, 240)], 612), 50);
 assert.equal(photoWidth(box(50, 150), [box(50, 150)], 612), 33);
 assert.equal(photoWidth(box(0, 612), [box(0, 612)], 612), 100);
 assert.deepEqual(
-  [0, 0.41, 0.42, 0.58, 0.59, 0.83, 0.84, 1.2].map(snapImageWidth),
+  [0, 0.49, 0.5, 0.65, 0.66, 0.99, 1, 1.2].map(snapImageWidth),
   [33, 33, 50, 50, 66, 66, 100, 100],
 );
 // The paginator keeps a photo's chosen width: a photo that doesn't fit beside
