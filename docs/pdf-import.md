@@ -36,8 +36,12 @@ and published issues alike: it is an ordinary edit, saved and re-published like 
    press selects the region, which gets a solid chip. Hovering or focusing a selected
    region shows a small tool pill above it (below when it sits at the top of the page):
    the Heading/Text toggle, **Split** for over-grouped text (cuts at the widest gap
-   between its source lines, with real geometry for both halves), and **Add**. Chips and
-   pills cancel the stage's scale (`.chrome-unscaled`), so they read the same at any zoom.
+   between its source lines, with real geometry for both halves), and **Add**. A photo's
+   pill has the editor's own **S / M / L / Full** instead, with the size detected from
+   the page pressed (below); another size sets that region's, kept while the PDF is open
+   like a Heading/Text choice, and the selection list, Select all on page and a drag-out
+   all use it. Chips and pills cancel the stage's scale (`.chrome-unscaled`), so they read
+   the same at any zoom.
 3. **Add** — the panel's tool bar floats over the foot of the stage in the same pill as
    the editor's own tools: previous/next page with the page count, how many regions are
    selected (press it for the selection list), _Select all on page_ (every region, each
@@ -129,8 +133,18 @@ Paragraph boundaries are preferred, then binary search finds measured word cuts;
 marks, whitespace and Unicode survive. Unbroken text that cannot fit is refused or
 split safely. No intermediate layout is committed or autosaved.
 
-Images shrink without distortion within the normal width limits. A photo too tall at
-the minimum width gets its own `page-fit` page. Existing page-photo invariants apply,
+A photo comes in at the editor size nearest its share of its PDF page's **content**
+(`pdf-import/photo-size.ts`, #407): the horizontal span of every region on the page,
+text and photos, so page margins never make a photo look smaller than it is, snapped to
+the nearest of S 33 / M 50 / L 66 / Full 100 (`IMAGE_SIZES` in `src/lib/blocks.ts`).
+Nearest rather than rounded up because it distorts the page least: rounding up would
+turn a two-thirds photo into Full, which is what pushed photos onto pages of their own.
+A photo spanning the content, or wider than it, is Full. A photo that is its page's only
+region is measured against the page width less a 12% margin each side (about an inch of
+a Letter page). The paginator keeps that width: a photo that does not fit beside the
+page's content goes whole onto the next page, never shrunk to squeeze in. Only a photo
+too big for an empty page shrinks, without distortion, within the normal width limits,
+and one too tall at the minimum width gets its own `page-fit` page. Existing page-photo invariants apply,
 including omitted caption on a page-owning photo. The accepted batch is validated and
 fitted before any upload. Image-containing batches are then paginated again from
 the original destination and unsplit selection using the stored image URLs and
@@ -208,8 +222,10 @@ The core gate checks lazy loading/CSP, the panel's resize handle and canvas re-f
 source transmission, retyping through the pill, the selection list, zoom-stable hit
 targets, failure atomicity, duplicate clicks, an oversized paragraph split across
 continuation pages in order, undo/redo/added marks, reload, keyboard selection and
-split, rotation, bad-input states, an import landing after the issue is published
-mid-session, both readers and the exported PDF. The two gates that fetch the exported PDF
+split, photo sizes on `side-by-side.pdf` (detected S for a 40% photo, L chosen from the
+keyboard and kept through Select all and Add, Full/L/S landing unshrunk, a drag-out
+previewed and dropped at S), rotation, bad-input states, an import landing after the
+issue is published mid-session, both readers and the exported PDF. The two gates that fetch the exported PDF
 (core and legacy) switch downloads on for that last step and restore the setting they found, so
 they pass on a database where the owner has turned downloads off. The failure gate checks
 successful-upload retry reuse, cancelling and closing the panel mid-upload, worker teardown on Close
@@ -236,8 +252,9 @@ The crop gate (#404) opens `cropped.pdf`: a photo clipped to one colour quadrant
 another bleeding off the page's left edge. Both regions must match the drawn pixels,
 and the uploaded images must be exactly the visible crops, in the right colours. Any
 extra PDF paths (a real Pages export, kept out of the repository) are opened after
-that, with each page's photo count and notes printed and a shot saved to
-`/tmp/pdf-import-crop-<k>-p<n>.png` (the k-th extra PDF).
+that, with each page's photos — the detected size and the share of the content span it
+came from — and notes printed and a shot saved to `/tmp/pdf-import-crop-<k>-p<n>.png`
+(the k-th extra PDF).
 
 Repository lint, app/script typechecks, touched-file formatting and the production
 build remain required. The user's browser pass on the implementation PR is still a
