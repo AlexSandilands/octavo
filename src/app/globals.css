@@ -250,3 +250,13 @@ body {
   transform: scale(calc(var(--chrome-scale) / var(--page-scale, 1)));
   transform-origin: bottom left;
 }
+/* The controls down a selected block's side: centred on the block, but never
+   above its top edge, where the block's own bar sits — beside a short block
+   they hang from the top. The wrapper spans the block as a size container. */
+.chrome-unscaled-side {
+  --chrome-scale: 1.1;
+  --chrome-ratio: calc(var(--chrome-scale) / var(--page-scale, 1));
+  transform: scale(var(--chrome-ratio))
+    translateY(max(0px, calc(50cqh / var(--chrome-ratio) - 50%)));
+  transform-origin: top left;
+}

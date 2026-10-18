@@ -25,6 +25,7 @@ import { arrayMove } from "@dnd-kit/sortable";
 import type { DragEndEvent } from "@dnd-kit/core";
 import { pageFillsCanvas } from "@/features/blocks/layout";
 import { setCoverBackground, withCoverStyle } from "./cover-layout";
+import { moveBlockAcrossPages } from "./move-block";
 import { flowTextBlock, moveBlockToNextPage } from "./text-flow";
 import {
   changedBlockIds,
@@ -208,6 +209,20 @@ export function useEditorPages(content: IssueContent) {
     }));
   };
 
+  // The editor follows the block: the page it lands on opens with it selected.
+  // A no-op (a cover, a full-page photo, the first or last page) commits nothing.
+  const moveAcross = (id: string, to: number, at: "start" | "end") => {
+    const next = moveBlockAcrossPages(pages, curPage, id, to, at);
+    if (!next) return;
+    commit();
+    setPages(next);
+    setCurPage(to);
+    setSel(id);
+  };
+
+  /** "Move to page…": onto the end of the chosen page. */
+  const moveBlockToPage = (id: string, to: number) => moveAcross(id, to, "end");
+
   const moveBlock = (id: string, dir: -1 | 1) => {
     if (page?.cover) {
       const active = coverItems(page).find((i) => i.id === id);
@@ -224,10 +239,16 @@ export function useEditorPages(content: IssueContent) {
       editPage((p) => reorderCover(p, id, target.id));
       return;
     }
-    const blocks = pages[curPage]?.blocks;
-    const i = blocks?.findIndex((b) => b.id === id) ?? -1;
+    const blocks = pages[curPage]?.blocks ?? [];
+    const i = blocks.findIndex((b) => b.id === id);
     const j = i + dir;
-    if (i < 0 || j < 0 || j >= (blocks?.length ?? 0)) return;
+    if (i < 0) return;
+    // Off the page's edge: onto the end of the page before, or the top of the
+    // page after (#406).
+    if (j < 0 || j >= blocks.length) {
+      moveAcross(id, curPage + dir, dir < 0 ? "end" : "start");
+      return;
+    }
     commit();
     editPage((p) => {
       const arr = [...p.blocks];
@@ -402,6 +423,7 @@ export function useEditorPages(content: IssueContent) {
     addBlock,
     updateBlock,
     moveBlock,
+    moveBlockToPage,
     onDragEnd,
     removeBlock,
     flowText,

@@ -32,6 +32,8 @@ export type MenuSelectItem<T> = {
   value: T;
   /** Row content, rendered after the shared check column. */
   content: ReactNode;
+  /** Listed and reachable by arrow key, announced as dimmed, but not choosable. */
+  disabled?: boolean;
 };
 
 export function MenuSelect<T>({
@@ -68,8 +70,9 @@ export function MenuSelect<T>({
   /** Trigger height: "sm" (40px) suits dense chrome like the editor header;
    * "md" (44px) meets the tap-target floor; "toolbar" (30px) matches the text-tool box;
    * "compact" (32px, a hairline pill) keeps a 44px hit area beyond its edge;
-   * "bar" (28px) matches the buttons in a selected block's bar. */
-  size?: "sm" | "md" | "toolbar" | "compact" | "bar";
+   * "bar" (28px) matches the buttons in a selected block's bar;
+   * "ctrl" (24px, icon only) matches the move/delete controls beside a block. */
+  size?: "sm" | "md" | "toolbar" | "compact" | "bar" | "ctrl";
   /** Bottom toolbars open their menus upward, clear of the viewport edge. */
   side?: "top" | "bottom";
   /** Extra classes for the trigger — widths and placement only, as on Button. */
@@ -265,12 +268,15 @@ export function MenuSelect<T>({
             type="button"
             role="menuitemradio"
             aria-checked={active}
-            onClick={() => choose(item.value)}
+            aria-disabled={item.disabled || undefined}
+            onClick={() => !item.disabled && choose(item.value)}
             onKeyDown={(e) => onItemKeyDown(e, i)}
-            className={`flex h-11 w-full cursor-pointer items-center gap-2 rounded-md px-2.5 font-sans text-sm transition-[background-color,color] duration-150 ${
-              active
-                ? "text-accent font-semibold"
-                : "text-ink hover:bg-accent-wash"
+            className={`flex h-11 w-full items-center gap-2 rounded-md px-2.5 font-sans text-sm transition-[background-color,color] duration-150 ${
+              item.disabled
+                ? `cursor-default ${active ? "text-accent/60 font-semibold" : "text-faint2"}`
+                : active
+                  ? "text-accent cursor-pointer font-semibold"
+                  : "text-ink hover:bg-accent-wash cursor-pointer"
             }`}
           >
             <span className="flex w-4 justify-center">
@@ -318,24 +324,28 @@ export function MenuSelect<T>({
             toggle();
           }
         }}
-        className={`${size === "bar" ? "border-hair font-semibold" : "border-hair-warm font-medium"} text-ink enabled:hover:border-accent enabled:hover:bg-accent-wash disabled:cursor-default disabled:opacity-40 flex cursor-pointer items-center bg-white font-sans transition-[transform,background-color,border-color] duration-150 ease-out select-none motion-safe:active:scale-[0.97] ${
-          iconOnly
-            ? "rounded-[9px] border"
-            : size === "compact" || size === "bar"
-              ? "border"
-              : "border-[1.5px]"
+        className={`${size === "bar" ? "border-hair font-semibold" : "border-hair-warm font-medium"} ${size === "ctrl" ? "text-muted enabled:hover:text-accent" : "text-ink enabled:hover:bg-accent-wash"} enabled:hover:border-accent disabled:cursor-default disabled:opacity-40 flex cursor-pointer items-center bg-white font-sans transition-[transform,background-color,border-color] duration-150 ease-out select-none motion-safe:active:scale-[0.97] ${
+          size === "ctrl"
+            ? "rounded-[5px] border"
+            : iconOnly
+              ? "rounded-[9px] border"
+              : size === "compact" || size === "bar"
+                ? "border"
+                : "border-[1.5px]"
         } ${
-          size === "compact"
-            ? "relative h-8 max-w-full gap-1.5 rounded-full px-2 text-[13px] before:absolute before:inset-x-0 before:-inset-y-1.5 before:content-['']"
-            : size === "bar"
-              ? "h-7 max-w-full gap-1.5 rounded-[6px] px-2.5 text-[12px]"
-              : size === "toolbar"
-                ? iconOnly
-                  ? "h-[30px] w-[30px] justify-center rounded-[6px] text-[12px]"
-                  : "h-[30px] gap-1 rounded-[6px] px-1.5 text-[12px]"
-                : iconOnly
-                  ? `w-10 justify-center ${size === "md" ? "h-11" : "h-10"} ${collapseBelowLg ? "max-lg:w-10 max-lg:justify-center max-lg:px-0!" : ""}`
-                  : `gap-2 rounded-lg px-3.5 text-sm ${size === "md" ? "h-11" : "h-10"} ${collapseBelowLg ? "max-lg:w-10 max-lg:justify-center max-lg:px-0!" : ""}`
+          size === "ctrl"
+            ? "h-6 w-6 justify-center"
+            : size === "compact"
+              ? "relative h-8 max-w-full gap-1.5 rounded-full px-2 text-[13px] before:absolute before:inset-x-0 before:-inset-y-1.5 before:content-['']"
+              : size === "bar"
+                ? "h-7 max-w-full gap-1.5 rounded-[6px] px-2.5 text-[12px]"
+                : size === "toolbar"
+                  ? iconOnly
+                    ? "h-[30px] w-[30px] justify-center rounded-[6px] text-[12px]"
+                    : "h-[30px] gap-1 rounded-[6px] px-1.5 text-[12px]"
+                  : iconOnly
+                    ? `w-10 justify-center ${size === "md" ? "h-11" : "h-10"} ${collapseBelowLg ? "max-lg:w-10 max-lg:justify-center max-lg:px-0!" : ""}`
+                    : `gap-2 rounded-lg px-3.5 text-sm ${size === "md" ? "h-11" : "h-10"} ${collapseBelowLg ? "max-lg:w-10 max-lg:justify-center max-lg:px-0!" : ""}`
         } ${className}`}
       >
         {collapseBelowLg ? (

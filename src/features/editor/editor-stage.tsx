@@ -41,6 +41,7 @@ export type StageActions = Pick<
   ReturnType<typeof useEditorPages>,
   | "updateBlock"
   | "moveBlock"
+  | "moveBlockToPage"
   | "removeBlock"
   | "fillPage"
   | "flowText"
@@ -83,6 +84,7 @@ export function EditorStage({
   issueId,
   issueNo,
   page,
+  pages,
   curPage,
   sel,
   theme,
@@ -103,6 +105,7 @@ export function EditorStage({
   issueId: string;
   issueNo: number;
   page: Page | undefined;
+  pages: Page[];
   curPage: number;
   sel: string | null;
   theme: LayoutTheme;
@@ -293,6 +296,8 @@ export function EditorStage({
                 {page && (
                   <EditorPageContent
                     page={page}
+                    pages={pages}
+                    curPage={curPage}
                     containerRef={canvasRef}
                     sources={cover?.sources ?? []}
                     issueNo={issueNo}
@@ -310,6 +315,7 @@ export function EditorStage({
                     updateBlock={actions.updateBlock}
                     updateElement={cover?.updateElement ?? (() => {})}
                     moveBlock={actions.moveBlock}
+                    moveBlockToPage={actions.moveBlockToPage}
                     removeBlock={actions.removeBlock}
                     removeElement={cover?.removeElement ?? (() => {})}
                     moveElement={cover?.moveElement ?? (() => {})}

@@ -15,6 +15,8 @@ import type { BlockOverflow } from "./page-metrics";
 
 export function EditorPageContent({
   page,
+  pages,
+  curPage,
   containerRef,
   sources,
   issueNo,
@@ -32,6 +34,7 @@ export function EditorPageContent({
   updateBlock,
   updateElement,
   moveBlock,
+  moveBlockToPage,
   removeBlock,
   removeElement,
   moveElement,
@@ -42,6 +45,8 @@ export function EditorPageContent({
   preview,
 }: {
   page: Page;
+  pages: Page[];
+  curPage: number;
   containerRef: Ref<HTMLDivElement>;
   sources: CoverSource[];
   issueNo: number;
@@ -60,6 +65,7 @@ export function EditorPageContent({
   updateElement: (element: CoverElement) => void;
   updateBlock: (id: string, patch: BlockPatch) => void;
   moveBlock: (id: string, dir: -1 | 1) => void;
+  moveBlockToPage: (id: string, index: number) => void;
   removeBlock: (id: string) => void;
   removeElement: (id: string) => void;
   moveElement: (id: string, dir: -1 | 1) => void;
@@ -128,6 +134,11 @@ export function EditorPageContent({
             onSelect={() => onSelect(b.id)}
             onChange={(patch) => updateBlock(b.id, patch)}
             onMove={(dir) => moveBlock(b.id, dir)}
+            moveTo={{
+              pages,
+              current: curPage,
+              onMove: (index) => moveBlockToPage(b.id, index),
+            }}
             onRemove={() => removeBlock(b.id)}
             onFlow={() => flow(b.id)}
             onFillPage={(a) => fillPage(b.id, a)}
