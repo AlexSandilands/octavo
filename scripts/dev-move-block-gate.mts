@@ -289,6 +289,10 @@ try {
     rows[0]!.disabled && rows[3]!.disabled,
     "the cover and the full-page photo's page are disabled",
   );
+  ok(
+    rows[3]!.hint === "Full-page photo",
+    "a page that can't take the block says why",
+  );
   ok(!rows[1]!.disabled && !rows[4]!.disabled, "the other pages can be chosen");
   ok(
     (await focusedRow(page)) === "Page 3",
@@ -324,6 +328,11 @@ try {
     { page: "Page 5", blocks: "e,b", selected: "b" },
     "Enter moves the block to the end of page 5, selected, the editor following",
   );
+  await page.waitForFunction(
+    () =>
+      document.activeElement?.getAttribute("aria-label") === "Move to page…",
+  );
+  ok(true, "…with focus back on Move to page…");
   await page.waitForSelector('[data-page-frame] [role="status"]');
   const after = (await state(page)).overflow;
   ok(

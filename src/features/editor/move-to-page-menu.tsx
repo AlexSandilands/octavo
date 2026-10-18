@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { Icon } from "@/components/icons";
 import { MenuSelect, type MenuSelectItem } from "@/components/menu-select";
 import type { Page } from "@/lib/blocks";
@@ -9,6 +9,7 @@ import {
   pageIndex,
   pageName,
 } from "@/features/discussion/page-tags";
+import { pageFillsCanvas } from "@/features/blocks/layout";
 import { acceptsMovedBlock } from "./move-block";
 
 export type MoveToPage = {
@@ -20,8 +21,19 @@ export type MoveToPage = {
 // Every page, named and hinted as the discussion's page tags are; the block lands at the end.
 export function MoveToPageMenu({ pages, current, onMove }: MoveToPage) {
   const index = useMemo(() => pageIndex(pages), [pages]);
+  const wrapper = useRef<HTMLDivElement>(null);
   const items: MenuSelectItem<number>[] = pages.map((page, i) => {
-    const hint = index.hints.get(page.id);
+    const label = capitalise(pageName(index, page.id) ?? "");
+    // A page that can't take the block says why rather than just dimming.
+    const reason =
+      i === current
+        ? null
+        : page.cover && !/cover/i.test(label)
+          ? "Cover"
+          : pageFillsCanvas(page)
+            ? "Full-page photo"
+            : null;
+    const hint = reason ?? index.hints.get(page.id);
     return {
       key: page.id,
       value: i,
@@ -29,7 +41,7 @@ export function MoveToPageMenu({ pages, current, onMove }: MoveToPage) {
       content: (
         <span className="flex min-w-0 flex-1 items-center gap-2 text-left">
           <span data-page-label className="flex-none">
-            {capitalise(pageName(index, page.id) ?? "")}
+            {label}
           </span>
           {hint && (
             <span
@@ -46,7 +58,7 @@ export function MoveToPageMenu({ pages, current, onMove }: MoveToPage) {
   return (
     // The menu is portalled, so its presses would reach the stage through React
     // and start a canvas pan that captures the pointer away from the click.
-    <div onPointerDown={(e) => e.stopPropagation()}>
+    <div ref={wrapper} onPointerDown={(e) => e.stopPropagation()}>
       <MenuSelect
         label=""
         current=""
@@ -59,7 +71,15 @@ export function MoveToPageMenu({ pages, current, onMove }: MoveToPage) {
         disabled={!items.some((item) => !item.disabled)}
         items={items}
         value={current}
-        onSelect={onMove}
+        onSelect={(i) => {
+          onMove(i);
+          // Back on the trigger once the block has landed, without scrolling the stage.
+          requestAnimationFrame(() =>
+            wrapper.current
+              ?.querySelector("button")
+              ?.focus({ preventScroll: true }),
+          );
+        }}
         returnFocusOnSelect={false}
       />
     </div>
