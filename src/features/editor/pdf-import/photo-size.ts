@@ -3,7 +3,7 @@ import type { Box } from "./model";
 
 // The least share of the page that counts as its content, so a photo with only a caption
 // or page number beside it isn't measured against itself.
-const MIN_CONTENT_SHARE = 0.6;
+const MIN_CONTENT_SHARE = 0.7;
 
 export function photoWidth(photo: Box, regions: Box[], pageWidth: number) {
   const span = Math.max(

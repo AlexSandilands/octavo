@@ -27,10 +27,10 @@ export async function checkPhotoSizes(pages: Page[], signal: AbortSignal) {
   assert.equal(photoWidth(box(0, 612), [...column, box(0, 612)], 612), 100);
   // The Club background's phone photo: 236pt of a 478pt column.
   assert.equal(photoWidth(box(57, 236), [box(57, 478), box(57, 236)], 595), 33);
-  // Alone on the page, or beside only a caption: against 60% of the page at least.
+  // Alone on the page, or beside only a caption: against 70% of the page at least.
   assert.equal(
     photoWidth(box(50, 184), [box(50, 184), box(50, 170)], 612),
-    50,
+    33,
     "a caption doesn't make its photo Full",
   );
   assert.equal(photoWidth(box(50, 240), [box(50, 240)], 612), 50);
