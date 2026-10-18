@@ -171,7 +171,34 @@ try {
       const notes = await panel(page)
         .getByText(/cannot|unsupported|exceeds/)
         .allTextContents();
-      console.log(`${file} p${n}: ${await images.count()} photos`, notes);
+      // Each photo's detected size (pressed in its pill) and its share of the
+      // page's content span, from the overlays.
+      const sizes: string[] = [];
+      for (let i = 0; i < (await images.count()); i++) {
+        const photo = images.nth(i);
+        await photo.click();
+        await photo.hover();
+        const pressed = await panel(page)
+          .getByRole("group", { name: "Selected region" })
+          .getByRole("group", { name: "Size" })
+          .locator("button[aria-pressed='true']")
+          .textContent();
+        const share = await photo.evaluate((el) => {
+          const rects = [
+            ...document.querySelectorAll(
+              "[data-pdf-private] [data-region-overlay]",
+            ),
+          ].map((o) => o.getBoundingClientRect());
+          const left = Math.min(...rects.map((r) => r.left));
+          const right = Math.max(...rects.map((r) => r.right));
+          return Math.round(
+            (el.getBoundingClientRect().width / (right - left)) * 100,
+          );
+        });
+        sizes.push(`${pressed} (${share}% of the content)`);
+        await photo.click();
+      }
+      console.log(`${file} p${n}: ${sizes.length} photos`, sizes, notes);
       await panel(page).screenshot({
         path: `/tmp/pdf-import-crop-${f + 1}-p${n}.png`,
       });

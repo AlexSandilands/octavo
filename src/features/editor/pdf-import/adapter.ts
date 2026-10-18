@@ -15,6 +15,7 @@ import {
 } from "./model";
 import { groupRuns, union } from "./grouping";
 import { imageRegions } from "./image-regions";
+import { photoWidth } from "./photo-size";
 
 const runSchema = z.object({
   str: z.string(),
@@ -275,6 +276,8 @@ export class PdfSource {
               Math.abs(r.x - picture.x) < viewport.width * 0.25,
           );
           picture.order = next ? next.order - 0.5 : regions.length;
+          if (picture.image)
+            picture.image.column = photoWidth(picture, all, viewport.width);
         }
         all.sort((a, b) => a.order - b.order);
         checkAbort(signal);

@@ -1,9 +1,10 @@
 "use client";
 
 import { Button } from "@/components/ui";
+import { ImageSizeControl } from "../image-layout";
 import { ToolButton } from "../tool-button";
 import { KindToggle } from "./kind-toggle";
-import type { ImportKind, Region, SourcePage } from "./model";
+import type { ImportChoice, ImportKind, Region, SourcePage } from "./model";
 
 // The small tool pill that appears over a selected region: what it becomes,
 // a split for over-grouped text, and Add. It sits above the region, or below
@@ -13,18 +14,20 @@ export function RegionMenu({
   region,
   page,
   kind,
+  width,
   addCount,
   disabled,
-  onKind,
+  onChoose,
   onSplit,
   onAdd,
 }: {
   region: Region;
   page: SourcePage;
   kind: ImportKind;
+  width: number;
   addCount: number;
   disabled: boolean;
-  onKind: (kind: ImportKind) => void;
+  onChoose: (choice: ImportChoice) => void;
   onSplit: () => void;
   onAdd: () => void;
 }) {
@@ -49,8 +52,17 @@ export function RegionMenu({
           kind={kind}
           image={region.kind === "image"}
           showLabel
-          onChange={onKind}
+          onChange={(kind) => onChoose({ kind })}
         />
+        {region.kind === "image" && (
+          <>
+            <span className="bg-line mx-0.5 h-6 w-px" />
+            <ImageSizeControl
+              width={width}
+              onChange={(width) => onChoose({ width })}
+            />
+          </>
+        )}
         {canSplit && (
           <>
             <span className="bg-line mx-0.5 h-6 w-px" />

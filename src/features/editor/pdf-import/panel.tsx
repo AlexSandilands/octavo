@@ -8,7 +8,7 @@ import { useBarLayout } from "../use-bar-layout";
 import type { DropHandler } from "../use-pdf-drag-out";
 import type { DropTarget } from "./drag-out";
 import { DropZone } from "./drop-zone";
-import type { ImportKind, Region, ReviewItem, SourceMapping } from "./model";
+import type { Region, ReviewItem, SourceMapping } from "./model";
 import { PageDock } from "./page-dock";
 import { PageStage } from "./page-stage";
 import { PageView } from "./page-view";
@@ -104,8 +104,6 @@ export default function PdfImportPanel({
     selection.dropSource(region.id);
     source.split(region.id);
   };
-  const setKind = (region: Region, kind: ImportKind) =>
-    selection.setKind(region, kind);
   const busy = batch.adding;
   const status =
     batch.status ??
@@ -151,7 +149,7 @@ export default function PdfImportPanel({
                 itemFor={selection.itemFor}
                 stateOf={selection.stateOf}
                 onToggle={selection.toggle}
-                onKind={setKind}
+                onChoose={selection.choose}
                 onSplit={split}
                 onAdd={add}
               />
@@ -188,7 +186,7 @@ export default function PdfImportPanel({
               <SelectionList
                 items={selection.items}
                 disabled={busy}
-                onKind={setKind}
+                onChoose={selection.choose}
                 onMove={selection.move}
                 onRemove={selection.remove}
               />

@@ -20,6 +20,7 @@ import {
   cropArea,
   cropOf,
 } from "../src/features/editor/pdf-import/image-crop.ts";
+import { checkPhotoSizes } from "./check-pdf-import-photo-size.mts";
 const signal = new AbortController().signal;
 const run = (
   text: string,
@@ -454,6 +455,7 @@ const rgba = Uint8Array.from({ length: 3 * 2 * 4 }, (_, i) => i);
 const rgbaOut = new Uint8ClampedArray(4);
 copyCropRow(rgba, 4, 3, { x: 2, y: 1, width: 1, height: 1 }, 0, rgbaOut);
 assert.deepEqual([...rgbaOut], [20, 21, 22, 23]);
+await checkPhotoSizes(pages, signal);
 console.log(
-  "PDF import checks passed: ordering, corrections, alignment, Unicode/marks, schema limits, pagination progress/order, source/history states, image crops.",
+  "PDF import checks passed: ordering, corrections, alignment, Unicode/marks, schema limits, pagination progress/order, source/history states, image crops, photo sizes.",
 );

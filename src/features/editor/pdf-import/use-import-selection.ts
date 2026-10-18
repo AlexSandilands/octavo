@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import type { Page } from "@/lib/blocks";
 import {
   PDF_LIMITS,
-  type ImportKind,
+  type ImportChoice,
   type Region,
   type ReviewItem,
   type SourceMapping,
@@ -60,14 +60,15 @@ export function useImportSelection(pages: Page[]) {
           : [...items, reviewItem(region)],
       );
     },
-    setKind: (region: Region, kind: ImportKind) => {
+    /** A text region's kind or a photo's size; selects the region if it wasn't. */
+    choose: (region: Region, choice: ImportChoice) => {
       const existing = itemFor(region.id);
       commit(
         existing
           ? items.map((i) =>
-              i === existing ? reviewItem(region, kind, i.id) : i,
+              i === existing ? reviewItem(region, choice, i.id) : i,
             )
-          : [...items, reviewItem(region, kind)],
+          : [...items, reviewItem(region, choice)],
       );
     },
     selectAll: (page: SourcePage) =>

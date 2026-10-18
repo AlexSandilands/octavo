@@ -3,8 +3,9 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { IconButton } from "@/components/ui";
+import { ImageSizeControl } from "../image-layout";
 import { KindToggle } from "./kind-toggle";
-import type { ImportKind, Region, ReviewItem } from "./model";
+import type { ImportChoice, Region, ReviewItem } from "./model";
 import { itemKind, regionPreview } from "./region-text";
 
 function Thumb({ region }: { region: Region }) {
@@ -30,18 +31,18 @@ function Thumb({ region }: { region: Region }) {
   ) : null;
 }
 
-// The selection in the order it will be added: retype, reorder or drop a row.
-// A sheet floating above the panel's tool bar, in the bar's own pill.
+// The selection in the order it will be added: retype or resize, reorder or
+// drop a row. A sheet floating above the panel's tool bar, in the bar's own pill.
 export function SelectionList({
   items,
   disabled,
-  onKind,
+  onChoose,
   onMove,
   onRemove,
 }: {
   items: ReviewItem[];
   disabled: boolean;
-  onKind: (region: Region, kind: ImportKind) => void;
+  onChoose: (region: Region, choice: ImportChoice) => void;
   onMove: (id: string, dir: -1 | 1) => void;
   onRemove: (id: string) => void;
 }) {
@@ -63,9 +64,18 @@ export function SelectionList({
             kind={itemKind(item)}
             image={item.region.kind === "image"}
             size="sm"
-            onChange={(kind) => onKind(item.region, kind)}
+            onChange={(kind) => onChoose(item.region, { kind })}
           />
-          {item.region.kind === "image" && <Thumb region={item.region} />}
+          {item.block.type === "image" && (
+            <>
+              <Thumb region={item.region} />
+              <ImageSizeControl
+                width={item.block.width}
+                disabled={disabled}
+                onChange={(width) => onChoose(item.region, { width })}
+              />
+            </>
+          )}
           <span className="text-body min-w-0 flex-1 truncate text-[14px]">
             {regionPreview(item.region)}
           </span>
