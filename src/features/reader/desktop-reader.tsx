@@ -307,7 +307,7 @@ export function DesktopReader({
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        className={`relative flex-1 overflow-hidden ${
+        className={`relative flex-1 touch-none overflow-hidden ${
           panning ? "cursor-grabbing select-none" : "cursor-grab"
         }`}
       >

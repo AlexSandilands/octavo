@@ -72,7 +72,7 @@ export function PageStage({
         paddingBottom: padding.bottom,
         paddingLeft: padding.left,
       }}
-      className={`flex flex-1 items-center justify-center overflow-hidden ${
+      className={`flex flex-1 items-center justify-center touch-none overflow-hidden ${
         panning ? "cursor-grabbing select-none" : "cursor-grab"
       }`}
     >

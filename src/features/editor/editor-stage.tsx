@@ -248,7 +248,7 @@ export function EditorStage({
         paddingBottom: padding.bottom,
         paddingLeft: padding.left,
       }}
-      className={`relative flex flex-1 items-center justify-center overflow-hidden ${
+      className={`relative flex flex-1 items-center justify-center touch-none overflow-hidden ${
         panning ? "cursor-grabbing select-none" : "cursor-grab"
       }`}
     >

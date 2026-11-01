@@ -55,6 +55,9 @@ export function useCanvasPanZoom(opts: PanZoomOptions) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [fitScale, setFitScale] = useState(initialFitScale);
   const [zoom, setZoom] = useState(1);
+  // Mirrors `zoom` synchronously so several zooms between renders (a pinch
+  // fires many moves per frame) each compound from the last.
+  const zoomRef = useRef(1);
   const [panning, setPanning] = useState(false);
 
   // Pan is written straight to the transformed node, coalesced to a frame:
@@ -133,17 +136,26 @@ export function useCanvasPanZoom(opts: PanZoomOptions) {
   };
 
   // Zoom to `next`, holding a focal point (offset from the container centre, in
-  // px) fixed. The slider/reset pass the centre; the wheel passes the cursor.
-  const applyZoom = (nextRaw: number, focalX = 0, focalY = 0) => {
+  // px) fixed. The slider/reset pass the centre; the wheel passes the cursor, a
+  // pinch the point between the fingers (with `shiftX/Y`, how far it moved).
+  const applyZoom = (
+    nextRaw: number,
+    focalX = 0,
+    focalY = 0,
+    shiftX = 0,
+    shiftY = 0,
+  ) => {
     const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, nextRaw));
-    if (next === zoom) return;
-    const f = next / zoom;
+    const prev = zoomRef.current;
+    if (next === prev && !shiftX && !shiftY) return;
+    const f = next / prev;
+    zoomRef.current = next;
     setZoom(next);
     setPan(
       clampPan(
         {
-          x: f * pan.current.x + (1 - f) * focalX,
-          y: f * pan.current.y + (1 - f) * focalY,
+          x: f * pan.current.x + (1 - f) * focalX + shiftX,
+          y: f * pan.current.y + (1 - f) * focalY + shiftY,
         },
         next,
       ),
@@ -151,6 +163,7 @@ export function useCanvasPanZoom(opts: PanZoomOptions) {
   };
 
   const resetView = () => {
+    zoomRef.current = 1;
     setZoom(1);
     setPan({ x: 0, y: 0 });
   };
@@ -167,7 +180,7 @@ export function useCanvasPanZoom(opts: PanZoomOptions) {
     const rect = el.getBoundingClientRect();
     const focalX = e.clientX - rect.left - rect.width / 2;
     const focalY = e.clientY - rect.top - rect.height / 2;
-    applyZoom(zoom * Math.exp(-e.deltaY * 0.0015), focalX, focalY);
+    applyZoom(zoomRef.current * Math.exp(-e.deltaY * 0.0015), focalX, focalY);
   });
   useEffect(() => {
     const el = containerRef.current;
@@ -190,9 +203,41 @@ export function useCanvasPanZoom(opts: PanZoomOptions) {
   } | null>(null);
   const suppressClick = useRef(false);
 
+  // Touch pointers down on the stage. One finger on blank canvas pans; a second
+  // joins it in a pinch (distance and midpoint of the two, from the last move).
+  const touches = useRef(new Map<number, Pan>());
+  const pinch = useRef<{ dist: number; mid: Pan } | null>(null);
+  const measurePinch = () => {
+    const el = containerRef.current;
+    const [a, b] = [...touches.current.values()];
+    if (!el || !a || !b) return null;
+    const rect = el.getBoundingClientRect();
+    return {
+      dist: Math.hypot(a.x - b.x, a.y - b.y),
+      mid: {
+        x: (a.x + b.x) / 2 - rect.left - rect.width / 2,
+        y: (a.y + b.y) / 2 - rect.top - rect.height / 2,
+      },
+    };
+  };
+
   const onPointerDown = (e: React.PointerEvent) => {
     if (e.button !== 0 || isBlocked()) return;
     suppressClick.current = false;
+    if (
+      e.pointerType === "touch" &&
+      !(e.target as HTMLElement).closest("[data-canvas-chrome]")
+    ) {
+      touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (touches.current.size === 2) {
+        // The first finger's pan gives way to the pinch.
+        if (drag.current) suppressClick.current = true;
+        drag.current = null;
+        pinch.current = measurePinch();
+        return;
+      }
+      if (touches.current.size > 2) return;
+    }
     if ((e.target as HTMLElement).closest(blockSelector)) return;
     const el = containerRef.current;
     if (!el) return;
@@ -207,6 +252,24 @@ export function useCanvasPanZoom(opts: PanZoomOptions) {
     setPanning(true);
   };
   const onPointerMove = (e: React.PointerEvent) => {
+    if (touches.current.has(e.pointerId)) {
+      touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const prev = pinch.current;
+      const now = prev && measurePinch();
+      if (prev && now) {
+        pinch.current = now;
+        if (prev.dist > 0 && now.dist > 0) {
+          applyZoom(
+            zoomRef.current * (now.dist / prev.dist),
+            now.mid.x,
+            now.mid.y,
+            now.mid.x - prev.mid.x,
+            now.mid.y - prev.mid.y,
+          );
+        }
+        return;
+      }
+    }
     const d = drag.current;
     if (!d) return;
     if (Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 3)
@@ -219,6 +282,9 @@ export function useCanvasPanZoom(opts: PanZoomOptions) {
     );
   };
   const onPointerUp = (e: React.PointerEvent) => {
+    if (touches.current.delete(e.pointerId) && touches.current.size < 2) {
+      pinch.current = null;
+    }
     const d = drag.current;
     if (!d) return;
     if (d.moved) suppressClick.current = true;
