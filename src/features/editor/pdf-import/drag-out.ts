@@ -37,9 +37,15 @@ export function dragPointer(event: DragMoveEvent) {
 
 // For a region: the block whose middle is nearest the pointer, or the page
 // itself, and nothing while the pointer is off the page. Blocks keep their
-// closest-centre sorting.
+// closest-centre sorting among blocks: the page is no slot in their list.
 export const dragOutCollision: CollisionDetection = (args) => {
-  if (!isPdfDrag(args.active.id)) return closestCenter(args);
+  if (!isPdfDrag(args.active.id))
+    return closestCenter({
+      ...args,
+      droppableContainers: args.droppableContainers.filter(
+        (item) => item.id !== PAGE_DROP_ID,
+      ),
+    });
   const { pointerCoordinates: p, droppableRects, droppableContainers } = args;
   const page = droppableRects.get(PAGE_DROP_ID);
   if (
