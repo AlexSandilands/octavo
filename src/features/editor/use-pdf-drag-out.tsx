@@ -127,24 +127,25 @@ export function DragOutGhost({
   curPage: number;
   filled: boolean;
 }) {
+  // Mounted only while a region is in hand: any overlay, even an empty one,
+  // makes dnd-kit leave a dragged block in place and sort by the overlay's box.
+  if (!dragOut.held) return null;
   return (
     <DragOverlay
       dropAnimation={null}
       modifiers={[snapGhostToPointer]}
       style={{ width: "auto", height: "auto" }}
     >
-      {dragOut.held && (
-        <RegionGhost
-          item={dragOut.held.item}
-          imageUrl={dragOut.held.imageUrl}
-          placed={Boolean(dragOut.preview)}
-          note={
-            dragOut.over && (page?.cover || filled)
-              ? `Lands on a new page after page ${curPage + 1}`
-              : undefined
-          }
-        />
-      )}
+      <RegionGhost
+        item={dragOut.held.item}
+        imageUrl={dragOut.held.imageUrl}
+        placed={Boolean(dragOut.preview)}
+        note={
+          dragOut.over && (page?.cover || filled)
+            ? `Lands on a new page after page ${curPage + 1}`
+            : undefined
+        }
+      />
     </DragOverlay>
   );
 }
