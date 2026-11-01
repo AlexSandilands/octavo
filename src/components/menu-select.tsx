@@ -198,14 +198,16 @@ export function MenuSelect<T>({
   };
   useEffect(() => {
     if (!open || !portal) return;
-    const dismiss = (e: Event) => {
-      if (!menuRef.current?.contains(e.target as Node)) setOpen(false);
+    // A resize's target is `window`, not a Node, so it closes unconditionally.
+    const dismiss = () => setOpen(false);
+    const onScroll = (e: Event) => {
+      if (!menuRef.current?.contains(e.target as Node)) dismiss();
     };
     window.addEventListener("resize", dismiss);
-    document.addEventListener("scroll", dismiss, true);
+    document.addEventListener("scroll", onScroll, true);
     return () => {
       window.removeEventListener("resize", dismiss);
-      document.removeEventListener("scroll", dismiss, true);
+      document.removeEventListener("scroll", onScroll, true);
     };
   }, [open, portal]);
 
