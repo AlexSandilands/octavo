@@ -195,7 +195,7 @@ function SortableThumb({
           onClick={onDelete}
           title={`Delete page ${index + 1}`}
           aria-label={`Delete page ${index + 1}`}
-          className="bg-paper text-faint2 hover:text-warn hover:border-warn border-hair-warm absolute -top-2 -right-2 z-10 flex h-6 w-6 items-center justify-center rounded-full border opacity-0 shadow-sm transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+          className="bg-paper text-faint2 hover:text-warn hover:border-warn border-hair-warm absolute -top-2 -right-2 z-10 flex h-6 w-6 items-center justify-center rounded-full border opacity-0 shadow-sm transition-opacity group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100 pointer-coarse:before:absolute pointer-coarse:before:-inset-2.5 pointer-coarse:before:content-['']"
         >
           <Icon name="trash" size={13} strokeWidth={1.8} />
         </button>
