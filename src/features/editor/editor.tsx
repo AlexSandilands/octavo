@@ -325,6 +325,10 @@ export function Editor({
         <DndContext
           sensors={sensors}
           collisionDetection={collision}
+          // The stage pans and zooms; scrolling it mid-drag shoves the page.
+          autoScroll={{
+            canScroll: (el) => !el.matches("[data-editor-canvas-stage]"),
+          }}
           onDragStart={dragOut.onDragStart}
           onDragMove={dragOut.onDragMove}
           onDragEnd={(e) => {

@@ -5,7 +5,7 @@ import { DEFAULT_COVER_PLACEMENT, nudgeLayer } from "@/lib/cover-elements";
 import { blockFontContext } from "@/lib/cover-fonts";
 import type { CoverAppearance } from "@/lib/cover-appearance";
 import { useCoverSortable } from "./use-cover-sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { coverDragTransform } from "./cover-drag";
 import { Icon } from "@/components/icons";
 import { BlockView } from "@/features/blocks/block-view";
 import type { LayoutTheme } from "@/features/blocks/themes/registry";
@@ -176,7 +176,8 @@ export function EditorBlock({
         ...blockFlowStyle(block, cover),
         ...(floated && !isDragging ? { zIndex: 5 } : {}),
         caretColor: caret,
-        transform: cover ? undefined : CSS.Translate.toString(transform),
+        // dnd-kit moves in screen px; the page is scaled, so convert.
+        transform: cover ? undefined : coverDragTransform(transform),
         transition: cover ? undefined : transition,
       }}
       onClick={(e) => {

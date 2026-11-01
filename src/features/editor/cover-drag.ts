@@ -59,6 +59,7 @@ export const coverCollisionDetection: CollisionDetection = (args) => {
   const hits = pointerWithin({ ...args, droppableContainers });
   return hits.length ? hits : closestCenter({ ...args, droppableContainers });
 };
+/** A drag offset in screen px as page px: the page is drawn scaled, covers and list blocks alike. */
 export function coverDragTransform(transform: { x: number; y: number } | null) {
   return transform
     ? `translate3d(calc(${transform.x}px / var(--page-scale, 1)), calc(${transform.y}px / var(--page-scale, 1)), 0)`
