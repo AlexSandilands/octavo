@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { type IssueContent } from "@/lib/blocks";
 import {
   DndContext,
@@ -57,6 +57,7 @@ import { usePanelWidth } from "./side-panel/use-panel-width";
 import { useSurfaces } from "./side-panel/use-surfaces";
 import { useEditorAssistant } from "./assistant/use-editor-assistant";
 import { AssistantEditingNote } from "./assistant/editing-note";
+import { DeletedPageToast } from "./deleted-page-toast";
 
 // Extends FooterReserve: the footer this issue's pages were laid out against
 // (issue #128) is what the canvas draws and measures overflow against, whatever
@@ -155,6 +156,8 @@ export function Editor({
     ...Object.fromEntries(logos.map((l) => [l.imageId, l.image])),
     ...initialImages,
   }));
+  const [deletedPage, setDeletedPage] = useState<number | null>(null);
+  const dismissDeleted = useCallback(() => setDeletedPage(null), []);
   const [title, setTitle] = useState(issue.title);
   // The issue's stored layout theme, normalised to an enabled theme id so the
   // picker (which offers only enabled themes) and the state stay in sync; an
@@ -341,7 +344,10 @@ export function Editor({
                 onSelectPage={selectPage}
                 onReorder={reorderPages}
                 onAddPage={addPage}
-                onDeletePage={deletePage}
+                onDeletePage={(i) => {
+                  deletePage(i);
+                  setDeletedPage(i + 1);
+                }}
                 onToggleAddMenu={() => setAddMenu((v) => !v)}
                 onCloseAddMenu={() => setAddMenu(false)}
               />
@@ -352,6 +358,14 @@ export function Editor({
               className="bg-canvas relative flex min-w-0 flex-1 flex-col overflow-hidden"
             >
               {assistantTools.running && <AssistantEditingNote />}
+              {deletedPage !== null && (
+                <DeletedPageToast
+                  number={deletedPage}
+                  top={historyTop}
+                  onUndo={undo}
+                  onDismiss={dismissDeleted}
+                />
+              )}
               {/* Not while the inspector is up: it spans the stage's height. */}
               {footerBehind &&
                 page &&
