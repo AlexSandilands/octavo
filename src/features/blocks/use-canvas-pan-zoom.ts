@@ -228,6 +228,12 @@ export function useCanvasPanZoom(opts: PanZoomOptions) {
       e.pointerType === "touch" &&
       !(e.target as HTMLElement).closest("[data-canvas-chrome]")
     ) {
+      // A new gesture starts at its first finger: drop any pointer whose up
+      // never reached us (its block unmounted mid-gesture).
+      if (e.isPrimary) {
+        touches.current.clear();
+        pinch.current = null;
+      }
       touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (touches.current.size === 2) {
         // The first finger's pan gives way to the pinch.
@@ -258,7 +264,7 @@ export function useCanvasPanZoom(opts: PanZoomOptions) {
       const now = prev && measurePinch();
       if (prev && now) {
         pinch.current = now;
-        if (prev.dist > 0 && now.dist > 0) {
+        if (!isBlocked() && prev.dist > 0 && now.dist > 0) {
           applyZoom(
             zoomRef.current * (now.dist / prev.dist),
             now.mid.x,
