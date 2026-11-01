@@ -156,7 +156,10 @@ export function Editor({
     ...Object.fromEntries(logos.map((l) => [l.imageId, l.image])),
     ...initialImages,
   }));
-  const [deletedPage, setDeletedPage] = useState<number | null>(null);
+  const [deletedPage, setDeletedPage] = useState<{
+    number: number;
+    key: number;
+  } | null>(null);
   const dismissDeleted = useCallback(() => setDeletedPage(null), []);
   const [title, setTitle] = useState(issue.title);
   // The issue's stored layout theme, normalised to an enabled theme id so the
@@ -346,7 +349,10 @@ export function Editor({
                 onAddPage={addPage}
                 onDeletePage={(i) => {
                   deletePage(i);
-                  setDeletedPage(i + 1);
+                  setDeletedPage((d) => ({
+                    number: i + 1,
+                    key: (d?.key ?? 0) + 1,
+                  }));
                 }}
                 onToggleAddMenu={() => setAddMenu((v) => !v)}
                 onCloseAddMenu={() => setAddMenu(false)}
@@ -360,7 +366,8 @@ export function Editor({
               {assistantTools.running && <AssistantEditingNote />}
               {deletedPage !== null && (
                 <DeletedPageToast
-                  number={deletedPage}
+                  key={deletedPage.key}
+                  number={deletedPage.number}
                   top={historyTop}
                   onUndo={undo}
                   onDismiss={dismissDeleted}
