@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import type { BrowserContext } from "playwright";
 import type postgres from "postgres";
 import { emptyIssueContent } from "../../src/lib/blocks.ts";
+import { hashSessionToken } from "../../src/lib/session-token.ts";
 
 // Storage is loaded only when a gate stores an object: it imports
 // "server-only", which resolves only under scripts/tsconfig.json.
@@ -34,7 +35,7 @@ export function reportsFixtures(sql: Sql, label: string) {
   async function session(userId: string) {
     const token = `${stamp}-session-${made.sessions.length}`;
     await sql`insert into sessions (session_token, user_id, expires)
-      values (${token}, ${userId}, now() + interval '1 day')`;
+      values (${hashSessionToken(token)}, ${userId}, now() + interval '1 day')`;
     made.sessions.push(token);
     return token;
   }

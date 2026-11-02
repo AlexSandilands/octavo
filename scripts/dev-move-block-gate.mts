@@ -14,6 +14,7 @@ import postgres from "postgres";
 import { chromium, type Page } from "playwright";
 import type { IssueContent } from "../src/lib/blocks";
 import { content } from "./move-block-gate-fixture.mts";
+import { hashSessionToken } from "../src/lib/session-token";
 
 process.loadEnvFile?.(".env.local");
 const base = process.argv[2];
@@ -133,7 +134,7 @@ try {
   await sql`insert into users (id, email, is_admin, subscribed, email_verified)
             values (${userId}, ${email}, true, false, now())`;
   await sql`insert into sessions (session_token, user_id, expires)
-            values (${token}, ${userId}, now() + interval '1 day')`;
+            values (${hashSessionToken(token)}, ${userId}, now() + interval '1 day')`;
   await sql`insert into issues (id, title, theme, status, content, footer_mark_size, footer_text_size)
             values (${issueId}, 'Scratch 406', 'classic', 'draft', ${sql.json(content as never)}, 36, 12)`;
   console.log(`scratch draft ${issueId}, user ${email}`);
@@ -434,7 +435,7 @@ try {
 } finally {
   await browser.close();
   await sql`delete from issues where id = ${issueId}`;
-  await sql`delete from sessions where session_token = ${token}`;
+  await sql`delete from sessions where session_token = ${hashSessionToken(token)}`;
   await sql`delete from users where id = ${userId}`;
   await sql.end();
 }

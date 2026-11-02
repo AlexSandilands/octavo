@@ -25,6 +25,7 @@ import { resolveTheme } from "../src/features/blocks/themes/registry";
 import { DEFAULT_FOOTER_STYLE } from "../src/lib/branding";
 import { buildIssues } from "../src/db/seed-data";
 import { SEED_IMAGES, type SeedImages } from "../src/db/seed/images";
+import { hashSessionToken } from "../src/lib/session-token";
 
 const aligns = ["left", "center", "right", "justify"] as const;
 const prose =
@@ -240,7 +241,7 @@ async function browserPass(base: string) {
     await sql`insert into users (id, email, is_admin, subscribed, email_verified)
       values (${user}, ${`scratch-238-${user}@example.invalid`}, true, true, now())`;
     await sql`insert into sessions (session_token, user_id, expires)
-      values (${token}, ${user}, now() + interval '1 hour')`;
+      values (${hashSessionToken(token)}, ${user}, now() + interval '1 hour')`;
     const [issue] = await sql<
       { number: number }[]
     >`insert into issues (id, number, title, theme, status, content)

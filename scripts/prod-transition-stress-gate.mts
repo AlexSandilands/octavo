@@ -18,6 +18,7 @@
 import postgres from "postgres";
 import { chromium, type Browser, type Page } from "playwright";
 import { randomUUID } from "node:crypto";
+import { hashSessionToken } from "../src/lib/session-token";
 
 process.loadEnvFile?.(".env.local");
 const base = process.argv[2];
@@ -43,7 +44,7 @@ async function session(): Promise<string> {
   const token = `stress-tok-${randomUUID().slice(0, 12)}`;
   tokens.push(token);
   await sql`insert into sessions (session_token, user_id, expires)
-            values (${token}, ${userId}, now() + interval '1 day')`;
+            values (${hashSessionToken(token)}, ${userId}, now() + interval '1 day')`;
   return token;
 }
 

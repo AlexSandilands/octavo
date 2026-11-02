@@ -21,6 +21,7 @@ import { randomUUID } from "node:crypto";
 import { emptyIssueContent } from "../src/lib/blocks.ts";
 import { expandMember } from "./check-member-disclosure.mts";
 import { reportsFixtures } from "./fixtures/reports-fixtures.mts";
+import { hashSessionToken } from "../src/lib/session-token.ts";
 
 process.loadEnvFile?.(".env.local");
 const base = process.argv[2] ?? "http://localhost:3000";
@@ -112,7 +113,7 @@ try {
   await sql`insert into users (id, email, is_admin, subscribed, email_verified)
             values (${adminId}, ${adminEmail}, true, false, now())`;
   await sql`insert into sessions (session_token, user_id, expires)
-            values (${token}, ${adminId}, now() + interval '1 day')`;
+            values (${hashSessionToken(token)}, ${adminId}, now() + interval '1 day')`;
 
   // Sponsors — dated in the future so the scratch row opens page 1.
   await sample(6, "sponsor delete", async (i) => {
@@ -311,7 +312,7 @@ try {
   if (memberIds.length > 0)
     await sql`delete from users where id in ${sql(memberIds)}`;
   await reports.cleanup();
-  await sql`delete from sessions where session_token = ${token}`;
+  await sql`delete from sessions where session_token = ${hashSessionToken(token)}`;
   await sql`delete from users where id = ${adminId}`;
   await sql.end();
 }

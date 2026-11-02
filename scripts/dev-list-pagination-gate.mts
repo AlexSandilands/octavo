@@ -10,6 +10,7 @@ import { randomUUID } from "node:crypto";
 import { emptyIssueContent } from "../src/lib/blocks.ts";
 import { ADMIN_LIST_PAGE_SIZE as PAGE_SIZE } from "../src/lib/pagination.ts";
 import { reportsFixtures } from "./fixtures/reports-fixtures.mts";
+import { hashSessionToken } from "../src/lib/session-token.ts";
 
 process.loadEnvFile?.(".env.local");
 // After the env file: the data-access module builds its client on import.
@@ -97,7 +98,7 @@ try {
   await sql`insert into users (id, email, is_admin, subscribed, email_verified)
             values (${userId}, ${adminEmail}, true, false, now())`;
   await sql`insert into sessions (session_token, user_id, expires)
-            values (${token}, ${userId}, now() + interval '1 day')`;
+            values (${hashSessionToken(token)}, ${userId}, now() + interval '1 day')`;
 
   await seedIssues();
   const scratchSponsors = await seedSponsors();
@@ -429,7 +430,7 @@ try {
   if (sponsorIds.length > 0)
     await sql`delete from sponsors where id in ${sql(sponsorIds)}`;
   await reports.cleanup();
-  await sql`delete from sessions where session_token = ${token}`;
+  await sql`delete from sessions where session_token = ${hashSessionToken(token)}`;
   await sql`delete from users where id = ${userId}`;
   await sql.end();
 }

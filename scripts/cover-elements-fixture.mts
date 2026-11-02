@@ -5,6 +5,7 @@ import postgres from "postgres";
 import { chromium } from "playwright";
 import sharp from "sharp";
 import type { IssueContent } from "../src/lib/blocks";
+import { hashSessionToken } from "../src/lib/session-token";
 
 /** A local scratch issue and logo; shared seed images are only read. */
 export async function withCoverFixture(
@@ -110,7 +111,7 @@ async function createFixture(base: string) {
     ],
   };
   await sql`insert into users (id,email,is_admin,subscribed,email_verified) values (${userId},${`cover-elements-${userId}@example.invalid`},true,false,now())`;
-  await sql`insert into sessions (session_token,user_id,expires) values (${token},${userId},now()+interval '1 hour')`;
+  await sql`insert into sessions (session_token,user_id,expires) values (${hashSessionToken(token)},${userId},now()+interval '1 hour')`;
   const [issue] = await sql<
     { number: number }[]
   >`insert into issues (id,number,title,theme,status,content) values (${id},(select coalesce(max(number),0)+1 from issues),'Cover element check','classic','draft',${sql.json(content)}) returning number`;

@@ -8,6 +8,7 @@ import postgres from "postgres";
 import { chromium, type Page } from "playwright";
 import { checkMemberDisclosure } from "./check-member-disclosure.mts";
 import { checkMemberNotesPopup } from "./check-member-notes-popup.mts";
+import { hashSessionToken } from "../src/lib/session-token";
 
 const base = process.argv[2] ?? "http://localhost:3263";
 const database = process.env.DATABASE_URL;
@@ -166,7 +167,7 @@ try {
   await sql`insert into users (id,email,name,is_admin,subscribed)
     values (${adminId},${`${stamp}-admin@example.test`},'Layout gate admin',true,true)`;
   await sql`insert into sessions (session_token,user_id,expires)
-    values (${token},${adminId},now() + interval '1 day')`;
+    values (${hashSessionToken(token)},${adminId},now() + interval '1 day')`;
   for (const [i, member] of fixtures.entries()) {
     await sql`insert into users (id,email,name,notes,subscribed,created_at)
       values (${member.id},${member.email},${member.name},${member.notes},false,

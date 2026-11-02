@@ -21,6 +21,7 @@ import {
   AI_REVIEW_MAX_PAGES,
   type AiRenderResponse,
 } from "../src/lib/ai-vision-contract";
+import { hashSessionToken } from "../src/lib/session-token";
 
 process.loadEnvFile?.(".env.local");
 const base = process.argv[2];
@@ -363,8 +364,8 @@ try {
     (${adminId}, ${`${tag}-admin@example.invalid`}, true, false, now()),
     (${memberId}, ${`${tag}-member@example.invalid`}, false, false, now())`;
   await sql`insert into sessions (session_token, user_id, expires) values
-    (${adminToken}, ${adminId}, now() + interval '1 hour'),
-    (${memberToken}, ${memberId}, now() + interval '1 hour')`;
+    (${hashSessionToken(adminToken)}, ${adminId}, now() + interval '1 hour'),
+    (${hashSessionToken(memberToken)}, ${memberId}, now() + interval '1 hour')`;
   const ctx = await browser.newContext({
     viewport: { width: 1440, height: 900 },
   });

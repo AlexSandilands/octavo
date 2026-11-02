@@ -11,6 +11,7 @@ import { existsSync } from "node:fs";
 import postgres from "postgres";
 import { chromium, type Locator, type Page } from "playwright";
 import type { IssueContent } from "../src/lib/blocks";
+import { hashSessionToken } from "../src/lib/session-token";
 
 const base = process.argv[2] ?? "http://localhost:3269";
 assert(["localhost", "127.0.0.1"].includes(new URL(base).hostname));
@@ -122,7 +123,7 @@ await sql`insert into users (id, email, is_admin, subscribed, email_verified)
           values (${userId}, ${`running-head-269-${userId.slice(0, 8)}@example.invalid`},
                   true, false, now())`;
 await sql`insert into sessions (session_token, user_id, expires)
-          values (${token}, ${userId}, now() + interval '1 hour')`;
+          values (${hashSessionToken(token)}, ${userId}, now() + interval '1 hour')`;
 const [issue] = await sql<{ number: number }[]>`
   insert into issues (id, number, title, theme, status, content, published_at)
   values (${id}, (select coalesce(max(number), 0) + 1 from issues),
@@ -337,7 +338,7 @@ try {
     await sql`delete from settings where id = 1`;
   }
   await sql`delete from issues where id = ${id}`;
-  await sql`delete from sessions where session_token = ${token}`;
+  await sql`delete from sessions where session_token = ${hashSessionToken(token)}`;
   await sql`delete from users where id = ${userId}`;
   console.log("scratch rows removed, settings row restored");
   await sql.end();
