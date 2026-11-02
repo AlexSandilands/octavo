@@ -101,7 +101,8 @@ on its title (the kicker keeps the theme's). The choices are the cover's: a pale
 theme's. Parsing is lenient (`src/lib/text-paint.ts`): an invalid colour or font drops that attribute,
 and a mark left with neither drops, rather than failing the save — the way an unsafe link href drops
 its link. No earlier document holds either, so all render unchanged; covers keep their own
-`coverPlacement.richText` paint. Checked by `scripts/check-text-paint.mts`.
+`coverPlacement.richText` paint. Seed issue 3's “Hall Roof Fund” run-in head and the figure
+beneath it use it. Checked by `scripts/check-text-paint.mts`.
 
 **Content v10 — fitted cover panels.** `coverOverlay.appearance` and
 `coverPlacement.appearance` gain an optional `panelShape`: `block` (the panel fills the item's
