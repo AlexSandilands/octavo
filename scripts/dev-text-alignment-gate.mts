@@ -136,6 +136,7 @@ for (const align of aligns) {
           pdfDownloads: false,
           commentsEnabled: false,
           removedMemberComments: "anonymise",
+          defaultTextSize: "m",
         },
       }),
     ].map((element) => renderToStaticMarkup(element));

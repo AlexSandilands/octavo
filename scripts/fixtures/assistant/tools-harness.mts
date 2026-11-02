@@ -6,7 +6,12 @@ import { readCoverWarnings } from "../../../src/features/editor/use-cover-layout
 import { buildIssues } from "../../../src/db/seed-data";
 import { SEED_IMAGES, type SeedImages } from "../../../src/db/seed/images";
 import { createId } from "../../../src/lib/id";
-import { makeBlock, type Block, type Page } from "../../../src/lib/blocks";
+import {
+  makeBlock,
+  type Block,
+  type Page,
+  type TextSize,
+} from "../../../src/lib/blocks";
 import { stringToDoc, type RichDoc } from "../../../src/lib/rich-text-doc";
 import { richDocBlocks } from "../../../src/lib/rich-text-split";
 import type { EditorSnapshot } from "../../../src/features/editor/use-editor-history";
@@ -126,7 +131,7 @@ export const call = {
   view: async () => ({ text: "(view)" }),
 };
 
-export function harness(pages: Page[]) {
+export function harness(pages: Page[], defaultTextSize?: TextSize) {
   let state: EditorSnapshot = { pages, curPage: 1, sel: null };
   const history: EditorSnapshot[] = [];
   const executor = createAssistantExecutor({
@@ -151,7 +156,8 @@ export function harness(pages: Page[]) {
     set(next: EditorSnapshot) {
       state = next;
     },
-    run: (name: string, input: unknown) => executor.run(name, input, call),
+    run: (name: string, input: unknown) =>
+      executor.run(name, input, { ...call, defaultTextSize }),
   };
 }
 

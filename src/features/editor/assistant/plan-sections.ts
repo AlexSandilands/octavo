@@ -5,6 +5,7 @@ import {
   makePage,
   type Block,
   type Page,
+  type TextSize,
 } from "@/lib/blocks";
 import type { AiPlanSection, AiToolInput } from "@/lib/ai-tools";
 import { markdownToDoc } from "@/lib/markdown-doc";
@@ -44,9 +45,9 @@ function valid(block: Block, section: AiPlanSection): Block {
   return parsed.data!;
 }
 
-const textOf = (nodes: RichBlock[]): Block =>
+const textOf = (nodes: RichBlock[], size?: TextSize): Block =>
   ({
-    ...makeBlock("text"),
+    ...makeBlock("text", size),
     text: sliceRichDoc(nodes, 0, nodes.length),
   }) as Block;
 
@@ -55,6 +56,7 @@ function sectionBlocks(
   section: AiPlanSection,
   photos: ReadonlySet<string>,
   notes: string[],
+  size?: TextSize,
 ): Block[] {
   const ok = (block: Block) => valid(block, section);
   const heading = (title: string, level: "main" | "section" | "paragraph") =>
@@ -93,14 +95,14 @@ function sectionBlocks(
     return richDocBlocks(result.doc);
   };
   if (section.standfirst?.trim())
-    blocks.push(ok(textOf(markdown(section.standfirst))));
+    blocks.push(ok(textOf(markdown(section.standfirst), size)));
   blocks.push(...(placed.get("standfirst") ?? []));
 
   // The body: text runs broken by sub-heads, and by photos after paragraph n.
   let run: RichBlock[] = [];
   let count = 0;
   const flush = () => {
-    if (run.length) blocks.push(ok(textOf(run)));
+    if (run.length) blocks.push(ok(textOf(run, size)));
     run = [];
   };
   const text = (lines: string[]) => {
@@ -160,7 +162,9 @@ export async function placePlan(
       `there is no page ${plan.after}; the issue has ${ctx.pages.length} pages`,
     );
   const notes: string[] = [];
-  const built = plan.sections.map((s) => sectionBlocks(s, ctx.photos, notes));
+  const built = plan.sections.map((s) =>
+    sectionBlocks(s, ctx.photos, notes, ctx.defaultTextSize),
+  );
 
   let pages = ctx.pages;
   const reuse = !anchor.cover && anchor.blocks.length === 0;

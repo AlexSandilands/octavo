@@ -5,6 +5,7 @@ import {
   makeBlock,
   type Block,
   type Page,
+  type TextSize,
 } from "@/lib/blocks";
 import { createId } from "@/lib/id";
 import { markdownToDoc } from "@/lib/markdown-doc";
@@ -35,6 +36,8 @@ export type EditContext = {
   pages: Page[];
   /** Photos uploaded to this issue, by id: the only ones insert_blocks places. */
   photos: ReadonlySet<string>;
+  /** The size new text starts at (the magazine setting); absent reads M. */
+  defaultTextSize?: TextSize;
   measure: EditMeasurer;
   /** The run's: aborted when it ends or is stopped. */
   signal?: AbortSignal;
@@ -99,6 +102,14 @@ function defaultWidth(align: "full" | "left" | "right", current: number) {
   return current >= 100 ? 45 : current;
 }
 
+/** `block` at `size`; M is the default and is never stored. No size keeps it. */
+function withSize(block: Block, size?: TextSize): Block {
+  if (!size) return block;
+  const next = { ...block, size } as Block & { size?: TextSize };
+  if (size === "m") delete next.size;
+  return next;
+}
+
 const notesLine = (notes: string[]) =>
   notes.length ? ` Note: ${notes.join("; ")}.` : "";
 
@@ -118,7 +129,10 @@ function buildBlock(
   } else if (item.kind === "text") {
     const md = markdownToDoc(item.markdown);
     notes.push(...md.notes);
-    block = { ...makeBlock("text"), text: md.doc } as Block;
+    block = {
+      ...makeBlock("text", item.size ?? ctx.defaultTextSize),
+      text: md.doc,
+    } as Block;
   } else {
     if (!ctx.photos.has(item.imageId))
       refuse(`"${item.imageId}" isn't a photo uploaded to this issue`);
@@ -228,7 +242,9 @@ export async function applyEdit(
         refuse(`block ${a.blockId} is a ${at.block.type}, not text`);
       const md = markdownToDoc(a.markdown);
       const blocks = at.page.blocks.map((b, i) =>
-        i === at.blockIdx ? ({ ...b, text: md.doc } as Block) : b,
+        i === at.blockIdx
+          ? ({ ...withSize(b, a.size), text: md.doc } as Block)
+          : b,
       );
       return {
         pages: withBlocks(pages, at.pageIdx, blocks),

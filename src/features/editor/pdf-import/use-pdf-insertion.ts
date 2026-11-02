@@ -68,7 +68,7 @@ export function usePdfInsertion(
         import("./upload"),
       ]);
       valid();
-      const batch = synthesize(items);
+      const batch = synthesize(items, captured.settings.defaultTextSize);
       const localImages = { ...captured.images };
       for (const item of items)
         if (item.block.type === "image" && item.region.image) {

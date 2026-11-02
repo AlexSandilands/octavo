@@ -10,7 +10,11 @@ import {
   type StoredSettings,
 } from "@/lib/branding";
 import { requireAdmin } from "@/server/session";
-import { footerSizeSchema, updateSettings } from "@/server/settings";
+import {
+  footerSizeSchema,
+  textSizeSchema,
+  updateSettings,
+} from "@/server/settings";
 
 // The one mutation behind /admin/magazine. Like every other admin action, the
 // argument is attacker-controlled JSON whatever its TypeScript type says, so it
@@ -57,6 +61,7 @@ const settingsSchema = z
     pdfDownloads: z.boolean(),
     commentsEnabled: z.boolean(),
     removedMemberComments: z.enum(REMOVED_MEMBER_COMMENTS),
+    defaultTextSize: textSizeSchema,
   })
   .strict();
 

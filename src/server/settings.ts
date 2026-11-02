@@ -17,6 +17,7 @@ import {
   type SiteSettings,
   type StoredSettings,
 } from "@/lib/branding";
+import { TEXT_SIZES, type TextSize } from "@/lib/blocks";
 import { siteDefaults } from "@/lib/site-defaults";
 
 // The owner-editable magazine settings (issue #105): one row, read on nearly
@@ -41,6 +42,7 @@ const settingsSelection = {
   pdfDownloads: settings.pdfDownloads,
   commentsEnabled: settings.commentsEnabled,
   removedMemberComments: settings.removedMemberComments,
+  defaultTextSize: settings.defaultTextSize,
 };
 
 /** A footer size: whole px within its axis (issue #216). Shared with the
@@ -48,6 +50,11 @@ const settingsSelection = {
 export function footerSizeSchema(axis: SizeAxis) {
   return z.number().int().min(axis.min).max(axis.max);
 }
+
+/** The block text-size presets; shared with the admin action. */
+export const textSizeSchema = z.enum(
+  TEXT_SIZES.map((s) => s.value) as [TextSize, ...TextSize[]],
+);
 
 // The appearance columns are validated only by the app, so a value hand-edited
 // into the database is external input like any other. `.catch(null)` degrades
@@ -69,6 +76,8 @@ const storedSchema = z.object({
   // Unreadable is "not configured" here too: discussion off, comments kept.
   commentsEnabled: z.boolean().nullable().catch(null),
   removedMemberComments: z.enum(REMOVED_MEMBER_COMMENTS).nullable().catch(null),
+  // A text-size value hand-edited into the row degrades to M.
+  defaultTextSize: textSizeSchema.nullable().catch(null),
 });
 
 // The stored row, or all-nulls when there is none (the first-run state, and
@@ -187,6 +196,7 @@ export async function updateSettings(input: StoredSettings): Promise<void> {
     pdfDownloads: input.pdfDownloads,
     commentsEnabled: input.commentsEnabled,
     removedMemberComments: input.removedMemberComments,
+    defaultTextSize: input.defaultTextSize,
     updatedAt: new Date(),
   };
   await db
@@ -208,7 +218,8 @@ export async function updateSettings(input: StoredSettings): Promise<void> {
 // it decides who may *fetch* a PDF, not what one looks like, so folding it in
 // would rebuild every cached issue each time the owner flipped the switch
 // (issue #162). `commentsEnabled` and `removedMemberComments` stay out for the
-// same reason: comments never print (issue #299). Values are joined with a NUL so no pair of fields can be
+// same reason: comments never print (issue #299). `defaultTextSize` too: it
+// only seeds new blocks, so no stored page prints differently (issue #25). Values are joined with a NUL so no pair of fields can be
 // rearranged into the same string.
 export function chromeFingerprint(s: SiteSettings): string {
   const material = [

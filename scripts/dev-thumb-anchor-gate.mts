@@ -99,6 +99,7 @@ const settings: SiteSettings = {
   pdfDownloads: false,
   commentsEnabled: false,
   removedMemberComments: "anonymise",
+  defaultTextSize: "m",
 };
 
 // Both layout themes draw the sponsor card differently (classic prints a "→",
