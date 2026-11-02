@@ -90,6 +90,29 @@ heading("eight sections, each from the top of a fresh page");
   );
 }
 
+heading("the magazine's default text size reaches the plan's text (#25)");
+{
+  const x = harness([cover, page(), page()], "xl");
+  x.executor.beginRun();
+  await x.run("propose_sections", {
+    after: 2,
+    sections: [
+      {
+        headline: "Sized",
+        standfirst: "A standfirst.",
+        body: paras(3, "Sized"),
+      },
+    ],
+  });
+  const text = x.pages
+    .flatMap((p) => p.blocks)
+    .filter((b) => b.type === "text");
+  ok(
+    text.length >= 2 && text.every((b) => b.size === "xl"),
+    "the standfirst and the body start at the default size",
+  );
+}
+
 heading("an empty page takes the first section; sub-heads and photos");
 {
   const x = harness([cover, page()]);

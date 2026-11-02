@@ -1,4 +1,4 @@
-import type { Page } from "@/lib/blocks";
+import type { Page, TextSize } from "@/lib/blocks";
 import type { PageFill } from "./page-fill";
 
 // Everything the projection reads about the issue being edited (#309). Plain
@@ -17,6 +17,8 @@ export type AssistantIssue = {
   uploads: string[];
   logos: { id: string; name: string; imageId: string }[];
   sponsorNames: string[];
+  /** The size new text starts at (the magazine setting); absent reads M. */
+  defaultTextSize?: TextSize;
   /** Page id → the editor's measured fill; a missing page reads "not measured". */
   fills: Record<string, PageFill>;
   /** Which cover tools the run offers (#313); none means covers are read-only. */

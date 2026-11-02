@@ -208,8 +208,13 @@ export function header(issue: AssistantIssue): string {
   const unplaced = issue.uploads.filter((id) => !placed.has(id));
   const list = (items: string[]) =>
     items.length ? clip(items.join("; "), HEADER_LIST_MAX) : "none";
+  // A larger or smaller default (#25) changes how many words a line holds.
+  const size =
+    issue.defaultTextSize && issue.defaultTextSize !== "m"
+      ? ` · new text starts at size ${issue.defaultTextSize}`
+      : "";
   return [
-    `ISSUE ${quote(clip(issue.title, 200))} · draft · theme ${issue.theme} · ${issue.pages.length} pages`,
+    `ISSUE ${quote(clip(issue.title, 200))} · draft · theme ${issue.theme} · ${issue.pages.length} pages${size}`,
     `Photos uploaded but not placed: ${list(unplaced.map((id) => `${id} (${shape(issue.images[id])})`))}`,
     `Logos in the library: ${list(issue.logos.map((l) => quote(l.name)))}`,
     `Sponsors: ${list(issue.sponsorNames.map(quote))}`,

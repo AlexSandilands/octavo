@@ -7,6 +7,8 @@
 // public branding, so the resolved object is threaded into client components as
 // props (readers, editor, admin preview) without dragging `db`/`env` along.
 
+import type { TextSize } from "./blocks";
+
 // The footer's two height axes (mark box height, type size) are px numbers
 // (issue #216). Each has a floor, a ceiling and three presets — the exact px
 // the old three-step dropdowns rendered, so a preset looks as it always did.
@@ -85,6 +87,8 @@ export type SiteSettings = Branding & {
   pdfDownloads: boolean;
   commentsEnabled: boolean;
   removedMemberComments: RemovedMemberComments;
+  /** The size new text blocks start at (issue #25). */
+  defaultTextSize: TextSize;
 };
 
 // What removing a member does to their comments, applied at removal time:
@@ -128,6 +132,9 @@ export const DEFAULT_COMMENTS_ENABLED = false;
 export const DEFAULT_REMOVED_MEMBER_COMMENTS: RemovedMemberComments =
   "anonymise";
 
+// New text starts at M, the size every block had before the setting existed.
+export const DEFAULT_TEXT_SIZE: TextSize = "m";
+
 /** The `settings` row as stored: every field nullable, NULL meaning "use the
  *  deployment default". This is the admin form's state as well as the database
  *  shape — the page edits nulls directly so "cleared" stays distinguishable
@@ -143,6 +150,7 @@ export type StoredSettings = {
   pdfDownloads: boolean | null;
   commentsEnabled: boolean | null;
   removedMemberComments: RemovedMemberComments | null;
+  defaultTextSize: TextSize | null;
 };
 
 export const EMPTY_SETTINGS: StoredSettings = {
@@ -156,6 +164,7 @@ export const EMPTY_SETTINGS: StoredSettings = {
   pdfDownloads: null,
   commentsEnabled: null,
   removedMemberComments: null,
+  defaultTextSize: null,
 };
 
 /** Stored row + deployment defaults → the values that actually render. Pure and
@@ -182,6 +191,7 @@ export function resolveSettings(
     commentsEnabled: stored.commentsEnabled ?? defaults.commentsEnabled,
     removedMemberComments:
       stored.removedMemberComments ?? defaults.removedMemberComments,
+    defaultTextSize: stored.defaultTextSize ?? defaults.defaultTextSize,
   };
 }
 

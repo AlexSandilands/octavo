@@ -106,7 +106,7 @@ at the same place (or when it is wider than 2.4 body sizes), so a narrow newslet
 gutter splits correctly even under a full-width block. Tagged headings, relative size,
 font names, spacing and line length support editable heading suggestions. Bold/italic
 require evidence; font aliases can hide it. Alignment is conservative, and body sizes
-are fixed per extracted page so later pages do not change previous imports. Only soft
+are fixed per extracted page so later pages do not change previous imports. Detected sizes are relative to the PDF's body text, so they are re-based on the magazine's default text size when added (#25): body text lands on the default and larger or smaller runs keep their step, clamped to S–XL. Only soft
 wrapping hyphens are unambiguously removed. Regions keep their source lines so a split
 has real geometry. Underlines drawn as separate vectors, tables, decorative lettering
 and uncertain styling remain best effort. There is no OCR or automatic whole-document

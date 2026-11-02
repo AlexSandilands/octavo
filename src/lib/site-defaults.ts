@@ -2,6 +2,7 @@ import {
   DEFAULT_COMMENTS_ENABLED,
   DEFAULT_FOOTER_STYLE,
   DEFAULT_PDF_DOWNLOADS,
+  DEFAULT_TEXT_SIZE,
   DEFAULT_REMOVED_MEMBER_COMMENTS,
   DEFAULT_SHOW_RUNNING_HEAD,
   type SiteSettings,
@@ -40,4 +41,6 @@ export const siteDefaults: SiteSettings = {
   // The discussion pair follows them (issue #299): off, and anonymise.
   commentsEnabled: DEFAULT_COMMENTS_ENABLED,
   removedMemberComments: DEFAULT_REMOVED_MEMBER_COMMENTS,
+  // New text starts at M (issue #25), as it always has.
+  defaultTextSize: DEFAULT_TEXT_SIZE,
 };

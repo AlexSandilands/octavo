@@ -64,6 +64,7 @@ export function useAssistantSnapshot({
     sponsors,
     images,
     measurer,
+    defaultTextSize: settings.defaultTextSize,
   });
   useEffect(() => {
     latest.current = {
@@ -75,6 +76,7 @@ export function useAssistantSnapshot({
       sponsors,
       images,
       measurer,
+      defaultTextSize: settings.defaultTextSize,
     };
   });
 
@@ -96,6 +98,7 @@ export function useAssistantSnapshot({
           imageId: l.imageId,
         })),
         sponsorNames: now.sponsors.map((s) => s.name),
+        defaultTextSize: now.defaultTextSize,
         fills: now.measurer ? await now.measurer.measure(now.pages) : {},
         // The cover tools (#313), placement and style included.
         coverTools: "style" as const,

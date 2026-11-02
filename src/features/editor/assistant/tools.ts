@@ -163,6 +163,7 @@ export function useAssistantTools({
       executor.current
         ? executor.current.run(name, input, {
             photos: new Set(issue.uploads),
+            defaultTextSize: issue.defaultTextSize,
             logos: issue.logos,
             reply,
             read: (args) => readPage(args, issue),

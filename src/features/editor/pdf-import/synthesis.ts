@@ -1,5 +1,6 @@
-import { blockSchema, type Block } from "@/lib/blocks";
+import { blockSchema, type Block, type TextSize } from "@/lib/blocks";
 import { createId } from "@/lib/id";
+import { rebaseItem } from "./rebase-item";
 import {
   richTextToPlain,
   richDocSchema,
@@ -152,13 +153,19 @@ function splitRun(r: Extract<RichInline, { type: "text" }>): RichInline[] {
   }
   return result;
 }
-export function synthesize(items: ReviewItem[]): {
+/** `defaultTextSize` is the magazine's starting size for new text: the PDF's
+ *  body text lands on it and its larger or smaller runs keep their step. */
+export function synthesize(
+  sourceItems: ReviewItem[],
+  defaultTextSize: TextSize = "m",
+): {
   blocks: Block[];
   mapping: SourceMapping;
 } {
   const blocks: Block[] = [],
     mapping: SourceMapping = {};
-  for (const item of items) {
+  for (const source of sourceItems) {
+    const item = rebaseItem(source, defaultTextSize);
     const emitted: Block[] = [];
     if (item.block.type === "text" && typeof item.block.text !== "string") {
       let content: RichDoc["content"] = [];

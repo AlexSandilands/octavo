@@ -235,6 +235,7 @@ const settings: SiteSettings = {
   pdfDownloads: false,
   commentsEnabled: false,
   removedMemberComments: "anonymise",
+  defaultTextSize: "m",
 };
 
 // The reader spread and the print document render exactly this pair.

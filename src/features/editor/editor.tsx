@@ -140,7 +140,7 @@ export function Editor({
     addPage,
     reorderPages,
     deletePage,
-  } = useEditorPages(issue.content);
+  } = useEditorPages(issue.content, settings.defaultTextSize);
   // imageId → resolved image, seeded from the server and grown as uploads land,
   // so the canvas previews an image the moment it's uploaded. The library's
   // marks are in it too, for a logo the assistant places (#313).
@@ -272,6 +272,7 @@ export function Editor({
     curPage,
     images,
     previewable: Boolean(page) && !page?.cover && !filled,
+    defaultTextSize: settings.defaultTextSize,
     drop: dropRef,
   });
   // The magazine's footer is taller than this issue's pages have room for, so

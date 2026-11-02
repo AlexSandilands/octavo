@@ -11,6 +11,7 @@ import {
 import {
   ensureCoverFirst,
   makeBlock,
+  type TextSize,
   makePage,
   mergeBlock,
   type BlockPatch,
@@ -44,7 +45,10 @@ import {
 // Every operation takes an undo step first (issue #222) — `commit()`, or
 // `commit("<stream>")` for one that repeats under the author's hand and should
 // undo as a run. A no-op resolves before it commits, so no step is ever empty.
-export function useEditorPages(content: IssueContent) {
+export function useEditorPages(
+  content: IssueContent,
+  defaultTextSize: TextSize = "m",
+) {
   const initialPages = ensureCoverFirst(
     content.pages.length > 0 ? content.pages : [makePage("cover-classic")],
   );
@@ -177,7 +181,8 @@ export function useEditorPages(content: IssueContent) {
   const addBlock = (type: BlockType) => {
     // Interior full-page photos are image-only; cover content overlays the photo.
     if (!page || (!page.cover && pageFillsCanvas(page))) return;
-    const blk = makeBlock(type);
+    // A cover paragraph is sized by its placement, so it takes no stored size.
+    const blk = makeBlock(type, page.cover ? undefined : defaultTextSize);
     if (page.cover && (blk.type === "heading" || blk.type === "text"))
       blk.coverPlacement = {
         ...DEFAULT_COVER_PLACEMENT,

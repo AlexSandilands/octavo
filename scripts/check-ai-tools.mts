@@ -25,6 +25,7 @@ import {
 } from "../src/features/editor/assistant/vision";
 import type { AssistantIssue } from "../src/features/editor/assistant/issue-context";
 import { coverChecks } from "./fixtures/assistant/cover-checks.mts";
+import { defaultSizeChecks } from "./fixtures/assistant/default-size-checks.mts";
 import { describeReport } from "../src/features/editor/assistant/page-report";
 
 const { ok, heading, docOf, issues, photos, harness } = h;
@@ -468,6 +469,8 @@ heading("vision: views within the run's six and the conversation's room");
     "room for 12 lets ten attached photos and two more views all be seen",
   );
 }
+
+await defaultSizeChecks();
 
 await coverChecks();
 
