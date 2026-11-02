@@ -211,6 +211,25 @@ const ICONS: Record<string, ReactNode> = {
   alignCenter: <path d="M4 6.5h16M7 10.2h10M4 13.8h16M7 17.5h10" />,
   alignRight: <path d="M4 6.5h16M10 10.2h10M4 13.8h16M10 17.5h10" />,
   alignJustify: <path d="M4 6.5h16M4 10.2h16M4 13.8h16M4 17.5h16" />,
+  // A text block's column (aboard #23): the page, and where its lines sit.
+  columnFull: (
+    <>
+      <rect x="3" y="3.5" width="18" height="17" rx="1.5" />
+      <path d="M6.5 8h11M6.5 12h11M6.5 16h11" />
+    </>
+  ),
+  columnLeft: (
+    <>
+      <rect x="3" y="3.5" width="18" height="17" rx="1.5" />
+      <path d="M6.5 8h4M6.5 12h4M6.5 16h4" />
+    </>
+  ),
+  columnRight: (
+    <>
+      <rect x="3" y="3.5" width="18" height="17" rx="1.5" />
+      <path d="M13.5 8h4M13.5 12h4M13.5 16h4" />
+    </>
+  ),
   listBullet: (
     <>
       <circle cx="5" cy="6.5" r="1.2" fill="currentColor" stroke="none" />

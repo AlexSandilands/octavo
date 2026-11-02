@@ -19,6 +19,8 @@ import { Paint, setPaint } from "./text-paint-mark";
 import { TextPaintControls } from "./text-paint-controls";
 import { CAP_NUDGE } from "./cap-nudge";
 import { BarRule } from "./bar-rule";
+import { TextColumnControl } from "./text-column-control";
+import type { Column } from "@/lib/page-bands";
 import { useBarFit } from "./use-bar-fit";
 
 // The editing surface for a body-text block. A Tiptap editor styled to match the
@@ -31,6 +33,7 @@ export function RichTextEditor({
   value,
   size,
   align = "left",
+  column,
   selected,
   onChange,
   afterToolbar,
@@ -38,6 +41,8 @@ export function RichTextEditor({
   value: RichTextValue;
   size: TextSize;
   align?: TextAlign;
+  /** The block's column in a two-column band; absent spans the page. */
+  column?: Column;
   selected: boolean;
   onChange: (patch: BlockPatch) => void;
   /** The toolbar's last control (the assistant's Ask). */
@@ -106,6 +111,7 @@ export function RichTextEditor({
           editor={editor}
           size={size}
           align={align}
+          column={column}
           onChange={onChange}
           trailing={afterToolbar}
         />
@@ -126,12 +132,14 @@ function Toolbar({
   editor,
   size,
   align,
+  column,
   onChange,
   trailing,
 }: {
   editor: Editor;
   size: TextSize;
   align: TextAlign;
+  column?: Column;
   onChange: (patch: BlockPatch) => void;
   trailing?: ReactNode;
 }) {
@@ -206,6 +214,7 @@ function Toolbar({
             />
           ))}
         </div>
+        <TextColumnControl column={column} onChange={onChange} />
         <BarRule />
         <TbBtn
           label="B"
@@ -322,7 +331,13 @@ export function TbBtn({
   labelClass?: string;
   /** Which family the label is set in — picks its cap-height nudge. */
   labelFont?: keyof typeof CAP_NUDGE;
-  icon?: "listBullet" | "link" | (typeof TEXT_ALIGNS)[number]["icon"];
+  icon?:
+    | "listBullet"
+    | "link"
+    | "columnFull"
+    | "columnLeft"
+    | "columnRight"
+    | (typeof TEXT_ALIGNS)[number]["icon"];
   title: string;
   active: boolean;
   onClick: () => void;

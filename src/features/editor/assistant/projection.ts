@@ -13,6 +13,7 @@ import type { AssistantIssue } from "./issue-context";
 import { describeFill } from "./page-fill";
 import { clip, quote, shape } from "./projection-text";
 import { describePaint, paintRuns } from "./text-styling";
+import { bandColumnOf } from "@/lib/page-bands";
 
 /** The route's limit on a projection or a `read_page` result (#308). */
 export const PROJECTION_MAX = AI_MAX_PROJECTION_CHARS;
@@ -86,6 +87,7 @@ function describeText(block: TextBlock, md: string): string {
   const opts = [
     block.size && block.size !== "m" ? `size ${block.size}` : "",
     block.align ? `align ${block.align}` : "",
+    block.column ? `${block.column} column` : "",
   ]
     .filter(Boolean)
     .join(" · ");
@@ -177,10 +179,13 @@ export function readView(
   let length = lines[0]!.length;
   for (const [i, block] of page.blocks.entries()) {
     const md = block.type === "text" ? textMarkdown(block) : "";
+    // A side photo inside a two-column band sits in that column (content v12).
+    const inBand = block.type !== "text" && bandColumnOf(page.blocks, block.id);
     const line =
       block.type === "text"
         ? describeText(block, clip(md, textCap))
-        : describeBlock(block, issue);
+        : describeBlock(block, issue) +
+          (inBand ? ` · in the ${inBand} column` : "");
     // The last block needs no room kept after it.
     const left = page.blocks.length - i;
     if (length + 1 + line.length > room - (left > 1 ? MORE_ROOM : 0)) {

@@ -10,7 +10,8 @@ import {
   measureTextFlow,
   type BlockOverflow,
 } from "./page-metrics";
-import { planTextFlow } from "./text-flow";
+import { textColumn } from "@/lib/page-bands";
+import { planFlow, type FlowPlan } from "./text-flow";
 
 // Joins the canvas measurement to the edit that fixes it (issue #93): where the
 // page being edited overflows, and the one action that resolves it. Every block
@@ -26,7 +27,7 @@ export function useTextFlow({
   onMove,
 }: {
   page: Page | undefined;
-  onFlow: (blockId: string, cuts: number[]) => void;
+  onFlow: (blockId: string, plan: FlowPlan) => void;
   onMove: (blockId: string) => void;
 }) {
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -81,9 +82,9 @@ export function useTextFlow({
     if (block.type === "text") {
       const nodes = richDocBlocks(block.text).length;
       const metrics = nodes > 1 ? measureTextFlow(el, blockId, nodes) : null;
-      const cuts = metrics ? planTextFlow(metrics) : [];
-      if (cuts.length > 0) {
-        onFlow(blockId, cuts);
+      const plan = metrics && planFlow(metrics, textColumn(block) !== null);
+      if (plan && plan.cuts.length > 0) {
+        onFlow(blockId, plan);
         return;
       }
     }

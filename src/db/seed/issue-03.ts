@@ -8,6 +8,7 @@ import {
   type SeedImages,
   Spon,
   T,
+  Tc,
   Tp,
 } from "./builders";
 
@@ -64,20 +65,25 @@ export const issue03 = (img: SeedImages) =>
     ]),
 
     page([
+      // Content v12: the notices set in two columns under a full-width head.
       H("Notices", "In Brief", "section"),
-      T(
+      Tc(
+        "left",
         "The mobile library resumes its fortnightly Thursday stop outside the post office, 10 until noon. New members welcome; late returns forgiven on production of a reasonable story.",
         "s",
       ),
-      T(
+      Tc(
+        "left",
         "Choir practice moves to Wednesdays for the winter. The tenors are asked to note that this includes them.",
         "s",
       ),
-      T(
+      Tc(
+        "right",
         "The footpath by Marsh Lane is passable again. Walkers are asked to keep to the line of the path and to shut the gate, which has a new latch and no further excuses.",
         "s",
       ),
-      T(
+      Tc(
+        "right",
         "Planning: no applications this quarter, a sentence the editor has waited four years to set in type.",
         "s",
       ),

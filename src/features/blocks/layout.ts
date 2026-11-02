@@ -53,7 +53,28 @@ export function isFloatedPicture(block: Block): boolean {
   );
 }
 
-export function blockFlowStyle(block: Block, cover = false): CSSProperties {
+/** Space between a band's two columns (aboard #23): twice the block rhythm. */
+export const COLUMN_GUTTER = 2 * GAP;
+
+/** A two-column band: two equal tracks, never beside a float above it. */
+export const BAND_STYLE: CSSProperties = {
+  clear: "both",
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
+  columnGap: COLUMN_GUTTER,
+  // Each column as tall as its content, so the editor can measure it.
+  alignItems: "start",
+};
+
+/**
+ * `inColumn`: the block sits in a band's column, where nothing floats — a side
+ * picture there takes its width as a share of the column, centred.
+ */
+export function blockFlowStyle(
+  block: Block,
+  cover = false,
+  inColumn = false,
+): CSSProperties {
   if (isFillPage(block)) {
     return {
       position: "absolute",
@@ -82,6 +103,11 @@ export function blockFlowStyle(block: Block, cover = false): CSSProperties {
   if (isPictureBlock(block)) {
     const align = block.align ?? "full";
     const width = block.width ?? 100;
+    if (inColumn) {
+      return width < 100
+        ? { ...base, width: `${width}%`, marginInline: "auto" }
+        : base;
+    }
     if (align === "left" || align === "right") {
       return {
         ...base,

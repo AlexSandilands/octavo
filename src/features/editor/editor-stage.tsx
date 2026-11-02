@@ -4,6 +4,7 @@ import type { AskHandler } from "./assistant/presets";
 import { useEffect, useEffectEvent, type RefObject } from "react";
 import {
   SortableContext,
+  rectSortingStrategy,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import type { Page } from "@/lib/blocks";
@@ -24,6 +25,7 @@ import { useCanvasPanZoom } from "@/features/blocks/use-canvas-pan-zoom";
 import { CoverOverlayControls } from "./cover-overlay-controls";
 import { coverSortingStrategy } from "./cover-sorting";
 import { EditorPageContent } from "./editor-page-content";
+import { hasBands, readingOrder } from "@/lib/page-bands";
 import { useCoverLayoutWarnings } from "./use-cover-layout-warnings";
 import {
   INSPECTOR_RESERVE,
@@ -283,14 +285,19 @@ export function EditorStage({
               bleed={filled}
             >
               <SortableContext
+                // Reading order: a band's left column, then its right, so the
+                // keyboard and the shuffle walk the columns as they read.
                 items={(page?.cover
                   ? coverItems(page)
-                  : (page?.blocks ?? [])
+                  : readingOrder(page?.blocks ?? [])
                 ).map((b) => b.id)}
                 strategy={
                   page?.cover
                     ? coverSortingStrategy(page, scale)
-                    : verticalListSortingStrategy
+                    : // Two columns side by side aren't one vertical list.
+                      page && hasBands(page.blocks)
+                      ? rectSortingStrategy
+                      : verticalListSortingStrategy
                 }
               >
                 {page && (

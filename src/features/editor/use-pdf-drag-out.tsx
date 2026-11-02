@@ -19,7 +19,7 @@ import {
 } from "./pdf-import/drag-out";
 import type { ReviewItem } from "./pdf-import/model";
 import { RegionGhost } from "./pdf-import/region-ghost";
-import { rebaseItem } from "./pdf-import/rebase-item";
+import { rebaseItem, unsided } from "./pdf-import/rebase-item";
 
 /** The panel's Add, aimed at a place on a page: set by the panel, called by the editor. */
 export type DropHandler = (item: ReviewItem, target: DropTarget) => void;
@@ -88,7 +88,8 @@ export function usePdfDragOut({
     held && index !== null && previewable
       ? {
           index,
-          block: rebaseItem(held.item, defaultTextSize).block,
+          // One region alone imports full width, as the drop will.
+          block: rebaseItem(unsided(held.item), defaultTextSize).block,
           images:
             held.imageUrl && image
               ? {

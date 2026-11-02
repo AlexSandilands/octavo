@@ -54,6 +54,7 @@ export function EditorBlock({
   block,
   theme,
   cover,
+  inColumn = false,
   selected,
   hinted = false,
   appearance,
@@ -77,6 +78,8 @@ export function EditorBlock({
   block: Block;
   theme: LayoutTheme;
   cover?: boolean;
+  /** The block sits in a two-column band's column (aboard #23). */
+  inColumn?: boolean;
   selected: boolean;
   /** A layout warning in the inspector is pointing at this block. */
   hinted?: boolean;
@@ -125,7 +128,7 @@ export function EditorBlock({
   // that wraps it, so the text block's box paints on top and swallows clicks on
   // the picture. Lift the floated picture above the wrapping text so it stays
   // selectable (and its hover ring isn't hidden behind the text box).
-  const floated = isFloatedPicture(block);
+  const floated = isFloatedPicture(block) && !inColumn;
 
   // A full-bleed photo covers the page, so its chrome moves inside the page and
   // scales from its own top edge rather than hanging off the top-left corner.
@@ -173,8 +176,11 @@ export function EditorBlock({
       data-cover-sponsor={block.type === "sponsor" || undefined}
       data-cover-background={(cover && bleed) || undefined}
       style={{
-        ...blockFlowStyle(block, cover),
+        ...blockFlowStyle(block, cover, inColumn),
         ...(floated && !isDragging ? { zIndex: 5 } : {}),
+        // Its side controls reach across the gutter; keep them above the
+        // other column, which comes later in the page and would take the click.
+        ...(inColumn && selected && !isDragging ? { zIndex: 10 } : {}),
         caretColor: caret,
         // dnd-kit moves in screen px; the page is scaled, so convert.
         transform: cover ? undefined : coverDragTransform(transform),
@@ -267,6 +273,7 @@ export function EditorBlock({
           value={block.text}
           size={block.size ?? "m"}
           align={block.align}
+          column={block.column}
           selected={selected}
           onChange={onChange}
           afterToolbar={ask}

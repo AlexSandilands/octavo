@@ -2,7 +2,8 @@ import { appearanceVars, resolveCoverAppearance } from "@/lib/cover-appearance";
 import type { ReactNode, Ref } from "react";
 import type { Block, Page } from "@/lib/blocks";
 import { coverOverlayOf, hasCoverLayout } from "@/lib/cover-order";
-import { isFillPage } from "./layout";
+import { pageSegments, type Column } from "@/lib/page-bands";
+import { BAND_STYLE, isFillPage } from "./layout";
 import { type CoverElement } from "@/lib/cover-elements";
 import { coverEntries } from "./cover-entries";
 import { CoverGrid } from "./cover-grid";
@@ -18,7 +19,8 @@ export function PageContent({
   trailing,
 }: {
   page: Page;
-  renderBlock: (block: Block) => ReactNode;
+  /** `column` is set for a block in a two-column band (aboard #23). */
+  renderBlock: (block: Block, column?: Column) => ReactNode;
   containerRef?: Ref<HTMLDivElement>;
   empty?: ReactNode;
   renderElement?: (element: CoverElement) => ReactNode;
@@ -52,7 +54,9 @@ export function PageContent({
         }
       >
         {page.blocks.length
-          ? page.blocks.map(renderBlock)
+          ? page.cover
+            ? page.blocks.map((b) => renderBlock(b))
+            : flowBlocks(page.blocks, renderBlock)
           : elements.length || trailing
             ? null
             : empty}
@@ -85,10 +89,31 @@ export function PageContent({
       >
         {foreground.length > 0 && (
           <div className="cover-overlay-content pointer-events-auto">
-            {foreground.map(renderBlock)}
+            {foreground.map((b) => renderBlock(b))}
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+/** An interior page's blocks: full-width blocks in flow, each band as two
+ *  stacked columns side by side. */
+export function flowBlocks(
+  blocks: Block[],
+  renderBlock: (block: Block, column?: Column) => ReactNode,
+) {
+  return pageSegments(blocks).map((s) =>
+    s.kind === "block" ? (
+      renderBlock(s.block)
+    ) : (
+      <div key={`band:${s.id}`} data-band style={BAND_STYLE}>
+        {(["left", "right"] as const).map((column) => (
+          <div key={column} data-band-column={column} className="flow-root">
+            {s[column].map((b) => renderBlock(b, column))}
+          </div>
+        ))}
+      </div>
+    ),
   );
 }

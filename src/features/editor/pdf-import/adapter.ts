@@ -16,6 +16,7 @@ import {
 import { groupRuns, union } from "./grouping";
 import { imageRegions } from "./image-regions";
 import { photoWidth } from "./photo-size";
+import { markColumns } from "./columns";
 
 const runSchema = z.object({
   str: z.string(),
@@ -279,6 +280,7 @@ export class PdfSource {
           if (picture.image)
             picture.image.column = photoWidth(picture, all, viewport.width);
         }
+        markColumns(all);
         all.sort((a, b) => a.order - b.order);
         checkAbort(signal);
         const result = {

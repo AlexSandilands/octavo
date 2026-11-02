@@ -108,7 +108,7 @@ export function EditorPageContent({
       trailing={
         preview && preview.index >= page.blocks.length ? preview.node : null
       }
-      renderBlock={(b) => (
+      renderBlock={(b, column) => (
         // Remounting is how a rewrite behind an uncontrolled editor's back (a
         // split, an undo) lands.
         <Fragment key={`${b.id}:${reseed[b.id] ?? 0}`}>
@@ -117,6 +117,7 @@ export function EditorPageContent({
             block={b}
             theme={theme}
             cover={page.cover}
+            inColumn={Boolean(column)}
             selected={b.id === sel}
             hinted={hint.includes(b.id)}
             appearance={page.cover ? itemAppearance(b, page) : undefined}

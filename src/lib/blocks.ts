@@ -59,6 +59,10 @@ export const textBlockSchema = z.object({
   size: z.enum(["s", "m", "l", "xl"]).optional(),
   // Optional, per block: legacy text stays left-aligned. Covers ignore this.
   align: z.enum(["left", "center", "right", "justify"]).optional(),
+  // Content v12: a column of a two-column band (src/lib/page-bands.ts). Absent
+  // means full width. Interior pages only; covers ignore it. Not `placement`,
+  // which cover elements use.
+  column: z.enum(["left", "right"]).optional(),
 });
 
 export const imageBlockSchema = z.object({
@@ -267,7 +271,9 @@ export const pageSchema = z.object({
 // v11 (aboard #24): colour and typeface on interior text — a `paint` mark on
 // body-text runs and an optional `paint` on a heading's title (text-paint.ts).
 // Additive: no earlier document holds either, so all render unchanged.
-export const CONTENT_VERSION = 11;
+// v12 (aboard #23): a text block's optional `column` sets it in a two-column
+// band. Additive: absent everywhere before, and absent reads as today's layout.
+export const CONTENT_VERSION = 12;
 
 export const issueContentSchema = z.object({
   version: z.number().int().min(1).default(CONTENT_VERSION),

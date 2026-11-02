@@ -41,7 +41,11 @@ export type Region = Box & {
     key: string;
     /** The detected editor size (a block `width`), set once the page's regions are all known. */
     column?: number;
+    /** The same as a share of its source column, on a two-column page (aboard #23). */
+    columnShare?: number;
   };
+  /** The source column it sits in on a two-column page (aboard #23). */
+  side?: "left" | "right";
   /** The grouped source lines, kept so a region can be split with real geometry. */
   lines?: Run[][];
   warning?: string;
@@ -59,6 +63,8 @@ export type SourcePage = {
 };
 export type ReviewItem = {
   id: string;
+  /** The author picked the photo's size, so no detected size replaces it. */
+  sized?: boolean;
   sources: string[];
   page: number;
   order: number;

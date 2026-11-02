@@ -1,4 +1,5 @@
 import { MAX_PAGES, type Block, type Page } from "@/lib/blocks";
+import { bandOf, textColumn, type Column } from "@/lib/page-bands";
 import { richDocBlocks, sliceRichDoc } from "@/lib/rich-text-split";
 import { createId } from "@/lib/id";
 
@@ -24,7 +25,22 @@ export type TextFlowMetrics = {
   firstAvail: number;
   /** Height a continuation block may occupy alone on a fresh page. */
   restAvail: number;
+  /**
+   * A left-column block (aboard #23): the room a continuation would have at the
+   * top of its band's right column, pushing what is there down.
+   */
+  rightAvail?: number;
 };
+
+/** Where a split's continuations land (aboard #23). */
+export type FlowLanding = {
+  /** The first continuation tops the band's right column on the same page. */
+  right: boolean;
+  /** Continuations on fresh pages pair up as a left and a right column. */
+  columns: boolean;
+};
+
+export type FlowPlan = { cuts: number[]; landing: FlowLanding };
 
 // Body text carries bottom margins but no top margin, so a run of nodes laid out
 // from a container's top edge spans exactly `bottom(last) - top(first)`.
@@ -45,12 +61,21 @@ function spanOf(
  * Returns the node index each chunk after the first starts at, so `[]` means the
  * block already fits and there is nothing to flow.
  */
-export function planTextFlow({
-  nodes,
-  firstAvail,
-  restAvail,
-}: TextFlowMetrics): number[] {
+export function planTextFlow(metrics: TextFlowMetrics): number[] {
+  return planFlow(metrics, false).cuts;
+}
+
+/**
+ * `planTextFlow` with the landing a column block's continuations take: a left
+ * column block's first continuation tops the right column when its first node
+ * fits there, and a column block continues in columns on fresh pages.
+ */
+export function planFlow(
+  { nodes, firstAvail, restAvail, rightAvail }: TextFlowMetrics,
+  columns: boolean,
+): FlowPlan {
   const cuts: number[] = [];
+  let right = false;
   let start = 0;
   let avail = firstAvail;
   while (start < nodes.length) {
@@ -61,17 +86,22 @@ export function planTextFlow({
       last++;
     }
     if (last + 1 >= nodes.length) break;
-    cuts.push(last + 1);
     start = last + 1;
+    cuts.push(start);
     avail = restAvail;
+    if (cuts.length === 1 && rightAvail !== undefined) {
+      right = spanOf(nodes, start, start) <= rightAvail;
+      if (right) avail = rightAvail;
+    }
   }
-  return cuts;
+  return { cuts, landing: { right, columns } };
 }
 
 /**
  * Shrink `blockId` to its first chunk and carry the rest onto the pages that
  * follow, creating them as needed. One new state value, so the whole edit —
  * block shrink, continuation blocks, new pages — autosaves as one document.
+ * A column block's continuations follow `landing` (aboard #23).
  *
  * Returns null when there is nothing to do, so the caller leaves state untouched.
  */
@@ -80,6 +110,7 @@ export function flowTextBlock(
   pageIndex: number,
   blockId: string,
   cuts: number[],
+  landing: FlowLanding = { right: false, columns: false },
 ): Page[] | null {
   const source = pages[pageIndex];
   if (!source || source.cover) return null;
@@ -95,25 +126,50 @@ export function flowTextBlock(
 
   const nodes = richDocBlocks(block.text);
   const bounds = [0, ...plan, nodes.length];
+  // Same styling as the block it came from — only the body and the id differ.
+  const chunk = (c: number, column?: Column): Block => ({
+    ...block,
+    id: createId(),
+    text: sliceRichDoc(nodes, bounds[c]!, bounds[c + 1]!),
+    column,
+  });
 
+  const shrunk = source.blocks.map((b, i) =>
+    i === at ? { ...block, text: sliceRichDoc(nodes, 0, plan[0]!) } : b,
+  );
+  const right = landing.right && textColumn(block) === "left";
   const next = [...pages];
   next[pageIndex] = {
     ...source,
-    blocks: source.blocks.map((b, i) =>
-      i === at ? { ...block, text: sliceRichDoc(nodes, 0, plan[0]!) } : b,
-    ),
+    blocks: right ? topOfRight(shrunk, blockId, chunk(1, "right")) : shrunk,
   };
 
-  for (let chunk = 1; chunk < bounds.length - 1; chunk++) {
-    // Same styling as the block it came from — only the body and the id differ.
-    const continuation: Block = {
-      ...block,
-      id: createId(),
-      text: sliceRichDoc(nodes, bounds[chunk]!, bounds[chunk + 1]!),
-    };
-    land(next, pageIndex + chunk, continuation);
+  let target = pageIndex;
+  let side: Column = "left";
+  for (let c = right ? 2 : 1; c < bounds.length - 1; c++) {
+    if (!landing.columns) {
+      land(next, ++target, chunk(c, textColumn(block) ?? undefined));
+    } else if (side === "left") {
+      land(next, ++target, chunk(c, "left"));
+      side = "right";
+    } else {
+      next[target] = {
+        ...next[target]!,
+        blocks: [...next[target]!.blocks, chunk(c, "right")],
+      };
+      side = "left";
+    }
   }
   return next;
+}
+
+/** Put `block` at the top of the right column of the band holding `id`. */
+function topOfRight(blocks: Block[], id: string, block: Block): Block[] {
+  const first = bandOf(blocks, id)?.right[0];
+  const at = first
+    ? blocks.findIndex((b) => b.id === first.id)
+    : blocks.findIndex((b) => b.id === id) + 1;
+  return [...blocks.slice(0, at), block, ...blocks.slice(at)];
 }
 
 /**
