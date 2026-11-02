@@ -1,10 +1,6 @@
-import {
-  blockSchema,
-  rebaseTextSize,
-  type Block,
-  type TextSize,
-} from "@/lib/blocks";
+import { blockSchema, type Block, type TextSize } from "@/lib/blocks";
 import { createId } from "@/lib/id";
+import { rebaseItem } from "./rebase-item";
 import {
   richTextToPlain,
   richDocSchema,
@@ -157,23 +153,6 @@ function splitRun(r: Extract<RichInline, { type: "text" }>): RichInline[] {
   }
   return result;
 }
-/** The item as it will be added: a text block's detected size re-based on the
- *  magazine's default, so a drop preview matches what lands. Others unchanged. */
-export function rebaseItem(
-  item: ReviewItem,
-  defaultTextSize: TextSize = "m",
-): ReviewItem {
-  return item.block.type === "text" && defaultTextSize !== "m"
-    ? {
-        ...item,
-        block: {
-          ...item.block,
-          size: rebaseTextSize(item.block.size, defaultTextSize),
-        },
-      }
-    : item;
-}
-
 /** `defaultTextSize` is the magazine's starting size for new text: the PDF's
  *  body text lands on it and its larger or smaller runs keep their step. */
 export function synthesize(
