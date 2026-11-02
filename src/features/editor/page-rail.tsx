@@ -221,8 +221,11 @@ function SortableThumb({
             : "outline-hair-warm outline-1"
         }`}
       >
-        {/* Decorative: the button's label already says which page it is. */}
-        <div aria-hidden>{thumb}</div>
+        {/* Decorative: the button's label already says which page it is, and
+            inert keeps anything focusable in the page out of the tab order. */}
+        <div aria-hidden inert>
+          {thumb}
+        </div>
         <span className="text-faint bg-page/90 absolute right-1 bottom-1 rounded-[2px] px-1 font-sans text-[9px] font-semibold">
           {index + 1}
         </span>
