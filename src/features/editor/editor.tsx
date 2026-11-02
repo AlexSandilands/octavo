@@ -14,7 +14,7 @@ import { footerHeldBack } from "@/lib/branding";
 import type { FooterReserve, FooterStyle, SiteSettings } from "@/lib/branding";
 import type { ImageMap } from "@/lib/images";
 import type { LogoListItem } from "@/lib/logos";
-import type { SponsorListItem, SponsorMap } from "@/lib/sponsors";
+import { sponsorMapOf, type SponsorListItem } from "@/lib/sponsors";
 import { coverSources } from "@/lib/cover-elements";
 import {
   enabledThemes,
@@ -25,6 +25,7 @@ import {
 import { pageFillsCanvas } from "@/features/blocks/layout";
 import { useEditorPages } from "./use-editor-pages";
 import { usePdfInsertion } from "./pdf-import/use-pdf-insertion";
+import type { MeasurementOptions } from "./pdf-import/measure";
 import { dragOutCollision, isPdfDrag } from "./pdf-import/drag-out";
 import {
   DragOutGhost,
@@ -101,16 +102,7 @@ export function Editor({
 }) {
   // The picker chooses from this list; the canvas previews a placed sponsor
   // through the map derived from it (same shape the readers resolve server-side).
-  const sponsorMap: SponsorMap = useMemo(
-    () =>
-      Object.fromEntries(
-        sponsors.map((s) => [
-          s.id,
-          { name: s.name, href: s.href, logo: s.logo },
-        ]),
-      ),
-    [sponsors],
-  );
+  const sponsorMap = useMemo(() => sponsorMapOf(sponsors), [sponsors]);
   // The page/block model + all its mutation handlers (issue #36 decomposition).
   const {
     pages,
@@ -223,6 +215,16 @@ export function Editor({
     },
   });
 
+  const theme = getTheme(themeId);
+  // What a page renders against: the canvas, off-screen measuring, the rail.
+  const look: MeasurementOptions = {
+    theme,
+    images,
+    sponsors: sponsorMap,
+    settings,
+    logo,
+    issueNo,
+  };
   const importer = usePdfInsertion({
     pages,
     curPage,
@@ -230,12 +232,7 @@ export function Editor({
     issueId: issue.id,
     flushSave,
     applyImport,
-    theme: getTheme(themeId),
-    images,
-    sponsors: sponsorMap,
-    settings,
-    logo,
-    issueNo,
+    ...look,
     registerImages: (added) => setImages((old) => ({ ...old, ...added })),
   });
 
@@ -259,7 +256,6 @@ export function Editor({
       ? dragOutCollision(args)
       : coverCollisionDetection(args);
 
-  const theme = getTheme(themeId);
   // This page is owned by a full-bleed photo (issue #227): no page furniture,
   // and nothing else may be added to it — except on a cover, whose content
   // overlays the photo.
@@ -294,7 +290,7 @@ export function Editor({
     logos,
     logoId,
     sponsors,
-    measure: { theme, images, sponsors: sponsorMap, settings, logo, issueNo },
+    measure: look,
     apply: applyAssistant,
     undo,
     historyTop,
@@ -347,6 +343,8 @@ export function Editor({
             <div inert={importer.pending} className="flex">
               <PageRail
                 pages={pages}
+                look={look}
+                sources={sources}
                 curPage={curPage}
                 addMenu={addMenu}
                 onSelectPage={selectPage}

@@ -43,6 +43,7 @@ import type { SponsorMap } from "../src/lib/sponsors";
 import type { SiteSettings } from "../src/lib/branding";
 import { DEFAULT_FOOTER_STYLE } from "../src/lib/branding";
 import { CoverThumb } from "../src/features/library/cover-thumb";
+import { PageThumb } from "../src/features/blocks/page-thumb";
 import { PageBlocks } from "../src/features/blocks/page-blocks";
 import { BlockView } from "../src/features/blocks/block-view";
 import { resolveTheme } from "../src/features/blocks/themes/registry";
@@ -200,6 +201,67 @@ ok(
   bare.includes(`href="https://youtu.be/${VIDEO_ID}"`) &&
     bare.includes(`href="${SPONSOR_HREF}"`),
   "BlockView with no `anchors` prop still emits both anchors (opt-out, not opt-in)",
+);
+
+// The editor's Pages rail (#54) draws interior pages too, inside a <button>:
+// a link in body text must come out as plain text there, and stay a link in print.
+const TEXT_HREF = "https://club.example/fixtures";
+const interior: Page = {
+  id: "p2",
+  blocks: [
+    {
+      id: "t1",
+      type: "text",
+      text: {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              { type: "text", text: "See the " },
+              {
+                type: "text",
+                text: "fixtures list",
+                marks: [{ type: "link", attrs: { href: TEXT_HREF } }],
+              },
+            ],
+          },
+        ],
+      },
+    },
+  ],
+};
+const railThumb = renderToStaticMarkup(
+  createElement(PageThumb, {
+    page: interior,
+    theme: "classic",
+    images: {},
+    sponsors: {},
+    issueNo: 1,
+    pageNo: 2,
+    settings,
+    width: 84,
+  }),
+);
+ok(
+  !/<a[\s>]/.test(railThumb) && !railThumb.includes(TEXT_HREF),
+  "an interior PageThumb renders a body-text link without an <a>",
+);
+ok(
+  railThumb.includes("fixtures list"),
+  "…while the linked words are still shown, as text",
+);
+const interiorPrint = renderToStaticMarkup(
+  createElement(PageBlocks, {
+    page: interior,
+    theme: resolveTheme("classic"),
+    images: {},
+    sponsors: {},
+  }),
+);
+ok(
+  interiorPrint.includes(`href="${TEXT_HREF}"`),
+  "the print page keeps the body-text link",
 );
 
 console.log("\nall checks passed");
