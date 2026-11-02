@@ -352,7 +352,9 @@ export async function applyEdit(
       const styled = styleWords(richDoc(at.block.text), a.match, a);
       if (!styled.count)
         refuse(
-          `"${a.match}" isn't in block ${a.blockId}; match its words exactly`,
+          a.match === undefined
+            ? `block ${a.blockId} has no text to style`
+            : `"${a.match}" isn't in block ${a.blockId} as whole words; match its words exactly`,
         );
       return {
         pages: withBlocks(

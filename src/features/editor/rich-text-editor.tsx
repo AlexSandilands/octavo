@@ -17,6 +17,7 @@ import { stringToDoc, type RichTextValue } from "@/lib/rich-text-doc";
 import { Underline, Link } from "./rich-text-marks";
 import { Paint, setPaint } from "./text-paint-mark";
 import { TextPaintControls } from "./text-paint-controls";
+import { CAP_NUDGE } from "./cap-nudge";
 import { BarRule } from "./bar-rule";
 import { useBarFit } from "./use-bar-fit";
 
@@ -295,12 +296,7 @@ function Toolbar({
   );
 }
 
-// Flex centres the label's line box, not its ink; these drop each family's
-// cap height onto the button's centre-line (#214). Measured at 12px.
-export const CAP_NUDGE = {
-  sans: "translate-y-[1.7px]",
-  serif: "translate-y-[2.55px]",
-} as const;
+export { CAP_NUDGE };
 
 const TEXT_ALIGNS = [
   { value: "left", icon: "alignLeft", title: "Align left" },

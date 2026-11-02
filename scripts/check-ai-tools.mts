@@ -19,6 +19,7 @@ import { docToMarkdown, markdownToDoc } from "../src/lib/markdown-doc";
 import { richDocSchema, richTextToPlain } from "../src/lib/rich-text-doc";
 import { richDocBlocks } from "../src/lib/rich-text-split";
 import * as h from "./fixtures/assistant/tools-harness.mts";
+import { carryPaint } from "../src/features/editor/assistant/text-styling";
 import {
   createVision,
   roomForRun,
@@ -192,7 +193,8 @@ heading("markdown round trips over the seed's text");
             (n) => n.type !== "paragraph" || (n.content?.length ?? 0) > 0,
           ),
         };
-        const back = markdownToDoc(docToMarkdown(doc)).doc;
+        // Markdown can't carry colour/font; set_text puts them back.
+        const back = carryPaint(doc, markdownToDoc(docToMarkdown(doc)).doc).doc;
         if (JSON.stringify(back) === JSON.stringify(kept)) exact++;
       }
   ok(

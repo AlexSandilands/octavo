@@ -5,7 +5,7 @@ import { MenuSelect } from "@/components/menu-select";
 import { colorCss, type CoverColor } from "@/lib/cover-appearance";
 import { COVER_FONTS, COVER_FONT_IDS, type CoverFont } from "@/lib/cover-fonts";
 import { ColorSwatches, resolvedColor } from "./cover-color-picker";
-import { CAP_NUDGE } from "./rich-text-editor";
+import { CAP_NUDGE } from "./cap-nudge";
 
 const SHORT_FONT_NAMES: Record<CoverFont, string> = {
   newsreader: "Newsreader",

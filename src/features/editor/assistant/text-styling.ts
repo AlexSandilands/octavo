@@ -123,20 +123,59 @@ function merge(inline: RichInline[]): RichInline[] {
   return out;
 }
 
-/** Each place `phrase` occurs, paragraph by paragraph. */
-function occurrences(paras: RichInline[][], phrase: string, fold = false) {
+const WORD = /[\p{L}\p{N}]/u;
+/** Whether hay[start, start+len) begins and ends on word edges, so "art"
+ *  never matches inside "Start". Edges the phrase itself doesn't sit on
+ *  (it starts or ends with a space or a mark) need no check. */
+function onWordEdges(hay: string, start: number, len: number) {
+  const end = start + len;
+  const cut = (inside: string | undefined, outside: string | undefined) =>
+    !!inside && !!outside && WORD.test(inside) && WORD.test(outside);
+  return !cut(hay[start], hay[start - 1]) && !cut(hay[end - 1], hay[end]);
+}
+
+/** Each place `phrase` occurs, paragraph by paragraph; whole words unless
+ *  `inWords` (a stretch the author styled mid-word). */
+function occurrences(
+  paras: RichInline[][],
+  phrase: string,
+  { fold = false, inWords = false } = {},
+) {
   const hits: { para: number; start: number }[] = [];
   const needle = fold ? phrase.toLowerCase() : phrase;
   paras.forEach((inline, para) => {
     const hay = fold ? plainOf(inline).toLowerCase() : plainOf(inline);
-    for (
-      let i = hay.indexOf(needle);
-      i !== -1;
-      i = hay.indexOf(needle, i + needle.length)
-    )
-      hits.push({ para, start: i });
+    for (let i = hay.indexOf(needle); i !== -1; i = hay.indexOf(needle, i + 1))
+      if (inWords || onWordEdges(hay, i, needle.length))
+        hits.push({ para, start: i });
   });
   return hits;
+}
+
+/** How alike two places read: shared characters just before and just after. */
+function contextScore(
+  a: string,
+  aAt: number,
+  b: string,
+  bAt: number,
+  len: number,
+) {
+  let score = 0;
+  for (
+    let k = 1;
+    k <= 40 && a[aAt - k] !== undefined && a[aAt - k] === b[bAt - k];
+    k++
+  )
+    score++;
+  for (
+    let k = 0;
+    k < 40 &&
+    a[aAt + len + k] !== undefined &&
+    a[aAt + len + k] === b[bAt + len + k];
+    k++
+  )
+    score++;
+  return score;
 }
 
 /** style_text: restyle every occurrence of `match`, or the whole doc. */
@@ -157,7 +196,7 @@ export function styleWords(
     return { doc: next, count: paras.length ? 1 : 0 };
   }
   let hits = occurrences(paras, match);
-  if (!hits.length) hits = occurrences(paras, match, true);
+  if (!hits.length) hits = occurrences(paras, match, { fold: true });
   for (const { para, start } of hits)
     replace(
       para,
@@ -168,9 +207,10 @@ export function styleWords(
 
 /**
  * set_text: put the old doc's colour/font back on words the new one kept. Each
- * styled stretch is found again by its words, the nth occurrence in the old
- * text mapping to the nth in the new; a stretch whose words are gone is
- * reported, so the model can restyle on purpose.
+ * styled stretch is found again by its words: of the places they occur in the
+ * new text, the one whose neighbouring words match the old place best, then
+ * the one nearest its old order. A stretch whose words are gone is reported,
+ * so the model can restyle on purpose.
  */
 export function carryPaint(
   old: RichDoc,
@@ -185,10 +225,23 @@ export function carryPaint(
     let run: { start: number; text: string; paint: TextPaint } | null = null;
     const close = () => {
       if (!run) return;
-      const nth = occurrences(oldParas, run.text).filter(
+      const oldHay = plainOf(oldParas[para]!);
+      const inWords = !onWordEdges(oldHay, run.start, run.text.length);
+      const nth = occurrences(oldParas, run.text, { inWords }).filter(
         (h) => h.para < para || (h.para === para && h.start < run!.start),
       ).length;
-      const hit = occurrences(paras, run.text)[nth];
+      const candidates = occurrences(paras, run.text, { inWords });
+      const score = (h: { para: number; start: number }) =>
+        contextScore(
+          oldHay,
+          run!.start,
+          plainOf(paras[h.para]!),
+          h.start,
+          run!.text.length,
+        );
+      const hit = candidates
+        .map((h, i) => ({ h, s: score(h), d: Math.abs(i - nth) }))
+        .sort((a, b) => b.s - a.s || a.d - b.d)[0]?.h;
       const paint = run.paint;
       if (hit)
         paras[hit.para]!.splice(

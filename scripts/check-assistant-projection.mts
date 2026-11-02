@@ -15,6 +15,7 @@ import { createId } from "../src/lib/id";
 import { docToMarkdown, markdownToDoc } from "../src/lib/markdown-doc";
 import { richDocSchema, stringToDoc } from "../src/lib/rich-text-doc";
 import type { AssistantIssue } from "../src/features/editor/assistant/issue-context";
+import { carryPaint } from "../src/features/editor/assistant/text-styling";
 import {
   describeFill,
   fillFromMeasure,
@@ -110,9 +111,14 @@ for (const seed of buildIssues(ids)) {
           (b) => b.type !== "paragraph" || (b.content?.length ?? 0) > 0,
         ),
       };
+      // Markdown can't carry colour/font; set_text puts them back (carryPaint).
       const back = markdownToDoc(docToMarkdown(doc));
       assert.deepEqual(back.notes, [], `${block.id}: notes`);
-      assert.deepEqual(richDocSchema.parse(back.doc), kept, `${block.id}`);
+      assert.deepEqual(
+        richDocSchema.parse(carryPaint(doc, back.doc).doc),
+        kept,
+        `${block.id}`,
+      );
     }
   });
 

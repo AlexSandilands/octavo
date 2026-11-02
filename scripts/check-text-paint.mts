@@ -22,6 +22,8 @@ import {
   styleWords,
 } from "../src/features/editor/assistant/text-styling";
 import * as h from "./fixtures/assistant/tools-harness.mts";
+import { buildIssues } from "../src/db/seed-data";
+import { SEED_IMAGES, type SeedImages } from "../src/db/seed/images";
 
 const { ok, heading, harness, cover, page, textBlock, headingBlock } = h;
 
@@ -319,6 +321,63 @@ heading("carryPaint, directly");
       paintRuns(restyled.doc).filter((r) => r.paint.color === "green")
         .length === 2,
     "a whole-block font keeps the words' own colours",
+  );
+}
+
+heading("whole words, and carrying by context");
+{
+  const start = doc(p(run("Start the art class at the Arts Centre.")));
+  const styled = styleWords(start, "art", { color: "green" });
+  ok(
+    styled.count === 1 &&
+      JSON.stringify(paintRuns(styled.doc).map((r) => r.text)) === '["art"]',
+    'style_text\'s "art" skips "Start" and "Arts"',
+  );
+  ok(
+    styleWords(doc(p(run("Restart"))), "art", { color: "green" }).count === 0,
+    "a phrase only inside a word isn't matched",
+  );
+  ok(
+    styleWords(doc(), undefined, { color: "green" }).count === 0,
+    "an empty block has nothing to style",
+  );
+  const old = doc(p(run("The "), run("art", [green]), run(" fair.")));
+  const moved = carryPaint(old, doc(p(run("Start: the art fair."))));
+  ok(
+    JSON.stringify(paintRuns(moved.doc).map((r) => r.text)) === '["art"]',
+    "set_text's carry never lands inside a word",
+  );
+  const before = doc(
+    p(run("Tickets for the "), run("raffle", [green]), run(" are on sale.")),
+  );
+  const added = carryPaint(
+    before,
+    doc(p(run("A raffle, again! Tickets for the raffle are on sale."))),
+  );
+  const at = JSON.stringify(added.doc).indexOf('"color":"green"');
+  ok(
+    paintRuns(added.doc).length === 1 &&
+      JSON.stringify(added.doc).slice(0, at).includes("Tickets for the "),
+    "an earlier copy added by the rewrite doesn't take the styling",
+  );
+  const partial = doc(p(run("Re"), run("start", [green]), run(" now")));
+  ok(
+    paintRuns(carryPaint(partial, doc(p(run("Restart now please")))).doc)[0]
+      ?.text === "start",
+    "a stretch styled mid-word is carried mid-word",
+  );
+}
+
+heading("the seed authors the new shape");
+{
+  const seeded = JSON.stringify(
+    buildIssues(
+      Object.fromEntries(SEED_IMAGES.map((s) => [s.key, s.key])) as SeedImages,
+    ),
+  );
+  ok(
+    seeded.includes('"type":"paint"') && /"paint":\{"color"/.test(seeded),
+    "a seed issue carries a painted run and a painted heading",
   );
 }
 

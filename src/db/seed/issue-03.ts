@@ -1,12 +1,14 @@
 import {
   cover,
   H,
+  Hp,
   Img,
   mkIssue,
   page,
   type SeedImages,
   Spon,
   T,
+  Tp,
 } from "./builders";
 
 // No. 3 — The Commons. A village-newsletter archetype on the classic theme:
@@ -46,9 +48,17 @@ export const issue03 = (img: SeedImages) =>
       T(
         "The autumn fête raised £2,314 for the hall roof, a record, and consumed in the process one gazebo, two trestle tables and the vicar's composure. The full accounts are pinned in the hall porch. The shortfall of one cake stand float (£4.50) has been resolved: it was in the other tin. The treasurer thanks the village for three weeks of theories, some of them libellous.",
       ),
-      H("Hall Roof Fund", "", "paragraph"),
-      T(
-        "With the fête money banked, the fund stands at £11,780 of the £15,000 needed. One more good summer should see the scaffolding up. Donations to the treasurer; suspiciously large donations to the treasurer, quietly.",
+      // Content v11: a coloured, sans run-in head and one figure picked out.
+      Hp(
+        "Hall Roof Fund",
+        { color: "green", font: "hanken-grotesk" },
+        "paragraph",
+      ),
+      Tp(
+        "With the fête money banked, the fund stands at ",
+        "£11,780 of the £15,000",
+        " needed. One more good summer should see the scaffolding up. Donations to the treasurer; suspiciously large donations to the treasurer, quietly.",
+        { color: "green" },
         "s",
       ),
     ]),
