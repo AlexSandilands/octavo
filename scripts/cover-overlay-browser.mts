@@ -104,7 +104,7 @@ export async function browserPass(base: string, cover: Page) {
     await page
       .getByRole("button", { name: "Placement: fill page", exact: true })
       .click();
-    await page.locator('[data-cover-style="light-shadow"]').waitFor();
+    await canvas.locator('[data-cover-style="light-shadow"]').waitFor();
     assert.equal(await canvas.locator("[data-block-id]").count(), 3);
     assert.equal(
       await page.getByRole("button", { name: "Text", exact: true }).isEnabled(),
@@ -137,9 +137,9 @@ export async function browserPass(base: string, cover: Page) {
       `background covers canvas: ${geometry}`,
     );
     await page.getByRole("button", { name: "Undo", exact: true }).click();
-    assert.equal(await page.locator(".cover-composition").count(), 0);
+    assert.equal(await canvas.locator(".cover-composition").count(), 0);
     await page.getByRole("button", { name: "Redo", exact: true }).click();
-    await page.locator(".cover-composition").waitFor();
+    await canvas.locator(".cover-composition").waitFor();
     const title = canvas
       .locator('[data-block-id="heading"] [data-cover-copy]')
       .last();
@@ -287,10 +287,10 @@ export async function browserPass(base: string, cover: Page) {
       .getByRole("button", { name: "Placement: fill page", exact: true })
       .click();
     await page.getByRole("button", { name: "Cover page", exact: true }).click();
-    assert.equal(await page.locator(".cover-composition").count(), 0);
+    assert.equal(await canvas.locator(".cover-composition").count(), 0);
     assert.equal(await canvas.locator("[data-block-id]").count(), 3);
     await page.getByRole("button", { name: "Undo", exact: true }).click();
-    await page.locator(".cover-composition").waitFor();
+    await canvas.locator(".cover-composition").waitFor();
     await page.getByRole("button", { name: /^Page 1\b/ }).click();
     console.log("Checking cover reorder");
     // Demoting the front cover via the rail must preserve its content too.
@@ -317,7 +317,7 @@ export async function browserPass(base: string, cover: Page) {
       "full",
     );
     await page.getByRole("button", { name: "Undo", exact: true }).click();
-    await page.locator(".cover-composition").waitFor();
+    await canvas.locator(".cover-composition").waitFor();
     console.log("Checking cover overflow");
     // Overfull cover copy is flagged by the inspector's layout checks, never
     // silently clipped in the editor.

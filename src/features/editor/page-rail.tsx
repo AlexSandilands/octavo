@@ -1,6 +1,13 @@
 "use client";
 
-import { memo, useDeferredValue, useEffect, useMemo, useRef } from "react";
+import {
+  memo,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Icon } from "@/components/icons";
 import { useQuietScrollbar } from "@/components/use-quiet-scrollbar";
 import { type Page, type PageTemplate } from "@/lib/blocks";
@@ -72,7 +79,12 @@ export function PageRail({
     () => new Map(shown.map((p) => [p.id, p])),
     [shown],
   );
-  const shownSources = useDeferredValue(sources);
+  // The cover's sources are rebuilt on every edit; keep the last list while it
+  // reads the same, so typing on an interior page leaves the cover's thumb be.
+  const [sameSources, setSameSources] = useState(sources);
+  if (sameSources !== sources && !equalSources(sameSources, sources))
+    setSameSources(sources);
+  const shownSources = useDeferredValue(sameSources);
 
   const onDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
@@ -160,6 +172,16 @@ const RailMiniature = memo(function RailMiniature(
 });
 
 const THUMB_W = 84;
+
+const equalSources = (a: CoverSource[], b: CoverSource[]) =>
+  a.length === b.length &&
+  a.every(
+    (s, i) =>
+      s.id === b[i]!.id &&
+      s.pageId === b[i]!.pageId &&
+      s.pageNo === b[i]!.pageNo &&
+      s.title === b[i]!.title,
+  );
 
 function SortableThumb({
   page,

@@ -51,7 +51,7 @@ async function open(page: Page, id: string, name: string) {
   const box = page.getByRole("textbox", { name, exact: true }).first();
   await box.waitFor();
   await page.waitForTimeout(600);
-  const placed = (await page.locator(".cover-composition").count()) > 0;
+  const placed = (await page.locator("[data-page-frame] .cover-composition").count()) > 0;
   assert.equal(placed, !older, `opens on the ${older ? "stack" : "grid"}`);
   return box;
 }
