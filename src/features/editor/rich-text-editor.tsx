@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Icon } from "@/components/icons";
@@ -15,12 +15,15 @@ import {
 import { externalHref } from "@/lib/rich-text";
 import { stringToDoc, type RichTextValue } from "@/lib/rich-text-doc";
 import { Underline, Link } from "./rich-text-marks";
+import { Paint, setPaint } from "./text-paint-mark";
+import { TextPaintControls } from "./text-paint-controls";
+import { CAP_NUDGE } from "./cap-nudge";
 import { BarRule } from "./bar-rule";
 import { useBarFit } from "./use-bar-fit";
 
 // The editing surface for a body-text block. A Tiptap editor styled to match the
 // reader's themed paragraph exactly, with a floating toolbar (size, alignment, bold,
-// italic, underline, lists, link) shown while the block is selected. Output is
+// italic, underline, font, colour, lists, link) shown while the block is selected. Output is
 // the structured rich-text JSON the reader renders through React (content v3 —
 // see src/lib/rich-text-doc.ts). Editor-only (client), so Tiptap never reaches
 // the reader bundle; the read-only path renders the same JSON in BlockView.
@@ -53,6 +56,7 @@ export function RichTextEditor({
       }),
       Underline,
       Link,
+      Paint,
     ],
     // Seed once from the stored value: a v3 doc is Tiptap's own JSON shape; a
     // legacy string is converted to that shape first. The editor is uncontrolled
@@ -133,6 +137,9 @@ function Toolbar({
 }) {
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkValue, setLinkValue] = useState("");
+  // The words the font menu acts on, held while it has focus.
+  const range = useRef<{ from: number; to: number } | null>(null);
+  const paint = editor.getAttributes("paint");
   // Kept inside the canvas: Ask, its last control, must stay in reach.
   const bar = useBarFit<HTMLDivElement>();
 
@@ -223,6 +230,18 @@ function Toolbar({
           onClick={() => editor.chain().focus().toggleMark("underline").run()}
         />
         <BarRule />
+        <TextPaintControls
+          label="Selected text"
+          color={paint.color ?? undefined}
+          font={paint.font ?? undefined}
+          onBeforeOpen={() => {
+            const { from, to } = editor.state.selection;
+            range.current = { from, to };
+          }}
+          onColor={(color) => setPaint(editor, { color })}
+          onFont={(font) => setPaint(editor, { font }, range.current)}
+        />
+        <BarRule />
         <TbBtn
           icon="listBullet"
           title="Bullet list"
@@ -277,12 +296,7 @@ function Toolbar({
   );
 }
 
-// Flex centres the label's line box, not its ink; these drop each family's
-// cap height onto the button's centre-line (#214). Measured at 12px.
-export const CAP_NUDGE = {
-  sans: "translate-y-[1.7px]",
-  serif: "translate-y-[2.55px]",
-} as const;
+export { CAP_NUDGE };
 
 const TEXT_ALIGNS = [
   { value: "left", icon: "alignLeft", title: "Align left" },

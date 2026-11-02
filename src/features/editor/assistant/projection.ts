@@ -12,6 +12,7 @@ import { coverView } from "./cover-view";
 import type { AssistantIssue } from "./issue-context";
 import { describeFill } from "./page-fill";
 import { clip, quote, shape } from "./projection-text";
+import { describePaint, paintRuns } from "./text-styling";
 
 /** The route's limit on a projection or a `read_page` result (#308). */
 export const PROJECTION_MAX = AI_MAX_PROJECTION_CHARS;
@@ -67,6 +68,19 @@ const textBody = (md: string) =>
         .join("\n")
     : "    (empty)";
 
+/** The words of a text block that carry their own colour/font (content v11),
+ *  which its markdown can't show. Empty when there are none. */
+function styledLine(block: TextBlock): string {
+  if (typeof block.text === "string") return "";
+  const runs = paintRuns(block.text).map(
+    (r) => `${quote(clip(r.text, 80))} (${describePaint(r.paint)})`,
+  );
+  if (!runs.length) return "";
+  const shown = runs.slice(0, 12).join("; ");
+  const more = runs.length > 12 ? `; […] ${runs.length - 12} more` : "";
+  return `\n    styled: ${shown}${more}`;
+}
+
 /** A text block's entry in a page view; `md` is its markdown, cut or whole. */
 function describeText(block: TextBlock, md: string): string {
   const opts = [
@@ -75,7 +89,7 @@ function describeText(block: TextBlock, md: string): string {
   ]
     .filter(Boolean)
     .join(" · ");
-  return `[${block.id}] text${opts ? ` · ${opts}` : ""}\n${textBody(md)}`;
+  return `[${block.id}] text${opts ? ` · ${opts}` : ""}\n${textBody(md)}${styledLine(block)}`;
 }
 
 function describeBlock(
@@ -88,7 +102,8 @@ function describeBlock(
       const kicker = block.kicker.trim()
         ? ` · kicker ${quote(clip(block.kicker, 200))}`
         : "";
-      return `${head} heading ${block.level ?? "main"}${kicker} · ${quote(clip(block.title, 500))}`;
+      const paint = block.paint ? ` · title ${describePaint(block.paint)}` : "";
+      return `${head} heading ${block.level ?? "main"}${kicker} · ${quote(clip(block.title, 500))}${paint}`;
     }
     case "image": {
       const img = block.imageId

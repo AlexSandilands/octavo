@@ -152,19 +152,7 @@ export function MenuSelect<T>({
 
   // An in-place menu hangs from one side of its trigger; slide it back inside
   // its clipping ancestors before it paints (a pill at a panel's far edge).
-  useLayoutEffect(() => {
-    const menu = menuRef.current;
-    if (!open || portal || !menu) return;
-    const r = menu.getBoundingClientRect();
-    const { left, right } = clipBox(menu);
-    let shift = Math.min(0, right - r.right);
-    // Wider than the box: keep its start in view.
-    if (r.left + shift < left) shift = left - r.left;
-    // `translate` is in the menu's own px; a scaled ancestor (the editor page)
-    // makes those differ from the viewport px measured here.
-    if (shift)
-      menu.style.translate = `${(shift * menu.offsetWidth) / r.width}px`;
-  }, [open, portal]);
+  useSlideIntoView(menuRef, open && !portal);
 
   // A mouse press snapshots on pointerdown, before the button takes focus from
   // an editor; a keyboard open has no pointerdown, so toggle snapshots instead.
@@ -376,6 +364,26 @@ export function MenuSelect<T>({
       {open && (portal ? createPortal(menu, document.body) : menu)}
     </div>
   );
+}
+
+/** Slide an absolutely placed popover sideways, before it paints, so it sits
+ *  inside its clipping ancestors (a trigger near a panel's far edge). */
+export function useSlideIntoView(
+  ref: React.RefObject<HTMLElement | null>,
+  active: boolean,
+) {
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!active || !el) return;
+    const r = el.getBoundingClientRect();
+    const { left, right } = clipBox(el);
+    let shift = Math.min(0, right - r.right);
+    // Wider than the box: keep its start in view.
+    if (r.left + shift < left) shift = left - r.left;
+    // `translate` is in the element's own px; a scaled ancestor (the editor
+    // page) makes those differ from the viewport px measured here.
+    if (shift) el.style.translate = `${(shift * el.offsetWidth) / r.width}px`;
+  }, [ref, active]);
 }
 
 /** The horizontal span `el` can show in: the viewport, narrowed by every

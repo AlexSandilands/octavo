@@ -19,6 +19,7 @@ import { docToMarkdown, markdownToDoc } from "../src/lib/markdown-doc";
 import { richDocSchema, richTextToPlain } from "../src/lib/rich-text-doc";
 import { richDocBlocks } from "../src/lib/rich-text-split";
 import * as h from "./fixtures/assistant/tools-harness.mts";
+import { carryPaint } from "../src/features/editor/assistant/text-styling";
 import {
   createVision,
   roomForRun,
@@ -35,7 +36,7 @@ heading("the tool contract");
 ok(
   AI_TOOL_NAMES.join() ===
     "read_page,set_text,set_heading,insert_blocks,delete_block,move_block,add_page,split_page,set_image_text,set_image_layout,view_page,view_photo," +
-      "set_cover_background,clear_cover_background,set_masthead,add_story,add_details,add_logo,remove_cover_item,place_cover_item,style_cover_item,style_cover_page,propose_sections",
+      "set_cover_background,clear_cover_background,set_masthead,add_story,add_details,add_logo,remove_cover_item,place_cover_item,style_cover_item,style_cover_page,propose_sections,style_text",
   "every tool is declared, read_page first (the cached order)",
 );
 const refused = (tool: keyof typeof aiToolSchemas, input: unknown) =>
@@ -193,7 +194,8 @@ heading("markdown round trips over the seed's text");
             (n) => n.type !== "paragraph" || (n.content?.length ?? 0) > 0,
           ),
         };
-        const back = markdownToDoc(docToMarkdown(doc)).doc;
+        // Markdown can't carry colour/font; set_text puts them back.
+        const back = carryPaint(doc, markdownToDoc(docToMarkdown(doc)).doc).doc;
         if (JSON.stringify(back) === JSON.stringify(kept)) exact++;
       }
   ok(

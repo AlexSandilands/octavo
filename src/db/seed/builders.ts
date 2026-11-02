@@ -12,6 +12,7 @@ import {
   type TextAlign,
 } from "../../lib/blocks";
 import { stringToDoc } from "../../lib/rich-text-doc";
+import type { TextPaint } from "../../lib/text-paint";
 
 const id = () => crypto.randomUUID();
 
@@ -34,6 +35,40 @@ export const T = (text: string, size?: TextSize, align?: TextAlign): Block => ({
   text: stringToDoc(text),
   size,
   align,
+});
+// Content v11: a heading whose title has its own colour/typeface, and body text
+// with one painted run (`before` + `words` + `after`, one paragraph).
+export const Hp = (title: string, paint: TextPaint, level?: HeadingLevel) => ({
+  ...(H(title, "", level) as Extract<Block, { type: "heading" }>),
+  paint,
+});
+export const Tp = (
+  before: string,
+  words: string,
+  after: string,
+  paint: TextPaint,
+  size?: TextSize,
+): Block => ({
+  id: id(),
+  type: "text",
+  text: {
+    type: "doc",
+    content: [
+      {
+        type: "paragraph",
+        content: [
+          { type: "text", text: before },
+          {
+            type: "text",
+            text: words,
+            marks: [{ type: "paint", attrs: paint }],
+          },
+          { type: "text", text: after },
+        ],
+      },
+    ],
+  },
+  size,
 });
 // Legacy v1 body text: a stored *plain string* (pre-v3 shape). Kept for the one
 // deliberate legacy page so the string→doc render fallback stays exercised.

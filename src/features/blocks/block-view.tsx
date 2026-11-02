@@ -9,6 +9,7 @@ import type { ImageMap, ResolvedImage } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 import { externalHref } from "@/lib/rich-text";
 import { richTextToPlain } from "@/lib/rich-text-doc";
+import { paintStyle } from "@/lib/text-paint";
 import { CoverRichText } from "./cover-rich-text";
 import { coverTextScale } from "@/lib/cover-elements";
 import { pageAlignOf } from "./layout";
@@ -241,11 +242,12 @@ export function BlockView({
       // everything else → h2) so screen readers get an outline; the editor keeps
       // a <div> so semantics don't fight contentEditable. Mirrors mobile-reader.
       const Title = edit ? "div" : level === "paragraph" ? "h3" : "h2";
+      const paint = paintStyle(block.paint);
 
       // Small run-in sub-head — no kicker, its own title treatment.
       if (level === "paragraph") {
         return (
-          <Title className={theme.heading.paragraph}>
+          <Title className={theme.heading.paragraph} style={paint}>
             {f((v) => ({ title: v }), block.title, "Sub-heading")}
           </Title>
         );
@@ -263,7 +265,7 @@ export function BlockView({
       return (
         <div className={style.wrapper}>
           {kicker}
-          <Title className={style.title}>
+          <Title className={style.title} style={paint}>
             {f(
               (v) => ({ title: v }),
               block.title,

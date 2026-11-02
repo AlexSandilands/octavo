@@ -5,6 +5,8 @@
 // src/features/editor/assistant/.
 import { z } from "zod";
 import { aiCoverToolDescriptions, aiCoverToolSchemas } from "./ai-cover-tools";
+import { coverColorSchema } from "./cover-appearance";
+import { COVER_FONT_IDS } from "./cover-fonts";
 
 const pageNo = z
   .number()
@@ -31,6 +33,17 @@ const textSize = z
   .enum(["s", "m", "l", "xl"])
   .describe(
     "Body size: s smaller, m medium, l larger, xl largest. Omit to keep a block's size, or to use the magazine's default for a new one.",
+  );
+// Colour and typeface on interior words (content v11); "theme" clears either.
+const textColor = z
+  .union([coverColorSchema, z.literal("theme")])
+  .describe(
+    'A palette name (paper, ink, green, blue, sage, stone), #rrggbb, or "theme" for the theme\'s own colour.',
+  );
+const textFont = z
+  .enum([...COVER_FONT_IDS, "theme"])
+  .describe(
+    'newsreader (serif), hanken-grotesk (sans), roboto-condensed (narrow sans), or "theme" for the theme\'s own typeface.',
   );
 const align = z
   .enum(["full", "left", "right"])
@@ -146,7 +159,14 @@ export const aiToolSchemas = {
     })
     .strict(),
   set_heading: z
-    .object({ blockId, title, kicker: kicker.optional(), level })
+    .object({
+      blockId,
+      title,
+      kicker: kicker.optional(),
+      level,
+      color: textColor.optional(),
+      font: textFont.optional(),
+    })
     .strict(),
   insert_blocks: z
     .object({
@@ -191,6 +211,21 @@ export const aiToolSchemas = {
       sections: z.array(aiPlanSectionSchema).min(1).max(AI_PLAN_MAX_SECTIONS),
     })
     .strict(),
+  style_text: z
+    .object({
+      blockId,
+      match: z
+        .string()
+        .min(1)
+        .max(300)
+        .describe(
+          "Exact words to style, as they read in the text (every occurrence). Omit to style the whole block.",
+        )
+        .optional(),
+      color: textColor.optional(),
+      font: textFont.optional(),
+    })
+    .strict(),
 } as const;
 
 /** Views (pages and photos together) per run; the next one is refused. */
@@ -202,7 +237,7 @@ export const aiToolDescriptions: Record<AiToolName, string> = {
   set_text:
     "Replace a text block's content with markdown (paragraphs, - bullets, 1. numbered lists, **bold**, *italic*, [links](url)). A single newline is a line break; a blank line starts a new paragraph. Pass size (s, m, l, xl) only to change the block's text size; omit it to keep the size.",
   set_heading:
-    'Change a heading\'s title, level and (optionally) kicker. Omit kicker to keep it; pass "" to remove it.',
+    'Change a heading\'s title, level and (optionally) kicker, and the title\'s colour and typeface. Omit kicker, color or font to keep them; pass "" to remove the kicker, "theme" to return the colour or font to the theme\'s.',
   insert_blocks:
     "Insert new blocks, in order, after a block or at the top of a page. Headings take a title and level; text takes markdown and an optional size (s, m, l, xl; omit for the magazine's default); images take the id of a photo uploaded to the issue, with optional align (default full), width (default 100 for full, 45 for left/right), caption and alt.",
   delete_block: "Delete a block.",
@@ -224,6 +259,8 @@ export const aiToolDescriptions: Record<AiToolName, string> = {
   The doors opened at nine…
 → { "headline": "SPRING SHOW DRAWS RECORD CROWD", "standfirst": "More than 400 visitors came through the hall on Saturday.", "body": "The doors opened at nine…" }
 The line in capitals is the headline, never the kicker. The sentence under it is the standfirst, never the headline. That article has no kicker, so the plan has none: give one only when the author wrote a short label on its own line above the headline, and never make one up, not even to match the issue's other pages. Photos: an issue photo's id, placed after the standfirst or after a body paragraph; without an id it is only a suggestion, reported to the author.`,
+  style_text:
+    "Colour and/or set in another typeface some words of a text block (match, every occurrence) or the whole block (no match). Give color, font or both; \"theme\" returns that choice to the theme's. read_page lists a block's styled words. Keep body text readable: dark colours on the page, a colour for emphasis rather than whole articles. Headings take color and font through set_heading.",
 };
 
 /** Tools that only read; every other tool edits the issue. */

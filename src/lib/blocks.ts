@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createId } from "./id";
 import { richTextValueSchema } from "./rich-text-doc";
+import { textPaintSchema } from "./text-paint";
 import { CAPTION_SOURCE_CODES, YOUTUBE_ID_RE } from "./youtube";
 import {
   coverElementSchema,
@@ -36,6 +37,9 @@ export const headingBlockSchema = z.object({
   // sub-head, "paragraph" a small run-in sub-head. Optional → "main" so existing
   // headings keep their look. (Cover pages ignore this and use the hero style.)
   level: z.enum(["main", "section", "paragraph"]).optional(),
+  // Content v11: the title's own colour/typeface (the kicker keeps the theme's).
+  // Interior pages only; covers style their words through `coverPlacement`.
+  paint: textPaintSchema.optional(),
 });
 
 export const textBlockSchema = z.object({
@@ -260,7 +264,10 @@ export const pageSchema = z.object({
 // v8: optional per-image montage captions; shared captions stay until opt-in.
 // v9: optional Story headline fonts/weights and selected-word font marks.
 // v10: optional cover `panelShape` — a panel that fits each line of text.
-export const CONTENT_VERSION = 10;
+// v11 (aboard #24): colour and typeface on interior text — a `paint` mark on
+// body-text runs and an optional `paint` on a heading's title (text-paint.ts).
+// Additive: no earlier document holds either, so all render unchanged.
+export const CONTENT_VERSION = 11;
 
 export const issueContentSchema = z.object({
   version: z.number().int().min(1).default(CONTENT_VERSION),

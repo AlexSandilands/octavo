@@ -10,6 +10,7 @@ import {
 import { createId } from "@/lib/id";
 import { markdownToDoc } from "@/lib/markdown-doc";
 import { richDocBlocks, sliceRichDoc } from "@/lib/rich-text-split";
+import { stringToDoc, type RichTextValue } from "@/lib/rich-text-doc";
 import {
   aiToolSchemas,
   type AiInsertItem,
@@ -23,6 +24,7 @@ import { describeFill } from "./page-fill";
 import type { EditMeasurer } from "./page-report";
 import { placePlan } from "./plan-sections";
 import { refuse } from "./refusal";
+import { carryPaint, choosePaint, styleWords } from "./text-styling";
 
 // The assistant's page edits (#310), lifted from the spike's executor: intent
 // in, blocks out, through the same zod the save path uses. Each edit returns a
@@ -88,6 +90,9 @@ function editable(pages: Page[], pageIdx: number): Page {
 const ownedByPhoto = (page: Page, pageNo: number) =>
   page.blocks.some(isPageOwning) &&
   refuse(`page ${pageNo} is a full-page photo; nothing else can go on it`);
+
+const richDoc = (v: RichTextValue) =>
+  typeof v === "string" ? stringToDoc(v) : v;
 
 /** A new page list with one page's blocks replaced. */
 function withBlocks(pages: Page[], pageIdx: number, blocks: Block[]): Page[] {
@@ -239,11 +244,17 @@ export async function applyEdit(
       const at = find(pages, a.blockId);
       editable(pages, at.pageIdx);
       if (at.block.type !== "text")
-        refuse(`block ${a.blockId} is a ${at.block.type}, not text`);
+        return refuse(`block ${a.blockId} is a ${at.block.type}, not text`);
       const md = markdownToDoc(a.markdown);
+      // Markdown can't carry colour/font: put them back on words that stayed.
+      const kept = carryPaint(richDoc(at.block.text), md.doc);
+      if (kept.dropped.length)
+        md.notes.push(
+          `colour/font dropped from changed words ${kept.dropped.map((t) => `"${t}"`).join(", ")}; style_text restyles them`,
+        );
       const blocks = at.page.blocks.map((b, i) =>
         i === at.blockIdx
-          ? ({ ...withSize(b, a.size), text: md.doc } as Block)
+          ? ({ ...withSize(b, a.size), text: kept.doc } as Block)
           : b,
       );
       return {
@@ -264,6 +275,7 @@ export async function applyEdit(
         title: a.title,
         level: a.level,
         kicker: a.kicker ?? b.kicker,
+        paint: choosePaint(b.paint, a),
       };
       return {
         pages: withBlocks(
@@ -343,6 +355,38 @@ export async function applyEdit(
     }
     case "split_page":
       return splitPage(ctx, aiToolSchemas.split_page.parse(input).page - 1);
+    case "style_text": {
+      const a = aiToolSchemas.style_text.parse(input);
+      if (a.color === undefined && a.font === undefined)
+        refuse("give color, font or both");
+      const at = find(pages, a.blockId);
+      editable(pages, at.pageIdx);
+      if (at.block.type === "heading")
+        refuse("a heading takes color and font through set_heading");
+      if (at.block.type !== "text")
+        return refuse(`block ${a.blockId} is a ${at.block.type}, not text`);
+      const styled = styleWords(richDoc(at.block.text), a.match, a);
+      if (!styled.count)
+        refuse(
+          a.match === undefined
+            ? `block ${a.blockId} has no text to style`
+            : `"${a.match}" isn't in block ${a.blockId} as whole words; match its words exactly`,
+        );
+      return {
+        pages: withBlocks(
+          pages,
+          at.pageIdx,
+          at.page.blocks.map((b, i) =>
+            i === at.blockIdx ? ({ ...b, text: styled.doc } as Block) : b,
+          ),
+        ),
+        text:
+          a.match === undefined
+            ? "Styled the whole block."
+            : `Styled ${styled.count === 1 ? "1 occurrence" : `${styled.count} occurrences`} of "${a.match}".`,
+        report: [at.page.id],
+      };
+    }
     case "propose_sections":
       return placePlan(ctx, aiToolSchemas.propose_sections.parse(input));
     case "set_image_text": {

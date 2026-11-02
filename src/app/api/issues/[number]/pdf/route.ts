@@ -120,7 +120,8 @@ const themeSchema = z
 // v22: per-image montage captions and stable space for the longest caption.
 // v23: optional cover headline fonts and selected-word typography.
 // v24: cover panels that fit each line of text; cover copy gains line spans.
-const RENDER_VERSION = 24;
+// v25: colour and typeface on interior body text and headings (content v11).
+const RENDER_VERSION = 25;
 
 // Percent-encode for an RFC 8187 ext-value (the `filename*=UTF-8''…` form).
 // Only attr-char may appear bare there: ALPHA / DIGIT / "!" / "#" / "$" / "&" /

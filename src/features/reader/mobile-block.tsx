@@ -6,6 +6,7 @@ import type { ImageMap } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
 import { externalHref } from "@/lib/rich-text";
 import { richTextToPlain } from "@/lib/rich-text-doc";
+import { paintStyle } from "@/lib/text-paint";
 import { CoverRichText } from "@/features/blocks/cover-rich-text";
 import { coverTextScale } from "@/lib/cover-elements";
 import { BlockImage } from "@/features/blocks/block-view";
@@ -67,7 +68,7 @@ export function MobileBlock({
         return (
           <h3
             className="text-ink mt-4 mb-1.5 font-serif font-semibold leading-snug"
-            style={{ fontSize: m + 2 }}
+            style={{ ...paintStyle(block.paint), fontSize: m + 2 }}
           >
             {cover ? (
               <CoverRichText
@@ -117,7 +118,7 @@ export function MobileBlock({
             id={headingDomId(block.id)}
             tabIndex={-1}
             className="text-ink scroll-mt-4 font-serif leading-[1.1]"
-            style={{ fontSize }}
+            style={{ ...(!cover && paintStyle(block.paint)), fontSize }}
           >
             {cover ? (
               <CoverRichText

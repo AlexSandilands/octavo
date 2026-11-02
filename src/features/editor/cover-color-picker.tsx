@@ -55,14 +55,16 @@ export function ColorSwatches({
 }: {
   /** Prefix for each swatch's accessible name ("Panel colour: Paper"). */
   label: string;
-  value: CoverColor;
+  /** Absent when the words take the theme's colour: no swatch is pressed. */
+  value?: CoverColor;
   onChange: (color: CoverColor) => void;
   size?: number;
 }) {
   const custom = useRef<HTMLInputElement>(null);
-  const isCustom = value.startsWith("#");
+  const isCustom = value?.startsWith("#") ?? false;
   useEffect(() => {
-    if (custom.current) custom.current.value = resolvedColor(colorCss(value));
+    if (custom.current && value)
+      custom.current.value = resolvedColor(colorCss(value));
   }, [value]);
   const swatch = (active: boolean) =>
     `relative flex shrink-0 cursor-pointer items-center justify-center rounded-full border transition-[box-shadow,transform] motion-safe:active:scale-95 ${

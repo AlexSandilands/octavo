@@ -188,6 +188,39 @@ export function fixtureContent(refs: {
             sponsorId: refs.sponsorId,
             name: "",
           },
+          // Content v11: a title's colour/font and painted words travel too.
+          {
+            id: createId(),
+            type: "heading",
+            kicker: "",
+            title: "In colour",
+            paint: { color: "#7a1f1f", font: "roboto-condensed" },
+          },
+          {
+            id: createId(),
+            type: "text",
+            text: {
+              type: "doc",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [
+                    { type: "text", text: "Plain, then " },
+                    {
+                      type: "text",
+                      text: "painted",
+                      marks: [
+                        {
+                          type: "paint",
+                          attrs: { color: "green", font: "hanken-grotesk" },
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          },
         ],
       },
     ],
