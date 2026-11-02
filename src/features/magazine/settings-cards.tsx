@@ -93,14 +93,17 @@ export function SettingsFormCard({
           paragraph&rsquo;s size in the editor.
         </p>
       </div>
-      <Choice
-        label="New text size"
-        ariaLabel="Default text size"
-        options={TEXT_SIZES.map((s) => s.value)}
-        labels={TEXT_SIZE_LABELS}
-        value={form.defaultTextSize}
-        onSelect={(defaultTextSize) => onChange({ defaultTextSize })}
-      />
+      {/* Shrink-wrapped so the menu opens under the button, not the card's edge. */}
+      <div className="flex items-start">
+        <Choice
+          label="New text size"
+          ariaLabel="Default text size"
+          options={TEXT_SIZES.map((s) => s.value)}
+          labels={TEXT_SIZE_LABELS}
+          value={form.defaultTextSize}
+          onSelect={(defaultTextSize) => onChange({ defaultTextSize })}
+        />
+      </div>
       <p className="text-faint2 font-sans text-[12px] leading-relaxed">
         Applies to text added from now on. Paragraphs already in an issue, and
         issues already published, keep the size they have. Medium is what
