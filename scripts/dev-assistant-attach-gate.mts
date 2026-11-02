@@ -38,6 +38,7 @@ import {
 } from "./fixtures/assistant/tools-gate-kit.mts";
 import { attachSeamChecks } from "./fixtures/assistant/seam-attach-checks.mts";
 import { openSurface, PANEL_BUTTON } from "./editor-panel-gate-support.mts";
+import { hashSessionToken } from "../src/lib/session-token";
 
 process.loadEnvFile?.(".env.local");
 const [base] = process.argv.slice(2);
@@ -455,7 +456,7 @@ try {
   await sql`insert into users (id, email, is_admin, subscribed, email_verified)
     values (${adminId}, ${`${tag}@example.invalid`}, true, false, now())`;
   await sql`insert into sessions (session_token, user_id, expires)
-    values (${token}, ${adminId}, now() + interval '1 hour')`;
+    values (${hashSessionToken(token)}, ${adminId}, now() + interval '1 hour')`;
   await sql`insert into issues (id, title, theme, status, content) values
     (${draftId}, ${tag}, 'classic', 'draft', ${sql.json({ version: 10, ...content } as never)})`;
   await sql`insert into images (id, key, width, height, issue_id)

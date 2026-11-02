@@ -34,6 +34,7 @@ import { stopChecks } from "./fixtures/assistant/panel-stop-checks.mts";
 import { checkOff } from "./assistant-panel-gate-off.mts";
 import { checkStall } from "./assistant-panel-gate-stall.mts";
 import { checkHints } from "./assistant-panel-gate-hints.mts";
+import { hashSessionToken } from "../src/lib/session-token";
 
 process.loadEnvFile?.(".env.local");
 const [base, flag] = process.argv.slice(2);
@@ -446,7 +447,7 @@ try {
   await sql`insert into users (id, email, is_admin, subscribed, email_verified)
     values (${adminId}, ${`${tag}@example.invalid`}, true, false, now())`;
   await sql`insert into sessions (session_token, user_id, expires)
-    values (${token}, ${adminId}, now() + interval '1 hour')`;
+    values (${hashSessionToken(token)}, ${adminId}, now() + interval '1 hour')`;
   // A copy of a seed issue that opens on a cover, plus a page that overflows.
   const [source] = await sql<{ content: Content }[]>`
     select content from issues

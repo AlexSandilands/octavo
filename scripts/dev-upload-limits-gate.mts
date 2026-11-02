@@ -19,6 +19,7 @@ import {
   IMAGE_UNSUPPORTED,
 } from "../src/lib/image-upload-limits";
 import { deleteByPrefix } from "../src/lib/storage";
+import { hashSessionToken } from "../src/lib/session-token";
 
 process.loadEnvFile?.(".env.local");
 const [base, shots] = process.argv.slice(2);
@@ -163,7 +164,7 @@ try {
   await sql`insert into users (id, email, is_admin, subscribed, email_verified)
     values (${adminId}, ${`${tag}@example.invalid`}, true, false, now())`;
   await sql`insert into sessions (session_token, user_id, expires)
-    values (${token}, ${adminId}, now() + interval '1 hour')`;
+    values (${hashSessionToken(token)}, ${adminId}, now() + interval '1 hour')`;
   await sql`insert into issues (id, title, theme, status, content) values
     (${draftId}, ${tag}, 'classic', 'draft', ${sql.json(content as never)})`;
   const ctx = await browser.newContext({

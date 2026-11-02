@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import type { Browser, BrowserContext, Page } from "playwright";
 import type postgres from "postgres";
+import { hashSessionToken } from "../src/lib/session-token";
 
 export type Sql = postgres.Sql;
 export type Member = { id: string; email: string; token: string };
@@ -47,7 +48,7 @@ export function notificationsKit(opts: {
       values (${id}, ${email}, ${o.account ?? null}, ${o.subscribed ?? false},
         ${o.replyEmails ?? false}, now())`;
     await sql`insert into sessions (session_token, user_id, expires)
-      values (${token}, ${id}, now() + interval '1 day')`;
+      values (${hashSessionToken(token)}, ${id}, now() + interval '1 day')`;
     made.users.push(id);
     return { id, email, token };
   }

@@ -9,6 +9,7 @@ import { chromium } from "playwright";
 import postgres from "postgres";
 import { emptyIssueContent, type IssueContent } from "../src/lib/blocks.ts";
 import { gateServer } from "./editor-save-gate-server.mts";
+import { hashSessionToken } from "../src/lib/session-token.ts";
 
 assert(process.env.DATABASE_URL && process.env.AUTH_SECRET);
 assert(
@@ -108,9 +109,9 @@ try {
     (${user}, ${`${id}-admin@example.test`}, true, false),
     (${member}, ${`${id}-member@example.test`}, false, false)`;
   await sql`insert into sessions (session_token, user_id, expires) values
-    (${token}, ${user}, now() + interval '1 hour'),
-    (${memberToken}, ${member}, now() + interval '1 hour'),
-    (${expiredToken}, ${user}, now() - interval '1 hour')`;
+    (${hashSessionToken(token)}, ${user}, now() + interval '1 hour'),
+    (${hashSessionToken(memberToken)}, ${member}, now() + interval '1 hour'),
+    (${hashSessionToken(expiredToken)}, ${user}, now() - interval '1 hour')`;
   const [created] = await sql<
     { number: number }[]
   >`insert into issues (id, number, title, content)

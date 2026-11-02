@@ -12,6 +12,7 @@ import { chromium, type Browser, type Page } from "playwright";
 import postgres from "postgres";
 import { emptyIssueContent } from "../src/lib/blocks.ts";
 import { nextIssueNumber, publishIssue } from "../src/server/issues.ts";
+import { hashSessionToken } from "../src/lib/session-token.ts";
 
 for (const file of [".env.local", ".env"]) {
   if (existsSync(file)) process.loadEnvFile(file);
@@ -105,7 +106,7 @@ try {
   await sql`insert into users (id, email, is_admin, subscribed, email_verified)
             values (${adminId}, ${adminEmail}, true, false, now())`;
   await sql`insert into sessions (session_token, user_id, expires)
-            values (${token}, ${adminId}, now() + interval '1 day')`;
+            values (${hashSessionToken(token)}, ${adminId}, now() + interval '1 day')`;
 
   // One published issue numbered clear of everything the database holds, so
   // every proposal below is `high + 1` and nothing here depends on the data.
@@ -374,7 +375,7 @@ try {
     await sql`delete from issues where id in ${sql(scratchIds)}`;
   }
   await sql`delete from issues where title like ${`${tag}%`}`;
-  await sql`delete from sessions where session_token = ${token}`;
+  await sql`delete from sessions where session_token = ${hashSessionToken(token)}`;
   await sql`delete from users where id = ${adminId}`;
   await sql.end();
   console.log("scratch rows removed");

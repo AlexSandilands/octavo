@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import sharp from "sharp";
 import type { Browser, BrowserContext, Page } from "playwright";
 import type postgres from "postgres";
+import { hashSessionToken } from "../src/lib/session-token";
 
 // Storage imports "server-only", which resolves only under scripts/tsconfig.json.
 const storage = () => import("../src/lib/storage.ts");
@@ -106,7 +107,7 @@ export function discussionKit(opts: {
     await sql`insert into users (id, email, name, is_admin, subscribed, email_verified)
       values (${id}, ${email}, ${o.name ?? null}, ${o.admin ?? false}, false, now())`;
     await sql`insert into sessions (session_token, user_id, expires)
-      values (${token}, ${id}, now() + interval '1 day')`;
+      values (${hashSessionToken(token)}, ${id}, now() + interval '1 day')`;
     made.users.push(id);
     return { id, email, token };
   }

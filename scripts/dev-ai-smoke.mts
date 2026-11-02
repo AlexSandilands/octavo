@@ -17,6 +17,7 @@
 import { writeFileSync } from "node:fs";
 import { readUIMessageStream, type UIMessage, type UIMessageChunk } from "ai";
 import postgres from "postgres";
+import { hashSessionToken } from "../src/lib/session-token";
 
 process.loadEnvFile?.(".env.local");
 const base = process.argv[2] ?? "";
@@ -199,7 +200,7 @@ try {
   await sql`insert into users (id, email, is_admin, subscribed, email_verified)
     values (${adminId}, ${`${tag}@example.invalid`}, true, false, now())`;
   await sql`insert into sessions (session_token, user_id, expires)
-    values (${token}, ${adminId}, now() + interval '1 hour')`;
+    values (${hashSessionToken(token)}, ${adminId}, now() + interval '1 hour')`;
   await sql`insert into issues (id, title, theme, status, content)
     values (${issueId}, ${tag}, 'classic', 'draft', ${sql.json({ version: 1, pages: [] })})`;
 

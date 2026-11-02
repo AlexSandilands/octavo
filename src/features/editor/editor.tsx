@@ -10,7 +10,6 @@ import {
   useSensors,
   type CollisionDetection,
 } from "@dnd-kit/core";
-import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { footerHeldBack } from "@/lib/branding";
 import type { FooterReserve, FooterStyle, SiteSettings } from "@/lib/branding";
 import type { ImageMap } from "@/lib/images";
@@ -35,6 +34,7 @@ import {
 import {
   coverCollisionDetection,
   coverKeyboardCoordinates,
+  listKeyboardCoordinates,
 } from "./cover-drag";
 import { CoverTextProvider } from "./cover-text-context";
 import { usePanelDock } from "./use-panel-dock";
@@ -242,13 +242,14 @@ export function Editor({
   // Drag from the handle, or move with the keyboard once the handle is focused.
   // A small distance threshold lets a plain click on the handle still select.
   // Blocks and PDF regions alike lift after a short travel (`drag-out.ts`); on
-  // a cover the anchors, not a list, decide where a keyboard move lands.
+  // a cover the anchors, not a list, decide where a keyboard move lands;
+  // elsewhere each arrow press moves one block along the list.
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, {
       coordinateGetter: page?.cover
         ? coverKeyboardCoordinates
-        : sortableKeyboardCoordinates,
+        : listKeyboardCoordinates,
     }),
   );
   // A PDF region in hand keeps its own targeting; cover items drop onto the

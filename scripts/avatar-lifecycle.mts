@@ -9,6 +9,7 @@ import { chromium } from "playwright";
 import sharp from "sharp";
 import { db } from "../src/db";
 import { images, memberNames, sessions, users } from "../src/db/schema";
+import { hashSessionToken } from "../src/lib/session-token";
 
 type Made = { images: string[]; keys: string[] };
 
@@ -25,7 +26,7 @@ export async function checkAvatarLifecycle(
     .insert(users)
     .values({ id: userId, email, emailVerified: new Date() });
   await db.insert(sessions).values({
-    sessionToken: token,
+    sessionToken: hashSessionToken(token),
     userId,
     expires: new Date(Date.now() + 86_400_000),
   });

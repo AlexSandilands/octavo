@@ -7,6 +7,7 @@ import {
   type IssueContent,
 } from "../src/lib/blocks";
 import { setCoverBackground } from "../src/features/editor/cover-layout";
+import { hashSessionToken } from "../src/lib/session-token";
 const styles = coverOverlaySchema.shape.style.options;
 const positions = coverOverlaySchema.shape.position.options;
 
@@ -60,7 +61,7 @@ export async function browserPass(base: string, cover: Page) {
       ],
     };
     await sql`insert into users (id, email, is_admin, subscribed, email_verified) values (${user}, ${`scratch-243-${user}@example.invalid`}, true, false, now())`;
-    await sql`insert into sessions (session_token, user_id, expires) values (${token}, ${user}, now() + interval '1 hour')`;
+    await sql`insert into sessions (session_token, user_id, expires) values (${hashSessionToken(token)}, ${user}, now() + interval '1 hour')`;
     const [issue] = await sql<
       { number: number }[]
     >`insert into issues (id, number, title, theme, status, content) values (${id}, (select coalesce(max(number), 0) + 1 from issues), 'Scratch cover 243', 'classic', 'draft', ${sql.json(content)}) returning number`;
