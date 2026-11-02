@@ -18,6 +18,7 @@ import { watchChat, until } from "./fixtures/assistant/tools-gate-kit.mts";
 import { checkCoverSponsorAsk } from "./assistant-tools-gate-cover-sponsor.mts";
 import { makeBlock } from "../src/lib/blocks";
 import { openSurface } from "./editor-panel-gate-support.mts";
+import { hashSessionToken } from "../src/lib/session-token";
 
 type Doc = {
   pages: {
@@ -85,7 +86,7 @@ export async function checkCover(d: {
     await sql`insert into users (id, email, is_admin, subscribed, email_verified)
       values (${adminId}, ${`${d.tag}-cover@example.invalid`}, true, false, now())`;
     await sql`insert into sessions (session_token, user_id, expires)
-      values (${session}, ${adminId}, now() + interval '1 hour')`;
+      values (${hashSessionToken(session)}, ${adminId}, now() + interval '1 hour')`;
     await ctx.addCookies([
       {
         name: "authjs.session-token",

@@ -16,6 +16,7 @@ import postgres from "postgres";
 import { chromium, type Browser } from "playwright";
 import { randomUUID } from "node:crypto";
 import { emptyIssueContent } from "../src/lib/blocks.ts";
+import { hashSessionToken } from "../src/lib/session-token.ts";
 
 process.loadEnvFile?.(".env.local");
 const base = process.argv[2];
@@ -133,7 +134,7 @@ async function visit(
 await sql`insert into users (id, email, is_admin, subscribed, email_verified)
           values (${userId}, ${`${userId}@example.invalid`}, true, false, now())`;
 await sql`insert into sessions (session_token, user_id, expires)
-          values (${token}, ${userId}, now() + interval '1 day')`;
+          values (${hashSessionToken(token)}, ${userId}, now() + interval '1 day')`;
 await sql`insert into issues (id, title, content)
           values (${draftId}, ${`CSP gate draft ${stamp}`}, ${sql.json(emptyIssueContent())})`;
 await sql`insert into issues (id, title, status, number, published_at, content)
@@ -171,7 +172,7 @@ try {
 } finally {
   await browser.close();
   await sql`delete from issues where id in (${draftId}, ${publishedId})`;
-  await sql`delete from sessions where session_token = ${token}`;
+  await sql`delete from sessions where session_token = ${hashSessionToken(token)}`;
   await sql`delete from users where id = ${userId}`;
   await sql.end();
 }

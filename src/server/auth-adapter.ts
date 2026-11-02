@@ -3,6 +3,7 @@ import { and, eq, sql } from "drizzle-orm";
 import type { Adapter } from "next-auth/adapters";
 import { db } from "@/db";
 import { sessions, users, verificationTokens } from "@/db/schema";
+import { hashSessionToken } from "@/lib/session-token";
 
 // Hand-rolled Auth.js adapter over the existing users/sessions/
 // verification_tokens tables. @auth/drizzle-adapter's types don't line up
@@ -26,6 +27,15 @@ export async function findUserByEmail(email: string) {
 async function findUserById(id: string) {
   const [row] = await db.select().from(users).where(eq(users.id, id)).limit(1);
   return row ?? null;
+}
+
+// The sessions table keys rows by sha256(token); Auth.js sets the cookie from
+// what the adapter returns, so every session handed back carries the raw token.
+function withRawToken<T extends { sessionToken: string }>(
+  row: T,
+  sessionToken: string,
+): T {
+  return { ...row, sessionToken };
 }
 
 export const authAdapter: Adapter = {
@@ -85,9 +95,15 @@ export const authAdapter: Adapter = {
   },
 
   async createSession(session) {
-    const [row] = await db.insert(sessions).values(session).returning();
+    const [row] = await db
+      .insert(sessions)
+      .values({
+        ...session,
+        sessionToken: hashSessionToken(session.sessionToken),
+      })
+      .returning();
     if (!row) throw new Error("Failed to create session");
-    return row;
+    return withRawToken(row, session.sessionToken);
   },
 
   async getSessionAndUser(sessionToken) {
@@ -95,9 +111,10 @@ export const authAdapter: Adapter = {
       .select({ session: sessions, user: users })
       .from(sessions)
       .innerJoin(users, eq(users.id, sessions.userId))
-      .where(eq(sessions.sessionToken, sessionToken))
+      .where(eq(sessions.sessionToken, hashSessionToken(sessionToken)))
       .limit(1);
-    return row ?? null;
+    if (!row) return null;
+    return { ...row, session: withRawToken(row.session, sessionToken) };
   },
 
   // Same contract as updateUser: Auth.js sends a partial keyed by
@@ -109,27 +126,30 @@ export const authAdapter: Adapter = {
     > = {};
     if (session.userId !== undefined) patch.userId = session.userId;
     if (session.expires !== undefined) patch.expires = session.expires;
+    const stored = hashSessionToken(session.sessionToken);
 
     // Drizzle rejects an empty SET, and there is nothing to write anyway.
     if (Object.keys(patch).length === 0) {
       const [row] = await db
         .select()
         .from(sessions)
-        .where(eq(sessions.sessionToken, session.sessionToken))
+        .where(eq(sessions.sessionToken, stored))
         .limit(1);
-      return row ?? null;
+      return row ? withRawToken(row, session.sessionToken) : null;
     }
 
     const [row] = await db
       .update(sessions)
       .set(patch)
-      .where(eq(sessions.sessionToken, session.sessionToken))
+      .where(eq(sessions.sessionToken, stored))
       .returning();
-    return row ?? null;
+    return row ? withRawToken(row, session.sessionToken) : null;
   },
 
   async deleteSession(sessionToken) {
-    await db.delete(sessions).where(eq(sessions.sessionToken, sessionToken));
+    await db
+      .delete(sessions)
+      .where(eq(sessions.sessionToken, hashSessionToken(sessionToken)));
   },
 
   async createVerificationToken(token) {

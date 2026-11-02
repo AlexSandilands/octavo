@@ -158,6 +158,9 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
 - **Page tools (#310):**
   - `read_page`, `set_text`, `set_heading`;
   - `insert_blocks` (headings, text as markdown, and photos with optional `caption`/`alt`, since models reach for those);
+  - text takes an optional `size` (`s`/`m`/`l`/`xl`) on `insert_blocks` and `set_text` (#25). Left out, new text starts at the
+    magazine's **default text size** (`/admin/magazine`, carried as `AssistantIssue.defaultTextSize`; also used by
+    `propose_sections`) and `set_text` keeps the block's size; `m` is never added by the assistant. `read_page` prints `size X` for any non-M block;
   - `delete_block`, `move_block`, `add_page`, `split_page`;
   - `set_image_text`, and `set_image_layout`, where `full` means full width.
 - **Colour and typeface (aboard #24, content v11):** `set_heading` takes an optional `color` and `font` for the title;

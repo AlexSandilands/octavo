@@ -352,6 +352,18 @@ export function textSizePx(size: TextSize = "m"): number {
   return { s: 11, m: 13, l: 15, xl: 18 }[size];
 }
 
+/** `size`, a step relative to M, re-based on `base`: the magazine's default
+ *  text size. With the default at M nothing moves; at L, body (M) becomes L and
+ *  a larger lead-in XL. Clamped to the presets. */
+export function rebaseTextSize(
+  size: TextSize = "m",
+  base: TextSize = "m",
+): TextSize {
+  const ladder = TEXT_SIZES.map((s) => s.value);
+  const at = ladder.indexOf(size) - ladder.indexOf("m") + ladder.indexOf(base);
+  return ladder[Math.max(0, Math.min(ladder.length - 1, at))]!;
+}
+
 export function textSizeScale(size: TextSize = "m"): number {
   return { s: 0.88, m: 1, l: 1.18, xl: 1.42 }[size];
 }
@@ -365,7 +377,9 @@ export const HEADING_LEVELS: { value: HeadingLevel; label: string }[] = [
   { value: "paragraph", label: "Para" },
 ];
 
-export function makeBlock(type: BlockType): Block {
+/** A new block of `type`. `textSize` is the magazine's default for new text; M
+ *  is never stored, so a block at the default stays byte-identical to before. */
+export function makeBlock(type: BlockType, textSize?: TextSize): Block {
   const id = createId();
   switch (type) {
     case "heading":
@@ -375,6 +389,7 @@ export function makeBlock(type: BlockType): Block {
         id,
         type,
         text: "Write your paragraph here. The theme takes care of the type, spacing and rules.",
+        ...(textSize && textSize !== "m" ? { size: textSize } : {}),
       };
     case "image":
       return { id, type, caption: "", align: "full", width: 100 };

@@ -1,5 +1,10 @@
 import { ZodError } from "zod";
-import { CONTENT_VERSION, issueContentSchema, type Page } from "@/lib/blocks";
+import {
+  CONTENT_VERSION,
+  issueContentSchema,
+  type Page,
+  type TextSize,
+} from "@/lib/blocks";
 import {
   AI_MAX_TOOL_TEXT,
   aiToolSchemas,
@@ -183,6 +188,8 @@ function argumentError(name: string, error: ZodError): string {
 export type CallContext = {
   /** Photos uploaded to this issue: the only ones insert_blocks places. */
   photos: ReadonlySet<string>;
+  /** The size new text starts at (the magazine setting); absent reads M. */
+  defaultTextSize?: TextSize;
   /** The logo library, for add_logo (#313). */
   logos: readonly { id: string; name: string; imageId: string }[];
   /** read_page, answered from the projection's own view of the issue. */
@@ -225,7 +232,7 @@ export function createAssistantExecutor({
       return CHANGED_UNDER_RUN;
     }
     try {
-      const { photos, logos } = call;
+      const { photos, logos, defaultTextSize } = call;
       const result = isCoverTool(name)
         ? await applyCoverTool(
             {
@@ -240,7 +247,13 @@ export function createAssistantExecutor({
             input,
           )
         : await applyEdit(
-            { pages: before.pages, photos, measure, signal: mine.abort.signal },
+            {
+              pages: before.pages,
+              photos,
+              defaultTextSize,
+              measure,
+              signal: mine.abort.signal,
+            },
             name,
             input,
           );

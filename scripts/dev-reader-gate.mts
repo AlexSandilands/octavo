@@ -7,6 +7,7 @@
 import { readFile } from "node:fs/promises";
 import { chromium, type Page } from "playwright";
 import postgres from "postgres";
+import { hashSessionToken } from "../src/lib/session-token";
 
 process.loadEnvFile?.(".env.local");
 const [base, logPath] = process.argv.slice(2);
@@ -90,7 +91,7 @@ if (!member)
   );
 const sessionToken = crypto.randomUUID();
 await sql`insert into sessions (session_token, user_id, expires)
-          values (${sessionToken}, ${member.id}, now() + interval '1 day')`;
+          values (${hashSessionToken(sessionToken)}, ${member.id}, now() + interval '1 day')`;
 try {
   const turnCtx = await browser.newContext();
   await turnCtx.addCookies([
@@ -165,7 +166,7 @@ try {
   }
   await turnCtx.close();
 } finally {
-  await sql`delete from sessions where session_token = ${sessionToken}`;
+  await sql`delete from sessions where session_token = ${hashSessionToken(sessionToken)}`;
   await sql.end();
 }
 

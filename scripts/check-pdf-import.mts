@@ -11,8 +11,10 @@ import { paginateImport } from "../src/features/editor/pdf-import/paginate.ts";
 import { richTextToPlain, type RichDoc } from "../src/lib/rich-text-doc.ts";
 import {
   issueContentSchema,
+  rebaseTextSize,
   type Block,
   type Page,
+  type TextSize,
 } from "../src/lib/blocks.ts";
 import type { Run } from "../src/features/editor/pdf-import/model.ts";
 import {
@@ -132,6 +134,21 @@ assert.equal(
     .join(""),
   "a".repeat(7999) + "🐦x",
 );
+// The magazine's default text size (#25): body text lands on it, steps stay.
+const sizes = (base: TextSize | undefined, from: (TextSize | undefined)[]) =>
+  synthesize(
+    from.map((size) => ({ ...item, block: { ...item.block, size } })),
+    base,
+  ).blocks.map((b) => (b.type === "text" ? b.size : undefined));
+assert.deepEqual(sizes(undefined, ["s", "m", "l", "xl"]), [
+  "s",
+  "m",
+  "l",
+  "xl",
+]);
+assert.deepEqual(sizes("l", ["s", "m", "l", "xl"]), ["m", "l", "xl", "xl"]);
+assert.deepEqual(sizes("s", ["s", "m", "l", "xl"]), ["s", "s", "m", "l"]);
+assert.equal(rebaseTextSize(undefined, "xl"), "xl");
 const split = splitReview(item);
 assert.notEqual(split[0]?.id, item.id);
 assert.equal(

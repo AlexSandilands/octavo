@@ -34,6 +34,7 @@ import {
   type Block,
   type IssueContent,
 } from "../src/lib/blocks.ts";
+import { hashSessionToken } from "../src/lib/session-token.ts";
 
 process.loadEnvFile?.(".env.local");
 const [base] = process.argv.slice(2);
@@ -187,7 +188,7 @@ const rendered = (html: string) => html.includes("pdf-page");
     ok(member, "a member exists to sign in as");
     await sql`
       insert into sessions (session_token, user_id, expires)
-      values (${sessionToken}, ${member!.id}, now() + interval '1 hour')`;
+      values (${hashSessionToken(sessionToken)}, ${member!.id}, now() + interval '1 hour')`;
     const cookie = { Cookie: `authjs.session-token=${sessionToken}` };
 
     // Baseline: unconfigured, which is the shipped default and serves the
@@ -255,7 +256,7 @@ const rendered = (html: string) => html.includes("pdf-page");
     } else {
       await sql`delete from settings where id = 1`;
     }
-    await sql`delete from sessions where session_token = ${sessionToken}`;
+    await sql`delete from sessions where session_token = ${hashSessionToken(sessionToken)}`;
     await sql.end();
   }
 }

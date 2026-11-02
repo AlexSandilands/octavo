@@ -21,6 +21,13 @@ export type SponsorRef = {
 // no entry, which the renderers treat as "hide the slot" (see BlockView).
 export type SponsorMap = Record<string, SponsorRef>;
 
+/** The renderers' map from the editor picker's list (same shape as the server's). */
+export function sponsorMapOf(list: SponsorListItem[]): SponsorMap {
+  return Object.fromEntries(
+    list.map((s) => [s.id, { name: s.name, href: s.href, logo: s.logo }]),
+  );
+}
+
 // The admin-list / editor-picker shape: a full sponsor row with its logo
 // resolved and expiry pre-computed on the server (so the client needn't reason
 // about dates or clocks). `activeUntil` is a plain YYYY-MM-DD string or null.

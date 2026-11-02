@@ -29,6 +29,11 @@ const level = z
   .describe(
     "main = page/feature title, section = an article's section title, paragraph = small run-in sub-head.",
   );
+const textSize = z
+  .enum(["s", "m", "l", "xl"])
+  .describe(
+    "Body size: s smaller, m medium, l larger, xl largest. Omit to keep a block's size, or to use the magazine's default for a new one.",
+  );
 // Colour and typeface on interior words (content v11); "theme" clears either.
 const textColor = z
   .union([coverColorSchema, z.literal("theme")])
@@ -66,7 +71,13 @@ export const aiInsertItemSchema = z.discriminatedUnion("kind", [
       kicker: kicker.optional(),
     })
     .strict(),
-  z.object({ kind: z.literal("text"), markdown: markdown.min(1) }).strict(),
+  z
+    .object({
+      kind: z.literal("text"),
+      markdown: markdown.min(1),
+      size: textSize.optional(),
+    })
+    .strict(),
   z
     .object({
       kind: z.literal("image"),
@@ -144,6 +155,7 @@ export const aiToolSchemas = {
     .object({
       blockId,
       markdown: markdown.describe("The block's new text, as markdown."),
+      size: textSize.optional(),
     })
     .strict(),
   set_heading: z
@@ -223,11 +235,11 @@ export const aiToolDescriptions: Record<AiToolName, string> = {
   read_page:
     "Read one page in full: every block with its id, text as markdown, and how full the page is.",
   set_text:
-    "Replace a text block's content with markdown (paragraphs, - bullets, 1. numbered lists, **bold**, *italic*, [links](url)). A single newline is a line break; a blank line starts a new paragraph.",
+    "Replace a text block's content with markdown (paragraphs, - bullets, 1. numbered lists, **bold**, *italic*, [links](url)). A single newline is a line break; a blank line starts a new paragraph. Pass size (s, m, l, xl) only to change the block's text size; omit it to keep the size.",
   set_heading:
     'Change a heading\'s title, level and (optionally) kicker, and the title\'s colour and typeface. Omit kicker, color or font to keep them; pass "" to remove the kicker, "theme" to return the colour or font to the theme\'s.',
   insert_blocks:
-    "Insert new blocks, in order, after a block or at the top of a page. Headings take a title and level; text takes markdown; images take the id of a photo uploaded to the issue, with optional align (default full), width (default 100 for full, 45 for left/right), caption and alt.",
+    "Insert new blocks, in order, after a block or at the top of a page. Headings take a title and level; text takes markdown and an optional size (s, m, l, xl; omit for the magazine's default); images take the id of a photo uploaded to the issue, with optional align (default full), width (default 100 for full, 45 for left/right), caption and alt.",
   delete_block: "Delete a block.",
   move_block:
     "Move a block to after another block, or to the top of a page. Works across pages.",

@@ -7,6 +7,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { chromium, type Page } from "playwright";
 import postgres from "postgres";
 import { emptyIssueContent } from "../src/lib/blocks.ts";
+import { hashSessionToken } from "../src/lib/session-token.ts";
 
 process.loadEnvFile?.(".env.local");
 const base = process.argv[2];
@@ -51,7 +52,7 @@ async function open(page: Page, id: string, name: string) {
   const box = page.getByRole("textbox", { name, exact: true }).first();
   await box.waitFor();
   await page.waitForTimeout(600);
-  const placed = (await page.locator(".cover-composition").count()) > 0;
+  const placed = (await page.locator("[data-page-frame] .cover-composition").count()) > 0;
   assert.equal(placed, !older, `opens on the ${older ? "stack" : "grid"}`);
   return box;
 }
@@ -86,7 +87,7 @@ try {
   await sql`insert into users (id, email, is_admin, subscribed)
     values (${user}, ${`scratch-fe-${user.slice(0, 8)}@example.invalid`}, true, false)`;
   await sql`insert into sessions (session_token, user_id, expires)
-    values (${token}, ${user}, now() + interval '1 hour')`;
+    values (${hashSessionToken(token)}, ${user}, now() + interval '1 hour')`;
   const ctx = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
   });
@@ -245,7 +246,7 @@ try {
 } finally {
   await browser.close();
   await sql`delete from issues where title = ${tag}`;
-  await sql`delete from sessions where session_token = ${token}`;
+  await sql`delete from sessions where session_token = ${hashSessionToken(token)}`;
   await sql`delete from users where id = ${user}`;
   await sql.end();
 }

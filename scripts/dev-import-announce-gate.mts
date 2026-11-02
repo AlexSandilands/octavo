@@ -25,6 +25,7 @@
 // Run: npx tsx scripts/dev-import-announce-gate.mts <base-url>
 import postgres from "postgres";
 import { chromium, type Page } from "playwright";
+import { hashSessionToken } from "../src/lib/session-token";
 
 process.loadEnvFile?.(".env.local");
 const base = process.argv[2];
@@ -114,7 +115,7 @@ try {
   await sql`insert into users (id, email, is_admin, subscribed, email_verified)
             values (${userId}, ${adminEmail}, true, false, now())`;
   await sql`insert into sessions (session_token, user_id, expires)
-            values (${token}, ${userId}, now() + interval '1 day')`;
+            values (${hashSessionToken(token)}, ${userId}, now() + interval '1 day')`;
   console.log(`scratch admin ${adminEmail}`);
 
   const ctx = await browser.newContext();
@@ -335,7 +336,7 @@ try {
   );
 } finally {
   await browser.close();
-  await sql`delete from sessions where session_token = ${token}
+  await sql`delete from sessions where session_token = ${hashSessionToken(token)}
               or user_id in (select id from users
                              where email like ${"a11y133-%"})`;
   await sql`delete from users where email like ${"a11y133-%"}`;

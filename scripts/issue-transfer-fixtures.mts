@@ -18,6 +18,7 @@ import {
 import { CONTENT_VERSION, type IssueContent } from "../src/lib/blocks.ts";
 import { createId } from "../src/lib/id.ts";
 import { deleteObject, putObject } from "../src/lib/storage.ts";
+import { hashSessionToken } from "../src/lib/session-token.ts";
 
 export type Made = {
   issues: string[];
@@ -238,7 +239,7 @@ export async function scratchAdmin(): Promise<{ id: string; cookie: string }> {
     isAdmin: true,
   });
   await db.insert(sessions).values({
-    sessionToken: token,
+    sessionToken: hashSessionToken(token),
     userId: id,
     expires: new Date(Date.now() + 60 * 60 * 1000),
   });

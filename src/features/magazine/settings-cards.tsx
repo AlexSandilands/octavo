@@ -9,6 +9,7 @@ import {
   type FooterAlign,
   type SiteSettings,
 } from "@/lib/branding";
+import { TEXT_SIZES, textSizePx, type TextSize } from "@/lib/blocks";
 import { SettingsCard } from "@/components/settings-card";
 import { MenuSelect, type MenuSelectItem } from "@/components/menu-select";
 import { DiscussionSettings } from "./discussion-settings";
@@ -29,6 +30,13 @@ import { SettingsToggle } from "./settings-toggle";
 // rather than ones of their own: on a phone the split collapses to a stack, and
 // a switch in a card below the Save button would be a setting you toggle and
 // then have to scroll back up to keep. Titled sections are the separation.
+
+const TEXT_SIZE_LABELS: Record<TextSize, string> = {
+  s: `S · ${textSizePx("s")} px`,
+  m: `M · ${textSizePx("m")} px`,
+  l: `L · ${textSizePx("l")} px`,
+  xl: `XL · ${textSizePx("xl")} px`,
+};
 
 export function SettingsFormCard({
   form,
@@ -76,6 +84,31 @@ export function SettingsFormCard({
         hint="One line under the club name on the library page. Never printed."
         onChange={(tagline) => onChange({ tagline })}
       />
+
+      <div className="border-line-soft border-t pt-5">
+        <h3 className="text-ink font-serif text-lg leading-tight">New text</h3>
+        <p className="text-muted mt-1.5 font-sans text-[13px] leading-relaxed">
+          The size a paragraph starts at when it is added to an issue — by hand,
+          by the assistant or from an imported PDF. Authors can still change any
+          paragraph&rsquo;s size in the editor.
+        </p>
+      </div>
+      {/* Shrink-wrapped so the menu opens under the button, not the card's edge. */}
+      <div className="flex items-start">
+        <Choice
+          label="New text size"
+          ariaLabel="Default text size"
+          options={TEXT_SIZES.map((s) => s.value)}
+          labels={TEXT_SIZE_LABELS}
+          value={form.defaultTextSize}
+          onSelect={(defaultTextSize) => onChange({ defaultTextSize })}
+        />
+      </div>
+      <p className="text-faint2 font-sans text-[12px] leading-relaxed">
+        Applies to text added from now on. Paragraphs already in an issue, and
+        issues already published, keep the size they have. Medium is what
+        paragraphs have always started at.
+      </p>
 
       <div className="border-line-soft border-t pt-5">
         <h3 className="text-ink font-serif text-lg leading-tight">Page top</h3>
@@ -231,12 +264,14 @@ function TextField({
 // theme and logo pickers use, so the admin has one kind of dropdown, not two.
 function Choice<T extends string>({
   label,
+  ariaLabel = `Footer ${label.toLowerCase()}`,
   options,
   labels,
   value,
   onSelect,
 }: {
   label: string;
+  ariaLabel?: string;
   options: readonly T[];
   labels: Record<T, string>;
   value: T;
@@ -251,7 +286,7 @@ function Choice<T extends string>({
     <MenuSelect
       label={label}
       current={labels[value]}
-      ariaLabel={`Footer ${label.toLowerCase()}`}
+      ariaLabel={ariaLabel}
       items={items}
       value={value}
       onSelect={onSelect}

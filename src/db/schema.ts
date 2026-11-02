@@ -14,7 +14,7 @@ import {
   check,
 } from "drizzle-orm/pg-core";
 import { createId } from "@/lib/id";
-import type { IssueContent } from "@/lib/blocks";
+import type { IssueContent, TextSize } from "@/lib/blocks";
 import {
   MARK_SIZE,
   TEXT_SIZE,
@@ -444,6 +444,9 @@ export const settings = pgTable(
     removedMemberComments: text(
       "removed_member_comments",
     ).$type<RemovedMemberComments>(),
+    // The size new text blocks start at (issue #25): s/m/l/xl, same rule —
+    // NULL is the shipped default, M. Forward-only; stored blocks are untouched.
+    defaultTextSize: text("default_text_size").$type<TextSize>(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import type { SiteSettings } from "@/lib/branding";
+import { textSizePx } from "@/lib/blocks";
 import type { LogoListItem } from "@/lib/logos";
 import {
   enabledThemes,
@@ -182,7 +183,10 @@ export function SettingsPreview({
               logo={logo}
               settings={settings}
             >
-              <PlaceholderPage themeId={themeId} />
+              <PlaceholderPage
+                themeId={themeId}
+                textSize={settings.defaultTextSize}
+              />
             </PageFrame>
           </ScaledPage>
         </div>
@@ -215,7 +219,13 @@ export function SettingsPreview({
 // chrome. Deliberately not the block renderer: the preview is about the frame
 // and the footer, and a fake IssueContent would drag the whole editor pipeline
 // into this bundle for a heading and three paragraphs.
-function PlaceholderPage({ themeId }: { themeId: LayoutThemeId }) {
+function PlaceholderPage({
+  themeId,
+  textSize,
+}: {
+  themeId: LayoutThemeId;
+  textSize: SiteSettings["defaultTextSize"];
+}) {
   const heading = getTheme(themeId).heading.main;
   return (
     <>
@@ -224,7 +234,10 @@ function PlaceholderPage({ themeId }: { themeId: LayoutThemeId }) {
         <div className={heading.title}>A morning on the water</div>
         {heading.rule?.()}
       </div>
-      <div className="text-body mt-5 space-y-3 font-serif text-[13px] leading-[1.62]">
+      <div
+        className="text-body mt-5 space-y-3 font-serif"
+        style={{ fontSize: textSizePx(textSize), lineHeight: 1.62 }}
+      >
         <p>
           The tide turned a little after six and the fleet went out with it,
           eleven boats strung along the channel in a light southerly that

@@ -70,6 +70,7 @@ export function PageFrame({
   coverDecoration,
   coverMasthead,
   bleed = false,
+  marked = true,
   children,
 }: {
   theme: LayoutTheme;
@@ -94,6 +95,9 @@ export function PageFrame({
   coverMasthead?: boolean;
   /** A full-bleed page (#227): no footer, no theme decoration — dark type over a photo is unreadable. */
   bleed?: boolean;
+  /** Off for the editor rail's miniatures, so a page-wide `[data-page-frame]`
+   *  query still means the canvas. */
+  marked?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -107,7 +111,7 @@ export function PageFrame({
       // The editor measures overflow against this box and the footer below it
       // (see features/editor/page-metrics.ts), so the page's real padding and
       // footer position stay the single source of truth for where a page ends.
-      data-page-frame
+      data-page-frame={marked || undefined}
       className={`bg-page relative ${
         clip ? "overflow-hidden" : "overflow-visible"
       } ${side === "left" ? "border-page-seam border-r" : ""}`}

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui";
+import type { TextSize } from "@/lib/blocks";
 import {
   resolveSettings,
   type FooterAlign,
@@ -41,6 +42,8 @@ export type SettingsForm = {
   /** The discussion switch and the removed-member policy (#302). */
   commentsEnabled: boolean;
   removedMemberComments: RemovedMemberComments;
+  /** The size new text blocks start at (#25). */
+  defaultTextSize: TextSize;
 };
 
 function toForm(stored: StoredSettings, defaults: SiteSettings): SettingsForm {
@@ -56,6 +59,7 @@ function toForm(stored: StoredSettings, defaults: SiteSettings): SettingsForm {
     commentsEnabled: stored.commentsEnabled ?? defaults.commentsEnabled,
     removedMemberComments:
       stored.removedMemberComments ?? defaults.removedMemberComments,
+    defaultTextSize: stored.defaultTextSize ?? defaults.defaultTextSize,
   };
 }
 
@@ -72,6 +76,7 @@ function toStored(form: SettingsForm): StoredSettings {
     pdfDownloads: form.pdfDownloads,
     commentsEnabled: form.commentsEnabled,
     removedMemberComments: form.removedMemberComments,
+    defaultTextSize: form.defaultTextSize,
   };
 }
 

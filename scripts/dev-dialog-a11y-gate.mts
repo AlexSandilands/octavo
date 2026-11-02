@@ -38,6 +38,7 @@ import {
   ensureSponsorRow,
   removeScratchSponsors,
 } from "./dialog-a11y-scratch-sponsor.mts";
+import { hashSessionToken } from "../src/lib/session-token";
 
 process.loadEnvFile?.(".env.local");
 const base = process.argv[2];
@@ -326,7 +327,7 @@ try {
   await sql`insert into users (id, email, name, is_admin, subscribed, email_verified)
             values (${otherId}, ${otherEmail}, ${otherName}, false, false, now())`;
   await sql`insert into sessions (session_token, user_id, expires)
-            values (${token}, ${userId}, now() + interval '1 day')`;
+            values (${hashSessionToken(token)}, ${userId}, now() + interval '1 day')`;
   // Posting names for the dialog of #300 (removed with the user, by cascade).
   for (const name of ["Scratch Poster", "Scratch Other"]) {
     await sql`insert into member_names (id, user_id, name, name_key)
@@ -990,7 +991,7 @@ try {
   // shared dev database exactly as it found it.
   await removeScratchSponsors(sql);
   await sql`delete from issues where id = ${issueId} or title = ${"Scratch 130"}`;
-  await sql`delete from sessions where session_token = ${token}
+  await sql`delete from sessions where session_token = ${hashSessionToken(token)}
               or user_id in (select id from users
                              where email like ${"scratch-130%"})`;
   await sql`delete from users where id in (${userId}, ${otherId})

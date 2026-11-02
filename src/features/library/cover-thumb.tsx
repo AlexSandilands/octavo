@@ -3,43 +3,17 @@ import type { Page } from "@/lib/blocks";
 import type { SiteSettings } from "@/lib/branding";
 import type { ImageMap } from "@/lib/images";
 import type { SponsorMap } from "@/lib/sponsors";
-import { PageBlocks } from "@/features/blocks/page-blocks";
-import { resolveTheme } from "@/features/blocks/themes/registry";
-import { pageFillsCanvas } from "@/features/blocks/layout";
-import {
-  PageFrame,
-  ScaledPage,
-  PAGE_W,
-  PAGE_H,
-} from "@/features/blocks/page-frame";
+import { PageThumb } from "@/features/blocks/page-thumb";
 
-// A real, to-scale render of an issue's cover page, used as the library
-// thumbnail. Reuses the exact reader pipeline (PageFrame + BlockView + the cover
-// variant) at a small fixed scale, so it always matches what the editor shows —
-// no screenshots or separate render path. Read-only and inert (no `edit`), so it
-// renders server-side with no client JS — and `anchors={false}`, because both
-// library surfaces wrap this whole render in a card-sized <Link href="/read/…">
-// and a page carrying a sponsor link or a video address would otherwise nest an
-// <a> inside that one (issue #166).
-export function CoverThumb({
-  page,
-  theme,
-  images,
-  sponsors,
-  issueNo,
-  settings,
-  width,
-  priority = false,
-  sources,
-}: {
+// An issue's cover page as the library/admin thumbnail: a PageThumb of the
+// cover, server-rendered with no client JS. Both library surfaces wrap it in a
+// card-sized <Link href="/read/…">, which is why PageThumb drops anchors.
+export function CoverThumb(props: {
   page: Page;
   sources?: CoverSource[];
   theme: string;
   images: ImageMap;
-  /** Required, like `images`: a cover's sponsor blocks store only a `sponsorId`
-   *  (content v2), and BlockView renders a managed reference it cannot resolve
-   *  as nothing at all. Without the map the block would silently vanish from an
-   *  otherwise to-scale render (issue #170), so every caller must resolve it. */
+  /** Required, like `images` — see PageThumb (issue #170). */
   sponsors: SponsorMap;
   issueNo: number;
   /** Branding for the theme decoration; cover thumbnails omit the footer. */
@@ -48,36 +22,5 @@ export function CoverThumb({
   /** Eager-load the cover image — set only for the hero (LCP), not the archive. */
   priority?: boolean;
 }) {
-  // Free-text stored value → a renderable theme, degrading anything unknown to
-  // the default so a legacy/misconfigured issue still shows a thumbnail.
-  const resolved = resolveTheme(theme);
-  return (
-    <div className="pointer-events-none select-none">
-      <ScaledPage scale={width / PAGE_W}>
-        <PageFrame
-          theme={resolved}
-          w={PAGE_W}
-          h={PAGE_H}
-          issueNo={issueNo}
-          side="right"
-          settings={settings}
-          cover={page.cover}
-          coverDecoration={page.coverOverlay?.decoration}
-          coverMasthead={page.coverOverlay?.masthead}
-          bleed={pageFillsCanvas(page)}
-        >
-          <PageBlocks
-            page={page}
-            sources={sources}
-            issueNo={issueNo}
-            theme={resolved}
-            images={images}
-            sponsors={sponsors}
-            priority={priority}
-            anchors={false}
-          />
-        </PageFrame>
-      </ScaledPage>
-    </div>
-  );
+  return <PageThumb {...props} />;
 }

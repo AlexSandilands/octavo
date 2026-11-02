@@ -132,7 +132,7 @@ try {
       await page.locator(`[data-block-id="${prefixId}"]`).click();
       heights.push(
         await page
-          .locator("[data-page-footer]")
+          .locator("[data-page-frame] [data-page-footer]")
           .evaluate((el) => (el as HTMLElement).offsetHeight),
       );
       await openTool(page);
@@ -165,7 +165,7 @@ try {
       for (let index = 1; index < doc.pages.length; index++) {
         await magazinePage(page, index + 1).click();
         if (index === photoPage) {
-          assert.equal(await page.locator("[data-page-footer]").count(), 0);
+          assert.equal(await page.locator("[data-page-frame] [data-page-footer]").count(), 0);
           const image = page.locator("[data-page-frame] img").first();
           await image.evaluate(async (el) => {
             await (el as HTMLImageElement).decode();

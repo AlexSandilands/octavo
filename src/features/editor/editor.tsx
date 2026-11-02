@@ -10,12 +10,11 @@ import {
   useSensors,
   type CollisionDetection,
 } from "@dnd-kit/core";
-import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { footerHeldBack } from "@/lib/branding";
 import type { FooterReserve, FooterStyle, SiteSettings } from "@/lib/branding";
 import type { ImageMap } from "@/lib/images";
 import type { LogoListItem } from "@/lib/logos";
-import type { SponsorListItem, SponsorMap } from "@/lib/sponsors";
+import { sponsorMapOf, type SponsorListItem } from "@/lib/sponsors";
 import { coverSources } from "@/lib/cover-elements";
 import {
   enabledThemes,
@@ -26,6 +25,7 @@ import {
 import { pageFillsCanvas } from "@/features/blocks/layout";
 import { useEditorPages } from "./use-editor-pages";
 import { usePdfInsertion } from "./pdf-import/use-pdf-insertion";
+import type { MeasurementOptions } from "./pdf-import/measure";
 import { dragOutCollision, isPdfDrag } from "./pdf-import/drag-out";
 import {
   DragOutGhost,
@@ -35,6 +35,7 @@ import {
 import {
   coverCollisionDetection,
   coverKeyboardCoordinates,
+  listKeyboardCoordinates,
 } from "./cover-drag";
 import { CoverTextProvider } from "./cover-text-context";
 import { usePanelDock } from "./use-panel-dock";
@@ -101,16 +102,7 @@ export function Editor({
 }) {
   // The picker chooses from this list; the canvas previews a placed sponsor
   // through the map derived from it (same shape the readers resolve server-side).
-  const sponsorMap: SponsorMap = useMemo(
-    () =>
-      Object.fromEntries(
-        sponsors.map((s) => [
-          s.id,
-          { name: s.name, href: s.href, logo: s.logo },
-        ]),
-      ),
-    [sponsors],
-  );
+  const sponsorMap = useMemo(() => sponsorMapOf(sponsors), [sponsors]);
   // The page/block model + all its mutation handlers (issue #36 decomposition).
   const {
     pages,
@@ -148,7 +140,7 @@ export function Editor({
     addPage,
     reorderPages,
     deletePage,
-  } = useEditorPages(issue.content);
+  } = useEditorPages(issue.content, settings.defaultTextSize);
   // imageId → resolved image, seeded from the server and grown as uploads land,
   // so the canvas previews an image the moment it's uploaded. The library's
   // marks are in it too, for a logo the assistant places (#313).
@@ -223,6 +215,16 @@ export function Editor({
     },
   });
 
+  const theme = getTheme(themeId);
+  // What a page renders against: the canvas, off-screen measuring, the rail.
+  const look: MeasurementOptions = {
+    theme,
+    images,
+    sponsors: sponsorMap,
+    settings,
+    logo,
+    issueNo,
+  };
   const importer = usePdfInsertion({
     pages,
     curPage,
@@ -230,25 +232,21 @@ export function Editor({
     issueId: issue.id,
     flushSave,
     applyImport,
-    theme: getTheme(themeId),
-    images,
-    sponsors: sponsorMap,
-    settings,
-    logo,
-    issueNo,
+    ...look,
     registerImages: (added) => setImages((old) => ({ ...old, ...added })),
   });
 
   // Drag from the handle, or move with the keyboard once the handle is focused.
   // A small distance threshold lets a plain click on the handle still select.
   // Blocks and PDF regions alike lift after a short travel (`drag-out.ts`); on
-  // a cover the anchors, not a list, decide where a keyboard move lands.
+  // a cover the anchors, not a list, decide where a keyboard move lands;
+  // elsewhere each arrow press moves one block along the list.
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, {
       coordinateGetter: page?.cover
         ? coverKeyboardCoordinates
-        : sortableKeyboardCoordinates,
+        : listKeyboardCoordinates,
     }),
   );
   // A PDF region in hand keeps its own targeting; cover items drop onto the
@@ -258,7 +256,6 @@ export function Editor({
       ? dragOutCollision(args)
       : coverCollisionDetection(args);
 
-  const theme = getTheme(themeId);
   // This page is owned by a full-bleed photo (issue #227): no page furniture,
   // and nothing else may be added to it — except on a cover, whose content
   // overlays the photo.
@@ -275,6 +272,7 @@ export function Editor({
     curPage,
     images,
     previewable: Boolean(page) && !page?.cover && !filled,
+    defaultTextSize: settings.defaultTextSize,
     drop: dropRef,
   });
   // The magazine's footer is taller than this issue's pages have room for, so
@@ -293,7 +291,7 @@ export function Editor({
     logos,
     logoId,
     sponsors,
-    measure: { theme, images, sponsors: sponsorMap, settings, logo, issueNo },
+    measure: look,
     apply: applyAssistant,
     undo,
     historyTop,
@@ -346,6 +344,8 @@ export function Editor({
             <div inert={importer.pending} className="flex">
               <PageRail
                 pages={pages}
+                look={look}
+                sources={sources}
                 curPage={curPage}
                 addMenu={addMenu}
                 onSelectPage={selectPage}

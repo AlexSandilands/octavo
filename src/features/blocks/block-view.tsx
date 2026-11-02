@@ -287,7 +287,7 @@ export function BlockView({
           className={`text-body font-serif rich-text ${textAlignClass(block.align)}`}
           style={{ fontSize: textSizePx(block.size), lineHeight: 1.62 }}
         >
-          <RichText value={block.text} />
+          <RichText value={block.text} anchors={anchors} />
         </div>
       );
 

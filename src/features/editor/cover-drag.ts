@@ -4,6 +4,7 @@ import {
   type CollisionDetection,
   type KeyboardCoordinateGetter,
 } from "@dnd-kit/core";
+import { hasSortableData } from "@dnd-kit/sortable";
 import { PAGE_DROP_ID } from "./pdf-import/drag-out";
 
 /** Centre-based navigation works for a tall masthead beside a short text block. */
@@ -46,6 +47,49 @@ export const coverKeyboardCoordinates: KeyboardCoordinateGetter = (
     ? {
         x: target.left + (target.width - collisionRect.width) / 2,
         y: target.top + (target.height - collisionRect.height) / 2,
+      }
+    : undefined;
+};
+
+/** A page's block list steps one block per key press, by order rather than by
+ *  distance: dnd-kit's own getter stalls a tall block among short ones (#55).
+ *  The dragged rect is centred on the target so closest-centre picks it. */
+export const listKeyboardCoordinates: KeyboardCoordinateGetter = (
+  event,
+  {
+    context: {
+      collisionRect,
+      droppableRects,
+      droppableContainers,
+      over,
+      active,
+    },
+  },
+) => {
+  if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.code))
+    return;
+  event.preventDefault();
+  const from =
+    droppableContainers.get(over?.id ?? "") ??
+    droppableContainers.get(active?.id ?? "");
+  if (!collisionRect || !hasSortableData(from)) return;
+  const { containerId, index } = from.data.current.sortable;
+  const step = { ArrowDown: 1, ArrowUp: -1 }[event.code];
+  const target = step
+    ? droppableContainers
+        .getEnabled()
+        .find(
+          (item) =>
+            hasSortableData(item) &&
+            item.data.current.sortable.containerId === containerId &&
+            item.data.current.sortable.index === index + step,
+        )
+    : undefined;
+  const rect = target && droppableRects.get(target.id);
+  return rect
+    ? {
+        x: rect.left + (rect.width - collisionRect.width) / 2,
+        y: rect.top + (rect.height - collisionRect.height) / 2,
       }
     : undefined;
 };

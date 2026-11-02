@@ -8,7 +8,7 @@ import {
   type DragMoveEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import type { Page } from "@/lib/blocks";
+import type { Page, TextSize } from "@/lib/blocks";
 import type { ImageMap } from "@/lib/images";
 import {
   PAGE_DROP_ID,
@@ -19,6 +19,7 @@ import {
 } from "./pdf-import/drag-out";
 import type { ReviewItem } from "./pdf-import/model";
 import { RegionGhost } from "./pdf-import/region-ghost";
+import { rebaseItem } from "./pdf-import/rebase-item";
 
 /** The panel's Add, aimed at a place on a page: set by the panel, called by the editor. */
 export type DropHandler = (item: ReviewItem, target: DropTarget) => void;
@@ -32,6 +33,7 @@ export function usePdfDragOut({
   curPage,
   images,
   previewable,
+  defaultTextSize,
   drop,
 }: {
   page: Page | undefined;
@@ -39,6 +41,8 @@ export function usePdfDragOut({
   images: ImageMap;
   /** A cover or a page-owning photo sends the block to a new page: no in-place preview. */
   previewable: boolean;
+  /** The magazine's default text size, applied to the block as it will land. */
+  defaultTextSize: TextSize;
   drop: RefObject<DropHandler | null>;
 }) {
   const [held, setHeld] = useState<{
@@ -84,7 +88,7 @@ export function usePdfDragOut({
     held && index !== null && previewable
       ? {
           index,
-          block: held.item.block,
+          block: rebaseItem(held.item, defaultTextSize).block,
           images:
             held.imageUrl && image
               ? {

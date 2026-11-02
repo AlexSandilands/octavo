@@ -4,6 +4,7 @@ import postgres from "postgres";
 import { chromium, type Page as BrowserPage } from "playwright";
 import { issueContentSchema, type Block } from "../src/lib/blocks.ts";
 import { closePanel, openSurface } from "./editor-panel-gate-support.mts";
+import { hashSessionToken } from "../src/lib/session-token.ts";
 process.loadEnvFile(existsSync(".env.local") ? ".env.local" : ".env");
 export const base = process.argv[2] ?? "http://localhost:3223";
 assert(
@@ -51,7 +52,7 @@ export const initial = {
 };
 export async function setup() {
   await sql`insert into users(id,email,is_admin,subscribed,email_verified) values(${uid},${`scratch-223-${uid}@example.invalid`},true,true,now())`;
-  await sql`insert into sessions(session_token,user_id,expires) values(${token},${uid},now()+interval '1 hour')`;
+  await sql`insert into sessions(session_token,user_id,expires) values(${hashSessionToken(token)},${uid},now()+interval '1 hour')`;
   // Only published numbers are unique (a partial index), so a draft's is
   // checked by hand.
   for (let tries = 0; tries < 10; tries++) {
