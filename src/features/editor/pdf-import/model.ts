@@ -63,6 +63,8 @@ export type SourcePage = {
 };
 export type ReviewItem = {
   id: string;
+  /** The author picked the photo's size, so no detected size replaces it. */
+  sized?: boolean;
   sources: string[];
   page: number;
   order: number;

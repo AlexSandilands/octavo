@@ -62,6 +62,7 @@ export function reviewItem(
           };
   return {
     id,
+    ...(width !== undefined ? { sized: true } : {}),
     sources: [region.id],
     page: region.page,
     order: region.order,

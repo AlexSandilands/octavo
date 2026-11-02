@@ -29,9 +29,6 @@ export function unsided(item: ReviewItem): ReviewItem {
   if (block.type === "text")
     return { ...item, block: { ...block, column: undefined } };
   if (block.type !== "image" || block.align !== region.side) return item;
-  const width =
-    block.width === region.image?.columnShare
-      ? (region.image?.column ?? 100)
-      : block.width;
+  const width = item.sized ? block.width : (region.image?.column ?? 100);
   return { ...item, block: { ...block, align: "full", width } };
 }

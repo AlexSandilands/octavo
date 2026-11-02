@@ -332,6 +332,17 @@ heading("PDF import");
     one.length === 1 && textColumn(one[0]!) === null,
     "one side alone imports full width, not a one-sided band",
   );
+  const photoAlone = (choice?: { width: number }) =>
+    synthesize([reviewItem(regions[2]!, choice)]).blocks[0] as {
+      align: string;
+      width: number;
+    };
+  ok(
+    photoAlone().align === "full" &&
+      photoAlone({ width: 100 }).width === 100 &&
+      photoAlone({ width: 33 }).width === 33,
+    "a lone column photo imports full width, keeping a size the author picked",
+  );
   const both = synthesize(regions.slice(1).map((r) => reviewItem(r))).blocks;
   ok(
     both.map((b) => bandColumnOf(both, b.id)).join() === "left,left,right",
