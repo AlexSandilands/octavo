@@ -181,7 +181,8 @@ export function useEditorPages(
   const addBlock = (type: BlockType) => {
     // Interior full-page photos are image-only; cover content overlays the photo.
     if (!page || (!page.cover && pageFillsCanvas(page))) return;
-    const blk = makeBlock(type, defaultTextSize);
+    // A cover paragraph is sized by its placement, so it takes no stored size.
+    const blk = makeBlock(type, page.cover ? undefined : defaultTextSize);
     if (page.cover && (blk.type === "heading" || blk.type === "text"))
       blk.coverPlacement = {
         ...DEFAULT_COVER_PLACEMENT,

@@ -157,6 +157,23 @@ function splitRun(r: Extract<RichInline, { type: "text" }>): RichInline[] {
   }
   return result;
 }
+/** The item as it will be added: a text block's detected size re-based on the
+ *  magazine's default, so a drop preview matches what lands. Others unchanged. */
+export function rebaseItem(
+  item: ReviewItem,
+  defaultTextSize: TextSize = "m",
+): ReviewItem {
+  return item.block.type === "text" && defaultTextSize !== "m"
+    ? {
+        ...item,
+        block: {
+          ...item.block,
+          size: rebaseTextSize(item.block.size, defaultTextSize),
+        },
+      }
+    : item;
+}
+
 /** `defaultTextSize` is the magazine's starting size for new text: the PDF's
  *  body text lands on it and its larger or smaller runs keep their step. */
 export function synthesize(
@@ -169,16 +186,7 @@ export function synthesize(
   const blocks: Block[] = [],
     mapping: SourceMapping = {};
   for (const source of sourceItems) {
-    const item: ReviewItem =
-      source.block.type === "text" && defaultTextSize !== "m"
-        ? {
-            ...source,
-            block: {
-              ...source.block,
-              size: rebaseTextSize(source.block.size, defaultTextSize),
-            },
-          }
-        : source;
+    const item = rebaseItem(source, defaultTextSize);
     const emitted: Block[] = [];
     if (item.block.type === "text" && typeof item.block.text !== "string") {
       let content: RichDoc["content"] = [];

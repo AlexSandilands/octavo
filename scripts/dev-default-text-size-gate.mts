@@ -5,14 +5,15 @@
 // Also checks the preview page follows the unsaved choice, and the editor's
 // size control shows the new paragraph's size.
 //
-// Mints its own scratch admin, session and draft issue, and restores the
-// `settings.default_text_size` it touches. Never seeds.
+// Mints its own scratch admin, session and draft issue, and puts the `settings`
+// row back as it found it (or removes it). Never seeds.
 // Run: npx tsx --tsconfig scripts/tsconfig.json scripts/dev-default-text-size-gate.mts <base-url>
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import postgres from "postgres";
 import { chromium, type Page } from "playwright";
 import type { IssueContent } from "../src/lib/blocks";
+import { hashSessionToken } from "../src/lib/session-token.ts";
 
 const base = process.argv[2] ?? "http://localhost:3325";
 assert(["localhost", "127.0.0.1"].includes(new URL(base).hostname));
@@ -67,16 +68,15 @@ const fontSizeOf = (page: Page, selector: string) =>
     selector,
   );
 
-const [original] = await sql<
-  { size: string | null }[]
->`select default_text_size as size from settings where id = 1`;
+// Save writes every field of the form, so the whole row is put back after.
+const [original] = await sql`select * from settings where id = 1`;
 const hadRow = Boolean(original);
 const browser = await chromium.launch();
 try {
   await sql`insert into users (id, email, is_admin, subscribed, email_verified)
             values (${userId}, ${email}, true, false, now())`;
   await sql`insert into sessions (session_token, user_id, expires)
-            values (${token}, ${userId}, now() + interval '1 day')`;
+            values (${hashSessionToken(token)}, ${userId}, now() + interval '1 day')`;
   await sql`insert into issues (id, title, theme, status, content, footer_mark_size, footer_text_size)
             values (${issueId}, 'Scratch 25', 'classic', 'draft', ${sql.json(content as never)}, 36, 12)`;
   if (hadRow)
@@ -173,8 +173,8 @@ try {
   console.log("\nall passed");
 } finally {
   await browser.close();
-  if (hadRow)
-    await sql`update settings set default_text_size = ${original!.size} where id = 1`;
+  if (original) await sql`update settings set ${sql(original)} where id = 1`;
+  else await sql`delete from settings where id = 1`;
   await sql`delete from issues where id = ${issueId}`;
   await sql`delete from sessions where user_id = ${userId}`;
   await sql`delete from users where id = ${userId}`;

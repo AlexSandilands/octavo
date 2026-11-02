@@ -276,6 +276,7 @@ export function Editor({
     curPage,
     images,
     previewable: Boolean(page) && !page?.cover && !filled,
+    defaultTextSize: settings.defaultTextSize,
     drop: dropRef,
   });
   // The magazine's footer is taller than this issue's pages have room for, so
