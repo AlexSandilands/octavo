@@ -251,6 +251,20 @@ ok(
       after.filter((b) => b.type === "text").every((b) => textColumn(b)),
     "split_page flows a column block in columns",
   );
+  // An empty page after it is reused, not added: the result names it.
+  const reuse = harness([
+    cover,
+    page(headingBlock("Feature"), col(textBlock(30, "Long"), "left")),
+    page(),
+  ]);
+  out = await reuse.run("split_page", { page: 2 });
+  ok(
+    reuse.pages.length === 3 &&
+      textColumn(reuse.pages[2]!.blocks[0]!) === "left" &&
+      out.text.startsWith("Flowed the column's text onto page 3.") &&
+      !out.text.includes("renumbered"),
+    `split_page names a reused empty page (${out.text.split("\n")[0]})`,
+  );
 }
 
 heading("the page view");
@@ -388,6 +402,25 @@ heading("PDF import");
   ok(
     textColumn(result.pages[2]!.blocks[0]!) === "left",
     "then onto the next page's left column",
+  );
+  // A band that hasn't begun when the page runs out moves on whole.
+  const whole = await paginateImport({
+    pages: [cover, page()],
+    index: 1,
+    selected: null,
+    inserted: [
+      headingBlock("Feature"),
+      textBlock(8, "Full"),
+      col(textBlock(2, "L"), "left"),
+      col(textBlock(2, "R"), "right"),
+    ],
+    fits,
+    signal: new AbortController().signal,
+  });
+  ok(
+    whole.pages.length === 3 &&
+      whole.pages[2]!.blocks.map((b) => textColumn(b)).join() === "left,right",
+    "a band pushed to a fresh page keeps its two columns",
   );
 }
 

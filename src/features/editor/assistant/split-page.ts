@@ -86,14 +86,24 @@ async function splitColumn(ctx: EditContext, pageIdx: number, cross: Block) {
     plan &&
     flowTextBlock(ctx.pages, pageIdx, cross.id, plan.cuts, plan.landing);
   if (!plan || !next) return null;
+  // The pages the continuations landed on, from the plan: a following empty
+  // page is reused rather than added, so the page count can't say.
+  const cuts = plan.cuts.slice(0, Math.max(0, MAX_PAGES - ctx.pages.length));
+  const right = plan.landing.right && textColumn(cross) === "left";
+  const used = Math.ceil((cuts.length - (right ? 1 : 0)) / 2);
   const added = next.length - ctx.pages.length;
-  const into = plan.landing.right ? "the right column" : "";
-  const onto = added
-    ? `${added === 1 ? `a new page ${pageIdx + 2}` : `new pages ${pageIdx + 2}–${pageIdx + 1 + added}`}; later pages renumbered`
+  const onto = used
+    ? `${used === 1 ? `page ${pageIdx + 2}` : `pages ${pageIdx + 2}–${pageIdx + 1 + used}`}${added ? `, ${added === 1 ? "a new page" : `${added} new pages`}; later pages renumbered` : ""}`
     : "";
+  const where = [
+    right && "into the top of the right column",
+    onto && `onto ${onto}`,
+  ]
+    .filter(Boolean)
+    .join(", then ");
   return {
     pages: next,
-    text: `Flowed the column's text into ${[into, onto].filter(Boolean).join(", then onto ")}.`,
-    report: next.slice(pageIdx, pageIdx + 1 + added).map((p) => p.id),
+    text: `Flowed the column's text ${where}.`,
+    report: next.slice(pageIdx, pageIdx + 1 + used).map((p) => p.id),
   };
 }
