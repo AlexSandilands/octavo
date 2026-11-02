@@ -6,6 +6,7 @@ import { existsSync, mkdirSync } from "node:fs";
 import postgres from "postgres";
 import { chromium, type Page } from "playwright";
 import { emptyIssueContent } from "../src/lib/blocks.ts";
+import { hashSessionToken } from "../src/lib/session-token.ts";
 
 for (const file of [".env.local", ".env"]) {
   if (existsSync(file)) process.loadEnvFile(file);
@@ -46,7 +47,7 @@ try {
   await sql`insert into users (id, email, name, is_admin, subscribed, email_verified)
     values (${userId}, ${`nav-${stamp}@example.invalid`}, 'Navigation check', true, false, now())`;
   await sql`insert into sessions (session_token, user_id, expires)
-    values (${token}, ${userId}, now() + interval '1 hour')`;
+    values (${hashSessionToken(token)}, ${userId}, now() + interval '1 hour')`;
   await sql`insert into issues (id, number, title, content)
     values (${issueId}, ${900000000 + Math.floor(Math.random() * 100000000)},
       ${`Navigation ${stamp}`}, ${sql.json(emptyIssueContent())})`;
@@ -266,7 +267,7 @@ try {
 } finally {
   await browser.close();
   await sql`delete from issues where id = ${issueId}`;
-  await sql`delete from sessions where session_token = ${token}`;
+  await sql`delete from sessions where session_token = ${hashSessionToken(token)}`;
   await sql`delete from users where id = ${userId}`;
   await sql.end();
 }

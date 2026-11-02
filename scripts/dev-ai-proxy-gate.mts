@@ -29,6 +29,7 @@ import {
   type GateDeps,
   userMessage,
 } from "./ai-proxy-gate-parts.mts";
+import { hashSessionToken } from "../src/lib/session-token.ts";
 
 process.loadEnvFile?.(".env.local");
 const args = process.argv.slice(2);
@@ -108,9 +109,9 @@ try {
     (${adminB}, ${`${tag}-b@example.invalid`}, true, false, now()),
     (${member}, ${`${tag}-m@example.invalid`}, false, false, now())`;
   await sql`insert into sessions (session_token, user_id, expires) values
-    (${tokens.a}, ${adminA}, now() + interval '1 hour'),
-    (${tokens.b}, ${adminB}, now() + interval '1 hour'),
-    (${tokens.m}, ${member}, now() + interval '1 hour')`;
+    (${hashSessionToken(tokens.a)}, ${adminA}, now() + interval '1 hour'),
+    (${hashSessionToken(tokens.b)}, ${adminB}, now() + interval '1 hour'),
+    (${hashSessionToken(tokens.m)}, ${member}, now() + interval '1 hour')`;
   const content = sql.json({ version: 1, pages: [] });
   await sql`insert into issues (id, title, theme, status, content) values
     (${draftId}, ${tag}, 'classic', 'draft', ${content})`;

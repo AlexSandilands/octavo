@@ -22,6 +22,7 @@
 // Run: npx tsx scripts/dev-select-all-announce-gate.mts <base-url> [--expect-fail]
 import postgres from "postgres";
 import { chromium, type Locator, type Page } from "playwright";
+import { hashSessionToken } from "../src/lib/session-token";
 
 process.loadEnvFile?.(".env.local");
 const base = process.argv[2];
@@ -96,7 +97,7 @@ try {
     })),
   )}`;
   await sql`insert into sessions (session_token, user_id, expires)
-            values (${token}, ${adminId}, now() + interval '1 day')`;
+            values (${hashSessionToken(token)}, ${adminId}, now() + interval '1 day')`;
   console.log(`scratch admin ${adminEmail} + ${memberEmails.length} members`);
 
   const ctx = await browser.newContext();
@@ -200,7 +201,7 @@ try {
   await ctx.close();
 } finally {
   await browser.close();
-  await sql`delete from sessions where session_token = ${token}`;
+  await sql`delete from sessions where session_token = ${hashSessionToken(token)}`;
   await sql`delete from users where email like ${`${tag}-%@example.test`}`;
   const left = await sql`
     select count(*)::int as count from users where email like ${`${tag}-%`}`;

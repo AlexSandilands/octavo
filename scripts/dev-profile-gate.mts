@@ -18,6 +18,7 @@ import { membersGate } from "./profile-gate-admin.mts";
 import { avatarsGate, uploader } from "./profile-gate-avatars.mts";
 import { edit, focusLabel, keyboardGate } from "./profile-gate-keyboard.mts";
 import type { Member, ProfileKit } from "./profile-gate-kit.mts";
+import { hashSessionToken } from "../src/lib/session-token";
 
 process.loadEnvFile?.(".env.local");
 register("./fixtures/discussion/session-hooks.mjs", import.meta.url);
@@ -57,7 +58,7 @@ async function member(
   await sql`insert into users (id, email, name, is_admin, email_verified)
             values (${id}, ${email}, ${opts.name ?? null}, ${opts.admin ?? false}, now())`;
   await sql`insert into sessions (session_token, user_id, expires)
-            values (${token}, ${id}, now() + interval '1 day')`;
+            values (${hashSessionToken(token)}, ${id}, now() + interval '1 day')`;
   const m = { id, email, token, isAdmin: opts.admin ?? false };
   made.push(m);
   return m;

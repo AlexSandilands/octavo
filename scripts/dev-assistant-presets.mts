@@ -29,6 +29,7 @@ import {
   type PresetId,
 } from "../src/features/editor/assistant/presets";
 import { PANEL_BUTTON, openSurface } from "./editor-panel-gate-support.mts";
+import { hashSessionToken } from "../src/lib/session-token";
 
 process.loadEnvFile?.(".env.local");
 const [base, mode, shots = ".data/assistant-presets"] = process.argv.slice(2);
@@ -212,7 +213,7 @@ try {
   await sql`insert into users (id, email, is_admin, subscribed, email_verified)
     values (${adminId}, ${`${tag}@example.invalid`}, true, false, now())`;
   await sql`insert into sessions (session_token, user_id, expires)
-    values (${token}, ${adminId}, now() + interval '1 hour')`;
+    values (${hashSessionToken(token)}, ${adminId}, now() + interval '1 hour')`;
   const rows = await sql<{ id: string; key: string }[]>`
     select id, key from images where key like 'seed/%'`;
   const ids = Object.fromEntries(

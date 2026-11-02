@@ -40,6 +40,7 @@ import { checkCover } from "./assistant-tools-gate-cover.mts";
 import { checkBarRules } from "./assistant-tools-gate-bar-rules.mts";
 import { showHint } from "./fixtures/assistant/show-hint.mts";
 import { PANEL_BUTTON, openSurface } from "./editor-panel-gate-support.mts";
+import { hashSessionToken } from "../src/lib/session-token";
 
 process.loadEnvFile?.(".env.local");
 // An optional folder for screenshots of the held canvas and the run's line.
@@ -406,7 +407,7 @@ try {
   await sql`insert into users (id, email, is_admin, subscribed, email_verified)
     values (${adminId}, ${`${tag}@example.invalid`}, true, false, now())`;
   await sql`insert into sessions (session_token, user_id, expires)
-    values (${token}, ${adminId}, now() + interval '1 hour')`;
+    values (${hashSessionToken(token)}, ${adminId}, now() + interval '1 hour')`;
   await sql`insert into issues (id, title, theme, status, content) values
     (${draftId}, ${tag}, 'classic', 'draft', ${sql.json({ version: 10, ...content } as never)})`;
   const [{ n } = { n: 0 }] = await sql<{ n: number }[]>`
