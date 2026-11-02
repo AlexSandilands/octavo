@@ -120,7 +120,7 @@ try {
   await waitOrder("list", ["one", "tall", "two", "three", "four"]);
   await move("tall", ["ArrowUp", "ArrowUp"]);
   await waitOrder("list", ["tall", "one", "two", "three", "four"]);
-  // Down then back up over itself lands where it started; Escape cancels.
+  // Down, back up over its own slot, then one more: a single place higher. Escape cancels.
   await move("one", ["ArrowDown", "ArrowUp", "ArrowUp"]);
   await waitOrder("list", ["one", "tall", "two", "three", "four"]);
   await move("one", ["ArrowDown", "ArrowDown"], "Escape");
