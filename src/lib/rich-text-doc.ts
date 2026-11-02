@@ -1,7 +1,8 @@
 // The structured rich-text document a body-text block holds from content v3 on.
 // It mirrors the Tiptap JSON the editor produces (`editor.getJSON()`) for the
 // closed feature set the toolbar exposes — paragraphs, bullet/numbered lists,
-// and text runs carrying bold/italic/underline/strike/link marks. Storing the
+// and text runs carrying bold/italic/underline/strike/link marks (plus, from
+// content v11, a colour/typeface `paint` mark — text-paint.ts). Storing the
 // *structure* (not an HTML string) lets the readers render it through React
 // elements, so text is escaped by construction and there is no
 // `dangerouslySetInnerHTML` and no regex HTML sanitiser in the read path.
@@ -21,12 +22,13 @@
 
 import { z } from "zod";
 import { externalHref } from "./rich-text";
+import { cleanPaint, type TextPaint } from "./text-paint";
 
 // Caps. Far above anything a real body-text block needs; they exist so a bad
 // save can't persist an unbounded document. The total-chars/-nodes refine is the
 // hard ceiling regardless of how the nesting is arranged.
 const MAX_TEXT = 8_000; // one text run
-const MAX_MARKS = 6; // marks on one run (bold/italic/underline/strike/link + head-room)
+const MAX_MARKS = 8; // marks on one run (bold/italic/underline/strike/link/paint + head-room)
 const MAX_INLINE = 300; // runs + breaks in one paragraph
 const MAX_LIST_ITEMS = 200; // <li> in one list
 const MAX_ITEM_CONTENT = 60; // blocks in one <li>
@@ -42,7 +44,8 @@ const MAX_TOTAL_NODES = 4_000; // nodes across the whole doc
 
 export type RichMark =
   | { type: "bold" | "italic" | "underline" | "strike" }
-  | { type: "link"; attrs: { href: string } };
+  | { type: "link"; attrs: { href: string } }
+  | { type: "paint"; attrs: TextPaint };
 export type RichTextNode = { type: "text"; text: string; marks?: RichMark[] };
 export type HardBreak = { type: "hardBreak" };
 export type RichInline = RichTextNode | HardBreak;
@@ -72,18 +75,27 @@ const linkMark = z.object({
   }),
 });
 
+// Tiptap serialises unset attributes as null; values are checked in the
+// transform below, where a tampered one drops (cleanPaint).
+const paintMark = z.object({
+  type: z.literal("paint"),
+  attrs: z.object({ color: z.unknown(), font: z.unknown() }).partial(),
+});
+
 const markSchema = z.discriminatedUnion("type", [
   boldMark,
   italicMark,
   underlineMark,
   strikeMark,
   linkMark,
+  paintMark,
 ]);
 
 // A text run. On parse, link marks are re-validated through `externalHref`:
 // an unsafe href drops the whole link mark (the text stays, un-linked), and a
 // safe one is normalised to `{ href }`. So a `javascript:`/`data:` link saved
-// directly can't survive into stored content.
+// directly can't survive into stored content. A paint mark keeps only valid
+// colours/fonts, and drops when none is left.
 const textNodeSchema = z
   .object({
     type: z.literal("text"),
@@ -94,6 +106,12 @@ const textNodeSchema = z
     if (!node.marks?.length) return { type: "text", text: node.text };
     const marks: RichMark[] = [];
     for (const m of node.marks) {
+      if (m.type === "paint") {
+        const attrs = cleanPaint(m.attrs);
+        if (attrs && !marks.some((x) => x.type === "paint"))
+          marks.push({ type: "paint", attrs });
+        continue;
+      }
       if (m.type !== "link") {
         if (!marks.some((x) => x.type === m.type)) marks.push({ type: m.type });
         continue;

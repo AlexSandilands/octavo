@@ -4,16 +4,22 @@ import {
   type BlockPatch,
   type HeadingLevel,
 } from "@/lib/blocks";
+import { cleanPaint, type TextPaint } from "@/lib/text-paint";
+import { BarRule } from "./bar-rule";
+import { TextPaintControls } from "./text-paint-controls";
 
 // Rank picker for a selected heading block, shown in its floating toolbar (see
 // editor-block.tsx). Switches a heading between the big page/feature title, an
-// article section head, and a small run-in sub-head.
+// article section head, and a small run-in sub-head; then the title's own font
+// and colour (content v11 — the kicker keeps the theme's).
 export function HeadingLevelControl({
   level,
+  paint,
   onChange,
   trailing,
 }: {
   level: HeadingLevel;
+  paint?: TextPaint;
   onChange: (patch: BlockPatch) => void;
   /** More of the bar after the levels (the assistant's Ask). */
   trailing?: ReactNode;
@@ -43,6 +49,16 @@ export function HeadingLevelControl({
           </button>
         ))}
       </div>
+      <BarRule />
+      <TextPaintControls
+        label="Heading"
+        color={paint?.color}
+        font={paint?.font}
+        onColor={(color) =>
+          onChange({ paint: cleanPaint({ ...paint, color }) })
+        }
+        onFont={(font) => onChange({ paint: cleanPaint({ ...paint, font }) })}
+      />
       {trailing}
     </div>
   );

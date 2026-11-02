@@ -160,6 +160,12 @@ Claude Haiku 4.5 and Sonnet 5, about $3.60), which epic #306's children replaced
   - `insert_blocks` (headings, text as markdown, and photos with optional `caption`/`alt`, since models reach for those);
   - `delete_block`, `move_block`, `add_page`, `split_page`;
   - `set_image_text`, and `set_image_layout`, where `full` means full width.
+- **Colour and typeface (aboard #24, content v11):** `set_heading` takes an optional `color` and `font` for the title;
+  `style_text` (the last tool, for the cache) styles every occurrence of a `match` in a text block, or the whole block,
+  and `"theme"` clears either choice. Markdown carries neither, so the page view adds a `styled: "words" (color …, font …)`
+  line under a text block (and `· title color …` to a heading), and `set_text` puts the old paint back on any styled
+  stretch whose words it kept — the nth occurrence to the nth — naming the ones it couldn't in its result. The logic is
+  `src/features/editor/assistant/text-styling.ts`, checked by `scripts/check-text-paint.mts`.
 - **Where they live.** The contract is `src/lib/ai-tools.ts`: one zod schema and description per tool, in a fixed order (the
   cached prefix; new tools go at the end), with no refinements so the SDK's JSON schema is exact. The route declares them
   (`src/server/ai-chat-tools.ts`); the editor runs them. `src/features/editor/assistant/edit-tools.ts` is the pure edit; `executor.ts` validates, applies to a copy, re-validates the whole issue with
@@ -768,6 +774,8 @@ stalled-reply cases in the proxy and panel gates take seconds rather than a minu
 ```sh
 # in memory: the tool contract, edits, refusals, runs, split, feedback, breaker, vision budget, the cover tools
 npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-tools.mts
+# colour and typeface on interior text: the paint mark, style_text, set_text's carry, the styled: lines
+npx tsx --tsconfig scripts/tsconfig.json scripts/check-text-paint.mts
 # the long-paste plan: placement, fresh pages, photos and suggestions, refusals (the schema's bounds are in check-ai-tools)
 npx tsx --tsconfig scripts/tsconfig.json scripts/check-ai-plan.mts
 # the ledger and budget arithmetic; runs and their spend

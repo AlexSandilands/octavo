@@ -65,6 +65,8 @@ export async function checkBarRules(d: {
         const at = `${width}px, panel ${panel ? "open" : "closed"}, ${kind.name}`;
         // A click right after a resize can land before the layout settles.
         const bar = `[data-block-id="${kind.block}"] [data-block-bar]`;
+        // Deselect first: a wrapped bar of the last block can cover this one.
+        await page.keyboard.press("Escape");
         for (let tries = 1; ; tries++) {
           await page.click(`[data-block-id="${kind.block}"]`, {
             force: true,

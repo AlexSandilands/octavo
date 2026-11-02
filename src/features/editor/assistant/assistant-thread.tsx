@@ -24,6 +24,7 @@ const TOOL_WORDS: Record<string, [doing: string, done: string]> = {
   set_image_text: ["Changing a photo's words", "Changed a photo's words"],
   set_image_layout: ["Placing a photo", "Placed a photo"],
   propose_sections: ["Laying out the sections", "Laid out the sections"],
+  style_text: ["Styling words", "Styled words"],
   view_photo: ["Looking at a photo", "Looked at a photo"],
 };
 // Tools that name a page: [running, done, failed].

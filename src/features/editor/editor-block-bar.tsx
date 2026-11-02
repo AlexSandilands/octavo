@@ -162,6 +162,7 @@ export function EditorBlockBar({
         >
           <HeadingLevelControl
             level={block.level ?? "main"}
+            paint={block.paint}
             onChange={onChange}
             trailing={ask}
           />

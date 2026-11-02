@@ -1,5 +1,6 @@
 import { Fragment, type ReactNode } from "react";
 import { externalHref } from "@/lib/rich-text";
+import { paintStyle } from "@/lib/text-paint";
 import {
   stringToDoc,
   type RichBlock,
@@ -66,6 +67,9 @@ function wrapMark(mark: RichMark, child: ReactNode): ReactNode {
       return <u>{child}</u>;
     case "strike":
       return <s>{child}</s>;
+    case "paint":
+      // Values were checked on save; paintStyle maps them to palette vars/fonts.
+      return <span style={paintStyle(mark.attrs)}>{child}</span>;
     case "link": {
       // Re-validate at render too (defence in depth): stored data is already
       // normalised on save, but reads are not re-parsed, so an unsafe href here

@@ -91,8 +91,17 @@ Block = Heading | Text | Image | Montage | Video | Sponsor  // discriminated uni
 ```
 
 `version` marks which shape of the content model a document holds, so block-shape changes can
-migrate old rows deliberately. **Current version: 10.** Every string field is length-capped and the
+migrate old rows deliberately. **Current version: 11.** Every string field is length-capped and the
 page/block arrays bounded in the zod schemas, so a bad save can't persist an unbounded document.
+
+**Content v11 — colour and typeface on interior text.** Body text gains a `paint` mark
+(`{ type: "paint", attrs: { color?, font? } }`) and a heading an optional `paint: { color?, font? }`
+on its title (the kicker keeps the theme's). The choices are the cover's: a palette name or
+`#rrggbb` (`coverColorSchema`) and the three cover fonts (`coverFontSchema`); absent means the
+theme's. Parsing is lenient (`src/lib/text-paint.ts`): an invalid colour or font drops that attribute,
+and a mark left with neither drops, rather than failing the save — the way an unsafe link href drops
+its link. No earlier document holds either, so all render unchanged; covers keep their own
+`coverPlacement.richText` paint. Checked by `scripts/check-text-paint.mts`.
 
 **Content v10 — fitted cover panels.** `coverOverlay.appearance` and
 `coverPlacement.appearance` gain an optional `panelShape`: `block` (the panel fills the item's
