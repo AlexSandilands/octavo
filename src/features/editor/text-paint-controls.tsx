@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MenuSelect } from "@/components/menu-select";
+import { MenuSelect, useSlideIntoView } from "@/components/menu-select";
 import { colorCss, type CoverColor } from "@/lib/cover-appearance";
 import { COVER_FONTS, COVER_FONT_IDS, type CoverFont } from "@/lib/cover-fonts";
 import { ColorSwatches, resolvedColor } from "./cover-color-picker";
@@ -37,6 +37,8 @@ export function TextPaintControls({
 }) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
+  const tray = useRef<HTMLDivElement>(null);
+  useSlideIntoView(tray, open);
   const contrast = useContrastWithPage(color);
   const low = contrast !== null && contrast < 4.5;
 
@@ -123,6 +125,7 @@ export function TextPaintControls({
       </button>
       {open && (
         <div
+          ref={tray}
           role="group"
           aria-label={`${label} colour`}
           className="border-hair absolute top-full left-0 z-30 mt-2 w-max space-y-2 rounded-[8px] border bg-white p-2 shadow-[0_4px_14px_rgba(40,36,28,0.16)]"
@@ -154,7 +157,7 @@ export function TextPaintControls({
           {low && (
             <p
               role="status"
-              className="text-warn max-w-[18rem] font-sans text-[12px] leading-snug font-medium"
+              className="text-warn w-0 min-w-full font-sans text-[12px] leading-snug font-medium"
             >
               This colour is hard to read on the page ({contrast!.toFixed(1)}:1;
               aim for 4.5:1 or more).
