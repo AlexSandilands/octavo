@@ -10,7 +10,7 @@ import { pageFillsCanvas } from "@/features/blocks/layout";
 import { stringToDoc, type RichDoc } from "@/lib/rich-text-doc";
 import { cutParagraph, paragraphLength } from "./synthesis";
 import { checkAbort } from "./model";
-import { textColumn, type Column } from "@/lib/page-bands";
+import { bandSide, textColumn, type Column } from "@/lib/page-bands";
 
 type TextBlock = Extract<Block, { type: "text" }>;
 /** Why a batch couldn't be placed; each caller words it for its own surface. */
@@ -83,31 +83,20 @@ async function splitText(
   ];
 }
 
-/** A side picture, or column text: the blocks a band is made of. */
-function sideOf(block: Block): Column | null {
-  if (block.type === "text") return block.column ?? null;
-  return (block.type === "image" ||
-    block.type === "montage" ||
-    block.type === "video") &&
-    (block.align === "left" || block.align === "right")
-    ? block.align
-    : null;
-}
-
 /** The column the queue's next block fills, when it is part of a band. */
 function columnSide(
   block: Block,
   placed: Block[],
   queue: { block: Block }[],
 ): Column | null {
-  const side = sideOf(block);
+  const side = bandSide(block);
   if (!side) return null;
   const run: Block[] = [];
   for (const q of queue) {
-    if (!sideOf(q.block)) break;
+    if (!bandSide(q.block)) break;
     run.push(q.block);
   }
-  for (let i = placed.length - 1; i >= 0 && sideOf(placed[i]!); i--)
+  for (let i = placed.length - 1; i >= 0 && bandSide(placed[i]!); i--)
     run.push(placed[i]!);
   return run.some((b) => textColumn(b)) ? side : null;
 }
@@ -115,7 +104,7 @@ function columnSide(
 /** Retag the queue's leading run of band blocks into `side`. */
 function moveRun(queue: { block: Block }[], side: Column) {
   for (const q of queue) {
-    const from = sideOf(q.block);
+    const from = bandSide(q.block);
     if (!from) break;
     q.block =
       q.block.type === "text"

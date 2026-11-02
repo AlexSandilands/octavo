@@ -1,6 +1,6 @@
 import { blockSchema, type Block, type TextSize } from "@/lib/blocks";
 import { createId } from "@/lib/id";
-import { rebaseItem } from "./rebase-item";
+import { rebaseItem, unsided } from "./rebase-item";
 import {
   richTextToPlain,
   richDocSchema,
@@ -39,7 +39,10 @@ export function reviewItem(
           caption: "",
           alt: "",
           align: region.side ?? "full",
-          width: width ?? region.image?.column ?? 100,
+          width:
+            width ??
+            (region.side ? region.image?.columnShare : region.image?.column) ??
+            100,
         }
       : as === "heading"
         ? {
@@ -165,8 +168,14 @@ export function synthesize(
 } {
   const blocks: Block[] = [],
     mapping: SourceMapping = {};
+  // Columns only when the batch holds both of them (aboard #23).
+  const sides = new Set(sourceItems.map((i) => i.region.side));
+  const columns = sides.has("left") && sides.has("right");
   for (const source of sourceItems) {
-    const item = rebaseItem(source, defaultTextSize);
+    const item = rebaseItem(
+      columns ? source : unsided(source),
+      defaultTextSize,
+    );
     const emitted: Block[] = [];
     if (item.block.type === "text" && typeof item.block.text !== "string") {
       let content: RichDoc["content"] = [];

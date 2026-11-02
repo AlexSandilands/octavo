@@ -41,6 +41,8 @@ export type Region = Box & {
     key: string;
     /** The detected editor size (a block `width`), set once the page's regions are all known. */
     column?: number;
+    /** The same as a share of its source column, on a two-column page (aboard #23). */
+    columnShare?: number;
   };
   /** The source column it sits in on a two-column page (aboard #23). */
   side?: "left" | "right";

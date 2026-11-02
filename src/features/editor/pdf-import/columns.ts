@@ -5,8 +5,8 @@ import { contentSpan, snapImageWidth } from "./photo-size";
 // Two-column PDF pages (aboard #23): a region that sits within one half of the
 // page's content, on a page with narrow text on both halves, takes that side,
 // so it imports as a Left or Right block and keeps the source's columns. A
-// photo in a column gets its size as a share of the column. Headings stay full
-// width.
+// photo in a column also gets its size as a share of the column. Headings stay
+// full width. A batch holding only one side imports full width (`unsided`).
 
 /** Share of the content span past which a region spans the page. */
 const NARROW = 0.6;
@@ -40,6 +40,6 @@ export function markColumns(regions: Region[]): void {
     if (!side) continue;
     region.side = side;
     if (region.image)
-      region.image.column = snapImageWidth(region.width / width(side));
+      region.image.columnShare = snapImageWidth(region.width / width(side));
   }
 }

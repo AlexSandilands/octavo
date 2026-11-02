@@ -1,9 +1,9 @@
 // Two-column text (content v12, aboard #23) in a real browser: a heading over
 // a band of left text, a photo in the left column and right text; the text
-// bar's Full / Left / Right; a move within a column and its one-step undo; the
-// overflow split (left column → right column → next page); then the page rail,
-// both readers (side by side on a computer, left column first on a phone) and
-// the print document. Creates and removes its own admin and issue.
+// bar's Full / Left / Right; a move within a column and a keyboard drag across
+// the gutter, each undone in one step; the overflow split (left column → right
+// column → next page); then the page rail, both readers (side by side on a
+// computer, left column first on a phone) and the print document. Creates and removes its own admin and issue.
 //   npx tsx --tsconfig scripts/tsconfig.json scripts/dev-text-columns-gate.mts <base-url>
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
@@ -216,6 +216,33 @@ try {
     (c) => order(c) === "head,left1,pic,right1",
   );
   console.log("PASS: a move within a column, undone in one step");
+
+  // Keyboard drag walks reading order: up from the right column's top lands
+  // at the foot of the left column, taking its side; undone in one step.
+  const grip = block("right1").getByRole("button", { name: "Drag to reorder" });
+  await grip.focus();
+  await page.keyboard.press("Space");
+  await page.waitForFunction(() =>
+    document.querySelector(
+      '[aria-roledescription="sortable"][aria-pressed="true"]',
+    ),
+  );
+  await page.waitForTimeout(150);
+  await page.keyboard.press("ArrowUp");
+  await page.waitForTimeout(300);
+  await page.keyboard.press("Space");
+  await waitSaved(
+    "right1 dragged into the left column",
+    (c) => columnOf(c, "right1") === "left",
+  );
+  const leftColumn = await page
+    .locator('[data-band-column="left"] [data-block-id]')
+    .evaluateAll((els) => els.map((e) => e.getAttribute("data-block-id")));
+  assert.deepEqual(leftColumn, ["left1", "right1", "pic"]);
+  await page.locator("body").click({ position: { x: 5, y: 500 } });
+  await page.keyboard.press("Control+z");
+  await waitSaved("the drag undone", (c) => columnOf(c, "right1") === "right");
+  console.log("PASS: a keyboard drag follows reading order and switches side");
 
   // Overflow: left column → top of the right column → next page in columns.
   await openPage(page, 4);

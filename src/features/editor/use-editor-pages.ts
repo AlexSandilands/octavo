@@ -26,7 +26,7 @@ import { arrayMove } from "@dnd-kit/sortable";
 import type { DragEndEvent } from "@dnd-kit/core";
 import { pageFillsCanvas } from "@/features/blocks/layout";
 import { setCoverBackground, withCoverStyle } from "./cover-layout";
-import { dropInColumn, moveBlockAcrossPages, stepBlock } from "./move-block";
+import { dragBlocks, moveBlockAcrossPages, stepBlock } from "./move-block";
 import { flowTextBlock, moveBlockToNextPage, type FlowPlan } from "./text-flow";
 import {
   changedBlockIds,
@@ -264,19 +264,14 @@ export function useEditorPages(
       editPage(() => next);
       return;
     }
-    const blocks = pages[curPage]?.blocks;
-    const from = blocks?.findIndex((b) => b.id === active.id) ?? -1;
-    const to = blocks?.findIndex((b) => b.id === over.id) ?? -1;
-    if (from < 0 || to < 0) return;
+    const next = dragBlocks(
+      pages[curPage]?.blocks ?? [],
+      String(active.id),
+      String(over.id),
+    );
+    if (!next) return;
     commit();
-    editPage((p) => ({
-      ...p,
-      blocks: dropInColumn(
-        arrayMove(p.blocks, from, to),
-        String(active.id),
-        String(over.id),
-      ),
-    }));
+    editPage((p) => ({ ...p, blocks: next }));
   };
 
   const removeBlock = (id: string) => {

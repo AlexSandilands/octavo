@@ -20,3 +20,18 @@ export function rebaseItem(
       }
     : item;
 }
+
+/** The item without its source column (aboard #23): full-width text, and a
+ *  photo at its page-share size unless the author chose one. */
+export function unsided(item: ReviewItem): ReviewItem {
+  const { region, block } = item;
+  if (!region.side) return item;
+  if (block.type === "text")
+    return { ...item, block: { ...block, column: undefined } };
+  if (block.type !== "image" || block.align !== region.side) return item;
+  const width =
+    block.width === region.image?.columnShare
+      ? (region.image?.column ?? 100)
+      : block.width;
+  return { ...item, block: { ...block, align: "full", width } };
+}

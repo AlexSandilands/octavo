@@ -22,7 +22,7 @@ export function textColumn(block: Block): Column | null {
 }
 
 /** The column a block would take in a band (column text, or a side picture). */
-function sideOf(block: Block): Column | null {
+export function bandSide(block: Block): Column | null {
   if (block.type === "text") return block.column ?? null;
   if (
     (block.type === "image" ||
@@ -40,14 +40,14 @@ export function pageSegments(blocks: Block[]): PageSegment[] {
   let i = 0;
   while (i < blocks.length) {
     let j = i;
-    while (j < blocks.length && sideOf(blocks[j]!)) j++;
+    while (j < blocks.length && bandSide(blocks[j]!)) j++;
     const run = blocks.slice(i, j);
     if (run.some((b) => textColumn(b))) {
       out.push({
         kind: "band",
         id: run[0]!.id,
-        left: run.filter((b) => sideOf(b) === "left"),
-        right: run.filter((b) => sideOf(b) === "right"),
+        left: run.filter((b) => bandSide(b) === "left"),
+        right: run.filter((b) => bandSide(b) === "right"),
       });
       i = j;
     } else {

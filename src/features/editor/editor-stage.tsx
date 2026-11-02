@@ -25,7 +25,7 @@ import { useCanvasPanZoom } from "@/features/blocks/use-canvas-pan-zoom";
 import { CoverOverlayControls } from "./cover-overlay-controls";
 import { coverSortingStrategy } from "./cover-sorting";
 import { EditorPageContent } from "./editor-page-content";
-import { hasBands } from "@/lib/page-bands";
+import { hasBands, readingOrder } from "@/lib/page-bands";
 import { useCoverLayoutWarnings } from "./use-cover-layout-warnings";
 import {
   INSPECTOR_RESERVE,
@@ -285,9 +285,11 @@ export function EditorStage({
               bleed={filled}
             >
               <SortableContext
+                // Reading order: a band's left column, then its right, so the
+                // keyboard and the shuffle walk the columns as they read.
                 items={(page?.cover
                   ? coverItems(page)
-                  : (page?.blocks ?? [])
+                  : readingOrder(page?.blocks ?? [])
                 ).map((b) => b.id)}
                 strategy={
                   page?.cover

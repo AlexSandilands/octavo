@@ -1,5 +1,12 @@
 import type { Block, Page } from "@/lib/blocks";
-import { bandColumnOf, bandOf, type PageSegment } from "@/lib/page-bands";
+import { arrayMove } from "@dnd-kit/sortable";
+import {
+  bandColumnOf,
+  bandOf,
+  bandSide,
+  readingOrder,
+  type PageSegment,
+} from "@/lib/page-bands";
 
 type Band = Extract<PageSegment, { kind: "band" }>;
 import { pageFillsCanvas } from "@/features/blocks/layout";
@@ -92,16 +99,25 @@ function swap(blocks: Block[], i: number, j: number): Block[] {
  */
 export function dropInColumn(blocks: Block[], id: string, overId: string) {
   const column = bandColumnOf(blocks, overId);
-  return column
-    ? blocks.map((b) => {
-        if (b.id !== id) return b;
-        if (b.type === "text" && b.column) return { ...b, column };
-        if (
-          (b.type === "image" || b.type === "montage" || b.type === "video") &&
-          (b.align === "left" || b.align === "right")
-        )
-          return { ...b, align: column };
-        return b;
-      })
-    : blocks;
+  if (!column) return blocks;
+  return blocks.map((b) =>
+    b.id !== id || !bandSide(b)
+      ? b
+      : b.type === "text"
+        ? { ...b, column }
+        : ({ ...b, align: column } as Block),
+  );
+}
+
+/**
+ * A drag's drop, in reading order: a band's left column, then its right — the
+ * order the sortable list (and so the keyboard) walks. Reading order lays a
+ * page out exactly as its stored order does, so it can be stored as is.
+ */
+export function dragBlocks(blocks: Block[], id: string, overId: string) {
+  const order = readingOrder(blocks);
+  const from = order.findIndex((b) => b.id === id);
+  const to = order.findIndex((b) => b.id === overId);
+  if (from < 0 || to < 0 || from === to) return null;
+  return dropInColumn(arrayMove(order, from, to), id, overId);
 }

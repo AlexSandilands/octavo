@@ -17,11 +17,18 @@ import {
   readingOrder,
   textColumn,
 } from "../src/lib/page-bands";
-import { dropInColumn, stepBlock } from "../src/features/editor/move-block";
+import {
+  dragBlocks,
+  dropInColumn,
+  stepBlock,
+} from "../src/features/editor/move-block";
 import { flowTextBlock, planFlow } from "../src/features/editor/text-flow";
 import { pageView } from "../src/features/editor/assistant/projection";
 import { markColumns } from "../src/features/editor/pdf-import/columns";
-import { reviewItem } from "../src/features/editor/pdf-import/synthesis";
+import {
+  reviewItem,
+  synthesize,
+} from "../src/features/editor/pdf-import/synthesis";
 import { paginateImport } from "../src/features/editor/pdf-import/paginate";
 import type { Region } from "../src/features/editor/pdf-import/model";
 import { readerSections } from "../src/features/reader/mobile-sections";
@@ -139,6 +146,21 @@ heading("moves");
     textColumn(dropped.find((b) => b.id === L2.id)!) === "right",
     "a drag onto the other column switches side",
   );
+  // A drag (pointer or keyboard) walks reading order: left column, then right.
+  const notices = [H, L1, R1, L2];
+  const within = dragBlocks(notices, L1.id, L2.id)!;
+  ok(
+    ids(readingOrder(within)) === ids([H, L2, L1, R1]) &&
+      textColumn(within.find((b) => b.id === L1.id)!) === "left",
+    "a keyboard step down within a column stays in it",
+  );
+  const across = dragBlocks(notices, L2.id, R1.id)!;
+  ok(
+    textColumn(across.find((b) => b.id === L2.id)!) === "right" &&
+      ids(readingOrder(across)) === ids([H, L1, R1, L2]),
+    "a step down off the left column's foot is the next place in reading order",
+  );
+  ok(dragBlocks(notices, L1.id, L1.id) === null, "a drop on itself is no edit");
 }
 
 heading("the split's landing");
@@ -294,7 +316,7 @@ heading("PDF import");
     "a two-column page's regions take their sides; the heading spans",
   );
   ok(
-    regions[2]!.image!.column === 100,
+    regions[2]!.image!.columnShare === 100,
     "a column-wide photo is Full of its column",
   );
   const single = [region("a", 50, 80, 500), region("b", 50, 140, 200)];
@@ -305,6 +327,16 @@ heading("PDF import");
   );
   const block = reviewItem(regions[1]!).block as TextBlock;
   ok(block.column === "left", "a left region imports as a Left block");
+  const one = synthesize([reviewItem(regions[3]!)]).blocks;
+  ok(
+    one.length === 1 && textColumn(one[0]!) === null,
+    "one side alone imports full width, not a one-sided band",
+  );
+  const both = synthesize(regions.slice(1).map((r) => reviewItem(r))).blocks;
+  ok(
+    both.map((b) => bandColumnOf(both, b.id)).join() === "left,left,right",
+    "both sides import as a band",
+  );
   ok(
     reviewItem(regions[2]!).block.type === "image" &&
       (reviewItem(regions[2]!).block as { align: string }).align === "left",
