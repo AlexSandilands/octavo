@@ -157,7 +157,7 @@ export function TextPaintControls({
           {low && (
             <p
               role="status"
-              className="text-warn w-0 min-w-full font-sans text-[12px] leading-snug font-medium"
+              className="text-warn w-0 min-w-full font-sans whitespace-normal text-[12px] leading-snug font-medium"
             >
               This colour is hard to read on the page ({contrast!.toFixed(1)}:1;
               aim for 4.5:1 or more).
