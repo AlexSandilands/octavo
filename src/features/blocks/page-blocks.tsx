@@ -11,7 +11,8 @@ import { PageContent } from "./page-content";
 // The flowed block content of one page — shared by the desktop reader spread and
 // the print/PDF renderer so a page lays out identically in both (no parallel
 // renderer). Cover pages centre and stack every block; normal pages flow in
-// document order so a floated image wraps the text that follows it.
+// document order so a floated image wraps the text that follows it, with any
+// two-column bands (aboard #23) laid out by PageContent.
 export function PageBlocks({
   page,
   theme,
@@ -48,7 +49,7 @@ export function PageBlocks({
           />
         </div>
       )}
-      renderBlock={(b) => {
+      renderBlock={(b, column) => {
         // data-reader-block: the reader ignores drags started here (text/images
         // stay selectable) and reverts the grab cursor. Inert in print.
         // "bleed" is the exception — a photo covering the page has nothing to
@@ -61,7 +62,7 @@ export function PageBlocks({
             data-reader-block={bleed ? "bleed" : true}
             data-cover-sponsor={b.type === "sponsor" || undefined}
             className={bleed ? undefined : "cursor-auto"}
-            style={blockFlowStyle(b, page.cover)}
+            style={blockFlowStyle(b, page.cover, Boolean(column))}
           >
             <BlockView
               block={b}

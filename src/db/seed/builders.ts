@@ -36,6 +36,15 @@ export const T = (text: string, size?: TextSize, align?: TextAlign): Block => ({
   size,
   align,
 });
+// Content v12: body text in one column of a two-column band.
+export const Tc = (
+  column: "left" | "right",
+  text: string,
+  size?: TextSize,
+): Block => ({
+  ...(T(text, size) as Extract<Block, { type: "text" }>),
+  column,
+});
 // Content v11: a heading whose title has its own colour/typeface, and body text
 // with one painted run (`before` + `words` + `after`, one paragraph).
 export const Hp = (title: string, paint: TextPaint, level?: HeadingLevel) => ({

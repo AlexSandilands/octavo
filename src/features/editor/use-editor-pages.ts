@@ -26,8 +26,8 @@ import { arrayMove } from "@dnd-kit/sortable";
 import type { DragEndEvent } from "@dnd-kit/core";
 import { pageFillsCanvas } from "@/features/blocks/layout";
 import { setCoverBackground, withCoverStyle } from "./cover-layout";
-import { moveBlockAcrossPages } from "./move-block";
-import { flowTextBlock, moveBlockToNextPage } from "./text-flow";
+import { dropInColumn, moveBlockAcrossPages, stepBlock } from "./move-block";
+import { flowTextBlock, moveBlockToNextPage, type FlowPlan } from "./text-flow";
 import {
   changedBlockIds,
   useEditorHistory,
@@ -243,22 +243,15 @@ export function useEditorPages(
       return;
     }
     const blocks = pages[curPage]?.blocks ?? [];
-    const i = blocks.findIndex((b) => b.id === id);
-    const j = i + dir;
-    if (i < 0) return;
+    const next = stepBlock(blocks, id, dir);
+    if (!next) return;
     // Off the page's edge: the end of the page before, or the top of the page after.
-    if (j < 0 || j >= blocks.length) {
+    if (next === "across") {
       moveAcross(id, curPage + dir, dir < 0 ? "end" : "start");
       return;
     }
     commit();
-    editPage((p) => {
-      const arr = [...p.blocks];
-      const a = arr[i]!;
-      arr[i] = arr[j]!;
-      arr[j] = a;
-      return { ...p, blocks: arr };
-    });
+    editPage((p) => ({ ...p, blocks: next }));
   };
 
   const onDragEnd = (e: DragEndEvent) => {
@@ -276,7 +269,14 @@ export function useEditorPages(
     const to = blocks?.findIndex((b) => b.id === over.id) ?? -1;
     if (from < 0 || to < 0) return;
     commit();
-    editPage((p) => ({ ...p, blocks: arrayMove(p.blocks, from, to) }));
+    editPage((p) => ({
+      ...p,
+      blocks: dropInColumn(
+        arrayMove(p.blocks, from, to),
+        String(active.id),
+        String(over.id),
+      ),
+    }));
   };
 
   const removeBlock = (id: string) => {
@@ -290,8 +290,8 @@ export function useEditorPages(
   // continuation blocks on the pages that follow, created as needed. One state
   // value out, so the shrink, the new blocks and the new pages autosave together
   // as a single document — a half-applied split can never reach the DB.
-  const flowText = (id: string, cuts: number[]) => {
-    const next = flowTextBlock(pages, curPage, id, cuts);
+  const flowText = (id: string, plan: FlowPlan) => {
+    const next = flowTextBlock(pages, curPage, id, plan.cuts, plan.landing);
     if (!next) return;
     commit();
     setPages(next);

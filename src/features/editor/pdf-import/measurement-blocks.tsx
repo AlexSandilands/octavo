@@ -1,6 +1,7 @@
 import type { Block } from "@/lib/blocks";
 import { BlockView } from "@/features/blocks/block-view";
 import { blockFlowStyle } from "@/features/blocks/layout";
+import { flowBlocks } from "@/features/blocks/page-content";
 import type { MeasurementOptions } from "./measure";
 
 /** Editor presentation includes editable empty kickers/captions as real space. */
@@ -16,13 +17,13 @@ export function MeasurementBlocks({
 }) {
   return (
     <div className="relative flow-root">
-      {blocks.map((block) => (
+      {flowBlocks(blocks, (block, column) => (
         <div
           key={block.id}
           data-reader-block
           data-block-id={ids ? block.id : undefined}
           className="relative"
-          style={blockFlowStyle(block)}
+          style={blockFlowStyle(block, false, Boolean(column))}
         >
           <BlockView
             block={block}

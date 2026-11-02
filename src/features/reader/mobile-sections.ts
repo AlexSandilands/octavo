@@ -1,5 +1,6 @@
 import type { Block, Page } from "@/lib/blocks";
 import { pageFillsCanvas } from "@/features/blocks/layout";
+import { readingOrder } from "@/lib/page-bands";
 
 // The mobile column, divided (issue #221): one section per authored page, empty
 // pages dropped. `divided` means the page break — a band of canvas between two
@@ -26,7 +27,8 @@ export function readerSections(pages: Page[]): ReaderSection[] {
     sections.push({
       id: page.id,
       cover,
-      blocks: page.blocks,
+      // A two-column band reads down its left column, then its right.
+      blocks: cover ? page.blocks : readingOrder(page.blocks),
       // A photo-owned page (#227) is always a page of its own, so it is banded
       // either side — it has no heading for startsRun to find.
       divided:

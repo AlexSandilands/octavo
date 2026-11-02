@@ -9,7 +9,6 @@ import {
 } from "@/lib/blocks";
 import { createId } from "@/lib/id";
 import { markdownToDoc } from "@/lib/markdown-doc";
-import { richDocBlocks, sliceRichDoc } from "@/lib/rich-text-split";
 import { stringToDoc, type RichTextValue } from "@/lib/rich-text-doc";
 import {
   aiToolSchemas,
@@ -19,11 +18,11 @@ import {
   type AiToolName,
 } from "@/lib/ai-tools";
 import type { AiCoverToolName } from "@/lib/ai-cover-tools";
-import { planTextFlow } from "../text-flow";
-import { describeFill } from "./page-fill";
 import type { EditMeasurer } from "./page-report";
 import { placePlan } from "./plan-sections";
 import { refuse } from "./refusal";
+import { editable, ownedByPhoto } from "./page-guards";
+import { splitPage } from "./split-page";
 import { carryPaint, choosePaint, styleWords } from "./text-styling";
 
 // The assistant's page edits (#310), lifted from the spike's executor: intent
@@ -74,23 +73,6 @@ function find(pages: Page[], id: string): Found {
   );
 }
 
-function editable(pages: Page[], pageIdx: number): Page {
-  const page =
-    pages[pageIdx] ??
-    refuse(
-      `there is no page ${pageIdx + 1}; the issue has ${pages.length} pages`,
-    );
-  if (page.cover)
-    refuse(
-      `page ${pageIdx + 1} is a cover; use the cover tools (set_masthead, add_story, place_cover_item, style_cover_item …) for it`,
-    );
-  return page;
-}
-
-const ownedByPhoto = (page: Page, pageNo: number) =>
-  page.blocks.some(isPageOwning) &&
-  refuse(`page ${pageNo} is a full-page photo; nothing else can go on it`);
-
 const richDoc = (v: RichTextValue) =>
   typeof v === "string" ? stringToDoc(v) : v;
 
@@ -115,6 +97,10 @@ function withSize(block: Block, size?: TextSize): Block {
   return next;
 }
 
+/** The stored field for a text column: full is the absence of one. */
+const columnField = (column?: "full" | "left" | "right") =>
+  column && column !== "full" ? { column } : {};
+
 const notesLine = (notes: string[]) =>
   notes.length ? ` Note: ${notes.join("; ")}.` : "";
 
@@ -137,6 +123,7 @@ function buildBlock(
     block = {
       ...makeBlock("text", item.size ?? ctx.defaultTextSize),
       text: md.doc,
+      ...columnField(item.column),
     } as Block;
   } else {
     if (!ctx.photos.has(item.imageId))
@@ -171,64 +158,6 @@ function resolveAnchor(
   const at = find(pages, after.blockId);
   ownedByPhoto(editable(pages, at.pageIdx), at.pageIdx + 1);
   return [at.pageIdx, at.blockIdx + 1];
-}
-
-/**
- * The editor's overflow fix, run on the page the model names: the first block
- * past the text area is split between top-level nodes (`planTextFlow`, from
- * the measured layout) or, when it can't be, carried whole. Everything after it
- * goes with it, so the reading order holds; a heading left at the foot of the
- * page goes too.
- */
-async function splitPage(ctx: EditContext, pageIdx: number) {
-  const page = editable(ctx.pages, pageIdx);
-  ownedByPhoto(page, pageIdx + 1);
-  const report = await ctx.measure.report(page);
-  const at = report.overflowAt;
-  if (!at)
-    return refuse(
-      `page ${pageIdx + 1} already fits (${describeFill(report.fill)}); nothing to split`,
-    );
-  const i = page.blocks.findIndex((b) => b.id === at.blockId);
-  const cross = page.blocks[i]!;
-  let keep = page.blocks.slice(0, i);
-  let carried: Block[][] = [page.blocks.slice(i)];
-
-  const nodes = cross.type === "text" ? richDocBlocks(cross.text) : [];
-  if (cross.type === "text" && nodes.length > 1) {
-    const metrics = await ctx.measure.textFlow([...keep, cross], cross.id);
-    const cuts = metrics ? planTextFlow(metrics) : [];
-    if (cuts.length) {
-      const bounds = [0, ...cuts, nodes.length];
-      keep = [...keep, { ...cross, text: sliceRichDoc(nodes, 0, cuts[0]!) }];
-      carried = cuts.map((_, c) => [
-        {
-          ...cross,
-          id: createId(),
-          text: sliceRichDoc(nodes, bounds[c + 1]!, bounds[c + 2]!),
-        },
-      ]);
-      carried.at(-1)!.push(...page.blocks.slice(i + 1));
-    }
-  }
-  while (keep.length > 1 && keep.at(-1)!.type === "heading")
-    carried[0]!.unshift(keep.pop()!);
-  if (!keep.length)
-    refuse(
-      `page ${pageIdx + 1}'s first block doesn't fit a page on its own; shorten it or move it`,
-    );
-  if (ctx.pages.length + carried.length > MAX_PAGES)
-    refuse(`an issue can have at most ${MAX_PAGES} pages`);
-
-  const added = carried.map((blocks) => ({ id: createId(), blocks }));
-  const next = [...ctx.pages];
-  next.splice(pageIdx, 1, { ...page, blocks: keep }, ...added);
-  const moved = carried.flat().length;
-  return {
-    pages: next,
-    text: `Moved ${moved === 1 ? "1 block" : `${moved} blocks`} onto ${added.length === 1 ? `a new page ${pageIdx + 2}` : `new pages ${pageIdx + 2}–${pageIdx + 1 + added.length}`}; later pages renumbered.`,
-    report: [page.id, ...added.map((p) => p.id)],
-  };
 }
 
 /** Apply one editing tool to the page list. Arguments are parsed here. */
@@ -389,6 +318,27 @@ export async function applyEdit(
     }
     case "propose_sections":
       return placePlan(ctx, aiToolSchemas.propose_sections.parse(input));
+    case "set_text_layout": {
+      const a = aiToolSchemas.set_text_layout.parse(input);
+      const at = find(pages, a.blockId);
+      editable(pages, at.pageIdx);
+      if (at.block.type !== "text")
+        return refuse(`block ${a.blockId} is a ${at.block.type}, not text`);
+      const column = a.column === "full" ? undefined : a.column;
+      const text = { ...at.block, column } as Block;
+      return {
+        pages: withBlocks(
+          pages,
+          at.pageIdx,
+          at.page.blocks.map((b, i) => (i === at.blockIdx ? text : b)),
+        ),
+        text:
+          a.column === "full"
+            ? "Set the text to span the page."
+            : `Set the text in the ${a.column} column.`,
+        report: [at.page.id],
+      };
+    }
     case "set_image_text": {
       const a = aiToolSchemas.set_image_text.parse(input);
       if (a.alt === undefined && a.caption === undefined)

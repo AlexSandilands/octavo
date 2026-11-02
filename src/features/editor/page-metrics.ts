@@ -160,17 +160,46 @@ export function measureTextFlow(
 
   const blockTop = offsetWithin(block, geo.page);
   if (blockTop === null) return null;
+  const blockBottom = blockTop + block.offsetHeight;
+  const pageBottom = geo.contentTop + container.offsetHeight;
+  const column = block.closest<HTMLElement>("[data-band-column]");
+  const band = column?.closest<HTMLElement>("[data-band]");
+  const bottomOf = (el: HTMLElement) => {
+    const top = offsetWithin(el, geo.page);
+    return top === null ? null : top + el.offsetHeight;
+  };
+
   // Whatever sits below this block on the page (its own gap, then any following
   // blocks) keeps its height when the text shrinks, so reserve it up front —
   // otherwise the flow would just push the block below off the page instead.
-  const tailReserve = Math.max(
-    0,
-    geo.contentTop + container.offsetHeight - (blockTop + block.offsetHeight),
-  );
+  // In a band (aboard #23) that is the rest of its column, then what follows
+  // the band.
+  let tailReserve = pageBottom - blockBottom;
+  let rightAvail: number | undefined;
+  if (column && band) {
+    const columnBottom = bottomOf(column);
+    const bandBottom = bottomOf(band);
+    if (columnBottom === null || bandBottom === null) return null;
+    const belowBand = pageBottom - bandBottom;
+    tailReserve = columnBottom - blockBottom + belowBand;
+    const right = band.querySelector<HTMLElement>('[data-band-column="right"]');
+    const rightBottom = right && bottomOf(right);
+    if (column.dataset.bandColumn === "left" && rightBottom != null) {
+      // A continuation topping the right column brings this block's own
+      // chrome (padding above and below the text, and its gap) with it.
+      const chrome =
+        nodes[0]!.top -
+        blockTop +
+        (blockBottom - nodes.at(-1)!.bottom) +
+        parseFloat(getComputedStyle(block).marginBottom || "0");
+      rightAvail = geo.limit - rightBottom - belowBand - chrome;
+    }
+  }
 
   return {
     nodes,
-    firstAvail: geo.limit - nodes[0]!.top - tailReserve,
+    firstAvail: geo.limit - nodes[0]!.top - Math.max(0, tailReserve),
     restAvail: geo.limit - geo.contentTop,
+    ...(rightAvail === undefined ? {} : { rightAvail }),
   };
 }

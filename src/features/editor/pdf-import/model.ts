@@ -42,6 +42,8 @@ export type Region = Box & {
     /** The detected editor size (a block `width`), set once the page's regions are all known. */
     column?: number;
   };
+  /** The source column it sits in on a two-column page (aboard #23). */
+  side?: "left" | "right";
   /** The grouped source lines, kept so a region can be split with real geometry. */
   lines?: Run[][];
   warning?: string;

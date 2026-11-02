@@ -38,7 +38,7 @@ export function reviewItem(
           imageId: id,
           caption: "",
           alt: "",
-          align: "full",
+          align: region.side ?? "full",
           width: width ?? region.image?.column ?? 100,
         }
       : as === "heading"
@@ -55,6 +55,7 @@ export function reviewItem(
             text: region.doc,
             size: region.size,
             align: region.align,
+            ...(region.side ? { column: region.side } : {}),
           };
   return {
     id,

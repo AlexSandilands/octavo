@@ -4,6 +4,7 @@ import type { AskHandler } from "./assistant/presets";
 import { useEffect, useEffectEvent, type RefObject } from "react";
 import {
   SortableContext,
+  rectSortingStrategy,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import type { Page } from "@/lib/blocks";
@@ -24,6 +25,7 @@ import { useCanvasPanZoom } from "@/features/blocks/use-canvas-pan-zoom";
 import { CoverOverlayControls } from "./cover-overlay-controls";
 import { coverSortingStrategy } from "./cover-sorting";
 import { EditorPageContent } from "./editor-page-content";
+import { hasBands } from "@/lib/page-bands";
 import { useCoverLayoutWarnings } from "./use-cover-layout-warnings";
 import {
   INSPECTOR_RESERVE,
@@ -290,7 +292,10 @@ export function EditorStage({
                 strategy={
                   page?.cover
                     ? coverSortingStrategy(page, scale)
-                    : verticalListSortingStrategy
+                    : // Two columns side by side aren't one vertical list.
+                      page && hasBands(page.blocks)
+                      ? rectSortingStrategy
+                      : verticalListSortingStrategy
                 }
               >
                 {page && (

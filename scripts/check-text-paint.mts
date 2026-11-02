@@ -38,7 +38,7 @@ const p = (...content: unknown[]) =>
 const green = { type: "paint", attrs: { color: "green", font: null } };
 
 heading("the content model");
-ok(CONTENT_VERSION === 11, "content version 11");
+ok(CONTENT_VERSION >= 11, "content version 11 or later");
 {
   const parsed = richDocSchema.parse(
     doc(
@@ -151,7 +151,11 @@ heading("splits and the transfer document keep paint");
 }
 
 heading("the tool contract");
-ok(AI_TOOL_NAMES.at(-1) === "style_text", "style_text is declared last");
+ok(
+  AI_TOOL_NAMES.indexOf("style_text") ===
+    AI_TOOL_NAMES.indexOf("propose_sections") + 1,
+  "style_text is declared after the tools before it (the cached order)",
+);
 const refused = (tool: keyof typeof aiToolSchemas, input: unknown) =>
   !aiToolSchemas[tool].safeParse(input).success;
 ok(

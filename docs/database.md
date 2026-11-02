@@ -91,8 +91,18 @@ Block = Heading | Text | Image | Montage | Video | Sponsor  // discriminated uni
 ```
 
 `version` marks which shape of the content model a document holds, so block-shape changes can
-migrate old rows deliberately. **Current version: 11.** Every string field is length-capped and the
+migrate old rows deliberately. **Current version: 12.** Every string field is length-capped and the
 page/block arrays bounded in the zod schemas, so a bad save can't persist an unbounded document.
+
+**Content v12 — two-column text.** A text block gains an optional `column: "left" | "right"`
+(not `placement`, which cover elements use); absent means it spans the page. A run of consecutive
+column blocks forms a **band** (`src/lib/page-bands.ts`): its left blocks stack down the left column
+and its right blocks down the right, each in document order, and any other block ends it. A
+left/right photo, slideshow or video inside a band takes its column (its width a share of the
+column); one with no column text in its run keeps today's float-and-wrap, so no earlier issue
+changes. The phone reader reads a band's left column, then its right. Interior pages only — covers
+ignore the field. Seed issue 3's “Notices” page sets its four notices in two columns under a
+full-width heading. Checked by `scripts/check-text-columns.mts`.
 
 **Content v11 — colour and typeface on interior text.** Body text gains a `paint` mark
 (`{ type: "paint", attrs: { color?, font? } }`) and a heading an optional `paint: { color?, font? }`

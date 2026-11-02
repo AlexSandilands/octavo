@@ -56,6 +56,12 @@ const width = z
   .min(20)
   .max(100)
   .describe("Percent of the column width (35–50 suits a wrapped photo).");
+// Two-column text (content v12): consecutive left/right text blocks share a band.
+const textColumn = z
+  .enum(["full", "left", "right"])
+  .describe(
+    "full = spans the page; left/right = that column of a two-column band (consecutive left and right text blocks sit side by side).",
+  );
 const anchor = z
   .union([z.object({ blockId }).strict(), z.object({ page: pageNo }).strict()])
   .describe(
@@ -76,6 +82,7 @@ export const aiInsertItemSchema = z.discriminatedUnion("kind", [
       kind: z.literal("text"),
       markdown: markdown.min(1),
       size: textSize.optional(),
+      column: textColumn.optional(),
     })
     .strict(),
   z
@@ -226,6 +233,7 @@ export const aiToolSchemas = {
       font: textFont.optional(),
     })
     .strict(),
+  set_text_layout: z.object({ blockId, column: textColumn }).strict(),
 } as const;
 
 /** Views (pages and photos together) per run; the next one is refused. */
@@ -239,7 +247,7 @@ export const aiToolDescriptions: Record<AiToolName, string> = {
   set_heading:
     'Change a heading\'s title, level and (optionally) kicker, and the title\'s colour and typeface. Omit kicker, color or font to keep them; pass "" to remove the kicker, "theme" to return the colour or font to the theme\'s.',
   insert_blocks:
-    "Insert new blocks, in order, after a block or at the top of a page. Headings take a title and level; text takes markdown and an optional size (s, m, l, xl; omit for the magazine's default); images take the id of a photo uploaded to the issue, with optional align (default full), width (default 100 for full, 45 for left/right), caption and alt.",
+    "Insert new blocks, in order, after a block or at the top of a page. Headings take a title and level; text takes markdown, an optional size (s, m, l, xl; omit for the magazine's default) and an optional column (full, left, right; default full); images take the id of a photo uploaded to the issue, with optional align (default full), width (default 100 for full, 45 for left/right), caption and alt.",
   delete_block: "Delete a block.",
   move_block:
     "Move a block to after another block, or to the top of a page. Works across pages.",
@@ -261,6 +269,8 @@ export const aiToolDescriptions: Record<AiToolName, string> = {
 The line in capitals is the headline, never the kicker. The sentence under it is the standfirst, never the headline. That article has no kicker, so the plan has none: give one only when the author wrote a short label on its own line above the headline, and never make one up, not even to match the issue's other pages. Photos: an issue photo's id, placed after the standfirst or after a body paragraph; without an id it is only a suggestion, reported to the author.`,
   style_text:
     "Colour and/or set in another typeface some words of a text block (match, every occurrence) or the whole block (no match). Give color, font or both; \"theme\" returns that choice to the theme's. read_page lists a block's styled words. Keep body text readable: dark colours on the page, a colour for emphasis rather than whole articles. Headings take color and font through set_heading.",
+  set_text_layout:
+    "Set a text block to span the page (full) or sit in the left or right column of a two-column band. Consecutive left and right blocks form one band: the left ones stack down the left column and the right ones down the right, and any other block (a heading, a full-width photo) ends it, so a heading above a band spans both columns. A left or right photo inside a band takes that column's width. Use columns only when the editor asks.",
 };
 
 /** Tools that only read; every other tool edits the issue. */

@@ -10,6 +10,7 @@ import { pageFillsCanvas } from "@/features/blocks/layout";
 import { stringToDoc, type RichDoc } from "@/lib/rich-text-doc";
 import { cutParagraph, paragraphLength } from "./synthesis";
 import { checkAbort } from "./model";
+import { textColumn, type Column } from "@/lib/page-bands";
 
 type TextBlock = Extract<Block, { type: "text" }>;
 /** Why a batch couldn't be placed; each caller words it for its own surface. */
@@ -80,6 +81,47 @@ async function splitText(
     candidate([left]),
     { ...candidate([right, ...doc.content.slice(1)]), id: createId() },
   ];
+}
+
+/** A side picture, or column text: the blocks a band is made of. */
+function sideOf(block: Block): Column | null {
+  if (block.type === "text") return block.column ?? null;
+  return (block.type === "image" ||
+    block.type === "montage" ||
+    block.type === "video") &&
+    (block.align === "left" || block.align === "right")
+    ? block.align
+    : null;
+}
+
+/** The column the queue's next block fills, when it is part of a band. */
+function columnSide(
+  block: Block,
+  placed: Block[],
+  queue: { block: Block }[],
+): Column | null {
+  const side = sideOf(block);
+  if (!side) return null;
+  const run: Block[] = [];
+  for (const q of queue) {
+    if (!sideOf(q.block)) break;
+    run.push(q.block);
+  }
+  for (let i = placed.length - 1; i >= 0 && sideOf(placed[i]!); i--)
+    run.push(placed[i]!);
+  return run.some((b) => textColumn(b)) ? side : null;
+}
+
+/** Retag the queue's leading run of band blocks into `side`. */
+function moveRun(queue: { block: Block }[], side: Column) {
+  for (const q of queue) {
+    const from = sideOf(q.block);
+    if (!from) break;
+    q.block =
+      q.block.type === "text"
+        ? { ...q.block, column: side }
+        : ({ ...q.block, align: side } as Block);
+  }
 }
 
 /**
@@ -179,15 +221,28 @@ export async function paginateImport({
       queue.shift();
       continue;
     }
+    // A column block that overflows (aboard #23): the left column carries on
+    // at the top of the right one, the right one on the next page's left.
+    const side = columnSide(next.block, current.blocks, queue);
     if (next.block.type === "text") {
       const split = await splitText(next.block, current.blocks, fits);
       if (split) {
         append(split[0], next.origin);
         queue[0] = { block: split[1], origin: next.origin };
+        if (side === "left") {
+          moveRun(queue, "right");
+          continue;
+        }
+        if (side === "right") moveRun(queue, "left");
         finish();
         continue;
       }
     }
+    if (side === "left" && current.blocks.length) {
+      moveRun(queue, "right");
+      continue;
+    }
+    if (side === "right") moveRun(queue, "left");
     if (current.blocks.length) {
       finish();
       continue;
