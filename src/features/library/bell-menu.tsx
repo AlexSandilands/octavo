@@ -1,6 +1,7 @@
 "use client";
 
 import type { KeyboardEvent, MouseEvent, RefObject } from "react";
+import { RELOAD_LABEL, STALE_NOTICE } from "@/lib/stale-action";
 import { fullDate } from "@/features/discussion/relative-time";
 import type { BellItem } from "./bell-items";
 
@@ -16,6 +17,7 @@ export function BellMenu({
   ref,
   items,
   unread,
+  stale,
   when,
   onChoose,
   onMarkAll,
@@ -24,6 +26,8 @@ export function BellMenu({
   ref: RefObject<HTMLDivElement | null>;
   items: BellItem[];
   unread: number;
+  /** Mark all read failed on an outdated page: the foot says to reload. */
+  stale: boolean;
   when: (iso: string) => string;
   onChoose: (item: BellItem) => void;
   onMarkAll: () => void;
@@ -119,15 +123,26 @@ export function BellMenu({
       )}
       {items.length > 0 && (
         <div className="border-line-soft border-t p-1">
+          {stale && (
+            // The bell's status region announces it once; this is the sighted copy.
+            <p
+              aria-hidden
+              className="text-warn px-2.5 py-2 font-sans text-[14px] leading-snug"
+            >
+              {STALE_NOTICE}
+            </p>
+          )}
           <button
             type="button"
             role="menuitem"
             tabIndex={-1}
-            aria-disabled={unread === 0}
-            onClick={() => unread > 0 && onMarkAll()}
+            aria-disabled={!stale && unread === 0}
+            onClick={() =>
+              stale ? window.location.reload() : unread > 0 && onMarkAll()
+            }
             className={`${row} text-accent items-center justify-center text-[14px] font-semibold aria-disabled:text-faint aria-disabled:cursor-default aria-disabled:hover:bg-transparent`}
           >
-            Mark all read
+            {stale ? RELOAD_LABEL : "Mark all read"}
           </button>
         </div>
       )}

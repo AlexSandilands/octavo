@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { isStaleAction } from "@/lib/stale-action";
 import {
   removalImpactAction,
   type RemovalImpactResult,
 } from "@/app/admin/members/actions";
+
+type NoteImpact = RemovalImpactResult | { ok: false; stale?: boolean };
 
 // The line a removal confirmation adds about the member's comments (issue
 // #302): how many there are and what the removed-member setting will do with
@@ -18,13 +21,16 @@ export function RemovalCommentsNote({
   /** Bulk wording ("None of them…") rather than one member's. */
   many: boolean;
 }) {
-  const [impact, setImpact] = useState<RemovalImpactResult | null>(null);
+  const [impact, setImpact] = useState<NoteImpact | null>(null);
 
   useEffect(() => {
     let live = true;
     removalImpactAction(ids)
       .then((result) => live && setImpact(result))
-      .catch(() => live && setImpact({ ok: false }));
+      .catch(
+        (error) =>
+          live && setImpact({ ok: false, stale: isStaleAction(error) }),
+      );
     return () => {
       live = false;
     };
@@ -40,9 +46,13 @@ export function RemovalCommentsNote({
   );
 }
 
-function sentence(impact: RemovalImpactResult | null, many: boolean) {
+function sentence(impact: NoteImpact | null, many: boolean) {
   if (!impact) return "Checking their comments…";
-  if (!impact.ok) return "Their comments couldn’t be counted just now.";
+  if (!impact.ok) {
+    return "stale" in impact && impact.stale
+      ? "The site was updated while this page was open, so their comments couldn’t be counted. Reload the page before removing anyone."
+      : "Their comments couldn’t be counted just now.";
+  }
   const n = impact.comments;
   if (n === 0) {
     return many

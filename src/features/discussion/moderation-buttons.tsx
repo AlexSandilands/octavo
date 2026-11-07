@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { StaleActionNotice } from "@/components/stale-action-notice";
+import { failureFrom } from "@/lib/stale-action";
 import type { WriteResult } from "@/lib/comments";
 import type { ThreadComment } from "@/lib/discussion-thread";
 import { DELETE_COMMENT } from "@/lib/moderation-copy";
@@ -9,8 +11,6 @@ import { ActionButton } from "./action-button";
 
 export type ModerationAction = "hide" | "unhide" | "delete";
 export type Moderate = (action: ModerationAction) => Promise<WriteResult>;
-
-const FAILED = "That didn’t go through. Please try again.";
 
 // An admin's Hide / Unhide and Delete in the thread (issue #302). Hiding can be
 // undone, so it acts at once — one button whose label flips, so focus stays on
@@ -25,16 +25,16 @@ export function ModerationButtons({
 }) {
   const [confirming, setConfirming] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
+  const [stale, setStale] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const act = (action: ModerationAction) => {
     if (pending) return;
     setFailed(null);
+    setStale(false);
     startTransition(async () => {
-      const result = await onModerate(action).catch(() => ({
-        ok: false as const,
-        reason: FAILED,
-      }));
+      const result = await onModerate(action).catch((e) => failureFrom(e));
+      setStale(!result.ok && "stale" in result);
       if (result.ok) setConfirming(false);
       else setFailed(result.reason);
     });
@@ -54,6 +54,7 @@ export function ModerationButtons({
         <ActionButton
           onClick={() => {
             setFailed(null);
+            setStale(false);
             setConfirming(true);
           }}
           label={`Delete ${about}`}
@@ -61,10 +62,15 @@ export function ModerationButtons({
           Delete
         </ActionButton>
       )}
-      {failed && !confirming && (
-        <p role="alert" className="text-warn basis-full px-2 text-[14px]">
-          {failed}
-        </p>
+      {stale && !confirming ? (
+        <StaleActionNotice className="basis-full px-2" />
+      ) : (
+        failed &&
+        !confirming && (
+          <p role="alert" className="text-warn basis-full px-2 text-[14px]">
+            {failed}
+          </p>
+        )
       )}
       {confirming && (
         <ConfirmDialog
@@ -72,10 +78,14 @@ export function ModerationButtons({
           body={
             <>
               {DELETE_COMMENT.body} This can’t be undone.
-              {failed && (
-                <span role="alert" className="text-warn mt-2.5 block">
-                  {failed}
-                </span>
+              {stale ? (
+                <StaleActionNotice className="mt-2.5" />
+              ) : (
+                failed && (
+                  <span role="alert" className="text-warn mt-2.5 block">
+                    {failed}
+                  </span>
+                )
               )}
             </>
           }
@@ -84,6 +94,7 @@ export function ModerationButtons({
           onClose={() => {
             setConfirming(false);
             setFailed(null);
+            setStale(false);
           }}
           onConfirm={() => act("delete")}
         />

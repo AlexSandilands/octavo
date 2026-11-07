@@ -2,7 +2,9 @@
 
 import { useId, useRef, useState, useTransition } from "react";
 import { DialogShell } from "@/components/dialog-shell";
+import { StaleActionNotice } from "@/components/stale-action-notice";
 import { Button, IconButton } from "@/components/ui";
+import { isStaleAction } from "@/lib/stale-action";
 import {
   REPORT_NOTE_MAX,
   REPORT_REASONS,
@@ -12,8 +14,8 @@ import {
 import { reportCommentAction } from "@/app/read/[issueId]/actions";
 
 // Report someone else's comment (issue #301): a reason, an optional note, and
-// always a thank-you — whether or not it was a duplicate, it never fails
-// visibly (epic #298). Rendered inside the discussion panel, so it stacks over
+// a thank-you whether or not it was a duplicate (epic #298) — but never when
+// the call itself didn't reach the server, so a report isn't silently dropped. Rendered inside the discussion panel, so it stacks over
 // the drawer or sheet and hands the keyboard back when it closes.
 export function ReportDialog({
   commentId,
@@ -28,6 +30,8 @@ export function ReportDialog({
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  const [stale, setStale] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [pending, startTransition] = useTransition();
   const doneRef = useRef<HTMLButtonElement>(null);
   const noteId = useId();
@@ -38,12 +42,22 @@ export function ReportDialog({
       setError("Choose a reason.");
       return;
     }
+    setError(null);
+    setStale(false);
+    setFailed(false);
     startTransition(async () => {
-      await reportCommentAction({
-        commentId,
-        reason,
-        note: note.trim() === "" ? null : note,
-      }).catch(() => null);
+      try {
+        await reportCommentAction({
+          commentId,
+          reason,
+          note: note.trim() === "" ? null : note,
+        });
+      } catch (err) {
+        // An outdated page: only a reload files it (#403).
+        if (isStaleAction(err)) setStale(true);
+        else setFailed(true);
+        return;
+      }
       setSent(true);
       requestAnimationFrame(() => doneRef.current?.focus());
     });
@@ -135,6 +149,15 @@ export function ReportDialog({
                 onChange={(e) => setNote(e.target.value)}
                 className="text-ink border-line mt-2 w-full resize-none rounded-lg border-[1.5px] bg-white px-3.5 py-2.5 font-sans text-[16px]"
               />
+              {stale && <StaleActionNotice typed className="mt-3" />}
+              {failed && (
+                <p
+                  role="alert"
+                  className="text-warn mt-3 font-sans text-[14px]"
+                >
+                  That didn’t go through. Please try again.
+                </p>
+              )}
               <div className="mt-5 flex justify-end gap-1">
                 <Button
                   variant="quiet"

@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { StaleActionNotice } from "@/components/stale-action-notice";
 import { Button } from "@/components/ui";
+import { isStaleAction } from "@/lib/stale-action";
 import type { TextSize } from "@/lib/blocks";
 import {
   resolveSettings,
@@ -80,7 +82,7 @@ function toStored(form: SettingsForm): StoredSettings {
   };
 }
 
-type Status = "idle" | "saving" | "saved" | "error";
+type Status = "idle" | "saving" | "saved" | "error" | "stale";
 
 export function MagazineSettings({
   stored,
@@ -125,6 +127,11 @@ export function MagazineSettings({
       // revalidate; refresh so this page's own server data matches too.
       router.refresh();
     } catch (err) {
+      // An outdated page can't save: reload, don't retry (#403).
+      if (isStaleAction(err)) {
+        setStatus("stale");
+        return;
+      }
       console.error("Saving magazine settings failed", err);
       setStatus("error");
     }
@@ -164,10 +171,13 @@ export function MagazineSettings({
                       Couldn&rsquo;t save. Please try again.
                     </span>
                   )}
-                  {status !== "error" && dirty && (
+                  {status !== "error" && status !== "stale" && dirty && (
                     <span className="text-faint">Unsaved changes.</span>
                   )}
                 </p>
+                {status === "stale" && (
+                  <StaleActionNotice className="basis-full" />
+                )}
               </div>
             }
           />
