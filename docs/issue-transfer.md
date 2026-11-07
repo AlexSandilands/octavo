@@ -100,8 +100,10 @@ would make a manifest the importer refuses.
 
 ### What a new draft gets
 
-Fresh id, no number, `revision` 0, no `publishedAt`, whatever the source status. **No
-email is ever sent by an import.** The footer reserve comes from the bundle, held to
+Fresh id, no number, `revision` 0, no `publishedAt`, whatever the source status. No
+version history either: an export carries the current pages only, and an imported
+draft starts its history afresh (aboard #51). **No email is ever sent by an
+import.** The footer reserve comes from the bundle, held to
 the caps in `src/lib/branding.ts`. Page, block, heading and story-item ids are
 untouched — they are internal to the document, so cover Story links keep resolving.
 

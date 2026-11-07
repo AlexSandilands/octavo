@@ -25,6 +25,13 @@ const ICONS: Record<string, ReactNode> = {
       <path d="M4 7l8 6 8-6" />
     </>
   ),
+  // A clock face — the editor's version history (aboard #51).
+  history: (
+    <>
+      <circle cx="12" cy="12" r="8" />
+      <path d="M12 8v4l2.5 2.5" />
+    </>
+  ),
   refresh: <path d="M20 11a8 8 0 10-2.3 5.6M20 11V5m0 6h-6" />,
   undo: <path d="M9 8l-4 4 4 4M5 12h8.5a4.5 4.5 0 010 9H11" />,
   redo: <path d="M15 8l4 4-4 4M19 12h-8.5a4.5 4.5 0 000 9H13" />,
