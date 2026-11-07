@@ -78,8 +78,9 @@ try {
   const aliceName = await f.name(alice.id, `${f.stamp} Alice name`);
   const bobName = await f.name(bob.id, `${f.stamp} Bob name`);
   const issueId = await f.issue();
-  const [{ number }] =
-    await sql`select number from issues where id = ${issueId}`;
+  const number = (
+    await sql`select number from issues where id = ${issueId}`
+  )[0]!.number as number;
   const aliceComment = await f.comment(
     issueId,
     alice,
