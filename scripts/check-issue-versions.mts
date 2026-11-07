@@ -160,6 +160,34 @@ ok(
   "a later streak, after the window, keeps its own version",
 );
 
+// The incident: 20 pages deleted one autosave a minute for 12 minutes. The
+// pre-deletion copy is kept once and stays; at most one more joins per window.
+{
+  const kept: { at: number; pages: number; reason: string }[] = [
+    { at: -30 * MIN, pages: 20, reason: "session" },
+  ];
+  for (let i = 1; i <= 12; i += 1) {
+    const at = i * MIN;
+    const newest = kept[kept.length - 1]!;
+    const reason = versionReason({
+      now: new Date(now.getTime() + at),
+      lastSavedAt: new Date(now.getTime() + at - MIN),
+      newestVersionAt: new Date(now.getTime() + newest.at),
+      newestCounts: { pages: newest.pages, blocks: newest.pages * 4 },
+      newestReason: newest.reason as never,
+      issueCreatedAt: ago(24 * 60 * MIN),
+      revisionKept: false,
+      before: { pages: 21 - i, blocks: (21 - i) * 4 },
+      after: { pages: 20 - i, blocks: (20 - i) * 4 },
+    });
+    if (reason) kept.push({ at, pages: 21 - i, reason });
+  }
+  ok(
+    kept.length <= 3 && kept[0]!.pages === 20,
+    `12 single-page deletes a minute apart keep ${kept.length - 1} more version(s), not 12`,
+  );
+}
+
 // Dedupe: a revision already kept is never kept twice.
 ok(
   versionReason(
