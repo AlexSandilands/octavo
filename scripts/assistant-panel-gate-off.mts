@@ -26,8 +26,8 @@ export async function checkOff(d: {
     els.map((el) => el.textContent?.trim()),
   );
   ok(
-    choices.join() === "Import PDF",
-    `the panel offers Import PDF alone (${choices.join(", ")})`,
+    choices.join() === "Import PDF,History",
+    `the panel offers no Assistant (${choices.join(", ")})`,
   );
   await page.click(PLUS);
   await page.waitForSelector('[role="menu"] [role="menuitem"]');
@@ -35,7 +35,7 @@ export async function checkOff(d: {
     els.map((el) => el.textContent?.trim()),
   );
   ok(
-    items.length === 1 && items[0] === "Import PDF",
+    items.join() === "Import PDF,History",
     `and so does the + menu (${items.join(", ")})`,
   );
   await page.keyboard.press("Escape");

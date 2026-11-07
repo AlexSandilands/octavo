@@ -5,7 +5,7 @@ import { assistantEnabled } from "../assistant/enabled";
 export const PANEL_ID = "editor-side-panel";
 
 /** What the side panel can show: one tab per open surface (#353). */
-export type SurfaceKind = "pdf" | "assistant";
+export type SurfaceKind = "pdf" | "assistant" | "history";
 export type Surface = { id: string; kind: SurfaceKind };
 
 // The assistant is dormant until a deployment sets NEXT_PUBLIC_AI_ASSISTANT (#306).
@@ -21,6 +21,8 @@ export const SURFACES: { kind: SurfaceKind; label: string; icon: IconName }[] =
         ]
       : []),
     { kind: "pdf", label: "Import PDF", icon: "importFile" },
+    // Kept versions of the pages (aboard #51).
+    { kind: "history", label: "History", icon: "history" },
   ];
 
 export const surfaceLabel = (kind: SurfaceKind) =>

@@ -154,15 +154,13 @@ export function Editor({
   } | null>(null);
   const dismissDeleted = useCallback(() => setDeletedPage(null), []);
   const [title, setTitle] = useState(issue.title);
-  // The issue's stored layout theme, normalised to an enabled theme id so the
-  // picker (which offers only enabled themes) and the state stay in sync; an
-  // unknown/disabled stored value degrades to the deployment default.
+  // The stored theme, normalised to an enabled one so the picker and the state
+  // agree; an unknown or disabled value degrades to the deployment default.
   const [themeId, setThemeId] = useState<LayoutThemeId>(
     normaliseEnabledThemeId(issue.theme),
   );
   const themes = enabledThemes();
-  // The issue's footer mark. The picker chooses from the library list; the
-  // canvas previews the choice by resolving it through that same list, so the
+  // The footer mark, resolved through the picker's own library list so the
   // page footer updates the moment it changes — no reload, no second query.
   const [logoId, setLogoId] = useState<string | null>(issue.logoId);
   const logo = logos.find((l) => l.id === logoId)?.image ?? null;
@@ -197,14 +195,15 @@ export function Editor({
   // The page the canvas finds running over, for the assistant's hints (#366).
   const [overPage, setOverPage] = useState<string | null>(null);
 
-  const { status, setStatus, enqueueSave, flushSave } = useEditorAutosave({
-    issueId: issue.id,
-    revision: issue.revision,
-    pages,
-    title,
-    theme: themeId,
-    logoId,
-  });
+  const { status, setStatus, enqueueSave, flushSave, restoreVersion } =
+    useEditorAutosave({
+      issueId: issue.id,
+      revision: issue.revision,
+      pages,
+      title,
+      theme: themeId,
+      logoId,
+    });
   const flows = useEditorFlows({
     issueId: issue.id,
     flushSave,
@@ -474,6 +473,7 @@ export function Editor({
               onAdd={importer.add}
               dropRef={dropRef}
               assistant={assistant.side}
+              restoreVersion={restoreVersion}
             />
           </div>
           <DragOutGhost

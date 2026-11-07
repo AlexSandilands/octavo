@@ -81,14 +81,14 @@ export async function checkSurfaces(d: {
     })),
   );
   ok(
-    choice.map((c) => c.text).join() === "Assistant,Import PDF" &&
+    choice.map((c) => c.text).join() === "Assistant,Import PDF,History" &&
       choice.every((c) => c.height >= 44),
-    "the empty panel offers Assistant and Import PDF as 44px+ buttons",
+    "the empty panel offers Assistant, Import PDF and History as 44px+ buttons",
   );
   ok(
     choice.every((c) => c.disabled === null && c.reason === null) &&
       !(await page.isVisible("[data-cover-inspector]")),
-    "both open on the cover too, where the panel takes the inspector's room",
+    "all open on the cover too, where the panel takes the inspector's room",
   );
   ok(
     await page.evaluate(
@@ -110,11 +110,12 @@ export async function checkSurfaces(d: {
     })),
   );
   ok(
-    items.length === 2 &&
+    items.length === 3 &&
       items[0]?.text === "Assistant" &&
       items[1]?.text === "Import PDF" &&
+      items[2]?.text === "History" &&
       items.every((i) => i.disabled === null),
-    "the menu lists Assistant and Import PDF",
+    "the menu lists Assistant, Import PDF and History",
   );
   ok(
     await page.evaluate(

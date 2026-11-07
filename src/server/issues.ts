@@ -12,7 +12,8 @@ import {
 } from "drizzle-orm";
 import { db } from "@/db";
 import { images, issues } from "@/db/schema";
-import { emptyIssueContent, type IssueContent } from "@/lib/blocks";
+import { issueVersions } from "@/db/schema-versions";
+import { emptyIssueContent } from "@/lib/blocks";
 import type { FooterReserve } from "@/lib/branding";
 import { isUniqueViolation } from "@/lib/db-errors";
 import { collectImageIds } from "@/lib/images";
@@ -24,6 +25,7 @@ import {
   type PagedList,
 } from "@/lib/pagination";
 import { sweepOrphanedObjects, takeOrphanedImages } from "./asset-cleanup";
+import { saveContentKeepingVersions } from "./issue-versions";
 
 // Server-only data access for issues. All callers (server components, server
 // actions) go through here — never query Drizzle from a component.
@@ -237,32 +239,11 @@ export async function createIssue(reserve: FooterReserve) {
   return row;
 }
 
-export type ContentSaveResult =
-  | { ok: true; revision: number }
-  | { ok: false; reason: "conflict" | "missing" };
+export type { ContentSaveResult } from "./issue-versions";
 
-// Optimistic concurrency: the write only lands if the row is still at the
-// revision the caller based its edit on. A stale save (another tab, an
-// out-of-order autosave) gets a conflict instead of silently clobbering.
-export async function updateIssueContent(
-  id: string,
-  content: IssueContent,
-  baseRevision: number,
-): Promise<ContentSaveResult> {
-  const [row] = await db
-    .update(issues)
-    .set({
-      content,
-      revision: sql`${issues.revision} + 1`,
-      updatedAt: new Date(),
-    })
-    .where(and(eq(issues.id, id), eq(issues.revision, baseRevision)))
-    .returning({ revision: issues.revision });
-  if (row) return { ok: true, revision: row.revision };
-
-  const exists = await getIssue(id);
-  return { ok: false, reason: exists ? "conflict" : "missing" };
-}
+// The editor's content write. It lives with the version history (aboard #51),
+// which keeps the pages it overwrites when a version is due.
+export const updateIssueContent = saveContentKeepingVersions;
 
 // Explicit column list — never spread caller input into a SET clause. Drizzle
 // drops undefined values from the SET, so an omitted field is left alone; a
@@ -391,9 +372,16 @@ export async function deleteIssues(ids: string[]): Promise<DeleteIssuesResult> {
       .select({ id: images.id })
       .from(images)
       .where(inArray(images.issueId, doomed));
+    // Their versions go with them (cascade), so what only a version showed is
+    // a candidate too (aboard #51).
+    const versions = await tx
+      .select({ content: issueVersions.content })
+      .from(issueVersions)
+      .where(inArray(issueVersions.issueId, doomed));
     const candidates = [
       ...new Set([
         ...rows.flatMap((row) => collectImageIds(row.content)),
+        ...versions.flatMap((row) => collectImageIds(row.content)),
         ...uploaded.map((row) => row.id),
       ]),
     ];

@@ -3,6 +3,7 @@ import * as Sentry from "@sentry/nextjs";
 import { inArray, isNotNull } from "drizzle-orm";
 import { db } from "@/db";
 import { images, issues, logos, memberNames, sponsors } from "@/db/schema";
+import { issueVersions } from "@/db/schema-versions";
 import { collectImageIds } from "@/lib/images";
 import { deleteByPrefix, deleteObject, usingLocalStorage } from "@/lib/storage";
 
@@ -26,13 +27,15 @@ import { deleteByPrefix, deleteObject, usingLocalStorage } from "@/lib/storage";
 // same transaction that removed the row it is scanning on behalf of.
 export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-// Every image id that anything in the database still points at. Four places
-// can hold a reference and all four are here — an image reachable from any one
+// Every image id that anything in the database still points at. Five places
+// can hold a reference and all five are here — an image reachable from any one
 // of them is in use:
 //   - an issue's `content` block tree: image blocks, montage slides and video
 //     poster frames, which `collectImageIds` is the single traversal for (the
 //     same one that feeds the renderers, so a block type that references an
 //     image is either in both or in neither);
+//   - an issue version's `content` (aboard #51), the same traversal: a version
+//     can be restored, so what it shows must still be there;
 //   - `sponsors.logoId`;
 //   - `logos.imageId`, the club's own marks (issue #92). This is the entry that
 //     must never be forgotten: `logos.imageId` CASCADEs, so deleting a mark's
@@ -57,6 +60,12 @@ export async function collectReferencedImageIds(tx: Tx): Promise<Set<string>> {
   // Sequential, not Promise.all: a transaction owns one connection.
   const documents = await tx.select({ content: issues.content }).from(issues);
   for (const row of documents) {
+    for (const id of collectImageIds(row.content)) referenced.add(id);
+  }
+  const versions = await tx
+    .select({ content: issueVersions.content })
+    .from(issueVersions);
+  for (const row of versions) {
     for (const id of collectImageIds(row.content)) referenced.add(id);
   }
 

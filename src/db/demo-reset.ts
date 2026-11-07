@@ -22,6 +22,7 @@ import {
   sponsors,
   users,
 } from "./schema";
+import { issueVersions } from "./schema-versions";
 import { SEED_OBJECT_KEYS, seedIssues, type SeedDb } from "./seed-issues";
 import {
   deleteSeedObjects,
@@ -37,6 +38,7 @@ try {
 
 const CLEARED: [string, PgTable][] = [
   ["issues", issues],
+  ["issue versions", issueVersions],
   ["comments", comments],
   ["reports", commentReports],
   ["notifications", notifications],

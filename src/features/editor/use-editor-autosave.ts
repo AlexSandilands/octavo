@@ -5,6 +5,13 @@ import type { Page } from "@/lib/blocks";
 import { saveIssue, saveMeta } from "./save-issue";
 import type { SaveStatus } from "./editor-header";
 import { reportEditorError } from "./report-error";
+import { postRestore } from "./history/versions-api";
+import type { RestoreResultJson } from "@/lib/issue-versions";
+
+/** A restore's outcome, or "unsaved" when the edits before it didn't land. */
+export type RestoreOutcome =
+  | RestoreResultJson
+  | { ok: false; reason: "unsaved" };
 
 // The editor's autosave — split out of editor.tsx (issue #222) so the component
 // stays under the size limit. Content and meta are debounced separately, and the
@@ -34,6 +41,8 @@ export function useEditorAutosave({
   const revisionRef = useRef(revision);
   const latestRef = useRef({ pages, title, theme, logoId });
   const chainRef = useRef<Promise<boolean>>(Promise.resolve(true));
+  // Set once a restore lands: the page reloads, and nothing may write before.
+  const frozenRef = useRef(false);
   // Mirrored during render on purpose: a queued save runs on a microtask,
   // which can beat an effect-time mirror to these values.
   // eslint-disable-next-line react-hooks/refs
@@ -43,8 +52,8 @@ export function useEditorAutosave({
 
   const enqueueSave = (kind: "content" | "meta" | "all") => {
     const run = async (): Promise<boolean> => {
-      // After a conflict only a reload makes sense — don't keep writing.
-      if (statusRef.current === "conflict") return false;
+      // After a conflict or a restore only a reload makes sense.
+      if (statusRef.current === "conflict" || frozenRef.current) return false;
       setStatus("saving");
       try {
         const { pages, title, theme, logoId } = latestRef.current;
@@ -126,5 +135,30 @@ export function useEditorAutosave({
      * proceed.
      */
     flushSave: () => enqueueSave("all"),
+    /**
+     * Put a kept version back (aboard #51): the latest edits are saved first and
+     * the restore runs in the same queue, so no autosave lands between them.
+     * On success the editor stops saving; the caller reloads.
+     */
+    restoreVersion: (versionId: string): Promise<RestoreOutcome> => {
+      const next = enqueueSave("all").then(
+        async (saved): Promise<RestoreOutcome> => {
+          if (!saved) return { ok: false, reason: "unsaved" };
+          const result = await postRestore(
+            issueId,
+            versionId,
+            revisionRef.current,
+          );
+          if (result.ok) frozenRef.current = true;
+          else if (result.reason === "conflict") setStatus("conflict");
+          return result;
+        },
+      );
+      chainRef.current = next.then(
+        (r) => r.ok,
+        () => false,
+      );
+      return next;
+    },
   };
 }

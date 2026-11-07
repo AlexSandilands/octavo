@@ -28,8 +28,8 @@ the code and applies migrations; it never replaces content).
 
 ## What it does
 
-- **Deletes** every issue (with its comments, reports and notifications), image,
-  logo, sponsor, posting name and issue-import record.
+- **Deletes** every issue (with its comments, reports, notifications and version
+  history), image, logo, sponsor, posting name and issue-import record.
 - **Loads** the six seed issues, their 25 generated images and the seed logos,
   in the same database transaction as the delete. Regatta, issue 6, tops the library.
 - **Keeps** members, their sessions and the magazine settings (name, footer,

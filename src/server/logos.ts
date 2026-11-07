@@ -87,6 +87,8 @@ export async function renameLogo(id: string, name: string): Promise<void> {
 // a dangling id behind, so each referencing site registers a counter here and
 // deleteLogo refuses while any of them reports a hit. Add an entry per new
 // referencing site — nothing else needs to change for the refusal to hold.
+// Issue versions (aboard #51) are left out on purpose: a version must never pin
+// a logo the club has retired, and a restore unlinks a missing one instead.
 const REFERENCE_COUNTERS: ((logoId: string) => Promise<number>)[] = [
   async (logoId) => {
     const [row] = await db
