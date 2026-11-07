@@ -196,8 +196,11 @@ async function moduleChecks() {
   const again = await restoreVersion(a, target.id, await revisionOf(a));
   const afterAgain = await listVersions(a);
   ok(
-    again.ok && afterAgain[0]!.id === versions[0]!.id,
-    "restoring the same version again keeps no second copy of it",
+    again.ok &&
+      afterAgain.length === KEEP_VERSIONS &&
+      afterAgain[0]!.id === target.id &&
+      afterAgain.filter((v) => v.id === target.id).length === 1,
+    "restoring the same version again copies nothing; that version moves up instead",
   );
   const c0 = await newIssue();
   const fullDoc = doc([cover(), ...textPages(5)]);
@@ -209,6 +212,10 @@ async function moduleChecks() {
     (await listVersions(c0)).length === 1,
     "an undo and redo of a large deletion keeps one version, not two",
   );
+  // A later sitting: the removal kept above is outside the streak window.
+  await db.execute(
+    sql`update issue_versions set created_at = now() - interval '20 minutes' where issue_id = ${c0}`,
+  );
   await save(c0, doc([cover(), ...textPages(5)]));
   await save(c0, doc([cover(), ...textPages(4)]));
   await save(c0, doc([cover(), ...textPages(3)]));
@@ -216,6 +223,13 @@ async function moduleChecks() {
   ok(
     stepwise.length === 2 && stepwise[0]!.pageCount === 5,
     "pages deleted one save at a time add up to a large removal",
+  );
+  for (let pages = 2; pages >= 0; pages -= 1) {
+    await save(c0, doc([cover(), ...textPages(pages)]));
+  }
+  ok(
+    (await listVersions(c0)).length === 2,
+    "a streak of single-page deletes keeps one version, not one per page",
   );
 
   // ── Images only a version shows ───────────────────────────────────────────

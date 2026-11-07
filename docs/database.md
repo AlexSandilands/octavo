@@ -388,8 +388,9 @@ checks the revision, and keeps the content it is about to overwrite when the pol
 The copy is an `INSERT … SELECT` from the row, so the old document never travels; a unique index on
 `(issue_id, revision)` makes the insert `ON CONFLICT DO NOTHING`, so a revision is kept at most once,
 and the same index serves the one lookup an ordinary autosave pays (the newest version). Pages
-identical to a kept version are skipped too, so restoring back and forth or undoing and redoing a
-deletion can't churn the older versions out. A large removal outranks the time rules. The clock is
+identical to a kept version are never copied again — that version moves up to now instead — so
+restoring back and forth or undoing and redoing a deletion can't churn the older versions out. A
+streak of single-page deletions keeps one version, not one per page (`REMOVAL_STREAK_MS`). A large removal outranks the time rules. The clock is
 `issues.updatedAt`, which a title, theme or footer change also moves, so a sitting that starts with
 one of those keeps its first version on the hourly rule instead. The newest
 10 (`KEEP_VERSIONS`, ordered by revision) survive; the rest are pruned in the same transaction.

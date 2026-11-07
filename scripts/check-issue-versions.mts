@@ -5,6 +5,7 @@ import {
   countContent,
   HOURLY_MS,
   isLargeRemoval,
+  REMOVAL_STREAK_MS,
   SESSION_GAP_MS,
   versionReason,
   type SaveFacts,
@@ -30,6 +31,7 @@ function facts(over: Partial<SaveFacts> = {}): SaveFacts {
     lastSavedAt: ago(10 * 1000),
     newestVersionAt: ago(10 * MIN),
     newestCounts: null,
+    newestReason: null,
     issueCreatedAt: ago(24 * 60 * MIN),
     revisionKept: false,
     before: { pages: 10, blocks: 40 },
@@ -131,6 +133,31 @@ ok(
     }),
   ) === null,
   "the first single-page delete since the newest version does not",
+);
+
+ok(
+  versionReason(
+    facts({
+      newestCounts: { pages: 9, blocks: 36 },
+      newestReason: "large-removal",
+      newestVersionAt: ago(MIN),
+      before: { pages: 8, blocks: 32 },
+      after: { pages: 7, blocks: 28 },
+    }),
+  ) === null,
+  "a streak of single-page deletes keeps one version, not one per page",
+);
+ok(
+  versionReason(
+    facts({
+      newestCounts: { pages: 9, blocks: 36 },
+      newestReason: "large-removal",
+      newestVersionAt: ago(REMOVAL_STREAK_MS),
+      before: { pages: 8, blocks: 32 },
+      after: { pages: 7, blocks: 28 },
+    }),
+  ) === "large-removal",
+  "a later streak, after the window, keeps its own version",
 );
 
 // Dedupe: a revision already kept is never kept twice.

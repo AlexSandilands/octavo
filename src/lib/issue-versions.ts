@@ -25,6 +25,8 @@ export const LARGE_REMOVAL_PAGES = 2;
 /** …or this share of the blocks (and at least LARGE_REMOVAL_MIN_BLOCKS of them). */
 export const LARGE_REMOVAL_SHARE = 0.25;
 export const LARGE_REMOVAL_MIN_BLOCKS = 3;
+/** Pages deleted one at a time within this long of a kept removal are one streak. */
+export const REMOVAL_STREAK_MS = 10 * 60 * 1000;
 
 export type ContentCounts = { pages: number; blocks: number };
 
@@ -43,6 +45,8 @@ export type SaveFacts = {
   newestVersionAt: Date | null;
   /** The newest version's counts: pages deleted one save at a time add up. */
   newestCounts: ContentCounts | null;
+  /** Why the newest version was kept, or null if the issue has none. */
+  newestReason: VersionReason | null;
   /** When the issue was created: the hourly clock's start before any version. */
   issueCreatedAt: Date;
   /** Whether a version of the revision being overwritten already exists. */
@@ -54,12 +58,14 @@ export type SaveFacts = {
 /** Why to keep the content a save is about to overwrite, or null to keep nothing.
  *  A large removal outranks the time rules, so History names the incident case.
  *  It counts against the newest version too, so pages deleted one autosave at a
- *  time still add up to one. */
+ *  time still add up to one — once per streak, not once per further page. */
 export function versionReason(facts: SaveFacts): VersionReason | null {
   if (facts.revisionKept) return null;
   if (
     isLargeRemoval(facts.before, facts.after) ||
-    (facts.newestCounts && isLargeRemoval(facts.newestCounts, facts.after))
+    (facts.newestCounts &&
+      !inRemovalStreak(facts) &&
+      isLargeRemoval(facts.newestCounts, facts.after))
   ) {
     return "large-removal";
   }
@@ -68,6 +74,15 @@ export function versionReason(facts: SaveFacts): VersionReason | null {
   const hourlyFrom = facts.newestVersionAt ?? facts.issueCreatedAt;
   if (now - hourlyFrom.getTime() >= HOURLY_MS) return "hourly";
   return null;
+}
+
+/** A removal was kept moments ago: this deletion streak already has its copy. */
+function inRemovalStreak(facts: SaveFacts): boolean {
+  return (
+    facts.newestReason === "large-removal" &&
+    facts.newestVersionAt !== null &&
+    facts.now.getTime() - facts.newestVersionAt.getTime() < REMOVAL_STREAK_MS
+  );
 }
 
 export function isLargeRemoval(
