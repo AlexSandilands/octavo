@@ -500,6 +500,19 @@ sign-in panel, and the list route answers 401. The library's cards carry "N
 comments" (visible comments and replies), and the admin's delete confirmations — single and
 bulk — say how many comments go with the issues. Gate: `scripts/dev-discussion-gate.mts`.
 
+**Drafts across a stale reload (#132).** A write that fails because the page outlived a
+deploy (#403's `isStaleAction`) keeps what the member was writing in `sessionStorage`, one
+slot per issue (`octavo:stale-draft:<issueNo>`, `src/features/discussion/stale-draft.ts`):
+the main comment with its page tag and a first post's new name, a reply with its parent, an
+edit with its comment, or a report's reason and note. Only then — nothing is stored in normal
+use — and the notice says the words will still be there; if the browser won't store them it
+keeps #403's "copy what you wrote". After the reload the thread's first load reads the slot
+(removing it), drops a draft older than 30 minutes, malformed, or whose target has gone or is
+no longer the member's to edit or theirs to report (`use-restored-draft.ts`), and reopens the
+right box in the same render as the list, with the words, the cursor at their end and one
+line ("We kept what you were writing — press Post to send it.", announced once). Nothing is
+sent again on its own. Gates: `check-stale-draft.mts`, `dev-stale-draft-gate.mts`.
+
 ### Reply notifications (#303)
 
 A reply to someone else's comment writes a

@@ -1,6 +1,6 @@
 "use client";
 
-import type { WriteResult } from "@/lib/comments";
+import type { ReportReason, WriteResult } from "@/lib/comments";
 import type { ThreadComment } from "@/lib/discussion-thread";
 import { CommentActions } from "./comment-actions";
 import { CommentEditForm } from "./comment-edit-form";
@@ -31,6 +31,10 @@ export function CommentItem({
   onSaveEdit,
   onDelete,
   onModerate,
+  keepEdit,
+  restoredEdit,
+  keepReport,
+  restoredReport,
 }: {
   comment: ThreadComment;
   now: number;
@@ -47,6 +51,11 @@ export function CommentItem({
   onSaveEdit: (body: string) => Promise<WriteResult>;
   onDelete: () => Promise<WriteResult>;
   onModerate: Moderate;
+  /** Drafts kept across a stale reload (#132). */
+  keepEdit?: (body: string) => boolean;
+  restoredEdit?: string;
+  keepReport?: (reason: ReportReason | null, note: string) => boolean;
+  restoredReport?: { reason: ReportReason | null; note: string };
 }) {
   const state = comment.deleted ? "deleted" : comment.hidden ? "hidden" : null;
   return (
@@ -65,6 +74,8 @@ export function CommentItem({
             initial={comment.body}
             onSave={onSaveEdit}
             onCancel={onCancelEdit}
+            keep={keepEdit}
+            restored={restoredEdit}
           />
         ) : state === "deleted" ? (
           <p className="text-muted mt-1 pb-2 font-sans text-[15px] italic">
@@ -88,6 +99,8 @@ export function CommentItem({
               onEdit={onEdit}
               onDelete={onDelete}
               onModerate={onModerate}
+              keepReport={keepReport}
+              restoredReport={restoredReport}
             />
           </>
         )}

@@ -210,8 +210,8 @@ try {
             (await notice(page.locator("form:has(#discussion-composer)"))
               .first()
               .textContent()) ?? ""
-          ).includes("Copy what you wrote"),
-          "composer: says to copy the text first",
+          ).includes("what you wrote will still be there"),
+          "composer: says the words are kept for the reload (#132)",
         );
         ok(
           (await page.inputValue("#discussion-composer")) ===

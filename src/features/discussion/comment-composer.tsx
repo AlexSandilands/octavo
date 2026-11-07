@@ -3,7 +3,7 @@
 import { useLayoutEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui";
 import { StaleActionNotice } from "@/components/stale-action-notice";
-import { failureFrom } from "@/lib/stale-action";
+import { draftRestored, failureFrom } from "@/lib/stale-action";
 import { COMMENT_BODY_MAX, type WriteResult } from "@/lib/comments";
 import type { ComposerSetup } from "@/lib/discussion-thread";
 import { checkMemberName } from "@/lib/member-name";
@@ -34,6 +34,8 @@ export function CommentComposer({
   menuSide = "bottom",
   autoFocus = false,
   tag,
+  keep,
+  restored,
 }: {
   id: string;
   label: string;
@@ -49,12 +51,18 @@ export function CommentComposer({
   autoFocus?: boolean;
   /** The main box's page pill (#304), beside "Posting as". */
   tag?: React.ReactNode;
+  /** Keeps what was typed for the reload a stale failure asks for (#132). */
+  keep?: (body: string, newName: string | null) => boolean;
+  /** Put back after that reload: the first-post name, if one was typed. */
+  restored?: { newName: string | null };
 }) {
   const box = useRef<HTMLTextAreaElement>(null);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [stale, setStale] = useState(false);
-  const [newName, setNewName] = useState(setup.suggestion);
+  const [kept, setKept] = useState(false);
+  const [newName, setNewName] = useState(restored?.newName ?? setup.suggestion);
+  const [welcome, setWelcome] = useState(restored !== undefined);
   const [nameError, setNameError] = useState<string | null>(null);
   const firstPost = setup.names.length === 0;
 
@@ -65,6 +73,16 @@ export function CommentComposer({
     el.style.height = "auto";
     el.style.height = `${el.scrollHeight + 2}px`;
   }, [value]);
+
+  // A restored draft: into the box, caret at the end.
+  useLayoutEffect(() => {
+    const el = box.current;
+    if (!restored || !el) return;
+    el.focus();
+    el.setSelectionRange(el.value.length, el.value.length);
+    // Once, as it mounts with the draft.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,11 +104,14 @@ export function CommentComposer({
     setError(null);
     setStale(false);
     setNameError(null);
+    setWelcome(false);
     startTransition(async () => {
       const result = await onSubmit(value, chosen).catch((e) => failureFrom(e));
       if (result.ok) return;
-      if ("stale" in result) setStale(true);
-      else setError(result.reason);
+      if ("stale" in result) {
+        setKept(keep?.(value, firstPost ? newName : null) ?? false);
+        setStale(true);
+      } else setError(result.reason);
     });
   };
 
@@ -129,6 +150,7 @@ export function CommentComposer({
         onChange={(e) => {
           onChange(e.target.value);
           if (error) setError(null);
+          setWelcome(false);
         }}
         className={`text-ink placeholder:text-faint scrollbar-soft max-h-48 min-h-[4.5rem] w-full resize-none rounded-lg border-[1.5px] bg-white px-3.5 py-2.5 font-sans text-[16px] leading-snug [--scrollbar-surface:white] ${
           error ? "border-warn" : "border-line"
@@ -149,7 +171,12 @@ export function CommentComposer({
           {error}
         </p>
       )}
-      {stale && <StaleActionNotice typed />}
+      {welcome && (
+        <p className="text-muted font-sans text-[14px] leading-snug">
+          {draftRestored(onCancel ? "Reply" : "Post")}
+        </p>
+      )}
+      {stale && <StaleActionNotice typed kept={kept} />}
       {firstPost && (
         <NameField
           id={`${id}-name`}

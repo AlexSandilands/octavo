@@ -12,6 +12,7 @@ import type { Moderate } from "./moderation-buttons";
 import { PageChip } from "./page-chip";
 import type { ReaderPages } from "./page-tags";
 import { RepliesToggle } from "./replies-toggle";
+import type { StaleDraft } from "./stale-draft";
 
 /** What the list asks of the thread that owns the state. */
 export type ThreadHandlers = {
@@ -37,6 +38,10 @@ export type ThreadHandlers = {
   remove: (commentId: string) => () => Promise<WriteResult>;
   /** An admin's Hide / Unhide / Delete (#302). */
   moderate: (commentId: string) => Moderate;
+  /** Keeps a draft for the reload a stale failure asks for (#132)… */
+  keep: (draft: StaleDraft) => boolean;
+  /** …and the one put back after it, for the render the boxes open in. */
+  restored: StaleDraft | null;
 };
 
 // Top-level comments in the order the view asks (oldest first unless the
@@ -74,6 +79,7 @@ export function ThreadList({
     );
   }
 
+  const back = h.restored;
   const item = (comment: ThreadComment, reply: boolean) => (
     <CommentItem
       comment={comment}
@@ -103,6 +109,20 @@ export function ThreadList({
       onSaveEdit={h.save(comment.id)}
       onDelete={h.remove(comment.id)}
       onModerate={h.moderate(comment.id)}
+      keepEdit={(body) => h.keep({ kind: "edit", commentId: comment.id, body })}
+      restoredEdit={
+        back?.kind === "edit" && back.commentId === comment.id
+          ? back.body
+          : undefined
+      }
+      keepReport={(reason, note) =>
+        h.keep({ kind: "report", commentId: comment.id, reason, note })
+      }
+      restoredReport={
+        back?.kind === "report" && back.commentId === comment.id
+          ? back
+          : undefined
+      }
     />
   );
 
@@ -160,6 +180,19 @@ export function ThreadList({
                       onSubmit={h.reply(entry.id)}
                       onCancel={() => h.cancelReply(entry.id)}
                       autoFocus
+                      keep={(body, newName) =>
+                        h.keep({
+                          kind: "reply",
+                          parentId: entry.id,
+                          body,
+                          newName,
+                        })
+                      }
+                      restored={
+                        back?.kind === "reply" && back.parentId === entry.id
+                          ? back
+                          : undefined
+                      }
                     />
                   </li>
                 )}
