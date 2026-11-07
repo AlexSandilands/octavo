@@ -12,6 +12,7 @@ import postgres from "postgres";
 import { chromium, type Page } from "playwright";
 import { CONTENT_VERSION, type IssueContent } from "../src/lib/blocks";
 import { stringToDoc } from "../src/lib/rich-text-doc";
+import { hashSessionToken } from "../src/lib/session-token";
 
 const base = process.argv[2];
 assert(base, "usage: dev-text-paint-gate.mts <base-url>");
@@ -120,7 +121,7 @@ try {
   await sql`insert into users (id, email, is_admin, subscribed, email_verified)
     values (${user}, ${`scratch-24-${user}@example.invalid`}, true, true, now())`;
   await sql`insert into sessions (session_token, user_id, expires)
-    values (${token}, ${user}, now() + interval '1 hour')`;
+    values (${hashSessionToken(token)}, ${user}, now() + interval '1 hour')`;
   const [issue] = await sql<{ number: number }[]>`
     insert into issues (id, number, title, theme, status, content)
     values (${id}, (select coalesce(max(number), 0) + 1 from issues),
