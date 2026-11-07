@@ -32,6 +32,8 @@ import { PANEL_ID, type SurfaceAction } from "./side-panel/surfaces";
 import type { usePanelWidth } from "./side-panel/use-panel-width";
 import type { useSurfaces } from "./side-panel/use-surfaces";
 import type { DropHandler } from "./use-pdf-drag-out";
+import { HistoryPanel } from "./history/history-panel";
+import type { RestoreOutcome } from "./use-editor-autosave";
 
 // The importer and its parser load only when the surface is opened.
 const PdfImportPanel = dynamic(() => import("./pdf-import/panel"), {
@@ -58,6 +60,7 @@ export function EditorSide({
   onAdd,
   dropRef,
   assistant,
+  restoreVersion,
 }: {
   surfaces: ReturnType<typeof useSurfaces>;
   /** An import is landing: the strip sits out until it has. */
@@ -83,6 +86,8 @@ export function EditorSide({
     /** Set here: the Ask box on a block sends through this conversation. */
     askRef: RefObject<AskHandler | null>;
   };
+  /** The History tab's restore, run in the autosave queue (aboard #51). */
+  restoreVersion: (versionId: string) => Promise<RestoreOutcome>;
 }) {
   const [pdfActions, setPdfActions] = useState<SurfaceAction[]>([]);
   const { active, open } = surfaces;
@@ -212,6 +217,14 @@ export function EditorSide({
                     ? chat.restart
                     : null
                 }
+              />
+            ) : surface.kind === "history" ? (
+              <HistoryPanel
+                issueId={assistant.issueId}
+                published={assistant.published}
+                shown={open && isActive}
+                pageCount={pages.length}
+                restore={restoreVersion}
               />
             ) : (
               <PdfImportPanel

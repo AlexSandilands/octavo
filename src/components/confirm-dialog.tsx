@@ -17,6 +17,7 @@ export function ConfirmDialog({
   confirmLabel = "Delete",
   cancelLabel = "Cancel",
   confirmIcon = "trash",
+  confirmVariant = "danger",
   working = false,
   onConfirm,
   onClose,
@@ -27,6 +28,8 @@ export function ConfirmDialog({
   cancelLabel?: string;
   /** Icon on the confirm button; pass null for none. */
   confirmIcon?: IconName | null;
+  /** "primary" for a confirmation that can itself be undone. */
+  confirmVariant?: "danger" | "primary";
   /** Disables both buttons while the action runs. */
   working?: boolean;
   onConfirm: () => void;
@@ -57,7 +60,7 @@ export function ConfirmDialog({
               {cancelLabel}
             </Button>
             <Button
-              variant="danger"
+              variant={confirmVariant}
               onClick={onConfirm}
               busy={working}
               icon={confirmIcon ?? undefined}
