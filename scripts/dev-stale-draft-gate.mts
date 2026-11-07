@@ -152,6 +152,16 @@ try {
     await expectKept(page, "form:has(#discussion-composer)", "comment");
     await page.screenshot({ path: `${shots}/comment-kept.png` });
 
+    // Closing and reopening the thread before the reload keeps it for later.
+    await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: "Discussion" }).click();
+    await page.waitForSelector("#discussion-composer");
+    await page.waitForTimeout(800);
+    ok(
+      (await stored(page)) !== null,
+      "comment: reopening the thread before the reload leaves the draft",
+    );
+
     await reloadThread(page);
     ok(
       (await page.inputValue("#discussion-composer")) ===
@@ -306,7 +316,11 @@ try {
         ([k, d, age]) =>
           sessionStorage.setItem(
             k as string,
-            JSON.stringify({ savedAt: Date.now() - (age as number), draft: d }),
+            JSON.stringify({
+              savedAt: Date.now() - (age as number),
+              load: "planted",
+              draft: d,
+            }),
           ),
         [key, draft, ageMs] as const,
       );

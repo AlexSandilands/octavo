@@ -36,6 +36,8 @@ export type StaleDraft = z.infer<typeof draftSchema>;
 
 const recordSchema = z.object({
   savedAt: z.number(),
+  /** The page load that kept it: only a later load (the reload) restores it. */
+  load: z.string(),
   draft: draftSchema,
 });
 
@@ -43,48 +45,58 @@ const recordSchema = z.object({
 export const STALE_DRAFT_TTL = 30 * 60 * 1000;
 
 type Store = Pick<Storage, "getItem" | "setItem" | "removeItem">;
+/** Injectable for the check script; the browser's own by default. */
+export type DraftEnv = { store?: () => Store; now?: number; load?: string };
 
 const keyFor = (issueNo: number) => `octavo:stale-draft:${issueNo}`;
+const THIS_LOAD = Math.random().toString(36).slice(2);
 const session = (): Store => window.sessionStorage;
 
 /** Keeps the draft for the reload; false when the browser won't store it. */
 export function stashDraft(
   issueNo: number,
   draft: StaleDraft,
-  store: () => Store = session,
-  now = Date.now(),
+  { store = session, now = Date.now(), load = THIS_LOAD }: DraftEnv = {},
 ): boolean {
   try {
-    store().setItem(keyFor(issueNo), JSON.stringify({ savedAt: now, draft }));
+    store().setItem(
+      keyFor(issueNo),
+      JSON.stringify({ savedAt: now, load, draft }),
+    );
     return true;
   } catch {
     return false;
   }
 }
 
-/** The kept draft, removed as it is read; null when none is fit to restore. */
+/**
+ * The kept draft, removed as it is read; null when none is fit to restore.
+ * One kept by this same page load (the thread closed and opened again before
+ * the reload) is left where it is for the reload.
+ */
 export function takeDraft(
   issueNo: number,
-  store: () => Store = session,
-  now = Date.now(),
+  { store = session, now = Date.now(), load = THIS_LOAD }: DraftEnv = {},
 ): StaleDraft | null {
-  let raw: string | null;
   try {
     const s = store();
-    raw = s.getItem(keyFor(issueNo));
-    if (raw !== null) s.removeItem(keyFor(issueNo));
+    const raw = s.getItem(keyFor(issueNo));
+    if (raw === null) return null;
+    const record = recordSchema.safeParse(parse(raw));
+    if (record.success && record.data.load === load) return null;
+    s.removeItem(keyFor(issueNo));
+    if (!record.success) return null;
+    const age = now - record.data.savedAt;
+    return age >= 0 && age <= STALE_DRAFT_TTL ? record.data.draft : null;
   } catch {
     return null;
   }
-  if (raw === null) return null;
-  let parsed: unknown;
+}
+
+function parse(raw: string): unknown {
   try {
-    parsed = JSON.parse(raw);
+    return JSON.parse(raw);
   } catch {
     return null;
   }
-  const record = recordSchema.safeParse(parsed);
-  if (!record.success) return null;
-  const age = now - record.data.savedAt;
-  return age >= 0 && age <= STALE_DRAFT_TTL ? record.data.draft : null;
 }
