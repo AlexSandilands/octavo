@@ -1,10 +1,10 @@
 "use client";
 
-import { useId, useRef, useState, useTransition } from "react";
+import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { DialogShell } from "@/components/dialog-shell";
 import { StaleActionNotice } from "@/components/stale-action-notice";
 import { Button, IconButton } from "@/components/ui";
-import { isStaleAction } from "@/lib/stale-action";
+import { draftRestored, isStaleAction } from "@/lib/stale-action";
 import {
   REPORT_NOTE_MAX,
   REPORT_REASONS,
@@ -15,19 +15,28 @@ import { reportCommentAction } from "@/app/read/[issueId]/actions";
 
 // Report someone else's comment (issue #301): a reason, an optional note, and
 // a thank-you whether or not it was a duplicate (epic #298) — but never when
-// the call itself didn't reach the server, so a report isn't silently dropped. Rendered inside the discussion panel, so it stacks over
-// the drawer or sheet and hands the keyboard back when it closes.
+// the call itself didn't reach the server, so a report isn't silently dropped.
+// Rendered inside the discussion panel, so it stacks over the drawer or sheet
+// and hands the keyboard back when it closes. A stale failure keeps the reason
+// and note for the reload (#132), which reopens the dialog with them.
 export function ReportDialog({
   commentId,
   name,
   onClose,
+  keep,
+  restored,
 }: {
   commentId: string;
   name: string;
   onClose: () => void;
+  keep?: (reason: ReportReason | null, note: string) => boolean;
+  restored?: { reason: ReportReason | null; note: string };
 }) {
-  const [reason, setReason] = useState<ReportReason | null>(null);
-  const [note, setNote] = useState("");
+  const [reason, setReason] = useState(restored?.reason ?? null);
+  const [note, setNote] = useState(restored?.note ?? "");
+  const [kept, setKept] = useState(false);
+  const [welcome, setWelcome] = useState(restored !== undefined);
+  const noteRef = useRef<HTMLTextAreaElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
   const [stale, setStale] = useState(false);
@@ -35,6 +44,17 @@ export function ReportDialog({
   const [pending, startTransition] = useTransition();
   const doneRef = useRef<HTMLButtonElement>(null);
   const noteId = useId();
+
+  // A restored report opens on its note, caret at the end (after the shell
+  // has put focus on its first control).
+  useEffect(() => {
+    const el = noteRef.current;
+    if (!restored || !el) return;
+    el.focus();
+    el.setSelectionRange(el.value.length, el.value.length);
+    // Once, as it opens with the draft.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const send = (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,6 +65,7 @@ export function ReportDialog({
     setError(null);
     setStale(false);
     setFailed(false);
+    setWelcome(false);
     startTransition(async () => {
       try {
         await reportCommentAction({
@@ -54,8 +75,10 @@ export function ReportDialog({
         });
       } catch (err) {
         // An outdated page: only a reload files it (#403).
-        if (isStaleAction(err)) setStale(true);
-        else setFailed(true);
+        if (isStaleAction(err)) {
+          setKept(keep?.(reason, note) ?? false);
+          setStale(true);
+        } else setFailed(true);
         return;
       }
       setSent(true);
@@ -118,6 +141,7 @@ export function ReportDialog({
                         onChange={() => {
                           setReason(r);
                           setError(null);
+                          setWelcome(false);
                         }}
                         className="accent-accent h-5 w-5 flex-none cursor-pointer"
                       />
@@ -142,14 +166,25 @@ export function ReportDialog({
                 <span className="text-faint font-normal">(optional)</span>
               </label>
               <textarea
+                ref={noteRef}
                 id={noteId}
                 rows={3}
                 value={note}
                 maxLength={REPORT_NOTE_MAX}
-                onChange={(e) => setNote(e.target.value)}
+                onChange={(e) => {
+                  setNote(e.target.value);
+                  setWelcome(false);
+                }}
                 className="text-ink border-line mt-2 w-full resize-none rounded-lg border-[1.5px] bg-white px-3.5 py-2.5 font-sans text-[16px]"
               />
-              {stale && <StaleActionNotice typed className="mt-3" />}
+              {welcome && (
+                <p className="text-muted mt-3 font-sans text-[14px] leading-snug">
+                  {draftRestored("Send report")}
+                </p>
+              )}
+              {stale && (
+                <StaleActionNotice typed kept={kept} className="mt-3" />
+              )}
               {failed && (
                 <p
                   role="alert"

@@ -15,6 +15,7 @@ import {
   unhideCommentAction,
 } from "@/app/read/[issueId]/moderation-actions";
 import { COMMENT_SHOWN } from "@/lib/moderation-copy";
+import { draftRestored } from "@/lib/stale-action";
 import { CommentComposer } from "./comment-composer";
 import type { ModerationAction } from "./moderation-buttons";
 import { commentDomId } from "./comment-item";
@@ -22,6 +23,8 @@ import { ThreadList, type ThreadHandlers } from "./thread-list";
 import type { Discussion } from "./use-discussion";
 import { MAIN_COMPOSER, useCommentTarget } from "./use-comment-target";
 import { useThread } from "./use-thread";
+import { stashDraft, type StaleDraft } from "./stale-draft";
+import { useRestoredDraft } from "./use-restored-draft";
 import { PageTagPicker, choicePage } from "./page-tag-picker";
 import { pageName, type ReaderPages } from "./page-tags";
 import { FilterToggle, ThreadFilters, changedCount } from "./thread-filter";
@@ -35,6 +38,13 @@ import {
 } from "./thread-view";
 
 const FILTERS = "discussion-filters";
+
+const RESTORED_BUTTON = {
+  comment: "Post",
+  reply: "Reply",
+  edit: "Save",
+  report: "Send report",
+} as const satisfies Record<StaleDraft["kind"], string>;
 
 const MODERATION = {
   hide: [hideCommentAction, "Comment hidden from members."],
@@ -80,17 +90,42 @@ export function DiscussionThread({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
 
+  // A draft kept across a stale reload (#132) reopens its box with the words.
+  const keep = (draft: StaleDraft) => stashDraft(info.issueNo, draft);
+  const restore = useRestoredDraft(info.issueNo, pages, (draft, payload) => {
+    if (draft.kind === "edit" || draft.kind === "report") {
+      const id = draft.commentId;
+      const parent = payload.entries.find((e) =>
+        e.replies.some((r) => r.id === id),
+      );
+      if (parent) unfold(parent.id);
+    }
+    if (draft.kind === "comment") {
+      talk.setDraft(draft.body);
+      talk.setTag(draft.pageId ? `page:${draft.pageId}` : null);
+    } else if (draft.kind === "reply") {
+      setReplyTo(draft.parentId);
+      setReplyDraft(draft.body);
+    } else if (draft.kind === "edit") setEditing(draft.commentId);
+    announce(draftRestored(RESTORED_BUTTON[draft.kind]));
+  });
+  const { onFirstLoad } = restore;
+
   // A deep link to a reply opens its parent, in the same render as the list,
   // so the reply is there to scroll to.
   const deepLink = useRef(talk.focusComment);
-  const onLoaded = useCallback((payload: ThreadPayload) => {
-    const id = deepLink.current;
-    deepLink.current = null;
-    const parent = payload.entries.find((e) =>
-      e.replies.some((r) => r.id === id),
-    );
-    if (parent) setUnfolded((s) => new Set(s).add(parent.id));
-  }, []);
+  const onLoaded = useCallback(
+    (payload: ThreadPayload) => {
+      const id = deepLink.current;
+      deepLink.current = null;
+      const parent = payload.entries.find((e) =>
+        e.replies.some((r) => r.id === id),
+      );
+      if (parent) setUnfolded((s) => new Set(s).add(parent.id));
+      onFirstLoad(payload);
+    },
+    [onFirstLoad],
+  );
   // "This page" with no page open (a phone before its first section) is all.
   const view: ThreadView =
     talk.view.show === "open" && pages.open.length === 0
@@ -294,6 +329,8 @@ export function DiscussionThread({
       if (action === "delete") focusLater(commentDomId(id), MAIN_COMPOSER);
       return result;
     },
+    keep,
+    restored: restore.restored,
   };
 
   const filters = (
@@ -376,6 +413,19 @@ export function DiscussionThread({
             nameId={nameId}
             onNameChange={setNameId}
             onSubmit={(body, newName) => post(null, body, newName)}
+            keep={(body, newName) =>
+              keep({
+                kind: "comment",
+                body,
+                pageId: choicePage(talk.tag),
+                newName,
+              })
+            }
+            restored={
+              restore.restored?.kind === "comment"
+                ? restore.restored
+                : undefined
+            }
             menuSide="top"
             tag={
               <PageTagPicker

@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { StaleActionNotice } from "@/components/stale-action-notice";
 import { failureFrom } from "@/lib/stale-action";
-import type { WriteResult } from "@/lib/comments";
+import type { ReportReason, WriteResult } from "@/lib/comments";
 import type { ThreadComment } from "@/lib/discussion-thread";
 import { ActionButton } from "./action-button";
 import { ModerationButtons, type Moderate } from "./moderation-buttons";
@@ -22,6 +22,8 @@ export function CommentActions({
   onEdit,
   onDelete,
   onModerate,
+  keepReport,
+  restoredReport,
 }: {
   comment: ThreadComment;
   viewer: "member" | "admin";
@@ -32,9 +34,12 @@ export function CommentActions({
   onEdit: () => void;
   onDelete: () => Promise<WriteResult>;
   onModerate: Moderate;
+  keepReport?: (reason: ReportReason | null, note: string) => boolean;
+  /** A report kept across a stale reload (#132): the dialog opens with it. */
+  restoredReport?: { reason: ReportReason | null; note: string };
 }) {
   const [confirming, setConfirming] = useState(false);
-  const [reporting, setReporting] = useState(false);
+  const [reporting, setReporting] = useState(restoredReport !== undefined);
   const [failed, setFailed] = useState<string | null>(null);
   const [stale, setStale] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -115,6 +120,8 @@ export function CommentActions({
           commentId={comment.id}
           name={comment.name}
           onClose={() => setReporting(false)}
+          keep={keepReport}
+          restored={restoredReport}
         />
       )}
     </div>

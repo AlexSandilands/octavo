@@ -4,17 +4,21 @@ import { Button } from "@/components/ui";
 import {
   RELOAD_LABEL,
   STALE_NOTICE,
+  STALE_NOTICE_KEPT,
   STALE_NOTICE_TYPED,
 } from "@/lib/stale-action";
 
 // Inline counterpart of the route boundary's reload state (#402), for a caught
 // Server Action rejection from an outdated page (#403). A full reload, not a
-// retry; `typed` adds "copy what you wrote" where reloading clears a box.
+// retry; `typed` adds "copy what you wrote" where reloading clears a box, and
+// `kept` says instead that the words were stored for the reload (#132).
 export function StaleActionNotice({
   typed = false,
+  kept = false,
   className = "",
 }: {
   typed?: boolean;
+  kept?: boolean;
   className?: string;
 }) {
   return (
@@ -23,7 +27,9 @@ export function StaleActionNotice({
       data-stale-action
       className={`text-warn block font-sans text-[14px] leading-snug ${className}`}
     >
-      <span className="block">{typed ? STALE_NOTICE_TYPED : STALE_NOTICE}</span>
+      <span className="block">
+        {kept ? STALE_NOTICE_KEPT : typed ? STALE_NOTICE_TYPED : STALE_NOTICE}
+      </span>
       <Button
         variant="secondary"
         size="compact"

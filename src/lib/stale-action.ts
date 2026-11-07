@@ -20,6 +20,12 @@ export const STALE_NOTICE =
 // Where words are being typed: reloading clears the box.
 export const STALE_NOTICE_TYPED =
   "A new version went live while this page was open, so that wasn’t saved. Copy what you wrote, reload the page, then do it again.";
+// Where the words were kept for the reload (#132).
+export const STALE_NOTICE_KEPT =
+  "A new version went live while this page was open, so that wasn’t saved. Reload the page and send it again — what you wrote will still be there.";
+// Said once, after the reload, beside the box it went back into.
+export const draftRestored = (button: string) =>
+  `We kept what you were writing — press ${button} to send it.`;
 
 export const RELOAD_LABEL = "Reload page";
 
