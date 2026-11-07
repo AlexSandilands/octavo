@@ -8,6 +8,7 @@
 // Scratch rows are prefixed check-302-stale and removed; the settings row is
 // restored exactly as found (or removed if it did not exist).
 // Run: npx tsx --tsconfig scripts/tsconfig.json scripts/dev-stale-action-gate.mts <base-url> [shots-dir]
+import { randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import {
   chromium,
@@ -482,19 +483,16 @@ try {
       const ctx = await ctxFor(admin);
       const page = await ctx.newPage();
       const errors = watch(page);
+      // A scratch logo (its image row is removed by cleanup, which cascades).
+      const logoName = `${f.stamp} logo ${kind}`;
+      const logoImage = await f.avatar({ stored: false });
+      await sql`insert into logos (id, name, image_id)
+        values (${randomUUID()}, ${logoName}, ${logoImage.id})`;
       await page.goto(`${base}/admin/magazine`);
-      await page
-        .getByRole("button", { name: /^Rename / })
-        .first()
-        .waitFor({ timeout: 60_000 });
-      const logoBefore = (
-        await sql`select name from logos order by created_at limit 1`
-      )[0]!.name as string;
+      const rename = page.getByRole("button", { name: `Rename ${logoName}` });
+      await rename.waitFor({ timeout: 60_000 });
       await arm(page, kind);
-      await page
-        .getByRole("button", { name: /^Rename / })
-        .first()
-        .click();
+      await rename.click();
       await page.locator("#logo-name").fill(`${f.stamp} renamed`);
       await page.getByRole("button", { name: "Save name" }).click();
       await expectOutcome(
@@ -511,7 +509,7 @@ try {
         "logo rename: nothing saved",
       );
       ok(
-        (await sql`select 1 from logos where name = ${logoBefore}`).length >= 1,
+        (await sql`select 1 from logos where name = ${logoName}`).length === 1,
         "logo rename: the logo is as it was",
       );
       await page.close();
