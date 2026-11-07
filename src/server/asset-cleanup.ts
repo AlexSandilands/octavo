@@ -1,6 +1,6 @@
 import "server-only";
 import * as Sentry from "@sentry/nextjs";
-import { inArray, isNotNull } from "drizzle-orm";
+import { inArray, isNotNull, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { images, issues, logos, memberNames, sponsors } from "@/db/schema";
 import { issueVersions } from "@/db/schema-versions";
@@ -54,7 +54,14 @@ export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 //
 // Call it INSIDE the delete transaction and AFTER the owning row is gone, so
 // what it returns is exactly "everything that survives".
-export async function collectReferencedImageIds(tx: Tx): Promise<Set<string>> {
+//
+// `candidates`, when the caller only asks about some ids, narrows the version
+// scan in the database: versions are many, and only the ones naming a
+// candidate need to travel. The set is then complete for those ids only.
+export async function collectReferencedImageIds(
+  tx: Tx,
+  candidates?: string[],
+): Promise<Set<string>> {
   const referenced = new Set<string>();
 
   // Sequential, not Promise.all: a transaction owns one connection.
@@ -62,9 +69,22 @@ export async function collectReferencedImageIds(tx: Tx): Promise<Set<string>> {
   for (const row of documents) {
     for (const id of collectImageIds(row.content)) referenced.add(id);
   }
-  const versions = await tx
-    .select({ content: issueVersions.content })
-    .from(issueVersions);
+  const versions =
+    candidates?.length === 0
+      ? []
+      : await tx
+          .select({ content: issueVersions.content })
+          .from(issueVersions)
+          .where(
+            candidates
+              ? or(
+                  ...candidates.map(
+                    (id) =>
+                      sql`position(${id} in ${issueVersions.content}::text) > 0`,
+                  ),
+                )
+              : undefined,
+          );
   for (const row of versions) {
     for (const id of collectImageIds(row.content)) referenced.add(id);
   }
@@ -101,7 +121,7 @@ export async function takeOrphanedImages(
   candidateIds: string[],
 ): Promise<string[]> {
   if (candidateIds.length === 0) return [];
-  const referenced = await collectReferencedImageIds(tx);
+  const referenced = await collectReferencedImageIds(tx, candidateIds);
   const orphans = candidateIds.filter((id) => !referenced.has(id));
   if (orphans.length === 0) return [];
   const rows = await tx

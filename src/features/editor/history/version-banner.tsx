@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import type { VersionReason } from "@/lib/issue-versions";
 import { RestoreDialog } from "./restore-dialog";
@@ -27,13 +27,19 @@ export function VersionBanner({
   };
 }) {
   const [restoring, setRestoring] = useState(false);
+  // In the reader's own time zone: the server's would disagree with History.
+  const when = useSyncExternalStore(
+    noSubscription,
+    () => versionTime(version.savedAt),
+    () => null,
+  );
   const editor = `/admin/issues/${issueId}/edit`;
 
   return (
     <div className="bg-accent-wash border-line flex flex-wrap items-center justify-center gap-x-4 gap-y-2 border-b px-4 py-2.5 font-sans text-[14px] md:shrink-0">
       <span className="text-ink">
-        <span className="font-semibold" suppressHydrationWarning>
-          Version from {versionTime(version.savedAt)}
+        <span className="font-semibold">
+          {when ? `Version from ${when}` : "Earlier version"}
         </span>{" "}
         <span className="text-muted">· {REASON_LABEL[version.reason]}</span>
       </span>
@@ -65,3 +71,5 @@ export function VersionBanner({
     </div>
   );
 }
+
+const noSubscription = () => () => {};

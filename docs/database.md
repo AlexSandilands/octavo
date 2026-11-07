@@ -378,16 +378,20 @@ save: it locks the issue row (`SELECT … FOR UPDATE`, which also serialises two
 checks the revision, and keeps the content it is about to overwrite when the policy in
 [`src/lib/issue-versions.ts`](../src/lib/issue-versions.ts) says so:
 
-| Reason           | When                                                                                     |
-| ---------------- | ---------------------------------------------------------------------------------------- |
-| `large-removal`  | the save drops 2+ pages, or a quarter of the blocks (and at least 3) — outranks the rest |
-| `session`        | the last save was 30+ minutes ago                                                        |
-| `hourly`         | no version for an hour (counted from the issue's creation before it has one)             |
-| `before-restore` | always, just before a restore                                                            |
+| Reason           | When                                                                                                                                                                 |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `large-removal`  | the save drops 2+ pages or a quarter of the blocks (3+), measured against the overwritten pages and against the newest version, so a page-at-a-time deletion adds up |
+| `session`        | the last save was 30+ minutes ago                                                                                                                                    |
+| `hourly`         | no version for an hour (counted from the issue's creation before it has one)                                                                                         |
+| `before-restore` | always, just before a restore                                                                                                                                        |
 
 The copy is an `INSERT … SELECT` from the row, so the old document never travels; a unique index on
 `(issue_id, revision)` makes the insert `ON CONFLICT DO NOTHING`, so a revision is kept at most once,
-and the same index serves the one lookup an ordinary autosave pays (the newest version). The newest
+and the same index serves the one lookup an ordinary autosave pays (the newest version). Pages
+identical to a kept version are skipped too, so restoring back and forth or undoing and redoing a
+deletion can't churn the older versions out. A large removal outranks the time rules. The clock is
+`issues.updatedAt`, which a title, theme or footer change also moves, so a sitting that starts with
+one of those keeps its first version on the hourly rule instead. The newest
 10 (`KEEP_VERSIONS`, ordered by revision) survive; the rest are pruned in the same transaction.
 
 **Restore** (`restoreVersion`) is an ordinary content write under the same lock and revision check:

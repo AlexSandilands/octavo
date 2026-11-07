@@ -160,7 +160,8 @@ export async function routeChecks(ctx: Ctx) {
   // ── The preview page ──────────────────────────────────────────────────────
   const preview = await call(`/admin/issues/${id}/history/${kept}`);
   ok(
-    preview.status === 200 && (await preview.text()).includes("Version from"),
+    preview.status === 200 &&
+      (await preview.text()).includes("Restore this version"),
     "the preview page renders the version with its banner",
   );
   // Streamed past the root loading.tsx, so the not-found page arrives as a 200.
@@ -168,7 +169,7 @@ export async function routeChecks(ctx: Ctx) {
   const unknownBody = await unknown.text();
   ok(
     unknownBody.includes("page not found") &&
-      !unknownBody.includes("Version from"),
+      !unknownBody.includes("Restore this version"),
     "an unknown version's preview is the not-found page",
   );
 

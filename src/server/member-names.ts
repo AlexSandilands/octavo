@@ -373,7 +373,8 @@ export async function replaceAvatar(
         .from(images)
         .where(eq(images.id, imageId));
       if (!image || image.issueId !== null) return null;
-      if ((await collectReferencedImageIds(tx)).has(imageId)) return null;
+      if ((await collectReferencedImageIds(tx, [imageId])).has(imageId))
+        return null;
     }
     await tx
       .update(memberNames)

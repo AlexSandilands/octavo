@@ -59,7 +59,9 @@ async function lockIssue(tx: Tx, id: string): Promise<LockedIssue | null> {
 }
 
 // Copies the issue's current pages into a version, server-side (INSERT …
-// SELECT), then prunes past KEEP_VERSIONS. A revision already kept is skipped.
+// SELECT), then prunes past KEEP_VERSIONS. Pages already kept — the same
+// revision, or identical content (a restore cycle, an undo then redo) — are
+// skipped, so churn can't push the older versions out.
 async function keepCurrent(
   tx: Tx,
   id: string,
@@ -73,6 +75,9 @@ async function keepCurrent(
     select gen_random_uuid()::text, ${issues.id}, ${issues.content}, ${issues.revision},
       ${reason}, ${counts.pages}, ${counts.blocks}, ${issues.updatedAt}, ${now.toISOString()}::timestamptz
     from ${issues} where ${issues.id} = ${id}
+      and not exists (
+        select 1 from ${issueVersions}
+        where ${issueVersions.issueId} = ${id} and ${issueVersions.content} = ${issues.content})
     on conflict (issue_id, revision) do nothing`);
   await tx.execute(sql`
     delete from ${issueVersions}
@@ -120,6 +125,8 @@ export async function saveContentKeepingVersions(
       .select({
         revision: issueVersions.revision,
         createdAt: issueVersions.createdAt,
+        pages: issueVersions.pageCount,
+        blocks: issueVersions.blockCount,
       })
       .from(issueVersions)
       .where(eq(issueVersions.issueId, id))
@@ -130,6 +137,9 @@ export async function saveContentKeepingVersions(
       now,
       lastSavedAt: issue.updatedAt,
       newestVersionAt: newest?.createdAt ?? null,
+      newestCounts: newest
+        ? { pages: newest.pages, blocks: newest.blocks }
+        : null,
       issueCreatedAt: issue.createdAt,
       revisionKept: newest?.revision === issue.revision,
       before: issue.counts,

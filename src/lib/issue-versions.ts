@@ -41,6 +41,8 @@ export type SaveFacts = {
   lastSavedAt: Date;
   /** The newest version's createdAt, or null if the issue has none. */
   newestVersionAt: Date | null;
+  /** The newest version's counts: pages deleted one save at a time add up. */
+  newestCounts: ContentCounts | null;
   /** When the issue was created: the hourly clock's start before any version. */
   issueCreatedAt: Date;
   /** Whether a version of the revision being overwritten already exists. */
@@ -50,10 +52,17 @@ export type SaveFacts = {
 };
 
 /** Why to keep the content a save is about to overwrite, or null to keep nothing.
- *  A large removal outranks the time rules, so History names the incident case. */
+ *  A large removal outranks the time rules, so History names the incident case.
+ *  It counts against the newest version too, so pages deleted one autosave at a
+ *  time still add up to one. */
 export function versionReason(facts: SaveFacts): VersionReason | null {
   if (facts.revisionKept) return null;
-  if (isLargeRemoval(facts.before, facts.after)) return "large-removal";
+  if (
+    isLargeRemoval(facts.before, facts.after) ||
+    (facts.newestCounts && isLargeRemoval(facts.newestCounts, facts.after))
+  ) {
+    return "large-removal";
+  }
   const now = facts.now.getTime();
   if (now - facts.lastSavedAt.getTime() >= SESSION_GAP_MS) return "session";
   const hourlyFrom = facts.newestVersionAt ?? facts.issueCreatedAt;

@@ -192,6 +192,32 @@ async function moduleChecks() {
   );
   ok(versions.length === KEEP_VERSIONS, "restore prunes too");
 
+  // Churn: identical pages are never kept twice.
+  const again = await restoreVersion(a, target.id, await revisionOf(a));
+  const afterAgain = await listVersions(a);
+  ok(
+    again.ok && afterAgain[0]!.id === versions[0]!.id,
+    "restoring the same version again keeps no second copy of it",
+  );
+  const c0 = await newIssue();
+  const fullDoc = doc([cover(), ...textPages(5)]);
+  await save(c0, fullDoc);
+  await save(c0, doc([cover(), ...textPages(1)])); // a large removal
+  await save(c0, fullDoc); // undo
+  await save(c0, doc([cover(), ...textPages(1)])); // redo
+  ok(
+    (await listVersions(c0)).length === 1,
+    "an undo and redo of a large deletion keeps one version, not two",
+  );
+  await save(c0, doc([cover(), ...textPages(5)]));
+  await save(c0, doc([cover(), ...textPages(4)]));
+  await save(c0, doc([cover(), ...textPages(3)]));
+  const stepwise = await listVersions(c0);
+  ok(
+    stepwise.length === 2 && stepwise[0]!.pageCount === 5,
+    "pages deleted one save at a time add up to a large removal",
+  );
+
   // ── Images only a version shows ───────────────────────────────────────────
   const b = await newIssue();
   const c = await newIssue();

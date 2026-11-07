@@ -29,6 +29,7 @@ function facts(over: Partial<SaveFacts> = {}): SaveFacts {
     now,
     lastSavedAt: ago(10 * 1000),
     newestVersionAt: ago(10 * MIN),
+    newestCounts: null,
     issueCreatedAt: ago(24 * 60 * MIN),
     revisionKept: false,
     before: { pages: 10, blocks: 40 },
@@ -108,6 +109,28 @@ ok(
     facts({ lastSavedAt: ago(2 * HOURLY_MS), after: { pages: 1, blocks: 1 } }),
   ) === "large-removal",
   "a large removal outranks the time rules",
+);
+
+// Pages deleted one autosave at a time add up against the newest version.
+ok(
+  versionReason(
+    facts({
+      newestCounts: { pages: 10, blocks: 40 },
+      before: { pages: 9, blocks: 36 },
+      after: { pages: 8, blocks: 32 },
+    }),
+  ) === "large-removal",
+  "a second single-page delete since the newest version keeps one",
+);
+ok(
+  versionReason(
+    facts({
+      newestCounts: { pages: 10, blocks: 40 },
+      before: { pages: 10, blocks: 40 },
+      after: { pages: 9, blocks: 36 },
+    }),
+  ) === null,
+  "the first single-page delete since the newest version does not",
 );
 
 // Dedupe: a revision already kept is never kept twice.

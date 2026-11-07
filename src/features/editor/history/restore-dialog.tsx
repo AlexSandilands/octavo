@@ -9,7 +9,7 @@ import { pagesLabel, versionTime } from "./version-copy";
 
 const FAILED: Record<string, string> = {
   conflict:
-    "This issue was changed somewhere else since you opened it. Reload the editor, then try again.",
+    "This issue was changed somewhere else since this page opened. Reload the page, then try again.",
   missing: "That version is no longer kept.",
   invalid: "That version can’t be read any more.",
   unsaved:
