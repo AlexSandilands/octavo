@@ -71,7 +71,7 @@ async function keepCurrent(
   now: Date,
 ): Promise<void> {
   await tx.execute(sql`
-    update issue_versions set revision = i.revision, saved_at = i.updated_at,
+    update issue_versions set revision = i.revision, reason = ${reason}, saved_at = i.updated_at,
       created_at = ${now.toISOString()}::timestamptz
     from issues i
     where i.id = ${id} and issue_versions.issue_id = ${id}

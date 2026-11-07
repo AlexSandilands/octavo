@@ -199,6 +199,7 @@ async function moduleChecks() {
     again.ok &&
       afterAgain.length === KEEP_VERSIONS &&
       afterAgain[0]!.id === target.id &&
+      afterAgain[0]!.reason === "before-restore" &&
       afterAgain.filter((v) => v.id === target.id).length === 1,
     "restoring the same version again copies nothing; that version moves up instead",
   );
