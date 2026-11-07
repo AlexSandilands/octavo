@@ -5,6 +5,7 @@ import { existsSync } from "node:fs";
 import postgres from "postgres";
 import { chromium, type Page } from "playwright";
 import type { IssueContent } from "../src/lib/blocks";
+import { hashSessionToken } from "../src/lib/session-token";
 
 const base = process.argv[2] ?? "http://localhost:3000";
 assert(["localhost", "127.0.0.1"].includes(new URL(base).hostname));
@@ -52,7 +53,7 @@ const content: IssueContent = {
   ],
 };
 await sql`insert into users (id,email,is_admin,subscribed,email_verified) values (${userId},${`keyboard-drag-${userId}@example.invalid`},true,false,now())`;
-await sql`insert into sessions (session_token,user_id,expires) values (${token},${userId},now()+interval '1 hour')`;
+await sql`insert into sessions (session_token,user_id,expires) values (${hashSessionToken(token)},${userId},now()+interval '1 hour')`;
 await sql`insert into issues (id,number,title,theme,status,content) values (${id},null,'Keyboard drag check','classic','draft',${sql.json(content)})`;
 const browser = await chromium.launch();
 const order = async (pageId: string) => {
