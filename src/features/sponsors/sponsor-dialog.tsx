@@ -3,7 +3,9 @@
 import { useRef, useState } from "react";
 import { DialogShell } from "@/components/dialog-shell";
 import { Icon } from "@/components/icons";
+import { StaleActionNotice } from "@/components/stale-action-notice";
 import { Button, IconButton } from "@/components/ui";
+import { isStaleAction } from "@/lib/stale-action";
 import { imageUploadRefusal } from "@/lib/image-upload-limits";
 import type { SponsorListItem } from "@/lib/sponsors";
 import {
@@ -37,6 +39,7 @@ export function SponsorDialog({
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [stale, setStale] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -70,6 +73,7 @@ export function SponsorDialog({
     }
     setSaving(true);
     setError(null);
+    setStale(false);
     const input = {
       name: name.trim(),
       href: href.trim(),
@@ -92,8 +96,12 @@ export function SponsorDialog({
       }
       onSaved();
     } catch (err) {
-      console.error("Saving sponsor failed", err);
-      setError("Could not save. Please try again.");
+      // An outdated page can't save: reload, don't retry (#403).
+      if (isStaleAction(err)) setStale(true);
+      else {
+        console.error("Saving sponsor failed", err);
+        setError("Could not save. Please try again.");
+      }
       setSaving(false);
     }
   };
@@ -219,6 +227,7 @@ export function SponsorDialog({
               {error}
             </p>
           )}
+          {stale && <StaleActionNotice className="px-8 pt-4" />}
 
           <div className="flex justify-end gap-3 px-8 pt-6 pb-7">
             <Button variant="secondary" onClick={onClose} disabled={saving}>

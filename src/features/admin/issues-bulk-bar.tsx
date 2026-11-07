@@ -10,7 +10,9 @@ import {
   countIssueCommentsAction,
   deleteIssuesAction,
 } from "@/app/admin/actions";
+import { StaleActionNotice } from "@/components/stale-action-notice";
 import { commentsLabel } from "@/features/discussion/comments-label";
+import { isStaleAction } from "@/lib/stale-action";
 
 // The strip between the search box and the rows: the select-all control, the
 // running count, and — once something is selected — the one bulk action there
@@ -67,6 +69,7 @@ export function IssuesBulkBar({
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [stale, setStale] = useState(false);
   // What the selection's discussions add up to, counted when Delete is pressed
   // — the selection reaches past the served page (issue #301).
   const [comments, setComments] = useState(0);
@@ -88,8 +91,19 @@ export function IssuesBulkBar({
 
   const askToDelete = () => {
     setError(null);
+    setStale(false);
     startCounting(async () => {
-      const res = await countIssueCommentsAction(selectedIds).catch(() => null);
+      let res: Awaited<ReturnType<typeof countIssueCommentsAction>> | null =
+        null;
+      try {
+        res = await countIssueCommentsAction(selectedIds);
+      } catch (error) {
+        // An outdated page can't count, and "0 comments" would be a lie (#403).
+        if (isStaleAction(error)) {
+          setStale(true);
+          return;
+        }
+      }
       setComments(res?.ok ? res.comments : 0);
       setConfirming(true);
     });
@@ -314,6 +328,8 @@ export function IssuesBulkBar({
         )}
         {selectionNote}
       </p>
+
+      {stale && <StaleActionNotice className="basis-full px-1 pb-2" />}
 
       {confirming && (
         <ConfirmDialog

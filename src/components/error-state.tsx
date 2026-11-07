@@ -2,9 +2,15 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { unstable_isUnrecognizedActionError } from "next/navigation";
 import * as Sentry from "@sentry/nextjs";
 import { Button, Wordmark } from "@/components/ui";
+import {
+  RELOAD_LABEL,
+  STALE_BODY,
+  STALE_KICKER,
+  STALE_TITLE,
+  isStaleAction,
+} from "@/lib/stale-action";
 
 // Friendly full-page error state shared by the route error boundaries — a
 // member (or the admin) never sees a raw stack trace (design-principles §10).
@@ -75,8 +81,7 @@ export function RouteErrorState({
   body: string;
   contained?: boolean;
 }) {
-  // Annotated: as a bare type guard it narrows `error` to never in the effect.
-  const stale: boolean = unstable_isUnrecognizedActionError(error);
+  const stale = isStaleAction(error);
 
   useEffect(() => {
     if (stale) return;
@@ -91,10 +96,10 @@ export function RouteErrorState({
   return (
     <ErrorState
       contained={copy.contained}
-      kicker="The site has been updated"
-      title="Please reload this page."
-      body="A new version went live while this page was open, so what you just did wasn't saved. Reload the page and do it again."
-      retryLabel="Reload page"
+      kicker={STALE_KICKER}
+      title={STALE_TITLE}
+      body={STALE_BODY}
+      retryLabel={RELOAD_LABEL}
       fullLoad
       onRetry={() => window.location.reload()}
     />

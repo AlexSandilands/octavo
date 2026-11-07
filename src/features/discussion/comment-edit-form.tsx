@@ -2,6 +2,8 @@
 
 import { useLayoutEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui";
+import { StaleActionNotice } from "@/components/stale-action-notice";
+import { failureFrom } from "@/lib/stale-action";
 import { COMMENT_BODY_MAX, type WriteResult } from "@/lib/comments";
 
 // Editing your own comment in place (issue #301); saving marks it "(edited)",
@@ -20,6 +22,7 @@ export function CommentEditForm({
   const box = useRef<HTMLTextAreaElement>(null);
   const [value, setValue] = useState(initial);
   const [error, setError] = useState<string | null>(null);
+  const [stale, setStale] = useState(false);
   const [pending, startTransition] = useTransition();
 
   useLayoutEffect(() => {
@@ -39,12 +42,12 @@ export function CommentEditForm({
   const save = (e: React.FormEvent) => {
     e.preventDefault();
     if (pending) return;
+    setStale(false);
     startTransition(async () => {
-      const result = await onSave(value).catch(() => ({
-        ok: false as const,
-        reason: "That didn’t go through. Please try again.",
-      }));
-      if (!result.ok) setError(result.reason);
+      const result = await onSave(value).catch((e) => failureFrom(e));
+      if (result.ok) return;
+      if ("stale" in result) setStale(true);
+      else setError(result.reason);
     });
   };
 
@@ -89,6 +92,7 @@ export function CommentEditForm({
           {error}
         </p>
       )}
+      {stale && <StaleActionNotice typed />}
       <div className="flex justify-end gap-1">
         <Button
           variant="quiet"

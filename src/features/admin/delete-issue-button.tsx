@@ -4,7 +4,9 @@ import { useState, useTransition } from "react";
 import { Icon } from "@/components/icons";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { deleteIssueAction } from "@/app/admin/actions";
+import { StaleActionNotice } from "@/components/stale-action-notice";
 import { commentsLabel } from "@/features/discussion/comments-label";
+import { isStaleAction } from "@/lib/stale-action";
 
 // Delete one issue from the dashboard list. A client component so it can confirm
 // before firing the (irreversible) server action.
@@ -26,21 +28,26 @@ export function DeleteIssueButton({
   const [pending, startTransition] = useTransition();
   const [confirming, setConfirming] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [stale, setStale] = useState(false);
 
   const close = () => {
     setConfirming(false);
     setFailed(false);
+    setStale(false);
   };
 
   const remove = () => {
     setFailed(false);
+    setStale(false);
     startTransition(async () => {
       try {
         // On success the revalidated list unmounts this row, dialog and all.
         const res = await deleteIssueAction(id);
         if (!res.ok) setFailed(true);
-      } catch {
-        setFailed(true);
+      } catch (error) {
+        // An outdated page: only a reload deletes (#403).
+        if (isStaleAction(error)) setStale(true);
+        else setFailed(true);
       }
     });
   };
@@ -68,6 +75,7 @@ export function DeleteIssueButton({
                   Its discussion goes with it: {commentsLabel(comments)}.
                 </span>
               )}
+              {stale && <StaleActionNotice className="mt-2.5" />}
               {failed && (
                 <span role="alert" className="text-warn mt-2.5 block">
                   That didn’t work — the issue is still here. Please try again.

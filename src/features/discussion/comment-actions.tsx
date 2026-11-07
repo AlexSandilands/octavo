@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { StaleActionNotice } from "@/components/stale-action-notice";
+import { failureFrom } from "@/lib/stale-action";
 import type { WriteResult } from "@/lib/comments";
 import type { ThreadComment } from "@/lib/discussion-thread";
 import { ActionButton } from "./action-button";
@@ -34,14 +36,13 @@ export function CommentActions({
   const [confirming, setConfirming] = useState(false);
   const [reporting, setReporting] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
+  const [stale, setStale] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const remove = () =>
     startTransition(async () => {
-      const result = await onDelete().catch(() => ({
-        ok: false as const,
-        reason: "That didn’t go through. Please try again.",
-      }));
+      const result = await onDelete().catch((e) => failureFrom(e));
+      setStale(!result.ok && "stale" in result);
       if (result.ok) setConfirming(false);
       else setFailed(result.reason);
     });
@@ -65,6 +66,7 @@ export function CommentActions({
           <ActionButton
             onClick={() => {
               setFailed(null);
+              setStale(false);
               setConfirming(true);
             }}
             label="Delete your comment"
@@ -91,10 +93,14 @@ export function CommentActions({
             <>
               It’s removed for everyone and can’t be undone.
               {!reply && " Any replies stay, under “Comment removed”."}
-              {failed && (
-                <span role="alert" className="text-warn mt-2.5 block">
-                  {failed}
-                </span>
+              {stale ? (
+                <StaleActionNotice className="mt-2.5" />
+              ) : (
+                failed && (
+                  <span role="alert" className="text-warn mt-2.5 block">
+                    {failed}
+                  </span>
+                )
               )}
             </>
           }

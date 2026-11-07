@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Icon } from "@/components/icons";
+import { STALE_NOTICE, isStaleAction } from "@/lib/stale-action";
 import {
   markAllNotificationsReadAction,
   markNotificationReadAction,
@@ -30,6 +31,8 @@ export function NotificationBell({
   const [open, setOpen] = useState(false);
   const [now, setNow] = useState(0);
   const [status, setStatus] = useState("");
+  // Mark-all reached a server that no longer has the action (#403).
+  const [staleAll, setStaleAll] = useState(false);
   const [pending, startTransition] = useTransition();
   const rootRef = useRef<HTMLDivElement>(null);
   const bellRef = useRef<HTMLButtonElement>(null);
@@ -60,6 +63,7 @@ export function NotificationBell({
     if (!open) {
       setNow(Date.now());
       setStatus("");
+      setStaleAll(false);
     }
     setOpen((v) => !v);
   };
@@ -73,19 +77,35 @@ export function NotificationBell({
     setOpen(false);
     startTransition(async () => {
       // A failed mark still opens the reply; the bell catches up next visit.
-      await markNotificationReadAction(item.id).catch(() => null);
-      router.push(item.href);
+      // An outdated page opens it with a full load, which fetches the new build.
+      const stale = await markNotificationReadAction(item.id).then(
+        () => false,
+        isStaleAction,
+      );
+      if (stale) window.location.assign(item.href);
+      else router.push(item.href);
     });
   };
 
   const markAll = () =>
     startTransition(async () => {
-      const result = await markAllNotificationsReadAction().catch(() => null);
+      let result: Awaited<
+        ReturnType<typeof markAllNotificationsReadAction>
+      > | null = null;
+      let stale = false;
+      try {
+        result = await markAllNotificationsReadAction();
+      } catch (error) {
+        stale = isStaleAction(error);
+      }
       setStatus(
         result?.ok
           ? "All notifications marked read."
-          : "That didn’t go through. Please try again.",
+          : stale
+            ? STALE_NOTICE
+            : "That didn’t go through. Please try again.",
       );
+      setStaleAll(stale);
       if (result?.ok) router.refresh();
     });
 
@@ -125,6 +145,7 @@ export function NotificationBell({
           ref={menuRef}
           items={items}
           unread={unread}
+          stale={staleAll}
           when={(iso) => relativeTime(iso, now)}
           onChoose={choose}
           onMarkAll={markAll}

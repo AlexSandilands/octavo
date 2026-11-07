@@ -2,6 +2,8 @@
 
 import { useLayoutEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui";
+import { StaleActionNotice } from "@/components/stale-action-notice";
+import { failureFrom } from "@/lib/stale-action";
 import { COMMENT_BODY_MAX, type WriteResult } from "@/lib/comments";
 import type { ComposerSetup } from "@/lib/discussion-thread";
 import { checkMemberName } from "@/lib/member-name";
@@ -51,6 +53,7 @@ export function CommentComposer({
   const box = useRef<HTMLTextAreaElement>(null);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [stale, setStale] = useState(false);
   const [newName, setNewName] = useState(setup.suggestion);
   const [nameError, setNameError] = useState<string | null>(null);
   const firstPost = setup.names.length === 0;
@@ -81,13 +84,13 @@ export function CommentComposer({
       chosen = check.name;
     }
     setError(null);
+    setStale(false);
     setNameError(null);
     startTransition(async () => {
-      const result = await onSubmit(value, chosen).catch(() => ({
-        ok: false as const,
-        reason: "That didn’t go through. Please try again.",
-      }));
-      if (!result.ok) setError(result.reason);
+      const result = await onSubmit(value, chosen).catch((e) => failureFrom(e));
+      if (result.ok) return;
+      if ("stale" in result) setStale(true);
+      else setError(result.reason);
     });
   };
 
@@ -146,6 +149,7 @@ export function CommentComposer({
           {error}
         </p>
       )}
+      {stale && <StaleActionNotice typed />}
       {firstPost && (
         <NameField
           id={`${id}-name`}

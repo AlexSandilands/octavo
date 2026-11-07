@@ -1,6 +1,7 @@
 "use client";
-import { unstable_isUnrecognizedActionError, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { publishIssueAction, type PublishResult } from "@/app/admin/actions";
+import { isStaleAction } from "@/lib/stale-action";
 import { reportEditorError } from "./report-error";
 
 /** A publish from a page that outlived a deploy: the action no longer exists
@@ -55,8 +56,7 @@ export function useEditorFlows({
       return res;
     } catch (error) {
       // The flush above saved through the JSON route, so the pill stays clean.
-      if (unstable_isUnrecognizedActionError(error))
-        return { ok: false, reason: "stale" };
+      if (isStaleAction(error)) return { ok: false, reason: "stale" };
       reportEditorError(error, "publish", { issueId, sendEmail, number });
       onSaveError();
       return { ok: false, reason: "failed" };
