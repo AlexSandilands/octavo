@@ -23,7 +23,7 @@ export function StaleActionNotice({
       data-stale-action
       className={`text-warn block font-sans text-[14px] leading-snug ${className}`}
     >
-      {typed ? STALE_NOTICE_TYPED : STALE_NOTICE}{" "}
+      <span className="block">{typed ? STALE_NOTICE_TYPED : STALE_NOTICE}</span>
       <Button
         variant="secondary"
         size="compact"

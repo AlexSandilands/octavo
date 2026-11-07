@@ -54,6 +54,7 @@ export function ModerationButtons({
         <ActionButton
           onClick={() => {
             setFailed(null);
+            setStale(false);
             setConfirming(true);
           }}
           label={`Delete ${about}`}

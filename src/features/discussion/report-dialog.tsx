@@ -31,6 +31,7 @@ export function ReportDialog({
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
   const [stale, setStale] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [pending, startTransition] = useTransition();
   const doneRef = useRef<HTMLButtonElement>(null);
   const noteId = useId();
@@ -43,6 +44,7 @@ export function ReportDialog({
     }
     setError(null);
     setStale(false);
+    setFailed(false);
     startTransition(async () => {
       try {
         await reportCommentAction({
@@ -53,7 +55,7 @@ export function ReportDialog({
       } catch (err) {
         // An outdated page: only a reload files it (#403).
         if (isStaleAction(err)) setStale(true);
-        else setError("That didn’t go through. Please try again.");
+        else setFailed(true);
         return;
       }
       setSent(true);
@@ -148,6 +150,14 @@ export function ReportDialog({
                 className="text-ink border-line mt-2 w-full resize-none rounded-lg border-[1.5px] bg-white px-3.5 py-2.5 font-sans text-[16px]"
               />
               {stale && <StaleActionNotice typed className="mt-3" />}
+              {failed && (
+                <p
+                  role="alert"
+                  className="text-warn mt-3 font-sans text-[14px]"
+                >
+                  That didn’t go through. Please try again.
+                </p>
+              )}
               <div className="mt-5 flex justify-end gap-1">
                 <Button
                   variant="quiet"

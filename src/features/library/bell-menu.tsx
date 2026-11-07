@@ -124,8 +124,9 @@ export function BellMenu({
       {items.length > 0 && (
         <div className="border-line-soft border-t p-1">
           {stale && (
+            // The bell's status region announces it once; this is the sighted copy.
             <p
-              role="alert"
+              aria-hidden
               className="text-warn px-2.5 py-2 font-sans text-[14px] leading-snug"
             >
               {STALE_NOTICE}

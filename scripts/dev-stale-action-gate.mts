@@ -9,7 +9,12 @@
 // restored exactly as found (or removed if it did not exist).
 // Run: npx tsx --tsconfig scripts/tsconfig.json scripts/dev-stale-action-gate.mts <base-url> [shots-dir]
 import { mkdirSync } from "node:fs";
-import { chromium, type BrowserContext, type Page } from "playwright";
+import {
+  chromium,
+  type BrowserContext,
+  type Locator,
+  type Page,
+} from "playwright";
 import postgres from "postgres";
 import { reportsFixtures } from "./fixtures/reports-fixtures.mts";
 
@@ -131,28 +136,35 @@ try {
   for (const kind of ["stale", "control"] as const) {
     const stale = kind === "stale";
     const label = stale ? "stale (404 not-found)" : "control (500)";
-    const notice = (page: Page) => page.locator(NOTICE);
+    // Each check looks only inside its own site, so an earlier site's
+    // leftover notice or error can't satisfy it.
+    const notice = (scope: Locator) => scope.locator(NOTICE);
     const expectOutcome = async (
       page: Page,
       errors: string[],
       what: string,
+      scope: Locator,
       oldCopy: RegExp | null,
       shot: string,
     ) => {
       if (stale) {
-        await page.waitForSelector(NOTICE, { timeout: 10_000 }).catch(() => {});
+        await scope
+          .locator(NOTICE)
+          .first()
+          .waitFor({ timeout: 10_000 })
+          .catch(() => {});
         ok(
-          (await notice(page).count()) > 0,
+          (await notice(scope).count()) > 0,
           `${what}: the reload notice shows`,
         );
         ok(
-          ((await notice(page).first().textContent()) ?? "").includes(
+          ((await notice(scope).first().textContent()) ?? "").includes(
             NOTICE_TEXT,
           ),
           `${what}: in the #402 wording`,
         );
         ok(
-          (await notice(page)
+          (await notice(scope)
             .first()
             .getByRole("button", { name: "Reload page" })
             .count()) === 1,
@@ -161,10 +173,10 @@ try {
         ok(errors.length === 0, `${what}: nothing logged to the console`);
       } else {
         await page.waitForTimeout(1500);
-        ok((await notice(page).count()) === 0, `${what}: no reload notice`);
+        ok((await notice(scope).count()) === 0, `${what}: no reload notice`);
         if (oldCopy) {
           ok(
-            oldCopy.test(await page.locator("body").innerText()),
+            oldCopy.test(await scope.innerText()),
             `${what}: keeps its old failure copy`,
           );
         }
@@ -186,15 +198,18 @@ try {
         page,
         errors,
         "composer",
+        page.locator("form:has(#discussion-composer)"),
         /That didn’t go through/,
         "composer",
       );
       ok(hits() >= 1, "composer: the action was called");
       if (stale) {
         ok(
-          ((await notice(page).first().textContent()) ?? "").includes(
-            "Copy what you wrote",
-          ),
+          (
+            (await notice(page.locator("form:has(#discussion-composer)"))
+              .first()
+              .textContent()) ?? ""
+          ).includes("Copy what you wrote"),
           "composer: says to copy the text first",
         );
         ok(
@@ -216,6 +231,7 @@ try {
         page,
         errors,
         "edit",
+        page.locator("form[data-owns-escape]:not(:has(#discussion-composer))"),
         /That didn’t go through/,
         "edit",
       );
@@ -231,6 +247,7 @@ try {
         page,
         errors,
         "delete",
+        page.getByRole("dialog").last(),
         /That didn’t go through/,
         "delete",
       );
@@ -248,6 +265,7 @@ try {
         page,
         errors,
         "report",
+        page.getByRole("dialog").last(),
         /That didn’t go through/,
         "report",
       );
@@ -266,6 +284,25 @@ try {
     ok((await count("comment_reports")) === 0, "no report was filed");
     await aliceCtx.close();
 
+    if (stale) {
+      heading(`${label} — composer notice at phone width (member)`);
+      const ctx = await ctxFor(alice, 390);
+      const { page, errors } = await thread(ctx);
+      await arm(page, kind);
+      await page.fill("#discussion-composer", "A comment from an old page");
+      await page.click("form:has(#discussion-composer) button[type=submit]");
+      await page.waitForSelector(NOTICE, { timeout: 10_000 });
+      ok(errors.length === 0, "phone: nothing logged to the console");
+      ok(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+        "phone: no horizontal scroll",
+      );
+      await page.screenshot({ path: `${shots}/${kind}-composer-phone.png` });
+      await ctx.close();
+    }
+
     // ── bell ────────────────────────────────────────────────────────────────
     heading(`${label} — notification bell (member)`);
     {
@@ -280,11 +317,11 @@ try {
       await page.click('header button[aria-haspopup="menu"]');
       await page.getByRole("menuitem", { name: "Mark all read" }).click();
       if (stale) {
-        await page.waitForSelector("[role=menu] [role=alert]");
+        await page.waitForSelector("[role=menu] p");
         ok(
-          (
-            (await page.locator("[role=menu] [role=alert]").textContent()) ?? ""
-          ).includes(NOTICE_TEXT),
+          ((await page.locator("[role=menu] p").textContent()) ?? "").includes(
+            NOTICE_TEXT,
+          ),
           "mark all: the menu foot says to reload",
         );
         ok(
@@ -297,7 +334,7 @@ try {
       } else {
         await page.waitForTimeout(1500);
         ok(
-          (await page.locator("[role=menu] [role=alert]").count()) === 0,
+          (await page.locator("[role=menu] p").count()) === 0,
           "mark all: no reload notice",
         );
       }
@@ -333,6 +370,7 @@ try {
         page,
         errors,
         "hide",
+        commentCard(page, "Bob’s words"),
         /That didn’t go through/,
         "moderation-hide",
       );
@@ -346,6 +384,7 @@ try {
         page,
         errors,
         "moderation delete",
+        page.getByRole("dialog").last(),
         /That didn’t go through/,
         "moderation-delete",
       );
@@ -379,6 +418,7 @@ try {
         page,
         errors,
         "delete issue",
+        page.getByRole("dialog").last(),
         /That didn’t work/,
         "delete-issue",
       );
@@ -389,7 +429,10 @@ try {
       await page.getByRole("button", { name: "Delete selected" }).click();
       if (stale) {
         await page.waitForSelector(NOTICE, { timeout: 10_000 }).catch(() => {});
-        ok((await notice(page).count()) > 0, "bulk delete: the notice shows");
+        ok(
+          (await notice(page.locator("body")).count()) > 0,
+          "bulk delete: the notice shows",
+        );
         ok(
           (await page.getByRole("dialog").count()) === 0,
           "bulk delete: no confirm opened with “0 comments”",
@@ -424,11 +467,79 @@ try {
         page,
         errors,
         "settings",
+        page.locator("body"),
         /Couldn.t save/,
         "settings",
       );
       const [s] = await sql`select tagline from settings where id = 1`;
       ok(s?.tagline !== `${f.stamp} tagline`, "settings: nothing saved");
+      await ctx.close();
+    }
+
+    // ── admin: logo rename and sponsor dialogs ──────────────────────────────
+    heading(`${label} — logo rename, new sponsor (admin)`);
+    {
+      const ctx = await ctxFor(admin);
+      const page = await ctx.newPage();
+      const errors = watch(page);
+      await page.goto(`${base}/admin/magazine`);
+      await page
+        .getByRole("button", { name: /^Rename / })
+        .first()
+        .waitFor({ timeout: 60_000 });
+      const logoBefore = (
+        await sql`select name from logos order by created_at limit 1`
+      )[0]!.name as string;
+      await arm(page, kind);
+      await page
+        .getByRole("button", { name: /^Rename / })
+        .first()
+        .click();
+      await page.locator("#logo-name").fill(`${f.stamp} renamed`);
+      await page.getByRole("button", { name: "Save name" }).click();
+      await expectOutcome(
+        page,
+        errors,
+        "logo rename",
+        page.getByRole("dialog").last(),
+        /Could not save/,
+        "logo",
+      );
+      ok(
+        (await sql`select name from logos where name = ${`${f.stamp} renamed`}`)
+          .length === 0,
+        "logo rename: nothing saved",
+      );
+      ok(
+        (await sql`select 1 from logos where name = ${logoBefore}`).length >= 1,
+        "logo rename: the logo is as it was",
+      );
+      await page.close();
+
+      const sponsors = await ctx.newPage();
+      const sponsorErrors = watch(sponsors);
+      await sponsors.goto(`${base}/admin/sponsors`);
+      await sponsors
+        .getByRole("button", { name: /^Add (your first )?sponsor/ })
+        .first()
+        .waitFor({ timeout: 60_000 });
+      const sponsorsBefore = await count("sponsors");
+      await arm(sponsors, kind);
+      await sponsors
+        .getByRole("button", { name: /^Add (your first )?sponsor/ })
+        .first()
+        .click();
+      await sponsors.locator("#sponsor-name").fill(`${f.stamp} sponsor`);
+      await sponsors.getByRole("button", { name: "Save sponsor" }).click();
+      await expectOutcome(
+        sponsors,
+        sponsorErrors,
+        "sponsor",
+        sponsors.getByRole("dialog").last(),
+        /Could not save/,
+        "sponsor",
+      );
+      ok((await count("sponsors")) === sponsorsBefore, "sponsor: none added");
       await ctx.close();
     }
 
